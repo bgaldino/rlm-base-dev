@@ -1,0 +1,44 @@
+{
+  "orgName": "Salesforce Revenue Lifecycle Management",
+  "country": "US",
+  "template": "0TTWs000000KAo1",
+  "features": [
+    "EnableSetPasswordInApi",
+    "StateAndCountryPicklist",
+    "OrderSaveLogicEnabled"
+  ],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    },
+    "userEngagementSettings": {
+      "enableShowSalesforceUserAssist": false
+    },
+    "userManagementSettings": {
+      "enableEnhancedProfileMgmt": true,
+      "enableEnhancedPermsetMgmt": true,
+      "enableNewProfileUI": true
+    },
+    "securitySettings": {
+      "enableAdminLoginAsAnyUser": true,
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
+    },
+    "currencySettings": {
+      "enableMultiCurrency": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    }
+  }
+}

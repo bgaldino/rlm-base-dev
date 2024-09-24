@@ -1,0 +1,5 @@
+ApiName,IsActive,Name,Rank,VersionNumber
+RLM_DefaultPricingDiscoveryProcedure_V1,true,RLM Default Pricing Discovery Procedure,1,1
+RLM_DefaultPricingProcedure,true,RLM Default Pricing Procedure,1,1
+RLM_ProductDiscoveryPricingProcedure_V1,true,RLM Product Discovery Pricing Procedure,1,1
+RLM_QualificationProcedure,true,RLM Qualification Procedure,1,1

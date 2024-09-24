@@ -1,0 +1,12 @@
+CurrencyIsoCode,DataType,Description,Name,Status
+USD,Text,,Display Picklist,Active
+USD,Text,,Memory Picklist,Active
+USD,Text,,Paper Size Picklist,Active
+USD,Text,,Storage Picklist,Active
+USD,Text,,Processor Picklist,Active
+USD,Text,,Printer Picklist,Active
+USD,Text,,Graphics Picklist,Active
+USD,Text,,Training Type Picklist,Active
+USD,Text,,Display Size Picklist,Active
+USD,Text,,Support Level Picklist,Active
+USD,Text,Subscription Type,Subscription Type,Active

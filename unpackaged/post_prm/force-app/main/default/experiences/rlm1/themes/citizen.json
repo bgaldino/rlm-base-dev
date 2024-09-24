@@ -1,0 +1,471 @@
+{
+  "activeBrandingSetId" : "b8093c01-131e-4c70-9ad7-65dd51eaeb91",
+  "customCSS" : "",
+  "developerName" : "citizen",
+  "id" : "46a902a4-ea17-4ed3-a5f9-004f0ecdbaa6",
+  "label" : "Citizen",
+  "layouts" : {
+    "Home" : "348c0001-c057-4d26-a8be-5eff7638c04d",
+    "Inner" : "6fef96a5-953a-49b8-b8d8-e69534506c4b",
+    "Login" : "cb9bd7a3-841d-47e9-83aa-b062ec505def",
+    "ServiceNotAvailable" : "dc2959b5-319f-4904-95c9-17e12f3495de"
+  },
+  "type" : "theme",
+  "views" : [ {
+    "componentAttributes" : { },
+    "componentName" : "salesforceIdentity:loginBody2",
+    "id" : "cb9bd7a3-841d-47e9-83aa-b062ec505def",
+    "label" : "Login",
+    "regions" : [ {
+      "id" : "43bea396-6b2b-4d2f-9955-53e5683a7f0a",
+      "regionName" : "header",
+      "type" : "region"
+    }, {
+      "id" : "29397b9d-1b12-4efc-9389-abc859d1d91f",
+      "regionName" : "content",
+      "type" : "region"
+    }, {
+      "id" : "a9588614-7836-44eb-b707-fefde6b0001a",
+      "regionName" : "footer",
+      "type" : "region"
+    } ],
+    "type" : "view"
+  }, {
+    "componentAttributes" : {
+      "fixedPageWidth" : 1440,
+      "headerBgColor" : "rgba(0, 71, 100, 0.8)",
+      "isHeaderPinned" : false,
+      "isHeroUnderHeader" : false,
+      "isPageWidthFixed" : true,
+      "showHeader" : true,
+      "showHero" : false
+    },
+    "componentName" : "siteforce:themeLayoutStarter",
+    "id" : "6fef96a5-953a-49b8-b8d8-e69534506c4b",
+    "label" : "Default",
+    "regions" : [ {
+      "components" : [ {
+        "componentAttributes" : {
+          "background" : "background: #262626 url(/sfsites/assets/themes/citizen-background.jpg) top center /cover",
+          "backgroundOverlayColor" : "rgba(0, 0, 0, 0.3)",
+          "borderBottomColor" : "rgba(0, 0, 0, 0.5)",
+          "centerAlignLogo" : false,
+          "collapseNavMenu" : false,
+          "containHeader" : true,
+          "containHeaderWidth" : 1440,
+          "dropdownBackgroundColor" : "#FFFFFF",
+          "dropdownBackgroundHoverColor" : "",
+          "dropdownBorderColor" : "#F0F0F0",
+          "dropdownTextColor" : "",
+          "dropdownTextHoverColor" : "",
+          "headerHeight" : 24,
+          "linkActiveBorderColor" : "",
+          "linkColor" : "#FFFFFF",
+          "linkHoverColor" : "rgba(255, 255, 255, 0.9)",
+          "linkTextShadowColor" : "rgba(0, 0, 0, 0.5)",
+          "logoWidth" : 150,
+          "searchStyle" : "collapsed",
+          "showAppLauncher" : false,
+          "showNavMenuOnLeft" : true,
+          "showNotifications" : true,
+          "showProfileMenu" : true,
+          "showSearch" : true
+        },
+        "componentName" : "forceCommunity:themeHeaderCompact",
+        "id" : "113f4c64-d483-448d-ad6a-c77b833ee8e1",
+        "regions" : [ {
+          "components" : [ {
+            "componentAttributes" : {
+              "buttonBackgroundColor" : "",
+              "buttonBackgroundHoverColor" : "",
+              "buttonBorderColor" : "rgba(240, 240, 240, 0)",
+              "buttonBorderRadius" : 20,
+              "buttonText" : "Log in",
+              "buttonTextColor" : "",
+              "buttonTextHoverColor" : "",
+              "customizableUserProfileMenuEditor" : "RLM_Default_User_Profile_Menu",
+              "menuStyleSettings" : "{\"selectedMenuStyleSetting\":\"iconOnly\",\"selectedIconSetting\":\"userAvatar\",\"includeCompanyName\":false,\"selectedTextOrientationSetting\":\"right\"}"
+            },
+            "componentName" : "forceCommunity:customizableUserProfileMenu",
+            "id" : "be553acf-8beb-4147-a499-9204791511cd",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "6eb12828-9478-48c5-a6c4-3050022c17b0",
+          "regionName" : "themeHeaderProfileMenu",
+          "type" : "region"
+        }, {
+          "components" : [ {
+            "componentAttributes" : {
+              "backgroundColor" : "#FFFFFF",
+              "borderColor" : "rgba(0, 0, 0, 0.8)",
+              "borderRadius" : 20,
+              "borderStyle" : "outline",
+              "buttonColor" : "",
+              "buttonHoverColor" : "",
+              "crossObjectTypeaheadApiNames" : "",
+              "iconColor" : "rgba(0, 0, 0, 0.8)",
+              "placeholderText" : "Search...",
+              "placeholderTextColor" : "rgba(0, 0, 0, 0.6)",
+              "showInputFocusOutline" : true,
+              "showSearchButton" : false,
+              "textColor" : "rgba(0, 0, 0, 0.8)",
+              "typeaheadResultMax" : 5,
+              "useTypeahead" : true
+            },
+            "componentName" : "forceCommunity:themeSearch",
+            "id" : "c2757ca2-390f-4e17-81b8-abbe86355808",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "d8fad44d-ee28-43a3-bdc4-49654c9fcea4",
+          "regionName" : "search",
+          "type" : "region"
+        }, {
+          "components" : [ {
+            "componentAttributes" : {
+              "navAlignment" : "right",
+              "navItemThreshold" : 5,
+              "navigationMenuEditorRefresh" : "RLM_Default_Navigation"
+            },
+            "componentName" : "forceCommunity:themeNav",
+            "id" : "c90d06b7-877c-4b30-a5e5-fa420744bffe",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "97b358d8-fd1c-49e7-8335-75dc21638ba0",
+          "regionName" : "nav",
+          "type" : "region"
+        }, {
+          "id" : "1755da91-9200-4599-a5b0-eaf19fb20dcf",
+          "regionName" : "cartIcon",
+          "type" : "region"
+        } ],
+        "renditionMap" : { },
+        "type" : "component"
+      } ],
+      "id" : "a8722597-b014-4345-b101-fa787992a661",
+      "regionName" : "themeHeader",
+      "type" : "region"
+    }, {
+      "components" : [ {
+        "componentAttributes" : {
+          "bgImage" : "background: #262626",
+          "bgOverlayColor" : "rgba(0, 0, 0, 0.3)",
+          "captionText" : "Summer Beach, California",
+          "captionTextColor" : "#FFFFFF",
+          "captionTextShadowColor" : "rgba(0, 0, 0, 0.7)",
+          "contentAlignment" : "center",
+          "contentWidth" : 70,
+          "ctaBtnOneBgColor" : "",
+          "ctaBtnOneBgHoverColor" : "",
+          "ctaBtnOneBorderColor" : "rgba(255, 255, 255, 0)",
+          "ctaBtnOneOpenNewTab" : false,
+          "ctaBtnOneText" : "Make Reservation",
+          "ctaBtnOneTextColor" : "",
+          "ctaBtnOneTextHoverColor" : "",
+          "ctaBtnOneUrl" : "",
+          "ctaBtnRadius" : 2,
+          "ctaBtnTwoBgColor" : "rgba(255, 255, 255, 0)",
+          "ctaBtnTwoBgHoverColor" : "rgba(255, 255, 255, 0.2)",
+          "ctaBtnTwoBorderColor" : "#FFFFFF",
+          "ctaBtnTwoOpenNewTab" : false,
+          "ctaBtnTwoText" : "",
+          "ctaBtnTwoTextColor" : "#FFFFFF",
+          "ctaBtnTwoTextHoverColor" : "#FFFFFF",
+          "ctaBtnTwoUrl" : "",
+          "ctaShowBtnOne" : true,
+          "ctaShowBtnTwo" : false,
+          "fixedHeroWidth" : true,
+          "heroHeight" : 300,
+          "heroWidth" : 1440,
+          "showCaption" : true,
+          "showSubtitle" : false,
+          "showTitle" : true,
+          "subtitleText" : "",
+          "subtitleTextColor" : "#FFFFFF",
+          "subtitleTextShadowColor" : "rgba(0, 0, 0, 0.7)",
+          "titleText" : "Welcome to Paradise.",
+          "titleTextColor" : "#FFFFFF",
+          "titleTextShadowColor" : "rgba(0, 0, 0, 0.7)",
+          "type" : "callToAction"
+        },
+        "componentName" : "forceCommunity:themeHeroStarter",
+        "id" : "eb017260-43fa-4810-bfb0-898334ca23c4",
+        "regions" : [ {
+          "components" : [ {
+            "componentAttributes" : {
+              "backgroundColor" : "rgba(255, 255, 255, 0)",
+              "borderColor" : "#FFFFFF",
+              "borderRadius" : 25,
+              "borderStyle" : "bottomborder",
+              "buttonColor" : "",
+              "buttonHoverColor" : "",
+              "crossObjectTypeaheadApiNames" : "",
+              "iconColor" : "#FFFFFF",
+              "placeholderText" : "Ask a question...",
+              "placeholderTextColor" : "rgba(255, 255, 255, 0.8)",
+              "publicDropdownBackgroundColor" : "#FFFFFF",
+              "publicDropdownBackgroundHoverColor" : "",
+              "publicDropdownBorderColor" : "#F0F0F0",
+              "publicDropdownTextColor" : "",
+              "publicDropdownTextHoverColor" : "",
+              "showInputFocusOutline" : true,
+              "showSearchButton" : false,
+              "textColor" : "#FFFFFF",
+              "typeaheadResultMax" : 6,
+              "useTypeahead" : true
+            },
+            "componentName" : "forceCommunity:themeSearchHero",
+            "id" : "a8875a6a-02b7-4059-80d3-863119e2ae5b",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "1ea6aefd-527c-4fc6-98e5-413f615b7047",
+          "regionName" : "search",
+          "type" : "region"
+        } ],
+        "renditionMap" : { },
+        "type" : "component"
+      } ],
+      "id" : "55026c1b-c654-4cf5-b395-ba7f8704ab0f",
+      "regionName" : "themeHero",
+      "type" : "region"
+    }, {
+      "id" : "a677859b-8daf-457a-8a97-ccdff3d53ceb",
+      "regionName" : "themeFooter",
+      "type" : "region"
+    } ],
+    "type" : "view"
+  }, {
+    "componentAttributes" : {
+      "fixedPageWidth" : 1440,
+      "headerBgColor" : "rgba(0, 71, 100, 0.8)",
+      "isHeaderPinned" : false,
+      "isHeroUnderHeader" : true,
+      "isPageWidthFixed" : true,
+      "showHeader" : true,
+      "showHero" : true
+    },
+    "componentName" : "siteforce:themeLayoutStarter",
+    "id" : "348c0001-c057-4d26-a8be-5eff7638c04d",
+    "label" : "Home",
+    "regions" : [ {
+      "components" : [ {
+        "componentAttributes" : {
+          "background" : "background: rgba(38,38,38,0)",
+          "backgroundOverlayColor" : "rgba(0, 0, 0, 0.3)",
+          "borderBottomColor" : "rgba(0, 0, 0, 0)",
+          "centerAlignLogo" : false,
+          "collapseNavMenu" : false,
+          "containHeader" : true,
+          "containHeaderWidth" : 1440,
+          "dropdownBackgroundColor" : "#FFFFFF",
+          "dropdownBackgroundHoverColor" : "",
+          "dropdownBorderColor" : "#F0F0F0",
+          "dropdownTextColor" : "",
+          "dropdownTextHoverColor" : "",
+          "headerHeight" : 24,
+          "linkActiveBorderColor" : "",
+          "linkColor" : "#FFFFFF",
+          "linkHoverColor" : "rgba(255, 255, 255, 0.9)",
+          "linkTextShadowColor" : "rgba(0, 0, 0, 0.5)",
+          "logoWidth" : 150,
+          "searchStyle" : "collapsed",
+          "showAppLauncher" : false,
+          "showNavMenuOnLeft" : true,
+          "showNotifications" : true,
+          "showProfileMenu" : true,
+          "showSearch" : true
+        },
+        "componentName" : "forceCommunity:themeHeaderCompact",
+        "id" : "29a7e1be-78ff-4839-afcc-0efe40e87985",
+        "regions" : [ {
+          "components" : [ {
+            "componentAttributes" : {
+              "buttonBackgroundColor" : "",
+              "buttonBackgroundHoverColor" : "",
+              "buttonBorderColor" : "rgba(240, 240, 240, 0)",
+              "buttonBorderRadius" : 20,
+              "buttonText" : "Log in",
+              "buttonTextColor" : "",
+              "buttonTextHoverColor" : "",
+              "customizableUserProfileMenuEditor" : "RLM_Default_User_Profile_Menu",
+              "menuStyleSettings" : "{\"selectedMenuStyleSetting\":\"iconOnly\",\"selectedIconSetting\":\"userAvatar\",\"includeCompanyName\":false,\"selectedTextOrientationSetting\":\"right\"}"
+            },
+            "componentName" : "forceCommunity:customizableUserProfileMenu",
+            "id" : "f8236418-d446-44a8-a3ba-e732d302d435",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "1c8bacba-7c63-4af7-9e7b-d5b076454700",
+          "regionName" : "themeHeaderProfileMenu",
+          "type" : "region"
+        }, {
+          "components" : [ {
+            "componentAttributes" : {
+              "backgroundColor" : "#FFFFFF",
+              "borderColor" : "rgba(0, 0, 0, 0.8)",
+              "borderRadius" : 20,
+              "borderStyle" : "outline",
+              "buttonColor" : "",
+              "buttonHoverColor" : "",
+              "crossObjectTypeaheadApiNames" : "",
+              "iconColor" : "rgba(0, 0, 0, 0.8)",
+              "placeholderText" : "Search...",
+              "placeholderTextColor" : "rgba(0, 0, 0, 0.6)",
+              "showInputFocusOutline" : true,
+              "showSearchButton" : false,
+              "textColor" : "rgba(0, 0, 0, 0.8)",
+              "typeaheadResultMax" : 5,
+              "useTypeahead" : true
+            },
+            "componentName" : "forceCommunity:themeSearch",
+            "id" : "c7d01f81-bdc6-4591-bb35-ae1fb22bc6ef",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "fcfd0f55-0f41-4622-a7b3-06284cc5d585",
+          "regionName" : "search",
+          "type" : "region"
+        }, {
+          "components" : [ {
+            "componentAttributes" : {
+              "navAlignment" : "right",
+              "navItemThreshold" : 5,
+              "navigationMenuEditorRefresh" : "RLM_Default_Navigation"
+            },
+            "componentName" : "forceCommunity:themeNav",
+            "id" : "fa10f8bc-653a-4016-9602-39f7e661251b",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "b54865f6-592c-4cff-abd6-86211baf501e",
+          "regionName" : "nav",
+          "type" : "region"
+        }, {
+          "id" : "e1fa2a65-a10b-4d5a-a72c-9520b7bfab83",
+          "regionName" : "cartIcon",
+          "type" : "region"
+        } ],
+        "renditionMap" : { },
+        "type" : "component"
+      } ],
+      "id" : "be295dbe-7a02-41d1-a2c6-1e51da402f97",
+      "regionName" : "themeHeader",
+      "type" : "region"
+    }, {
+      "components" : [ {
+        "componentAttributes" : {
+          "bgImage" : "background: #004764 url(/sfsites/assets/themes/citizen-background.jpg) top center /cover",
+          "bgOverlayColor" : "rgba(0, 0, 0, 0.3)",
+          "captionText" : "Summer Beach, California",
+          "captionTextColor" : "#FFFFFF",
+          "captionTextShadowColor" : "rgba(0, 0, 0, 0.7)",
+          "contentAlignment" : "center",
+          "contentWidth" : 70,
+          "ctaBtnOneBgColor" : "",
+          "ctaBtnOneBgHoverColor" : "",
+          "ctaBtnOneBorderColor" : "rgba(255, 255, 255, 0)",
+          "ctaBtnOneOpenNewTab" : false,
+          "ctaBtnOneText" : "Make Reservation",
+          "ctaBtnOneTextColor" : "",
+          "ctaBtnOneTextHoverColor" : "",
+          "ctaBtnOneUrl" : "",
+          "ctaBtnRadius" : 2,
+          "ctaBtnTwoBgColor" : "rgba(255, 255, 255, 0)",
+          "ctaBtnTwoBgHoverColor" : "rgba(255, 255, 255, 0.2)",
+          "ctaBtnTwoBorderColor" : "#FFFFFF",
+          "ctaBtnTwoOpenNewTab" : false,
+          "ctaBtnTwoText" : "",
+          "ctaBtnTwoTextColor" : "#FFFFFF",
+          "ctaBtnTwoTextHoverColor" : "#FFFFFF",
+          "ctaBtnTwoUrl" : "",
+          "ctaShowBtnOne" : true,
+          "ctaShowBtnTwo" : false,
+          "fixedHeroWidth" : true,
+          "heroHeight" : 300,
+          "heroWidth" : 1440,
+          "showCaption" : true,
+          "showSubtitle" : false,
+          "showTitle" : true,
+          "subtitleText" : "",
+          "subtitleTextColor" : "#FFFFFF",
+          "subtitleTextShadowColor" : "rgba(0, 0, 0, 0.7)",
+          "titleText" : "Welcome to Paradise.",
+          "titleTextColor" : "#FFFFFF",
+          "titleTextShadowColor" : "rgba(0, 0, 0, 0.7)",
+          "type" : "callToAction"
+        },
+        "componentName" : "forceCommunity:themeHeroStarter",
+        "id" : "2324469f-e061-4a92-91e1-86d9ec4e3ead",
+        "regions" : [ {
+          "components" : [ {
+            "componentAttributes" : {
+              "backgroundColor" : "rgba(255, 255, 255, 0)",
+              "borderColor" : "#FFFFFF",
+              "borderRadius" : 25,
+              "borderStyle" : "bottomborder",
+              "buttonColor" : "",
+              "buttonHoverColor" : "",
+              "crossObjectTypeaheadApiNames" : "",
+              "iconColor" : "#FFFFFF",
+              "placeholderText" : "Ask a question...",
+              "placeholderTextColor" : "rgba(255, 255, 255, 0.8)",
+              "publicDropdownBackgroundColor" : "#FFFFFF",
+              "publicDropdownBackgroundHoverColor" : "",
+              "publicDropdownBorderColor" : "#F0F0F0",
+              "publicDropdownTextColor" : "",
+              "publicDropdownTextHoverColor" : "",
+              "showInputFocusOutline" : true,
+              "showSearchButton" : false,
+              "textColor" : "#FFFFFF",
+              "typeaheadResultMax" : 6,
+              "useTypeahead" : true
+            },
+            "componentName" : "forceCommunity:themeSearchHero",
+            "id" : "14f4f380-d9f7-4a19-a265-ba7e1061c849",
+            "renditionMap" : { },
+            "type" : "component"
+          } ],
+          "id" : "e7aed682-dc05-40da-9450-61fa3c4f4bcb",
+          "regionName" : "search",
+          "type" : "region"
+        } ],
+        "renditionMap" : { },
+        "type" : "component"
+      } ],
+      "id" : "db8c8ec0-bedc-4879-b362-b7d5e0318ae1",
+      "regionName" : "themeHero",
+      "type" : "region"
+    }, {
+      "id" : "4f429e1b-366a-4994-80f1-1a42119f2089",
+      "regionName" : "themeFooter",
+      "type" : "region"
+    } ],
+    "type" : "view"
+  }, {
+    "componentAttributes" : {
+      "fixedPageWidth" : 1440,
+      "headerBgColor" : "rgba(0, 0, 0, 0)",
+      "isHeaderPinned" : false,
+      "isHeroUnderHeader" : false,
+      "isPageWidthFixed" : true,
+      "showHeader" : true,
+      "showHero" : true
+    },
+    "componentName" : "siteforce:themeLayoutStarter",
+    "id" : "dc2959b5-319f-4904-95c9-17e12f3495de",
+    "label" : "ServiceNotAvailable",
+    "regions" : [ {
+      "id" : "d05cc3b7-81f3-4383-ac32-dc318c8b5002",
+      "regionName" : "themeHeader",
+      "type" : "region"
+    }, {
+      "id" : "ffc2f62a-f38c-4980-952e-0cc8bb7de212",
+      "regionName" : "themeFooter",
+      "type" : "region"
+    } ],
+    "type" : "view"
+  } ]
+}

@@ -1,0 +1,2 @@
+Code,Name,Status,UsageAccumulationMethod,UsageAccumulationPeriod
+BillMonth,Bill Total Monthly,Active,Sum,Monthly

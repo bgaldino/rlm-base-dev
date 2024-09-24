@@ -1,0 +1,21 @@
+{
+    "records": [
+        {
+            "attributes": {
+                "type": "TaxTreatment",
+                "referenceId": "TaxTreatmentRef1"
+            },
+            "Name": "Quickstart No Tax Treatment",
+            "Status": "Draft"
+        },
+        {
+            "attributes": {
+                "type": "TaxTreatment",
+                "referenceId": "TaxTreatmentRef2"
+            },
+            "Name": "Quickstart Default Tax Treatment",
+            "Status": "Draft",
+            "TaxEngineId": "4wADR0000008OIA2A2",
+            "IsTaxable": "true"        }
+    ]
+}

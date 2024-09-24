@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IntegrationProviderDef xmlns="http://soap.sforce.com/2006/04/metadata">
+    <active>true</active>
+    <apexClass>RLM_DFOTenantProvisioningCallout</apexClass>
+    <developerName>RLM_DFOTenantProvisioningCallout</developerName>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <developerName>inputOrderId</developerName>
+        <label>inputOrderId</label>
+        <required>false</required>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <providerLabel>RLM_DFOTenantProvisioningCallout</providerLabel>
+    <type>Apex</type>
+</IntegrationProviderDef>

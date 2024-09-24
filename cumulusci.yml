@@ -1,0 +1,827 @@
+minimum_cumulusci_version: "3.84.3"
+orgs:
+  scratch:
+    beta:
+      config_file: orgs/beta.json
+      days: 30
+    dev_preview:
+      config_file: orgs/dev_preview.json
+      days: 30
+    dev_previous:
+      config_file: orgs/dev_previous.json
+      days: 30
+    tfid:
+      config_file: orgs/tfid.json
+      days: 30
+    tfid-cdo:
+      config_file: orgs/tfid-cdo.json
+      days: 30
+    tfid-dev:
+      config_file: orgs/tfid-dev.json
+      days: 30
+
+project:
+  name: rlm-base
+  package:
+    name: rlm-base
+    api_version: "62.0"
+  git:
+    default_branch: "main"
+  source_format: sfdx
+
+  custom:
+    mydomain: &mydomain quantumbit59.my.salesforce.com
+    user_alias: &user_alias bgaldino@252.rlm.qb.t3
+    prm: true
+    tso: false
+    qb: true
+    qbdata: true
+    q3data: false
+    calmdelete: true
+    tax: true
+    billing: true
+    clm: true
+    dro: true
+    rating: true
+    ramps: true
+    einstein: true
+    product_dataset: qb
+
+    rlm_psl_api_names: &rlm_psl_api_names
+      - RevenueLifecycleManagementUserPsl
+      - RevLifecycleMgmtBillingPsl
+      - OmniStudioDesigner
+      - CorePricingDesignTime
+      - BREDesigner
+      - DocGenDesignerPsl
+      - ClauseManagementUser
+      - ProductCatalogManagementAdministratorPsl
+      - ContractManagementUser
+      - ContractsAIUserPsl
+      - ProductDiscoveryUserPsl
+      - BRERuntime
+      - IndustriesConfiguratorPsl
+      - ObligationManagementUser
+      - Microsoft365WordPsl
+      - DynamicRevenueOrchestratorUserPsl
+      - DocumentBuilderUserPsl
+      - RatingRunTimePsl
+      - RatingDesignTimePsl
+      - DataProcessingEnginePsl
+
+    rlm_ai_psl_api_names: &rlm_ai_psl_api_names
+      - AIAcceleratorPsl
+      - EinsteinAnalyticsPlusPsl
+      #- EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinGPTCopilotPsl
+      - EinsteinGPTPromptTemplatesPsl
+      - ScoringFrameworkPsl
+      - EinsteinGPTSalesEmailsPsl
+      - EinsteinGPTSalesSummariesPsl
+      - EinsteinSalesGenerativeInsightsPsl
+      - EinsteinGPTGetProductPricingPsl
+      - ERIPlatformBasic
+      #- EinsteinGPTGroundingStructuredDataPsl
+      - EinsteinGPTCallExplorerPsl
+      - EinsteinGPTSalesMiningPsl
+      - EinsteinGPTSalesCallSummariesPsl
+
+    rlm_ai_ps_api_names: &rlm_ai_ps_api_names
+      - EinsteinGPTPromptTemplateManager
+      - EinsteinGPTSalesSummaries
+      - EinsteinGPTSalesEmails
+      - EinsteinGPTSalesCallSummaries
+      - EinsteinGPTGetProductPricing
+      - SalesCloudEinsteinAll
+      - ERIBasic
+
+    rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
+      - IndustriesConfiguratorPlatformApi
+      - ProductConfigurationRulesDesigner
+      - ProductCatalogManagementAdministrator
+      - ProductCatalogManagementViewer
+
+    rlm_clm_psl_api_names: &rlm_clm_psl_api_names
+      - ClauseManagementUser
+      - CLMAnalyticsPsl
+      - ContractManagementUser
+      - ContractsAIUserPsl
+      - DisclosureAndComplianceHubUserPsl
+      - DocGenDesignerPsl
+      - DocumentBuilderUserPsl
+      - Microsoft365WordPsl
+      - NLPServicePsl
+      - ObligationManagementUser
+      - OmniStudioDesigner
+      - InsightsCGAnalyticsPsl
+      - ScoringFrameworkPsl
+
+    rlm_psg_api_names: &rlm_psg_api_names
+      - RLM_CLM
+      - RLM_DRO
+      - RLM_NGP
+      - RLM_PD
+      - RLM_PSL
+      - RLM_BLNG
+
+    ps_quantumbit: &ps_quantumbit
+      - RLM_QuantumBit
+      - DocumentBuilderUser
+      - RevLifecycleManagementUsageDesignUser
+
+    ps_calmdelete: &ps_calmdelete
+      - RLM_CALM_SObject_Access
+
+    sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
+    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
+
+    product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
+    product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
+
+    cart_context_name: &cart_context_name RLM_CartContext
+    cart_context_default_mapping: &cart_context_default_mapping CartOperation
+
+    billing_context_name: &billing_context_name RLM_BillingContext
+    billing_context_default_mapping: &billing_context_default_mapping BSGEntitiesMapping
+
+    fulfillment_asset_context_name: &fulfillment_asset_context_name RLM_FulfillmentAssetContext
+    fulfillment_asset_context_default_mapping: &fulfillment_asset_context_default_mapping FulfillAssetEntitiesMapping
+
+    contracts_context_name: &contracts_context_name RLM_ContractsContext
+    contracts_context_default_mapping: &contracts_context_default_mapping ContractsMapping
+
+    collection_plan_segment_context_name: &collection_plan_segment_context_name RLM_CollectionPlanSegmentCtx
+    collection_plan_segment_context_default_mapping: &collection_plan_segment_context_default_mapping CollectionPlanContextMapping
+
+    rate_management_context_name: &rate_management_context_name RLM_RateManagementContext
+    rate_management_context_default_mapping: &rate_management_context_default_mapping DefaultUsageMapping
+
+    rating_discovery_context_name: &rating_discovery_context_name RLM_RatingDiscoveryContext
+    rating_discovery_context_default_mapping: &rating_discovery_context_default_mapping CatalogMapping
+
+    sleep_default: &sleep_default 20
+
+tasks:
+  robot:
+    options:
+      suites: robot/rlm-base/tests
+      options:
+        outputdir: robot/rlm-base/results
+
+  robot_testdoc:
+    options:
+      path: robot/rlm-base/tests
+      output: robot/rlm-base/doc/rlm-base_tests.html
+
+  run_tests:
+    options:
+      required_org_code_coverage_percent: 75
+
+  sync_pricing_data:
+    description: Sync Pricing Data
+    class_path: tasks.rlm_sync_pricing_data.SyncPricingData
+    group: Revenue Lifecycle Management
+
+  extend_stdctx_contracts:
+    description: Extend Standard Contracts Context Definition
+    class_path: tasks.extend_stdctx_contracts.ExtendStandardContextContracts
+    group: Revenue Lifecycle Management
+
+  extend_stdctx_contracts_extraction:
+    description: Extend Standard Contracts Extraction Context Definition
+    class_path: tasks.extend_stdctx_contracts_extraction.ExtendStandardContextContractsExtraction
+    group: Revenue Lifecycle Management
+
+  extend_context_sales_transaction:
+    group: Revenue Lifecycle Management
+    description: Extend Standard Sales Transaction Context
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *sales_transaction_context_name
+      description: "Extension of Standard Sales Transaction Context Definition"
+      developerName: *sales_transaction_context_name
+      baseReference: "SalesTransactionContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *sales_transaction_context_default_mapping
+
+  extend_context_product_discovery:
+    description: Extend Standard Product Discovery Context
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *product_discovery_context_name
+      description: "Extension of Standard Product Discovery Context Definition"
+      developerName: *product_discovery_context_name
+      baseReference: "ProductDiscoveryContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *product_discovery_context_default_mapping
+
+  extend_context_cart:
+    description: Extend Standard Cart Context
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *cart_context_name
+      description: "Extension of Standard Cart Context Definition"
+      developerName: *cart_context_name
+      baseReference: "CartContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *cart_context_default_mapping  
+
+  extend_context_billing:
+    description: Extend Standard Billing Context
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *billing_context_name
+      description: "Extension of Standard Billing Context Definition"
+      developerName: *billing_context_name
+      baseReference: "BillingContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *billing_context_default_mapping
+
+  extend_context_fulfillment_asset:
+    description: Extend Standard Fulfillment Asset Context Definition
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *fulfillment_asset_context_name
+      description: "Extension of Standard Fulfillment Asset Context Definition"
+      developerName: *fulfillment_asset_context_name
+      baseReference: "FulfillmentAssetContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *fulfillment_asset_context_default_mapping
+
+  extend_context_collection_plan_segment:
+    description: Extend Standard Collection Plan Segment Context Definition
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *collection_plan_segment_context_name
+      description: "Extension of Standard Collection Plan Segment Context Definition"
+      developerName: *collection_plan_segment_context_name
+      baseReference: "CollectionPlanSegmentContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *collection_plan_segment_context_default_mapping
+
+  extend_context_rate_management:
+    description: Extend Standard Rate Management Context Definition
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *rate_management_context_name
+      description: "Extension of Standard Rate Management Context Definition"
+      developerName: *rate_management_context_name
+      baseReference: "RateManagementContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *rate_management_context_default_mapping
+
+  extend_context_rating_discovery:
+    description: Extend Standard Rating Discovery Context Definition
+    group: Revenue Lifecycle Management
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *rating_discovery_context_name
+      description: "Extension of Standard Rating Discovery Context Definition"
+      developerName: *rating_discovery_context_name
+      baseReference: "RatingDiscoveryContext__stdctx"
+      startDate: "2023-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *rating_discovery_context_default_mapping
+
+  deploy_context_definitions:
+    description: Context Definitions need to be deployed and activated before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default/contextDefinitions
+
+  deploy_permissions:
+    description: Runs deployment against the permission set group file for Revenue Cloud.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default/permissionsetgroups
+
+  deploy_decision_tables:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default/decisionTables
+
+  deploy_expression_sets:
+    description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default/expressionSetDefinition
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__ATTRIBUTEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Volume Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__TIERPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Tier Based Adjustment' LIMIT 1
+                api: rest
+
+  activate_and_deploy_expression_sets:
+    description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default/expressionSetDefinition
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //ExpressionSetDefinition/versions/status[text()="Draft"]
+                replace: Active
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__ATTRIBUTEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Volume Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__TIERPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Tier Based Adjustment' LIMIT 1
+                api: rest
+
+  deploy_full:
+    description: Deploy all metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__ATTRIBUTEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Volume Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__TIERPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Tier Based Adjustment' LIMIT 1
+                api: rest
+
+  deploy_org_settings:
+    description: Org Settings need to be deployed and activated before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: force-app/main/default/settings
+
+  createPartnerCentral:
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    options:
+      name: "rlm"
+      description: "RLM Partner Digital Experience"
+      template: "Build Your Own"
+      skip_existing: true
+
+  create_price_adjustment_schedules:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas"
+
+  create_price_adjustment_schedules_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  insert_quantumbit_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency"
+
+  insert_quantumbit_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  insert_q3_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency"
+
+  insert_q3_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  insert_dro_data_scratch:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro_scratch"
+
+  insert_dro_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  insert_tax_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax"
+
+  insert_tax_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  insert_billing_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
+
+  insert_billing_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  insert_scratch_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/scratch_data"
+  
+  activate_decision_tables:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/decision_tables_active"
+
+  activate_expression_sets:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active"
+
+  activate_expression_sets_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  deactivate_expression_sets:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive"
+
+  deactivate_expression_sets_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@252.rlm.qb.t3 -c"
+      extra: *mydomain
+
+  deploy_sharing_rules:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_sharing
+
+  deploy_quantumbit:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_quantumbit
+
+  deploy_post_scratch:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_scratch
+
+  deploy_post_prm:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_prm
+
+  deploy_post_docgen:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_docgen
+
+  create_rule_library:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/createRuleLibrary.apex
+
+  create_docgen_library:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/createDocgenTemplateLibrary.apex
+
+  create_dro_rule_library:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/createDRORuleLibrary.apex
+
+  create_tax_engine:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/createTaxEngine.apex
+
+  activate_default_payment_term:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateDefaultPaymentTerm.apex
+
+  activate_billing_records:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateBillingRecords.apex
+
+  activate_tax_records:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateTaxRecords.apex
+
+  activate_price_adjustment_schedules:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activatePriceAdjustmentSchedules.apex
+
+flows:
+  prepare_rlm_org:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        flow: prepare_core
+      2:
+        flow: prepare_expression_sets
+      3:
+        task: createPartnerCentral
+        when: project_config.project__custom__prm == true
+      4:
+        task: activate_decision_tables
+        when: org_config.scratch
+      5:
+        task: deploy_expression_sets
+        when: org_config.scratch
+      6:
+        task: deploy_full
+      7:
+        flow: prepare_product_data
+      8:
+        task: activate_price_adjustment_schedules
+        when: org_config.scratch
+      9:
+        flow: prepare_scratch
+      10:
+        flow: prepare_quantumbit
+      11:
+        flow: prepare_dro
+      12:
+        flow: prepare_docgen
+      13:
+        flow: prepare_tax
+      14:
+        flow: prepare_billing
+      15:
+        task: sync_pricing_data
+      16:
+        task: activate_and_deploy_expression_sets
+         
+  prepare_core:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: assign_permission_set_licenses
+        options:
+          api_names: *rlm_psl_api_names
+      2:
+        task: deploy_pre
+      3:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__clm == true
+        options:
+          api_names: *rlm_clm_psl_api_names
+      4:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__einstein == true
+        options:
+          api_names: *rlm_ai_psl_api_names  
+      5:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      6:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      7:
+        task: assign_permission_set_groups
+        options:
+          api_names: *rlm_psg_api_names
+      8:
+        task: assign_permission_sets
+        options:
+          api_names: *rlm_pcm_ps_api_names
+      9:
+        flow: extend_context_definitions
+      10:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      11:
+        task: create_price_adjustment_schedules
+        when: org_config.scratch
+      12:
+        task: create_price_adjustment_schedules_prod
+        when: project_config.project__custom__tso == true
+      13:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      14:
+        task: create_rule_library
+      15:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      16:
+        task: create_dro_rule_library
+        when: project_config.project__custom__dro == true
+      17:
+        task: assign_permission_sets
+        when: project_config.project__custom__einstein == true
+        options:
+          api_names: *rlm_ai_ps_api_names
+
+  extend_context_definitions:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: extend_context_sales_transaction
+      2:
+        task: extend_context_product_discovery
+      3:
+        task: extend_context_cart
+      4:
+        task: extend_context_billing
+        when: project_config.project__custom__billing == true
+      5:
+        task: extend_context_collection_plan_segment
+        when: project_config.project__custom__billing == true
+      6:
+        task: extend_context_fulfillment_asset
+        when: project_config.project__custom__dro == true
+      7:
+        task: extend_stdctx_contracts
+        when: project_config.project__custom__clm == true
+      8:
+        task: extend_stdctx_contracts_extraction
+        when: project_config.project__custom__clm == true
+      9:
+        task: extend_context_rate_management
+        when: project_config.project__custom__rating == true
+      10:
+        task: extend_context_rating_discovery
+        when: project_config.project__custom__rating == true
+
+  prepare_expression_sets:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deactivate_expression_sets
+        when: org_config.scratch
+      2:
+        task: deactivate_expression_sets_prod
+        when: project_config.project__custom__tso == true
+  
+  prepare_product_data:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_quantumbit_data
+        when: org_config.scratch and project_config.project__custom__qbdata == true
+      2:
+        task: insert_quantumbit_data_prod
+        when: project_config.project__custom__tso == true and project_config.project__custom__qbdata == true
+      3:
+        task: insert_q3_data
+        when: org_config.scratch and project_config.project__custom__q3data == true
+      4:
+        task: insert_q3_data_prod
+        when: project_config.project__custom__q3data == true
+
+  prepare_scratch:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_scratch_data
+        when: org_config.scratch
+      2:
+        task: deploy_post_scratch
+        when: org_config.scratch
+
+  prepare_quantumbit:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_quantumbit
+        when: project_config.project__custom__qb == true
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__qb == true
+        options:
+          api_names: *ps_quantumbit
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__qb == true and project_config.project__custom__calmdelete == true
+        options:
+          api_names: *ps_calmdelete
+
+  prepare_dro:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_dro_data_scratch
+        when: org_config.scratch and project_config.project__custom__dro == true
+      2:
+        task: insert_dro_data_prod
+        when: project_config.project__custom__tso == true and project_config.project__custom__dro == true
+
+  prepare_docgen:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: create_docgen_library
+      2:
+        task: deploy_post_docgen
+        when: project_config.project__custom__tso == true
+
+  prepare_billing:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_billing_data
+        when: project_config.project__custom__billing == true and project_config.project__custom__tso == false
+      2:
+        task: insert_billing_data_prod
+        when: project_config.project__custom__billing == true and project_config.project__custom__tso == true
+      3:
+        task: activate_flow
+        when: project_config.project__custom__billing == true
+        options:
+          developer_names: RLM_Order_to_Billing_Schedule_Flow
+      4:
+        task: activate_default_payment_term
+      5: 
+        task: activate_billing_records
+
+  prepare_prm:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_prm
+        when: project_config.project__custom__prm == true
+      2:
+        task: publish_community
+        when: project_config.project__custom__prm == true
+        options:
+          name: rlm
+      3:
+        task: deploy_sharing_rules
+        when: project_config.project__custom__prm == true
+
+  prepare_tax:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: create_tax_engine
+        when: project_config.project__custom__tax == true
+      2:
+        task: insert_tax_data
+        when: project_config.project__custom__tax == true and project_config.project__custom__tso == false
+      3:
+        task: insert_tax_data_prod
+        when: project_config.project__custom__tax == true and project_config.project__custom__tso == true
+      4:
+        task: activate_tax_records
