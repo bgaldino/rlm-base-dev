@@ -1,0 +1,41 @@
+# List files or directories below to ignore them when running force:source:push, force:source:pull, and force:source:status
+# More information: https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_exclude_source.htm
+#
+
+package.xml
+
+# LWC configuration files
+**/jsconfig.json
+**/.eslintrc.json
+
+# LWC Jest
+**/__tests__/**
+
+# rlm-base specific entries
+# expressionSetDefinition
+force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
+
+# contextDefinitions
+force-app/main/default/contextDefinitions
+force-app/main/default/relationshipGraphDefinitions
+force-app/main/default/permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
+
+# unpackaged/pre
+unpackaged/pre/force-app/main/default/permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
+
+force-app/main/default/connectedApps/RLM_Postman.connectedApp-meta.xml
+
+# unpackaged/post_sharing
+unpackaged/post_sharing/force-app/main/default/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
+#unpackaged/post_sharing/force-app/main/default/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
+unpackaged/post_sharing/force-app/main/default/objects/PriceAdjustmentSchedule/PriceAdjustmentSchedule.object-meta.xml
+unpackaged/post_sharing/force-app/main/default/objects/PriceBookEntryDerivedPrice/PriceBookEntryDerivedPrice.object-meta.xml
+#unpackaged/post_sharing/force-app/main/default/objects/ProductComponentGrpOverride/ProductComponentGrpOverride.object-meta.xml
+unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/ProductConfigurationRule.object-meta.xml
+unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
+unpackaged/post_sharing/force-app/main/default/objects
+
+force-app/main/default/flows/F1YG.flow-meta.xml

@@ -1,0 +1,4 @@
+ApiName,CurrencyIsoCode,Description,EndDateTime,ExpressionSet.Name,ExpressionSetDefinitionVer.DeveloperName,IsActive,IsDeleted,IsLoopingEnabled,LatestSimulationResult,LoopEndVariableName,LoopIncrementVariableName,LoopStartVariableName,Name,Rank,ShouldShowExplExternally,StartDateTime,VersionNumber
+RLM_DefaultPricingProcedure,USD,RLM Default Pricing Procedure,,RLM Default Pricing Procedure,RLM_DefaultPricingProcedure,false,false,false,,,,,RLM Default Pricing Procedure,1,false,2024-01-01T08:00:00.000+0000,1
+RLM_ProductDiscoveryPricingProcedure,USD,RLM Default Product Discovery Pricing Procedure,,RLM_ProductDiscoveryPricingProcedure,RLM_ProductDiscoveryPricingProcedure,false,false,false,,,,,RLM_ProductDiscoveryPricingProcedure,1,false,2024-01-01T00:00:00.000+0000,1
+RLM_QualificationProcedure,USD,RLM Qualification Procedure,,RLM Qualification Procedure,RLM_QualificationProcedure,false,false,false,,,,,RLM Qualification Procedure,1,false,2024-02-01T00:00:00.000+0000,1

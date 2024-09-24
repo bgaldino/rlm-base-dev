@@ -1,0 +1,21 @@
+{
+    "apiVersion": "61.0",
+    "excludeIdsFromCSVFiles": "true",
+    "objectSets": [
+        {
+            "objects": [
+                {
+                    "query": "SELECT AccountSource, AnnualRevenue, BillingCity, BillingCountry, BillingCountryCode, BillingPostalCode,BillingState,BillingStateCode,BillingStreet,ChannelProgramLevelName, ChannelProgramName, CurrencyIsoCode, Description, Fax, Id, Industry, MasterRecordId, Name, NumberOfEmployees, ParentId, Phone, PhotoUrl, ShippingCity, ShippingCountry, ShippingCountryCode, ShippingPostalCode, ShippingState, ShippingStateCode, ShippingStreet, Type, Website FROM Account",
+                    "operation": "Upsert",
+                    "externalId": "Name"
+                },
+                {
+                    "query": "SELECT AccountId, AssistantName, AssistantPhone, Birthdate, CurrencyIsoCode, Department, Description, Email, Fax, FirstName, HomePhone, Id, LastName, LeadSource, MailingCity, MailingCountry, MailingCountryCode, MailingPostalCode, MailingState, MailingStateCode, MailingStreet, MobilePhone, Name, OtherCity, OtherCountry, OtherCountryCode, OtherPostalCode, OtherState, OtherStateCode, OtherStreet, OtherPhone, Phone, PhotoUrl, ReportsToId, Salutation, Title FROM Contact",
+                    "operation": "Upsert",
+                    "externalId": "Name"
+                }
+            ]
+        }
+    ],
+    "orgs": []
+}

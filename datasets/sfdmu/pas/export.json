@@ -1,0 +1,23 @@
+{
+    "apiVersion": "61.0",
+    "excludeIdsFromCSVFiles": "true",
+    "objectSets": [
+        {
+            "objects": [
+                {
+                    "query": "SELECT Name, IsActive, IsStandard FROM Pricebook2",
+                    "operation": "Readonly",
+                    "externalId": "Name;IsStandard",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, IsActive, AdjustmentMethod, EffectiveFrom, EffectiveTo, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                }
+            ]
+        }
+    ],
+    "orgs": []
+}

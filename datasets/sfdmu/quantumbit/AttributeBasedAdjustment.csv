@@ -1,0 +1,7 @@
+AdjustmentType,AdjustmentValue,AttributeAdjConditionsHash,AttributeBasedAdjRule.Name,EffectiveFrom,EffectiveTo,Name,PriceAdjustmentSchedule.Name,PricingTerm,PricingTermUnit,Product.Name,ProductSellingModel.$$Name$SellingModelType,ScheduleType,SellingModelType
+Override,5500,9e51743be23c99979d51c8ed734d741d,Rule_1708250068983,2024-02-01T09:54:00.000+0000,,00000001,Standard Attribute Based Adjustment,1,Months,Additional API,Term Monthly;TermDefined,Attribute,TermDefined
+Percentage,5,9e51743be23c99979d51c8ed734d741d,Rule_1708046267454,2024-02-02T01:17:00.000+0000,,00000002,Standard Attribute Based Adjustment,1,Months,Additional API,Evergreen Monthly;Evergreen,Attribute,Evergreen
+Override,15000,9e51743be23c99979d51c8ed734d741d,Rule_1707507269131,2024-02-01T19:34:00.000+0000,,00000003,Standard Attribute Based Adjustment,1,Annual,Additional API,Term Annual;TermDefined,Attribute,TermDefined
+Override,12000,8eacb0ec70eb2bbccc712799325fd62c,Rule_1707507229633,2024-02-01T19:33:00.000+0000,,00000004,Standard Attribute Based Adjustment,1,Annual,Additional API,Term Annual;TermDefined,Attribute,TermDefined
+Override,10000,7d519e24803eea2f29f968b3c98ac71e,Rule_1707507197535,2024-02-01T19:33:00.000+0000,,00000005,Standard Attribute Based Adjustment,1,Annual,Additional API,Term Annual;TermDefined,Attribute,TermDefined
+Override,8500,fa461aada796a1f91235c29e6a677624,Rule_1707507247714,2024-02-01T19:34:00.000+0000,,00000006,Standard Attribute Based Adjustment,1,Annual,Additional API,Term Annual;TermDefined,Attribute,TermDefined

@@ -1,0 +1,29 @@
+{
+    "apiVersion": "61.0",
+    "excludeIdsFromCSVFiles": "false",
+    "objectSets": [
+        {
+            "objects": [
+                {
+                    "query": "SELECT MasterLabel, Id, Description, DeveloperName, Language, NamespacePrefix, UsageType FROM ClauseCatgConfiguration",
+                    "operation": "Upsert",
+                    "externalId": "DeveloperName",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Category, CategoryReferenceId, Id, Name, Status FROM DocumentClauseSet",
+                    "operation": "Upsert",
+                    "externalId": "Name;CategoryReference.DeveloperName",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Content, Description, DocumentClauseSetId, Format, IsAlternateClause, Language, Name, Status, Version FROM DocumentClause",
+                    "operation": "Upsert",
+                    "externalId": "Name;DocumentClauseSet.Name;DocumentClauseSet.CategoryReference.DeveloperName",
+                    "excluded": false
+                }
+            ]
+        }
+    ],
+    "orgs": []
+}

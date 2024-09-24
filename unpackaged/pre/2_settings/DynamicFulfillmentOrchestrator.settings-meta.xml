@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DynamicFulfillmentOrchestratorSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableDFOFallout>true</enableDFOFallout>
+    <enableDFOJeopardy>true</enableDFOJeopardy>
+    <enableDFOPref>true</enableDFOPref>
+</DynamicFulfillmentOrchestratorSettings>

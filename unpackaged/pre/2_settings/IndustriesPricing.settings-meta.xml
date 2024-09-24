@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IndustriesPricingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableHighAvailability>true</enableHighAvailability>
+    <enablePricingWaterfall>true</enablePricingWaterfall>
+    <enablePricingWaterfallPersistence>true</enablePricingWaterfallPersistence>
+    <enableSalesforcePricing>true</enableSalesforcePricing>
+</IndustriesPricingSettings>

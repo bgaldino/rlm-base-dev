@@ -1,0 +1,151 @@
+{
+    "apiVersion": "60.0",
+    "excludeIdsFromCSVFiles": "true",
+    "objectSets": [
+        {
+            "objects": [
+                {
+                    "query": "SELECT Name, CatalogType, Code, Description FROM ProductCatalog",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, CatalogId, Code, Description, ParentCategoryId, SortOrder FROM ProductCategory",
+                    "operation": "Upsert",
+                    "externalId": "Name;Catalog.Name;ParentCategory.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, Status, PricingTerm, PricingTermUnit, SellingModelType FROM ProductSellingModel",
+                    "operation": "Upsert",
+                    "externalId": "Name;SellingModelType",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, Code FROM AttributeCategory",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, Code, Description, DataType, Status FROM AttributePicklist",
+                    "operation": "Upsert",
+                    "externalId": "Name"
+                },
+                {
+                    "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, DisplayValue  FROM AttributePicklistValue",
+                    "operation": "Upsert",
+                    "externalId": "Name;Picklist.Name"
+                },
+                {
+                    "query": "SELECT Name, DeveloperName, DataType, IsActive, DefaultValue, Description, Required, Code, Label, PicklistId FROM AttributeDefinition",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT AttributeCategoryId, AttributeDefinitionId FROM AttributeCategoryAttribute",
+                    "operation": "Upsert",
+                    "externalId": "AttributeCategory.Name;AttributeDefinition.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, Code, Status FROM ProductClassification",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, ProductClassificationId, AttributeDefinitionId, AttributeCategoryId, AttributeNameOverride, Status, DefaultValue, DisplayType, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Sequence FROM ProductClassificationAttr",
+                    "operation": "Upsert",
+                    "externalId": "ProductClassification.Name;AttributeDefinition.Name;AttributeCategory.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, IsActive, AvailabilityDate, BasedOnId, ConfigureDuringSale, IsAssetizable, ProductCode, CurrencyIsoCode, Description, Family, StockKeepingUnit, Type, QuantityUnitOfMeasure, IsSoldOnlyWithOtherProds FROM Product2",
+                    "operation": "Upsert",
+                    "externalId": "Name"
+                },
+                {
+                    "query": "SELECT ProductCategoryId, ProductId, CatalogId,CurrencyIsoCode FROM ProductCategoryProduct",
+                    "operation": "Upsert",
+                    "externalId": "ProductCategory.Name;Product.Name;Catalog.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId FROM ProductSellingModelOption",
+                    "operation": "Upsert",
+                    "externalId": "Product2.Name;ProductSellingModel.Name"
+                },
+                {
+                    "query": "SELECT Name, Code, ParentProductId, Sequence, MinBundleComponents, MaxBundleComponents, Description, CurrencyIsoCode FROM ProductComponentGroup",
+                    "operation": "Upsert",
+                    "externalId": "Name;ParentProduct.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name FROM ProductRelationshipType",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, ParentProductId, ProductComponentGroupId, ChildProductId, ProductRelationshipTypeId, IsQuantityEditable, IsDefaultComponent, MaxQuantity, MinQuantity, DoesBundlePriceIncludeChild, Quantity, QuantityScaleMethod, IsComponentRequired, Sequence, ParentSellingModelId, ChildSellingModelId, ParentProductRole, ChildProductRole FROM ProductRelatedComponent",
+                    "operation": "Upsert",
+                    "externalId": "ChildProduct.Name;ParentProduct.Name;ProductComponentGroup.Name;ProductRelationshipType.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, IsActive, IsStandard FROM Pricebook2",
+                    "operation": "Upsert",
+                    "externalId": "Name;IsStandard",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, IsActive, AdjustmentMethod, EffectiveFrom, EffectiveTo, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, IsActive, LowerBound, PriceAdjustmentScheduleId, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier",
+                    "operation": "Upsert",
+                    "externalId": "Name;PriceAdjustmentSchedule.Name;Product2.Name;ProductSellingModel.Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name FROM AttributeBasedAdjRule",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType FROM BundleBasedAdjustment",
+                    "operation": "Upsert",
+                    "externalId": "Name",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Name, IsActive, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode FROM PricebookEntry",
+                    "operation": "Upsert",
+                    "externalId": "Pricebook2.Name;Product2.Name;ProductSellingModel.Name",
+                    "excluded": false
+                }
+            ]
+        }
+    ],
+    "orgs": []
+}

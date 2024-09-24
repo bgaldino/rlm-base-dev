@@ -1,0 +1,45 @@
+$$Name$Picklist.Name,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Value
+L5-20;Connector_Type,L5-20,L5-20,false,L5-20,Connector_Type,,L5-20
+C13 to C14;Connector_Type,C13toC14,C13 to C14,true,C13 to C14,Connector_Type,,C13 to C14
+ThreeFeet;Length,3ft,3',true,ThreeFeet,Length,,3
+FiveFeet;Length,5ft,5',false,FiveFeet,Length,,5
+EightFeet;Length,8ft,8',false,EightFeet,Length,,8
+C19 to C20;Connector_Type,C19toC20,C19 to C20,false,C19 to C20,Connector_Type,,C19 to C20
+TwelveFeet;Length,12ft,12',false,TwelveFeet,Length,,12
+Amazon Linux 2;Operating_System,AL2,Amazon Linux 2,true,Amazon Linux 2,Operating_System,1,Amazon Linux 2
+Four;Base_Core_Count,4,4,false,Four,Base_Core_Count,2,4
+Six;Base_Core_Count,6,6,false,Six,Base_Core_Count,3,6
+Eight;Base_Core_Count,8,8,true,Eight,Base_Core_Count,4,8
+Flex;API_Type,Flex,Flex,true,Flex,API_Type,1,Flex
+Pre-Prod;API_Type,Pre-Prod,Pre-Prod,false,Pre-Prod,API_Type,3,Pre-Prod
+Gov;API_Type,Gov,Gov,false,Gov,API_Type,2,Gov
+Redhat Enterprise Linux;Operating_System,REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,Operating_System,2,Redhat Enterprise Linux
+Two;Base_Core_Count,2,2,false,Two,Base_Core_Count,1,2
+Prod;API_Type,Prod,Prod,false,Prod,API_Type,4,Prod
+Onsite;Resource_Location,Onsite,Onsite,true,Onsite,Resource_Location,1,Onsite
+2.0GHz;Processor_Frequency,2.0GHz,2.0GHz,false,2.0GHz,Processor_Frequency,3,2.0GHz
+1.7GHz;Processor_Frequency,1.7GHz,1.7GHz,false,1.7GHz,Processor_Frequency,2,1.7GHz
+Performance_Optimized_with_Sparing;Memory_Config,Performance_Optimized_with_Sparing,Performance_Optimized_with_Sparing,false,Performance_Optimized_with_Sparing,Memory_Config,2,Performance_Optimized_with_Sparing
+Security;Server_Configuration,Security,Security,true,Security,Server_Configuration,1,Security
+2.1GHz;Processor_Frequency,2.1GHz,2.1GHz,false,2.1GHz,Processor_Frequency,4,2.1GHz
+8GB;Memory,8GB,8GB,true,8GB,Memory,1,8GB
+32GB;Memory,32GB,32GB,false,32GB,Memory,3,32GB
+Basic;Engineering_Options,Basic,Basic,false,Basic,Engineering_Options,2,Basic
+Value;Server_Configuration,Value,Value,false,Value,Server_Configuration,3,Value
+Custom;Server_Configuration,Custom,Custom,false,Custom,Server_Configuration,4,Custom
+16GB;Memory,16GB,16GB,false,16GB,Memory,2,16GB
+Memory_Mirroring;Memory_Config,Memory_Mirroring,Memory_Mirroring,false,Memory_Mirroring,Memory_Config,3,Memory_Mirroring
+SFP;NIC_Type,SFP,SFP,false,SFP,NIC_Type,2,SFP
+Evergreen;SubscriptionType,Evergreen,Evergreen,true,Evergreen,SubscriptionType,1,Evergreen
+TermBased;SubscriptionType,TermBased,TermBased,false,TermBased,SubscriptionType,2,TermBased
+3.2GHz;Processor_Frequency,3.2GHz,3.2GHz,true,3.2GHz,Processor_Frequency,1,3.2GHz
+Performance;Server_Configuration,Performance,Performance,false,Performance,Server_Configuration,2,Performance
+Extended_Care;Engineering_Options,Extended_Care,Extended_Care,true,Extended_Care,Engineering_Options,1,Extended_Care
+Remote;Resource_Location,Remote,Remote,false,Remote,Resource_Location,2,Remote
+Performance_Optimized;Memory_Config,Performance_Optimized,Performance_Optimized,true,Performance_Optimized,Memory_Config,1,Performance_Optimized
+1TB;HDD_Storage,1TB,1TB,true,1TB,HDD_Storage,1,1TB
+8TB;HDD_Storage,8TB,8TB,false,8TB,HDD_Storage,3,8TB
+Direct_Attach;NIC_Type,Direct_Attach,Direct_Attach,true,Direct_Attach,NIC_Type,1,Direct_Attach
+Offshore;Resource_Location,Offshore,Offshore,false,Offshore,Resource_Location,3,Offshore
+8TB_Self_Encrypting;HDD_Storage,8TB_Self_Encrypting,8TB_Self_Encrypting,false,8TB_Self_Encrypting,HDD_Storage,4,8TB_Self_Encrypting
+4TB;HDD_Storage,4TB,4TB,false,4TB,HDD_Storage,2,4TB

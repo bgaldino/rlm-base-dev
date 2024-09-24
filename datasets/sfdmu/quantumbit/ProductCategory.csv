@@ -1,0 +1,15 @@
+$$Name$Catalog.Name$ParentCategory.Name,Catalog.Name,Code,Description,Name,ParentCategory.$$Name$Catalog.Name$ParentCategory.Name,SortOrder
+Bundle;Software,Software,,,Bundle,,10
+Accessories;Hardware,Hardware,,,Accessories,,
+Licenses;Software,Software,,,Licenses,,30
+Training;Software,Software,,,Training,,40
+Maintenance;Software,Software,,,Maintenance,,50
+Hardware Maintenance;Hardware,Hardware,,,Hardware Maintenance,,
+Memory;Hardware,Hardware,,,Memory,,
+Network Adapter;Hardware,Hardware,,,Network Adapter,,
+Processor;Hardware,Hardware,,,Processor,,
+Hard Drive;Hardware,Hardware,,,Hard Drive,,
+Subscription;Software,Software,,,Subscription,,100
+Services;Services,Services,,,Services,,
+Server;Hardware,Hardware,,,Server,,
+API;Software,Software,,,API,,20

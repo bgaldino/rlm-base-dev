@@ -1,0 +1,5 @@
+<apex:page standardController="Quote" extensions="RLM_UpdateQuotePricesAndSave" action="{!updateQuotePrices}">
+    <div align='center'>
+        Updating Prices and Saving...
+    </div>
+</apex:page>
