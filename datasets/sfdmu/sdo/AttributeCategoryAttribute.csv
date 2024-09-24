@@ -1,0 +1,19 @@
+$$AttributeCategory.Name$AttributeDefinition.Name,AttributeCategory.Name,AttributeDefinition.Name
+Cables;Connector_Type,Cables,Connector_Type
+Cables;Length,Cables,Length
+API Specification;API_Type,API Specification,API_Type
+Tech Specs;Base_Core_Count,Tech Specs,Base_Core_Count
+Operating System;Operating_System,Operating System,Operating_System
+Engineering Resources;Resource_Location,Engineering Resources,Resource_Location
+Hard Drive;HDD_Storage,Hard Drive,HDD_Storage
+Processor;Processor_Frequency,Processor,Processor_Frequency
+Network Adapter;NIC_Type,Network Adapter,NIC_Type
+Subscription Type;SubscriptionType,Subscription Type,SubscriptionType
+QuantumBit;Flows,QuantumBit,Flows
+QuantumBit;Data_Throughput_TB,QuantumBit,Data_Throughput_TB
+QuantumBit;Messages_Million,QuantumBit,Messages_Million
+Server;Server_Configuration,Server,Server_Configuration
+Engineering Resources;Engineering_Options,Engineering Resources,Engineering_Options
+Professional Services Bundle;Notes_and_Assumptions,Professional Services Bundle,Notes_and_Assumptions
+Memory;Memory_Capacity,Memory,Memory_Capacity
+Memory;Memory_Config,Memory,Memory_Config

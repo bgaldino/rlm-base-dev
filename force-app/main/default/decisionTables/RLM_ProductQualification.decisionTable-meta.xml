@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DecisionTable xmlns="http://soap.sforce.com/2006/04/metadata">
+    <conditionCriteria>1 AND 2 AND 3</conditionCriteria>
+    <conditionType>All</conditionType>
+    <dataSourceType>SingleSobject</dataSourceType>
+    <decisionTableParameters>
+        <fieldName>ParentProductId</fieldName>
+        <fieldPath>ParentProductId</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <operator>Equals</operator>
+        <sequence>2</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <fieldName>IsQualified</fieldName>
+        <fieldPath>IsQualified</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <usage>OUTPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <fieldName>RootProductId</fieldName>
+        <fieldPath>RootProductId</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <operator>Equals</operator>
+        <sequence>3</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <fieldName>ProductId</fieldName>
+        <fieldPath>ProductId</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>Equals</operator>
+        <sequence>1</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <description>RLM Default Product Qualification Decision Table</description>
+    <doesConsiderNullValue>false</doesConsiderNullValue>
+    <filterResultBy>OutputOrder</filterResultBy>
+    <setupName>RLM_ProductQualification</setupName>
+    <sourceObject>ProductQualification</sourceObject>
+    <status>Active</status>
+    <usageType>ProductQualification</usageType>
+</DecisionTable>

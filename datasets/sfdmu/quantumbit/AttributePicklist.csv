@@ -1,0 +1,15 @@
+DataType,Description,Name,Status
+Text,,Connector_Type,Active
+Number,,Base_Core_Count,Active
+Text,,API_Type,Active
+Text,,Length,Active
+Text,,Operating_System,Active
+Text,,Server_Configuration,Active
+Text,,Resource_Location,Active
+Text,,Processor_Frequency,Active
+Text,,SubscriptionType,Active
+Text,,Engineering_Options,Active
+Text,,Memory_Config,Active
+Text,,Memory,Active
+Text,,NIC_Type,Active
+Text,,HDD_Storage,Active

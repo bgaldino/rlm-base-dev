@@ -1,0 +1,13 @@
+$$Name$ParentProduct.Name,Code,CurrencyIsoCode,Description,MaxBundleComponents,MinBundleComponents,Name,ParentProduct.Name,Sequence
+Training;QuantumBit Starter,,USD,,1,1,Training,QuantumBit Starter,
+Maintenance;QuantumBit Starter,,USD,,1,1,Maintenance,QuantumBit Starter,
+Software;QuantumBit Complete Solution,,USD,,,,Software,QuantumBit Complete Solution,10
+Training;QuantumBit Complete Solution,,USD,,,,Training,QuantumBit Complete Solution,20
+Services;QuantumBit Complete Solution,,USD,,,,Services,QuantumBit Complete Solution,30
+Memory Capacity;PowerSwerve R750 Rack Server,,USD,,1,1,Memory Capacity,PowerSwerve R750 Rack Server,2
+Hard Drive;PowerSwerve R750 Rack Server,,USD,,1,1,Hard Drive,PowerSwerve R750 Rack Server,3
+Processor;PowerSwerve R750 Rack Server,,USD,,1,1,Processor,PowerSwerve R750 Rack Server,1
+Project_Management;QuantumBit Services Project,Project_Management,USD,,,,Project_Management,QuantumBit Services Project,2
+Network Adapter;PowerSwerve R750 Rack Server,,USD,,1,1,Network Adapter,PowerSwerve R750 Rack Server,4
+Engineering_Resources;QuantumBit Services Project,Engineering_Resources,USD,,,,Engineering_Resources,QuantumBit Services Project,1
+Solution_Architecture;QuantumBit Services Project,Solution_Architecture,USD,,,,Solution_Architecture,QuantumBit Services Project,3

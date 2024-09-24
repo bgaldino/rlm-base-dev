@@ -1,0 +1,6 @@
+Child field,Child sObject,Child value,Date update,Error,Parent field,Parent sObject,Parent value
+Code,AttributePicklist,,2024-03-14  13:39:57.568,MISSING COLUMN IN THE CSV FILE,,,
+CurrencyIsoCode,Product2,,2024-03-14  13:39:57.573,MISSING COLUMN IN THE CSV FILE,,,
+CurrencyIsoCode,ProductCategoryProduct,,2024-03-14  13:39:57.574,MISSING COLUMN IN THE CSV FILE,,,
+CurrencyIsoCode,ProductComponentGroup,,2024-03-14  13:39:57.575,MISSING COLUMN IN THE CSV FILE,,,
+CurrencyIsoCode,PricebookEntry,,2024-03-14  13:39:57.584,MISSING COLUMN IN THE CSV FILE,,,

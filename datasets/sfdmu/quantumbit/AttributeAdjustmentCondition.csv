@@ -1,0 +1,11 @@
+AttributeBasedAdjRule.Name,AttributeDefinition.Name,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Name,Operator,Product.Name,StringValue
+Rule_1707506403313,API_Type,,,,,,00000001,equals,Additional API,Gov
+Rule_1707507247714,API_Type,,,,,,00000002,equals,Additional API,Gov
+Rule_1707507197535,API_Type,,,,,,00000003,equals,Additional API,Flex
+Rule_1707507229633,API_Type,,,,,,00000004,equals,Additional API,Pre-Prod
+Rule_1707507269131,API_Type,,,,,,00000005,equals,Additional API,Prod
+Rule_1707506330919,API_Type,,,,,,00000006,equals,Additional API,Flex
+Rule_1707506369900,API_Type,,,,,,00000007,equals,Additional API,Pre-Prod
+Rule_1707506456305,API_Type,,,,,,00000008,equals,Additional API,Prod
+Rule_1708046267454,API_Type,,,,,,00000009,equals,Additional API,Prod
+Rule_1708250068983,API_Type,,,,,,00000010,equals,Additional API,Prod

@@ -1,0 +1,8 @@
+ConversionRate,DecimalPlaces,IsActive,IsCorporate,IsoCode
+1.53,2,true,false,AUD
+1.36,2,true,false,CAD
+0.89,2,true,false,CHF
+0.92,2,true,false,EUR
+0.79,2,true,false,GBP
+150.84,0,true,false,JPY
+1,2,true,true,USD

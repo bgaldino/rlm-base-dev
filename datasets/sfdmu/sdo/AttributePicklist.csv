@@ -1,0 +1,15 @@
+Code,DataType,Description,Name,Status
+Base_Core_Count,Number,,Base_Core_Count,Active
+API_Type,Text,,API_Type,Active
+Connector_Type,Text,,Connector_Type,Active
+Length,Text,,Length,Active
+Operating_System,Text,,Operating_System,Active
+Server_Configuration,Text,,Server_Configuration,Active
+Resource_Location,Text,,Resource_Location,Active
+Processor_Frequency,Text,,Processor_Frequency,Active
+SubscriptionType,Text,,SubscriptionType,Active
+Engineering_Options,Text,,Engineering_Options,Active
+Memory_Config,Text,,Memory_Config,Active
+Memory,Text,,Memory,Active
+NIC_Type,Text,,NIC_Type,Active
+HDD_Storage,Text,,HDD_Storage,Active

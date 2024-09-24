@@ -1,0 +1,463 @@
+$$Name$Pricebook2.Name$Product2.Name$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,Name,Pricebook2.$$Name$IsStandard,Product2.Name,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;USD,USD,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,599
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;USD,USD,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,499
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;USD,USD,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,889
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;USD,USD,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,799
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;USD,USD,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,399
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;USD,USD,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,999
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;USD,USD,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,1199
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;USD,USD,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,2000
+Additional API;Standard Price Book;Additional API;Term Annual;USD,USD,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,15000
+Additional API;Standard Price Book;Additional API;Term Monthly;USD,USD,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,1500
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;USD,USD,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,450
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;USD,USD,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,1450
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;USD,USD,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,3240
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;USD,USD,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,3240
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;USD,USD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,2.5
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;USD,USD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,25
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;USD,USD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,2
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;USD,USD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,3200
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;USD,USD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,38000
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;USD,USD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,3000
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;USD,USD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,2000
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;USD,USD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,24000
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;USD,USD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,1500
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;USD,USD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,3500
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;USD,USD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,30000
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;USD,USD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,3000
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;USD,USD,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,25000
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;USD,USD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,5
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;USD,USD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,45
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;USD,USD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,5
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;USD,USD,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,250
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;USD,USD,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,249
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;USD,USD,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,300
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;USD,USD,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,30000
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;USD,USD,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,300
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;USD,USD,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,350
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;USD,USD,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,1599
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;USD,USD,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,1599
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;USD,USD,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,1499
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;USD,USD,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,1699
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;USD,USD,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,2499
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;USD,USD,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,1399
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;USD,USD,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,300
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;USD,USD,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,3899
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;USD,USD,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,250
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;USD,USD,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,25000
+Program Director;Standard Price Book;Program Director;One-Time;USD,USD,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,350
+Project Manager;Standard Price Book;Project Manager;One-Time;USD,USD,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,300
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;USD,USD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,1000
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;USD,USD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,12000
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;USD,USD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,1000
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;USD,USD,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,300
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;USD,USD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;USD,USD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;USD,USD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;USD,USD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;USD,USD,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,8500
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;USD,USD,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,6500
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;USD,USD,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;USD,USD,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;USD,USD,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,25000
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;USD,USD,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,500
+Subscription;Standard Price Book;Subscription;Evergreen Annual;USD,USD,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,420
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;USD,USD,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,35
+Subscription;Standard Price Book;Subscription;Term Annual;USD,USD,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,360
+Subscription;Standard Price Book;Subscription;Term Monthly;USD,USD,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,30
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;JPY,JPY,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,90600
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;JPY,JPY,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,75500
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;JPY,JPY,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,134500
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;JPY,JPY,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,120900
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;JPY,JPY,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,60400
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;JPY,JPY,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,151100
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;JPY,JPY,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,181400
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;JPY,JPY,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,302600
+Additional API;Standard Price Book;Additional API;Term Annual;JPY,JPY,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,2269500
+Additional API;Standard Price Book;Additional API;Term Monthly;JPY,JPY,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,226900
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;JPY,JPY,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,68100
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;JPY,JPY,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,219400
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;JPY,JPY,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,490200
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;JPY,JPY,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,490200
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;JPY,JPY,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,380
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;JPY,JPY,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,3780
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;JPY,JPY,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,300
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;JPY,JPY,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,484200
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;JPY,JPY,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,5749300
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;JPY,JPY,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,453900
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;JPY,JPY,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,302600
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;JPY,JPY,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,3631100
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;JPY,JPY,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,226900
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;JPY,JPY,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,529500
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;JPY,JPY,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,4538900
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;JPY,JPY,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,453900
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;JPY,JPY,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,3782400
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;JPY,JPY,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,760
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;JPY,JPY,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,6810
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;JPY,JPY,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,760
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;JPY,JPY,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,37800
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;JPY,JPY,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,37700
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;JPY,JPY,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,45400
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;JPY,JPY,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,4538900
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;JPY,JPY,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,45400
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;JPY,JPY,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,53000
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;JPY,JPY,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,241900
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;JPY,JPY,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,241900
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;JPY,JPY,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,226800
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;JPY,JPY,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,257100
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;JPY,JPY,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,378100
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;JPY,JPY,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,211700
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;JPY,JPY,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,45400
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;JPY,JPY,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,589900
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;JPY,JPY,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,37800
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;JPY,JPY,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,3782400
+Program Director;Standard Price Book;Program Director;One-Time;JPY,JPY,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,53000
+Project Manager;Standard Price Book;Project Manager;One-Time;JPY,JPY,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,45400
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;JPY,JPY,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,151300
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;JPY,JPY,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,1815600
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;JPY,JPY,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,151300
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;JPY,JPY,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,45400
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;JPY,JPY,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;JPY,JPY,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;JPY,JPY,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;JPY,JPY,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;JPY,JPY,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,1286000
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;JPY,JPY,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,983400
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;JPY,JPY,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;JPY,JPY,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;JPY,JPY,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,3782400
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;JPY,JPY,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,75600
+Subscription;Standard Price Book;Subscription;Evergreen Annual;JPY,JPY,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,63500
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;JPY,JPY,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,5300
+Subscription;Standard Price Book;Subscription;Term Annual;JPY,JPY,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,54470
+Subscription;Standard Price Book;Subscription;Term Monthly;JPY,JPY,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,4540
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;GBP,GBP,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,470
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;GBP,GBP,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,390
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;GBP,GBP,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,700
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;GBP,GBP,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,630
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;GBP,GBP,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,310
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;GBP,GBP,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,790
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;GBP,GBP,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,940
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;GBP,GBP,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,1570
+Additional API;Standard Price Book;Additional API;Term Annual;GBP,GBP,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,11790
+Additional API;Standard Price Book;Additional API;Term Monthly;GBP,GBP,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,1180
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;GBP,GBP,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,350
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;GBP,GBP,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,1140
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;GBP,GBP,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,2550
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;GBP,GBP,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,2550
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;GBP,GBP,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,2
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;GBP,GBP,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,20
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;GBP,GBP,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,2
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;GBP,GBP,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,2510
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;GBP,GBP,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,29860
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;GBP,GBP,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,2360
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;GBP,GBP,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,1570
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;GBP,GBP,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,18860
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;GBP,GBP,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,1180
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;GBP,GBP,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,2750
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;GBP,GBP,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,23580
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;GBP,GBP,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,2360
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;GBP,GBP,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,19650
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;GBP,GBP,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,4
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;GBP,GBP,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,35
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;GBP,GBP,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,4
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;GBP,GBP,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,200
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;GBP,GBP,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,200
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;GBP,GBP,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,240
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;GBP,GBP,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,23580
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;GBP,GBP,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,240
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;GBP,GBP,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,280
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;GBP,GBP,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,1260
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;GBP,GBP,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,1260
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;GBP,GBP,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,1180
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;GBP,GBP,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,1340
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;GBP,GBP,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,1960
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;GBP,GBP,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,1100
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;GBP,GBP,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,240
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;GBP,GBP,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,3060
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;GBP,GBP,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,200
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;GBP,GBP,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,19650
+Program Director;Standard Price Book;Program Director;One-Time;GBP,GBP,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,280
+Project Manager;Standard Price Book;Project Manager;One-Time;GBP,GBP,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,240
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;GBP,GBP,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,790
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;GBP,GBP,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,9430
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;GBP,GBP,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,790
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;GBP,GBP,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,240
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;GBP,GBP,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;GBP,GBP,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;GBP,GBP,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;GBP,GBP,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;GBP,GBP,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,6680
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;GBP,GBP,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,5110
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;GBP,GBP,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;GBP,GBP,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;GBP,GBP,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,19650
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;GBP,GBP,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,390
+Subscription;Standard Price Book;Subscription;Evergreen Annual;GBP,GBP,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,330
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;GBP,GBP,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,30
+Subscription;Standard Price Book;Subscription;Term Annual;GBP,GBP,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,280
+Subscription;Standard Price Book;Subscription;Term Monthly;GBP,GBP,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,20
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;EUR,EUR,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,550
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;EUR,EUR,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,460
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;EUR,EUR,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,820
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;EUR,EUR,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,740
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;EUR,EUR,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,370
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;EUR,EUR,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,920
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;EUR,EUR,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,1100
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;EUR,EUR,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,1840
+Additional API;Standard Price Book;Additional API;Term Annual;EUR,EUR,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,13800
+Additional API;Standard Price Book;Additional API;Term Monthly;EUR,EUR,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,1380
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;EUR,EUR,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,410
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;EUR,EUR,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,1330
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;EUR,EUR,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,2980
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;EUR,EUR,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,2980
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;EUR,EUR,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,2
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;EUR,EUR,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,23
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;EUR,EUR,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,2
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;EUR,EUR,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,2940
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;EUR,EUR,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,34960
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;EUR,EUR,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,2760
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;EUR,EUR,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,1840
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;EUR,EUR,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,22080
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;EUR,EUR,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,1380
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;EUR,EUR,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,3220
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;EUR,EUR,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,27600
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;EUR,EUR,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,2760
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;EUR,EUR,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,23000
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;EUR,EUR,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,5
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;EUR,EUR,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,41
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;EUR,EUR,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,5
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;EUR,EUR,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,230
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;EUR,EUR,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,230
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;EUR,EUR,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,280
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;EUR,EUR,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,27600
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;EUR,EUR,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,280
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;EUR,EUR,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,320
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;EUR,EUR,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,1470
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;EUR,EUR,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,1470
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;EUR,EUR,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,1380
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;EUR,EUR,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,1560
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;EUR,EUR,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,2300
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;EUR,EUR,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,1290
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;EUR,EUR,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,280
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;EUR,EUR,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,3590
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;EUR,EUR,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,230
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;EUR,EUR,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,23000
+Program Director;Standard Price Book;Program Director;One-Time;EUR,EUR,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,320
+Project Manager;Standard Price Book;Project Manager;One-Time;EUR,EUR,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,280
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;EUR,EUR,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,920
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;EUR,EUR,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,11040
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;EUR,EUR,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,920
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;EUR,EUR,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,280
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;EUR,EUR,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;EUR,EUR,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;EUR,EUR,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;EUR,EUR,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;EUR,EUR,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,7820
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;EUR,EUR,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,5980
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;EUR,EUR,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;EUR,EUR,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;EUR,EUR,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,23000
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;EUR,EUR,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,460
+Subscription;Standard Price Book;Subscription;Evergreen Annual;EUR,EUR,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,390
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;EUR,EUR,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,30
+Subscription;Standard Price Book;Subscription;Term Annual;EUR,EUR,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,330
+Subscription;Standard Price Book;Subscription;Term Monthly;EUR,EUR,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,30
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;CHF,CHF,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,530
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;CHF,CHF,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,440
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;CHF,CHF,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,790
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;CHF,CHF,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,710
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;CHF,CHF,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,350
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;CHF,CHF,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,890
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;CHF,CHF,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,1070
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;CHF,CHF,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,1780
+Additional API;Standard Price Book;Additional API;Term Annual;CHF,CHF,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,13330
+Additional API;Standard Price Book;Additional API;Term Monthly;CHF,CHF,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,1330
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;CHF,CHF,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,400
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;CHF,CHF,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,1290
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;CHF,CHF,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,2880
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;CHF,CHF,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,2880
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;CHF,CHF,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,2
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;CHF,CHF,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,22
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;CHF,CHF,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,2
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;CHF,CHF,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,2840
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;CHF,CHF,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,33770
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;CHF,CHF,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,2670
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;CHF,CHF,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,1780
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;CHF,CHF,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,21330
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;CHF,CHF,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,1330
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;CHF,CHF,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,3110
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;CHF,CHF,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,26660
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;CHF,CHF,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,2670
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;CHF,CHF,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,22220
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;CHF,CHF,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,4
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;CHF,CHF,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,40
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;CHF,CHF,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,4
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;CHF,CHF,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,220
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;CHF,CHF,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,220
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;CHF,CHF,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,270
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;CHF,CHF,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,26660
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;CHF,CHF,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,270
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;CHF,CHF,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,310
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;CHF,CHF,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,1420
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;CHF,CHF,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,1420
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;CHF,CHF,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,1330
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;CHF,CHF,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,1510
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;CHF,CHF,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,2220
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;CHF,CHF,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,1240
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;CHF,CHF,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,270
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;CHF,CHF,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,3470
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;CHF,CHF,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,220
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;CHF,CHF,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,22220
+Program Director;Standard Price Book;Program Director;One-Time;CHF,CHF,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,310
+Project Manager;Standard Price Book;Project Manager;One-Time;CHF,CHF,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,270
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;CHF,CHF,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,890
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;CHF,CHF,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,10660
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;CHF,CHF,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,890
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;CHF,CHF,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,270
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;CHF,CHF,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;CHF,CHF,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;CHF,CHF,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;CHF,CHF,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;CHF,CHF,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,7550
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;CHF,CHF,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,5780
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;CHF,CHF,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;CHF,CHF,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;CHF,CHF,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,22220
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;CHF,CHF,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,440
+Subscription;Standard Price Book;Subscription;Evergreen Annual;CHF,CHF,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,370
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;CHF,CHF,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,30
+Subscription;Standard Price Book;Subscription;Term Annual;CHF,CHF,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,320
+Subscription;Standard Price Book;Subscription;Term Monthly;CHF,CHF,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,30
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;CAD,CAD,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,810
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;CAD,CAD,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,680
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;CAD,CAD,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,1210
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;CAD,CAD,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,1080
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;CAD,CAD,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,540
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;CAD,CAD,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,1360
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;CAD,CAD,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,1630
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;CAD,CAD,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,2710
+Additional API;Standard Price Book;Additional API;Term Annual;CAD,CAD,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,20350
+Additional API;Standard Price Book;Additional API;Term Monthly;CAD,CAD,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,2040
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;CAD,CAD,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,610
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;CAD,CAD,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,1970
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;CAD,CAD,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,4400
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;CAD,CAD,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,4400
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;CAD,CAD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,3
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;CAD,CAD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,34
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;CAD,CAD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,3
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;CAD,CAD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,4340
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;CAD,CAD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,51560
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;CAD,CAD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,4070
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;CAD,CAD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,2710
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;CAD,CAD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,32570
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;CAD,CAD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,2040
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;CAD,CAD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,4750
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;CAD,CAD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,40710
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;CAD,CAD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,4070
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;CAD,CAD,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,33920
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;CAD,CAD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,10
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;CAD,CAD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,61
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;CAD,CAD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,7
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;CAD,CAD,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,340
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;CAD,CAD,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,340
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;CAD,CAD,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,410
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;CAD,CAD,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,40710
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;CAD,CAD,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,410
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;CAD,CAD,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,470
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;CAD,CAD,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,2170
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;CAD,CAD,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,2170
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;CAD,CAD,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,2030
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;CAD,CAD,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,2310
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;CAD,CAD,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,3390
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;CAD,CAD,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,1900
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;CAD,CAD,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,410
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;CAD,CAD,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,5290
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;CAD,CAD,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,340
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;CAD,CAD,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,33920
+Program Director;Standard Price Book;Program Director;One-Time;CAD,CAD,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,470
+Project Manager;Standard Price Book;Project Manager;One-Time;CAD,CAD,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,410
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;CAD,CAD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,1360
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;CAD,CAD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,16280
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;CAD,CAD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,1360
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;CAD,CAD,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,410
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;CAD,CAD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;CAD,CAD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;CAD,CAD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;CAD,CAD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;CAD,CAD,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,11530
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;CAD,CAD,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,8820
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;CAD,CAD,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;CAD,CAD,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;CAD,CAD,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,33920
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;CAD,CAD,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,680
+Subscription;Standard Price Book;Subscription;Evergreen Annual;CAD,CAD,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,570
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;CAD,CAD,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,50
+Subscription;Standard Price Book;Subscription;Term Annual;CAD,CAD,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,490
+Subscription;Standard Price Book;Subscription;Term Monthly;CAD,CAD,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,40
+16GB RDIMM;Standard Price Book;16GB RDIMM;One-Time;AUD,AUD,true,16GB RDIMM,Standard Price Book;true,16GB RDIMM,One-Time;OneTime,920
+1TB 7.2k RPM NLSAS;Standard Price Book;1TB 7.2k RPM NLSAS;One-Time;AUD,AUD,true,1TB 7.2k RPM NLSAS,Standard Price Book;true,1TB 7.2k RPM NLSAS,One-Time;OneTime,760
+32GB RDIMM;Standard Price Book;32GB RDIMM;One-Time;AUD,AUD,true,32GB RDIMM,Standard Price Book;true,32GB RDIMM,One-Time;OneTime,1360
+4TB 7.2k RPM NLSAS;Standard Price Book;4TB 7.2k RPM NLSAS;One-Time;AUD,AUD,true,4TB 7.2k RPM NLSAS,Standard Price Book;true,4TB 7.2k RPM NLSAS,One-Time;OneTime,1220
+8GB RDIMM;Standard Price Book;8GB RDIMM;One-Time;AUD,AUD,true,8GB RDIMM,Standard Price Book;true,8GB RDIMM,One-Time;OneTime,610
+8TB 7.2k RPM NLSAS;Standard Price Book;8TB 7.2k RPM NLSAS;One-Time;AUD,AUD,true,8TB 7.2k RPM NLSAS,Standard Price Book;true,8TB 7.2k RPM NLSAS,One-Time;OneTime,1530
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;8TB 7.2k RPM Self-Encrypting NLSAS;One-Time;AUD,AUD,true,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,1830
+Additional API;Standard Price Book;Additional API;Evergreen Monthly;AUD,AUD,true,Additional API,Standard Price Book;true,Additional API,Evergreen Monthly;Evergreen,3060
+Additional API;Standard Price Book;Additional API;Term Annual;AUD,AUD,true,Additional API,Standard Price Book;true,Additional API,Term Annual;TermDefined,22950
+Additional API;Standard Price Book;Additional API;Term Monthly;AUD,AUD,true,Additional API,Standard Price Book;true,Additional API,Term Monthly;TermDefined,2290
+Additional API Flex (100M);Standard Price Book;Additional API Flex (100M);Term Annual;AUD,AUD,true,Additional API Flex (100M),Standard Price Book;true,Additional API Flex (100M),Term Annual;TermDefined,690
+Additional API Gov;Standard Price Book;Additional API Gov;Term Annual;AUD,AUD,true,Additional API Gov,Standard Price Book;true,Additional API Gov,Term Annual;TermDefined,2220
+Additional API Pre-Prod;Standard Price Book;Additional API Pre-Prod;Term Annual;AUD,AUD,true,Additional API Pre-Prod,Standard Price Book;true,Additional API Pre-Prod,Term Annual;TermDefined,4960
+Additional API Prod;Standard Price Book;Additional API Prod;Term Annual;AUD,AUD,true,Additional API Prod,Standard Price Book;true,Additional API Prod,Term Annual;TermDefined,4960
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Evergreen Monthly;AUD,AUD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Evergreen Monthly;Evergreen,4
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Annual;AUD,AUD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Annual;TermDefined,38
+Additional Automation QB Credits;Standard Price Book;Additional Automation QB Credits;Term Monthly;AUD,AUD,true,Additional Automation QB Credits,Standard Price Book;true,Additional Automation QB Credits,Term Monthly;TermDefined,3
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Evergreen Monthly;AUD,AUD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,4900
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Annual;AUD,AUD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Annual;TermDefined,58140
+Additional Data Throughput (TB);Standard Price Book;Additional Data Throughput (TB);Term Monthly;AUD,AUD,true,Additional Data Throughput (TB),Standard Price Book;true,Additional Data Throughput (TB),Term Monthly;TermDefined,4590
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Evergreen Monthly;AUD,AUD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,3060
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Annual;AUD,AUD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Annual;TermDefined,36720
+Additional Flows - QB Starter;Standard Price Book;Additional Flows - QB Starter;Term Monthly;AUD,AUD,true,Additional Flows - QB Starter,Standard Price Book;true,Additional Flows - QB Starter,Term Monthly;TermDefined,2290
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Evergreen Monthly;AUD,AUD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,5350
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Annual;AUD,AUD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Annual;TermDefined,45900
+Additional Messages - QB Starter;Standard Price Book;Additional Messages - QB Starter;Term Monthly;AUD,AUD,true,Additional Messages - QB Starter,Standard Price Book;true,Additional Messages - QB Starter,Term Monthly;TermDefined,4590
+Additional QB DataGraph (500M);Standard Price Book;Additional QB DataGraph (500M);Term Annual;AUD,AUD,true,Additional QB DataGraph (500M),Standard Price Book;true,Additional QB DataGraph (500M),Term Annual;TermDefined,38250
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Evergreen Monthly;AUD,AUD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Evergreen Monthly;Evergreen,8
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Annual;AUD,AUD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Annual;TermDefined,69
+API Access Requests (AEH);Standard Price Book;API Access Requests (AEH);Term Monthly;AUD,AUD,true,API Access Requests (AEH),Standard Price Book;true,API Access Requests (AEH),Term Monthly;TermDefined,8
+C13 to C14 Power Cable 3';Standard Price Book;C13 to C14 Power Cable 3';One-Time;AUD,AUD,true,C13 to C14 Power Cable 3',Standard Price Book;true,C13 to C14 Power Cable 3',One-Time;OneTime,380
+Configured Power Cable;Standard Price Book;Configured Power Cable;One-Time;AUD,AUD,true,Configured Power Cable,Standard Price Book;true,Configured Power Cable,One-Time;OneTime,380
+Data Normalization Expert;Standard Price Book;Data Normalization Expert;One-Time;AUD,AUD,true,Data Normalization Expert,Standard Price Book;true,Data Normalization Expert,One-Time;OneTime,460
+Gold Hardware Maintenance;Standard Price Book;Gold Hardware Maintenance;Term Annual;AUD,AUD,true,Gold Hardware Maintenance,Standard Price Book;true,Gold Hardware Maintenance,Term Annual;TermDefined,45900
+Implementation Engineer;Standard Price Book;Implementation Engineer;One-Time;AUD,AUD,true,Implementation Engineer,Standard Price Book;true,Implementation Engineer,One-Time;OneTime,460
+Integration Specialist Engineer;Standard Price Book;Integration Specialist Engineer;One-Time;AUD,AUD,true,Integration Specialist Engineer,Standard Price Book;true,Integration Specialist Engineer,One-Time;OneTime,540
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;Intel X710 Dual Port 10Gb Direct Attach;One-Time;AUD,AUD,true,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,2450
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;Intel X710 Dual Port 10Gb SFP;One-Time;AUD,AUD,true,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,2450
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;Intel Xeon E5-2609 v4 1.7GHz;One-Time;AUD,AUD,true,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,2290
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;Intel Xeon E5-2660 v4 2.0GHz;One-Time;AUD,AUD,true,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,2600
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;Intel Xeon E5-2667 v4 3.2GHz;One-Time;AUD,AUD,true,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,3820
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;Intel Xeon E5-2683 v4 2.1GHz;One-Time;AUD,AUD,true,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,2140
+Module Extension Engineer;Standard Price Book;Module Extension Engineer;One-Time;AUD,AUD,true,Module Extension Engineer,Standard Price Book;true,Module Extension Engineer,One-Time;OneTime,460
+PowerSwerve R750 Rack Server;Standard Price Book;PowerSwerve R750 Rack Server;One-Time;AUD,AUD,true,PowerSwerve R750 Rack Server,Standard Price Book;true,PowerSwerve R750 Rack Server,One-Time;OneTime,5970
+Professional Services Daily Rate;Standard Price Book;Professional Services Daily Rate;One-Time;AUD,AUD,true,Professional Services Daily Rate,Standard Price Book;true,Professional Services Daily Rate,One-Time;OneTime,380
+Professional Services Scope of Work;Standard Price Book;Professional Services Scope of Work;One-Time;AUD,AUD,true,Professional Services Scope of Work,Standard Price Book;true,Professional Services Scope of Work,One-Time;OneTime,38250
+Program Director;Standard Price Book;Program Director;One-Time;AUD,AUD,true,Program Director,Standard Price Book;true,Program Director,One-Time;OneTime,540
+Project Manager;Standard Price Book;Project Manager;One-Time;AUD,AUD,true,Project Manager,Standard Price Book;true,Project Manager,One-Time;OneTime,460
+QB API Management Solution;Standard Price Book;QB API Management Solution;Evergreen Monthly;AUD,AUD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Evergreen Monthly;Evergreen,1530
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Annual;AUD,AUD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Annual;TermDefined,18360
+QB API Management Solution;Standard Price Book;QB API Management Solution;Term Monthly;AUD,AUD,true,QB API Management Solution,Standard Price Book;true,QB API Management Solution,Term Monthly;TermDefined,1530
+Quality Assurance Engineer;Standard Price Book;Quality Assurance Engineer;One-Time;AUD,AUD,true,Quality Assurance Engineer,Standard Price Book;true,Quality Assurance Engineer,One-Time;OneTime,460
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Evergreen Monthly;AUD,AUD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;One-Time;AUD,AUD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Annual;AUD,AUD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QuantumBit Complete Solution;Term Monthly;AUD,AUD,true,QuantumBit Complete Solution,Standard Price Book;true,QuantumBit Complete Solution,Term Monthly;TermDefined,0
+QuantumBit Essentials Training;Standard Price Book;QuantumBit Essentials Training;One-Time;AUD,AUD,true,QuantumBit Essentials Training,Standard Price Book;true,QuantumBit Essentials Training,One-Time;OneTime,13000
+QuantumBit Fundamentals Training;Standard Price Book;QuantumBit Fundamentals Training;One-Time;AUD,AUD,true,QuantumBit Fundamentals Training,Standard Price Book;true,QuantumBit Fundamentals Training,One-Time;OneTime,9940
+QuantumBit Services Project;Standard Price Book;QuantumBit Services Project;One-Time;AUD,AUD,true,QuantumBit Services Project,Standard Price Book;true,QuantumBit Services Project,One-Time;OneTime,0
+QuantumBit Starter;Standard Price Book;QuantumBit Starter;One-Time;AUD,AUD,true,QuantumBit Starter,Standard Price Book;true,QuantumBit Starter,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;Silver Hardware Maintenance;Term Annual;AUD,AUD,true,Silver Hardware Maintenance,Standard Price Book;true,Silver Hardware Maintenance,Term Annual;TermDefined,38250
+Solutions Architect;Standard Price Book;Solutions Architect;One-Time;AUD,AUD,true,Solutions Architect,Standard Price Book;true,Solutions Architect,One-Time;OneTime,760
+Subscription;Standard Price Book;Subscription;Evergreen Annual;AUD,AUD,true,Subscription,Standard Price Book;true,Subscription,Evergreen Annual;Evergreen,640
+Subscription;Standard Price Book;Subscription;Evergreen Monthly;AUD,AUD,true,Subscription,Standard Price Book;true,Subscription,Evergreen Monthly;Evergreen,50
+Subscription;Standard Price Book;Subscription;Term Annual;AUD,AUD,true,Subscription,Standard Price Book;true,Subscription,Term Annual;TermDefined,550
+Subscription;Standard Price Book;Subscription;Term Monthly;AUD,AUD,true,Subscription,Standard Price Book;true,Subscription,Term Monthly;TermDefined,50

@@ -1,0 +1,19 @@
+$$ProductClassification.Name$AttributeDefinition.Name$AttributeCategory.Name,AttributeCategory.Name,AttributeDefinition.Name,AttributeNameOverride,DefaultValue,DisplayType,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Name,Sequence,Status
+Cables;Connector_Type,,Connector_Type,Connector_Type,C13 to C14,,false,false,false,,,,,Connector Type,Cables,,Inactive
+Cables;Length,,Length,Length,3,,false,false,false,,,,,Length,Cables,,Active
+API Type;API_Type;API Specification,API Specification,API_Type,API_Type,Flex,,true,false,false,,,,,API Type,API Type,,Active
+QuantumBit2;Operating_System;Operating System,Operating System,Operating_System,Operating_System,Amazon Linux 2,,false,false,false,,,,,Operating System,QuantumBit2,,Active
+QuantumBit2;Base_Core_Count;Tech Specs,Tech Specs,Base_Core_Count,Base_Core_Count,4,,false,false,false,,,,,Base Core Count,QuantumBit2,,Active
+Server;Server_Configuration;Server,Server,Server_Configuration,Server_Configuration,Security,,false,false,false,,,,,Server_Configuration,Server,,Active
+Processor;Processor_Frequency;Processor,Processor,Processor_Frequency,Processor_Frequency,3.2GHz,,false,false,false,,,,,Processor_Frequency,Processor,,Active
+Network_Adapter;NIC_Type;Network Adapter,Network Adapter,NIC_Type,NIC_Type,Direct_Attach,,false,false,false,,,,,NIC_Type,Network_Adapter,,Active
+Hard_Drive;HDD_Storage;Hard Drive,Hard Drive,HDD_Storage,HDD_Storage,1TB,,false,false,false,,,,,HDD_Storage,Hard_Drive,,Active
+Memory;Memory_Config;Memory,Memory,Memory_Config,Memory_Config,Performance_Optimized,,false,false,false,,,,,Memory_Config,Memory,,Active
+Memory;Memory_Capacity;Memory,Memory,Memory_Capacity,Memory_Capacity,8GB,,false,false,false,,,,,Memory_Capacity,Memory,,Active
+QuantumBit;Flows;QuantumBit,QuantumBit,Flows,Flows,1000,,true,false,false,,,,,Flows,QuantumBit,,Active
+QuantumBit;Messages_Million;QuantumBit,QuantumBit,Messages_Million,Messages_Million,60,,true,false,false,,,,,Messages (Million),QuantumBit,,Active
+QuantumBit;Data_Throughput_TB;QuantumBit,QuantumBit,Data_Throughput_TB,Data_Throughput_TB,0,,true,false,false,,,,,Data Throughput (TB),QuantumBit,,Active
+Subscription;SubscriptionType;Subscription Type,Subscription Type,SubscriptionType,SubscriptionType,Evergreen,,false,false,false,,,,,SubscriptionType,Subscription,,Active
+Professional_Services_Bundle;Notes_and_Assumptions;Professional Services Bundle,Professional Services Bundle,Notes_and_Assumptions,Notes_and_Assumptions,,,false,false,false,,,,,Notes_and_Assumptions,Professional_Services_Bundle,,Active
+Engineering_Resources;Resource_Location;Engineering Resources,Engineering Resources,Resource_Location,Resource_Location,Onsite,,false,false,false,,,,,Resource_Location,Engineering_Resources,,Active
+Engineering_Resources;Engineering_Options;Engineering Resources,Engineering Resources,Engineering_Options,Engineering_Options,Extended_Care,,false,false,false,,,,,Engineering_Options,Engineering_Resources,,Active
