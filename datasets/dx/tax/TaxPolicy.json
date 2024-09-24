@@ -1,0 +1,24 @@
+{
+    "records": [
+        {
+            "attributes": {
+                "type": "TaxPolicy",
+                "referenceId": "TaxPolicyRef1"
+            },
+            "Name": "Quickstart No Tax Policy",
+            "TreatmentSelection": "Default",
+            "DefaultTaxTreatmentId": "@TaxTreatmentRef1",
+            "Status": "Draft"
+        },
+        {
+            "attributes": {
+                "type": "TaxPolicy",
+                "referenceId": "TaxPolicyRef2"
+            },
+            "Name": "Quickstart Default Tax Policy",
+            "TreatmentSelection": "Default",
+            "DefaultTaxTreatmentId": "@TaxTreatmentRef2",
+            "Status": "Draft"
+        }
+    ]
+}

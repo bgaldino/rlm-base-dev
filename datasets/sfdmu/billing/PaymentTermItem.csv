@@ -1,0 +1,2 @@
+Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
+30 Days,Default Payment Term,Standard,30,Days,Period-Based

@@ -1,0 +1,2 @@
+$$Name$BillingTreatment.Name,BillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,Handling0Amount,Name,Percentage,ProcessingOrder,Sequencing,Status,Type
+Billing Treatment Item - Advance;Billing Treatment - Advance,Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,Advance,BillingScheduleGroup,USD,,,CreateInvoice,Billing Treatment Item - Advance,,1,Manual,Active,Remainder

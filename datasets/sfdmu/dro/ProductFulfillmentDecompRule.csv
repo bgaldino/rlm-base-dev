@@ -1,0 +1,4 @@
+$$Name$SourceProduct.StockKeepingUnit$DestinationProduct.StockKeepingUnit$CurrencyIsoCode,CurrencyIsoCode,DestinationProduct.$$Name$StockKeepingUnit,Name,Priority,SourceProduct.$$Name$StockKeepingUnit
+AEH API Access Requests - Object Store Provisioning;QB-API-REQT;QB-AEH-OBJ;USD,USD,AEH Object Store - Restricted Use;QB-AEH-OBJ,AEH API Access Requests - Object Store Provisioning,,API Access Requests (AEH);QB-API-REQT
+AEH API Access Requests - Runtime Provisioning;QB-API-REQT;QB-AEH-ENV;USD,USD,AEH Environment Runtime;QB-AEH-ENV,AEH API Access Requests - Runtime Provisioning,,API Access Requests (AEH);QB-API-REQT
+AEH API Access Requests - Compute Time Provisioning;QB-API-REQT;QB-AEH-CPU;USD,USD,AEH Compute Time Access;QB-AEH-CPU,AEH API Access Requests - Compute Time Provisioning,,API Access Requests (AEH);QB-API-REQT

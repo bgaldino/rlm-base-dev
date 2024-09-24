@@ -1,0 +1,48 @@
+{
+  "apiVersion": "62.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityCountryCode, LegalEntityPostalCode, LegalEntityState, LegalEntityStateCode, LegalEntityStreet, Name, Status FROM LegalEntity",
+          "operation": "Upsert",
+          "externalId": "Name;LegalEntityCountryCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, DeveloperName, Language, MasterLabel, NamespacePrefix FROM TaxEngineProvider",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, MerchantCredentialId, SellerCode, Status, TaxEngineCountry, TaxEngineCountryCode, TaxEngineGeocodeAccuracy, TaxEngineName, TaxEngineProviderId FROM TaxEngine",
+          "operation": "Upsert",
+          "externalId": "TaxEngineName;MerchantCredential.DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, IsTaxable, LegalEntityId, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxPolicyId FROM TaxTreatment",
+          "operation": "Upsert",
+          "externalId": "Name;TaxEngine.TaxEngineName;LegalEntity.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
+          "operation": "Upsert",
+          "externalId": "Name;DefaultTaxTreatment.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT TaxPolicyId, StockKeepingUnit FROM Product2",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

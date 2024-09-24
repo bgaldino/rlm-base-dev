@@ -1,0 +1,16 @@
+{
+    "apiVersion": "62.0",
+    "excludeIdsFromCSVFiles": "true",
+    "objectSets": [
+      {
+        "objects": [
+          {
+            "query": "SELECT ApiName, IsActive, Name, Rank, VersionNumber FROM ExpressionSetVersion",
+            "operation": "Update",
+            "excluded": false
+          }
+        ]
+      }
+    ],
+    "orgs": []
+  }

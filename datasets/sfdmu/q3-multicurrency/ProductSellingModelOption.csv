@@ -1,0 +1,49 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name,IsDefault,Product2.Name,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+CS001;Evergreen Monthly,true,Cloud Storage,Evergreen Monthly;Evergreen,Default Proration Policy
+KB001;One-Time,true,Keyboard,One-Time;OneTime,
+MOU001;One-Time,true,Mouse,One-Time;OneTime,
+W001;Term Annual,true,Warranty,Term Annual;TermDefined,Default Proration Policy
+AV001;Evergreen Annual,true,Antivirus,Evergreen Annual;Evergreen,Default Proration Policy
+LCP001;Term Monthly,true,Laptop Care Package,Term Monthly;TermDefined,Default Proration Policy
+LB001;One-Time,true,Laptop Basic Bundle,One-Time;OneTime,
+MO001;One-Time,true,Monitor,One-Time;OneTime,
+LP001;One-Time,true,Laptop,One-Time;OneTime,
+PP001;One-Time,true,Printer Paper,One-Time;OneTime,
+DS001;One-Time,true,Desktop,One-Time;OneTime,
+PRN001;One-Time,true,Printer,One-Time;OneTime,
+HDS001;One-Time,true,Headset,One-Time;OneTime,
+SP001;Term Monthly,true,Support,Term Monthly;TermDefined,Default Proration Policy
+TRG001;Term Monthly,true,Basic Training,Term Monthly;TermDefined,Default Proration Policy
+PB001;One-Time,true,Printer Bundle,One-Time;OneTime,
+LPB001;One-Time,true,Laptop Pro Bundle,One-Time;OneTime,
+LLMCERT001;Term Annual,true,LLM Certification,Term Annual;TermDefined,Default Proration Policy
+ASTCERT001;Term Annual,true,AI Specialist Certification,Term Annual;TermDefined,Default Proration Policy
+CERT007;Term Annual,true,Specialized Certifications,Term Annual;TermDefined,Default Proration Policy
+ATRG001;Term Annual,true,Advanced Training,Term Annual;TermDefined,Default Proration Policy
+UA001;Evergreen Monthly,true,Udemy Access,Evergreen Monthly;Evergreen,Default Proration Policy
+SDP001;Term Annual,true,Skill Development Package,Term Annual;TermDefined,Default Proration Policy
+PCERT001;Term Annual,true,Professional Certifications,Term Annual;TermDefined,Default Proration Policy
+TPP01;Evergreen Annual,true,Training Platform Package,Evergreen Annual;Evergreen,Default Proration Policy
+ACERT001;Term Annual,true,Admin Certification,Term Annual;TermDefined,Default Proration Policy
+DCERT001;Term Annual,true,Developer Certification,Term Annual;TermDefined,Default Proration Policy
+LLMTRG001;One-Time,true,Machine Learning Model Training,One-Time;OneTime,
+APTRG001;One-Time,true,AI Specialist Training,One-Time;OneTime,
+QP001;Term Monthly,true,Quip,Term Monthly;TermDefined,Default Proration Policy
+OF001;Term Monthly,true,Office 365,Term Monthly;TermDefined,Default Proration Policy
+GW001;Term Monthly,true,Google Workspace,Term Monthly;TermDefined,Default Proration Policy
+GPTW001;Term Monthly,true,GPT for workspace,Term Monthly;TermDefined,Default Proration Policy
+LCD001;Term Monthly,true,Lucidchart,Term Monthly;TermDefined,Default Proration Policy
+MAIN0098;Term Monthly,true,Hardware Maintenance,Term Monthly;TermDefined,Default Proration Policy
+SLKSRC001;Term Monthly,true,Slack,Term Monthly;TermDefined,Default Proration Policy
+SLKDPP007;Term Monthly,true,Slack Support,Term Monthly;TermDefined,Default Proration Policy
+SLKDPP008;Term Monthly,true,Slack Training,Term Monthly;TermDefined,Default Proration Policy
+SLKDPP009;Term Monthly,true,Slack Sandbox,Term Monthly;TermDefined,Default Proration Policy
+EHD009;One-Time,true,External Hard Drive,One-Time;OneTime,
+FIG001;Term Based - Semi-Annual,true,Figma Subscription,Term Based - Semi-Annual;TermDefined,Default Proration Policy
+PS001;Term Based - Quarterly,true,Podcast Subscription,Term Based - Quarterly;TermDefined,Default Proration Policy
+NCH025;One-Time,true,Noise-Canceling Headphones,One-Time;OneTime,
+LPST001;One-Time,true,Laptop Stand,One-Time;OneTime,
+LPB001-1;One-Time,true,Laptop Productivity Bundle,One-Time;OneTime,
+LA001;One-Time,true,Laptop Accessories,One-Time;OneTime,
+USB01;One-Time,true,USB C multiport adapter hub with 4K HDMI,One-Time;OneTime,
+LBG001;One-Time,true,Laptop Bag,One-Time;OneTime,

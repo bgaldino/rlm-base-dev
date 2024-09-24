@@ -1,0 +1,95 @@
+$$Name$StockKeepingUnit,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
+AEH Environment Runtime;QB-AEH-ENV,OrderLineItem,,AEH Environment Runtime,QB-AEH-ENV
+AEH Compute Time Access;QB-AEH-CPU,OrderLineItem,,AEH Compute Time Access,QB-AEH-CPU
+AEH Object Store - Restricted Use;QB-AEH-OBJ,OrderLineItem,,AEH Object Store - Restricted Use,QB-AEH-OBJ
+QuantumShell 8U 600mmx1070mm;QB-BMX-1050,OrderLineItem,,QuantumShell 8U 600mmx1070mm,QB-BMX-1050
+QuantumShell 10U 600mmx1200mm;QB-BMX-1053,OrderLineItem,,QuantumShell 10U 600mmx1200mm,QB-BMX-1053
+QuantumBit Starter;QB-BDL-STND,OrderLineItem,,QuantumBit Starter,QB-BDL-STND
+Intel Xeon E5-2660 v4 2.0GHz;QB-INTEL E5-2660,OrderLineItem,,Intel Xeon E5-2660 v4 2.0GHz,QB-INTEL E5-2660
+Intel Xeon E5-2667 v4 3.2GHz;QB-INTEL E5-2667,OrderLineItem,,Intel Xeon E5-2667 v4 3.2GHz,QB-INTEL E5-2667
+Intel Xeon E5-2683 v4 2.1GHz;QB-INTEL E5-2683,OrderLineItem,,Intel Xeon E5-2683 v4 2.1GHz,QB-INTEL E5-2683
+32GB RDIMM;QB-MEM 32GB,OrderLineItem,,32GB RDIMM,QB-MEM 32GB
+1TB 7.2k RPM NLSAS;QB-HD 1TB,OrderLineItem,,1TB 7.2k RPM NLSAS,QB-HD 1TB
+Additional API;QB-API,OrderLineItem,,Additional API,QB-API
+QuantumBit Complete Solution;QB-COMPLETE,OrderLineItem,,QuantumBit Complete Solution,QB-COMPLETE
+4TB 7.2k RPM NLSAS;QB-HD 4TB,OrderLineItem,,4TB 7.2k RPM NLSAS,QB-HD 4TB
+8GB RDIMM;QB-MEM 8GB,OrderLineItem,,8GB RDIMM,QB-MEM 8GB
+Intel X710 Dual Port 10Gb Direct Attach;QB-NET X710,OrderLineItem,,Intel X710 Dual Port 10Gb Direct Attach,QB-NET X710
+C13 to C14 Power Cable 3';QB-CMPC-5887,OrderLineItem,,C13 to C14 Power Cable 3',QB-CMPC-5887
+C13 to C14 Power Cable 5';QB-CMPC-5888,OrderLineItem,,C13 to C14 Power Cable 5',QB-CMPC-5888
+C19 to C20 Power Cable 3';QB-CMPC-5889,OrderLineItem,,C19 to C20 Power Cable 3',QB-CMPC-5889
+C19 to C20 Power Cable 5';QB-CMPC-5890,OrderLineItem,,C19 to C20 Power Cable 5',QB-CMPC-5890
+L5-20 Input Power Cable 12';QB-CMPC-5891,OrderLineItem,,L5-20 Input Power Cable 12',QB-CMPC-5891
+L5-20 Input Power Cable 8';QB-CMPC-5892,OrderLineItem,,L5-20 Input Power Cable 8',QB-CMPC-5892
+Gold Hardware Maintenance;QB-SUPP-1005,OrderLineItem,,Gold Hardware Maintenance,QB-SUPP-1005
+Silver Hardware Maintenance;QB-SUPP-1000,OrderLineItem,,Silver Hardware Maintenance,QB-SUPP-1000
+Additional Automation QB Credits;QB-AUT-CRED,OrderLineItem,,Additional Automation QB Credits,QB-AUT-CRED
+Additional API Prod;QB-API-PROD,OrderLineItem,,Additional API Prod,QB-API-PROD
+QuantumBit Enterprise;QB-BDL-ENTR,OrderLineItem,,QuantumBit Enterprise,QB-BDL-ENTR
+QuantumBit Business Critical;QB-BDL-CRTL,OrderLineItem,,QuantumBit Business Critical,QB-BDL-CRTL
+QuantumBit Fundamentals Training;QB-TRN-FUND,OrderLineItem,,QuantumBit Fundamentals Training,QB-TRN-FUND
+QuantumBit Essentials Training;QB-TRN-ESSNTLS,OrderLineItem,,QuantumBit Essentials Training,QB-TRN-ESSNTLS
+Professional Services Daily Rate;QB-SRV-OG-PSH,OrderLineItem,,Professional Services Daily Rate,QB-SRV-OG-PSH
+Professional Services Scope of Work;QB-SRV-SOW,OrderLineItem,,Professional Services Scope of Work,QB-SRV-SOW
+Intel Xeon E5-2609 v4 1.7GHz;QB-INTEL E5-2609,OrderLineItem,,Intel Xeon E5-2609 v4 1.7GHz,QB-INTEL E5-2609
+PowerSwerve R750 Rack Server;QB-BDL-R750,OrderLineItem,,PowerSwerve R750 Rack Server,QB-BDL-R750
+Subscription;TEST-SUB,OrderLineItem,,Subscription,TEST-SUB
+16GB RDIMM;QB-MEM 16GB,OrderLineItem,,16GB RDIMM,QB-MEM 16GB
+8TB 7.2k RPM NLSAS;QB-HD 8TB,OrderLineItem,,8TB 7.2k RPM NLSAS,QB-HD 8TB
+8TB 7.2k RPM Self-Encrypting NLSAS;QB-HD 8TBSE,OrderLineItem,,8TB 7.2k RPM Self-Encrypting NLSAS,QB-HD 8TBSE
+Intel X710 Dual Port 10Gb SFP;QB-BET X710SFP,OrderLineItem,,Intel X710 Dual Port 10Gb SFP,QB-BET X710SFP
+QuantumBit Services Project;QB-BDL-SRVC,OrderLineItem,,QuantumBit Services Project,QB-BDL-SRVC
+Configured Power Cable;QB-CMPC-5882,OrderLineItem,,Configured Power Cable,QB-CMPC-5882
+TX 600mm/750mm Stabilizer Plate;QB-BSSA-4303,OrderLineItem,,TX 600mm/750mm Stabilizer Plate,QB-BSSA-4303
+TX Bolt-Down Kit;QB-BSSA-4304,OrderLineItem,,TX Bolt-Down Kit,QB-BSSA-4304
+"Rack PDU 30A, 120V L5-20;QB-PDU-2023",OrderLineItem,,"Rack PDU 30A, 120V L5-20",QB-PDU-2023
+"Rack PDU 15A, 120V L5-20;QB-PDU-2024",OrderLineItem,,"Rack PDU 15A, 120V L5-20",QB-PDU-2024
+"Rack PDU 20A, 230V C20 input C1;QB-PDU-2025",OrderLineItem,,"Rack PDU 20A, 230V C20 input C1",QB-PDU-2025
+"Rack PDU 10A, 230V C20 input C19;QB-PDU-2026",OrderLineItem,,"Rack PDU 10A, 230V C20 input C19",QB-PDU-2026
+"Rack PDU 16A, 230V, C13 output;QB-PDU-2027",OrderLineItem,,"Rack PDU 16A, 230V, C13 output",QB-PDU-2027
+"Rack PDU 14.4kW, 208V, C13 output;QB-PDU-2028",OrderLineItem,,"Rack PDU 14.4kW, 208V, C13 output",QB-PDU-2028
+"Rack PDU 5.7W, 208V, C13 output;QB-PDU-2029",OrderLineItem,,"Rack PDU 5.7W, 208V, C13 output",QB-PDU-2029
+No Operating System;QB-NO-OSYS,OrderLineItem,,No Operating System,QB-NO-OSYS
+vSphere Standard;QB-VMW-S,OrderLineItem,,vSphere Standard,QB-VMW-S
+vSphere Enterprise;QB-VMW-E,OrderLineItem,,vSphere Enterprise,QB-VMW-E
+Installation and Assembly;QB-INST-1000,OrderLineItem,,Installation and Assembly,QB-INST-1000
+Professional Service Hours (Consumption);QB-SRV-OG-PSHC,OrderLineItem,,Professional Service Hours (Consumption),QB-SRV-OG-PSHC
+Red Hat Enterprise Linux;QB-REDHAT,OrderLineItem,,Red Hat Enterprise Linux,QB-REDHAT
+vSphere Desktop;QB-VMW-D,OrderLineItem,,vSphere Desktop,QB-VMW-D
+Software Maintenance;QB-SUPP-2000,OrderLineItem,,Software Maintenance,QB-SUPP-2000
+Additional Flows - QB Enterprise;QB-FLO-ENTR,OrderLineItem,,Additional Flows - QB Enterprise,QB-FLO-ENTR
+Additional Messages - QB Enterprise;QB-MSG-ENTR,OrderLineItem,,Additional Messages - QB Enterprise,QB-MSG-ENTR
+"Rack PDU 20A, 120V L5-20;QB-PDU-2022",OrderLineItem,,"Rack PDU 20A, 120V L5-20",QB-PDU-2022
+Additional API Pre-Prod;QB-API-PREP,OrderLineItem,,Additional API Pre-Prod,QB-API-PREP
+Additional API Gov;QB-API-GOVT,OrderLineItem,,Additional API Gov,QB-API-GOVT
+Additional API Flex (100M);QB-API-FLEX,OrderLineItem,,Additional API Flex (100M),QB-API-FLEX
+Additional QB DataGraph (500M);QB-DAT-GRPH,OrderLineItem,,Additional QB DataGraph (500M),QB-DAT-GRPH
+Program Director;QB-SRV-PD,OrderLineItem,,Program Director,QB-SRV-PD
+Solutions Architect;QB-SRV-SAT,OrderLineItem,,Solutions Architect,QB-SRV-SAT
+Project Manager;QB-SRV-PMN,OrderLineItem,,Project Manager,QB-SRV-PMN
+Implementation Engineer;QB-SRV-IMP,OrderLineItem,,Implementation Engineer,QB-SRV-IMP
+Integration Specialist Engineer;QB-SRV-ISE,OrderLineItem,,Integration Specialist Engineer,QB-SRV-ISE
+Module Extension Engineer;QB-SRV-MEE,OrderLineItem,,Module Extension Engineer,QB-SRV-MEE
+Quality Assurance Engineer;QB-SRV-QAE,OrderLineItem,,Quality Assurance Engineer,QB-SRV-QAE
+Data Normalization Expert;QB-SRV-DNE,OrderLineItem,,Data Normalization Expert,QB-SRV-DNE
+QB API Management Solution;QB-API-MGMT,OrderLineItem,,QB API Management Solution,QB-API-MGMT
+Additional Flows - QB Starter;QB-FLO-STRT,OrderLineItem,,Additional Flows - QB Starter,QB-FLO-STRT
+Additional Messages - QB Starter;QB-MSG-STRT,OrderLineItem,,Additional Messages - QB Starter,QB-MSG-STRT
+Additional Data Throughput (TB);QB-DAT-THPT,OrderLineItem,,Additional Data Throughput (TB),QB-DAT-THPT
+Blanking Panel;QB-BSSA-4298,OrderLineItem,,Blanking Panel,QB-BSSA-4298
+Sliding Shelf 200lbs;QB-BSSA-4300,OrderLineItem,,Sliding Shelf 200lbs,QB-BSSA-4300
+Fixed Shelf 250lbs;QB-BSSA-4302,OrderLineItem,,Fixed Shelf 250lbs,QB-BSSA-4302
+Roof Fan Tray 750mm - 120V;QB-BSSA-4306,OrderLineItem,,Roof Fan Tray 750mm - 120V,QB-BSSA-4306
+Roof Fan Tray 750mm - 208V;QB-BSSA-4308,OrderLineItem,,Roof Fan Tray 750mm - 208V,QB-BSSA-4308
+QuantumBit Rack Enclosure;QB-BDL-RAXS,OrderLineItem,,QuantumBit Rack Enclosure,QB-BDL-RAXS
+Quick Start Enablement;QB-SRV-QSE,OrderLineItem,,Quick Start Enablement,QB-SRV-QSE
+Professional Services - Associate Consultant Daily Rate;QB-SRV-OG-AC-PSH,OrderLineItem,,Professional Services - Associate Consultant Daily Rate,QB-SRV-OG-AC-PSH
+"QuantumBit Advisory Services, CSM Premium;QB-SRV-AS",OrderLineItem,,"QuantumBit Advisory Services, CSM Premium",QB-SRV-AS
+Standard Success Plan;QB-STD-SP,OrderLineItem,,Standard Success Plan,QB-STD-SP
+Professional Services - Project Management Daily Rate;QB-SRV-OG-PM-PSH,OrderLineItem,,Professional Services - Project Management Daily Rate,QB-SRV-OG-PM-PSH
+Premium Success Plan;QB-SRV-PRM-SP,OrderLineItem,,Premium Success Plan,QB-SRV-PRM-SP
+API Access Requests (AEH);QB-API-REQT,OrderLineItem,,API Access Requests (AEH),QB-API-REQT
+Cable Management Rings (Qty 10);QB-CMPC-5881,OrderLineItem,,Cable Management Rings (Qty 10),QB-CMPC-5881
+"Vertical Cable Organizer, 8 Cable Rings;QB-CMPC-5883",OrderLineItem,,"Vertical Cable Organizer, 8 Cable Rings",QB-CMPC-5883
+Cable Containment Brackets;QB-CMPC-5884,OrderLineItem,,Cable Containment Brackets,QB-CMPC-5884
+QuantumShell 6U 600mmx870mm;QB-BMX-1051,OrderLineItem,,QuantumShell 6U 600mmx870mm,QB-BMX-1051

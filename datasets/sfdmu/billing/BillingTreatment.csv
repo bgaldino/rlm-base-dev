@@ -1,0 +1,2 @@
+$$Name$BillingPolicy.Name$LegalEntity.Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,LegalEntity.Name,Name,Status
+Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,Billing Policy - Advance,USD,,No,Default Legal Entity - US,Billing Treatment - Advance,Draft
