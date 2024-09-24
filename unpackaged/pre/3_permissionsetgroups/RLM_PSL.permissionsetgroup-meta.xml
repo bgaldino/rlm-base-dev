@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM_PSL</label>
+    <permissionSets>force__RevLifecycleManagementCalculatePricesApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementCalculateTaxesApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementCoreCPQAssetization</permissionSets>
+    <permissionSets>force__RevLifecycleManagementCreateContractApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementCreateOrderFromQuote</permissionSets>
+    <permissionSets>force__RevLifecycleManagementInitiateAmendmentApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementInitiateCancellationApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementInitiateRenewalApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementPlaceOrderApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementProductAndPriceConfigurationApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementProductImportApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementQuotePricesTaxes</permissionSets>
+    <permissionSets>force__RevLifecycleManagementTaxConfiguration</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

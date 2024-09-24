@@ -1,0 +1,136 @@
+{
+  "appPageId" : "dda6100b-c839-4550-b692-a7d3d6030bf4",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "9de494ae-36ac-414e-a420-fd66923aba7f",
+  "label" : "Account Detail",
+  "regions" : [ {
+    "id" : "e87e19a8-8582-4671-8506-90128ca159c8",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "recordId" : "{!recordId}"
+      },
+      "componentName" : "forceCommunity:recordHeadline",
+      "id" : "b3a3b5b0-7db4-4506-832d-da179fc82259",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    }, {
+      "componentAttributes" : {
+        "tabsetConfig" : {
+          "UUID" : "702a9c42-027a-41b0-8167-b3a690381d0d",
+          "activeTab" : "",
+          "tabs" : [ {
+            "UUID" : "5708d280-7169-4f2f-b1ba-78cfc37b3ec8",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "1",
+            "tabName" : "Details"
+          }, {
+            "UUID" : "4659e2d0-4b38-416a-bb95-deab6788e686",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "2",
+            "tabName" : "Related"
+          }, {
+            "UUID" : "ee98a863-cd7c-4731-bedc-b5e4aa30b6b0",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "d6bac",
+            "tabName" : "Assets"
+          } ],
+          "useOverflowMenu" : true
+        }
+      },
+      "componentName" : "forceCommunity:tabLayout",
+      "id" : "702a9c42-027a-41b0-8167-b3a690381d0d",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "recordId" : "{!recordId}"
+          },
+          "componentName" : "forceCommunity:recordDetail",
+          "id" : "9a1e5ef3-307e-426e-a8c7-1deaf2f950d5",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "5708d280-7169-4f2f-b1ba-78cfc37b3ec8",
+        "regionLabel" : "Details",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "recordId" : "{!recordId}",
+            "width" : "MEDIUM"
+          },
+          "componentName" : "forceCommunity:relatedRecords",
+          "id" : "c0f4e9e7-7f44-4f1a-bb7f-006b1292a65f",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "4659e2d0-4b38-416a-bb95-deab6788e686",
+        "regionLabel" : "Related",
+        "regionName" : "2",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableSidepanel" : true,
+            "objectApiName" : "Account",
+            "recordId" : "{!recordId}",
+            "sidepanelDetailFields" : "[Asset.Account.Name[Account],Asset.CurrencyIsoCode,Asset.AssetLevel,Asset.Name,Asset.AssetProvidedBy.Name[Account],Asset.AssetServicedBy.Name[Account],Asset.City,Asset.IsCompetitorProduct,Asset.ConsequenceOfFailure,Asset.Contact.Name[Contact],Asset.Country,Asset.CreatedBy.Name[User],Asset.CreatedDate,Asset.CurrentAmount,Asset.CurrentLifecycleEndDate,Asset.CurrentMrr,Asset.CurrentQuantity,Asset.IsDeleted,Asset.Description,Asset.DigitalAssetStatus,Asset.ExternalIdentifier,Asset.GeocodeAccuracy,Asset.InstallDate,Asset.IsInternal,Asset.LastModifiedBy.Name[User],Asset.LastModifiedDate,Asset.LastReferencedDate,Asset.LastViewedDate,Asset.Latitude,Asset.LifecycleEndDate,Asset.LifecycleStartDate,Asset.HasLifecycleManagement,Asset.Location.Name[Location],Asset.Longitude,Asset.ManufactureDate,Asset.Parent.Name[Asset],Asset.PostalCode,Asset.Price,Asset.PricingSource,Asset.Product2.Name[Product2],Asset.ProductCode,Asset.ProductDescription,Asset.ProductFamily,Asset.StockKeepingUnit,Asset.PurchaseDate,Asset.Quantity,Asset.RenewalTerm,Asset.RenewalTermUnit,Asset.RootAsset.Name[Asset],Asset.SerialNumber,Asset.State,Asset.Status,Asset.StatusReason,Asset.Street,Asset.SystemModstamp,Asset.TotalLifecycleAmount,Asset.Uuid,Asset.UsageEndDate]"
+          },
+          "componentName" : "runtime_revenue_foundation:assetViewer",
+          "id" : "aeee66eb-6a74-4fe1-b747-07864595e009",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "ee98a863-cd7c-4731-bedc-b5e4aa30b6b0",
+        "regionLabel" : "Assets",
+        "regionName" : "d6bac",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "d64e3f22-b743-4e84-9335-44a5552162ef",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "deb69f51-9145-4e8b-9a3c-730120382da3",
+    "regionName" : "footer",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "{!Record._Object}: {!Record._Title}"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "a993bde7-fda3-432c-aa37-04c4379d2907",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "d705a5fa-5732-4816-8f50-4de891add48e",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "detail-001"
+}

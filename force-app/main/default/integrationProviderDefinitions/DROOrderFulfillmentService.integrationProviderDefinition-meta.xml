@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IntegrationProviderDef xmlns="http://soap.sforce.com/2006/04/metadata">
+    <active>true</active>
+    <description>DRO OOB Adapter with Order payload</description>
+    <developerName>DROOrderFulfillmentService</developerName>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <developerName>Named_Credentials</developerName>
+        <label>Named Credentials</label>
+        <required>true</required>
+        <stringValue>BillingSystemNC</stringValue>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <developerName>path</developerName>
+        <label>path</label>
+        <required>true</required>
+        <stringValue>/delay/3</stringValue>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <integrationProviderAttributes>
+        <dataType>Integer</dataType>
+        <developerName>Timeout</developerName>
+        <integerValue>10000</integerValue>
+        <label>Timeout (ms)</label>
+        <required>false</required>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <developerName>Callback_URI</developerName>
+        <label>Callback URI</label>
+        <required>false</required>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <developerName>Input_Processor</developerName>
+        <label>Input Processor</label>
+        <required>false</required>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <developerName>Output_Processor</developerName>
+        <label>Output Processor</label>
+        <required>false</required>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
+    <javaClassName>industries.fulfillment.orchestrator.impl.steps.types.callout.provider.CalloutIntegrationProvider</javaClassName>
+    <providerLabel>DROOrderFulfillmentService</providerLabel>
+    <type>Java</type>
+</IntegrationProviderDef>

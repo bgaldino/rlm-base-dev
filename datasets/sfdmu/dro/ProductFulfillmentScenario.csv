@@ -1,0 +1,10 @@
+$$Name$Product.Name$CurrencyIsoCode,Action,CurrencyIsoCode,FulfillmentStepDefnGroup.$$Name$CurrencyIsoCode,Name,Product.Name
+Convert All Lines to Assets;Additional API;USD,Add;Amend;Renew;No Change;Cancel,USD,Asset Conversion;USD,Convert All Lines to Assets,Additional API
+AEH API Access Requests - Provision Tenant for Net New;API Access Requests (AEH);USD,Add,USD,Tenant Provisioning;USD,AEH API Access Requests - Provision Tenant for Net New,API Access Requests (AEH)
+AEH API Access Requests - Validate Tenant for Net New;API Access Requests (AEH);USD,Add,USD,Order Processing;USD,AEH API Access Requests - Validate Tenant for Net New,API Access Requests (AEH)
+AEH API Access Requests - Convert Assets;API Access Requests (AEH);USD,Add;Amend;Renew;No Change,USD,Asset Conversion;USD,AEH API Access Requests - Convert Assets,API Access Requests (AEH)
+QB Complete - Order Review;QuantumBit Complete Solution;USD,Add,USD,Order Processing;USD,QB Complete - Order Review,QuantumBit Complete Solution
+Convert All Lines to Assets - QB Complete;QuantumBit Complete Solution;USD,Add;Amend;Renew;No Change;Cancel,USD,Asset Conversion;USD,Convert All Lines to Assets - QB Complete,QuantumBit Complete Solution
+QB Complete - Provision New Tenant;QuantumBit Complete Solution;USD,Add,USD,Tenant Provisioning;USD,QB Complete - Provision New Tenant,QuantumBit Complete Solution
+Provision Tenant - New Sale - Additional API;Additional API;USD,Add,USD,Tenant Provisioning;USD,Provision Tenant - New Sale - Additional API,Additional API
+Additional API;Additional API;USD,Add,USD,Order Processing;USD,Additional API,Additional API

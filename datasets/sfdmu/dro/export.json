@@ -1,0 +1,53 @@
+{
+    "apiVersion": "61.0",
+    "excludeIdsFromCSVFiles": "true",
+    "objectSets": [
+        {
+            "objects": [
+                {
+                    "query": "SELECT CurrencyIsoCode, Description, Id, Name FROM FulfillmentWorkspace",
+                    "operation": "Upsert",
+                    "externalId": "Name;CurrencyIsoCode",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT CurrencyIsoCode, Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
+                    "operation": "Upsert",
+                    "externalId": "Name;CurrencyIsoCode",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT AssignedToId, CurrencyIsoCode, ExecuteOnRuleId, FlowDefinitionName, Id, IntegrationDefinitionNameId, Name, OmniscriptName, ResumeOnRuleId, RunAsUserId, Scope, StepDefinitionGroupId, StepType, UsageType FROM FulfillmentStepDefinition",
+                    "operation": "Upsert",
+                    "externalId": "Name;StepDefinitionGroup.Name;CurrencyIsoCode",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT CurrencyIsoCode, DependencyScope, DependsOnStepDefinitionId, FulfillmentStepDefinitionId, Id, Name FROM FulfillmentStepDependencyDef",
+                    "operation": "Upsert",
+                    "externalId": "Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name;CurrencyIsoCode",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT CurrencyIsoCode, FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, ShowOrder FROM FulfillmentWorkspaceItem",
+                    "operation": "Upsert",
+                    "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name;CurrencyIsoCode",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT CurrencyIsoCode, DestinationProductId, Id, Name, Priority, SourceProductId FROM ProductFulfillmentDecompRule",
+                    "operation": "Upsert",
+                    "externalId": "Name;SourceProduct.Name;DestinationProduct.Name;CurrencyIsoCode",
+                    "excluded": false
+                },
+                {
+                    "query": "SELECT Action, CurrencyIsoCode, FulfillmentStepDefnGroupId, Id, Name, ProductId  FROM ProductFulfillmentScenario",
+                    "operation": "Upsert",
+                    "externalId": "Name;Product.Name;CurrencyIsoCode",
+                    "excluded": false
+                }
+            ]
+        }
+    ],
+    "orgs": []
+}

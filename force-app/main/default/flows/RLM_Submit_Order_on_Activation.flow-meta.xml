@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Submit_Order</name>
+        <label>Submit Order</label>
+        <locationX>242</locationX>
+        <locationY>492</locationY>
+        <actionName>submitOrder</actionName>
+        <actionType>submitOrder</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>orderId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>submitOrder</nameSegment>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <versionSegment>1</versionSegment>
+    </actionCalls>
+    <apiVersion>61.0</apiVersion>
+    <decisions>
+        <description>Check if the order has an AppUsageType of RevenueLifecycleManagement before calling Order-to-Asset. Otherwise do nothing.</description>
+        <name>IsRevenueLifecycleManagement</name>
+        <label>Is RevenueLifecycleManagement</label>
+        <locationX>374</locationX>
+        <locationY>384</locationY>
+        <defaultConnectorLabel>Record is not RevenueLifecycleManagement</defaultConnectorLabel>
+        <rules>
+            <name>RecordIsRevenueLifecycleManagement</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>AppUsageAssignmentRecord.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Submit_Order</targetReference>
+            </connector>
+            <label>Record is RevenueLifecycleManagement</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <interviewLabel>RLM - Submit Order on Activation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM - Submit Order on Activation</label>
+    <overriddenFlow>revenue_o2aflows__o2aFlow</overriddenFlow>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Get ApplicationUsageAssignment from the updated order.</description>
+        <name>Get_ApplicationUsageAssignment</name>
+        <label>Get ApplicationUsageAssignment</label>
+        <locationX>374</locationX>
+        <locationY>276</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>IsRevenueLifecycleManagement</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>RecordId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>AppUsageType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>RevenueLifecycleManagement</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>AppUsageAssignment</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Activated</stringValue>
+            </value>
+        </filters>
+        <object>Order</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>Get_ApplicationUsageAssignment</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>AppUsageAssignmentRecord</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>AppUsageAssignment</objectType>
+    </variables>
+</Flow>

@@ -1,0 +1,79 @@
+{
+  "orgName": "Salesforce Revenue Lifecycle Management",
+  "country": "US",
+  "edition": "Enterprise",
+  "release": "preview",
+  "features": [
+    "EnableSetPasswordInApi",
+    "OrderSaveLogicEnabled",
+    "CoreCPQ",
+    "Communities",
+    "EnablePRM",
+    "PartnerCommunity",
+    "StateAndCountryPicklist",
+    "AdvancedApproval"
+  ],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    },
+    "userEngagementSettings": {
+      "enableShowSalesforceUserAssist": false
+    },
+    "userManagementSettings": {
+      "enableEnhancedProfileMgmt": true,
+      "enableEnhancedPermsetMgmt": true,
+      "enableNewProfileUI": true
+    },
+    "orderSettings": {
+      "enableOrders": true,
+      "enableEnhancedCommerceOrders": true,
+      "enableOrderEvents": true,
+      "enableZeroQuantity": true,
+      "enableNegativeQuantity": true
+    },
+    "quoteSettings": {
+      "enableQuote": true,
+      "enableQuotesWithoutOppEnabled": true
+    },
+    "revenueManagementSettings": {
+      "enableCoreCPQ": true
+    },
+    "industriesContextSettings": {
+      "enableContextDefinitions": true
+    },
+    "industriesPricingSettings": {
+      "enableSalesforcePricing": true,
+      "enablePricingWaterfall": true,
+      "enablePricingWaterfallPersistence": true,
+      "enableHighAvailability": true
+    },
+    "productConfiguratorSettings": {
+      "enableProductConfigurator": true
+    },
+    "dynamicFulfillmentOrchestratorSettings": {
+      "enableDFOPref": true
+    },
+    "securitySettings": {
+      "enableAdminLoginAsAnyUser": true,
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
+    },
+    "currencySettings": {
+      "enableMultiCurrency": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    }
+  }
+}

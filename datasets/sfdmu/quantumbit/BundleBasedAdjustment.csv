@@ -1,0 +1,4 @@
+AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,Name,ParentProduct.Name,ParentProductSellingModel.$$Name$SellingModelType,PriceAdjustmentSchedule.Name,PricingTerm,PricingTermUnit,Product.Name,ProductSellingModel.$$Name$SellingModelType,RootBundle.Name,RootProductSellingModel.$$Name$SellingModelType,ScheduleType,SellingModelType
+Percentage,15,2024-02-01T20:00:00.000+0000,,00000001,QuantumBit Complete Solution,,Standard Bundle Based Adjustment,1,Annual,Additional API,Term Annual;TermDefined,QuantumBit Complete Solution,,Bundle,TermDefined
+Percentage,5,2024-02-01T20:00:00.000+0000,,00000002,QuantumBit Complete Solution,,Standard Bundle Based Adjustment,1,Months,Additional API,Term Monthly;TermDefined,QuantumBit Complete Solution,,Bundle,TermDefined
+Percentage,10,2024-02-01T20:00:00.000+0000,,00000003,QuantumBit Complete Solution,,Standard Bundle Based Adjustment,1,Months,Additional API,Evergreen Monthly;Evergreen,QuantumBit Complete Solution,,Bundle,Evergreen

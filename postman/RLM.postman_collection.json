@@ -1,0 +1,5081 @@
+{
+	"info": {
+		"_postman_id": "6a6aa084-2fdc-4767-9e19-658f162a9152",
+		"name": "RLM",
+		"description": "Revenue Lifecycle Management API Collection\n\n[Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19737820",
+		"_collection_link": "https://salesforce-734821.postman.co/workspace/Revenue-Cloud-SE-Workspace~b0efc3de-0250-455b-9ed1-b4365b6ada2b/collection/19737820-6a6aa084-2fdc-4767-9e19-658f162a9152?action=share&source=collection_link&creator=19737820"
+	},
+	"item": [
+		{
+			"name": "Set Environment Variables (Runner)",
+			"item": [
+				{
+					"name": "Get Endpoint from User Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let response = pm.response.json(); // Parse the response body to JSON",
+									"",
+									"if (response.profile) {",
+									"    let profileUrl = response.profile;",
+									"    // Extract the base URL by finding the position of the third \"/\" and getting the substring up to that position",
+									"    let thirdSlashIndex = profileUrl.indexOf('/', profileUrl.indexOf('//') + 2);",
+									"    let baseEndpoint = thirdSlashIndex !== -1 ? profileUrl.substring(0, thirdSlashIndex) : profileUrl;",
+									"",
+									"    pm.environment.set(\"_endpoint\", baseEndpoint); // Set the base URL as an environment variable '_endpoint'",
+									"    pm.test(\"Base URL extracted and set to _endpoint\", () => {",
+									"        pm.expect(pm.environment.get(\"_endpoint\")).to.eql(baseEndpoint);",
+									"    });",
+									"} else {",
+									"    pm.test(\"Profile URL is missing in the response\", () => {",
+									"        pm.expect.fail(\"Profile URL not found in the response.\");",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}{{site}}/services/oauth2/userinfo",
+							"host": [
+								"{{url}}{{site}}"
+							],
+							"path": [
+								"services",
+								"oauth2",
+								"userinfo"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Latest Release Version",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const lastResponseItem = response[response.length - 1]; // Get the last item of the response array",
+									"    if (lastResponseItem && lastResponseItem.version) {",
+									"        pm.environment.set(\"apiVersion\", `v${lastResponseItem.version}`);",
+									"        pm.environment.set(\"version\", lastResponseItem.version);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultAccountId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Account WHERE Name = '{{defaultAccountName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Account WHERE Name = '{{defaultAccountName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Standard Pricebook",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"standardPricebookId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Pricebook2 WHERE Name='{{standardPricebookName}}' and IsActive = true",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Pricebook2 WHERE Name='{{standardPricebookName}}' and IsActive = true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Catalog",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultCatalogId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM ProductCatalog WHERE name='{{defaultCatalogName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM ProductCatalog WHERE name='{{defaultCatalogName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultCategoryId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM ProductCategory WHERE Name='{{defaultCategoryName}}' AND CatalogId='{{defaultCatalogId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM ProductCategory WHERE Name='{{defaultCategoryName}}' AND CatalogId='{{defaultCatalogId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Selling Models",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"var response = pm.response.json();",
+									"",
+									"response.records.forEach(function(record) {",
+									"    var sellingModelType = record.SellingModelType;",
+									"    var pricingTermUnit = record.PricingTermUnit;",
+									"    var id = record.Id;",
+									"    var prefix = \"\";",
+									"",
+									"    if (sellingModelType === \"OneTime\") {",
+									"        prefix = \"defaultOneTimePSM\";",
+									"    } else if (sellingModelType === \"TermDefined\" || sellingModelType === \"Evergreen\") {",
+									"        var termUnit = pricingTermUnit === \"Annual\" ? \"Annual\" : pricingTermUnit === \"Months\" ? \"Monthly\" : \"\";",
+									"        prefix = \"default\" + sellingModelType + termUnit + \"PSM\";",
+									"    }",
+									"",
+									"    if (prefix) {",
+									"        pm.environment.set(prefix, id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name, SellingModelType, PricingTermUnit  FROM ProductSellingModel",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name, SellingModelType, PricingTermUnit  FROM ProductSellingModel"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get One Time Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultOneTimeProductId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defaultOneTimeProductName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Product2 WHERE Name = '{{defaultOneTimeProductName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get One Time PBE",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultOneTimePBE\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{defaultOneTimeProductId}}' and ProductSellingModelId='{{defaultOneTimePSM}}' and Pricebook2Id = '{{standardPricebookId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id from PricebookEntry Where Product2Id='{{defaultOneTimeProductId}}' and ProductSellingModelId='{{defaultOneTimePSM}}' and Pricebook2Id = '{{standardPricebookId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Evergreen Monthly Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultEvergreenMonthlyProductId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defaultEvergreenMonthlyProductName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Product2 WHERE Name = '{{defaultEvergreenMonthlyProductName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Evergreen Monthly PBE",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultEvergreenMonthlyPBE\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{defaultEvergreenMonthlyProductId}}' and ProductSellingModelId='{{defaultEvergreenMonthlyPSM}}' and Pricebook2Id='{{standardPricebookId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id from PricebookEntry Where Product2Id='{{defaultEvergreenMonthlyProductId}}' and ProductSellingModelId='{{defaultEvergreenMonthlyPSM}}' and Pricebook2Id='{{standardPricebookId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Evergreen Annual Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultEvergreenAnnualProductId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defaultEvergreenAnnualProductName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Product2 WHERE Name = '{{defaultEvergreenAnnualProductName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Evergreen Annual PBE",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultEvergreenAnnualPBE\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{defaultEvergreenAnnualProductId}}' and ProductSellingModelId='{{defaultEvergreenAnnualPSM}}' and Pricebook2Id='{{standardPricebookId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id from PricebookEntry Where Product2Id='{{defaultEvergreenAnnualProductId}}' and ProductSellingModelId='{{defaultEvergreenAnnualPSM}}' and Pricebook2Id='{{standardPricebookId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Term Annual Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultTermDefinedAnnualProductId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defaultTermDefinedAnnualProductName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Product2 WHERE Name = '{{defaultTermDefinedAnnualProductName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Term Annual PBE",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultTermDefinedAnnualPBE\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{defaultTermDefinedAnnualProductId}}' and ProductSellingModelId='{{defaultTermDefinedAnnualPSM}}' and Pricebook2Id='{{standardPricebookId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id from PricebookEntry Where Product2Id='{{defaultTermDefinedAnnualProductId}}' and ProductSellingModelId='{{defaultTermDefinedAnnualPSM}}' and Pricebook2Id='{{standardPricebookId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Term Monthly Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultTermDefinedMonthlyProductId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defaultTermDefinedMonthlyProductName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Name FROM Product2 WHERE Name = '{{defaultTermDefinedMonthlyProductName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Term Monthly PBE",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultTermDefinedMonthlyPBE\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{defaultTermDefinedMonthlyProductId}}' and ProductSellingModelId='{{defaultTermDefinedMonthlyPSM}}' and Pricebook2Id='{{standardPricebookId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id from PricebookEntry Where Product2Id='{{defaultTermDefinedMonthlyProductId}}' and ProductSellingModelId='{{defaultTermDefinedMonthlyPSM}}' and Pricebook2Id='{{standardPricebookId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Context Definition",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"defaultContextDefintionId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id, DeveloperName from ContextDefinition Where DeveloperName='{{defaultContextDefinitionName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id, DeveloperName from ContextDefinition Where DeveloperName='{{defaultContextDefinitionName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Context Mapping",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"defaultContextMappingId\", firstRecord.Id);",
+									"        pm.environment.set(\"defaultContextMappingName\", firstRecord.Title);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion.ContextDefinition.Id='{{defaultContextDefintionId}}' AND IsDefault=true",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion.ContextDefinition.Id='{{defaultContextDefintionId}}' AND IsDefault=true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Pricing Procedure",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"defaultPricingProcedureId\", firstRecord.Id);",
+									"        pm.environment.set(\"defaultPricingProcedureName\", firstRecord.MasterLabel);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id, MasterLabel, DeveloperName from ExpressionSetDefinition Where DeveloperName='{{defaultPricingProcedureDeveloperName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id, MasterLabel, DeveloperName from ExpressionSetDefinition Where DeveloperName='{{defaultPricingProcedureDeveloperName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Custom Context Definition",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"customContextDefinitionId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, DeveloperName FROM ContextDefinition WHERE DeveloperName='{{customContextDefinitionName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, DeveloperName FROM ContextDefinition WHERE DeveloperName='{{customContextDefinitionName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Custom Context Mapping",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"customContextMappingId\", firstRecord.Id);",
+									"        pm.environment.set(\"customContextMappingName\", firstRecord.Title);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion.ContextDefinition.Id='{{customContextDefinitionId}}' AND IsDefault=true",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion.ContextDefinition.Id='{{customContextDefinitionId}}' AND IsDefault=true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Custom Pricing Procedure",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"customPricingProcedureId\", firstRecord.Id);",
+									"        pm.environment.set(\"customPricingProcedureName\", firstRecord.MasterLabel);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id, MasterLabel, DeveloperName from ExpressionSetDefinition Where DeveloperName='{{customPricingProcedureDeveloperName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id, MasterLabel, DeveloperName from ExpressionSetDefinition Where DeveloperName='{{customPricingProcedureDeveloperName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cart Context Definition",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"cartContextDefinitionId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id, DeveloperName from ContextDefinition Where DeveloperName='{{cartContextDefinitionName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id, DeveloperName from ContextDefinition Where DeveloperName='{{cartContextDefinitionName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cart Context Mapping",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"cartContextMappingId\", firstRecord.Id);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=Select Id, Title from ContextMapping Where Title='{{cartContextMappingName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Select Id, Title from ContextMapping Where Title='{{cartContextMappingName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cart Pricing Procedure",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"cartPricingProcedureId\", firstRecord.Id);",
+									"        pm.environment.set(\"cartPricingProcedureName\", firstRecord.MasterLabel);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, MasterLabel, DeveloperName FROM ExpressionSetDefinition WHERE DeveloperName='{{cartPricingProcedureDeveloperName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, MasterLabel, DeveloperName FROM ExpressionSetDefinition WHERE DeveloperName='{{cartPricingProcedureDeveloperName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get PD Context Definition",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecordId = response.records && response.records[0] && response.records[0].Id;",
+									"    if (firstRecordId) {",
+									"        pm.environment.set(\"pdContextDefinitionId\", firstRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, DeveloperName FROM ContextDefinition WHERE DeveloperName='{{pdContextDefinitionName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, DeveloperName FROM ContextDefinition WHERE DeveloperName='{{pdContextDefinitionName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get PD Context Mapping",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"pdContextMappingId\", firstRecord.Id);",
+									"        pm.environment.set(\"pdContextMappingName\", firstRecord.Title);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion.ContextDefinition.Id='{{pdContextDefinitionId}}' AND IsDefault=true",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion.ContextDefinition.Id='{{pdContextDefinitionId}}' AND IsDefault=true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get PD Pricing Procedure",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"pdPricingProcedureId\", firstRecord.Id);",
+									"        pm.environment.set(\"pdPricingProcedureName\", firstRecord.MasterLabel);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, MasterLabel, DeveloperName FROM ExpressionSetDefinition WHERE DeveloperName='{{pdPricingProcedureDeveloperName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, MasterLabel, DeveloperName FROM ExpressionSetDefinition WHERE DeveloperName='{{pdPricingProcedureDeveloperName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Qualification Procedure",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.environment.set(\"qualificationProcedureId\", firstRecord.Id);",
+									"        pm.environment.set(\"qualificationProcedureName\", firstRecord.MasterLabel);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Halt the workflow if the status code isn't 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, MasterLabel, DeveloperName FROM ExpressionSetDefinition WHERE DeveloperName='{{qualificationProcedureDeveloperName}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, MasterLabel, DeveloperName FROM ExpressionSetDefinition WHERE DeveloperName='{{qualificationProcedureDeveloperName}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Catalog Management",
+			"item": [
+				{
+					"name": "PCM: List Catalogs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"pageSize\": 100,\n    \"offset\": 0,\n    \"filter\": {\n        \"criteria\": [\n            {\n                \"property\": \"name\",\n                \"operator\": \"eq\",\n                \"value\": \"{{defaultCatalogName}}\"\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"catalogs"
+							]
+						},
+						"description": "### **Catalog List (POST)**\n\nRetrieve, search, filter, or sort catalog records.\n\n#### Resource example\n\n[<code>https://yourInstance.salesforce.com/services/data/v60.0/connect/pcm/catalogs</code>](https://yourInstance.salesforce.com/services/data/v60.0/connect/pcm/catalogs)\n\n#### HTTP methods\n\n**POST**  \nNote: The POST method is used to retrieve the catalog records instead of the GET method as a request payload is sent to filter the records.\n\n#### Request Body\n\n- `pageSize` (number): The number of catalogs to be returned per page.\n- `offset` (number): The starting position for fetching catalogs.\n- `sort` (object): Specifies the sorting criteria for the catalogs.\n    - `orders` (array): An array of sorting orders.\n        - `property` (string): The property by which the catalogs are to be sorted.\n        - `direction` (string): The direction of sorting (e.g. \"asc\" for ascending, \"desc\" for descending).\n- `filter` (object): Specifies the filter criteria for the catalogs.\n    - `criteria` (array): An array of filter criteria.\n        - `property` (string): The property to be filtered.\n        - `operator` (string): The filter operator (e.g. \"equals\", \"contains\", \"greaterThan\").\n        - `value` (string): The value to filter the property by.\n- `correlationId` (string): An identifier to track the request and response correlation.\n    \n\n#### Response\n\n- `catalogs` (array): An array of catalogs added.\n- `correlationId` (string): The correlation ID from the request.\n- `count` (number): The total count of catalogs returned.\n- `status` (object): The status of the response.\n    - `code` (string): The status code.\n    - `errors` (array): An array of errors, if any.\n    - `message` (string): A message related to the response status.\n\n#### Example\n\nRequest:\n\n``` json\n{\n  \"pageSize\": 0,\n  \"offset\": 0,\n  \"sort\": {\n    \"orders\": [\n      {\n        \"property\": \"\",\n        \"direction\": \"\"\n      }\n    ]\n  },\n  \"filter\": {\n    \"criteria\": [\n      {\n        \"property\": \"\",\n        \"operator\": \"\",\n        \"value\": \"\"\n      }\n    ]\n  },\n  \"correlationId\": \"\"\n}\n\n ```\n\nResponse:\n\n``` json\n{\n  \"catalogs\": [],\n  \"correlationId\": \"\",\n  \"count\": 0,\n  \"status\": {\n    \"code\": \"\",\n    \"errors\": [],\n    \"message\": \"\"\n  }\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "PCM: Get Catalog",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs/{{defaultCatalogId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"catalogs",
+								"{{defaultCatalogId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PCM: List Catalog Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs/{{defaultCatalogId}}/categories",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"catalogs",
+								"{{defaultCatalogId}}",
+								"categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PCM: Get Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/categories/{{defaultCategoryId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"categories",
+								"{{defaultCategoryId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PCM: List Products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"catalogIds\": [\n        \"{{defaultCatalogId}}\"\n    ],\n    \"filter\": {\n        \"criteria\": [\n            {\n                \"property\": \"name\",\n                \"operator\": \"contains\",\n                \"value\": \"{{defaultTermDefinedAnnualProductName}}\"\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/products",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"products"
+							],
+							"query": [
+								{
+									"key": "productClassificationId",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PCM: Get Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/products/{{defaultTermDefinedAnnualProductId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"products",
+								"{{defaultTermDefinedAnnualProductId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Discovery",
+			"item": [
+				{
+					"name": "PD: List Catalogs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/catalogs",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"catalogs"
+							]
+						},
+						"description": "### Get Catalogs\n\nThis endpoint allows you to get catalogs from the PCM (Product Content Management) system.\n\n#### Request Body\n\n- `pageSize` (number): The number of catalogs to be returned per page.\n- `offset` (number): The starting position for fetching catalogs.\n- `sort` (object): Specifies the sorting criteria for the catalogs.\n    - `orders` (array): An array of sorting orders.\n        - `property` (string): The property by which the catalogs are to be sorted.\n        - `direction` (string): The direction of sorting (e.g. \"asc\" for ascending, \"desc\" for descending).\n- `filter` (object): Specifies the filter criteria for the catalogs.\n    - `criteria` (array): An array of filter criteria.\n        - `property` (string): The property to be filtered.\n        - `operator` (string): The filter operator (e.g. \"equals\", \"contains\", \"greaterThan\").\n        - `value` (string): The value to filter the property by.\n- `correlationId` (string): An identifier to track the request and response correlation.\n    \n\n#### Response\n\n- `catalogs` (array): An array of catalogs added.\n- `correlationId` (string): The correlation ID from the request.\n- `count` (number): The total count of catalogs returned.\n- `status` (object): The status of the response.\n    - `code` (string): The status code.\n    - `errors` (array): An array of errors, if any.\n    - `message` (string): A message related to the response status.\n\n#### Example\n\nRequest:\n\n``` json\n{\n  \"pageSize\": 0,\n  \"offset\": 0,\n  \"sort\": {\n    \"orders\": [\n      {\n        \"property\": \"\",\n        \"direction\": \"\"\n      }\n    ]\n  },\n  \"filter\": {\n    \"criteria\": [\n      {\n        \"property\": \"\",\n        \"operator\": \"\",\n        \"value\": \"\"\n      }\n    ]\n  },\n  \"correlationId\": \"\"\n}\n\n ```\n\nResponse:\n\n``` json\n{\n  \"catalogs\": [],\n  \"correlationId\": \"\",\n  \"count\": 0,\n  \"status\": {\n    \"code\": \"\",\n    \"errors\": [],\n    \"message\": \"\"\n  }\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "PD: Get Catalog",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"correlationId\": \"corrId\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/catalogs/{{defaultCatalogId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"catalogs",
+								"{{defaultCatalogId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PD: List Catalog Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"correlationId\": \"corrId\",\n    \"catalogId\": \"{{defaultCatalogId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/categories",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PD: Get Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/pcm/categories/{{defaultCategoryId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"pcm",
+								"categories",
+								"{{defaultCategoryId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PD: List Products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/products",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PD: Get Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"catalogId\": \"{{defaultCatalogId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{defaultTermDefinedAnnualProductId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"products",
+								"{{defaultTermDefinedAnnualProductId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PD: Get Account Context Products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"correlationId\": \"corrId\",\n    \"catalogId\": \"{{defaultCatalogId}}\",\n    \"limit\": 10,\n    \"contextDefinition\": \"{{pdContextDefinitionName}}\",\n    \"userContext\": {\n        \"accountId\": \"{{defaultAccountId}}\"\n    }\n  }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/products",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"products"
+							],
+							"query": [
+								{
+									"key": "catalogId",
+									"value": "{{defaultCatalogId}}",
+									"disabled": true
+								},
+								{
+									"key": "categoryId",
+									"value": "{{defaultCategoryId}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PD: Get Account Context Product Qualification",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productIds\": [\n    \"{{defaultOneTimeProductId}}\",\n    \"{{defaultTermDefinedAnnualProductId}}\"\n  ],\n  \"userContext\": {\n    \"accountId\": \"{{defaultAccountId}}\"\n  },\n  \"contextDefinition\": \"{{pdContextDefinitionName}}\",\n  \"qualificationProcedure\": \"{{qualificationProcedureName}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/qualification",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"qualification"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Salesforce Pricing",
+			"item": [
+				{
+					"name": "3-Part Simple Request",
+					"item": [
+						{
+							"name": "Create Context",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var statusCode = responseCode.code;",
+											"tests[\"Response code - Exepected: 201 & Actual: \" + statusCode] = statusCode == 201;",
+											"",
+											"var response = pm.response.json();",
+											"pm.variables.set(\"currentContextId\", response.contextId);",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"data\": \"{\\\"SalesTransaction\\\":[{\\\"SalesTransactionItem\\\":[{\\\"SalesTransactionItemAttribute\\\":[{\\\"PriceImpactingAttribute\\\":\\\"\\\",\\\"AttributeValue\\\":\\\"\\\",\\\"Attribute\\\":\\\"\\\"}],\\\"StartProrationPeriod\\\":\\\"Anniversary\\\",\\\"SalesTrxnItemRelationship\\\":[{\\\"InclusivePrice\\\":\\\"\\\",\\\"RootProductSellingModel\\\":\\\"\\\",\\\"RootItemProduct\\\":\\\"\\\",\\\"MainItemProductSellingModel\\\":\\\"\\\",\\\"MainItemProduct\\\":\\\"\\\"}],\\\"StartProrationPeriodMonth\\\":\\\"January\\\",\\\"StartProrationPeriodDay\\\":\\\"1\\\",\\\"EffectiveFrom\\\":\\\"2024-01-01T00:00:00.000Z\\\",\\\"EffectiveTo\\\":\\\"2024-12-31T23:59:59.000Z\\\",\\\"AllowPartialProrationPeriods\\\":\\\"true\\\",\\\"SalesTransactionItemSource\\\":\\\"{{defaultTermDefinedAnnualProductName}}\\\",\\\"ItemSubscriptionTerm\\\":\\\"1\\\",\\\"ItemDiscountPercentage\\\":\\\"\\\",\\\"PricingTermUnit\\\":\\\"Annual\\\",\\\"ItemDiscountAmount\\\":\\\"\\\",\\\"LineItemQuantity\\\":\\\"1\\\",\\\"ItemPricingSource\\\":\\\"PriceBook\\\",\\\"SellingModelType\\\":\\\"TermDefined\\\",\\\"ListPrice\\\":\\\"\\\",\\\"Product\\\":\\\"{{defaultTermDefinedAnnualProductId}}\\\",\\\"ProductSellingModel\\\":\\\"{{defaultTermDefinedAnnualPSM}}\\\"}],\\\"CurrencyIsoCode\\\":\\\"USD\\\",\\\"PriceBooks\\\":\\\"{{standardPricebookId}}\\\"}]}\",\n    \"metadata\": {\n        \"contextDefinitionId\": \"{{defaultContextDefintionId}}\",\n        \"mappingId\": \"{{defaultContextMappingId}}\",\n        \"contextScope\": \"session\",\n        \"taggedData\": false\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/connect/contexts/",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"connect",
+										"contexts",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Price Context",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var statusCode = responseCode.code;",
+											"tests[\"Response code - Exepected: 201 & Actual: \" + statusCode] = statusCode == 201;",
+											"",
+											"var response = pm.response.json();",
+											"pm.variables.set(\"currentContextExecutionId\", response.executionId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/price-contexts/{{currentContextId}}",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"connect",
+										"core-pricing",
+										"price-contexts",
+										"{{currentContextId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Pricing Waterfall",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var statusCode = responseCode.code;",
+											"tests[\"Response code - Exepected: 200 & Actual: \" + statusCode] = statusCode == 200;"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/waterfall/{{defaultTermDefinedAnnualProductName}}/{{currentContextExecutionId}}",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"connect",
+										"core-pricing",
+										"waterfall",
+										"{{defaultTermDefinedAnnualProductName}}",
+										"{{currentContextExecutionId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "A chained request to create and price a context and return the resulting price waterfall.\n\nMake sure to check the box to persist responses for a session."
+				},
+				{
+					"name": "Core Pricing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 201 & Actual: \" + statusCode] = statusCode == 201;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"contextDefinitionId\": \"{{defaultContextDefintionId}}\",\n    \"contextMappingId\": \"{{defaultContextMappingId}}\",\n    \"jsonDataString\": \"{\\\"SalesTransaction\\\":[{\\\"SalesTransactionItem\\\":[{\\\"SalesTransactionItemAttribute\\\":[{\\\"PriceImpactingAttribute\\\":\\\"\\\",\\\"AttributeValue\\\":\\\"\\\",\\\"Attribute\\\":\\\"\\\"}],\\\"StartProrationPeriod\\\":\\\"Anniversary\\\",\\\"SalesTrxnItemRelationship\\\":[{\\\"InclusivePrice\\\":\\\"\\\",\\\"RootProductSellingModel\\\":\\\"\\\",\\\"RootItemProduct\\\":\\\"\\\",\\\"MainItemProductSellingModel\\\":\\\"\\\",\\\"MainItemProduct\\\":\\\"\\\"}],\\\"StartProrationPeriodMonth\\\":\\\"January\\\",\\\"StartProrationPeriodDay\\\":\\\"1\\\",\\\"EffectiveFrom\\\":\\\"2024-01-01T00:00:00.000Z\\\",\\\"EffectiveTo\\\":\\\"2024-12-31T23:59:59.000Z\\\",\\\"AllowPartialProrationPeriods\\\":\\\"true\\\",\\\"LineItem\\\":\\\"{{defaultTermDefinedAnnualProductName}}\\\",\\\"ItemSubscriptionTerm\\\":\\\"1\\\",\\\"ItemDiscountPercentage\\\":\\\"\\\",\\\"PricingTermUnit\\\":\\\"Annual\\\",\\\"ItemDiscountAmount\\\":\\\"\\\",\\\"LineItemQuantity\\\":\\\"1\\\",\\\"ItemPricingSource\\\":\\\"PriceBook\\\",\\\"SellingModelType\\\":\\\"TermDefined\\\",\\\"ListPrice\\\":\\\"\\\",\\\"Product\\\":\\\"{{defaultTermDefinedAnnualProductId}}\\\",\\\"ProductSellingModel\\\":\\\"{{defaultTermDefinedAnnualPSM}}\\\"}],\\\"CurrencyIsoCode\\\":\\\"USD\\\",\\\"PriceBooks\\\":\\\"{{standardPricebookId}}\\\"}]}\",\n    \"pricingProcedureId\": \"{{defaultPricingProcedureId}}\",\n    \"configurationOverrides\": {\n        \"skipWaterfall\": false,\n        \"taggedData\": true\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"core-pricing",
+								"pricing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Pricing Data Sync",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 200 & Actual: \" + statusCode] = statusCode == 200;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/sync/syncData",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"core-pricing",
+								"sync",
+								"syncData"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pricing Recipe",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 200 & Actual: \" + statusCode] = statusCode == 200;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/recipe",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"core-pricing",
+								"recipe"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Quote and Order Capture",
+			"item": [
+				{
+					"name": "Quotes & Orders",
+					"item": [
+						{
+							"name": "Instant Pricing",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n   \"correlationId\":\"1234567\",\n   \"contextId\":\"\",\n   \"records\":[\n      {\n         \"referenceId\":\"refQuote\",\n         \"record\":{\n            \"attributes\":{\n               \"type\":\"Quote\",\n               \"method\":\"POST\"\n            },\n            \"Name\":\"Test Quote Proration Pricing\",\n            \"Pricebook2Id\":\"{{standardPricebookId}}\",\n            \"CurrencyIsoCode\": \"USD\"\n         }\n      },\n      {\n         \"referenceId\":\"refQuoteLine\",\n         \"record\":{\n            \"attributes\":{\n               \"type\":\"QuoteLineItem\",\n               \"method\":\"POST\"\n            },\n            \"QuoteId\":\"refQuote\",\n            \"PricebookEntryId\":\"{{defaultTermDefinedAnnualPBE}}\",\n            \"Product2Id\":\"{{defaultTermDefinedAnnualProductId}}\",\n            \"Quantity\":2,\n            \"UnitPrice\":25,\n            \"StartDate\":\"2024-01-01T00:00:00.000Z\",\n            \"EndDate\":\"2024-12-31T00:00:00.000Z\",\n            \"PeriodBoundary\":\"Anniversary\",\n            \"BillingFrequency\":\"Annual\"\n         }\n      }\n   ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"industries",
+										"cpq",
+										"quotes",
+										"actions",
+										"get-instant-price"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Place Order",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var response = pm.response.json();",
+											"pm.environment.set(\"currentOrderId\", response.orderId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n   \"pricingPref\":\"System\",\n   \"configurationInput\":\"RunAndAllowErrors\",\n   \"configurationOptions\":{\n      \"validateProductCatalog\":true,\n      \"validateAmendRenewCancel\":true,\n      \"executeConfigurationRules\":true,\n      \"addDefaultConfiguration\":true\n   },\n   \"graph\":{\n      \"graphId\":\"graphId\",\n      \"records\":[\n         {\n            \"referenceId\":\"refOrder\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"Order\",\n                  \"method\":\"POST\"\n               },\n               \"AccountId\":\"{{defaultAccountId}}\",\n               \"Name\":\"Test Order 2\",\n               \"EffectiveDate\":\"2024-02-01\",\n               \"Pricebook2Id\":\"{{standardPricebookId}}\",\n               \"Status\":\"Draft\"\n            }\n         },\n         {\n            \"referenceId\":\"refOrderAction\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"OrderAction\",\n                  \"method\":\"POST\"\n               },\n               \"OrderId\":\"@{refOrder.id}\",\n               \"Type\":\"Add\"\n            }\n         },\n         {\n            \"referenceId\":\"refAppUsageAssign\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"AppUsageAssignment\",\n                  \"method\":\"POST\"\n               },\n               \"RecordId\":\"@{refOrder.id}\",\n               \"AppUsageType\":\"RevenueLifecycleManagement\"\n            }\n         },\n         {\n            \"referenceId\":\"refOrderItem\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"OrderItem\",\n                  \"method\":\"POST\"\n               },\n               \"OrderId\":\"@{refOrder.id}\",\n               \"OrderActionId\":\"@{refOrderAction.id}\",\n               \"ListPrice\":\"350.00\",\n               \"Quantity\":3,\n               \"PricebookEntryId\":\"{{defaultOneTimePBE}}\",\n               \"Product2Id\":\"{{defaultOneTimeProductId}}\",\n               \"UnitPrice\":\"350.00\"\n            }\n         }\n      ]\n   }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/commerce/sales-orders/actions/place",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"commerce",
+										"sales-orders",
+										"actions",
+										"place"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Activate Order",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n   \"Status\":\"Activated\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentOrderId}}",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"sobjects",
+										"Order",
+										"{{currentOrderId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Place Quote",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"pm.environment.set(\"currentQuoteId\", jsonData.quoteId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"pricingPref\": \"System\",\n    \"configurationInput\": \"RunAndAllowErrors\",\n    \"configurationOptions\": {\n        \"validateProductCatalog\": true,\n        \"validateAmendRenewCancel\": true,\n        \"executeConfigurationRules\": true,\n        \"addDefaultConfiguration\": true\n    },\n    \"graph\": {\n        \"graphId\": \"createQuote\",\n        \"records\": [\n            {\n                \"referenceId\": \"refQuote\",\n                \"record\": {\n                    \"attributes\": {\n                        \"type\": \"Quote\",\n                        \"method\": \"POST\"\n                    },\n                    \"Name\": \"{{defaultTermAnnualProductName}}\",\n                    \"QuoteAccountId\": \"{{defaultAccountId}}\",\n                    \"Pricebook2Id\": \"{{standardPricebookId}}\"\n                }\n            },\n            {\n                \"referenceId\": \"refQuoteLineItem1\",\n                \"record\": {\n                    \"attributes\": {\n                        \"type\": \"QuoteLineItem\",\n                        \"method\": \"POST\"\n                    },\n                    \"QuoteId\": \"@{refQuote.id}\",\n                    \"Product2Id\": \"{{defaultTermDefinedAnnualProductId}}\",\n                    \"PricebookEntryId\": \"{{defaultTermDefinedAnnualPBE}}\",\n                    \"Quantity\": 10.0,\n                    \"UnitPrice\": 40,\n                    \"StartDate\":\"2024-01-01T00:00:00.000Z\",\n                    \"EndDate\":\"2024-12-31T00:00:00.000Z\",\n                    \"PeriodBoundary\":\"Anniversary\",\n                    \"BillingFrequency\":\"Annual\"\n                }\n            }\n        ]\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/commerce/quotes/actions/place",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"commerce",
+										"quotes",
+										"actions",
+										"place"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Order From Quote Action",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n   \"inputs\":[\n      {\n         \"quoteRecordId\":\"{{currentQuoteId}}\"\n      }\n   ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/createOrderFromQuote",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"actions",
+										"standard",
+										"createOrderFromQuote"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Asset Lifecycle",
+			"item": [
+				{
+					"name": "Create or Update Asset From Order Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"orderId\":\"{{currentOrderId}}\"\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/createOrUpdateAssetFromOrder",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"createOrUpdateAssetFromOrder"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or Update Asset From Order Item Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"orderItemIds\":[\n            \"802SG000002HixxYAC\"\n         ]\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/createOrUpdateAssetFromOrderItem",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"createOrUpdateAssetFromOrderItem"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Asset Pricing Source",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"RenewalTerm\": 1,\n    \"RenewalTermUnit\": \"Annual\",\n    \"PricingSource\":\"LastTransaction\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Asset/02iao0000007D0XAAU",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Asset",
+								"02iao0000007D0XAAU"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Amendment Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"amendAssetIds\":[\n            \"02iao0000007D0XAAU\"\n         ],\n         \"amendStartDate\":\"2024-03-01T00:00:00.000Z\",\n         \"quantityChange\":10,\n         \"amendOutputType\":\"Order\"\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/initiateAmendment",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"initiateAmendment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Renewal Opp",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"var body=[];",
+									"var results = (jsonData.compositeResponse).length",
+									"for (var i = 0; i < results; i++) {",
+									"    var counter = jsonData.compositeResponse[i].body.id;",
+									"    id = counter",
+									"    console.log(counter)",
+									"}",
+									"pm.environment.set(\"renewalOppId\", (jsonData.compositeResponse[0].body.id));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"allOrNone\": true,\n    \"compositeRequest\": [\n        {\n            \"method\": \"POST\",\n            \"url\": \"/services/data/v{{version}}/sobjects/Opportunity\",\n            \"referenceId\": \"refOpportunity\",\n            \"body\": {\n                \"Name\": \"Renewal Opportunity\",\n                \"AccountId\": \"{{defaultAccountId}}\",\n                \"closedate\": \"2022-01-31\",\n                \"stagename\": \"Proposal\",\n                \"Pricebook2Id\": \"{{standardPricebookId}}\"\n            }\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/composite",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"composite"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Renewal Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"renewAssetIds\":[\n            \"02iao0000007D0XAAU\"\n         ],\n         \"renewOutputType\":\"Quote\",\n         \"renewContractId\":\"\",\n         \"renewOpportunityId\":\"{{renewalOppId}}\"\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/initiateRenewal",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"initiateRenewal"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Cancel Opp",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"var body=[];",
+									"var results = (jsonData.compositeResponse).length",
+									"for (var i = 0; i < results; i++) {",
+									"    var counter = jsonData.compositeResponse[i].body.id;",
+									"    id = counter",
+									"    console.log(counter)",
+									"}",
+									"pm.environment.set(\"cancelOppId\", (jsonData.compositeResponse[0].body.id));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"allOrNone\": true,\n    \"compositeRequest\": [\n        {\n            \"method\": \"POST\",\n            \"url\": \"/services/data/v{{version}}/sobjects/Opportunity\",\n            \"referenceId\": \"refOpportunity\",\n            \"body\": {\n                \"Name\": \"Renewal Opportunity\",\n                \"AccountId\": \"{{defaultAccountId}}\",\n                \"closedate\": \"2022-01-31\",\n                \"stagename\": \"Proposal\",\n                \"Pricebook2Id\": \"{{standardPricebookId}}\"\n            }\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/composite",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"composite"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Cancellation Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"cancelAssetIds\":[\n            \"02iao0000007D0XAAU\"\n         ],\n         \"cancelStartDate\":\"2024-11-09T00:00:00\",\n         \"cancelOutputType\":\"Quote\",\n         \"cancelContractId\":\"\",\n         \"cancelOpportunityId\":\"{{cancelOppId}}\"\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/initiateCancellation",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"initiateCancellation"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Orchestration (Runner)",
+			"item": [
+				{
+					"name": "Core Pricing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 201 & Actual: ${statusCode}`, function() {",
+									"    pm.expect(statusCode).to.eql(201);",
+									"});",
+									"",
+									"if (statusCode === 201) {",
+									"    const response = pm.response.json();",
+									"    const pricingResult = response.pricingResult;",
+									"",
+									"    const variablesToSet = {",
+									"        \"currentItemUnitPrice\": \"UnitPrice\",",
+									"        \"currentItemTotalPrice\": \"TotalPrice\",",
+									"        \"currentItemQuantity\": \"Quantity\",",
+									"        \"currentItemPeriodBoundary\": \"PeriodBoundary\",",
+									"        \"currentItemStartDate\": \"StartDate\",",
+									"        \"currentItemEndDate\": \"EndDate\",",
+									"        \"currentItemPricebook\": \"Pricebook\",",
+									"        \"currentItemSubscriptionTerm\": \"SubscriptionTerm\",",
+									"        \"currentItemProduct\": \"Product\",",
+									"        \"currentItemPricebookEntry\": \"PricebookEntry\"",
+									"    };",
+									"",
+									"    Object.keys(variablesToSet).forEach((key) => {",
+									"        const valueKey = variablesToSet[key];",
+									"        if (pricingResult[valueKey] && pricingResult[valueKey][0] && pricingResult[valueKey][0].value) {",
+									"            pm.variables.set(key, pricingResult[valueKey][0].value);",
+									"        }",
+									"    });",
+									"} else {",
+									"    postman.setNextRequest(null);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"contextDefinitionId\": \"{{defaultContextDefintionId}}\",\n    \"contextMappingId\": \"{{defaultContextMappingId}}\",\n    \"jsonDataString\": \"{\\\"SalesTransaction\\\":[{\\\"SalesTransactionItem\\\":[{\\\"SalesTransactionItemAttribute\\\":[{\\\"PriceImpactingAttribute\\\":\\\"\\\",\\\"AttributeValue\\\":\\\"\\\",\\\"Attribute\\\":\\\"\\\"}],\\\"StartProrationPeriod\\\":\\\"Anniversary\\\",\\\"SalesTrxnItemRelationship\\\":[{\\\"InclusivePrice\\\":\\\"\\\",\\\"RootProductSellingModel\\\":\\\"\\\",\\\"RootItemProduct\\\":\\\"\\\",\\\"MainItemProductSellingModel\\\":\\\"\\\",\\\"MainItemProduct\\\":\\\"\\\"}],\\\"StartProrationPeriodMonth\\\":\\\"January\\\",\\\"StartProrationPeriodDay\\\":\\\"1\\\",\\\"EffectiveFrom\\\":\\\"2024-01-01T00:00:00.000Z\\\",\\\"EffectiveTo\\\":\\\"2024-12-31T23:59:59.000Z\\\",\\\"AllowPartialProrationPeriods\\\":\\\"true\\\",\\\"LineItem\\\":\\\"{{defaultTermDefinedAnnualProductName}}\\\",\\\"ItemSubscriptionTerm\\\":\\\"1\\\",\\\"ItemDiscountPercentage\\\":\\\"\\\",\\\"PricingTermUnit\\\":\\\"Annual\\\",\\\"ItemDiscountAmount\\\":\\\"\\\",\\\"LineItemQuantity\\\":\\\"1\\\",\\\"ItemPricingSource\\\":\\\"PriceBook\\\",\\\"SellingModelType\\\":\\\"TermDefined\\\",\\\"ListPrice\\\":\\\"\\\",\\\"Product\\\":\\\"{{defaultTermDefinedAnnualProductId}}\\\",\\\"ProductSellingModel\\\":\\\"{{defaultTermDefinedAnnualPSM}}\\\"}],\\\"CurrencyIsoCode\\\":\\\"USD\\\",\\\"PriceBooks\\\":\\\"{{standardPricebookId}}\\\"}]}\",\n    \"pricingProcedureId\": \"{{defaultPricingProcedureId}}\",\n    \"configurationOverrides\": {\n        \"skipWaterfall\": false,\n        \"taggedData\": true\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"core-pricing",
+								"pricing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Instant Pricing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(\"Response code - Expected: 200 & Actual: \" + statusCode, function() {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"correlationId\": \"1234567\",\n    \"contextId\": \"\",\n    \"records\": [\n        {\n            \"referenceId\": \"refQuote\",\n            \"record\": {\n                \"attributes\": {\n                    \"type\": \"Quote\",\n                    \"method\": \"POST\"\n                },\n                \"Name\": \"Test Quote Proration Pricing\",\n                \"Pricebook2Id\": \"{{currentItemPricebook}}\",\n                \"CurrencyIsoCode\": \"USD\"\n            }\n        },\n        {\n            \"referenceId\": \"refQuoteLine\",\n            \"record\": {\n                \"attributes\": {\n                    \"type\": \"QuoteLineItem\",\n                    \"method\": \"POST\"\n                },\n                \"QuoteId\": \"refQuote\",\n                \"PricebookEntryId\": \"{{currentItemPricebookEntry}}\",\n                \"Product2Id\": \"{{currentItemProduct}}\",\n                \"Quantity\": \"{{currentItemQuantity}}\",\n                \"UnitPrice\": \"{{currentItemTotalPrice}}\",\n                \"StartDate\": \"{{currentItemStartDate}}\",\n                \"EndDate\": \"{{currentItemEndDate}}\",\n                \"PeriodBoundary\": \"{{currentItemPeriodBoundary}}\"\n            }\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"industries",
+								"cpq",
+								"quotes",
+								"actions",
+								"get-instant-price"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Place Quote",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(\"Response code - Expected: 200 & Actual: \" + statusCode, function() {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    var response = pm.response.json();",
+									"    postman.setEnvironmentVariable(\"currentQuoteId\", response.quoteId);",
+									"} else {",
+									"    postman.setNextRequest(null);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"pricingPref\": \"System\",\n    \"configurationInput\": \"RunAndAllowErrors\",\n    \"configurationOptions\": {\n        \"validateProductCatalog\": true,\n        \"validateAmendRenewCancel\": true,\n        \"executeConfigurationRules\": true,\n        \"addDefaultConfiguration\": true\n    },\n    \"graph\": {\n        \"graphId\": \"createQuote\",\n        \"records\": [\n            {\n                \"referenceId\": \"refQuote\",\n                \"record\": {\n                    \"attributes\": {\n                        \"type\": \"Quote\",\n                        \"method\": \"POST\"\n                    },\n                    \"Name\": \"{{defaultTermDefinedAnnualProductName}}\",\n                    \"QuoteAccountId\": \"{{defaultAccountId}}\",\n                    \"Pricebook2Id\": \"{{currentItemPricebook}}\"\n                }\n            },\n            {\n                \"referenceId\": \"refQuoteLineItem1\",\n                \"record\": {\n                    \"attributes\": {\n                        \"type\": \"QuoteLineItem\",\n                        \"method\": \"POST\"\n                    },\n                    \"QuoteId\": \"@{refQuote.id}\",\n                    \"Product2Id\": \"{{currentItemProduct}}\",\n                    \"PricebookEntryId\": \"{{currentItemPricebookEntry}}\",\n                    \"Quantity\": {{currentItemQuantity}},\n                    \"UnitPrice\": {{currentItemUnitPrice}},\n                    \"StartDate\": \"{{currentItemStartDate}}\",\n                    \"EndDate\": \"{{currentItemEndDate}}\",\n                    \"PeriodBoundary\": \"{{currentItemPeriodBoundary}}\"\n                }\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/commerce/quotes/actions/place",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"commerce",
+								"quotes",
+								"actions",
+								"place"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order From Quote Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(\"Response code - Expected: 200 & Actual: \" + statusCode, function() {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"inputs\": [\n        {\n            \"quoteRecordId\": \"{{currentQuoteId}}\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/createOrderFromQuote",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"createOrderFromQuote"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.variables.set(\"currentOrderId\", firstRecord.Id);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query/?q=SELECT Id FROM Order where QuoteId = '{{currentQuoteId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id FROM Order where QuoteId = '{{currentQuoteId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const firstRecord = response.records && response.records[0];",
+									"    if (firstRecord) {",
+									"        pm.variables.set(\"currentOrderItemId\", firstRecord.Id);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query/?q=SELECT Id, Product2Id, ProductSellingModelId FROM OrderItem where OrderId = '{{currentOrderId}}' AND Product2Id = '{{currentItemProduct}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT Id, Product2Id, ProductSellingModelId FROM OrderItem where OrderId = '{{currentOrderId}}' AND Product2Id = '{{currentItemProduct}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contract",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Directly use pm.response.code in the test function for efficiency",
+									"pm.test(\"Response code is 200\", function() {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});",
+									"",
+									"// Use a single conditional block to handle both success and redirection logic",
+									"if (pm.response.code === 200) {",
+									"    let response = pm.response.json();",
+									"    ",
+									"    // Use optional chaining to simplify accessing nested properties",
+									"    let firstRecord = response.records?.[0];",
+									"    ",
+									"    if (firstRecord?.ContractId) { // Check for ContractId existence directly",
+									"        pm.variables.set(\"currentContractId\", firstRecord.ContractId);",
+									"    } else {",
+									"        // This else block will execute if firstRecord is undefined or if ContractId is not present",
+									"        postman.setNextRequest(\"Activate Initial Order\");",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(\"Activate Initial Order\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query/?q=SELECT ContractId, Id FROM Order WHERE Id = '{{currentOrderId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT ContractId, Id FROM Order WHERE Id = '{{currentOrderId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Contract",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 204 & Actual: \" + statusCode] = statusCode == 204;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"Status\":\"Activated\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Contract/{{currentContractId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Contract",
+								"{{currentContractId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Initial Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 204 & Actual: \" + statusCode] = statusCode == 204;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"Status\":\"Activated\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentOrderId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Order",
+								"{{currentOrderId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Asset Action Source",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(\"Response code - Expected: 200 & Actual: \" + statusCode, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json(); // Directly parse the JSON response",
+									"    const firstRecord = response.records && response.records[0]; // Ensure the first record exists",
+									"    if (firstRecord) {",
+									"        pm.variables.set(\"currentAssetActionId\", firstRecord.AssetActionId);",
+									"        pm.variables.set(\"currentAssetActionSourceId\", firstRecord.Id);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query/?q=SELECT AssetActionId, Id FROM AssetActionSource WHERE ReferenceEntityItemId = '{{currentOrderItemId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT AssetActionId, Id FROM AssetActionSource WHERE ReferenceEntityItemId = '{{currentOrderItemId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Asset Action",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json(); // Directly parse the JSON response",
+									"    const firstRecord = response.records && response.records[0]; // Ensure the first record exists",
+									"    if (firstRecord && firstRecord.AssetId) { // Additional check for AssetId existence",
+									"        pm.variables.set(\"currentAssetId\", firstRecord.AssetId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/query/?q=SELECT AssetId, Id FROM AssetAction WHERE Id = '{{currentAssetActionId}}'",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"query",
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SELECT AssetId, Id FROM AssetAction WHERE Id = '{{currentAssetActionId}}'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Asset Pricing Source",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 204 & Actual: \" + statusCode] = statusCode == 204;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"PricingSource\":\"LastTransaction\",\n   \"RenewalTerm\":\"1\",\n   \"RenewalTermUnit\":\"Annual\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Asset/{{currentAssetId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Asset",
+								"{{currentAssetId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Amendment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let statusCode = pm.response.code;",
+									"pm.test(`Response code - Expected: 200 & Actual: ${statusCode}`, () => {",
+									"    pm.expect(statusCode).to.eql(200);",
+									"});",
+									"",
+									"if (statusCode === 200) {",
+									"    const response = pm.response.json();",
+									"    const amendRecordId = response[0] && response[0].outputValues && response[0].outputValues.amendRecordId;",
+									"    if (amendRecordId) {",
+									"        pm.variables.set(\"currentAmendmentOrderId\", amendRecordId);",
+									"    }",
+									"} else {",
+									"    postman.setNextRequest(null); // Stop the workflow if the status code is not 200",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"amendAssetIds\":[\n            \"{{currentAssetId}}\"\n         ],\n         \"amendStartDate\":\"2024-07-01T00:00:00.000Z\",\n         \"quantityChange\":10,\n         \"amendOutputType\":\"Order\"\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/initiateAmendment",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"initiateAmendment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Amendment Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var statusCode = responseCode.code;",
+									"tests[\"Response code - Exepected: 204 & Actual: \" + statusCode] = statusCode == 204;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"Status\":\"Activated\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentAmendmentOrderId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Order",
+								"{{currentAmendmentOrderId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Make sure to check the box to persist responses for a session."
+		},
+		{
+			"name": "eCommerce Flow",
+			"item": [
+				{
+					"name": "1) PD: List Products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"correlationId\": \"corrId\",\n    \"catalogId\": \"{{defaultCatalogId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/products",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"products"
+							],
+							"query": [
+								{
+									"key": "productClassificationId",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2) PD: Get Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"catalogId\": \"{{defaultCatalogId}}\",\n    \"priceBookId\": \"{{standardPricebookId}}\",\n    \"productSellingModelId\": \"{{defaultTermAnnualPSM}}\",\n    \"userContext\": {\n        \"accountId\": \"{{defaultAccountId}}\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{defaultTermDefinedAnnualProductId}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"cpq",
+								"products",
+								"{{defaultTermDefinedAnnualProductId}}"
+							],
+							"query": [
+								{
+									"key": "productClassificationId",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3) Get Core Pricing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var template = `",
+									"<style type=\"text/css\">",
+									"    .tftable {font-size:14px;color:#333333;width:100%;border-width: 1px;border-color: #87ceeb;border-collapse: collapse;}",
+									"    .tftable th {font-size:18px;background-color:#87ceeb;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;text-align:left;}",
+									"    .tftable tr {background-color:#ffffff;}",
+									"    .tftable td {font-size:14px;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;}",
+									"    .tftable tr:hover {background-color:#e0ffff;}",
+									"</style>",
+									"",
+									"<table class=\"tftable\" border=\"1\">",
+									"    <tr>",
+									"        <th>Attribute</th>",
+									"        <th>Value</th>",
+									"    </tr>",
+									"    ",
+									"    {{#each response.pricingResult}}",
+									"        <tr>",
+									"            {{#each value}}",
+									"                <td>{{key}}</td>",
+									"                <td>{{value}}</td>",
+									"            {{/each}}",
+									"        </tr>",
+									"    {{/each}}",
+									"</table>",
+									"`;",
+									"",
+									"function constructVisualizerPayload() {",
+									"    var res = pm.response.json();",
+									"    return {response: res}",
+									"}",
+									"",
+									"pm.visualizer.set(template, constructVisualizerPayload());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"contextDefinitionId\": \"{{customContextDefintionId}}\",\n    \"contextMappingId\": \"{{customContextMappingId}}\",\n    \"jsonDataString\": \"{\\\"Cart\\\":[{\\\"CartItem\\\":[{\\\"Quantity\\\":\\\"5\\\",\\\"Attribute\\\":[{\\\"AttributeValue\\\":\\\"1080p Built-in Display\\\",\\\"IsPriceImpacting\\\":\\\"true\\\",\\\"AttributeAPIName\\\":\\\"Display\\\"},{\\\"AttributeValue\\\":\\\"27 Inch\\\",\\\"IsPriceImpacting\\\":\\\"true\\\",\\\"AttributeAPIName\\\":\\\"Display_Size\\\"}],\\\"CartItemName\\\":\\\"{{defaultOneTimeProductName}}\\\",\\\"PSMId\\\":\\\"{{defaultOneTimePSM}}\\\",\\\"StartDate\\\":\\\"2024-01-04T04:49:00.000Z\\\",\\\"ProductId\\\":\\\"{{defaultOneTimeProductId}}\\\"}],\\\"CartPricebookId\\\":\\\"{{standardPricebookId}}\\\"}]}\",\n    \"pricingProcedureId\": \"{{cartPricingProcedureId}}\",\n    \"configurationOverrides\": {\n        \"skipWaterfall\": false,\n        \"taggedData\": true\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"core-pricing",
+								"pricing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4) Place Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.environment.set(\"currentOrder\", jsonData.orderId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"pricingPref\":\"System\",\n   \"configurationInput\":\"RunAndAllowErrors\",\n   \"configurationOptions\":{\n      \"validateProductCatalog\":true,\n      \"validateAmendRenewCancel\":true,\n      \"executeConfigurationRules\":true,\n      \"addDefaultConfiguration\":true\n   },\n   \"graph\":{\n      \"graphId\":\"graphId\",\n      \"records\":[\n         {\n            \"referenceId\":\"refOrder\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"Order\",\n                  \"method\":\"POST\"\n               },\n               \"AccountId\":\"{{defaultAccountId}}\",\n               \"Name\":\"Test Order 3\",\n               \"EffectiveDate\":\"2024-02-01\",\n               \"Pricebook2Id\":\"{{standardPricebookId}}\",\n               \"Status\":\"Draft\"\n            }\n         },\n         {\n            \"referenceId\":\"refOrderAction\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"OrderAction\",\n                  \"method\":\"POST\"\n               },\n               \"OrderId\":\"@{refOrder.id}\",\n               \"Type\":\"Add\"\n            }\n         },\n         {\n            \"referenceId\":\"refAppUsageAssign\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"AppUsageAssignment\",\n                  \"method\":\"POST\"\n               },\n               \"RecordId\":\"@{refOrder.id}\",\n               \"AppUsageType\":\"RevenueLifecycleManagement\"\n            }\n         },\n         {\n            \"referenceId\":\"refOrderItem\",\n            \"record\":{\n               \"attributes\":{\n                  \"type\":\"OrderItem\",\n                  \"method\":\"POST\"\n               },\n               \"OrderId\":\"@{refOrder.id}\",\n               \"OrderActionId\":\"@{refOrderAction.id}\",\n               \"ListPrice\":\"144.99\",\n               \"Quantity\":5,\n               \"PricebookEntryId\":\"{{defaultOneTimePBE}}\",\n               \"Product2Id\":\"{{defaultOneTimeProductId}}\",\n               \"UnitPrice\":\"199.49\"\n            }\n         }\n      ]\n   }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/commerce/sales-orders/actions/place",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"commerce",
+								"sales-orders",
+								"actions",
+								"place"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5) Activate Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"Status\":\"Activated\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentOrder}}",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Order",
+								"{{currentOrder}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6) Update Asset Pricing Source [Copy Asset Id from Org]",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"PricingSource\":\"LastTransaction\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/sobjects/Asset/02i1Q00000Dw5AxQAJ",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"sobjects",
+								"Asset",
+								"02i1Q00000Dw5AxQAJ"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7) Initiate Amendment Action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n   \"inputs\":[\n      {\n         \"amendAssetIds\":[\n            \"02i1Q00000Dw5AxQAJ\"\n         ],\n         \"amendStartDate\":\"2024-03-01T00:00:00.000Z\",\n         \"quantityChange\":10,\n         \"amendOutputType\":\"Order\"\n      }\n   ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/actions/standard/initiateAmendment",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"actions",
+								"standard",
+								"initiateAmendment"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Context Service",
+			"item": [
+				{
+					"name": "Create Context Definition",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n \"name\": \"RLM_SalesTransactionContext\",\n \"description\": \"Extension of Standard Sales Transaction Context\",\n \"developerName\": \"RLM_SalesTransactionContext\",\n \"baseReference\": \"SalesTransactionContext__stdctx\",\n \"startDate\": \"2024-01-01T00:00:00.000Z\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Context Definitions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Context Definition",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Context Nodes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"contextNodes\": [\n    {\n      \"name\": \"Account\",\n      \"attributes\": {\n        \"contextAttributes\": [\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"id\"\n          },\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"contactId\"\n          },\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"AccountCity__c\"\n          },\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"SLA__c\"\n          },\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUTOUTPUT\",\n            \"name\": \"CurrencyIsoCode\"\n          },\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"Region__c\"\n          }\n        ]\n      }\n    },\n    {\n      \"name\": \"Catalog\",\n      \"attributes\": {\n        \"contextAttributes\": [\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"id\"\n          },\n          {\n            \"dataType\": \"STRING\",\n            \"fieldType\": \"INPUT\",\n            \"name\": \"CurrentDate\"\n          }\n        ]\n      },\n      \"childNodes\": {\n        \"contextNodes\": [\n          {\n            \"name\": \"Category\",\n            \"attributes\": {\n              \"contextAttributes\": [\n                {\n                  \"dataType\": \"STRING\",\n                  \"fieldType\": \"INPUT\",\n                  \"name\": \"CategoryId\"\n                },\n                {\n                  \"dataType\": \"STRING\",\n                  \"fieldType\": \"OUTPUT\",\n                  \"name\": \"IsCategoryQualified\"\n                },\n                {\n                  \"dataType\": \"STRING\",\n                  \"fieldType\": \"OUTPUT\",\n                  \"name\": \"CategoryDisqualifiedReason\"\n                }\n              ]\n            },\n            \"childNodes\": {\n              \"contextNodes\": [\n                {\n                  \"name\": \"CategoryProduct\",\n                  \"attributes\": {\n                    \"contextAttributes\": [\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"Id\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"ProductId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"RootProductId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"ParentProductId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"CategoryId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"CatalogId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"Name\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"Code\"\n                      },\n                      {\n                        \"dataType\": \"NUMBER\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"maxQuantity\"\n                      },\n                      {\n                        \"dataType\": \"NUMBER\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"minQuantity\"\n                      },\n                      {\n                        \"dataType\": \"NUMBER\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"Quantity\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"IsQualified\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"Reason\"\n                      }\n                    ]\n                  },\n                  \"childNodes\": {\n                    \"contextNodes\": [\n                      {\n                        \"name\": \"Message\",\n                        \"attributes\": {\n                          \"contextAttributes\": [\n                            {\n                              \"dataType\": \"STRING\",\n                              \"fieldType\": \"OUTPUT\",\n                              \"name\": \"Name\"\n                            },\n                            {\n                              \"dataType\": \"STRING\",\n                              \"fieldType\": \"OUTPUT\",\n                              \"name\": \"Value\"\n                            }\n                          ]\n                        }\n                      }\n                    ]\n                  }\n                },\n                {\n                  \"name\": \"PricingProduct\",\n                  \"attributes\": {\n                    \"contextAttributes\": [\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"PricingId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"PricingProductId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"ProductSellingModelId\"\n                      },\n                      {\n                        \"dataType\": \"NUMBER\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"ProductQuantity\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"PricebookId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"INPUT\",\n                        \"name\": \"PricingCurrencyCode\"\n                      },\n                      {\n                        \"dataType\": \"CURRENCY\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"UnitPrice\"\n                      },\n                      {\n                        \"dataType\": \"CURRENCY\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"NetUnitPrice\"\n                      },\n                      {\n                        \"dataType\": \"CURRENCY\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"SubTotal\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"PriceBookEntryId\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"PriceWaterFall\"\n                      },\n                      {\n                        \"dataType\": \"STRING\",\n                        \"fieldType\": \"OUTPUT\",\n                        \"name\": \"PricingErrorMessage\"\n                      }\n                    ]\n                  }\n                }\n              ]\n            }\n          }\n        ]\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context-nodes",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions",
+								"{{contextDefinitionId}}",
+								"context-nodes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Context Mappings",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"contextMappings\": [\n        {\n            \"name\":\"BrowseOperation\",\n            \"description\":\"BrowseOperation\",\n            \"isDefault\":true\n        }\n    ],\n    \"generateInputMappings\":true,\n    \"generateSObjectMappings\":true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context-mappings",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions",
+								"{{contextDefinitionId}}",
+								"context-mappings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Context Tags (Nodes)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"contextTags\": [\n    {\n      \"contextNodeId\": \"11oHu0000000movIAA\",\n      \"name\": \"Account\"\n    },\n    {\n      \"contextNodeId\": \"11oHu0000000mowIAA\",\n      \"name\": \"Catalog\"\n    },\n    {\n      \"contextNodeId\": \"11oHu0000000moxIAA\",\n      \"name\": \"Category\"\n    },\n    {\n      \"contextNodeId\": \"11oHu0000000moyIAA\",\n      \"name\": \"CategoryProduct\"\n    },\n    {\n      \"contextNodeId\": \"11oHu0000000mozIAA\",\n      \"name\": \"PricingProduct\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context-tags",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions",
+								"{{contextDefinitionId}}",
+								"context-tags"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Context Tags (Attributes)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"contextTags\": [\n    {\n      \"contextAttributeId\": \"11nHu000000029cIAA\",\n      \"name\": \"AccountCity\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029dIAA\",\n      \"name\": \"SLA\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029eIAA\",\n      \"name\": \"CurrencyCode\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029hIAA\",\n      \"name\": \"CurrentDate\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029iIAA\",\n      \"name\": \"CategoryId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029jIAA\",\n      \"name\": \"IsCategoryQualified\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029kIAA\",\n      \"name\": \"CategoryDisqualifiedReason\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029nIAA\",\n      \"name\": \"ProductId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029oIAA\",\n      \"name\": \"RootProductId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029pIAA\",\n      \"name\": \"ParentProductId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029xIAA\",\n      \"name\": \"IsQualified\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu000000029yIAA\",\n      \"name\": \"Reason\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A4IAI\",\n      \"name\": \"PricebookId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A5IAI\",\n      \"name\": \"PricingCurrencyCode\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A0IAI\",\n      \"name\": \"PricingId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A1IAI\",\n      \"name\": \"PricingProductId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A2IAI\",\n      \"name\": \"ProductSellingModelId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A3IAI\",\n      \"name\": \"ProductQuantity\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A6IAI\",\n      \"name\": \"UnitPrice\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A7IAI\",\n      \"name\": \"NetUnitPrice\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A9IAI\",\n      \"name\": \"PriceBookEntryId\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002A8IAI\",\n      \"name\": \"SubTotal\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002AAIAY\",\n      \"name\": \"price_water_fall\"\n    },\n    {\n      \"contextAttributeId\": \"11nHu00000002ABIAY\",\n      \"name\": \"PricingErrorMessage\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context-tags",
+							"host": [
+								"{{_endpoint}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v{{version}}",
+								"connect",
+								"context-definitions",
+								"{{contextDefinitionId}}",
+								"context-tags"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Utilities",
+			"item": [
+				{
+					"name": "Composite",
+					"item": [
+						{
+							"name": "SObject Collections Delete Copy",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/composite/sobjects?ids=02ibn0000003ewzAAA&allOrNone=true",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"composite",
+										"sobjects"
+									],
+									"query": [
+										{
+											"key": "ids",
+											"value": "02ibn0000003ewzAAA"
+										},
+										{
+											"key": "allOrNone",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Executes actions on multiple records in one request. Use SObject Collections to reduce the number of round-trips between the client and server. This resource is available in API version 42.0 and later.\n\nhttps://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections.htm"
+							},
+							"response": [
+								{
+									"name": "Successful SObject Collections Delete",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": ""
+										},
+										"url": {
+											"raw": "{{_endpoint}}/services/data/v{{version}}/composite/sobjects?ids=0012o00003OBzVSAA1&allOrNone=true",
+											"host": [
+												"{{_endpoint}}"
+											],
+											"path": [
+												"services",
+												"data",
+												"v{{version}}",
+												"composite",
+												"sobjects"
+											],
+											"query": [
+												{
+													"key": "ids",
+													"value": "0012o00003OBzVSAA1"
+												},
+												{
+													"key": "allOrNone",
+													"value": "true"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Date",
+											"value": "Mon, 20 Nov 2023 15:31:21 GMT"
+										},
+										{
+											"key": "Strict-Transport-Security",
+											"value": "max-age=63072000; includeSubDomains"
+										},
+										{
+											"key": "X-Content-Type-Options",
+											"value": "nosniff"
+										},
+										{
+											"key": "X-XSS-Protection",
+											"value": "1; mode=block"
+										},
+										{
+											"key": "X-Robots-Tag",
+											"value": "none"
+										},
+										{
+											"key": "Cache-Control",
+											"value": "no-cache,must-revalidate,max-age=0,no-store,private"
+										},
+										{
+											"key": "Sforce-Limit-Info",
+											"value": "api-usage=49/15000"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/json;charset=UTF-8"
+										},
+										{
+											"key": "Transfer-Encoding",
+											"value": "chunked"
+										}
+									],
+									"cookie": [],
+									"body": "[\n    {\n        \"id\": \"001...\",\n        \"success\": true,\n        \"errors\": []\n    }\n]"
+								}
+							]
+						},
+						{
+							"name": "SObject Collections Update Copy",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n   \"allOrNone\" : false,\n   \"records\" : [{\n      \"attributes\" : {\"type\" : \"Account\"},\n      \"id\" : \"<account-id>\",\n      \"NumberOfEmployees\" : 27000\n   }]\n}"
+								},
+								"url": {
+									"raw": "{{_endpoint}}/services/data/v{{version}}/composite/sobjects",
+									"host": [
+										"{{_endpoint}}"
+									],
+									"path": [
+										"services",
+										"data",
+										"v{{version}}",
+										"composite",
+										"sobjects"
+									]
+								},
+								"description": "Executes actions on multiple records in one request. Use SObject Collections to reduce the number of round-trips between the client and server. This resource is available in API version 42.0 and later.\n\nhttps://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections.htm"
+							},
+							"response": [
+								{
+									"name": "SObject Collections Update",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n   \"allOrNone\" : false,\n   \"records\" : [{\n      \"attributes\" : {\"type\" : \"Account\"},\n      \"id\" : \"0012o00003OBzVSAA1\",\n      \"NumberOfEmployees\" : 27000\n   }]\n}"
+										},
+										"url": {
+											"raw": "{{_endpoint}}/services/data/v{{version}}/composite/sobjects",
+											"host": [
+												"{{_endpoint}}"
+											],
+											"path": [
+												"services",
+												"data",
+												"v{{version}}",
+												"composite",
+												"sobjects"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Date",
+											"value": "Mon, 20 Nov 2023 15:28:31 GMT"
+										},
+										{
+											"key": "Strict-Transport-Security",
+											"value": "max-age=63072000; includeSubDomains"
+										},
+										{
+											"key": "X-Content-Type-Options",
+											"value": "nosniff"
+										},
+										{
+											"key": "X-XSS-Protection",
+											"value": "1; mode=block"
+										},
+										{
+											"key": "X-Robots-Tag",
+											"value": "none"
+										},
+										{
+											"key": "Cache-Control",
+											"value": "no-cache,must-revalidate,max-age=0,no-store,private"
+										},
+										{
+											"key": "Sforce-Limit-Info",
+											"value": "api-usage=46/15000"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/json;charset=UTF-8"
+										},
+										{
+											"key": "Transfer-Encoding",
+											"value": "chunked"
+										}
+									],
+									"cookie": [],
+									"body": "[\n    {\n        \"id\": \"001...\",\n        \"success\": true,\n        \"errors\": []\n    }\n]"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "scope",
+				"value": "",
+				"type": "string"
+			},
+			{
+				"key": "tokenName",
+				"value": "rlm_token",
+				"type": "string"
+			},
+			{
+				"key": "client_authentication",
+				"value": "body",
+				"type": "string"
+			},
+			{
+				"key": "useBrowser",
+				"value": true,
+				"type": "boolean"
+			},
+			{
+				"key": "clientSecret",
+				"value": "{{clientSecret}}",
+				"type": "string"
+			},
+			{
+				"key": "clientId",
+				"value": "{{clientId}}",
+				"type": "string"
+			},
+			{
+				"key": "accessTokenUrl",
+				"value": "{{url}}{{site}}/services/oauth2/token",
+				"type": "string"
+			},
+			{
+				"key": "authUrl",
+				"value": "{{url}}{{site}}/services/oauth2/authorize",
+				"type": "string"
+			},
+			{
+				"key": "grant_type",
+				"value": "authorization_code_with_pkce",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Specifying Postman as the client for Salesforce logs ",
+					"pm.request.headers.add({key: 'Sforce-Call-Options', value: 'client=postman' });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

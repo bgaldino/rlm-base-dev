@@ -1,0 +1,67 @@
+$$Product2.Name$ProductSellingModel.Name,IsDefault,Product2.Name,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+Silver Hardware Maintenance;Term Annual,true,Silver Hardware Maintenance,Term Annual;TermDefined,Default Proration Policy
+QuantumBit Fundamentals Training;One-Time,true,QuantumBit Fundamentals Training,One-Time;OneTime,
+C13 to C14 Power Cable 3';One-Time,true,C13 to C14 Power Cable 3',One-Time;OneTime,
+QuantumBit Essentials Training;One-Time,true,QuantumBit Essentials Training,One-Time;OneTime,
+Additional API Flex (100M);Term Annual,true,Additional API Flex (100M),Term Annual;TermDefined,Default Proration Policy
+Additional API Gov;Term Annual,true,Additional API Gov,Term Annual;TermDefined,Default Proration Policy
+Additional API Pre-Prod;Term Annual,true,Additional API Pre-Prod,Term Annual;TermDefined,Default Proration Policy
+Additional API Prod;Term Annual,true,Additional API Prod,Term Annual;TermDefined,Default Proration Policy
+Additional Automation QB Credits;Term Annual,true,Additional Automation QB Credits,Term Annual;TermDefined,Default Proration Policy
+Additional QB DataGraph (500M);Term Annual,true,Additional QB DataGraph (500M),Term Annual;TermDefined,Default Proration Policy
+API Access Requests (AEH);Term Annual,true,API Access Requests (AEH),Term Annual;TermDefined,Default Proration Policy
+Additional Flows - QB Starter;Term Annual,true,Additional Flows - QB Starter,Term Annual;TermDefined,Default Proration Policy
+Additional Messages - QB Starter;Term Annual,true,Additional Messages - QB Starter,Term Annual;TermDefined,Default Proration Policy
+Additional Data Throughput (TB);Term Annual,true,Additional Data Throughput (TB),Term Annual;TermDefined,Default Proration Policy
+QB API Management Solution;Term Annual,true,QB API Management Solution,Term Annual;TermDefined,Default Proration Policy
+QuantumBit Starter;One-Time,true,QuantumBit Starter,One-Time;OneTime,
+Gold Hardware Maintenance;Term Annual,true,Gold Hardware Maintenance,Term Annual;TermDefined,Default Proration Policy
+Additional API;Term Annual,true,Additional API,Term Annual;TermDefined,Default Proration Policy
+QuantumBit Complete Solution;Term Annual,true,QuantumBit Complete Solution,Term Annual;TermDefined,Default Proration Policy
+Additional API;Term Monthly,false,Additional API,Term Monthly;TermDefined,Default Proration Policy
+Additional API;Evergreen Monthly,false,Additional API,Evergreen Monthly;Evergreen,Default Proration Policy
+16GB RDIMM;One-Time,true,16GB RDIMM,One-Time;OneTime,
+4TB 7.2k RPM NLSAS;One-Time,true,4TB 7.2k RPM NLSAS,One-Time;OneTime,
+8TB 7.2k RPM NLSAS;One-Time,true,8TB 7.2k RPM NLSAS,One-Time;OneTime,
+8TB 7.2k RPM Self-Encrypting NLSAS;One-Time,true,8TB 7.2k RPM Self-Encrypting NLSAS,One-Time;OneTime,
+QuantumBit Services Project;One-Time,true,QuantumBit Services Project,One-Time;OneTime,
+Module Extension Engineer;One-Time,true,Module Extension Engineer,One-Time;OneTime,
+Program Director;One-Time,true,Program Director,One-Time;OneTime,
+Intel Xeon E5-2660 v4 2.0GHz;One-Time,true,Intel Xeon E5-2660 v4 2.0GHz,One-Time;OneTime,
+Quality Assurance Engineer;One-Time,true,Quality Assurance Engineer,One-Time;OneTime,
+Intel X710 Dual Port 10Gb Direct Attach;One-Time,true,Intel X710 Dual Port 10Gb Direct Attach,One-Time;OneTime,
+Implementation Engineer;One-Time,true,Implementation Engineer,One-Time;OneTime,
+Intel Xeon E5-2683 v4 2.1GHz;One-Time,true,Intel Xeon E5-2683 v4 2.1GHz,One-Time;OneTime,
+Data Normalization Expert;One-Time,true,Data Normalization Expert,One-Time;OneTime,
+Intel Xeon E5-2609 v4 1.7GHz;One-Time,true,Intel Xeon E5-2609 v4 1.7GHz,One-Time;OneTime,
+PowerSwerve R750 Rack Server;One-Time,true,PowerSwerve R750 Rack Server,One-Time;OneTime,
+8GB RDIMM;One-Time,true,8GB RDIMM,One-Time;OneTime,
+32GB RDIMM;One-Time,true,32GB RDIMM,One-Time;OneTime,
+1TB 7.2k RPM NLSAS;One-Time,true,1TB 7.2k RPM NLSAS,One-Time;OneTime,
+Intel X710 Dual Port 10Gb SFP;One-Time,true,Intel X710 Dual Port 10Gb SFP,One-Time;OneTime,
+Integration Specialist Engineer;One-Time,true,Integration Specialist Engineer,One-Time;OneTime,
+Solutions Architect;One-Time,true,Solutions Architect,One-Time;OneTime,
+Configured Power Cable;One-Time,true,Configured Power Cable,One-Time;OneTime,
+Subscription;Evergreen Monthly,false,Subscription,Evergreen Monthly;Evergreen,Default Proration Policy
+Professional Services Daily Rate;One-Time,true,Professional Services Daily Rate,One-Time;OneTime,
+Professional Services Scope of Work;One-Time,true,Professional Services Scope of Work,One-Time;OneTime,
+Subscription;Term Monthly,false,Subscription,Term Monthly;TermDefined,Default Proration Policy
+Intel Xeon E5-2667 v4 3.2GHz;One-Time,true,Intel Xeon E5-2667 v4 3.2GHz,One-Time;OneTime,
+Project Manager;One-Time,true,Project Manager,One-Time;OneTime,
+QB API Management Solution;Evergreen Monthly,false,QB API Management Solution,Evergreen Monthly;Evergreen,Default Proration Policy
+QuantumBit Complete Solution;Evergreen Monthly,false,QuantumBit Complete Solution,Evergreen Monthly;Evergreen,Default Proration Policy
+API Access Requests (AEH);Term Monthly,false,API Access Requests (AEH),Term Monthly;TermDefined,Default Proration Policy
+QuantumBit Complete Solution;One-Time,false,QuantumBit Complete Solution,One-Time;OneTime,
+Additional Messages - QB Starter;Evergreen Monthly,false,Additional Messages - QB Starter,Evergreen Monthly;Evergreen,Default Proration Policy
+Additional Data Throughput (TB);Evergreen Monthly,false,Additional Data Throughput (TB),Evergreen Monthly;Evergreen,Default Proration Policy
+Additional Flows - QB Starter;Evergreen Monthly,false,Additional Flows - QB Starter,Evergreen Monthly;Evergreen,Default Proration Policy
+API Access Requests (AEH);Evergreen Monthly,false,API Access Requests (AEH),Evergreen Monthly;Evergreen,Default Proration Policy
+Additional Automation QB Credits;Evergreen Monthly,false,Additional Automation QB Credits,Evergreen Monthly;Evergreen,Default Proration Policy
+Additional Flows - QB Starter;Term Monthly,false,Additional Flows - QB Starter,Term Monthly;TermDefined,Default Proration Policy
+Additional Data Throughput (TB);Term Monthly,false,Additional Data Throughput (TB),Term Monthly;TermDefined,Default Proration Policy
+QB API Management Solution;Term Monthly,false,QB API Management Solution,Term Monthly;TermDefined,Default Proration Policy
+QuantumBit Complete Solution;Term Monthly,false,QuantumBit Complete Solution,Term Monthly;TermDefined,Default Proration Policy
+Additional Messages - QB Starter;Term Monthly,false,Additional Messages - QB Starter,Term Monthly;TermDefined,Default Proration Policy
+Additional Automation QB Credits;Term Monthly,false,Additional Automation QB Credits,Term Monthly;TermDefined,Default Proration Policy
+Subscription;Term Annual,true,Subscription,Term Annual;TermDefined,Default Proration Policy
+Subscription;Evergreen Annual,false,Subscription,Evergreen Annual;Evergreen,Default Proration Policy

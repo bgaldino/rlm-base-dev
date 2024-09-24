@@ -1,0 +1,6 @@
+$$Name$SellingModelType,Name,PricingTerm,PricingTermUnit,SellingModelType,Status
+Term Annual;TermDefined,Term Annual,1,Annual,TermDefined,Active
+One-Time;OneTime,One-Time,,,OneTime,Active
+Term Monthly;TermDefined,Term Monthly,1,Months,TermDefined,Active
+Evergreen Monthly;Evergreen,Evergreen Monthly,1,Months,Evergreen,Active
+Evergreen Annual;Evergreen,Evergreen Annual,1,Annual,Evergreen,Active

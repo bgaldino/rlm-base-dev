@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <custom>true</custom>
+    <userLicense>Partner Community</userLicense>
+    <classAccesses>
+        <apexClass>RLM_AssetInfoUtility</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_OrderItemContractingUtility</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>EnableNotifications</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>SelectFilesFromSalesforce</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ShareFilesWithNetworks</name>
+    </userPermissions>
+    <layoutAssignments>
+        <layout>Account-RLM Account Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Asset-RLM Partner Asset Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>AssetAction-RLM Asset Action Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>AssetStatePeriod-RLM Asset State Period Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>AttributePicklist-RLM Attribute Picklist Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Contract-RLM Contract Layout</layout>
+    </layoutAssignments>
+     <layoutAssignments>
+        <layout>Opportunity-RLM Opportunity Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>PricebookEntry-RLM Price Book Entry</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Product2-RLM Product Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>ProductCatalog-RLM Catalog Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Quote-RLM Quote Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>QuoteLineItem-RLM Quote Line Item Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Order-RLM Order Layout</layout>
+    </layoutAssignments>
+</Profile>

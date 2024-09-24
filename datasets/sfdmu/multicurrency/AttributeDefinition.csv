@@ -1,0 +1,19 @@
+Code,DataType,DefaultValue,Description,DeveloperName,IsActive,Label,Name,Picklist.Name
+Connector_Type,Picklist,,,Connector_Type,true,Connector Type,Connector_Type,Connector_Type
+Base_Core_Count,Picklist,4,,Base_Core_Count,true,Base Core Count,Base_Core_Count,Base_Core_Count
+API_Type,Picklist,Flex,,API_Type,true,API Type,API_Type,API_Type
+Length,Picklist,,,Length,true,Length,Length,Length
+Operating_System,Picklist,Amazon Linux 2,,Operating_System,true,Operating System,Operating_System,Operating_System
+Server_Configuration,Picklist,Security,,Server_Configuration,true,Server_Configuration,Server_Configuration,Server_Configuration
+Resource_Location,Picklist,Onsite,,Resource_Location,true,Resource_Location,Resource_Location,Resource_Location
+Processor_Frequency,Picklist,3.2GHz,,Processor_Frequency,true,Processor_Frequency,Processor_Frequency,Processor_Frequency
+SubscriptionType,Picklist,,,SubscriptionType,true,SubscriptionType,SubscriptionType,SubscriptionType
+Engineering_Options,Picklist,Extended_Care,,Engineering_Options,true,Engineering_Options,Engineering_Options,Engineering_Options
+Memory_Config,Picklist,Performance_Optimized,,Memory_Config,true,Memory_Config,Memory_Config,Memory_Config
+Memory_Capacity,Picklist,8GB,,Memory_Capacity,true,Memory_Capacity,Memory_Capacity,Memory
+NIC_Type,Picklist,Direct_Attach,,NIC_Type,true,NIC_Type,NIC_Type,NIC_Type
+HDD_Storage,Picklist,1TB,,HDD_Storage,true,HDD_Storage,HDD_Storage,HDD_Storage
+Flows,Number,1000,,Flows,true,Flows,Flows,
+Messages_Million,Number,60,,Messages_Million,true,Messages (Million),Messages_Million,
+Data_Throughput_TB,Number,0,,Data_Throughput_TB,true,Data Throughput (TB),Data_Throughput_TB,
+Notes_and_Assumptions,Text,,,Notes_and_Assumptions,true,Notes_and_Assumptions,Notes_and_Assumptions,
