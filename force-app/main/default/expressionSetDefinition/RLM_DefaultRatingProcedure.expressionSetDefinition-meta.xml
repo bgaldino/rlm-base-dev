@@ -15,7 +15,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2023-01-01T08:00:00.000Z</startDate>
-        <status>Inactive</status>
+        <status>Draft</status>
         <steps>
             <actionType>RatingAttributeDiscount</actionType>
             <customElement>
