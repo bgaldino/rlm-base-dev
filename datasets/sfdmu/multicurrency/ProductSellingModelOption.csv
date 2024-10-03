@@ -66,3 +66,7 @@ QB-AUT-CRED;Term Monthly,false,QB-AUT-CRED,Term Monthly;TermDefined,Default Pror
 TEST-SUB;Term Annual,true,TEST-SUB,Term Annual;TermDefined,Default Proration Policy
 TEST-SUB;Evergreen Annual,false,TEST-SUB,Evergreen Annual;Evergreen,Default Proration Policy
 QB-SUPP-2000;Term Annual,true,QB-SUPP-2000,Term Annual;TermDefined,Default Proration Policy
+QB-LIC-CLOUD;Term Annual,true,QB-LIC-CLOUD,Term Annual;TermDefined,Default Proration Policy
+QB-LIC-CLOUD;Term Monthly,false,QB-LIC-CLOUD,Term Monthly;TermDefined,Default Proration Policy
+QB-CS;Term Annual,true,QB-CS,Term Annual;TermDefined,Default Proration Policy
+QB-CS;Term Monthly,false,QB-CS,Term Monthly;TermDefined,Default Proration Policy

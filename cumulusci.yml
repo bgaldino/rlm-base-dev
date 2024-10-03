@@ -30,8 +30,8 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain quantumbit59.my.salesforce.com
-    user_alias: &user_alias bgaldino@252.rlm.qb.t3
+    mydomain: &mydomain quantumbit-6d.my.salesforce.com
+    user_alias: &user_alias bgaldino@252.qb.test10
     prm: true
     tso: false
     qb: true
@@ -40,11 +40,11 @@ project:
     calmdelete: true
     tax: true
     billing: true
-    clm: true
+    clm: false
     dro: true
     rating: true
     ramps: true
-    einstein: true
+    einstein: false
     product_dataset: qb
 
     rlm_psl_api_names: &rlm_psl_api_names
@@ -72,7 +72,7 @@ project:
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
       - EinsteinAnalyticsPlusPsl
-      #- EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinDisclsAndCmplHubUserPsl
       - EinsteinGPTCopilotPsl
       - EinsteinGPTPromptTemplatesPsl
       - ScoringFrameworkPsl
@@ -81,7 +81,7 @@ project:
       - EinsteinSalesGenerativeInsightsPsl
       - EinsteinGPTGetProductPricingPsl
       - ERIPlatformBasic
-      #- EinsteinGPTGroundingStructuredDataPsl
+      - EinsteinGPTGroundingStructuredDataPsl
       - EinsteinGPTCallExplorerPsl
       - EinsteinGPTSalesMiningPsl
       - EinsteinGPTSalesCallSummariesPsl
@@ -412,7 +412,7 @@ tasks:
   create_price_adjustment_schedules_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   insert_quantumbit_data:
@@ -423,7 +423,7 @@ tasks:
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   insert_q3_data:
@@ -434,7 +434,18 @@ tasks:
   insert_q3_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@252.qb.test10 -c"
+      extra: *mydomain
+
+  insert_clm_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm"
+
+  insert_clm_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   insert_dro_data_scratch:
@@ -445,7 +456,7 @@ tasks:
   insert_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   insert_tax_data:
@@ -456,7 +467,7 @@ tasks:
   insert_tax_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   insert_billing_data:
@@ -467,7 +478,7 @@ tasks:
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   insert_scratch_data:
@@ -488,7 +499,7 @@ tasks:
   activate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   deactivate_expression_sets:
@@ -499,7 +510,7 @@ tasks:
   deactivate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@252.rlm.qb.t3 -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@252.qb.test10 -c"
       extra: *mydomain
 
   deploy_sharing_rules:
@@ -604,8 +615,10 @@ flows:
       14:
         flow: prepare_billing
       15:
-        task: sync_pricing_data
+        flow: prepare_clm
       16:
+        task: sync_pricing_data
+      17:
         task: activate_and_deploy_expression_sets
          
   prepare_core:
@@ -766,7 +779,17 @@ flows:
         when: org_config.scratch and project_config.project__custom__dro == true
       2:
         task: insert_dro_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__dro == true
+        when: project_config.project__custom__tso == true and project_config.project__custom__dro == true and org_config.scratch == false
+
+  prepare_clm:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_clm_data
+        when: org_config.scratch and project_config.project__custom__clm == true
+      2:
+        task: insert_clm_data_prod
+        when: project_config.project__custom__tso == true and project_config.project__custom__clm == true
 
   prepare_docgen:
     group: Revenue Lifecycle Management

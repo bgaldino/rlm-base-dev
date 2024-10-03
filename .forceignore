@@ -54,6 +54,7 @@ force-app/main/default/contextDefinitions/OrderToContract_C.contextDefinition-me
 force-app/main/default/contextDefinitions/QuoteToContract_C.contextDefinition-meta.xml
 unpackaged/post_prm/force-app/main/default/experiences/rlm1/routes/serviceDocument.json
 unpackaged/post_prm/force-app/main/default/experiences/rlm1/views/serviceDocument.json
+force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 **/tsconfig.json
 
 **/*.ts

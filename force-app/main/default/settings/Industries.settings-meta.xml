@@ -3,18 +3,26 @@
     <enableAIAccelerator>true</enableAIAccelerator>
     <enableAccountScoreEnabled>false</enableAccountScoreEnabled>
     <enableContractMgmtPref>true</enableContractMgmtPref>
+    <enableContractSearchPref>false</enableContractSearchPref>
     <enableContractsAIPref>true</enableContractsAIPref>
     <enableDiscoveryFrameworkMetadata>true</enableDiscoveryFrameworkMetadata>
     <enableDiscoveryFrwrkSampleTemplate>false</enableDiscoveryFrwrkSampleTemplate>
+    <enableDontSharePartyprofWPortalOrgPref>false</enableDontSharePartyprofWPortalOrgPref>
     <enableEnhancedQuestionCreation>true</enableEnhancedQuestionCreation>
     <enableEpcDeleteAccess>false</enableEpcDeleteAccess>
+    <enableGnrcDisclsFrmwrk>false</enableGnrcDisclsFrmwrk>
     <enableIndustriesAssessment>true</enableIndustriesAssessment>
     <enableIndustriesAssessmentGuestOrgPref>false</enableIndustriesAssessmentGuestOrgPref>
     <enableIndustriesAssessmentPrefill>false</enableIndustriesAssessmentPrefill>
     <enableIndustriesIntegrationOrchestratorPref>false</enableIndustriesIntegrationOrchestratorPref>
+    <enableInformationLibrary>false</enableInformationLibrary>
     <enableMicrosoftWordAddInEnabled>true</enableMicrosoftWordAddInEnabled>
-    <enablePCMConfigRules>false</enablePCMConfigRules>
+    <enablePCMConfigRules>true</enablePCMConfigRules>
+    <enablePartyProfileParentSharingOrgPref>false</enablePartyProfileParentSharingOrgPref>
+    <enablePartyprofParentMultiSharingOrgPref>false</enablePartyprofParentMultiSharingOrgPref>
     <enableScoringFrameworkCRMAPref>true</enableScoringFrameworkCRMAPref>
     <enableScoringFrameworkOrgPref>true</enableScoringFrameworkOrgPref>
+    <enableTurnOffDsclsReprtPbsrName>false</enableTurnOffDsclsReprtPbsrName>
+    <partyProfMultiShrPrtnrsOrgPref>false</partyProfMultiShrPrtnrsOrgPref>
     <rlaEditIfAccHasEdit>false</rlaEditIfAccHasEdit>
 </IndustriesSettings>

@@ -12,9 +12,9 @@ EightFeet;Cable Length Picklist,8ft,8',false,EightFeet,Cable Length Picklist,,8
 C19 to C20;Connector Type Picklist,C19toC20,C19 to C20,false,C19 to C20,Connector Type Picklist,,C19 to C20
 TwelveFeet;Cable Length Picklist,12ft,12',false,TwelveFeet,Cable Length Picklist,,12
 Amazon Linux 2;Operating System Picklist,AL2,Amazon Linux 2,true,Amazon Linux 2,Operating System Picklist,1,Amazon Linux 2
-Four;Base Core Count Picklist,4,4,false,Four,Base Core Count Picklist,2,4
+Four;Base Core Count Picklist,4,4,true,Four,Base Core Count Picklist,2,4
 Six;Base Core Count Picklist,6,6,false,Six,Base Core Count Picklist,3,6
-Eight;Base Core Count Picklist,8,8,true,Eight,Base Core Count Picklist,4,8
+Eight;Base Core Count Picklist,8,8,false,Eight,Base Core Count Picklist,4,8
 Flex;API Type Picklist,Flex,Flex,true,Flex,API Type Picklist,1,Flex
 Pre-Prod;API Type Picklist,Pre-Prod,Pre-Prod,false,Pre-Prod,API Type Picklist,3,Pre-Prod
 Gov;API Type Picklist,Gov,Gov,false,Gov,API Type Picklist,2,Gov
@@ -49,3 +49,4 @@ Offshore;Resource Location Picklist,Offshore,Offshore,false,Offshore,Resource Lo
 40;Data Utilization,APV-40,40,false,40,Data Utilization,40,40
 30;Data Utilization,APV-30,30,false,30,Data Utilization,30,30
 10;Data Utilization,APV-10,10,false,10,Data Utilization,10,10
+0;Data Utilization,0,0,true,0,Data Utilization,0,0

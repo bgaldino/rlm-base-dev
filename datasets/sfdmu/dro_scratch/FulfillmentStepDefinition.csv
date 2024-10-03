@@ -1,4 +1,7 @@
 $$Name$StepDefinitionGroup.Name$CurrencyIsoCode,AssignedTo.Name,CurrencyIsoCode,ExecuteOnRule.Name,FlowDefinitionName,IntegrationDefinitionName.DeveloperName,Name,OmniscriptName,ResumeOnRule.Name,RunAsUser.Name,Scope,StepDefinitionGroup.$$Name$CurrencyIsoCode,StepType,UsageType
-Convert Order to Asset;Asset Conversion;USD,,USD,,RLM_Assetize_Order_DRO_Fulfillment,,Convert Order to Asset,,,User User,Plan,Asset Conversion;USD,AutoTask,
-Validate Tenant Info;Order Processing;USD,User User,USD,,RLM_Assign_Tenant_Info_Order,,Validate Tenant Info,,,User User,Plan,Order Processing;USD,ManualTask,
-Stage New Tenant for Provisioning;Tenant Provisioning;USD,,USD,,,RLM_DFOTenantProvisioningCallout,Stage New Tenant for Provisioning,,,User User,Plan,Tenant Provisioning;USD,Callout,
+Convert Order to Asset;Tenant Provisioning + Activation;USD,,USD,,RLM_Assetize_Order_DRO_Fulfillment,,Convert Order to Asset,,,User User,Plan,Tenant Provisioning + Activation;USD,Milestone,
+Validate Order Info;Order Processing;USD,User User,USD,,RLM_Assign_Tenant_Info_Order,,Validate Order Info,,,User User,Plan,Order Processing;USD,ManualTask,
+Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,,USD,,,RLM_DFOTenantProvisioningCallout,Stage New Tenant for Provisioning,,,User User,Plan,Tenant Provisioning + Activation;USD,Callout,
+Initiate Billing;Finance;USD,User User,USD,,,,Initiate Billing,,,User User,Plan,Finance;USD,Milestone,
+Post Invoice;Finance;USD,User User,USD,,,,Post Invoice,,,User User,Plan,Finance;USD,ManualTask,
+Receive Payment;Finance;USD,User User,USD,,,,Receive Payment,,,User User,Plan,Finance;USD,ManualTask,

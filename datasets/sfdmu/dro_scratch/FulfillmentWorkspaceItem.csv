@@ -1,4 +1,4 @@
 $$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name$CurrencyIsoCode,CurrencyIsoCode,FulfillmentStepDefinitionGroup.$$Name$CurrencyIsoCode,FulfillmentWorkspace.$$Name$CurrencyIsoCode,ShowOrder
-API Platform Fulfillment;Asset Conversion;USD,USD,Asset Conversion;USD,API Platform Fulfillment;USD,3
-API Platform Fulfillment;Order Processing;USD,USD,Order Processing;USD,API Platform Fulfillment;USD,1
-API Platform Fulfillment;Tenant Provisioning;USD,USD,Tenant Provisioning;USD,API Platform Fulfillment;USD,2
+Software Bundle Fulfillment;Order Processing;USD,USD,Order Processing;USD,Software Bundle Fulfillment;USD,1
+Software Bundle Fulfillment;Tenant Provisioning + Activation;USD,USD,Tenant Provisioning + Activation;USD,Software Bundle Fulfillment;USD,2
+Software Bundle Fulfillment;Finance;USD,USD,Finance;USD,Software Bundle Fulfillment;USD,4

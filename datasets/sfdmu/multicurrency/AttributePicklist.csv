@@ -1,8 +1,7 @@
 CurrencyIsoCode,DataType,Description,Name,Status
-USD,Number,,Data Utilization,Active
+USD,Text,,Connector Type Picklist,Active
 USD,Number,,Base Core Count Picklist,Active
 USD,Text,,API Type Picklist,Active
-USD,Text,,Connector Type Picklist,Active
 USD,Text,,Cable Length Picklist,Active
 USD,Text,,Operating System Picklist,Active
 USD,Text,,Server Configuration Picklist,Active
@@ -14,3 +13,4 @@ USD,Text,,RAM Config Picklist,Active
 USD,Text,,RAM Picklist,Active
 USD,Text,,Network Adapter Type Picklist,Active
 USD,Text,,Data Storage Picklist,Active
+USD,Number,,Data Utilization,Active

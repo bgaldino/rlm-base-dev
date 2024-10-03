@@ -16,9 +16,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;USD,USD,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;USD,USD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,2.5
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;USD,USD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,25
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;USD,USD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,2
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;USD,USD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,3200
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;USD,USD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,38000
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;USD,USD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,3000
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;USD,USD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,0
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;USD,USD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,0
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;USD,USD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,0
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;USD,USD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,2000
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;USD,USD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,24000
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;USD,USD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,1500
@@ -30,6 +30,7 @@ API Access Requests (AEH);Standard Price Book;QB-API-REQT;Evergreen Monthly;USD,
 API Access Requests (AEH);Standard Price Book;QB-API-REQT;Term Annual;USD,USD,true,false,API Access Requests (AEH),Standard Price Book;true,QB-API-REQT,Term Annual;TermDefined,45
 API Access Requests (AEH);Standard Price Book;QB-API-REQT;Term Monthly;USD,USD,true,false,API Access Requests (AEH),Standard Price Book;true,QB-API-REQT,Term Monthly;TermDefined,5
 C13 to C14 Power Cable 3';Standard Price Book;QB-CMPC-5887;One-Time;USD,USD,true,false,C13 to C14 Power Cable 3',Standard Price Book;true,QB-CMPC-5887,One-Time;OneTime,250
+Cloud License (Monthly);Standard Price Book;QB-LIC-CLOUD;Term Annual;USD,USD,true,false,Cloud License (Monthly),Standard Price Book;true,QB-LIC-CLOUD,Term Annual;TermDefined,550
 Configured Power Cable;Standard Price Book;QB-CMPC-5882;One-Time;USD,USD,true,false,Configured Power Cable,Standard Price Book;true,QB-CMPC-5882,One-Time;OneTime,249
 Data Normalization Expert;Standard Price Book;QB-SRV-DNE;One-Time;USD,USD,true,false,Data Normalization Expert,Standard Price Book;true,QB-SRV-DNE,One-Time;OneTime,300
 Gold Hardware Maintenance;Standard Price Book;QB-SUPP-1005;Term Annual;USD,USD,true,false,Gold Hardware Maintenance,Standard Price Book;true,QB-SUPP-1005,Term Annual;TermDefined,30000
@@ -51,6 +52,8 @@ QB API Management Solution;Standard Price Book;QB-API-MGMT;Evergreen Monthly;USD
 QB API Management Solution;Standard Price Book;QB-API-MGMT;Term Annual;USD,USD,true,false,QB API Management Solution,Standard Price Book;true,QB-API-MGMT,Term Annual;TermDefined,12000
 QB API Management Solution;Standard Price Book;QB-API-MGMT;Term Monthly;USD,USD,true,false,QB API Management Solution,Standard Price Book;true,QB-API-MGMT,Term Monthly;TermDefined,1000
 Quality Assurance Engineer;Standard Price Book;QB-SRV-QAE;One-Time;USD,USD,true,false,Quality Assurance Engineer,Standard Price Book;true,QB-SRV-QAE,One-Time;OneTime,300
+QuantumBit Collaboration Suite;Standard Price Book;QB-CS;Term Annual;USD,USD,true,false,QuantumBit Collaboration Suite,Standard Price Book;true,QB-CS,Term Annual;TermDefined,0
+QuantumBit Collaboration Suite;Standard Price Book;QB-CS;Term Monthly;USD,USD,true,false,QuantumBit Collaboration Suite,Standard Price Book;true,QB-CS,Term Monthly;TermDefined,0
 QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Evergreen Monthly;USD,USD,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Evergreen Monthly;Evergreen,0
 QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;One-Time;USD,USD,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,One-Time;OneTime,0
 QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Term Annual;USD,USD,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Term Annual;TermDefined,0
@@ -59,13 +62,13 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;USD,U
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;USD,USD,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,6500
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;USD,USD,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;USD,USD,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,420
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,35
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,360
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;USD,USD,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,25000
 Software Maintenance;Standard Price Book;QB-SUPP-2000;Term Annual;USD,USD,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;USD,USD,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,500
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;USD,USD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,420
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;USD,USD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,35
-Subscription;Standard Price Book;TEST-SUB;Term Annual;USD,USD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,360
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;USD,USD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
 16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time;JPY,JPY,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,90600
 1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time;JPY,JPY,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,75500
 32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time;JPY,JPY,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,134500
@@ -83,9 +86,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;JPY,JPY,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;JPY,JPY,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,380
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;JPY,JPY,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,3780
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;JPY,JPY,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,300
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;JPY,JPY,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,484200
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;JPY,JPY,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,5749300
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;JPY,JPY,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,453900
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;JPY,JPY,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,484200
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;JPY,JPY,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,5749300
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;JPY,JPY,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,453900
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;JPY,JPY,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,302600
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;JPY,JPY,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,3631100
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;JPY,JPY,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,226900
@@ -126,12 +129,12 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;JPY,J
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;JPY,JPY,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,983400
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;JPY,JPY,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;JPY,JPY,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;JPY,JPY,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,63500
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;JPY,JPY,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,5300
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;JPY,JPY,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,54470
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;JPY,JPY,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,4540
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;JPY,JPY,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,3782400
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;JPY,JPY,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,75600
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;JPY,JPY,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,63500
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;JPY,JPY,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,5300
-Subscription;Standard Price Book;TEST-SUB;Term Annual;JPY,JPY,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,54470
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;JPY,JPY,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,4540
 16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time;GBP,GBP,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,470
 1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time;GBP,GBP,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,390
 32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time;GBP,GBP,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,700
@@ -149,9 +152,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;GBP,GBP,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;GBP,GBP,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,2
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;GBP,GBP,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,20
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;GBP,GBP,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,2
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;GBP,GBP,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,2510
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;GBP,GBP,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,29860
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;GBP,GBP,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,2360
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;GBP,GBP,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,2510
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;GBP,GBP,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,29860
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;GBP,GBP,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,2360
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;GBP,GBP,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,1570
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;GBP,GBP,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,18860
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;GBP,GBP,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,1180
@@ -192,12 +195,12 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;GBP,G
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;GBP,GBP,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,5110
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;GBP,GBP,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;GBP,GBP,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;GBP,GBP,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,330
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;GBP,GBP,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,30
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;GBP,GBP,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,280
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;GBP,GBP,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,20
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;GBP,GBP,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,19650
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;GBP,GBP,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,390
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;GBP,GBP,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,330
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;GBP,GBP,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,30
-Subscription;Standard Price Book;TEST-SUB;Term Annual;GBP,GBP,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,280
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;GBP,GBP,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,20
 16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time;EUR,EUR,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,550
 1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time;EUR,EUR,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,460
 32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time;EUR,EUR,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,820
@@ -215,9 +218,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;EUR,EUR,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;EUR,EUR,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,2
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;EUR,EUR,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,23
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;EUR,EUR,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,2
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;EUR,EUR,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,2940
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;EUR,EUR,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,34960
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;EUR,EUR,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,2760
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;EUR,EUR,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,2940
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;EUR,EUR,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,34960
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;EUR,EUR,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,2760
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;EUR,EUR,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,1840
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;EUR,EUR,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,22080
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;EUR,EUR,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,1380
@@ -258,12 +261,12 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;EUR,E
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;EUR,EUR,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,5980
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;EUR,EUR,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;EUR,EUR,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;EUR,EUR,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,390
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;EUR,EUR,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,30
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;EUR,EUR,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,330
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;EUR,EUR,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;EUR,EUR,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,23000
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;EUR,EUR,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,460
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;EUR,EUR,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,390
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;EUR,EUR,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,30
-Subscription;Standard Price Book;TEST-SUB;Term Annual;EUR,EUR,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,330
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;EUR,EUR,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
 16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time;CHF,CHF,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,530
 1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time;CHF,CHF,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,440
 32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time;CHF,CHF,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,790
@@ -281,9 +284,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;CHF,CHF,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;CHF,CHF,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,2
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;CHF,CHF,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,22
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;CHF,CHF,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,2
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;CHF,CHF,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,2840
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;CHF,CHF,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,33770
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;CHF,CHF,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,2670
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;CHF,CHF,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,2840
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;CHF,CHF,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,33770
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;CHF,CHF,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,2670
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;CHF,CHF,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,1780
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;CHF,CHF,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,21330
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;CHF,CHF,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,1330
@@ -324,12 +327,12 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;CHF,C
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;CHF,CHF,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,5780
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;CHF,CHF,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;CHF,CHF,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;CHF,CHF,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,370
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;CHF,CHF,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,30
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;CHF,CHF,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,320
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;CHF,CHF,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;CHF,CHF,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,22220
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;CHF,CHF,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,440
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;CHF,CHF,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,370
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;CHF,CHF,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,30
-Subscription;Standard Price Book;TEST-SUB;Term Annual;CHF,CHF,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,320
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;CHF,CHF,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
 16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time;CAD,CAD,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,810
 1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time;CAD,CAD,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,680
 32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time;CAD,CAD,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,1210
@@ -347,9 +350,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;CAD,CAD,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;CAD,CAD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,3
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;CAD,CAD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,34
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;CAD,CAD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,3
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;CAD,CAD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,4340
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;CAD,CAD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,51560
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;CAD,CAD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,4070
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;CAD,CAD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,4340
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;CAD,CAD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,51560
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;CAD,CAD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,4070
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;CAD,CAD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,2710
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;CAD,CAD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,32570
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;CAD,CAD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,2040
@@ -390,12 +393,12 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;CAD,C
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;CAD,CAD,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,8820
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;CAD,CAD,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;CAD,CAD,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;CAD,CAD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,570
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;CAD,CAD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,50
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;CAD,CAD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,490
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;CAD,CAD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,40
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;CAD,CAD,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,33920
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;CAD,CAD,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,680
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;CAD,CAD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,570
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;CAD,CAD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,50
-Subscription;Standard Price Book;TEST-SUB;Term Annual;CAD,CAD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,490
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;CAD,CAD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,40
 16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time;AUD,AUD,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,920
 1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time;AUD,AUD,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,760
 32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time;AUD,AUD,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,1360
@@ -413,9 +416,9 @@ Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual;AUD,AUD,true,fal
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly;AUD,AUD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,4
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual;AUD,AUD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,38
 Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly;AUD,AUD,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,3
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Evergreen Monthly;AUD,AUD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,4900
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Annual;AUD,AUD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,58140
-Additional Data Throughput (TB);Standard Price Book;QB-DAT-THPT;Term Monthly;AUD,AUD,true,false,Additional Data Throughput (TB),Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,4590
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly;AUD,AUD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,4900
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual;AUD,AUD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,58140
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly;AUD,AUD,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,4590
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly;AUD,AUD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,3060
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual;AUD,AUD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,36720
 Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly;AUD,AUD,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,2290
@@ -456,9 +459,9 @@ QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;AUD,A
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;AUD,AUD,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,9940
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;AUD,AUD,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;AUD,AUD,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;AUD,AUD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,640
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;AUD,AUD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,50
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual;AUD,AUD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,550
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly;AUD,AUD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,50
 Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual;AUD,AUD,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,38250
 Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time;AUD,AUD,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,760
-Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;AUD,AUD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,640
-Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly;AUD,AUD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,50
-Subscription;Standard Price Book;TEST-SUB;Term Annual;AUD,AUD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,550
-Subscription;Standard Price Book;TEST-SUB;Term Monthly;AUD,AUD,true,false,Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,50
