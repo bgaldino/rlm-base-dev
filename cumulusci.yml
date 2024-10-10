@@ -511,7 +511,7 @@ tasks:
   insert_billing_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/test-billing"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
 
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask

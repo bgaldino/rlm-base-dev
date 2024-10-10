@@ -1,3 +1,2 @@
-Name,Description,IsDefault,Status
-Default Payment Term,,,Draft
-
+Description,IsDefault,Name,Status
+,false,Default Payment Term,Draft

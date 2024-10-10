@@ -1,2 +1,3 @@
 BillingTreatmentSelection,DefaultBillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name,Description,Name,Status
 LegalEntity,Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,,Billing Policy - Advance,Draft
+LegalEntity,Billing Treatment - USA - Arrears;Billing Policy - Arrears;Default Legal Entity - US,,Billing Policy - Arrears,Draft

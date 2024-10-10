@@ -1,4 +1,5 @@
 $$Name$CurrencyIsoCode,CurrencyIsoCode,Name,UsageType
 Asset Conversion;USD,USD,Asset Conversion,
 Order Processing;USD,USD,Order Processing,
-Tenant Provisioning;USD,USD,Tenant Provisioning,
+Tenant Provisioning + Activation;USD,USD,Tenant Provisioning + Activation,
+Finance;USD,USD,Finance,

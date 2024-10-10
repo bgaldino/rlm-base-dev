@@ -1,10 +1,28 @@
 {
   "apiVersion": "62.0",
-  "excludeIdsFromCSVFiles": "false",
+  "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
       "name": "First Pass - Insert/Upsert with Draft Status",
       "objects": [
+        {
+          "query": "SELECT EndDate, FinancialYear, Name, StartDate, Status FROM AccountingPeriod",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT LegalEntityStreet, LegalEntityState, LegalEntityCountry, LegalEntityCountryCode, CompanyName, Description, Name, Status FROM LegalEntity",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AccountingPeriodId, LegalEntityId, Name, Status FROM LegalEntyAccountingPeriod",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
         {
           "query": "SELECT Description, IsDefault, Name, Status FROM PaymentTerm",
           "operation": "Upsert",
