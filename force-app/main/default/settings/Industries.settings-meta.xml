@@ -2,6 +2,7 @@
 <IndustriesSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableAIAccelerator>true</enableAIAccelerator>
     <enableAccountScoreEnabled>false</enableAccountScoreEnabled>
+    <enableComparisonViewAI>false</enableComparisonViewAI>
     <enableContractMgmtPref>true</enableContractMgmtPref>
     <enableContractSearchPref>false</enableContractSearchPref>
     <enableContractsAIPref>true</enableContractsAIPref>
@@ -22,6 +23,7 @@
     <enablePartyprofParentMultiSharingOrgPref>false</enablePartyprofParentMultiSharingOrgPref>
     <enableScoringFrameworkCRMAPref>true</enableScoringFrameworkCRMAPref>
     <enableScoringFrameworkOrgPref>true</enableScoringFrameworkOrgPref>
+    <enableSmartTags>false</enableSmartTags>
     <enableTurnOffDsclsReprtPbsrName>false</enableTurnOffDsclsReprtPbsrName>
     <partyProfMultiShrPrtnrsOrgPref>false</partyProfMultiShrPrtnrsOrgPref>
     <rlaEditIfAccHasEdit>false</rlaEditIfAccHasEdit>
