@@ -1,7 +1,7 @@
 $$Name$StepDefinitionGroup.Name$CurrencyIsoCode,AssignedTo.Name,CurrencyIsoCode,ExecuteOnRule.Name,FlowDefinitionName,IntegrationDefinitionName.DeveloperName,Name,OmniscriptName,ResumeOnRule.Name,RunAsUser.Name,Scope,StepDefinitionGroup.$$Name$CurrencyIsoCode,StepType,UsageType
-Convert Order to Asset;Tenant Provisioning + Activation;USD,,USD,,RLM_Assetize_Order_DRO_Fulfillment,,Convert Order to Asset,,,Brian Galdino,Plan,Tenant Provisioning + Activation;USD,Milestone,
-Validate Order Info;Order Processing;USD,Brian Galdino,USD,,RLM_Assign_Tenant_Info_Order,,Validate Order Info,,,Brian Galdino,Plan,Order Processing;USD,ManualTask,
-Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,,USD,,,RLM_DFOTenantProvisioningCallout,Stage New Tenant for Provisioning,,,Brian Galdino,Plan,Tenant Provisioning + Activation;USD,Callout,
-Initiate Billing;Finance;USD,Brian Galdino,USD,,,,Initiate Billing,,,Brian Galdino,Plan,Finance;USD,Milestone,
-Post Invoice;Finance;USD,Brian Galdino,USD,,,,Post Invoice,,,Brian Galdino,Plan,Finance;USD,ManualTask,
-Receive Payment;Finance;USD,Brian Galdino,USD,,,,Receive Payment,,,Brian Galdino,Plan,Finance;USD,ManualTask,
+Convert Order to Asset;Tenant Provisioning + Activation;USD,,USD,,RLM_Assetize_Order_DRO_Fulfillment,,Convert Order to Asset,,,Admin User,Plan,Tenant Provisioning + Activation;USD,Milestone,
+Validate Order Info;Order Processing;USD,Admin User,USD,,RLM_Assign_Tenant_Info_Order,,Validate Order Info,,,Admin User,Plan,Order Processing;USD,ManualTask,
+Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,,USD,,,RLM_DFOTenantProvisioningCallout,Stage New Tenant for Provisioning,,,Admin User,Plan,Tenant Provisioning + Activation;USD,Callout,
+Initiate Billing;Finance;USD,Admin User,USD,,,,Initiate Billing,,,Admin User,Plan,Finance;USD,Milestone,
+Post Invoice;Finance;USD,Admin User,USD,,,,Post Invoice,,,Admin User,Plan,Finance;USD,ManualTask,
+Receive Payment;Finance;USD,Admin User,USD,,,,Receive Payment,,,Admin User,Plan,Finance;USD,ManualTask,
