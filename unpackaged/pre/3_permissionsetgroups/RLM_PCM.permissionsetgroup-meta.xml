@@ -3,8 +3,8 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_PCM</label>
     <permissionSets>force__IndustriesConfiguratorPlatformApi</permissionSets>
-    <permissionSets>force__ProductConfigurationRulesDesigner</permissionSets>
     <permissionSets>force__ProductCatalogManagementAdministrator</permissionSets>
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
+    <permissionSets>force__ProductConfigurationRulesDesigner</permissionSets>
     <status>Updated</status>
 </PermissionSetGroup>

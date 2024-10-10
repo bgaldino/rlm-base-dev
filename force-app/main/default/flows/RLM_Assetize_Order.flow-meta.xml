@@ -111,7 +111,7 @@
         </scheduledPaths>
         <triggerType>RecordAfterSave</triggerType>
     </start>
-    <status>Obsolete</status>
+    <status>Draft</status>
     <variables>
         <name>AppUsageAssignmentRecord</name>
         <dataType>SObject</dataType>

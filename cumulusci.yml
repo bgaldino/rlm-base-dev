@@ -30,8 +30,8 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain quantumbit-6d.my.salesforce.com
-    user_alias: &user_alias bgaldino@252.qb.test10
+    mydomain: &mydomain bgaldino-241007-153-demo.my.salesforce.com
+    user_alias: &user_alias bgaldino@bgaldino-241007-153.demo
     prm: true
     tso: false
     qb: true
@@ -44,7 +44,7 @@ project:
     dro: true
     rating: true
     ramps: true
-    einstein: false
+    einstein: true
     product_dataset: qb
 
     rlm_psl_api_names: &rlm_psl_api_names
@@ -71,20 +71,44 @@ project:
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
+      - AnalyticsQueryServicePslForSalesPlanning
+      - AutomatedActionsPsl
+      - EinsteinAgentCWUPsl
+      - EinsteinAgentPsl
       - EinsteinAnalyticsPlusPsl
+      - EinsteinCopilotReviewMyDayPsl
       - EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinDiscoveryInTableauPsl
+      - EinsteinGPTCallExplorerPsl
       - EinsteinGPTCopilotPsl
-      - EinsteinGPTPromptTemplatesPsl
-      - ScoringFrameworkPsl
-      - EinsteinGPTSalesEmailsPsl
-      - EinsteinGPTSalesSummariesPsl
-      - EinsteinSalesGenerativeInsightsPsl
+      - EinsteinGPTCreateClosePlanPsl
       - EinsteinGPTGetProductPricingPsl
+      - EinsteinGPTGroundingStructuredDataPsl
+      - EinsteinGPTMeetingFollowUpPsl
+      - EinsteinGPTPromptTemplatesPsl
+      - EinsteinGPTSalesCallSummariesPsl
+      - EinsteinGPTSalesEmailsPsl
+      - EinsteinGPTSalesMiningPsl
+      - EinsteinGPTSalesSummariesPsl
+      - EinsteinGPTSendMeetingRequestPsl
+      - EinsteinSalesGenerativeInsightsPsl
+      - EinsteinSalesRepFeedbackPsl
       - ERIPlatformBasic
       - EinsteinGPTGroundingStructuredDataPsl
       - EinsteinGPTCallExplorerPsl
       - EinsteinGPTSalesMiningPsl
       - EinsteinGPTSalesCallSummariesPsl
+      - MySearchPsl
+      - RevenueIntelligencePsl
+      - SalesActionFindPastCollaboratorsPsl
+      - SalesActionReviewBuyingCommitteePsl
+      - SalesCloudUnlimitedAnalyticsAdminPsl
+      - SalesCloudUnlimitedPsl
+      - SalesEngagementBasicPsl
+      - ScoringFrameworkPsl
+      - TableauEinsteinBaseCreatorPsl
+      - TableauEinsteinBaseViewerPsl
+      - TableauEinsteinIncludedAppPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       - EinsteinGPTPromptTemplateManager
@@ -100,6 +124,18 @@ project:
       - ProductConfigurationRulesDesigner
       - ProductCatalogManagementAdministrator
       - ProductCatalogManagementViewer
+
+    rlm_blng_ps_api_names: &rlm_blng_ps_api_names
+      - AnalyticsStoreUser
+      - RevenueLifecycleManagementAccountingAdmin
+      - RevenueLifecycleManagementBillingAdmin
+      - RevenueLifecycleManagementBillingCreateInvoiceFromBillingScheduleApi
+      - RevenueLifecycleManagementBillingCreditMemoOperations
+      - RevenueLifecycleManagementBillingInvoiceErrorRecoveryApi
+      - RevenueLifecycleManagementBillingOperations
+      - RevenueLifecycleManagementBillingTaxAdmin
+      - RevenueLifecycleManagementBillingVoidPostedInvoiceApi
+      - RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi
 
     rlm_clm_psl_api_names: &rlm_clm_psl_api_names
       - ClauseManagementUser
@@ -123,6 +159,8 @@ project:
       - RLM_PD
       - RLM_PSL
       - RLM_BLNG
+      - RLM_PCM
+      - RLM_USG
 
     ps_quantumbit: &ps_quantumbit
       - RLM_QuantumBit
@@ -412,7 +450,7 @@ tasks:
   create_price_adjustment_schedules_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_quantumbit_data:
@@ -423,7 +461,7 @@ tasks:
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_q3_data:
@@ -434,7 +472,7 @@ tasks:
   insert_q3_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_clm_data:
@@ -445,7 +483,7 @@ tasks:
   insert_clm_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_dro_data_scratch:
@@ -456,7 +494,7 @@ tasks:
   insert_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_tax_data:
@@ -467,18 +505,18 @@ tasks:
   insert_tax_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_billing_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/test-billing"
 
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   insert_scratch_data:
@@ -499,7 +537,7 @@ tasks:
   activate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   deactivate_expression_sets:
@@ -510,7 +548,7 @@ tasks:
   deactivate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@252.qb.test10 -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241007-153.demo -c"
       extra: *mydomain
 
   deploy_sharing_rules:
@@ -686,6 +724,11 @@ flows:
         when: project_config.project__custom__einstein == true
         options:
           api_names: *rlm_ai_ps_api_names
+      18:
+        task: assign_permission_sets
+        when: project_config.project__custom__billing == true
+        options:
+          api_names: *rlm_blng_ps_api_names
 
   extend_context_definitions:
     group: Revenue Lifecycle Management
@@ -779,7 +822,7 @@ flows:
         when: org_config.scratch and project_config.project__custom__dro == true
       2:
         task: insert_dro_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__dro == true and org_config.scratch == false
+        when: project_config.project__custom__tso == true and project_config.project__custom__dro
 
   prepare_clm:
     group: Revenue Lifecycle Management

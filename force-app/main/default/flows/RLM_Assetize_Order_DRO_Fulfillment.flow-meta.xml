@@ -520,7 +520,7 @@
             <targetReference>Determine_DRO_Source_Type</targetReference>
         </connector>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>currentItem_Collection_Filter_1</name>
         <dataType>SObject</dataType>

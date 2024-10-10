@@ -1,12 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <name>Assetize_Order</name>
+        <label>Assetize Order</label>
+        <locationX>242</locationX>
+        <locationY>600</locationY>
+        <actionName>createOrUpdateAssetFromOrder</actionName>
+        <actionType>createOrUpdateAssetFromOrder</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>orderId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>createOrUpdateAssetFromOrder</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <versionSegment>1</versionSegment>
+    </actionCalls>
+    <actionCalls>
         <name>Submit_Order</name>
         <label>Submit Order</label>
         <locationX>242</locationX>
         <locationY>492</locationY>
         <actionName>submitOrder</actionName>
         <actionType>submitOrder</actionType>
+        <connector>
+            <targetReference>Assetize_Order</targetReference>
+        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>orderId</name>
@@ -15,6 +37,7 @@
             </value>
         </inputParameters>
         <nameSegment>submitOrder</nameSegment>
+        <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
         <versionSegment>1</versionSegment>
     </actionCalls>

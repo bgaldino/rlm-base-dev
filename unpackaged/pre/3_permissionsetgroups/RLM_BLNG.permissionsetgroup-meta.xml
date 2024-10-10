@@ -3,6 +3,7 @@
     <description>All RLM Billing Permission Sets</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_BLNG</label>
+    <permissionSets>force__AnalyticsStoreUser</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementAccountingAdmin</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementBillingAdmin</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementBillingCreateInvoiceFromBillingScheduleApi</permissionSets>
