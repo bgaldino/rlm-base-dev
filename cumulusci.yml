@@ -4,12 +4,6 @@ orgs:
     beta:
       config_file: orgs/beta.json
       days: 30
-    dev_preview:
-      config_file: orgs/dev_preview.json
-      days: 30
-    dev_previous:
-      config_file: orgs/dev_previous.json
-      days: 30
     tfid:
       config_file: orgs/tfid.json
       days: 30
@@ -18,6 +12,12 @@ orgs:
       days: 30
     tfid-dev:
       config_file: orgs/tfid-dev.json
+      days: 30
+    dev_preview:
+      config_file: orgs/dev_preview.json
+      days: 30
+    dev_previous:
+      config_file: orgs/dev_previous.json
       days: 30
 
 project:
@@ -30,11 +30,12 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain bgaldino-241007-153-demo.my.salesforce.com
-    user_alias: &user_alias bgaldino@bgaldino-241007-153.demo
+    mydomain: &mydomain bgaldino-241011-108-cdo.my.salesforce.com
+    user_alias: &user_alias bgaldino@bgaldino-241011-108.cdo
     prm: true
     tso: false
     qb: true
+    prod: true
     qbdata: true
     q3data: false
     calmdelete: true
@@ -46,6 +47,8 @@ project:
     ramps: true
     einstein: true
     product_dataset: qb
+    qbrix: true
+  
 
     rlm_psl_api_names: &rlm_psl_api_names
       - RevenueLifecycleManagementUserPsl
@@ -156,7 +159,6 @@ project:
       - RLM_CLM
       - RLM_DRO
       - RLM_NGP
-      - RLM_PD
       - RLM_PSL
       - RLM_BLNG
       - RLM_PCM
@@ -450,7 +452,7 @@ tasks:
   create_price_adjustment_schedules_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_quantumbit_data:
@@ -461,7 +463,7 @@ tasks:
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_q3_data:
@@ -472,7 +474,7 @@ tasks:
   insert_q3_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_clm_data:
@@ -483,7 +485,7 @@ tasks:
   insert_clm_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_dro_data_scratch:
@@ -494,7 +496,7 @@ tasks:
   insert_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_tax_data:
@@ -505,7 +507,7 @@ tasks:
   insert_tax_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_billing_data:
@@ -516,7 +518,7 @@ tasks:
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   insert_scratch_data:
@@ -537,7 +539,7 @@ tasks:
   activate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   deactivate_expression_sets:
@@ -548,7 +550,7 @@ tasks:
   deactivate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241007-153.demo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241011-108.cdo -c"
       extra: *mydomain
 
   deploy_sharing_rules:
