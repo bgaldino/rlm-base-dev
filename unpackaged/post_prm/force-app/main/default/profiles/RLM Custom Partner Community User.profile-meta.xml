@@ -32,9 +32,6 @@
         <layout>AssetAction-RLM Asset Action Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
-        <layout>AssetStatePeriod-RLM Asset State Period Layout</layout>
-    </layoutAssignments>
-    <layoutAssignments>
         <layout>AttributePicklist-RLM Attribute Picklist Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
