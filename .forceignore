@@ -13,9 +13,7 @@ package.xml
 
 # rlm-base specific entries
 
-# expressionSetDefinition
-
-
+# expressionSetDefinitions
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
@@ -28,9 +26,11 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 # contextDefinitions
 force-app/main/default/contextDefinitions
 
-# unpackaged/pre
-
+# connectedApps
 force-app/main/default/connectedApps/RLM_Postman.connectedApp-meta.xml
+
+# unpackaged/pre
+# PSGs
 #unpackaged/pre/3_permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
 
 # unpackaged/post_sharing
@@ -44,23 +44,90 @@ unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/Sale
 unpackaged/post_sharing/force-app/main/default/objects
 
 #unpackaged/pre/5_decisiontables
+
+## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
 
-# DRO Examples
+## DRO Examples from PM
 force-app/main/default/flows/F1YG.flow-meta.xml
 force-app/main/default/contextDefinitions/ConsulateToContract_C.contextDefinition-meta.xml
 force-app/main/default/contextDefinitions/OpportunityToContract_C.contextDefinition-meta.xml
 force-app/main/default/contextDefinitions/OrderToContract_C.contextDefinition-meta.xml
 force-app/main/default/contextDefinitions/QuoteToContract_C.contextDefinition-meta.xml
+force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
+force-app/main/default/genAiPromptTemplates/Order_Delay_Emails.genAiPromptTemplate-meta.xml
 
+## LOTUS AGENT EXAMPLES
+# bots
+force-app/main/default/bots
+# flows
+force-app/main/default/flows/Amend_Field_Updates.flow-meta.xml
+force-app/main/default/flows/Amend_Renew_and_Cancel_Assets_Custom.flow-meta.xml
+force-app/main/default/flows/Close_Opportunity_After_Quote_is_Booked.flow-meta.xml
+force-app/main/default/flows/Create_Asset_from_Order.flow-meta.xml
+force-app/main/default/flows/Create_SM_Order_From_Quote.flow-meta.xml
+force-app/main/default/flows/customer_satisfaction.flow-meta.xml
+force-app/main/default/flows/Duplicate_Tenant_Validation_Flow.flow-meta.xml
+force-app/main/default/flows/ECI_lightning_Dialer_Data_Deletion.flow-meta.xml
+force-app/main/default/flows/Finalize_ContractItemPrice_Records.flow-meta.xml
+force-app/main/default/flows/FLOWURL.flow-meta.xml
+force-app/main/default/flows/Get_Amend_Opportunities.flow-meta.xml
+force-app/main/default/flows/Is_Quoting_In_Maintenance_Mode.flow-meta.xml
+force-app/main/default/flows/Lotus_Add_QuoteLine_to_Quote.flow-meta.xml
+force-app/main/default/flows/Lotus_Apply_discount_to_the_Quote_Line.flow-meta.xml
+force-app/main/default/flows/Lotus_Create_Amendment_Quote.flow-meta.xml
+force-app/main/default/flows/Lotus_Create_Tenant.flow-meta.xml
+force-app/main/default/flows/Lotus_Get_Assets.flow-meta.xml
+force-app/main/default/flows/Lotus_Get_Product.flow-meta.xml
+force-app/main/default/flows/Lotus_Get_Tenant_By_Account_and_Custom_Name.flow-meta.xml
+force-app/main/default/flows/Lotus_Get_Tenant_By_Account.flow-meta.xml
+force-app/main/default/flows/Lotus_Quoting_Agent_Add_QuoteLine.flow-meta.xml
+force-app/main/default/flows/Lotus_Quoting_Agent_Create_Amendment_Quote.flow-meta.xml
+force-app/main/default/flows/Lotus_Quoting_Agent_Create_NB_Quote.flow-meta.xml
+force-app/main/default/flows/net_promoter_score.flow-meta.xml
+force-app/main/default/flows/Order_Before_Trigger_Flow.flow-meta.xml
+force-app/main/default/flows/Order_Product_Before_Trigger.flow-meta.xml
+force-app/main/default/flows/TESTSF.flow-meta.xml
+force-app/main/default/flows/Update_Billing_Info_details_in_Asset_AAS_From_Order_Product.flow-meta.xml
+force-app/main/default/flows/Update_Order_Prices.flow-meta.xml
+force-app/main/default/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
+# genAiFunctions
+force-app/main/default/genAiFunctions
+# genAiPlanners
+force-app/main/default/genAiPlanners
+# genAiPlugins
+force-app/main/default/genAiPlugins
 
+## ADVANCED APPROVALS
+# classes
+force-app/main/default/classes/RC_QuoteApprovalController.cls
+# flows
+#force-app/main/default/flows/Is_Any_Discount_Greater_than_30.flow-meta.xml
+#force-app/main/default/flows/Is_Discount_Greater_than_20.flow-meta.xml
+#force-app/main/default/flows/Is_there_a_Services_Offering.flow-meta.xml
+#force-app/main/default/flows/Quote_Approval_Process.flow-meta.xml
+force-app/main/default/flows/RC_AA_Evaluate_Approval_Request.flow-meta.xml
+force-app/main/default/flows/RC_AA_Quote_Approval.flow-meta.xml
+force-app/main/default/flows/RC_AA_Set_Quote_Status.flow-meta.xml
+# globalValueSets
+force-app/main/default/globalValueSets/RC_Approval_Status.globalValueSet-meta.xml
+# objects
+force-app/main/default/objects/Quote/fields/RC_Approval_Level__c.field-meta.xml
+force-app/main/default/objects/Quote/fields/RC_Approval_Status__c.field-meta.xml
+force-app/main/default/objects/QuoteLineItem/fields/RC_Approval__c.field-meta.xml
+force-app/main/default/objects/QuoteLineItem/fields/RC_Approval_Level_Calc__c.field-meta.xml
+# pages
+force-app/main/default/pages/RC_QuoteApproval.page
+# quickActions
+force-app/main/default/quickActions/Quote.RC_Submit_for_Approval.quickAction-meta.xml
+
+## DOCGEN
 # When docgen is successfully set up, experience bundles need these files.  If not, they must be uncommented.
 #unpackaged/post_prm/force-app/main/default/experiences/rlm1/routes/serviceDocument.json
 #unpackaged/post_prm/force-app/main/default/experiences/rlm1/views/serviceDocument.json
-force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 
-force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
-force-app/main/default/genAiPromptTemplates/Order_Delay_Emails.genAiPromptTemplate-meta.xml
+## MISC - TO ORGANIZE
+force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 force-app/main/default/genAiPromptTemplates/Record_Summ.genAiPromptTemplate-meta.xml
 
 **/tsconfig.json
