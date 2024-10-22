@@ -1,0 +1,28 @@
+{
+  "required" : [ "ProductID", "Quantity", "QuoteID" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "ProductID" : {
+      "title" : "ProductID",
+      "description" : "This is the 18 or 15 digit Product record ID to find the Product for the QuoteLine. ProductID is identified using Product Name specified by the User.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "Quantity" : {
+      "title" : "Quantity",
+      "description" : "This is the Quantity for the QuoteLine to be created. Quantity will be specified by the User",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuoteID" : {
+      "title" : "QuoteID",
+      "description" : "This is the 18 or 15 digit Quote record ID. QuoteID will be identified based on the Quote specified by the User.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

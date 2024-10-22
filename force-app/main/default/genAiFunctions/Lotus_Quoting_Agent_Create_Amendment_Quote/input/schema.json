@@ -1,0 +1,39 @@
+{
+  "required" : [ "AmendAssetIDs", "OpportunityID", "Quantity", "StartDate" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "AmendAssetIDs" : {
+      "title" : "AmendAssetIDs",
+      "description" : "Ids of the Assets that need to be amended. User can select more than one asset.\n",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "OpportunityID" : {
+      "title" : "OpportunityID",
+      "description" : "Amend Opportunity Id ",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "Quantity" : {
+      "title" : "Quantity",
+      "description" : "Amend Quantity\n",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "StartDate" : {
+      "title" : "StartDate",
+      "description" : "Amendment Start Date of the Quote\n",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

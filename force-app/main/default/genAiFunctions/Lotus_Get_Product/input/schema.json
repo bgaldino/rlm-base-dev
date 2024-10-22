@@ -1,0 +1,14 @@
+{
+  "required" : [ "ProductName" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "ProductName" : {
+      "title" : "ProductName",
+      "description" : "This is name of the Product",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

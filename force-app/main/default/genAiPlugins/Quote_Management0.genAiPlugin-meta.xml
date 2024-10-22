@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlugin xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>This topic helps users like sellers/AEs with creating add-on Quote or amending an asset.
+This topic is also used to add quoteline to the existing quote.</description>
+    <developerName>Quote_Management0</developerName>
+    <genAiFunctions>
+        <functionName>EmployeeCopilot__GetRecordDetails</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>EmployeeCopilot__IdentifyObjectByName</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>EmployeeCopilot__IdentifyRecordByName</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Add_QuoteLine_to_Quote</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Apply_discount_to_the_Quote_Line</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Create_Amendment_Quote</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Get_Assets</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Get_Product</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Get_Tenant_By_Account_and_Custom_Name</functionName>
+    </genAiFunctions>
+    <genAiPluginInstructions>
+        <description>If a user asks to create addon quote,
+Step 1: always get existing assets using Customer assets and display to the user.  When displaying customer assets, display Asset Name, Product Name, Lifecycle Start Date, Lifecycle End Date, Current Quantity and Total Amount.
+Step 2: If there are no assets are returned,  amend quote cannot be created.  Proceed with quote creation only if there are asset records.
+Step 3: Get confirmation from user which asset needs to be amended and the qty and start date.  If start date is not provided, default to next day. 
+Step 4: Once user provides confirmation and required info, create add on quote
+Step 5: After creating addon quote, get the quote details using the Get Record details and display quote details to the user.
+Step 6: When displaying Quote Details to the user display the link to Quote&apos;s Record Details page</description>
+        <developerName>Ifauser0</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>If a user</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>If a user asks for quote details, use the Get Record Details action with quote id to get the quote details. Also retrieve Quote Line Item related object details.</description>
+        <developerName>Ifauser1</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>If a user</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>Only creation of Addon quote or amend quote is supported.  No other types are supported.</description>
+        <developerName>Onlycreat2</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>Only creat</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>To create or add quoteline to existing quote, use Topic Action Lotus - Add QuoteLine to Quote</description>
+        <developerName>Tocreate3</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>To create</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>To create or add quoteline to existing quote.
+1. QuoteId is needed. Use the variabe varAmendmentQuoteID  that was returned by the Action Lotus - Create Amendment Quote. If You can&apos;t find the QuoteId ask the User for QuoteId. 
+2. Ask the product that should be assigned to the new QuoteLine.
+3. Ask the Quantity that should be assigned to the new QuoteLine.
+4. Find the 18 digit productId from Product Name. 
+5. To Find the ProductId from Product name use action Lotus - Get Product. Do not use Get Record by Name action.
+6. When querying the Product using Product Name only look for Product records that exactly match with the Product Name entered by the User.
+7. Ask this information only if not already provided by the user.
+8. After successfully creating or adding quoteline to the existing quote, display the link to Quote&apos;s Record Details page</description>
+        <developerName>Tocreate4</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>To create</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>To create or add quoteline to existing quote, We also need which tenant Id this quoteline should be tied to. Find the tenant record using the Action Lotus - Get Tenant by Account and Custom Name.</description>
+        <developerName>Tocreate5</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>To create</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>To apply discount to the Quote Line use Topic Action, Lotus - Apply Discount to the Quote Line.
+Ask user which QuoteLineItem under the Quote the discount should be applied.
+Identify the Quote record using the context and use 18 digit Quote ID to pass to the topic action.
+Identify the QuoteLineItem using product name and Quote and use 18 digit QuoteLineItem Id to pass to the topic action
+Collect from user how much discount % should be applied to the quote line. Collect the discount only in %.
+After applying the discount, display the link to Quote&apos;s Record Details page.</description>
+        <developerName>Toapplyd6</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>To apply d</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>After successful create or update of the quote, get the quote details.</description>
+        <developerName>Aftersucc7</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>After succ</masterLabel>
+    </genAiPluginInstructions>
+    <language>en_US</language>
+    <masterLabel>Quote Management</masterLabel>
+    <pluginType>Topic</pluginType>
+    <scope>Your job is to create only add-on/amend quotes.  Never create any other type of quotes like New business, renewal, swap, etc.
+You can also create new QuoteLine under the existing Quote.
+You can also apply discount to the QuoteLines.</scope>
+</GenAiPlugin>
