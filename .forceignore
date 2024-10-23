@@ -60,6 +60,13 @@ force-app/main/default/genAiPromptTemplates/Order_Delay_Emails.genAiPromptTempla
 ## LOTUS AGENT EXAMPLES
 # bots
 force-app/main/default/bots
+#classes
+force-app/main/default/classes/AmendQuote
+force-app/main/default/classes/dao
+force-app/main/default/classes/PlaceQuote
+force-app/main/default/classes/QuoteLineService
+force-app/main/default/classes/QuoteUpdate
+force-app/main/default/classes/QuoteBaseConstants.cls
 # flows
 force-app/main/default/flows/Amend_Field_Updates.flow-meta.xml
 force-app/main/default/flows/Amend_Renew_and_Cancel_Assets_Custom.flow-meta.xml
@@ -77,11 +84,11 @@ force-app/main/default/flows/Lotus_Add_QuoteLine_to_Quote.flow-meta.xml
 force-app/main/default/flows/Lotus_Apply_discount_to_the_Quote_Line.flow-meta.xml
 force-app/main/default/flows/Lotus_Create_Amendment_Quote.flow-meta.xml
 force-app/main/default/flows/Lotus_Create_Tenant.flow-meta.xml
-force-app/main/default/flows/Lotus_Get_Assets.flow-meta.xml
-force-app/main/default/flows/Lotus_Get_Product.flow-meta.xml
+#force-app/main/default/flows/Lotus_Get_Assets.flow-meta.xml
+#force-app/main/default/flows/Lotus_Get_Product.flow-meta.xml
 force-app/main/default/flows/Lotus_Get_Tenant_By_Account_and_Custom_Name.flow-meta.xml
 force-app/main/default/flows/Lotus_Get_Tenant_By_Account.flow-meta.xml
-force-app/main/default/flows/Lotus_Quoting_Agent_Add_QuoteLine.flow-meta.xml
+#force-app/main/default/flows/Lotus_Quoting_Agent_Add_QuoteLine.flow-meta.xml
 force-app/main/default/flows/Lotus_Quoting_Agent_Create_Amendment_Quote.flow-meta.xml
 force-app/main/default/flows/Lotus_Quoting_Agent_Create_NB_Quote.flow-meta.xml
 force-app/main/default/flows/net_promoter_score.flow-meta.xml
@@ -97,6 +104,11 @@ force-app/main/default/genAiFunctions
 force-app/main/default/genAiPlanners
 # genAiPlugins
 force-app/main/default/genAiPlugins
+# objects
+#force-app/main/default/objects/Asset/fields/Product_Name__c.field-meta.xml
+#force-app/main/default/objects/Quote/fields/ServiceEndDate__c.field-meta.xml
+#force-app/main/default/objects/Quote/fields/ServiceStartDate__c.field-meta.xml
+#force-app/main/default/objects/Quote/fields/TotalQuoteAmount__c.field-meta.xml
 
 ## ADVANCED APPROVALS
 # classes
