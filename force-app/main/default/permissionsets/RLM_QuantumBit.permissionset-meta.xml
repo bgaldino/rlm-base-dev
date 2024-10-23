@@ -10,6 +10,11 @@
     </externalCredentialPrincipalAccesses>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Asset.Product_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Asset.RLM_Tenant_Environment__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -441,6 +446,21 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.RLM_TermMonths__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Quote.ServiceEndDate__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Quote.ServiceStartDate__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Quote.TotalQuoteAmount__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

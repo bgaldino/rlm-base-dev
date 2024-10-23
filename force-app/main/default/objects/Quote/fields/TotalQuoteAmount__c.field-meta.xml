@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TotalQuoteAmount__c</fullName>
+    <deprecated>false</deprecated>
+    <description>we cannot reference Total Quote Amount standard field in formula&apos;s and inorder to mimic that field exactly we have to use this formula</description>
+    <formula>BLANKVALUE( TotalPrice , 0)  +  BLANKVALUE( ShippingHandling , 0)  +  BLANKVALUE( Tax , 0)</formula>
+    <label>Total Quote Amount</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+</CustomField>
