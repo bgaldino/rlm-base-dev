@@ -87,38 +87,22 @@ public with sharing class QuoteLineDAO implements IQuoteLineDAO {
             'StartDate',
             'EndDate',
             'PricingTermCount',
-            'PrimaryBillingContact__c',
-            'SecondaryBillingContact__c',
             'AutoRenewal__c',
             'BillingFrequency__c',
-            'BillingFrequencySpecialTerm__c',
             'BillingLanguage__c',
             'InvoiceDispatchMethod__c',
             'OpportunityLineItemId',
             'PaymentMethod__c',
             'PaymentTerm__c',
-            'PaymentDetailJSON__c',
             'PreBillDays__c',
             'RenewalTerm__c',
             'BusinessType__c',
-            'TaxExemptStatus__c',
-            'TaxExemptionId__c',
-            'TaxRegistrationId__c',
-            'NoTaxRegistrationIdReason__c',
-            'TaxInformationJSON__c',
-            'PurchaseOrderAmount__c',
-            'PurchaseOrderNumber__c',
-            'PurchaseOrderRequired__c',
             'SellingModelType',
             'Quote.AccountId',
             'Quote.ServiceStartDate__c',
-            'Quote.FloorPriceRuleOverride__c',
             'Quote.BillingCountry',
             'Quote.Status',
-            'Tenant__c',
-            'Tenant__r.OptionalName__c',
-            'ProductRuleResultJSON__c',
-            'BillingCompanyName__c'
+            'Tenant__c'
         };
         return this.runQuery(fields, quoteIds);
     }
@@ -145,7 +129,7 @@ public with sharing class QuoteLineDAO implements IQuoteLineDAO {
 
         return Database.queryWithBinds(query, new Map<String, Object>{ 'quoteIds' => quoteIds }, SecurityCheck.getAccessLevel());
     }
-    public List<AppliedSpecialTerm__c> getAppliedSpecialTerms(Id quoteId, List<String> resipList) {
+/*     public List<AppliedSpecialTerm__c> getAppliedSpecialTerms(Id quoteId, List<String> resipList) {
         String value = '(\'' + String.join(resipList, '\',\'') + '\')';
         return Database.queryWithBinds(
             'SELECT Id, Title__c, SubType__c, TermText__c, Custom__c, Quote__r.Name, ParentTerm__c, ParentTerm__r.RecordType.Name, StrippedHtmlTermText__c FROM AppliedSpecialTerm__c WHERE Quote__c = :quoteId AND (ParentTerm__r.RecordType.Name = \'QST\' OR ParentTerm__r.RecordType.Name = \'PST\' ) AND OmitFromQuote__c = false AND (RestrictedAppliedTermApprovals__c  INCLUDES ' +
@@ -156,26 +140,23 @@ public with sharing class QuoteLineDAO implements IQuoteLineDAO {
             new Map<String, Object>{ 'quoteId' => quoteId, 'resipList' => resipList },
             SecurityCheck.getAccessLevel()
         );
-    }
-    public List<sbaa__ApprovalRule__c> getAppRuleData(Id ruleId) {
+    } */
+/*     public List<sbaa__ApprovalRule__c> getAppRuleData(Id ruleId) {
         return Database.queryWithBinds(
             'SELECT Id, ApprovalTermFilters__c FROM sbaa__ApprovalRule__c WHERE Id = :ruleId',
             new Map<String, Object>{ 'ruleId' => ruleId },
             SecurityCheck.getAccessLevel()
         );
-    }
+    } */
 
     private static List<String> getQuoteLineFields() {
         return new List<String>{
             'Id',
             'QuoteId',
             'Description',
-            'EffectiveQuantity__c',
-            'EffectiveDiscount__c',
             'Product2Id',
             'Product2.Name',
             'Product2.BasedOnId',
-            'Product2.ApprovalMatrix__c',
             'ProductSellingModelId',
             'PricebookEntryId',
             'Quantity',
@@ -194,7 +175,6 @@ public with sharing class QuoteLineDAO implements IQuoteLineDAO {
             'DiscountAmount',
             'ListPrice',
             'Tenant__c',
-            'Tenant__r.OptionalName__c',
             'Tenant__r.Quoting_Status__c',
             'ApprovalLevel__c',
             'SortOrder',
@@ -206,15 +186,10 @@ public with sharing class QuoteLineDAO implements IQuoteLineDAO {
             'Quote.CurrencyIsoCode',
             'Quote.Status',
             'Quote.QuoteType__c',
-            'Quote.QuoteBypass__c',
-            'Quote.BillingCountry',
             'Quote.AccountId',
             'Quote.ServiceStartDate__c',
             'Quote.ServiceEndDate__c',
-            'Quote.FloorPriceRuleOverride__c',
-            'ProductRuleResultJSON__c',
-            'Quote.Opportunity.AccountId',
-            'Quote.Term__c'
+            'Quote.Opportunity.AccountId'
         };
     }
 

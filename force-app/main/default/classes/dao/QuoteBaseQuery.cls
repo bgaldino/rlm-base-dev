@@ -19,7 +19,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
             accessLevelMode = AccessLevel.SYSTEM_MODE;
         }
     }
-    public Quote getQuoteForConsumptionRate(String quoteId) {
+/*     public Quote getQuoteForConsumptionRate(String quoteId) {
         String quoteQuery =  'SELECT Id, Status, ApprovalStatus__c, ApprovalComments__c, BeginningQuoteAOV__c, Opportunity.AccountId, ContractId' +
             ', HasProductRuleErrors__c, Opportunity.SyncedQuoteId, TermUpdatesRequired__c, OwnerId' +
             ', ServiceStartDate__c, ServiceEndDate__c, CurrencyIsoCode, Pricebook2Id, QuoteBypass__c, Term__c, QuoteType__c, OriginalActionType'+
@@ -29,13 +29,13 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
                                                     new Map<String,Object>{'quoteId' => quoteId},
                                                     accessLevelMode);
         return quotes.size() > 0 ? quotes[0] : null;
-    }
+    } */
     /************************************************
      * Public methods
      * reference IQuoteBaseQuery
      *  Database.queryWithBinds(qry, bindParams, AccessLevel.USER_MODE);
      ************************************************/
-    public Quote getQuoteForPreviewApprovals(String quoteId) {
+/*     public Quote getQuoteForPreviewApprovals(String quoteId) {
         List<Quote> quotes = Database.queryWithBinds(
             'SELECT Id, Status, ApprovalStatus__c, ApprovalComments__c, BeginningQuoteAOV__c, Opportunity.AccountId' +
             ', HasProductRuleErrors__c, Opportunity.SyncedQuoteId, TermUpdatesRequired__c, OwnerId, BillingCountry' +
@@ -45,7 +45,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
             new Map<String,Object>{'quoteId' => quoteId},
             accessLevelMode);
         return quotes.size() > 0 ? quotes[0] : null;
-    }
+    } */
 
 
     public List<Account> getAccountsByIds(Set<String> accIds) {
@@ -68,7 +68,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
                                                     LIMIT 1];
     }
 
-    public List<SBAA__Approval__c> getApprovalsByQuoteIds(Set<Id> quoteIds) {
+/*     public List<SBAA__Approval__c> getApprovalsByQuoteIds(Set<Id> quoteIds) {
         return Database.queryWithBinds(
             'SELECT Id, Name, Quote__c, SBAA__CommentsLong__c, SBAA__Approver__c, SBAA__Approver__r.Name, SBAA__Approver__r.sbaa__User__c,SubmitterComment__c' +
             ', SBAA__DelegatedApprover__c, SBAA__DelegatedApprover__r.Name, SBAA__AssignedTo__c, SBAA__AssignedTo__r.Name' +
@@ -96,9 +96,9 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
             new Map<String,Object>{'approverIds' => approverIds},
             accessLevelMode
         );
-    }
+    } */
 
-    public Quote getOmniscriptTransientData(String quoteId) {
+/*     public Quote getOmniscriptTransientData(String quoteId) {
         List<Quote> quotes = Database.queryWithBinds(
             'SELECT Id, OmniscriptTransientData__c,ServiceStartDate__c,ServiceEndDate__c,' +
             ' Term__c,BillingCountry, TotalPrice, TrueUpSchedule__c,ContractId FROM Quote WHERE Id =: quoteId',
@@ -106,7 +106,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
             accessLevelMode
         );
         return quotes.size() > 0 ? quotes[0] : null;
-    }
+    } */
     
     public Contract getContractRecord(String contractId) {
         List<Contract> contracts = Database.queryWithBinds(
@@ -117,14 +117,14 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
         return contracts.size() > 0 ? contracts[0] : null;
     }
 
-    public List<Rate_Card_Entry__c> getRateCardEntryByQuote(String quoteId) {
+/*     public List<Rate_Card_Entry__c> getRateCardEntryByQuote(String quoteId) {
         List<Rate_Card_Entry__c> rateCardRecords = Database.queryWithBinds(
             'SELECT Id, CurrencyIsoCode, Name, Usage_Model__c, Quantity__c, Rate__c, Tenant__c, Usage_Product__c, Tenant__r.External_Id__c, Tenant__r.Fulfillment_Provider_Name__c FROM Rate_Card_Entry__c WHERE Quote__c =:quoteId',
             new Map<String,Object>{'quoteId' => quoteId},
             accessLevelMode
         );
         return rateCardRecords.size() > 0 ? rateCardRecords : null;
-    }
+    } */
     
     public List<ContractItemPrice> getContractItemPriceByQuote(String quoteId) {
         List<ContractItemPrice> cipList = Database.queryWithBinds(
@@ -135,14 +135,14 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
         return cipList.size() > 0 ? cipList : null;
     }
 
-    public List<TempContractItemPrice__c> getTempContractItemPriceByQuote(String quoteId) {
+/*     public List<TempContractItemPrice__c> getTempContractItemPriceByQuote(String quoteId) {
         List<TempContractItemPrice__c> tempCipList = Database.queryWithBinds(
             'SELECT OriginalCIP__c, Price__c FROM TempContractItemPrice__c WHERE SourceQuote__c=:quoteId AND Status__c = \'Draft\'',
             new Map<String,Object>{'quoteId' => quoteId},
             accessLevelMode
         );
         return tempCipList.size() > 0 ? tempCipList : null;
-    }
+    } */
 
     public List<ContractItemPrice> getContractItemPriceByIds(Set<Id> cipIdSet) {
         List<ContractItemPrice> cipList = Database.queryWithBinds(
@@ -162,14 +162,14 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
         return productList.size() > 0 ? productList : null;
     }
     
-    public LegalEntity getLegalEntitiesByRevenueOwner(String revenueOwner) {
+/*     public LegalEntity getLegalEntitiesByRevenueOwner(String revenueOwner) {
         List<LegalEntity> legalEntities = Database.queryWithBinds(
             'SELECT Id, RevenueOwner__c, CounterSignatoryName__c, CounterSignatoryRole__c, CounterSignatoryDistributionListEmail__c, Name, Street1__c, Street2__c, State__c, PostalCode__c, City__c, Country__c, AddressFormat__c, CounterSignatoryImage__c FROM LegalEntity WHERE RevenueOwner__c = :revenueOwner',
             new Map<String,Object>{'revenueOwner' => revenueOwner},
             accessLevelMode
         );
         return legalEntities.size() > 0 ? legalEntities[0] : null;
-    }
+    } */
 
     public StaticResource getStaticResourceByName(String staticResourceName) {
         List<StaticResource> resources = Database.queryWithBinds(
@@ -220,16 +220,16 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
         return tenantList.size() > 0 ? tenantList : null;
     }
     
-    public List<DPPBreakup__c> getDPPBreakupByQuote(String quoteId) {
+/*     public List<DPPBreakup__c> getDPPBreakupByQuote(String quoteId) {
         List<DPPBreakup__c> dppList = Database.queryWithBinds(
             'SELECT Id,MonthlyNetUnitPrice__c,DPPQuoteLine__r.StartDate,DPPQuoteLine__r.EndDate,DerivedProduct__c,DerivedProduct__r.Name,DerivedProduct__r.Sku__c,DPPQuoteLine__r.Tenant__c,DPPQuoteLine__r.Tenant__r.OptionalName__c,DPPQuoteLine__r.Tenant__r.External_Id__c,DPPQuoteLine__r.Tenant__r.Fulfillment_Provider_Name__c,Quantity__c,ContributingQuoteLineItem__r.Quantity,ContributingQuoteLineItem__r.Product2.Name,ContributingAsset__r.Quantity,ContributingAsset__r.Product2.Name,ContributingAsset__c FROM DPPBreakup__c WHERE Quote__c =:quoteId',
             new Map<String,Object>{'quoteId' => quoteId},
             accessLevelMode
         );
         return dppList.size() > 0 ? dppList : null;
-    }
+    } */
     
-    public List<TenantAssociationData__c> getTadRecordsByQuote(String quoteId) {
+/*     public List<TenantAssociationData__c> getTadRecordsByQuote(String quoteId) {
         List<TenantAssociationData__c> tadList = Database.queryWithBinds(
             'SELECT Tenant__c,TeamEncodedId__c,ActionType__c,TeamSubdomain__c,ParentTenantCSPId__c, DataResidencyRegion__c FROM TenantAssociationData__c WHERE Quote__c = :quoteId',
              new Map<String,Object>{'quoteId' => quoteId},
@@ -245,7 +245,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
              accessLevelMode
         );
         return tadList.size() > 0 ? tadList : null;
-    }
+    } */
     
     public List<QuoteLineItem> getQliByQuote(String quoteId) {
         List<QuoteLineItem> qliList = Database.queryWithBinds(
@@ -272,7 +272,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
         return appConfigs.size() > 0 ? appConfigs : null;
     }
 
-    public SBAA__Approver__c getApproverById(String approverId) {
+/*     public SBAA__Approver__c getApproverById(String approverId) {
         List<SBAA__Approver__c> approvers = Database.queryWithBinds(
             'SELECT Id, Name, sbaa__User__c, sbaa__User__r.Name, sbaa__GroupId__c, OwnerId, sbaa__DelegatedUserId__c' +
             ', IsBackupGroup__c, BackupGroup__c, IsBackupGroupOwner__c,BackupGroupOwner__c, BackupGroupOwner__r.sbaa__User__c' +
@@ -291,9 +291,9 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
             accessLevelMode
         );
         return approvers.size() > 0 ? approvers[0] : null;
-    }
+    } */
 
-    public List<SBAA__Approver__c> searchApproversByName(String searchText) {
+/*     public List<SBAA__Approver__c> searchApproversByName(String searchText) {
         return Database.queryWithBinds(
             'SELECT Id, Name, SBAA__User__c, SBAA__User__r.Name, SBAA__User__r.Email, ' +
             'SBAA__User__r.Profile.Name, SBAA__User__r.UserRole.Name ' +
@@ -311,7 +311,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
             new Map<String, Object>{'searchText' => '%' + searchText + '%'},
             accessLevelMode
         );
-    }
+    } */
 
     public List<User> searchUsersByName(String searchText) {
         return Database.queryWithBinds(
@@ -355,7 +355,7 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
         );
     }
 
-    public SBAA__Approval__c getApprovalByIdForNotification(String approvalId) {
+/*     public SBAA__Approval__c getApprovalByIdForNotification(String approvalId) {
         List<SBAA__Approval__c> approvals = Database.queryWithBinds(
             'SELECT Id, Quote__r.OwnerId, Quote__r.SubmittedUser__c, sbaa__Approver__r.IsBackupGroupOwner__c, sbaa__Approver__r.sbaa__User__r.Id' +
             ', sbaa__Approver__r.sbaa__GroupId__c, sbaa__Approver__r.BackupGroup__c, sbaa__Approver__r.BackupGroupOwner__c, sbaa__Approver__r.IsBackupGroup__c' +
@@ -374,9 +374,9 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
                          (SELECT Id,Custom__c,CustomRoutingApprovals__c,SourceTermTextStatus__c,SourceContractTerm__c 
                           FROM AppliedSpecialTerms__r)
                         FROM Quote WHERE Id IN: quoteIds WITH SECURITY_ENFORCED];
-    }
+    } */
 
-    public List<Quote> getQuoteAndRelatedData(Id quoteID){
+/*     public List<Quote> getQuoteAndRelatedData(Id quoteID){
         return [
                 SELECT Id, OwnerId, Owner.Email, Owner.Name, Account.name,InvoiceAmount__c,ServiceEndDate__c,ServiceStartDate__c,Name,ApprovalStatus__c,opportunityId,QuoteType__c,Term__c,PaymentTerm__c,
                         AutoRenewal__c,opportunity.Amount,opportunity.CloseDate,Account.Owner.UserRole.Name,CurrencyIsoCode ,Opportunity.Name,GrandTotal,lastModifiedDate,createdDate,ApprovalComments__c,
@@ -407,6 +407,6 @@ public with sharing class QuoteBaseQuery implements IQuoteBaseQuery {
                 FROM sbaa__Approver__c WHERE 
                 BackupGroupOwner__c IN :backupGroupOwnerIdSet
                 WITH SECURITY_ENFORCED];
-    }
+    } */
     
 }

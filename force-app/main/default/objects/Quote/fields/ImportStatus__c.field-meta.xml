@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ImportStatus__c</fullName>
+    <externalId>false</externalId>
+    <label>Import Status</label>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>In Process</fullName>
+                <default>false</default>
+                <label>In Process</label>
+            </value>
+            <value>
+                <fullName>Completed</fullName>
+                <default>false</default>
+                <label>Completed</label>
+            </value>
+            <value>
+                <fullName>Rejected - Order Import</fullName>
+                <default>false</default>
+                <label>Rejected - Order Import</label>
+            </value>
+            <value>
+                <fullName>Ready</fullName>
+                <default>false</default>
+                <label>Ready</label>
+            </value>
+            <value>
+                <fullName>Rejected - Order Creation</fullName>
+                <default>false</default>
+                <label>Rejected - Order Creation</label>
+            </value>
+            <value>
+                <fullName>Rejected - Order Activation</fullName>
+                <default>false</default>
+                <label>Rejected - Order Activation</label>
+            </value>
+            <value>
+                <fullName>Rejected - Contract Creation</fullName>
+                <default>false</default>
+                <label>Rejected - Contract Creation</label>
+            </value>
+            <value>
+                <fullName>Rejected - Contract Activation</fullName>
+                <default>false</default>
+                <label>Rejected - Contract Activation</label>
+            </value>
+            <value>
+                <fullName>Rejected - Linking Contract To Order</fullName>
+                <default>false</default>
+                <label>Rejected - Linking Contract To Order</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

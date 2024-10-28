@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Quoting_Status__c</fullName>
+    <description>The Quoting status of the tenant information</description>
+    <externalId>false</externalId>
+    <label>Quoting Status</label>
+    <required>false</required>
+    <securityClassification>Internal</securityClassification>
+    <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Incomplete</fullName>
+                <default>true</default>
+                <label>Incomplete</label>
+            </value>
+            <value>
+                <fullName>Complete</fullName>
+                <default>false</default>
+                <label>Complete</label>
+            </value>
+            <value>
+                <fullName>Locked for Activation</fullName>
+                <default>false</default>
+                <label>Locked for Activation</label>
+            </value>
+            <value>
+                <fullName>Active in Assets</fullName>
+                <default>false</default>
+                <label>Active in Assets</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

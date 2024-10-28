@@ -1,0 +1,15 @@
+<template>
+    <lightning-card class="slds-card__body_inner">
+        <div class="slds-form-element">
+            <label class="slds-form-element__label">{objectLabel}</label>
+
+            <div class="slds-form-element__control slds-combobox-group">
+
+                <lightning-record-picker object-api-name={objectName} placeholder={placeholder} label={pickerLabel}
+                    variant={pickerLabelVariant} display-info={displayinfoparam} matching-info={matchinginfoparam}
+                    onchange={handleRecordSelect} filter={filterparam} class="slds-size_full slds-combobox-addon_end">
+                </lightning-record-picker>
+            </div>
+        </div>
+    </lightning-card>
+</template>

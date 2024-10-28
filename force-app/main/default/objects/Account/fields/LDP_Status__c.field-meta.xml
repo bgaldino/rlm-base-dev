@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>LDP_Status__c</fullName>
+    <externalId>false</externalId>
+    <label>LDP Status</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Not Yet Screened</fullName>
+                <default>false</default>
+                <label>Not Yet Screened</label>
+            </value>
+            <value>
+                <fullName>Not Screened</fullName>
+                <default>false</default>
+                <label>Not Screened</label>
+            </value>
+            <value>
+                <fullName>Screening Initiated</fullName>
+                <default>false</default>
+                <label>Screening Initiated</label>
+            </value>
+            <value>
+                <fullName>Pending Legal Review</fullName>
+                <default>false</default>
+                <label>Pending Legal Review</label>
+            </value>
+            <value>
+                <fullName>Limited</fullName>
+                <default>false</default>
+                <label>Limited</label>
+            </value>
+            <value>
+                <fullName>Limited (Cash In Advance)</fullName>
+                <default>false</default>
+                <label>Limited (Cash In Advance)</label>
+            </value>
+            <value>
+                <fullName>Suspended</fullName>
+                <default>false</default>
+                <label>Suspended</label>
+            </value>
+            <value>
+                <fullName>Denied</fullName>
+                <default>false</default>
+                <label>Denied</label>
+            </value>
+            <value>
+                <fullName>OEHU: Clear</fullName>
+                <default>false</default>
+                <label>OEHU: Clear</label>
+            </value>
+            <value>
+                <fullName>Clear</fullName>
+                <default>false</default>
+                <label>Clear</label>
+            </value>
+            <value>
+                <fullName>Clear - No Evidence</fullName>
+                <default>false</default>
+                <label>Clear - No Evidence</label>
+            </value>
+            <value>
+                <fullName>Pending Additional Information</fullName>
+                <default>false</default>
+                <label>Pending Additional Information</label>
+            </value>
+            <value>
+                <fullName>OEHU: Under Review-Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Under Review-Banner</label>
+            </value>
+            <value>
+                <fullName>OEHU: Restricted-No Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Restricted-No Banner</label>
+            </value>
+            <value>
+                <fullName>OEHU: Restricted-Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Restricted-Banner</label>
+            </value>
+            <value>
+                <fullName>OEHU: Account Updates Require Approval-Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Account Updates Require Approval-Banner</label>
+            </value>
+            <value>
+                <fullName>OEHU: Under Review-No Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Under Review-No Banner</label>
+            </value>
+            <value>
+                <fullName>OEHU: Screening Initiated-No Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Screening Initiated-No Banner</label>
+            </value>
+            <value>
+                <fullName>Screening Criteria Not Met</fullName>
+                <default>false</default>
+                <label>Screening Criteria Not Met</label>
+            </value>
+            <value>
+                <fullName>OEHU: Limit New Business Only-Banner</fullName>
+                <default>false</default>
+                <label>OEHU: Limit New Business Only-Banner</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

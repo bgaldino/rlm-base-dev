@@ -1,0 +1,16 @@
+<template>
+    <div class="slds-is-relative">
+        <lightning-combobox 
+            name="BillingCurrency" 
+            label={currencyLabel}
+            placeholder="Select Currency" 
+            value={selectedCurrencyValue} 
+            options={currencyOptions} 
+            onchange={handleCurrencyChange}  
+            disabled={disableCurrency} 
+            data-id="currencyId" 
+            field-level-help={displayCurrencyHelpText} 
+            required={isCurrencyFieldRequired}>
+    </lightning-combobox>
+    </div>
+</template>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>force.com</fullName>
+        <default>false</default>
+        <label>force.com</label>
+    </customValue>
+    <customValue>
+        <fullName>tableau</fullName>
+        <default>false</default>
+        <label>tableau</label>
+    </customValue>
+    <description>Picklist values for CSP on Tenant</description>
+    <masterLabel>Tenant Cloud Service Provider</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

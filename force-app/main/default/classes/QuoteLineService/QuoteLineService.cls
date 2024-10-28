@@ -2,7 +2,7 @@ public with sharing class QuoteLineService implements IQuoteLineService{
     
     private QuoteLineServiceRequestProcessor requestProcessor;
     private ErrorCollector errorCollector;
-    IApprovalLevelService approvalLevelService;
+    //IApprovalLevelService approvalLevelService;
 
     public QuoteLineService(){
         this(new QuoteLineServiceRequestProcessor());
@@ -11,7 +11,7 @@ public with sharing class QuoteLineService implements IQuoteLineService{
     public QuoteLineService(QuoteLineServiceRequestProcessor requestProcessor){
         this.requestProcessor = requestProcessor;
         this.errorCollector = new ErrorCollector();
-        this.approvalLevelService = (IApprovalLevelService) ServiceRegistry.getInstance('IApprovalLevelService');
+        //this.approvalLevelService = (IApprovalLevelService) ServiceRegistry.getInstance('IApprovalLevelService');
     }
 
     public QuoteLineServiceResponse createQuoteLines(QuoteLineServiceRequest request){

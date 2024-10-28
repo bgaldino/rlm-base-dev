@@ -10,13 +10,13 @@
                             <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>headlessPricingAction</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_CreateContract</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Quote.RC_Submit_for_Approval</value>
                         </valueListItems>
                         <valueListItems>
                             <value>GenerateQuoteDocument</value>
@@ -28,9 +28,6 @@
                             <value>Delete</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_Manage_Tenants</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>SyncQuote</value>
                         </valueListItems>
                         <valueListItems>
@@ -38,6 +35,9 @@
                         </valueListItems>
                         <valueListItems>
                             <value>EmailQuote</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Quote.RLM_Manage_Tenants</value>
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
@@ -234,6 +234,16 @@
                 <identifier>RecordDescriptionField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RC_Approval_Status__c</fieldItem>
+                <identifier>RecordRC_Approval_Status_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -286,6 +296,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.CurrencyIsoCode</fieldItem>
                 <identifier>RecordCurrencyIsoCodeField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
+                <identifier>RecordRC_Approval_Level_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-c9141212-f773-4904-af60-53cb9861f9e0</name>
@@ -1129,7 +1149,37 @@
                 <identifier>runtime_approvals_approvalTrace</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-c84c111d-7fd6-4acb-88ae-f5b28d70870a</name>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>componentLabel</name>
+                    <value>Work Guide</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>isHiddenWhenEmpty</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>isRunNameDisplayed</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>isStageNameDisplayed</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>isStepNameDisplayed</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>prioritizationCriteria</name>
+                    <value>Last Modified Date (Ascending)</value>
+                </componentInstanceProperties>
+                <componentName>interaction_orchestrator:workGuide</componentName>
+                <identifier>interaction_orchestrator_workGuide</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-f95e0684-fdc6-430c-8b5f-b645ddce0c50</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -1187,7 +1237,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-c84c111d-7fd6-4acb-88ae-f5b28d70870a</value>
+                    <value>Facet-f95e0684-fdc6-430c-8b5f-b645ddce0c50</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>

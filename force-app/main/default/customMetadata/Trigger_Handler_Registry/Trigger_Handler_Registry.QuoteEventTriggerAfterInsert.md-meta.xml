@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>QuoteEventTriggerAfterInsert</label>
+    <protected>false</protected>
+    <values>
+        <field>Execution_Order_of_the_Handler__c</field>
+        <value xsi:type="xsd:double">1.0</value>
+    </values>
+    <values>
+        <field>Is_Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>SObject_Name__c</field>
+        <value xsi:type="xsd:string">QuoteChangeEvent</value>
+    </values>
+    <values>
+        <field>Trigger_Event__c</field>
+        <value xsi:type="xsd:string">AFTER_INSERT</value>
+    </values>
+    <values>
+        <field>Trigger_Handler_Name__c</field>
+        <value xsi:type="xsd:string">QuoteEventTriggerHandler</value>
+    </values>
+</CustomMetadata>

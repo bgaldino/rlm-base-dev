@@ -23,12 +23,12 @@ public with sharing class AmendQuoteHelper {
         Map<Id, Contract> contractMap = new Map<Id, Contract>();
 
         for(Quote quote : quotes){
-            if(QuoteTriggerHelper.shouldProcessQuoteUpdate(quote) 
+/*             if(QuoteTriggerHelper.shouldProcessQuoteUpdate(quote) 
             && (quote.originalActionType == 'Amend' || isTestingAmend)){
 
                 quoteIds.add(quote.Id);
                 contractIds.add(quote.ContractId);
-            }
+            } */
         }
         if(quoteIds.size() <= 0 || contractIds.size() <= 0 )
         return;
@@ -88,7 +88,7 @@ public with sharing class AmendQuoteHelper {
 
     
 
-    public static void performTenantAssignment( Map<Id, Set<Id>> accountProductsMap, Map<Id, List<QuoteLineItem>> accountQuoteLinesMap, Set<Id> quoteActionIds){
+/*     public static void performTenantAssignment( Map<Id, Set<Id>> accountProductsMap, Map<Id, List<QuoteLineItem>> accountQuoteLinesMap, Set<Id> quoteActionIds){
         Set<Id> productIds;
         Map<Id, QuoteAction> quoteActions;
         AmendQuoteDataSelector amendQuoteDataSelector = new AmendQuoteDataSelector();
@@ -110,7 +110,7 @@ public with sharing class AmendQuoteHelper {
                 }
             }
         }
-    }
+    } */
 
     public static void populateTenantForQuoteLines(List<QuoteLineItem> quoteLines){
         
@@ -155,7 +155,7 @@ public with sharing class AmendQuoteHelper {
             }
         }
 
-        performTenantAssignment( accountProductsMap, accountQuoteLinesMap, quoteActionIds);
+        // performTenantAssignment( accountProductsMap, accountQuoteLinesMap, quoteActionIds);
     }    
     
     public void updateBillingInformationForAmendQuotes(List<Quote> newQuotes, Boolean isTestingAmend){
@@ -167,13 +167,13 @@ public with sharing class AmendQuoteHelper {
         Map<Id, Contract> contractMap = new Map<Id, Contract>();
         Map<Id, AssetContractRelationship> contractAssetsMap = new Map<Id, AssetContractRelationship>();
         
-        for (Quote q : newQuotes) {
+        /* for (Quote q : newQuotes) {
             if (isTestingAmend || 
             (QuoteTriggerHelper.shouldProcessQuoteUpdate(q) && q.OriginalActionType == 'Amend' && q.ContractId != null)) {
                 amendQuotes.add(q);
                 contractIds.add(q.ContractId);
             }
-        }
+        } */
         contractMap = amendQuoteDataSelector.selectContracts(contractIds);
         
         for(Contract c: contractMap.values()){
@@ -225,42 +225,7 @@ public with sharing class AmendQuoteHelper {
     public void assignBillingInformationFields(Quote quote, AssetActionSource aas, Account acct){
         quote.CurrencyIsoCode = aas.CurrencyIsoCode;
         quote.AutoRenewal__c  = aas.AutoRenewCode__c;
-        quote.BillingFrequency__c = aas.BillingFrequency__c;
-        quote.BillingLanguage__c = aas.BillingLanguage__c;
-        
-        quote.InvoiceDispatchMethod__c = aas.InvoiceDispatchMethod__c;
-        quote.NoTaxRegistrationIDReason__c = aas.TaxExemptionReason__c;
-        quote.PaymentMethod__c = aas.PaymentType__c;
-        quote.PaymentTerm__c= aas.PaymentTerm__c;
-        quote.PreBillDays__c = aas.OrderPrebillDays__c;
         quote.RenewalTerm__c = aas.RenewalTerm__c;
-        quote.TaxExemptionID__c = aas.TaxExemptionCode__c;
-        quote.TaxExemptStatus__c=aas.TaxExemptType__c;
-        
-        quote.TaxRegistrationID__c = aas.CustomerTaxID__c;
-        
-        quote.PrimaryBillingContact__c = aas.BillingContact__c;
-        quote.BillToContactId = aas.BillingContact__c;
-        quote.SecondaryBillingContact__c= aas.SecondaryBillingContact__c;
-        
-        quote.BillingName = aas.BillingAddressName__c ?? acct.Name ;
-        quote.BillingCountry = aas.BillingAddress__CountryCode__s;
-        quote.BillingState = aas.BillingAddress__StateCode__s ;
-        quote.BillingStreet = aas.BillingAddress__Street__s;
-        quote.BillingCity = aas.BillingAddress__City__s ;
-        quote.BillingPostalCode = aas.BillingAddress__PostalCode__s;
-        
-        quote.ShippingName = aas.ShippingAddressName__c ?? acct.Name;
-        quote.ShippingCountry = aas.ShippingAddress__CountryCode__s;
-        quote.ShippingState = aas.ShippingAddress__StateCode__s;
-        quote.ShippingStreet = aas.ShippingAddress__Street__s;
-        quote.ShippingCity = aas.ShippingAddress__City__s ;
-        quote.ShippingPostalCode = aas.ShippingAddress__PostalCode__s;
-
-        quote.BusinessType__c = aas.BusinessType__c;
-        quote.PaymentDetailJSON__c = aas.Payment_Detail_JSON__c;
-        quote.BillingFrequencySpecialTerm__c = aas.BillingFrequencySpecialTerm__c;
-        quote.BillingCompanyName__c = aas.BillingCompanyName__c;
     }
 
     //Non Trigger methods

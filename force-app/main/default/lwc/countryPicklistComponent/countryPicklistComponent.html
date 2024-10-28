@@ -1,0 +1,16 @@
+<template>
+    <div class="slds-is-relative">
+        <lightning-combobox 
+            name="BillingCountry" 
+            label={countryLabel} 
+            placeholder="Select Country" 
+            value={selectedCountryValue} 
+            options={countryOptions} 
+            onchange={handleCountryChange} 
+            disabled={disableCountry} 
+            data-id="countryId" 
+            field-level-help={displayCountryHelpText} 
+            required={isCountryFieldRequired}>
+        </lightning-combobox>
+    </div>
+</template>

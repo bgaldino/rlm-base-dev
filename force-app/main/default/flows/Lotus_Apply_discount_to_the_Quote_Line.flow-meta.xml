@@ -4,7 +4,7 @@
         <name>Refresh_Price</name>
         <label>Refresh Price</label>
         <locationX>176</locationX>
-        <locationY>242</locationY>
+        <locationY>458</locationY>
         <actionName>RefreshPriceAction</actionName>
         <actionType>apex</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -19,6 +19,22 @@
         <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>62.0</apiVersion>
+    <assignments>
+        <name>Set_Quote_Id</name>
+        <label>Set Quote Id</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>QuoteID</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Quote_Line.Quote.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Refresh_Price</targetReference>
+        </connector>
+    </assignments>
     <environments>Default</environments>
     <interviewLabel>Lotus - Apply discount to the Quote Line {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Lotus - Apply discount to the Quote Line</label>
@@ -41,13 +57,34 @@
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Quote_Line</name>
+        <label>Get Quote Line</label>
+        <locationX>176</locationX>
+        <locationY>242</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Set_Quote_Id</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>QuoteLineItem</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>QuoteLineItem</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordUpdates>
         <name>Apply_Discount</name>
         <label>Apply Discount</label>
         <locationX>176</locationX>
         <locationY>134</locationY>
         <connector>
-            <targetReference>Refresh_Price</targetReference>
+            <targetReference>Get_Quote_Line</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>

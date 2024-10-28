@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Term__c</fullName>
+    <description>Field used to calculate the ACV on multi-year deals in Org62 and to ensure they are forecasted correctly.</description>
+    <externalId>false</externalId>
+    <label>Term</label>
+    <precision>9</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <securityClassification>Internal</securityClassification>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

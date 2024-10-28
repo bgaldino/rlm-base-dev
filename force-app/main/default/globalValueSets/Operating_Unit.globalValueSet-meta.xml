@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>A&amp;C</fullName>
+        <default>false</default>
+        <label>A&amp;C</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER CAN</fullName>
+        <default>false</default>
+        <label>AMER CAN</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER CBS</fullName>
+        <default>false</default>
+        <label>AMER CBS</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER CMRCL</fullName>
+        <default>false</default>
+        <label>AMER CMRCL</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER TMT</fullName>
+        <default>false</default>
+        <label>AMER TMT</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER ENTR &amp; CAN</fullName>
+        <default>false</default>
+        <label>AMER ENTR &amp; CAN</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER ESSENTIALS</fullName>
+        <default>false</default>
+        <label>AMER ESSENTIALS</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER FINS</fullName>
+        <default>false</default>
+        <label>AMER FINS</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER HLS</fullName>
+        <default>false</default>
+        <label>AMER HLS</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER MC</fullName>
+        <default>false</default>
+        <label>AMER MC</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER MFG</fullName>
+        <default>false</default>
+        <label>AMER MFG</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER RCG &amp; CC</fullName>
+        <default>false</default>
+        <label>AMER RCG &amp; CC</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER SMB</fullName>
+        <default>false</default>
+        <label>AMER SMB</label>
+    </customValue>
+    <customValue>
+        <fullName>ANZ</fullName>
+        <default>false</default>
+        <label>ANZ</label>
+    </customValue>
+    <customValue>
+        <fullName>APAC</fullName>
+        <default>false</default>
+        <label>APAC</label>
+    </customValue>
+    <customValue>
+        <fullName>ASEAN</fullName>
+        <default>false</default>
+        <label>ASEAN</label>
+    </customValue>
+    <customValue>
+        <fullName>CSG</fullName>
+        <default>false</default>
+        <label>CSG</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA CENTRAL</fullName>
+        <default>false</default>
+        <label>EMEA CENTRAL</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA NORTH</fullName>
+        <default>false</default>
+        <label>EMEA NORTH</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA SOUTH</fullName>
+        <default>false</default>
+        <label>EMEA SOUTH</label>
+    </customValue>
+    <customValue>
+        <fullName>EMERGING</fullName>
+        <default>false</default>
+        <label>EMERGING</label>
+    </customValue>
+    <customValue>
+        <fullName>GCR</fullName>
+        <default>false</default>
+        <label>GCR</label>
+    </customValue>
+    <customValue>
+        <fullName>I&amp;P</fullName>
+        <default>false</default>
+        <label>I&amp;P</label>
+    </customValue>
+    <customValue>
+        <fullName>INDIA</fullName>
+        <default>false</default>
+        <label>INDIA</label>
+    </customValue>
+    <customValue>
+        <fullName>INDUSTRIES</fullName>
+        <default>false</default>
+        <label>INDUSTRIES</label>
+    </customValue>
+    <customValue>
+        <fullName>JAPAN</fullName>
+        <default>false</default>
+        <label>JAPAN</label>
+    </customValue>
+    <customValue>
+        <fullName>LATAM</fullName>
+        <default>false</default>
+        <label>LATAM</label>
+    </customValue>
+    <customValue>
+        <fullName>MULESOFT</fullName>
+        <default>false</default>
+        <label>MULESOFT</label>
+    </customValue>
+    <customValue>
+        <fullName>NON-SALES</fullName>
+        <default>false</default>
+        <label>NON-SALES</label>
+    </customValue>
+    <customValue>
+        <fullName>PRIVATE EQUITY</fullName>
+        <default>false</default>
+        <label>PRIVATE EQUITY</label>
+    </customValue>
+    <customValue>
+        <fullName>PUBLIC SECTOR</fullName>
+        <default>false</default>
+        <label>PUBLIC SECTOR</label>
+    </customValue>
+    <customValue>
+        <fullName>SALESFORCE</fullName>
+        <default>false</default>
+        <label>SALESFORCE</label>
+    </customValue>
+    <customValue>
+        <fullName>SALESFORCE.ORG</fullName>
+        <default>false</default>
+        <label>SALESFORCE.ORG</label>
+    </customValue>
+    <customValue>
+        <fullName>SLACK</fullName>
+        <default>false</default>
+        <label>SLACK</label>
+    </customValue>
+    <customValue>
+        <fullName>TABLEAU</fullName>
+        <default>false</default>
+        <label>TABLEAU</label>
+    </customValue>
+    <customValue>
+        <fullName>UKI</fullName>
+        <default>false</default>
+        <label>UKI</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER MAE</fullName>
+        <default>false</default>
+        <label>AMER MAE</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER MCRC</fullName>
+        <default>false</default>
+        <label>AMER MCRC</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA STHCEN</fullName>
+        <default>false</default>
+        <label>EMEA STHCEN</label>
+    </customValue>
+    <customValue>
+        <fullName>Global BU - AMER</fullName>
+        <default>false</default>
+        <label>Global BU - AMER</label>
+    </customValue>
+    <customValue>
+        <fullName>Global BU - APAC</fullName>
+        <default>false</default>
+        <label>Global BU - APAC</label>
+    </customValue>
+    <customValue>
+        <fullName>Global BU - EMEA</fullName>
+        <default>false</default>
+        <label>Global BU - EMEA</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER DIG</fullName>
+        <default>false</default>
+        <label>AMER DIG</label>
+    </customValue>
+    <customValue>
+        <fullName>AMER RCG</fullName>
+        <default>false</default>
+        <label>AMER RCG</label>
+    </customValue>
+    <customValue>
+        <fullName>DATA CLOUD</fullName>
+        <default>false</default>
+        <label>DATA CLOUD</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA ESMB</fullName>
+        <default>false</default>
+        <label>EMEA ESMB</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA FRANCE</fullName>
+        <default>false</default>
+        <label>EMEA FRANCE</label>
+    </customValue>
+    <customValue>
+        <fullName>EMEA UKI</fullName>
+        <default>false</default>
+        <label>EMEA UKI</label>
+    </customValue>
+    <customValue>
+        <fullName>PRODUCT</fullName>
+        <default>false</default>
+        <label>PRODUCT</label>
+    </customValue>
+    <customValue>
+        <fullName>GTP</fullName>
+        <default>false</default>
+        <label>GTP</label>
+    </customValue>
+    <masterLabel>Operating Unit</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

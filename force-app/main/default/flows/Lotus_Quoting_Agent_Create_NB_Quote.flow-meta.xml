@@ -4,7 +4,7 @@
         <name>Create_New_Quote_with_Quote_Lines</name>
         <label>Create New Quote with Quote Lines</label>
         <locationX>182</locationX>
-        <locationY>2738</locationY>
+        <locationY>2522</locationY>
         <actionName>PlaceQuoteAction</actionName>
         <actionType>apex</actionType>
         <connector>
@@ -32,7 +32,7 @@
         <name>Get_Default_Billing_Info</name>
         <label>Get Default Billing Info</label>
         <locationX>182</locationX>
-        <locationY>1814</locationY>
+        <locationY>1598</locationY>
         <actionName>GetDefaultBillingInfoFlowAction</actionName>
         <actionType>apex</actionType>
         <connector>
@@ -65,68 +65,12 @@
         </outputParameters>
         <versionSegment>1</versionSegment>
     </actionCalls>
-    <actionCalls>
-        <name>Get_Supported_Countries_Per_Currency</name>
-        <label>Get Supported Countries Per Currency</label>
-        <locationX>380</locationX>
-        <locationY>566</locationY>
-        <actionName>GetSupportedCountriesFlowAction</actionName>
-        <actionType>apex</actionType>
-        <connector>
-            <targetReference>AssignSelectedCountryAndCurrency_NB</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>currencyList</name>
-            <value>
-                <elementReference>Opportunity.CurrencyIsoCode</elementReference>
-            </value>
-        </inputParameters>
-        <nameSegment>GetSupportedCountriesFlowAction</nameSegment>
-        <offset>0</offset>
-        <outputParameters>
-            <assignToReference>SupportedCountriesList</assignToReference>
-            <name>output</name>
-        </outputParameters>
-        <versionSegment>1</versionSegment>
-    </actionCalls>
-    <actionCalls>
-        <name>Validate_Currency_Support_For_Country</name>
-        <label>Validate Currency Support For Country</label>
-        <locationX>380</locationX>
-        <locationY>782</locationY>
-        <actionName>ValidateCurrencySupportFlowAction</actionName>
-        <actionType>apex</actionType>
-        <connector>
-            <targetReference>Is_Currency_Supported</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>billingCurrency</name>
-            <value>
-                <elementReference>SelectedCurrency</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>country</name>
-            <value>
-                <elementReference>SelectedCountry</elementReference>
-            </value>
-        </inputParameters>
-        <nameSegment>ValidateCurrencySupportFlowAction</nameSegment>
-        <offset>0</offset>
-        <outputParameters>
-            <assignToReference>isBillingCurrencySupported</assignToReference>
-            <name>output</name>
-        </outputParameters>
-        <versionSegment>1</versionSegment>
-    </actionCalls>
     <apiVersion>61.0</apiVersion>
     <assignments>
         <name>Add_Billing_Info_on_New_Quote</name>
         <label>Add Billing Info on New Quote</label>
         <locationX>50</locationX>
-        <locationY>2030</locationY>
+        <locationY>1814</locationY>
         <assignmentItems>
             <assignToReference>newQuote.PrimaryBillingContact__c</assignToReference>
             <operator>Assign</operator>
@@ -240,7 +184,7 @@
         <name>Add_To_Quote_Lines_List</name>
         <label>Add To Quote Lines List</label>
         <locationX>270</locationX>
-        <locationY>2546</locationY>
+        <locationY>2330</locationY>
         <assignmentItems>
             <assignToReference>quoteLinesList</assignToReference>
             <operator>Add</operator>
@@ -256,7 +200,7 @@
         <name>Assign_Auto_Renewal_Value_To_No</name>
         <label>Assign Auto Renewal Value To No</label>
         <locationX>50</locationX>
-        <locationY>1214</locationY>
+        <locationY>998</locationY>
         <assignmentItems>
             <assignToReference>AssignAutoRenewal</assignToReference>
             <operator>Assign</operator>
@@ -272,7 +216,7 @@
         <name>AssignSelectedCountryAndCurrency_NB</name>
         <label>AssignSelectedCountryAndCurrency_NB</label>
         <locationX>380</locationX>
-        <locationY>674</locationY>
+        <locationY>566</locationY>
         <assignmentItems>
             <assignToReference>SelectedCountry</assignToReference>
             <operator>Assign</operator>
@@ -288,7 +232,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Validate_Currency_Support_For_Country</targetReference>
+            <targetReference>Is_Currency_Supported</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -318,14 +262,14 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Get_Supported_Countries_Per_Currency</targetReference>
+            <targetReference>AssignSelectedCountryAndCurrency_NB</targetReference>
         </connector>
     </assignments>
     <assignments>
         <name>Create_New_Quote</name>
         <label>Create New Quote</label>
         <locationX>182</locationX>
-        <locationY>1706</locationY>
+        <locationY>1490</locationY>
         <assignmentItems>
             <assignToReference>newQuote.AutoRenewal__c</assignToReference>
             <operator>Assign</operator>
@@ -481,7 +425,7 @@
         <name>Create_New_Quote_Line_Item</name>
         <label>Create New Quote Line Item</label>
         <locationX>270</locationX>
-        <locationY>2438</locationY>
+        <locationY>2222</locationY>
         <assignmentItems>
             <assignToReference>newQuoteLineItem.Description</assignToReference>
             <operator>Assign</operator>
@@ -574,7 +518,7 @@
         <name>Default_Selected_Billing_Country_On_Quote</name>
         <label>Default Selected Billing Country On Quote</label>
         <locationX>314</locationX>
-        <locationY>1514</locationY>
+        <locationY>1298</locationY>
         <assignmentItems>
             <assignToReference>quoteAddressInfo.ShippingCountry</assignToReference>
             <operator>Assign</operator>
@@ -597,7 +541,7 @@
         <name>Populate_Account_Address_on_Quote</name>
         <label>Populate Account Address on Quote</label>
         <locationX>50</locationX>
-        <locationY>1514</locationY>
+        <locationY>1298</locationY>
         <assignmentItems>
             <assignToReference>quoteAddressInfo.BillingCity</assignToReference>
             <operator>Assign</operator>
@@ -690,7 +634,7 @@
         <name>Populate_Created_Quote</name>
         <label>Populate Created Quote</label>
         <locationX>182</locationX>
-        <locationY>2954</locationY>
+        <locationY>2738</locationY>
         <assignmentItems>
             <assignToReference>CreatedQuote.Id</assignToReference>
             <operator>Assign</operator>
@@ -747,7 +691,7 @@
         <name>Does_Default_Billing_Info_Exist</name>
         <label>Does Default Billing Info Exist</label>
         <locationX>182</locationX>
-        <locationY>1922</locationY>
+        <locationY>1706</locationY>
         <defaultConnector>
             <targetReference>Get_oppty_lines</targetReference>
         </defaultConnector>
@@ -772,7 +716,7 @@
         <name>Does_Quote_and_Account_Billing_Country_match</name>
         <label>Does Quote and Account Billing Country match ?</label>
         <locationX>182</locationX>
-        <locationY>1406</locationY>
+        <locationY>1190</locationY>
         <defaultConnector>
             <targetReference>Default_Selected_Billing_Country_On_Quote</targetReference>
         </defaultConnector>
@@ -797,7 +741,7 @@
         <name>Is_Currency_Supported</name>
         <label>Is Currency Supported</label>
         <locationX>380</locationX>
-        <locationY>890</locationY>
+        <locationY>674</locationY>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_Currency_Supported</name>
@@ -819,7 +763,7 @@
         <name>Is_Term_Less_Than_12_Months</name>
         <label>Is Term Less Than 12 Months?</label>
         <locationX>182</locationX>
-        <locationY>1106</locationY>
+        <locationY>890</locationY>
         <defaultConnector>
             <targetReference>Does_Quote_and_Account_Billing_Country_match</targetReference>
         </defaultConnector>
@@ -915,7 +859,7 @@ DAY({!ServiceStartDate})
         <name>Iterate_through_oppty_lines</name>
         <label>Iterate through oppty lines</label>
         <locationX>182</locationX>
-        <locationY>2330</locationY>
+        <locationY>2114</locationY>
         <collectionReference>Get_oppty_lines</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
@@ -948,7 +892,7 @@ DAY({!ServiceStartDate})
         <name>Get_Default_Pricebook</name>
         <label>Get Default Pricebook</label>
         <locationX>182</locationX>
-        <locationY>998</locationY>
+        <locationY>782</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Is_Term_Less_Than_12_Months</targetReference>
@@ -970,7 +914,7 @@ DAY({!ServiceStartDate})
         <name>Get_Newly_Created_Quote</name>
         <label>Get Newly Created Quote</label>
         <locationX>182</locationX>
-        <locationY>2846</locationY>
+        <locationY>2630</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Populate_Created_Quote</targetReference>
@@ -1012,7 +956,7 @@ DAY({!ServiceStartDate})
         <name>Get_oppty_lines</name>
         <label>Get oppty lines</label>
         <locationX>182</locationX>
-        <locationY>2222</locationY>
+        <locationY>2006</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Iterate_through_oppty_lines</targetReference>
@@ -1097,6 +1041,9 @@ DAY({!ServiceStartDate})
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
+        <value>
+            <booleanValue>true</booleanValue>
+        </value>
     </variables>
     <variables>
         <name>newQuote</name>
@@ -1166,6 +1113,9 @@ DAY({!ServiceStartDate})
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
+        <value>
+            <stringValue>US</stringValue>
+        </value>
     </variables>
     <variables>
         <name>SelectedCurrency</name>
@@ -1173,6 +1123,9 @@ DAY({!ServiceStartDate})
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
+        <value>
+            <stringValue>USD</stringValue>
+        </value>
     </variables>
     <variables>
         <name>ServiceStartDate</name>

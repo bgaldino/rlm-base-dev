@@ -1,0 +1,21 @@
+{
+    "uiapi": {
+        "query": {
+            "Contact": {
+                "edges": [
+                    {
+                        "node": {
+                            "Id": "003O8000003DoBpIAK",
+                            "Name": {
+                                "value": "240624-19"
+                            },
+                            "OptionalName__c": {
+                                "value": "force.com-00001"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

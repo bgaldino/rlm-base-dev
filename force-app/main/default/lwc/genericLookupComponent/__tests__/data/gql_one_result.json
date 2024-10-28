@@ -1,0 +1,24 @@
+{
+    "uiapi": {
+        "query": {
+            "Contact": {
+                "edges": [
+                    {
+                        "node": {
+                            "Id": "003O8000003DoBpIAK",
+                            "Name": {
+                                "value": "Carlos Hernandez"
+                            },
+                            "Department": {
+                                "value": "Technology"
+                            },
+                            "Email": {
+                                "value": "abc@abc.com"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

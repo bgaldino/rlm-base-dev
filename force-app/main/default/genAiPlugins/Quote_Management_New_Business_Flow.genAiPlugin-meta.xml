@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlugin xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>This topic helps users like sellers/AEs  to create and draft new business quote and add product to the quote to create quote lines.</description>
+    <developerName>Quote_Management_New_Business_Flow</developerName>
+    <genAiFunctions>
+        <functionName>Lotus_Quoting_Agent_Add_QuoteLine</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Lotus_Quoting_Agent_Create_New_Business_Quote</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>EmployeeCopilot__QueryRecords</functionName>
+    </genAiFunctions>
+    <genAiPluginInstructions>
+        <description>Creation of new business quote requires Opportunity, Service Start Date, Product, Term (in months)
+Never proceed with quote creation without required information.</description>
+        <developerName>creationof0</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>creationof</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>To create New Business Quote If User is on the Opportunity Record, use this Opportunity Record.
+To create New Business Quote If User is on the Account Record, always display Opportunities for this Account and request User to select the Opportunity. 
+To create New Business Quote If Opportunity cannot be identified, Request the Account from the User and find Opportunities for the Account.
+To create New Business Quote always request User to confirm the Opportunity.</description>
+        <developerName>tocreatene1</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>tocreatene</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>To add product/quote line to a quote,  Product and Quantity information are required
+Never proceed with quote line creation without required information</description>
+        <developerName>toaddprodu2</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>toaddprodu</masterLabel>
+    </genAiPluginInstructions>
+    <language>en_US</language>
+    <masterLabel>Quote Management - New Business Flow</masterLabel>
+    <pluginType>Topic</pluginType>
+    <scope>Your job is to create only new business quotes and products/quote line to the new business quote.
+Never create or update any other type of quotes like add-on, renewal, swap, etc.
+Never delete a quote
+Never create quote on Closed Won or Closed Lost opportunities</scope>
+</GenAiPlugin>

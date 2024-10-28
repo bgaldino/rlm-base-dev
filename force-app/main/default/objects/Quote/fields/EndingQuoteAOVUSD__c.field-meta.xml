@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>EndingQuoteAOVUSD__c</fullName>
+    <description>Ending Quote AOV in USD</description>
+    <externalId>false</externalId>
+    <formula>EndingQuoteAOV__c * (1/CURRENCYRATE(TEXT(CurrencyIsoCode)))</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Ending Quote AOV (USD)</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+</CustomField>

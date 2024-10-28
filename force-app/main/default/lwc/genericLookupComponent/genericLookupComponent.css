@@ -1,0 +1,18 @@
+.sf-c-add-new {
+    margin-top: 7px;
+}
+
+.slds-pill_container .sf-c-pill {
+    width: 100%;
+}
+
+.slds-pill_container {
+    max-height: 32px;
+}
+
+.slds-pill_container  .sf-c-pill-disabled {
+    background-color: #f5f5f5; /* light gray */
+    color: #a9a9a9; /* dark gray */
+    border: 1px solid #ced4da; /* gray border */
+    cursor: not-allowed; /* show "not allowed" cursor */
+}

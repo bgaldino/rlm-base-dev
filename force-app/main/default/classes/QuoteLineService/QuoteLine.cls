@@ -13,7 +13,7 @@ public class QuoteLine {
     public Id tenantId;
     public Id basedOnId;
     public Integer sortOrder;
-    public String approvalMatrix;
+    //public String approvalMatrix;
     public Integer effectiveQuantity;
     public Double effectiveDiscount;
 
@@ -34,7 +34,7 @@ public class QuoteLine {
         this.basedOnId = qli.Product2.BasedOnId;
         this.approvalLevel = Integer.valueOf(qli.ApprovalLevel__c);
         this.sortOrder = Integer.valueOf(qli.SortOrder);
-        this.approvalMatrix = qli.Product2.ApprovalMatrix__c;
+        //this.approvalMatrix = qli.Product2.ApprovalMatrix__c;
         this.effectiveQuantity = Integer.valueOf(qli.EffectiveQuantity__c);
         this.effectiveDiscount = qli.EffectiveDiscount__c;
     }

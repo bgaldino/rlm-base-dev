@@ -8,13 +8,13 @@
         <genAiPluginName>EmployeeCopilot__OOTBSingleRecordSummary</genAiPluginName>
     </genAiPlugins>
     <genAiPlugins>
-        <genAiPluginName>Customer_Assets</genAiPluginName>
+        <genAiPluginName>Customer_Assets1</genAiPluginName>
     </genAiPlugins>
     <genAiPlugins>
-        <genAiPluginName>Quote_Management_New_Biz_Flow</genAiPluginName>
+        <genAiPluginName>Quote_Management_New_Business_Flow</genAiPluginName>
     </genAiPlugins>
     <genAiPlugins>
-        <genAiPluginName>Quote_Management_Addon_Flow</genAiPluginName>
+        <genAiPluginName>Quote_Management_Add_On_Flow</genAiPluginName>
     </genAiPlugins>
     <masterLabel>EmployeeCopilotPlanner</masterLabel>
     <plannerType>AiCopilot__ReAct</plannerType>

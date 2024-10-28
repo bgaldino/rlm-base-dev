@@ -9,7 +9,5 @@ public interface IQuoteLineDAO {
     List<QuoteLineItem> getQuoteLinesByQuoteIdsConvertCurrencies(Set<Id> quoteIds);
     List<QuoteLineItem> getQuoteLineByIds(Set<Id> quoteLineids);
     List<QuoteLineItem> getQuoteLinesForSync(Set<Id> quoteIds);
-    List<AppliedSpecialTerm__c> getAppliedSpecialTerms(Id quoteId, List<String> resipList);
-    List<sbaa__ApprovalRule__c> getAppRuleData(Id ruleId);
     List<ProductSellingModel> getProductSellingModel(Set<Id> psmIdList);
 }

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Salesperson</fullName>
+        <default>false</default>
+        <label>Salesperson</label>
+    </customValue>
+    <customValue>
+        <fullName>MuleSoft AE</fullName>
+        <default>false</default>
+        <label>MuleSoft AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Commerce Cloud AE</fullName>
+        <default>false</default>
+        <label>Commerce Cloud AE</label>
+    </customValue>
+    <customValue>
+        <fullName>MuleSoft Automation AE</fullName>
+        <default>false</default>
+        <label>MuleSoft Automation AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Order Management AE</fullName>
+        <default>false</default>
+        <label>Order Management AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Regional MC AE</fullName>
+        <default>false</default>
+        <label>Regional MC AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Revenue Cloud AE</fullName>
+        <default>false</default>
+        <label>Revenue Cloud AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Sales Productivity AE</fullName>
+        <default>false</default>
+        <label>Sales Productivity AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Slack AE</fullName>
+        <default>false</default>
+        <label>Slack AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Slack BDR</fullName>
+        <default>false</default>
+        <label>Slack BDR</label>
+    </customValue>
+    <customValue>
+        <fullName>Tableau AE</fullName>
+        <default>false</default>
+        <label>Tableau AE</label>
+    </customValue>
+    <customValue>
+        <fullName>Tableau Renewals Mgr</fullName>
+        <default>false</default>
+        <label>Tableau Renewals Mgr</label>
+    </customValue>
+    <customValue>
+        <fullName>TAE Manager</fullName>
+        <default>false</default>
+        <label>TAE Manager</label>
+    </customValue>
+    <customValue>
+        <fullName>Digital AE</fullName>
+        <default>false</default>
+        <label>Digital AE</label>
+    </customValue>
+    <description>The user selling role values in OrgSF</description>
+    <masterLabel>Selling Role</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

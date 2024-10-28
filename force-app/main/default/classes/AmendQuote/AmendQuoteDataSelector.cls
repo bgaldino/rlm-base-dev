@@ -53,13 +53,9 @@ public with sharing class AmendQuoteDataSelector implements IAmendQuoteDataSelec
     }
 
     public List<AssetActionSource> selectAssetActionSources(Set<Id> assetActionIds) {
-        String query = 'SELECT id, AssetAction.AssetId, CurrencyIsoCode, BillingAddressName__c, ShippingAddressName__c, AutoRenewCode__c,'
-        +' BillingFrequency__c, BillingLanguage__c, InvoiceDispatchMethod__c, TaxExemptionReason__c, PaymentType__c, PaymentTerm__c, '
-        +' OrderPrebillDays__c, RenewalTerm__c, TaxExemptionCode__c, TaxExemptType__c, BillingContact__c, BillingAddress__CountryCode__s, '
-        +' ShippingAddress__c, CustomerTaxID__c, BillingAddress__StateCode__s, BillingAddress__Street__s, BillingAddress__City__s, '
-        +' BillingAddress__PostalCode__s, ShippingAddress__CountryCode__s,  ShippingAddress__StateCode__s, ShippingAddress__Street__s, '
-        +' ShippingAddress__City__s, ShippingAddress__PostalCode__s, BusinessType__c, Payment_Detail_JSON__c, BillingFrequencySpecialTerm__c, '
-        +' BillingCompanyName__c, SecondaryBillingContact__c  from AssetActionSource where AssetActionId in :assetActionIds';
+        String query = 'SELECT id, AssetAction.AssetId, AutoRenewCode__c, CurrencyIsoCode, '
+        +' BillingFrequency__c, RenewalTerm__c, '
+        +' from AssetActionSource where AssetActionId in :assetActionIds';
 
         return Database.queryWithBinds(query, new Map<String, Object>{ 'assetActionIds' => assetActionIds }, SecurityCheck.getAccessLevel());
     }

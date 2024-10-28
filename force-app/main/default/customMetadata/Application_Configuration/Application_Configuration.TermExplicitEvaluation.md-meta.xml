@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>TermExplicitEvaluation</label>
+    <protected>false</protected>
+    <values>
+        <field>Category__c</field>
+        <value xsi:type="xsd:string">Advanced Approvals</value>
+    </values>
+    <values>
+        <field>Functional_Area__c</field>
+        <value xsi:type="xsd:string">Products &amp; Approvals</value>
+    </values>
+    <values>
+        <field>Value__c</field>
+        <value xsi:type="xsd:string">{"renewalCapId": "orgsf-73a94ad7-a0e8-47e4-8a01-8e43eff6b81c","billingFrequencyId" : "orgsf-5da19bdf-8ebf-41c4-8e98-a3e6b10d499d"}</value>
+    </values>
+</CustomMetadata>

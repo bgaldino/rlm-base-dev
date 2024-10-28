@@ -41,6 +41,7 @@ public with sharing class PlaceQuoteAddQLAction {
         //quote record
         //quote - 0Q0O4000000oWSvKAM
         Id quoteid = request.quote.Id;
+        System.debug('quoteid: ' + quoteid);
          PlaceQuote.RecordResource quoteRecord = new PlaceQuote.RecordResource(Quote.getSobjectType(),'PATCH', quoteid);
         Map<String,Object> quoteFieldValues = new Map<String,Object>();
     
@@ -52,19 +53,21 @@ public with sharing class PlaceQuoteAddQLAction {
         sanitizeDateFields(quoteLineItemRecord1, QUOTE_LINE_ITEM_DATE_FIELDS);
         quoteLineItemRecord1.fieldValues.put('QuoteId', '@{' + 'refQuote' + '.id}');
 
-        /*
+        
         Map<String,Object> quoteLineItemFieldValues = new Map<String,Object>();
-        quoteLineItemFieldValues.put('Product2Id','01tO3000002keqIIAQ');
-        quoteLineItemFieldValues.put('PricebookEntryId','01uO3000000VkTlIAK');
-        quoteLineItemFieldValues.put('Quantity','10.0');
-        quoteLineItemFieldValues.put('UnitPrice','80.0');
-        quoteLineItemFieldValues.put('PeriodBoundary','Anniversary');
-        quoteLineItemFieldValues.put('BillingFrequency','Annual');
-        quoteLineItemFieldValues.put('StartDate','2024-10-08');
-        quoteLineItemFieldValues.put('EndDate','2025-10-07');
-        quoteLineItemFieldValues.put('QuoteId','@{refQuote.id}');
-        quoteLineItemRecord1.fieldValues = quoteLineItemFieldValues;
-        */
+        //quoteLineItemFieldValues.put('Product2Id','01tKj00000Qcr1MIAR');
+        //quoteLineItemFieldValues.put('PricebookEntryId','01uKj00000EvzJpIAJ');
+        //quoteLineItemFieldValues.put('Quantity','1.0');
+        //quoteLineItemFieldValues.put('UnitPrice','80.0');
+        //quoteLineItemFieldValues.put('PeriodBoundary','Anniversary');
+        //quoteLineItemFieldValues.put('BillingFrequency','Annual');
+        //quoteLineItemFieldValues.put('StartDate','2024-10-24');
+        //quoteLineItemFieldValues.put('EndDate','2025-10-23');
+        //quoteLineItemFieldValues.put('QuoteId','@{refQuote.id}');
+        //quoteLineItemRecord1.fieldValues = quoteLineItemFieldValues;
+
+        //quoteLineItemRecord1.fieldValues.put('UnitPrice','80.0');
+        
         PlaceQuote.RecordWithReferenceRequest quoteRecords = new PlaceQuote.RecordWithReferenceRequest('refQuote',quoteRecord);
         PlaceQuote.RecordWithReferenceRequest quoteLineItemRecords1 = new PlaceQuote.RecordWithReferenceRequest('refQuoteItem1',quoteLineItemRecord1);
 
@@ -74,7 +77,7 @@ public with sharing class PlaceQuoteAddQLAction {
         listOfRecords.add(quoteLineItemRecords1);
     
         //make call
-        PlaceQuote.PricingPreferenceEnum pricingPreference = PlaceQuote.PricingPreferenceEnum.Force;        
+        PlaceQuote.PricingPreferenceEnum pricingPreference = PlaceQuote.PricingPreferenceEnum.SYSTEM;        
         PlaceQuote.GraphRequest graph = new PlaceQuote.GraphRequest('test',listOfRecords);
         PlaceQuote.ConfigurationInputEnum configurationPreference = PlaceQuote.ConfigurationInputEnum.RunAndAllowErrors;
         PlaceQuote.ConfigurationOptionsInput cInput = new PlaceQuote.ConfigurationOptionsInput();
@@ -82,7 +85,7 @@ public with sharing class PlaceQuoteAddQLAction {
         cInput.executeConfigurationRules = true;
         cInput.validateAmendRenewCancel = true;
         cInput.validateProductCatalog = true;
-        //System.debug(graph);
+        System.debug('graph: ' + graph);
       
         //Place Quote Call
         PlaceQuote.PlaceQuoteResponse resp = PlaceQuote.PlaceQuoteRLMApexProcessor.execute(pricingPreference, graph, configurationPreference, cInput);

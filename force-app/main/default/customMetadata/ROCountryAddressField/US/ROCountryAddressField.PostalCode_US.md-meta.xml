@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>US - Postal Code</label>
+    <protected>false</protected>
+    <values>
+        <field>CountryISOCode__c</field>
+        <value xsi:type="xsd:string">US</value>
+    </values>
+    <values>
+        <field>FieldId__c</field>
+        <value xsi:type="xsd:string">postalCode</value>
+    </values>
+    <values>
+        <field>FieldLabel__c</field>
+        <value xsi:type="xsd:string">Zip Code</value>
+    </values>
+    <values>
+        <field>HelpText__c</field>
+        <value xsi:type="xsd:string">5-digit postal code or 5-digit + 4 digit (12345 or 12345-1234)</value>
+    </values>
+    <values>
+        <field>IsDefault__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>IsOptional__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>IsRequired__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>MapToField__c</field>
+        <value xsi:type="xsd:string">Address</value>
+    </values>
+    <values>
+        <field>MapToProperty__c</field>
+        <value xsi:type="xsd:string">PostalCode</value>
+    </values>
+    <values>
+        <field>PlaceholderText__c</field>
+        <value xsi:type="xsd:string">12345 or 12345-6789</value>
+    </values>
+    <values>
+        <field>ValidationErrorText__c</field>
+        <value xsi:type="xsd:string">Expected postal code format for US: 12345 or 12345-6789</value>
+    </values>
+    <values>
+        <field>ValidationRegex__c</field>
+        <value xsi:type="xsd:string">^(\d{5}|\d{5}-\d{4})$</value>
+    </values>
+</CustomMetadata>

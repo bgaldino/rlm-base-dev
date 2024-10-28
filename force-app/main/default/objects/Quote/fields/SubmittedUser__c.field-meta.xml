@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SubmittedUser__c</fullName>
+    <externalId>false</externalId>
+    <label>Submitted User</label>
+    <type>Lookup</type>
+    <referenceTo>User</referenceTo>
+    <relationshipName>SubmittedForApprovalsUser</relationshipName>
+    <required>false</required>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+</CustomField>

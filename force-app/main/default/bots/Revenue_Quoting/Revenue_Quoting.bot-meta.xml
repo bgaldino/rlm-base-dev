@@ -4,7 +4,7 @@
         <label>Revenue Quoting</label>
         <name>Revenue_Quoting</name>
     </botMlDomain>
-    <botUser>pnimmakayala@salesforce.com.osfpoc1sb1</botUser>
+    <botUser>bgaldino@bgaldino-241023-44.demo</botUser>
     <contextVariables>
         <dataType>Id</dataType>
         <developerName>EndUserId</developerName>

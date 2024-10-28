@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>62.0</apiVersion>
+    <constants>
+        <description>Set the USERNAME of the User that will do the Director Approval</description>
+        <name>constDirectorApproverUserName</name>
+        <dataType>String</dataType>
+    </constants>
+    <constants>
+        <description>Set the USERNAME of the User that will do the Manager Approval</description>
+        <name>constManagerApproverUserName</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>bgaldino@bgaldino-241014-677.demo</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <description>Set the USERNAME of the User that will do the VP Approval</description>
+        <name>constVPApproverUserName</name>
+        <dataType>String</dataType>
+    </constants>
     <decisions>
         <name>Approve_or_Rejected_Level_2</name>
         <label>Approve or Rejected</label>
@@ -182,7 +200,7 @@
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <stringValue>jrozsits@rlm252.0906.demo</stringValue>
+                    <elementReference>constDirectorApproverUserName</elementReference>
                 </assignee>
                 <assigneeType>User</assigneeType>
             </assignees>
@@ -198,7 +216,7 @@
             <inputParameters>
                 <name>ActionInput__ApprovalChainName</name>
             </inputParameters>
-            <label>Approval Level 2</label>
+            <label>Second Level Approver</label>
             <requiresAsyncProcessing>false</requiresAsyncProcessing>
             <runAsUser>false</runAsUser>
             <shouldLock>false</shouldLock>
@@ -220,7 +238,7 @@
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <stringValue>jrozsits@rlm252.0906.demo</stringValue>
+                    <elementReference>constVPApproverUserName</elementReference>
                 </assignee>
                 <assigneeType>User</assigneeType>
             </assignees>
@@ -236,7 +254,7 @@
             <inputParameters>
                 <name>ActionInput__ApprovalChainName</name>
             </inputParameters>
-            <label>Approval Level 3</label>
+            <label>Third Level Approver</label>
             <requiresAsyncProcessing>false</requiresAsyncProcessing>
             <runAsUser>false</runAsUser>
             <shouldLock>false</shouldLock>
@@ -283,7 +301,7 @@
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <stringValue>jrozsits@rlm252.0906.demo</stringValue>
+                    <elementReference>constManagerApproverUserName</elementReference>
                 </assignee>
                 <assigneeType>User</assigneeType>
             </assignees>
@@ -299,7 +317,7 @@
             <inputParameters>
                 <name>ActionInput__ApprovalChainName</name>
             </inputParameters>
-            <label>Approval Level 1</label>
+            <label>First Level Approver</label>
             <requiresAsyncProcessing>false</requiresAsyncProcessing>
             <runAsUser>false</runAsUser>
             <shouldLock>false</shouldLock>
@@ -397,7 +415,7 @@
             <targetReference>Requires_Approval</targetReference>
         </connector>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>ApprovalLevel</name>
         <dataType>Number</dataType>
