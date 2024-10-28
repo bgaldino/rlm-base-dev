@@ -1,0 +1,39 @@
+{
+  "required" : [ "varAmedOutputType", "varAmendmentDate", "varAssetIDs", "varQuantityChange" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "varAmedOutputType" : {
+      "title" : "varAmedOutputType",
+      "description" : "Run the Customer assets call before creating an amendment quote. Get Assets Ids based on the customer assets call. Set the AmendOutput Type = Quote",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "varAmendmentDate" : {
+      "title" : "varAmendmentDate",
+      "description" : "Amendment Start Date of the Quote",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "varAssetIDs" : {
+      "title" : "varAssetIDs",
+      "description" : "Assets that need to be amended",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "varQuantityChange" : {
+      "title" : "varQuantityChange",
+      "description" : "Amend Quantity",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

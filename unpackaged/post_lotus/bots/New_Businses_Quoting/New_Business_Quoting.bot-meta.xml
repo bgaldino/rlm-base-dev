@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bot xmlns="http://soap.sforce.com/2006/04/metadata">
+    <botMlDomain>
+        <label>New Business Quoting</label>
+        <name>New_Business_Quoting</name>
+    </botMlDomain>
+    <botUser>test-kwz0os01enyx@example.com</botUser>
+    <contextVariables>
+        <dataType>Id</dataType>
+        <developerName>EndUserId</developerName>
+        <label>End User Id</label>
+    </contextVariables>
+    <contextVariables>
+        <dataType>Id</dataType>
+        <developerName>RoutableId</developerName>
+        <label>Routable Id</label>
+    </contextVariables>
+    <contextVariables>
+        <dataType>Id</dataType>
+        <developerName>ContactId</developerName>
+        <label>Contact Id</label>
+    </contextVariables>
+    <description>This is a digital channel agent that helps with new business quoting requests</description>
+    <label>New Business Quoting</label>
+    <logPrivateConversationData>true</logPrivateConversationData>
+    <richContentEnabled>true</richContentEnabled>
+    <sessionTimeout>480</sessionTimeout>
+    <type>ExternalCopilot</type>
+</Bot>

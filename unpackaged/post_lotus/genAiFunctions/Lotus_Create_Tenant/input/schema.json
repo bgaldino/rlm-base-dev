@@ -1,0 +1,42 @@
+{
+  "required" : [ "FulfillmentProvider", "TenantCustomName", "accountId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Email" : {
+      "title" : "Email",
+      "description" : "This is email address. It is collected from the user only if FulfillmentProvider is Heroku",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "ExternalID" : {
+      "title" : "ExternalID",
+      "description" : "This is ExternalID which is 15 or 18 char org ID. It is collected from the user only if FulfillmentProvider is force.com",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "FulfillmentProvider" : {
+      "title" : "FulfillmentProvider",
+      "description" : "Possible values are Force.com or Heroku. Other values are not supported.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "TenantCustomName" : {
+      "title" : "TenantCustomName",
+      "description" : "Collect this from User. This is user friendly name of the Tenant.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "accountId" : {
+      "title" : "accountId",
+      "description" : "This is account id for which tenant record needs to be created. Find this Id from the Context. Find the accountId by querying the Account object by name of the account.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

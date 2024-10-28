@@ -602,6 +602,11 @@ tasks:
     options:
       path: unpackaged/post_docgen
 
+  deploy_post_lotus:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_lotus
+
   create_rule_library:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -685,10 +690,7 @@ flows:
       17:
         task: activate_and_deploy_expression_sets
       18:
-        task: assign_permission_sets
-        when: project_config.project__custom__lotus == true
-        options:
-          api_names: *ps_lotus
+        flow: prepare_lotus
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -930,3 +932,15 @@ flows:
         task: install_managed_package_trigger-framework
       3:
         task: install_managed_package_feature-flag
+
+  prepare_lotus:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_lotus
+        when: project_config.project__custom__lotus == true
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__lotus == true
+        options:
+          api_names: *ps_lotus

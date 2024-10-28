@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlugin xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>This topic is used to find Product ID from Product Name.</description>
+    <developerName>Find_Product_By_Name</developerName>
+    <genAiFunctions>
+        <functionName>Lotus_Get_Product</functionName>
+    </genAiFunctions>
+    <genAiPluginInstructions>
+        <description>To get the Product ID get the Product Name first.</description>
+        <developerName>Togetthe0</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>To get the</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>Ask Product Name from user only if it is not already provided by the user.</description>
+        <developerName>AskProduc1</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>Ask Produc</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>You will return the 18 digit Product ID from Product Name</description>
+        <developerName>Youwillr2</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>You will r</masterLabel>
+    </genAiPluginInstructions>
+    <language>en_US</language>
+    <masterLabel>Find Product By Name</masterLabel>
+    <pluginType>Topic</pluginType>
+    <scope>This topic is used to find the Product. Scope is only to query Product2 and return the Product ID from Product Name.</scope>
+</GenAiPlugin>

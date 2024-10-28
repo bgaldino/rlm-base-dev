@@ -5,14 +5,14 @@
     <botDialogs>
         <botSteps>
             <botMessages>
-                <message>Hi! I&apos;m Einstein, an AI assistant. I can do things like search for information, summarize records, and draft and revise emails. What can I help you with?</message>
-                <messageIdentifier>adf4b55d-4e06-48bd-bc2f-ea4a980b08c1</messageIdentifier>
+                <message>Hi! I&apos;m your helpful bot.</message>
+                <messageIdentifier>1c9791b9-7cdd-4395-95e2-aa4ff80153ce</messageIdentifier>
             </botMessages>
-            <stepIdentifier>2930267c-82b8-4666-a129-8596356a01ba</stepIdentifier>
+            <stepIdentifier>64ab430b-93ab-4a13-9ae0-973f9964670d</stepIdentifier>
             <type>Message</type>
         </botSteps>
         <botSteps>
-            <stepIdentifier>f6357091-95f3-4b2a-a7d2-2de3ba49b3a1</stepIdentifier>
+            <stepIdentifier>58c612d7-c49a-47cc-9370-974a8dd71d52</stepIdentifier>
             <type>Wait</type>
         </botSteps>
         <developerName>Welcome</developerName>
@@ -23,14 +23,14 @@
     <botDialogs>
         <botSteps>
             <botMessages>
-                <message>Something went wrong. Try again.</message>
-                <messageIdentifier>c635756c-f161-4595-ba1b-ba2a9a45e1e0</messageIdentifier>
+                <message>Unfortunately, a system error occurred. Let us start again.</message>
+                <messageIdentifier>66817099-b933-4bb6-8a90-3a5bc6748c07</messageIdentifier>
             </botMessages>
-            <stepIdentifier>c62667e4-aeb5-44aa-9122-973db7177d11</stepIdentifier>
+            <stepIdentifier>13ff4c4c-fc60-4825-8d07-5dfffe704615</stepIdentifier>
             <type>Message</type>
         </botSteps>
         <botSteps>
-            <stepIdentifier>ebc1d1d9-5d74-4a7b-8c61-ee6f91519116</stepIdentifier>
+            <stepIdentifier>0e35bbcd-48ee-415a-83a9-d1611409f0f0</stepIdentifier>
             <type>Wait</type>
         </botSteps>
         <developerName>Rich_Content_Error_Handling</developerName>
@@ -38,9 +38,22 @@
         <label>Error Handler</label>
         <showInFooterMenu>false</showInFooterMenu>
     </botDialogs>
+    <botDialogs>
+        <botSteps>
+            <conversationSystemMessage>
+                <type>Transfer</type>
+            </conversationSystemMessage>
+            <stepIdentifier>205146e7-021b-411d-99b6-09733256f114</stepIdentifier>
+            <type>SystemMessage</type>
+        </botSteps>
+        <developerName>Transfer_To_Agent</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Transfer To Agent</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
     <citationsEnabled>false</citationsEnabled>
     <conversationDefinitionPlanners>
-        <genAiPlannerName>EmployeeCopilotPlanner</genAiPlannerName>
+        <genAiPlannerName>Demo_Agent_v1</genAiPlannerName>
     </conversationDefinitionPlanners>
     <conversationSystemDialogs>
         <dialog>Rich_Content_Error_Handling</dialog>

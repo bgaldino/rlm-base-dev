@@ -1,0 +1,14 @@
+{
+  "required" : [ "varAccountId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "varAccountId" : {
+      "title" : "varAccountId",
+      "description" : "Account Id for which the assets have to be fetched. Run the Identify Record by Name action immediately before this to get the Account Id",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

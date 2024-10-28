@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlanner xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Answer questions related to customer assets or footprint. - demo</description>
+    <masterLabel>Customer Footprint - demo faye</masterLabel>
+    <plannerType>AiCopilot__ReAct</plannerType>
+</GenAiPlanner>

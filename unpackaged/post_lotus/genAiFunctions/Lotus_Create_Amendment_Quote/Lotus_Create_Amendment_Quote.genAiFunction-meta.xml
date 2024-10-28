@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>This agent helps create amendment quote on an account with active assets. Accounts with no active assets cannot create amendment quotes. Run the Customer assets call before creating an amendment quote and display to the user. Get Assets that needs to amended before creating the quote. Always ask for confirmation on the assets that need to considered for the creation of the addon quote. 
+
+Use the following labels when collecting user input:
+ - Amendment Start Date
+- Quantity
+
+Here are some examples: 
+-Create amendment for 20 sales cloud licenses 
+-Create addon quote for the account 
+-Help me create an addon quote</description>
+    <invocationTarget>Lotus_Create_Amendment_Quote</invocationTarget>
+    <invocationTargetType>flow</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <masterLabel>Lotus - Create Amendment Quote</masterLabel>
+</GenAiFunction>
