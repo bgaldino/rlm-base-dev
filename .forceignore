@@ -59,12 +59,23 @@ force-app/main/default/genAiPromptTemplates/Order_Delay_Emails.genAiPromptTempla
 
 ## LOTUS AGENT EXAMPLES
 # bots
-#force-app/main/default/bots
+force-app/main/default/bots
 #classes
 #force-app/main/default/classes/AmendQuote
 #force-app/main/default/classes/dao
+force-app/main/default/classes/dao/AppliedTermsDao.cls\*
+force-app/main/default/classes/dao/ApproverQuery.cls\*
+force-app/main/default/classes/dao/IAppliedTermsDao.cls\*
+force-app/main/default/classes/dao/IApproverQuery.cls\*
+force-app/main/default/classes/dao/INotificationQuery.cls\*
+force-app/main/default/classes/dao/NotificationQuery.cls\*
+force-app/main/default/classes/dao/ProductTermsSelector.cls\*
 #force-app/main/default/classes/PlaceQuote
 #force-app/main/default/classes/QuoteLineService
+#force-app/main/default/classes/QuoteLineTrigger
+force-app/main/default/classes/QuoteLineTrigger/EffectiveDiscount
+force-app/main/default/classes/QuoteLineTrigger/ApprovalLevelRunner.cls\*
+force-app/main/default/classes/QuoteLineTrigger/ProductRuleRunner.cls\*
 #force-app/main/default/classes/QuoteUpdate
 #force-app/main/default/classes/QuoteBaseConstants.cls
 # flows
@@ -99,11 +110,13 @@ force-app/main/default/flows/Update_Billing_Info_details_in_Asset_AAS_From_Order
 force-app/main/default/flows/Update_Order_Prices.flow-meta.xml
 force-app/main/default/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
 # genAiFunctions
-#force-app/main/default/genAiFunctions
+force-app/main/default/genAiFunctions
 # genAiPlanners
-#force-app/main/default/genAiPlanners
+force-app/main/default/genAiPlanners
 # genAiPlugins
-#force-app/main/default/genAiPlugins
+force-app/main/default/genAiPlugins
+# genAiPromptTemplates
+force-app/main/default/genAiPromptTemplates
 # objects
 #force-app/main/default/objects/Asset/fields/Product_Name__c.field-meta.xml
 #force-app/main/default/objects/Quote/fields/ServiceEndDate__c.field-meta.xml

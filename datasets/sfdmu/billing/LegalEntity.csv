@@ -1,3 +1,3 @@
-CompanyName,Description,LegalEntityCountry,LegalEntityCountryCode,LegalEntityState,LegalEntityStreet,Name,Status
-QuantumBit,,United States,US,California,415 Mission St,Default Legal Entity - US,Active
-QuantumBit,,Canada,CA,Ontario,33 Carlingview Drive,Default Legal Entity - Canada,Active
+CompanyName,Description,LegalEntityCountry,LegalEntityState,LegalEntityStreet,Name,Status
+QuantumBit,,US,CA,415 Mission St,Default Legal Entity - US,Active
+QuantumBit,,CA,ON,33 Carlingview Drive,Default Legal Entity - Canada,Active

@@ -4,7 +4,6 @@
   "template": "0TTKX0000000aQk",
   "features": [
     "EnableSetPasswordInApi",
-    "StateAndCountryPicklist",
     "OrderSaveLogicEnabled"
   ],
   "settings": {

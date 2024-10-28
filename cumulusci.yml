@@ -48,7 +48,10 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-  
+    lotus: true
+    fflib-mocks-pkg: &fflib-mocks-pkg 04t7y000000IM5JAAW
+    trigger-framework-pkg: &trigger-framework-pkg 04t7y000000IcQDAA0
+    feature-flag-pkg: &feature-flag-pkg 04t0g000000KKxDAAW
 
     rlm_psl_api_names: &rlm_psl_api_names
       - RevenueLifecycleManagementUserPsl
@@ -172,6 +175,9 @@ project:
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access
 
+    ps_lotus: &ps_lotus
+      - RLM_Lotus
+
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
 
@@ -221,6 +227,24 @@ tasks:
     description: Sync Pricing Data
     class_path: tasks.rlm_sync_pricing_data.SyncPricingData
     group: Revenue Lifecycle Management
+
+  install_managed_package_fflib-mocks:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "package install -p"
+      extra: *fflib-mocks-pkg
+
+  install_managed_package_trigger-framework:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "package install -p"
+      extra: *trigger-framework-pkg
+
+  install_managed_package_feature-flag:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "package install -p"
+      extra: *feature-flag-pkg
 
   extend_stdctx_contracts:
     description: Extend Standard Contracts Context Definition
@@ -660,6 +684,11 @@ flows:
         task: sync_pricing_data
       17:
         task: activate_and_deploy_expression_sets
+      18:
+        task: assign_permission_sets
+        when: project_config.project__custom__lotus == true
+        options:
+          api_names: *ps_lotus
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -685,9 +714,7 @@ flows:
         options:
           seconds: *sleep_default
       6:
-        task: util_sleep
-        options:
-          seconds: *sleep_default
+        flow: prepare_dependencies
       7:
         task: assign_permission_set_groups
         options:
@@ -893,3 +920,13 @@ flows:
         when: project_config.project__custom__tax == true and project_config.project__custom__tso == true
       4:
         task: activate_tax_records
+
+  prepare_dependencies:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: install_managed_package_fflib-mocks
+      2:
+        task: install_managed_package_trigger-framework
+      3:
+        task: install_managed_package_feature-flag
