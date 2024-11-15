@@ -21,7 +21,7 @@ force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProced
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
-force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 
 # contextDefinitions
@@ -44,7 +44,7 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-unpackaged/pre/5_decisiontables
+#unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
@@ -75,7 +75,7 @@ force-app/main/default/classes/orgsf-quote-base/dao/IApproverQuery.cls*
 force-app/main/default/classes/orgsf-quote-base/dao/INotificationQuery.cls*
 force-app/main/default/classes/orgsf-quote-base/dao/NotificationQuery.cls*
 force-app/main/default/classes/orgsf-quote-base/dao/ProductTermsSelector.cls*
-force-app/main/default/classes/orgsf-quote-base/flowActions/CloneQuoteFlowAction.cls*
+#force-app/main/default/classes/orgsf-quote-base/flowActions/CloneQuoteFlowAction.cls*
 force-app/main/default/classes/orgsf-quote-base/QuoteEventTriggerHandler.cls*
 force-app/main/default/classes/orgsf-quote-base/QuoteLineItemExceptions.cls*
 #force-app/main/default/orgsf-quote-base/classes/PlaceQuote
@@ -120,13 +120,14 @@ force-app/main/default/flows/Update_Billing_Info_details_in_Asset_AAS_From_Order
 force-app/main/default/flows/Update_Order_Prices.flow-meta.xml
 force-app/main/default/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
 # genAiFunctions
-#force-app/main/default/genAiFunctions
+force-app/main/default/genAiFunctions
 # genAiPlanners
-#force-app/main/default/genAiPlanners
+force-app/main/default/genAiPlanners
 force-app/main/default/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
+unpackaged/post_lotus/genAiPlanners
 unpackaged/post_lotus/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
 # genAiPlugins
-#force-app/main/default/genAiPlugins
+force-app/main/default/genAiPlugins
 #unpackaged/post_lotus/genAiPlugins
 # genAiPromptTemplates
 # objects
@@ -169,6 +170,7 @@ unpackaged/post_lotus/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 
 unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
+force-app/main/default/settings/UserInterface.settings-meta.xml
 
 **/tsconfig.json
 

@@ -20,7 +20,8 @@
     "EinsteinGPTFieldGeneration",
     "CustomerDataPlatform",
     "CustomerDataPlatformLite",
-    "SalesCloudEinstein"
+    "SalesCloudEinstein",
+    "EinsteinSearch"
     ],
   "settings": {
     "lightningExperienceSettings": {
@@ -54,6 +55,9 @@
     },
     "einsteinGptSettings" : {
       "enableEinsteinGptPlatform" : true
+    },
+    "customAddressFieldSettings": {
+      "enableCustomAddressField": true
     },
     "customerDataPlatformSettings": {
       "enableCustomerDataPlatform": true

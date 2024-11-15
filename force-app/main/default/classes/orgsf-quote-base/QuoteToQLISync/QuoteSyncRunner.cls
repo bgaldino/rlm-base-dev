@@ -79,28 +79,28 @@ public with sharing class QuoteSyncRunner {
                     qli.StartDate = mappedQuote.ServiceStartDate__c;
                     qli.EndDate = mappedQuote.ServiceEndDate__c;
                 }
-                //qli.PrimaryBillingContact__c = mappedQuote.PrimaryBillingContact__c;
-                //qli.SecondaryBillingContact__c = mappedQuote.SecondaryBillingContact__c;
+                qli.PrimaryBillingContact__c = mappedQuote.PrimaryBillingContact__c;
+                qli.SecondaryBillingContact__c = mappedQuote.SecondaryBillingContact__c;
                 qli.AutoRenewal__c = mappedQuote.AutoRenewal__c;
                 qli.BillingFrequency__c = mappedQuote.BillingFrequency__c;
-                //qli.BillingFrequencySpecialTerm__c = mappedQuote.BillingFrequencySpecialTerm__c;
+                qli.BillingFrequencySpecialTerm__c = mappedQuote.BillingFrequencySpecialTerm__c;
                 qli.BillingLanguage__c = mappedQuote.BillingLanguage__c;
                 qli.InvoiceDispatchMethod__c = mappedQuote.InvoiceDispatchMethod__c;
                 qli.PaymentMethod__c = mappedQuote.PaymentMethod__c;
                 qli.PaymentTerm__c = mappedQuote.PaymentTerm__c;
-                //qli.PaymentDetailJSON__c = mappedQuote.PaymentDetailJSON__c;
+                qli.PaymentDetailJSON__c = mappedQuote.PaymentDetailJSON__c;
                 qli.PreBillDays__c = mappedQuote.PreBillDays__c;
                 qli.RenewalTerm__c = mappedQuote.RenewalTerm__c;
                 qli.BusinessType__c = mappedQuote.BusinessType__c;
-                //qli.TaxExemptStatus__c = mappedQuote.TaxExemptStatus__c;
-                //qli.TaxExemptionId__c = mappedQuote.TaxExemptionId__c;
-                //qli.TaxRegistrationId__c = mappedQuote.TaxRegistrationId__c;
-                //qli.NoTaxRegistrationIdReason__c = mappedQuote.NoTaxRegistrationIdReason__c;
-                //qli.TaxInformationJSON__c = mappedQuote.TaxInformationJSON__c;
-                //qli.PurchaseOrderAmount__c = mappedQuote.PurchaseOrderAmount__c;
-                //qli.PurchaseOrderNumber__c = mappedQuote.PurchaseOrderNumber__c;
-                //qli.PurchaseOrderRequired__c = mappedQuote.PurchaseOrderRequired__c;
-                //qli.BillingCompanyName__c = mappedQuote.BillingCompanyName__c;
+                qli.TaxExemptStatus__c = mappedQuote.TaxExemptStatus__c;
+                qli.TaxExemptionId__c = mappedQuote.TaxExemptionId__c;
+                qli.TaxRegistrationId__c = mappedQuote.TaxRegistrationId__c;
+                qli.NoTaxRegistrationIdReason__c = mappedQuote.NoTaxRegistrationIdReason__c;
+                qli.TaxInformationJSON__c = mappedQuote.TaxInformationJSON__c;
+                qli.PurchaseOrderAmount__c = mappedQuote.PurchaseOrderAmount__c;
+                qli.PurchaseOrderNumber__c = mappedQuote.PurchaseOrderNumber__c;
+                qli.PurchaseOrderRequired__c = mappedQuote.PurchaseOrderRequired__c;
+                qli.BillingCompanyName__c = mappedQuote.BillingCompanyName__c;
                 updatedQuoteLineItems.add(qli);
             }
         }

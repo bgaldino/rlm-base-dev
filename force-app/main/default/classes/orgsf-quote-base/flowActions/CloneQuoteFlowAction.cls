@@ -1,9 +1,9 @@
 public with sharing class CloneQuoteFlowAction {
-    @TestVisible
-    private static ProductTermsSelector termsSelector = new ProductTermsSelector();
-    private static IAppliedTermsDao termsDao = (IAppliedTermsDao) new AppliedTermsDao();
-    @TestVisible
-    private static ITenantUIDAO tadsDao = (ITenantUIDAO) new TenantUIDAO();
+    //@TestVisible
+    //private static ProductTermsSelector termsSelector = new ProductTermsSelector();
+    //private static IAppliedTermsDao termsDao = (IAppliedTermsDao) new AppliedTermsDao();
+    //@TestVisible
+    //private static ITenantUIDAO tadsDao = (ITenantUIDAO) new TenantUIDAO();
     @TestVisible
     private static AmendQuoteDataSelector amendQuoteDataSelector = new AmendQuoteDataSelector();
 
@@ -40,8 +40,8 @@ public with sharing class CloneQuoteFlowAction {
         PlaceQuoteServiceResponse placeQuoteServiceResponse = placeQuoteService.placeQuote(serviceRequest);
         Id clonedQuoteId = placeQuoteServiceResponse.quoteId;
         result.add(clonedQuoteId);
-        cloneTADs(originalQuoteId, clonedQuoteId);
-        cloneTerms(originalQuoteId, clonedQuoteId);
+        //cloneTADs(originalQuoteId, clonedQuoteId);
+        //cloneTerms(originalQuoteId, clonedQuoteId);
         return result;
     }
 
@@ -84,7 +84,7 @@ public with sharing class CloneQuoteFlowAction {
 
         return quoteLineItemRequests;
     }
-
+/* 
     private static void cloneTerms(Id originalQuoteId, Id clonedQuoteId) {
         List<AppliedSpecialTerm__c> appliedTermsList = termsSelector.getAppliedSpecialTerms(new Set<Id>{ originalQuoteId });
         List<AppliedSpecialTerm__c> optionalTermsList = new List<AppliedSpecialTerm__c>();
@@ -138,4 +138,5 @@ public with sharing class CloneQuoteFlowAction {
         }
         
     }
+*/
 }

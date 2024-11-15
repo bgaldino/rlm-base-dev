@@ -34,7 +34,7 @@ public with sharing class QLISyncRunner {
                 sellingModelType = psm.SellingModelType;
             }
             if (QuoteToQLISyncHelper.shouldPropogate(quoteToSync, quoteLineItem, sellingModelType)) {
-                //quoteLineItem.BillingName__c = quoteToSync.BillingName;
+                quoteLineItem.BillingName__c = quoteToSync.BillingName;
                 quoteLineItem.BillingAddress__City__s = quoteToSync.BillingCity;
                 quoteLineItem.BillingAddress__CountryCode__s = quoteToSync.BillingCountry;
                 quoteLineItem.BillingAddress__PostalCode__s = quoteToSync.BillingPostalCode;
@@ -53,28 +53,28 @@ public with sharing class QLISyncRunner {
                     quoteLineItem.StartDate = quoteToSync.ServiceStartDate__c;
                     quoteLineItem.EndDate = quoteToSync.ServiceEndDate__c;
                 }
-                //quoteLineItem.PrimaryBillingContact__c = quoteToSync.PrimaryBillingContact__c;
-                //quoteLineItem.SecondaryBillingContact__c = quoteToSync.SecondaryBillingContact__c;
+                quoteLineItem.PrimaryBillingContact__c = quoteToSync.PrimaryBillingContact__c;
+                quoteLineItem.SecondaryBillingContact__c = quoteToSync.SecondaryBillingContact__c;
                 quoteLineItem.AutoRenewal__c = quoteToSync.AutoRenewal__c;
                 quoteLineItem.BillingFrequency__c = quoteToSync.BillingFrequency__c;
-                //quoteLineItem.BillingFrequencySpecialTerm__c = quoteToSync.BillingFrequencySpecialTerm__c;
+                quoteLineItem.BillingFrequencySpecialTerm__c = quoteToSync.BillingFrequencySpecialTerm__c;
                 quoteLineItem.BillingLanguage__c = quoteToSync.BillingLanguage__c;
                 quoteLineItem.InvoiceDispatchMethod__c = quoteToSync.InvoiceDispatchMethod__c;
                 quoteLineItem.PaymentMethod__c = quoteToSync.PaymentMethod__c;
                 quoteLineItem.PaymentTerm__c = quoteToSync.PaymentTerm__c;
-                //quoteLineItem.PaymentDetailJSON__c = quoteToSync.PaymentDetailJSON__c;
+                quoteLineItem.PaymentDetailJSON__c = quoteToSync.PaymentDetailJSON__c;
                 quoteLineItem.PreBillDays__c = quoteToSync.PreBillDays__c;
                 quoteLineItem.RenewalTerm__c = quoteToSync.RenewalTerm__c;
                 quoteLineItem.BusinessType__c = quoteToSync.BusinessType__c;
-                //quoteLineItem.TaxExemptStatus__c = quoteToSync.TaxExemptStatus__c;
-                //quoteLineItem.TaxExemptionId__c = quoteToSync.TaxExemptionId__c;
-                //quoteLineItem.TaxRegistrationId__c = quoteToSync.TaxRegistrationId__c;
-                //quoteLineItem.NoTaxRegistrationIdReason__c = quoteToSync.NoTaxRegistrationIdReason__c;
-                //quoteLineItem.TaxInformationJSON__c = quoteToSync.TaxInformationJSON__c;
-                //quoteLineItem.PurchaseOrderAmount__c = quoteToSync.PurchaseOrderAmount__c;
-                //quoteLineItem.PurchaseOrderNumber__c = quoteToSync.PurchaseOrderNumber__c;
-                //quoteLineItem.PurchaseOrderRequired__c = quoteToSync.PurchaseOrderRequired__c;
-                //quotelineItem.BillingCompanyName__c = quoteToSync.BillingCompanyName__c;
+                quoteLineItem.TaxExemptStatus__c = quoteToSync.TaxExemptStatus__c;
+                quoteLineItem.TaxExemptionId__c = quoteToSync.TaxExemptionId__c;
+                quoteLineItem.TaxRegistrationId__c = quoteToSync.TaxRegistrationId__c;
+                quoteLineItem.NoTaxRegistrationIdReason__c = quoteToSync.NoTaxRegistrationIdReason__c;
+                quoteLineItem.TaxInformationJSON__c = quoteToSync.TaxInformationJSON__c;
+                quoteLineItem.PurchaseOrderAmount__c = quoteToSync.PurchaseOrderAmount__c;
+                quoteLineItem.PurchaseOrderNumber__c = quoteToSync.PurchaseOrderNumber__c;
+                quoteLineItem.PurchaseOrderRequired__c = quoteToSync.PurchaseOrderRequired__c;
+                quotelineItem.BillingCompanyName__c = quoteToSync.BillingCompanyName__c;
             }
         }
     }

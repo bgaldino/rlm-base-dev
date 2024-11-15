@@ -40,28 +40,28 @@ public with sharing class QuoteToQLISyncHelper {
             areFieldsEqual &= quote.ServiceStartDate__c == quoteLineItem.StartDate;
             areFieldsEqual &= quote.ServiceEndDate__c == quoteLineItem.EndDate;
         }
-        //areFieldsEqual &= quote.PrimaryBillingContact__c == quoteLineItem.PrimaryBillingContact__c;
-        //areFieldsEqual &= quote.SecondaryBillingContact__c == quoteLineItem.SecondaryBillingContact__c;
+        areFieldsEqual &= quote.PrimaryBillingContact__c == quoteLineItem.PrimaryBillingContact__c;
+        areFieldsEqual &= quote.SecondaryBillingContact__c == quoteLineItem.SecondaryBillingContact__c;
         areFieldsEqual &= quote.AutoRenewal__c == quoteLineItem.AutoRenewal__c;
         areFieldsEqual &= quote.BillingFrequency__c == quoteLineItem.BillingFrequency__c;
-        //areFieldsEqual &= isJSONEqual(quote.BillingFrequencySpecialTerm__c, quoteLineItem.BillingFrequencySpecialTerm__c);
+        areFieldsEqual &= isJSONEqual(quote.BillingFrequencySpecialTerm__c, quoteLineItem.BillingFrequencySpecialTerm__c);
         areFieldsEqual &= quote.BillingLanguage__c == quoteLineItem.BillingLanguage__c;
         areFieldsEqual &= quote.InvoiceDispatchMethod__c == quoteLineItem.InvoiceDispatchMethod__c;
         areFieldsEqual &= quote.PaymentMethod__c == quoteLineItem.PaymentMethod__c;
         areFieldsEqual &= quote.PaymentTerm__c == quoteLineItem.PaymentTerm__c;
-        //areFieldsEqual &= isJSONEqual(quote.PaymentDetailJSON__c, quoteLineItem.PaymentDetailJSON__c);
+        areFieldsEqual &= isJSONEqual(quote.PaymentDetailJSON__c, quoteLineItem.PaymentDetailJSON__c);
         areFieldsEqual &= quote.PreBillDays__c == quoteLineItem.PreBillDays__c;
         areFieldsEqual &= quote.RenewalTerm__c == quoteLineItem.RenewalTerm__c;
         areFieldsEqual &= quote.BusinessType__c == quoteLineItem.BusinessType__c;
-        //areFieldsEqual &= quote.TaxExemptStatus__c == quoteLineItem.TaxExemptStatus__c;
-        //areFieldsEqual &= quote.TaxExemptionId__c == quoteLineItem.TaxExemptionId__c;
-        //areFieldsEqual &= quote.TaxRegistrationId__c == quoteLineItem.TaxRegistrationId__c;
-        //areFieldsEqual &= quote.NoTaxRegistrationIdReason__c == quoteLineItem.NoTaxRegistrationIdReason__c;
-        //areFieldsEqual &= isJSONEqual(quote.TaxInformationJSON__c, quoteLineItem.TaxInformationJSON__c);
-        //areFieldsEqual &= quote.PurchaseOrderAmount__c == quoteLineItem.PurchaseOrderAmount__c;
-        //areFieldsEqual &= quote.PurchaseOrderNumber__c == quoteLineItem.PurchaseOrderNumber__c;
-        //areFieldsEqual &= quote.PurchaseOrderRequired__c == quoteLineItem.PurchaseOrderRequired__c;
-        //areFieldsEqual &= quote.BillingCompanyName__c == quoteLineItem.BillingCompanyName__c;
+        areFieldsEqual &= quote.TaxExemptStatus__c == quoteLineItem.TaxExemptStatus__c;
+        areFieldsEqual &= quote.TaxExemptionId__c == quoteLineItem.TaxExemptionId__c;
+        areFieldsEqual &= quote.TaxRegistrationId__c == quoteLineItem.TaxRegistrationId__c;
+        areFieldsEqual &= quote.NoTaxRegistrationIdReason__c == quoteLineItem.NoTaxRegistrationIdReason__c;
+        areFieldsEqual &= isJSONEqual(quote.TaxInformationJSON__c, quoteLineItem.TaxInformationJSON__c);
+        areFieldsEqual &= quote.PurchaseOrderAmount__c == quoteLineItem.PurchaseOrderAmount__c;
+        areFieldsEqual &= quote.PurchaseOrderNumber__c == quoteLineItem.PurchaseOrderNumber__c;
+        areFieldsEqual &= quote.PurchaseOrderRequired__c == quoteLineItem.PurchaseOrderRequired__c;
+        areFieldsEqual &= quote.BillingCompanyName__c == quoteLineItem.BillingCompanyName__c;
         return !areFieldsEqual;
     }
 

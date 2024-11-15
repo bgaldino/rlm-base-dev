@@ -33,7 +33,7 @@ project:
     mydomain: &mydomain bgaldino-241029-621-demo.my.salesforce.com
     user_alias: &user_alias bgaldino@bgaldino-241029-621.demo
     prm: true
-    tso: true
+    tso: false
     qb: true
     prod: true
     qbdata: true
@@ -77,21 +77,25 @@ project:
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
+      - EinsteinAnalyticsPlusPsl
+      - EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinGPTCopilotPsl
+      - EinsteinGPTPromptTemplatesPsl
+      - MySearchPsl
+      - ScoringFrameworkPsl
+
+    rlm_ai_tso_psl_api_names: &rlm_ai_tso_psl_api_names
       - AnalyticsQueryServicePslForSalesPlanning
       - AutomatedActionsPsl
       - EinsteinAgentCWUPsl
       - EinsteinAgentPsl
-      - EinsteinAnalyticsPlusPsl
-      - EinsteinCopilotReviewMyDayPsl
-      - EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinCopilotReviewMyDayPsl, 
       - EinsteinDiscoveryInTableauPsl
       - EinsteinGPTCallExplorerPsl
-      - EinsteinGPTCopilotPsl
       - EinsteinGPTCreateClosePlanPsl
       - EinsteinGPTGetProductPricingPsl
       - EinsteinGPTGroundingStructuredDataPsl
-      - EinsteinGPTMeetingFollowUpPsl
-      - EinsteinGPTPromptTemplatesPsl
+      - EinsteinGPTMeetingFollowUpPsl, 
       - EinsteinGPTSalesCallSummariesPsl
       - EinsteinGPTSalesEmailsPsl
       - EinsteinGPTSalesMiningPsl
@@ -111,19 +115,13 @@ project:
       - SalesCloudUnlimitedAnalyticsAdminPsl
       - SalesCloudUnlimitedPsl
       - SalesEngagementBasicPsl
-      - ScoringFrameworkPsl
       - TableauEinsteinBaseCreatorPsl
       - TableauEinsteinBaseViewerPsl
       - TableauEinsteinIncludedAppPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       - EinsteinGPTPromptTemplateManager
-      - EinsteinGPTSalesSummaries
-      - EinsteinGPTSalesEmails
-      - EinsteinGPTSalesCallSummaries
-      - EinsteinGPTGetProductPricing
       - SalesCloudEinsteinAll
-      - ERIBasic
 
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
       - IndustriesConfiguratorPlatformApi
@@ -710,7 +708,12 @@ flows:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein == true
         options:
-          api_names: *rlm_ai_psl_api_names  
+          api_names: *rlm_ai_psl_api_names
+      4.5:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__einstein == true and project_config.project__custom__tso == true
+        options:
+          api_names: *rlm_ai_tso_psl_api_names   
       5:
         task: util_sleep
         options:
