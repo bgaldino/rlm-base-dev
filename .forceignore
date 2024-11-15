@@ -21,6 +21,7 @@ force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProced
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 
 # contextDefinitions
@@ -43,7 +44,7 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-#unpackaged/pre/5_decisiontables
+unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
@@ -67,19 +68,24 @@ unpackaged/post_lotus/bots/Copilot_for_Salesforce
 #classes
 #force-app/main/default/classes/AmendQuote
 #force-app/main/default/classes/dao
-force-app/main/default/classes/dao/AppliedTermsDao.cls*
-force-app/main/default/classes/dao/ApproverQuery.cls*
-force-app/main/default/classes/dao/IAppliedTermsDao.cls*
-force-app/main/default/classes/dao/IApproverQuery.cls*
-force-app/main/default/classes/dao/INotificationQuery.cls*
-force-app/main/default/classes/dao/NotificationQuery.cls*
-force-app/main/default/classes/dao/ProductTermsSelector.cls*
-#force-app/main/default/classes/PlaceQuote
-#force-app/main/default/classes/QuoteLineService
-#force-app/main/default/classes/QuoteLineTrigger
-force-app/main/default/classes/QuoteLineTrigger/EffectiveDiscount
-force-app/main/default/classes/QuoteLineTrigger/ApprovalLevelRunner.cls*
-force-app/main/default/classes/QuoteLineTrigger/ProductRuleRunner.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/AppliedTermsDao.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/ApproverQuery.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/IAppliedTermsDao.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/IApproverQuery.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/INotificationQuery.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/NotificationQuery.cls*
+force-app/main/default/classes/orgsf-quote-base/dao/ProductTermsSelector.cls*
+force-app/main/default/classes/orgsf-quote-base/flowActions/CloneQuoteFlowAction.cls*
+force-app/main/default/classes/orgsf-quote-base/QuoteEventTriggerHandler.cls*
+force-app/main/default/classes/orgsf-quote-base/QuoteLineItemExceptions.cls*
+#force-app/main/default/orgsf-quote-base/classes/PlaceQuote
+#force-app/main/default/orgsf-quote-base/classes/QuoteLineService
+#force-app/main/default/orgsf-quote-base/classes/QuoteLineTrigger
+force-app/main/default/classes/orgsf-quote-base/QuoteLineTrigger/EffectiveDiscount
+force-app/main/default/classes/orgsf-quote-base/QuoteLineTrigger/ApprovalLevelRunner.cls*
+force-app/main/default/classes/orgsf-quote-base/QuoteLineTrigger/ProductRuleRunner.cls*
+force-app/main/default/classes/orgsf-quote-base/ProductListSelector.cls*
+force-app/main/default/classes/orgsf-quote-base/QuoteStatusASTUpdate.cls*
 #force-app/main/default/classes/QuoteUpdate
 #force-app/main/default/classes/QuoteBaseConstants.cls
 # flows
@@ -161,6 +167,8 @@ unpackaged/post_lotus/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
 
 ## MISC - TO ORGANIZE
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
+
+unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
 
 **/tsconfig.json
 

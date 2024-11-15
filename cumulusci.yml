@@ -30,10 +30,10 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain bgaldino-241011-108-cdo.my.salesforce.com
-    user_alias: &user_alias bgaldino@bgaldino-241011-108.cdo
+    mydomain: &mydomain bgaldino-241029-621-demo.my.salesforce.com
+    user_alias: &user_alias bgaldino@bgaldino-241029-621.demo
     prm: true
-    tso: false
+    tso: true
     qb: true
     prod: true
     qbdata: true
@@ -265,7 +265,7 @@ tasks:
       description: "Extension of Standard Sales Transaction Context Definition"
       developerName: *sales_transaction_context_name
       baseReference: "SalesTransactionContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *sales_transaction_context_default_mapping
 
@@ -278,7 +278,7 @@ tasks:
       description: "Extension of Standard Product Discovery Context Definition"
       developerName: *product_discovery_context_name
       baseReference: "ProductDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *product_discovery_context_default_mapping
 
@@ -291,7 +291,7 @@ tasks:
       description: "Extension of Standard Cart Context Definition"
       developerName: *cart_context_name
       baseReference: "CartContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *cart_context_default_mapping  
 
@@ -304,7 +304,7 @@ tasks:
       description: "Extension of Standard Billing Context Definition"
       developerName: *billing_context_name
       baseReference: "BillingContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *billing_context_default_mapping
 
@@ -317,7 +317,7 @@ tasks:
       description: "Extension of Standard Fulfillment Asset Context Definition"
       developerName: *fulfillment_asset_context_name
       baseReference: "FulfillmentAssetContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *fulfillment_asset_context_default_mapping
 
@@ -330,7 +330,7 @@ tasks:
       description: "Extension of Standard Collection Plan Segment Context Definition"
       developerName: *collection_plan_segment_context_name
       baseReference: "CollectionPlanSegmentContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *collection_plan_segment_context_default_mapping
 
@@ -343,7 +343,7 @@ tasks:
       description: "Extension of Standard Rate Management Context Definition"
       developerName: *rate_management_context_name
       baseReference: "RateManagementContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rate_management_context_default_mapping
 
@@ -356,7 +356,7 @@ tasks:
       description: "Extension of Standard Rating Discovery Context Definition"
       developerName: *rating_discovery_context_name
       baseReference: "RatingDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rating_discovery_context_default_mapping
 
@@ -476,7 +476,7 @@ tasks:
   create_price_adjustment_schedules_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_quantumbit_data:
@@ -487,7 +487,7 @@ tasks:
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_q3_data:
@@ -498,7 +498,7 @@ tasks:
   insert_q3_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_clm_data:
@@ -509,7 +509,7 @@ tasks:
   insert_clm_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_dro_data_scratch:
@@ -520,7 +520,7 @@ tasks:
   insert_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_tax_data:
@@ -531,7 +531,7 @@ tasks:
   insert_tax_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_billing_data:
@@ -542,7 +542,7 @@ tasks:
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   insert_scratch_data:
@@ -563,7 +563,7 @@ tasks:
   activate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   deactivate_expression_sets:
@@ -574,7 +574,7 @@ tasks:
   deactivate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241029-621.demo -c"
       extra: *mydomain
 
   deploy_sharing_rules:
