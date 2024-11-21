@@ -44,9 +44,7 @@ public with sharing class AssetDAO implements IAssetDAO {
             return new List<Asset>{ testAsset };
         }
         return Database.queryWithBinds(
-            'Select Id,Tenant__c,Product2.name,tenant__r.Tenant_Information_Parameters__c,CurrentQuantity,Tenant__r.Fulfillment_Provider_Name__c,Tenant__r.OptionalName__c,LifecycleStartDate,LifecycleEndDate,TotalLifecycleAmount,' +
-            '(Select id,(SELECT TYPEOF ReferenceEntityItem WHEN OrderItem THEN Reference_Order_Item_IDs__c END FROM AssetActionSources WHERE ReferenceEntityItem.Type = \'OrderItem\' order by CreatedDate DESC LIMIT 1) from AssetActions order by CreatedDate DESC LIMIT 1),'+
-            '(Select id, Contract.ContractTerm from AssetContractRelationships) '+
+            'Select Id,Tenant__c,Product2.name,tenant__r.Tenant_Information_Parameters__c,CurrentQuantity,Tenant__r.Fulfillment_Provider_Name__c,Tenant__r.OptionalName__c,LifecycleStartDate,LifecycleEndDate,TotalLifecycleAmount, (Select id, Contract.ContractTerm from AssetContractRelationships) ' +
             'from Asset where AccountId=:accountId AND LifecycleEndDate >= : serviceStartDate',
             new Map<String, Object>{ 'accountId' => accountId, 'serviceStartDate' => serviceStartDate },
             SecurityCheck.getAccessLevel()

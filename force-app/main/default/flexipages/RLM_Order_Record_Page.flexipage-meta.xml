@@ -264,16 +264,6 @@
                 <identifier>RecordOpportunityIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.FulfillmentPlanId</fieldItem>
-                <identifier>RecordFulfillmentPlanIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
         <name>Facet-4db3c223-b6c3-4f74-8d6d-5dd63713323c</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -324,16 +314,6 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.PaymentTermId</fieldItem>
-                <identifier>RecordPaymentTermIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
                 <fieldItem>Record.SalesTransactionTypeId</fieldItem>
                 <identifier>RecordSalesTransactionTypeIdField</identifier>
             </fieldInstance>
@@ -344,8 +324,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.LegalEntityId</fieldItem>
-                <identifier>RecordLegalEntityIdField</identifier>
+                <fieldItem>Record.FulfillmentPlanId</fieldItem>
+                <identifier>RecordFulfillmentPlanIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-0cc99981-8cdf-41c6-b143-0e6ea3f13fb4</name>
@@ -424,6 +404,16 @@
                 <identifier>RecordBillToContactIdField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.LegalEntityId</fieldItem>
+                <identifier>RecordLegalEntityIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-9a7a4c2e-66c2-433b-bbc2-0a6e35fdeff1</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -446,6 +436,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.ShipToContactId</fieldItem>
                 <identifier>RecordShipToContactIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.PaymentTermId</fieldItem>
+                <identifier>RecordPaymentTermIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-62e3348a-7875-43bf-989d-39694f2ffe00</name>
@@ -723,15 +723,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>TotalAmount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>BilledAmount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>NextBillingDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Status</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>

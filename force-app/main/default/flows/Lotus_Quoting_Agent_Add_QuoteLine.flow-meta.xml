@@ -4,7 +4,7 @@
         <name>Create_QuoteLine_using_PlaceQuote</name>
         <label>Create QuoteLine using PlaceQuote</label>
         <locationX>176</locationX>
-        <locationY>782</locationY>
+        <locationY>890</locationY>
         <actionName>PlaceQuoteAddQLAction</actionName>
         <actionType>apex</actionType>
         <connector>
@@ -33,7 +33,7 @@
         <name>Add_to_QuoteLinesList</name>
         <label>Add to QuoteLinesList</label>
         <locationX>176</locationX>
-        <locationY>566</locationY>
+        <locationY>674</locationY>
         <assignmentItems>
             <assignToReference>QuoteLinesList</assignToReference>
             <operator>Add</operator>
@@ -49,7 +49,7 @@
         <name>Create_New_QuoteLine</name>
         <label>Create New QuoteLine</label>
         <locationX>176</locationX>
-        <locationY>458</locationY>
+        <locationY>566</locationY>
         <assignmentItems>
             <assignToReference>newQuoteLine.PricebookEntryId</assignToReference>
             <operator>Assign</operator>
@@ -107,7 +107,7 @@
         <name>Populate_Output_Message</name>
         <label>Populate Output Message</label>
         <locationX>176</locationX>
-        <locationY>998</locationY>
+        <locationY>1106</locationY>
         <assignmentItems>
             <assignToReference>OutputMessage</assignToReference>
             <operator>Assign</operator>
@@ -120,7 +120,7 @@
         <name>Populate_Quote_for_Action</name>
         <label>Populate Quote for Action</label>
         <locationX>176</locationX>
-        <locationY>674</locationY>
+        <locationY>782</locationY>
         <assignmentItems>
             <assignToReference>QuoteToUpdate.Id</assignToReference>
             <operator>Assign</operator>
@@ -136,7 +136,7 @@
         <name>Quote_Details</name>
         <label>Quote Details</label>
         <locationX>176</locationX>
-        <locationY>890</locationY>
+        <locationY>998</locationY>
         <assignmentItems>
             <assignToReference>UpdatedQuote.Id</assignToReference>
             <operator>Assign</operator>
@@ -195,7 +195,7 @@
         <name>Get_PriceBookEntry</name>
         <label>Get PriceBookEntry</label>
         <locationX>176</locationX>
-        <locationY>350</locationY>
+        <locationY>458</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Create_New_QuoteLine</targetReference>
@@ -205,7 +205,7 @@
             <field>Pricebook2Id</field>
             <operator>EqualTo</operator>
             <value>
-                <stringValue>01s7y000001b7OXAAY</stringValue>
+                <elementReference>Get_Standard_Price_Book.Id</elementReference>
             </value>
         </filters>
         <filters>
@@ -233,14 +233,14 @@
         <locationY>242</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Get_PriceBookEntry</targetReference>
+            <targetReference>Get_Standard_Price_Book</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>PricingTermUnit</field>
             <operator>EqualTo</operator>
             <value>
-                <stringValue>Months</stringValue>
+                <stringValue>Annual</stringValue>
             </value>
         </filters>
         <filters>
@@ -280,6 +280,34 @@
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Quote</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Standard_Price_Book</name>
+        <label>Get Standard Price Book</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_PriceBookEntry</targetReference>
+        </connector>
+        <filterLogic>or</filterLogic>
+        <filters>
+            <field>Name</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Standard Price Book</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>IsStandard</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Pricebook2</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <start>
