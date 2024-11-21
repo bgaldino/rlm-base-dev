@@ -1,2 +1,2 @@
-$$Name$TaxEngine.TaxEngineName$LegalEntity.Name,Description,IsTaxable,LegalEntity.$$Name$LegalEntityCountry,Name,ProductCode,Status,TaxCode,TaxEngine.$$TaxEngineName$MerchantCredential.DeveloperName,TaxPolicy.$$Name$DefaultTaxTreatment.Name
-Default Tax Policy;RC_MockTaxAdapter;Default Legal Entity - US,,true,Default Legal Entity - US;US,Default Tax Policy,Test123,Active,PA020111,RC_MockTaxAdapter;RLM_MockTax,Default Tax Policy;Default Tax Policy
+Description,IsTaxable,LegalEntity.Name,Name,ProductCode,Status,TaxCode,TaxEngine.TaxEngineName,TaxPolicy.Name
+,true,Default Legal Entity - US,Default Tax Policy,Test123,Draft,PA020111,RC_MockTaxAdapter,Default Tax Policy

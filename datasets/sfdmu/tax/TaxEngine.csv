@@ -1,2 +1,2 @@
-$$TaxEngineName$MerchantCredential.DeveloperName,Description,MerchantCredential.DeveloperName,SellerCode,Status,TaxEngineCountry,TaxEngineGeocodeAccuracy,TaxEngineName,TaxEngineProvider.DeveloperName
-RC_MockTaxAdapter;RLM_MockTax,,RLM_MockTax,Billing2,Active,US,,RC_MockTaxAdapter,RC_MockTaxAdapter
+Description,MerchantCredential.DeveloperName,SellerCode,Status,TaxEngineCountry,TaxEngineGeocodeAccuracy,TaxEngineName,TaxEngineProvider.DeveloperName
+,RLM_MockTax,Billing2,Active,United States,,RC_MockTaxAdapter,RC_MockTaxAdapter

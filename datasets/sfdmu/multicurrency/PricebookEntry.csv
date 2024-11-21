@@ -58,6 +58,7 @@ QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Evergreen Monthly;U
 QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;One-Time;USD,USD,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,One-Time;OneTime,0
 QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Term Annual;USD,USD,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Term Annual;TermDefined,0
 QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Term Monthly;USD,USD,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Term Monthly;TermDefined,0
+QuantumBit Database;Standard Price Book;QB-DB;Term Annual;USD,USD,true,false,QuantumBit Database,Standard Price Book;true,QB-DB,Term Annual;TermDefined,12000
 QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;USD,USD,true,false,QuantumBit Essentials Training,Standard Price Book;true,QB-TRN-ESSNTLS,One-Time;OneTime,8500
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;USD,USD,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,6500
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;USD,USD,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0

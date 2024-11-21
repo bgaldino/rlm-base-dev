@@ -30,10 +30,10 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain bgaldino-241029-621-demo.my.salesforce.com
-    user_alias: &user_alias bgaldino@bgaldino-241029-621.demo
+    mydomain: &mydomain qb-241119-207-tso.my.salesforce.com
+    user_alias: &user_alias admin@qb-241119-207.tso
     prm: true
-    tso: false
+    tso: true
     qb: true
     prod: true
     qbdata: true
@@ -89,13 +89,11 @@ project:
       - AutomatedActionsPsl
       - EinsteinAgentCWUPsl
       - EinsteinAgentPsl
-      - EinsteinCopilotReviewMyDayPsl, 
       - EinsteinDiscoveryInTableauPsl
       - EinsteinGPTCallExplorerPsl
       - EinsteinGPTCreateClosePlanPsl
       - EinsteinGPTGetProductPricingPsl
       - EinsteinGPTGroundingStructuredDataPsl
-      - EinsteinGPTMeetingFollowUpPsl, 
       - EinsteinGPTSalesCallSummariesPsl
       - EinsteinGPTSalesEmailsPsl
       - EinsteinGPTSalesMiningPsl
@@ -474,7 +472,7 @@ tasks:
   create_price_adjustment_schedules_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_quantumbit_data:
@@ -485,7 +483,7 @@ tasks:
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_q3_data:
@@ -496,18 +494,18 @@ tasks:
   insert_q3_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_clm_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/clm"
 
   insert_clm_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/clm -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_dro_data_scratch:
@@ -518,7 +516,7 @@ tasks:
   insert_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_tax_data:
@@ -529,7 +527,7 @@ tasks:
   insert_tax_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_billing_data:
@@ -540,7 +538,19 @@ tasks:
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u admin@qb-241119-207.tso -c"
+      extra: *mydomain
+
+  insert_rating_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/rating"
+      extra: *mydomain
+
+  insert_rating_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/rating -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_scratch_data:
@@ -561,7 +571,7 @@ tasks:
   activate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   deactivate_expression_sets:
@@ -572,7 +582,7 @@ tasks:
   deactivate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241029-621.demo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   deploy_sharing_rules:
@@ -605,6 +615,11 @@ tasks:
     options:
       path: unpackaged/post_lotus
 
+  deploy_post_tso:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_tso
+
   create_rule_library:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -629,6 +644,11 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateDefaultPaymentTerm.apex
+
+  activate_legal_entities:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateLegalEntities.apex
 
   activate_billing_records:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -689,6 +709,14 @@ flows:
         task: activate_and_deploy_expression_sets
       18:
         flow: prepare_lotus
+      19:
+        flow: prepare_tso
+      20:
+        flow: prepare_prm
+      21:
+        flow: prepare_rating
+      22:
+        flow: prepare_activated_records
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -891,10 +919,6 @@ flows:
         when: project_config.project__custom__billing == true
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      4:
-        task: activate_default_payment_term
-      5: 
-        task: activate_billing_records
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -923,8 +947,6 @@ flows:
       3:
         task: insert_tax_data_prod
         when: project_config.project__custom__tax == true and project_config.project__custom__tso == true
-      4:
-        task: activate_tax_records
 
   prepare_dependencies:
     group: Revenue Lifecycle Management
@@ -947,3 +969,30 @@ flows:
         when: project_config.project__custom__lotus == true
         options:
           api_names: *ps_lotus
+
+  prepare_tso:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_tso
+        when: project_config.project__custom__tso == true
+
+  prepare_rating:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_rating_data
+        when: org_config.scratch and project_config.project__custom__rating == true
+      2:
+        task: insert_rating_data_prod
+        when: project_config.project__custom__tso == true and project_config.project__custom__rating == true
+
+  prepare_activated_records:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: activate_default_payment_term
+      3:
+        task: activate_tax_records
+      4:
+        task: activate_billing_records

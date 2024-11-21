@@ -38,7 +38,7 @@
         {
           "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard",
           "operation": "Update",
-          "externalId": "Type",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -48,7 +48,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Name, StockKeepingUnit FROM Product2",
+          "query": "SELECT Name, StockKeepingUnit, UsageModelType FROM Product2",
           "operation": "Readonly",
           "externalId": "StockKeepingUnit",
           "excluded": false

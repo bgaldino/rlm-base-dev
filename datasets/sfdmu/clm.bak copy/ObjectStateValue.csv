@@ -1,0 +1,25 @@
+Description,Name,ObjectStateDefinition.Name,ReferenceRecordAccessType,RefRecordLayoutFieldValue
+,Draft,Contract LifeCycle Management,,ReadOnly
+,In Approval Process,Contract LifeCycle Management,,ReadOnly
+,Activated,Contract LifeCycle Management,,ReadOnly
+,Rejected,Contract LifeCycle Management,,ReadOnly
+,Negotiating,Contract LifeCycle Management,,ReadOnly
+,Awaiting Signature,Contract LifeCycle Management,,ReadOnly
+,Signature Declined,Contract LifeCycle Management,,ReadOnly
+,Signed,Contract LifeCycle Management,,ReadOnly
+,Canceled,Contract LifeCycle Management,,ReadOnly
+,Contract Expired,Contract LifeCycle Management,,ReadOnly
+,Contract Terminated,Contract LifeCycle Management,,ReadOnly
+,Activated,Legal,null,ReadOnly
+,Rejected,Legal,null,ReadOnly
+,Negotiating,Legal,null,ReadOnly
+,Awaiting Signature,Legal,null,ReadOnly
+,Draft,Legal,null,ReadOnly
+,In Approval Process,Legal,null,ReadOnly
+,Contract Terminated,Legal,null,ReadOnly
+,Signature Declined,Legal,null,ReadOnly
+,Signed,Legal,null,ReadOnly
+,Canceled,Legal,null,ReadOnly
+,Contract Expired,Legal,null,ReadOnly
+,CustomLegalS1,Legal,ReadOnly,null
+,CustomLegalS2,Legal,ReadOnly,null

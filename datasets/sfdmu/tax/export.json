@@ -8,7 +8,7 @@
         {
           "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
           "operation": "Upsert",
-          "externalId": "Name;LegalEntityCountry",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -20,19 +20,19 @@
         {
           "query": "SELECT Description, MerchantCredentialId, SellerCode, Status, TaxEngineCountry, TaxEngineGeocodeAccuracy, TaxEngineName, TaxEngineProviderId FROM TaxEngine",
           "operation": "Upsert",
-          "externalId": "TaxEngineName;MerchantCredential.DeveloperName",
+          "externalId": "TaxEngineName",
           "excluded": false
         },
         {
           "query": "SELECT Description, IsTaxable, LegalEntityId, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxPolicyId FROM TaxTreatment",
           "operation": "Upsert",
-          "externalId": "Name;TaxEngine.TaxEngineName;LegalEntity.Name",
+          "externalId": "Name",
           "excluded": false
         },
         {
           "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
           "operation": "Upsert",
-          "externalId": "Name;DefaultTaxTreatment.Name",
+          "externalId": "Name",
           "excluded": false
         },
         {

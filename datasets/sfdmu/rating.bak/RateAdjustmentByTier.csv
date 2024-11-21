@@ -1,0 +1,3 @@
+$$Product.StockKeepingUnit$RateCard.Type$UsageResource.Name,AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,LowerBound,Product.StockKeepingUnit,ProductSellingModel.Name,RateCard.Type,RateCardEntry.$$Product.StockKeepingUnit$RateCard.Type$UsageResource.Name,RateUnitOfMeasure.Name,RateUnitOfMeasureName,UpperBound,UsageResource.Code
+QB-DAT-THPT;Tier;Call Resource,Override,1,2024-08-22T13:04:00.000+0000,,0,QB-DAT-THPT,Term Based - Monthly,Tier,QB-DAT-THPT;Tier;Call Resource,USD Dollar,USD Dollar,1000,Call
+QB-DAT-THPT;Tier;Call Resource,Override,0.5,2024-08-22T13:04:00.000+0000,,1000,QB-DAT-THPT,Term Based - Monthly,Tier,QB-DAT-THPT;Tier;Call Resource,USD Dollar,USD Dollar,,Call

@@ -1,0 +1,6 @@
+$$Name$DependsOnStepDefinition.Name$FulfillmentStepDefinition.Name$CurrencyIsoCode,CurrencyIsoCode,DependencyScope,DependsOnStepDefinition.$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,FulfillmentStepDefinition.$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,Name
+Wait on Provision Before Converting;Validate Order Info;Convert Order to Asset;USD,USD,Plan,Validate Order Info;Order Processing;USD,Convert Order to Asset;Tenant Provisioning + Activation;USD,Wait on Provision Before Converting
+Require Validation Before Provisioning;Validate Order Info;Stage New Tenant for Provisioning;USD,USD,Plan,Validate Order Info;Order Processing;USD,Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,Require Validation Before Provisioning
+Asset Conversion then Bill;Convert Order to Asset;Initiate Billing;USD,USD,Plan,Convert Order to Asset;Tenant Provisioning + Activation;USD,Initiate Billing;Finance;USD,Asset Conversion then Bill
+Receive Payment;Initiate Billing;Post Invoice;USD,USD,Plan,Initiate Billing;Finance;USD,Post Invoice;Finance;USD,Receive Payment
+Post to Pay;Post Invoice;Receive Payment;USD,USD,Plan,Post Invoice;Finance;USD,Receive Payment;Finance;USD,Post to Pay

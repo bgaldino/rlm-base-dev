@@ -44,7 +44,7 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-#unpackaged/pre/5_decisiontables
+unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
@@ -169,7 +169,7 @@ force-app/main/default/genAiPlugins
 ## MISC - TO ORGANIZE
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 
-unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
+#unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
 force-app/main/default/settings/UserInterface.settings-meta.xml
 
 **/tsconfig.json

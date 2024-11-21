@@ -12,7 +12,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT LegalEntityStreet, LegalEntityState, LegalEntityCountry, CompanyName, Description, Name, Status FROM LegalEntity",
+          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false

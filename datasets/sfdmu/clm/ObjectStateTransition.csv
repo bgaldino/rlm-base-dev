@@ -1,0 +1,48 @@
+CustomPermission.DeveloperName,Description,FromState.Name,Name,ObjectStateDefinition.Name,ToState.Name
+,,Draft,Draft_To_InApproval,Contract LifeCycle Management,In Approval Process
+,,Draft,Draft_To_Canceled,Contract LifeCycle Management,Canceled
+,,In Approval Process,InApproval_To_Rejected,Contract LifeCycle Management,Rejected
+,,In Approval Process,InApproval_To_Negotiating,Contract LifeCycle Management,Negotiating
+,,In Approval Process,InApproval_To_Canceled,Contract LifeCycle Management,Canceled
+,,In Approval Process,InApproval_To_Draft,Contract LifeCycle Management,Draft
+,,Rejected,Rejected_To_Canceled,Contract LifeCycle Management,Canceled
+,,Rejected,Rejected_To_Draft,Contract LifeCycle Management,Draft
+,,Negotiating,Negotiating_To_Draft,Contract LifeCycle Management,Draft
+,,Negotiating,Negotiating_To_AwaitingSignature,Contract LifeCycle Management,Awaiting Signature
+,,Negotiating,Negotiating_To_Canceled,Contract LifeCycle Management,Canceled
+,,Awaiting Signature,AwaitingSignature_To_Signed,Contract LifeCycle Management,Signed
+,,Awaiting Signature,AwaitingSignature_To_SignatureDeclined,Contract LifeCycle Management,Signature Declined
+,,Awaiting Signature,AwaitingSignature_To_Negotiating,Contract LifeCycle Management,Negotiating
+,,Awaiting Signature,AwaitingSignature_To_Canceled,Contract LifeCycle Management,Canceled
+,,Signature Declined,SignatureDeclined_To_Canceled,Contract LifeCycle Management,Canceled
+,,Signature Declined,SignatureDeclined_To_Draft,Contract LifeCycle Management,Draft
+,,Signed,Signed_To_Activated,Contract LifeCycle Management,Activated
+,,Activated,Activated_To_Expired,Contract LifeCycle Management,Contract Expired
+,,Activated,Activated_To_Terminated,Contract LifeCycle Management,Contract Terminated
+,,Activated,Activated_To_Expired,Legal,Contract Expired
+,,Activated,Activated_To_Terminated,Legal,Contract Terminated
+,,Awaiting Signature,AwaitingSignature_To_Canceled,Legal,Canceled
+,,Awaiting Signature,AwaitingSignature_To_Negotiating,Legal,Negotiating
+,,Awaiting Signature,AwaitingSignature_To_SignatureDeclined,Legal,Signature Declined
+,,Awaiting Signature,AwaitingSignature_To_Signed,Legal,Signed
+,,Canceled,Canceled_To_ReDraft,Legal,Draft
+,,CustomLegalS1,CustomLegalS1_To_Draft,Legal,Draft
+,,CustomLegalS1,CustomLegalS1_To_InApproval,Legal,In Approval Process
+,,CustomLegalS2,CustomLegalS2_To_AwaitingSignature,Legal,Awaiting Signature
+,,CustomLegalS2,CustomLegalS2_To_CancelContract,Legal,Canceled
+,,Draft,Draft_To_Canceled,Legal,Canceled
+,,Draft,Draft_To_CustomLegalS1,Legal,CustomLegalS1
+,,Draft,Draft_To_InApproval,Legal,In Approval Process
+,,In Approval Process,InApproval_To_Canceled,Legal,Canceled
+,,In Approval Process,InApproval_To_Draft,Legal,Draft
+,,In Approval Process,InApproval_To_Negotiating,Legal,Negotiating
+,,In Approval Process,InApproval_To_Rejected,Legal,Rejected
+,,Negotiating,Negotiating_To_AwaitingSignature,Legal,Awaiting Signature
+,,Negotiating,Negotiating_To_Canceled,Legal,Canceled
+,,Negotiating,Negotiating_To_CustomLegalS2,Legal,CustomLegalS2
+,,Negotiating,Negotiating_To_Draft,Legal,Draft
+,,Rejected,Rejected_To_Canceled,Legal,Canceled
+,,Rejected,Rejected_To_Draft,Legal,Draft
+,,Signature Declined,SignatureDeclined_To_Canceled,Legal,Canceled
+,,Signature Declined,SignatureDeclined_To_Draft,Legal,Draft
+,,Signed,Signed_To_Activated,Legal,Activated

@@ -1,3 +1,3 @@
-$$Name$LegalEntityCountry,CompanyName,CurrencyIsoCode,Description,LegalEntityCity,LegalEntityCountry,LegalEntityPostalCode,LegalEntityState,LegalEntityStreet,Name,Status
-Default Legal Entity - US;US,QuantumBit,USD,,San Francisco,US,94105,CA,415 Mission St,Default Legal Entity - US,Draft
-Default Legal Entity - Canada;CA,QuantumBit,USD,,Toronto,CA,M9W 5E4,ON,33 Carlingview Drive,Default Legal Entity - Canada,Draft
+CompanyName,CurrencyIsoCode,Description,LegalEntityCity,LegalEntityCountry,LegalEntityPostalCode,LegalEntityState,LegalEntityStreet,Name,Status
+QuantumBit,USD,,San Francisco,US,94105,CA,415 Mission St,Default Legal Entity - US,Active
+QuantumBit,USD,,Toronto,CA,M9W 5E4,ON,33 Carlingview Drive,Default Legal Entity - Canada,Active

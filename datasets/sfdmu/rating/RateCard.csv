@@ -1,3 +1,3 @@
 Description,EffectiveFrom,EffectiveTo,Name,Type
-This is the default amount for mins,2024-08-01T19:00:00.000+0000,,Minutes - Base,Base
-,2024-08-22T12:45:00.000+0000,,Min - Overridde,Tier
+,2024-10-01T19:00:00.000+0000,,Base Rate Card,Base
+,2024-10-01T19:00:00.000+0000,,Tier Rate Card,Tier

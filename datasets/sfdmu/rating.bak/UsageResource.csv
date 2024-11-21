@@ -1,0 +1,3 @@
+Category,Code,DefaultUnitOfMeasure.Name,Description,DoesUsagePersist,Name,Status,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,Min,Minutes,,false,Minutes,Inactive,Time,,BillMonth
+Usage,Call,Minutes,,false,Call Resource,Active,Time,,BillMonth
