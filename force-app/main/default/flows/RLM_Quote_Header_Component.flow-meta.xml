@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <name>Patch_Quote_with_Date_Info</name>
-        <label>Patch Quote with Date Info</label>
-        <locationX>266</locationX>
-        <locationY>1433</locationY>
-        <actionName>RLM_PatchQuoteDateHeader</actionName>
+        <name>Quote_Header_Patch_Dates</name>
+        <label>Quote Header Patch Dates</label>
+        <locationX>109</locationX>
+        <locationY>1169</locationY>
+        <actionName>RLM_QuoteHeaderFlowController</actionName>
         <actionType>apex</actionType>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
@@ -38,7 +38,8 @@
                 <elementReference>InputTerm</elementReference>
             </value>
         </inputParameters>
-        <nameSegment>RLM_PatchQuoteDateHeader</nameSegment>
+        <nameSegment>RLM_QuoteHeaderFlowController</nameSegment>
+        <offset>0</offset>
         <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>62.0</apiVersion>
@@ -162,7 +163,7 @@
             <targetReference>Check_if_Line_if_Term_Defined</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>Patch_Quote_with_Date_Info</targetReference>
+            <targetReference>Quote_Header_Patch_Dates</targetReference>
         </noMoreValuesConnector>
     </loops>
     <processMetadataValues>
