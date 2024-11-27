@@ -351,7 +351,7 @@
             <assignToReference>newQuote.Pricebook2Id</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>DefaultPriceBookID</elementReference>
+                <elementReference>Get_Default_Pricebook.Id</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -415,6 +415,13 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>Term</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>newQuote.QuoteAccountId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Opportunity.AccountId</elementReference>
             </value>
         </assignmentItems>
         <connector>

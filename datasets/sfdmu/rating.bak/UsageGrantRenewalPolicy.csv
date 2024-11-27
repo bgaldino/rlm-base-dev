@@ -1,0 +1,2 @@
+Code,IsRenewalAllowed,Name,RenewalFrequency,RenewalFrequencyUnit,Status
+Renew,true,Monthly Renewal,1,Month,Active

@@ -30,10 +30,10 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain bgaldino-241011-108-cdo.my.salesforce.com
-    user_alias: &user_alias bgaldino@bgaldino-241011-108.cdo
+    mydomain: &mydomain qb-241119-207-tso.my.salesforce.com
+    user_alias: &user_alias admin@qb-241119-207.tso
     prm: true
-    tso: false
+    tso: true
     qb: true
     prod: true
     qbdata: true
@@ -77,21 +77,23 @@ project:
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
+      - EinsteinAnalyticsPlusPsl
+      - EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinGPTCopilotPsl
+      - EinsteinGPTPromptTemplatesPsl
+      - MySearchPsl
+      - ScoringFrameworkPsl
+
+    rlm_ai_tso_psl_api_names: &rlm_ai_tso_psl_api_names
       - AnalyticsQueryServicePslForSalesPlanning
       - AutomatedActionsPsl
       - EinsteinAgentCWUPsl
       - EinsteinAgentPsl
-      - EinsteinAnalyticsPlusPsl
-      - EinsteinCopilotReviewMyDayPsl
-      - EinsteinDisclsAndCmplHubUserPsl
       - EinsteinDiscoveryInTableauPsl
       - EinsteinGPTCallExplorerPsl
-      - EinsteinGPTCopilotPsl
       - EinsteinGPTCreateClosePlanPsl
       - EinsteinGPTGetProductPricingPsl
       - EinsteinGPTGroundingStructuredDataPsl
-      - EinsteinGPTMeetingFollowUpPsl
-      - EinsteinGPTPromptTemplatesPsl
       - EinsteinGPTSalesCallSummariesPsl
       - EinsteinGPTSalesEmailsPsl
       - EinsteinGPTSalesMiningPsl
@@ -111,19 +113,13 @@ project:
       - SalesCloudUnlimitedAnalyticsAdminPsl
       - SalesCloudUnlimitedPsl
       - SalesEngagementBasicPsl
-      - ScoringFrameworkPsl
       - TableauEinsteinBaseCreatorPsl
       - TableauEinsteinBaseViewerPsl
       - TableauEinsteinIncludedAppPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       - EinsteinGPTPromptTemplateManager
-      - EinsteinGPTSalesSummaries
-      - EinsteinGPTSalesEmails
-      - EinsteinGPTSalesCallSummaries
-      - EinsteinGPTGetProductPricing
       - SalesCloudEinsteinAll
-      - ERIBasic
 
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
       - IndustriesConfiguratorPlatformApi
@@ -265,7 +261,7 @@ tasks:
       description: "Extension of Standard Sales Transaction Context Definition"
       developerName: *sales_transaction_context_name
       baseReference: "SalesTransactionContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *sales_transaction_context_default_mapping
 
@@ -278,7 +274,7 @@ tasks:
       description: "Extension of Standard Product Discovery Context Definition"
       developerName: *product_discovery_context_name
       baseReference: "ProductDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *product_discovery_context_default_mapping
 
@@ -291,7 +287,7 @@ tasks:
       description: "Extension of Standard Cart Context Definition"
       developerName: *cart_context_name
       baseReference: "CartContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *cart_context_default_mapping  
 
@@ -304,7 +300,7 @@ tasks:
       description: "Extension of Standard Billing Context Definition"
       developerName: *billing_context_name
       baseReference: "BillingContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *billing_context_default_mapping
 
@@ -317,7 +313,7 @@ tasks:
       description: "Extension of Standard Fulfillment Asset Context Definition"
       developerName: *fulfillment_asset_context_name
       baseReference: "FulfillmentAssetContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *fulfillment_asset_context_default_mapping
 
@@ -330,7 +326,7 @@ tasks:
       description: "Extension of Standard Collection Plan Segment Context Definition"
       developerName: *collection_plan_segment_context_name
       baseReference: "CollectionPlanSegmentContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *collection_plan_segment_context_default_mapping
 
@@ -343,7 +339,7 @@ tasks:
       description: "Extension of Standard Rate Management Context Definition"
       developerName: *rate_management_context_name
       baseReference: "RateManagementContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rate_management_context_default_mapping
 
@@ -356,7 +352,7 @@ tasks:
       description: "Extension of Standard Rating Discovery Context Definition"
       developerName: *rating_discovery_context_name
       baseReference: "RatingDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rating_discovery_context_default_mapping
 
@@ -476,7 +472,7 @@ tasks:
   create_price_adjustment_schedules_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_quantumbit_data:
@@ -487,7 +483,7 @@ tasks:
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_q3_data:
@@ -498,18 +494,18 @@ tasks:
   insert_q3_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_clm_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/clm"
 
   insert_clm_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/clm -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_dro_data_scratch:
@@ -520,7 +516,7 @@ tasks:
   insert_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_tax_data:
@@ -531,7 +527,7 @@ tasks:
   insert_tax_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_billing_data:
@@ -542,7 +538,19 @@ tasks:
   insert_billing_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing -u admin@qb-241119-207.tso -c"
+      extra: *mydomain
+
+  insert_rating_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/rating"
+      extra: *mydomain
+
+  insert_rating_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/rating -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   insert_scratch_data:
@@ -563,7 +571,7 @@ tasks:
   activate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   deactivate_expression_sets:
@@ -574,7 +582,7 @@ tasks:
   deactivate_expression_sets_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u bgaldino@bgaldino-241011-108.cdo -c"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive -u admin@qb-241119-207.tso -c"
       extra: *mydomain
 
   deploy_sharing_rules:
@@ -607,6 +615,11 @@ tasks:
     options:
       path: unpackaged/post_lotus
 
+  deploy_post_tso:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_tso
+
   create_rule_library:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -631,6 +644,11 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateDefaultPaymentTerm.apex
+
+  activate_legal_entities:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateLegalEntities.apex
 
   activate_billing_records:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -691,6 +709,14 @@ flows:
         task: activate_and_deploy_expression_sets
       18:
         flow: prepare_lotus
+      19:
+        flow: prepare_tso
+      20:
+        flow: prepare_prm
+      21:
+        flow: prepare_rating
+      22:
+        flow: prepare_activated_records
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -710,7 +736,12 @@ flows:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein == true
         options:
-          api_names: *rlm_ai_psl_api_names  
+          api_names: *rlm_ai_psl_api_names
+      4.5:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__einstein == true and project_config.project__custom__tso == true
+        options:
+          api_names: *rlm_ai_tso_psl_api_names   
       5:
         task: util_sleep
         options:
@@ -888,10 +919,6 @@ flows:
         when: project_config.project__custom__billing == true
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      4:
-        task: activate_default_payment_term
-      5: 
-        task: activate_billing_records
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -920,8 +947,6 @@ flows:
       3:
         task: insert_tax_data_prod
         when: project_config.project__custom__tax == true and project_config.project__custom__tso == true
-      4:
-        task: activate_tax_records
 
   prepare_dependencies:
     group: Revenue Lifecycle Management
@@ -944,3 +969,30 @@ flows:
         when: project_config.project__custom__lotus == true
         options:
           api_names: *ps_lotus
+
+  prepare_tso:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_tso
+        when: project_config.project__custom__tso == true
+
+  prepare_rating:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_rating_data
+        when: org_config.scratch and project_config.project__custom__rating == true
+      2:
+        task: insert_rating_data_prod
+        when: project_config.project__custom__tso == true and project_config.project__custom__rating == true
+
+  prepare_activated_records:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: activate_default_payment_term
+      3:
+        task: activate_tax_records
+      4:
+        task: activate_billing_records

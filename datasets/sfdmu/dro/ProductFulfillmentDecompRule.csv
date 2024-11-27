@@ -1,31 +1,30 @@
 $$Name$SourceProduct.StockKeepingUnit$DestinationProduct.StockKeepingUnit$CurrencyIsoCode,CurrencyIsoCode,DestinationProduct.$$Name$StockKeepingUnit,Name,Priority,SourceProduct.$$Name$StockKeepingUnit
-AEH API Access Requests - Provisioning and Activation Service;QB-API-REQT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,AEH API Access Requests - Provisioning and Activation Service,,API Access Requests (AEH);QB-API-REQT
-API Access Requests to Finance;QB-API-REQT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,API Access Requests to Finance,,API Access Requests (AEH);QB-API-REQT
-QB API Management Solution to Finance;QB-API-MGMT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,QB API Management Solution to Finance,,QB API Management Solution;QB-API-MGMT
-Additional Data Throughput (TB) to Finance;QB-DAT-THPT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional Data Throughput (TB) to Finance,,Additional Data Throughput;QB-DAT-THPT
-Training to Finance;QB-TRN-ESSNTLS;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Training to Finance,,QuantumBit Essentials Training;QB-TRN-ESSNTLS
-Services Rate to Finance;QB-SRV-OG-PSH;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Services Rate to Finance,,Professional Services Daily Rate;QB-SRV-OG-PSH
-Additional API to Finance;QB-API;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional API to Finance,,Additional API;QB-API
-Training to Finance;QB-TRN-FUND;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Training to Finance,,QuantumBit Fundamentals Training;QB-TRN-FUND
-Essentials Train to Order Processing;QB-TRN-ESSNTLS;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Essentials Train to Order Processing,,QuantumBit Essentials Training;QB-TRN-ESSNTLS
-Scope of Work to Finance;QB-SRV-SOW;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Scope of Work to Finance,,Professional Services Scope of Work;QB-SRV-SOW
-Maintenance to Finance;QB-SUPP-2000;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Maintenance to Finance,,Software Maintenance;QB-SUPP-2000
-Additional Message to Finance;QB-MSG-STRT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional Message to Finance,,Additional Messages - QB Starter;QB-MSG-STRT
-Additional Flow to Finance;QB-FLO-STRT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional Flow to Finance,,Additional Flows - QB Starter;QB-FLO-STRT
-Service Project to Finance;QB-BDL-SRVC;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Service Project to Finance,,QuantumBit Services Project;QB-BDL-SRVC
-Additional to Finance;QB-AUT-CRED;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional to Finance,,Additional Automation QB Credits;QB-AUT-CRED
-QB API Management Solution to Order Process;QB-API-MGMT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,QB API Management Solution to Order Process,,QB API Management Solution;QB-API-MGMT
-QB API Management Solution to P&A;QB-API-MGMT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,QB API Management Solution to P&A,,QB API Management Solution;QB-API-MGMT
-Additional Data Throughput (TB) to Order Processing;QB-DAT-THPT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional Data Throughput (TB) to Order Processing,,Additional Data Throughput;QB-DAT-THPT
-Additional Data Throughput (TB) to P&A;QB-DAT-THPT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional Data Throughput (TB) to P&A,,Additional Data Throughput;QB-DAT-THPT
-Daily Rate to Order Processing;QB-SRV-OG-PSH;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Daily Rate to Order Processing,,Professional Services Daily Rate;QB-SRV-OG-PSH
-Additional API to Order Processing;QB-API;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional API to Order Processing,,Additional API;QB-API
-Additional API to P&A;QB-API;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional API to P&A,,Additional API;QB-API
-Training to Order Processing;QB-TRN-FUND;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Training to Order Processing,,QuantumBit Fundamentals Training;QB-TRN-FUND
-Scope of Work to Order Processing;QB-SRV-SOW;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Scope of Work to Order Processing,,Professional Services Scope of Work;QB-SRV-SOW
-Additional Message to Order Processing;QB-MSG-STRT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional Message to Order Processing,,Additional Messages - QB Starter;QB-MSG-STRT
-Additional Message to P&A;QB-MSG-STRT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional Message to P&A,,Additional Messages - QB Starter;QB-MSG-STRT
-Maintenance to Order Processing;QB-SUPP-2000;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Maintenance to Order Processing,,Software Maintenance;QB-SUPP-2000
-Additional Flow to Order Processing;QB-FLO-STRT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional Flow to Order Processing,,Additional Flows - QB Starter;QB-FLO-STRT
-Additional Flow to P&A;QB-FLO-STRT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional Flow to P&A,,Additional Flows - QB Starter;QB-FLO-STRT
-AEH API Access Requests - Order Processing;QB-API-REQT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,AEH API Access Requests - Order Processing,,API Access Requests (AEH);QB-API-REQT
+1:Many Decomposition - QB API Management Solution - Runtime;QB-API-MGMT;QB-AEH-ENV;USD,USD,AEH Environment Runtime;QB-AEH-ENV,1:Many Decomposition - QB API Management Solution - Runtime,,QB API Management Solution;QB-API-MGMT
+1:1 Decomposition - Additional API Gov;QB-API-GOVT;QB-DRO-API-GOVT;USD,USD,QB Platform - Additional API Gov;QB-DRO-API-GOVT,1:1 Decomposition - Additional API Gov,,Additional API Gov;QB-API-GOVT
+1:1 Decomposition - Additional API Flex (100M);QB-API-FLEX;QB-DRO-API-FLEX;USD,USD,QB Platform - Additional API Flex (100M);QB-DRO-API-FLEX,1:1 Decomposition - Additional API Flex (100M),,Additional API Flex (100M);QB-API-FLEX
+1:Many Decomposition - QB API Management Solution - Object Store;QB-API-MGMT;QB-AEH-OBJ;USD,USD,AEH Object Store - Restricted Use;QB-AEH-OBJ,1:Many Decomposition - QB API Management Solution - Object Store,,QB API Management Solution;QB-API-MGMT
+1:1 Decomposition - Additional Flows - QB Starter;QB-FLO-STRT;QB-DRO-FLO-STRT;USD,USD,QB Platform - Additional Flows - QB Starter;QB-DRO-FLO-STRT,1:1 Decomposition - Additional Flows - QB Starter,,Additional Flows - QB Starter;QB-FLO-STRT
+1:1 Decomposition - Additional Messages - QB Starter;QB-MSG-STRT;QB-DRO-MSG-STRT;USD,USD,QB Platform - Additional Messages - QB Starter;QB-DRO-MSG-STRT,1:1 Decomposition - Additional Messages - QB Starter,,Additional Messages - QB Starter;QB-MSG-STRT
+1:1 Decomposition - Additional Data Throughput;QB-DAT-THPT;QB-DRO-DAT-THPT;USD,USD,QB Platform - Additional Data Throughput;QB-DRO-DAT-THPT,1:1 Decomposition - Additional Data Throughput,,Additional Data Throughput;QB-DAT-THPT
+1:1 Decomposition - Additional API;QB-API;QB-DRO-API;USD,USD,QB Platform - Additional API;QB-DRO-API,1:1 Decomposition - Additional API,,Additional API;QB-API
+1:1 Decomposition - Finance Service;QB-AEH-BILL;QB-DRO-BILL;USD,USD,QB Platform - Finance Service;QB-DRO-BILL,1:1 Decomposition - Finance Service,,Finance Service;QB-AEH-BILL
+1:1 Decomposition - Order Processing;QB-AEH-OR;QB-DRO-OR;USD,USD,QB Platform - Order Processing;QB-DRO-OR,1:1 Decomposition - Order Processing,,Order Processing;QB-AEH-OR
+1:1 Decomposition - Additional QB DataGraph (500M);QB-DAT-GRPH;QB-DRO-DAT-GRPH;USD,USD,QB Platform - Additional QB DataGraph (500M);QB-DRO-DAT-GRPH,1:1 Decomposition - Additional QB DataGraph (500M),,Additional QB DataGraph (500M);QB-DAT-GRPH
+1:1 Decomposition - API Access Requests (AEH);QB-API-REQT;QB-DRO-API-REQT;USD,USD,QB Platform - API Access Requests (AEH);QB-DRO-API-REQT,1:1 Decomposition - API Access Requests (AEH),,API Access Requests (AEH);QB-API-REQT
+1:1 Decomposition - Additional Automation QB Credits;QB-AUT-CRED;QB-DRO-AUT-CRED;USD,USD,QB Platform - Additional Automation QB Credits;QB-DRO-AUT-CRED,1:1 Decomposition - Additional Automation QB Credits,,Additional Automation QB Credits;QB-AUT-CRED
+1:1 Decomposition - Additional API Prod;QB-API-PROD;QB-DRO-API-PROD;USD,USD,QB Platform - Additional API Prod;QB-DRO-API-PROD,1:1 Decomposition - Additional API Prod,,Additional API Prod;QB-API-PROD
+1:1 Decomposition - QuantumBit Subscription;TEST-SUB;QB-DRO-TEST-SUB;USD,USD,QB Platform - QuantumBit Subscription;QB-DRO-TEST-SUB,1:1 Decomposition - QuantumBit Subscription,,QuantumBit Subscription;TEST-SUB
+1:1 Decomposition - AEH Object Store - Restricted Use;QB-AEH-OBJ;QB-DRO-AEH-OBJ;USD,USD,QB Platform - AEH Object Store - Restricted Use;QB-DRO-AEH-OBJ,1:1 Decomposition - AEH Object Store - Restricted Use,,AEH Object Store - Restricted Use;QB-AEH-OBJ
+1:1 Decomposition - AEH Environment Runtime;QB-AEH-ENV;QB-DRO-AEH-ENV;USD,USD,QB Platform - AEH Environment Runtime;QB-DRO-AEH-ENV,1:1 Decomposition - AEH Environment Runtime,,AEH Environment Runtime;QB-AEH-ENV
+1:1 Decomposition - Provisioning and Activation Service;QB-AEH-CPU;QB-DRO-PROV;USD,USD,QB Platform - Provisioning and Activation Service;QB-DRO-PROV,1:1 Decomposition - Provisioning and Activation Service,,Provisioning and Activation Service;QB-AEH-CPU
+1:1 Decomposition - Additional Flows - QB Enterprise;QB-FLO-ENTR;QB-DRO-FLO-ENTR;USD,USD,QB Platform - Additional Flows - QB Enterprise;QB-DRO-FLO-ENTR,1:1 Decomposition - Additional Flows - QB Enterprise,,Additional Flows - QB Enterprise;QB-FLO-ENTR
+1:1 Decomposition - Additional Messages - QB Enterprise;QB-MSG-ENTR;QB-DRO-MSG-ENTR;USD,USD,QB Platform - Additional Messages - QB Enterprise;QB-DRO-MSG-ENTR,1:1 Decomposition - Additional Messages - QB Enterprise,,Additional Messages - QB Enterprise;QB-MSG-ENTR
+1:1 Decomposition - QuantumBit Rack Enclosure;QB-BDL-RAXS;QB-DRO-BDL-RAXS;USD,USD,QB Platform - QuantumBit Rack Enclosure;QB-DRO-BDL-RAXS,1:1 Decomposition - QuantumBit Rack Enclosure,,QuantumBit Rack Enclosure;QB-BDL-RAXS
+1:1 Decomposition - QuantumBit Collaboration Suite;QB-CS;QB-DRO-CS;USD,USD,QB Platform - QuantumBit Collaboration Suite;QB-DRO-CS,1:1 Decomposition - QuantumBit Collaboration Suite,,QuantumBit Collaboration Suite;QB-CS
+1:1 Decomposition - Additional API Pre-Prod;QB-API-PREP;QB-DRO-API-PREP;USD,USD,QB Platform - Additional API Pre-Prod;QB-DRO-API-PREP,1:1 Decomposition - Additional API Pre-Prod,,Additional API Pre-Prod;QB-API-PREP
+1:1 Decomposition - QuantumBit Services Project;QB-BDL-SRVC;QB-DRO-BDL-SRVC;USD,USD,QB Platform - QuantumBit Services Project;QB-DRO-BDL-SRVC,1:1 Decomposition - QuantumBit Services Project,,QuantumBit Services Project;QB-BDL-SRVC
+1:1 Decomposition - QuantumBit Complete Solution;QB-COMPLETE;QB-DRO-COMPLETE;USD,USD,QB Platform - QuantumBit Complete Solution;QB-DRO-COMPLETE,1:1 Decomposition - QuantumBit Complete Solution,,QuantumBit Complete Solution;QB-COMPLETE
+1:1 Decomposition - QuantumBit Starter;QB-BDL-STND;QB-DRO-BDL-STND;USD,USD,QB Platform - QuantumBit Starter;QB-DRO-BDL-STND,1:1 Decomposition - QuantumBit Starter,,QuantumBit Starter;QB-BDL-STND
+1:1 Decomposition - QuantumBit Enterprise;QB-BDL-ENTR;QB-DRO-BDL-ENTR;USD,USD,QB Platform - QuantumBit Enterprise;QB-DRO-BDL-ENTR,1:1 Decomposition - QuantumBit Enterprise,,QuantumBit Enterprise;QB-BDL-ENTR
+1:1 Decomposition - QuantumBit Business Critical;QB-BDL-CRTL;QB-DRO-BDL-CRTL;USD,USD,QB Platform - QuantumBit Business Critical;QB-DRO-BDL-CRTL,1:1 Decomposition - QuantumBit Business Critical,,QuantumBit Business Critical;QB-BDL-CRTL
+1:1 Decomposition - PowerSwerve R750 Rack Server;QB-BDL-R750;QB-DRO-BDL-R750;USD,USD,QB Platform - PowerSwerve R750 Rack Server;QB-DRO-BDL-R750,1:1 Decomposition - PowerSwerve R750 Rack Server,,PowerSwerve R750 Rack Server;QB-BDL-R750

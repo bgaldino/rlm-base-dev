@@ -15,7 +15,7 @@
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2023-01-01T08:00:00.000Z</startDate>
+        <startDate>2020-01-01T08:00:00.000Z</startDate>
         <status>Draft</status>
         <steps>
             <actionType>ListPrice</actionType>

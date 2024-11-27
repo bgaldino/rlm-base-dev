@@ -1,0 +1,3 @@
+BaseUnitOfMeasure.Name,Code,DefaultUnitOfMeasure.Name,Description,Name,Status
+Minutes,Time,Minutes,This is a measurement for time,Time,Active
+US Dollar,CUR,US Dollar,,Currency,Active

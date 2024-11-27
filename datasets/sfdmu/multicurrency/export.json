@@ -180,6 +180,12 @@
           "operation": "Upsert",
           "externalId": "Contract.ContractNumber;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, DurationType, Name, SegmentType, TrialDuration FROM ProductRampSegment",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
         }
       ]
     }

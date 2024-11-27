@@ -14,8 +14,15 @@
     "DisclosureFramework",
     "Copilot",
     "InsightsPlatform",
-    "CGAnalytics"
-  ],
+    "CGAnalytics",
+    "EinsteinGPTPlatform",
+    "EinsteinGPTPromptBuilder",
+    "EinsteinGPTFieldGeneration",
+    "CustomerDataPlatform",
+    "CustomerDataPlatformLite",
+    "SalesCloudEinstein",
+    "EinsteinSearch"
+    ],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
@@ -45,6 +52,15 @@
     },
     "communitiesSettings": {
       "enableNetworksEnabled": true
+    },
+    "einsteinGptSettings" : {
+      "enableEinsteinGptPlatform" : true
+    },
+    "customAddressFieldSettings": {
+      "enableCustomAddressField": true
+    },
+    "customerDataPlatformSettings": {
+      "enableCustomerDataPlatform": true
     }
   }
 }

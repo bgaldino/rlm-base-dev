@@ -1,3 +1,4 @@
 Category,Code,DefaultUnitOfMeasure.Name,Description,DoesUsagePersist,Name,Status,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
-Usage,Min,Minutes,,false,Minutes,Inactive,Time,,BillMonth
-Usage,Call,Minutes,,false,Call Resource,Active,Time,,BillMonth
+Usage,ComputeTime,Hour,,false,Compute Time,Draft,time,,monthlytotal
+Usage,datathroughput,Megabyte,,false,Data Throughput,Draft,datavolume,,monthlytotal
+Usage,datastorage,Terabyte,,false,Data Storage,Draft,datavolume,,monthlypeak

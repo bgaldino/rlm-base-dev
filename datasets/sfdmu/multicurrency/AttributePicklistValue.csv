@@ -1,4 +1,5 @@
 $$Name$Picklist.Name,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Value
+SFP;Network Adapter Type Picklist,SFP,SFP,false,SFP,Network Adapter Type Picklist,2,SFP
 50;Data Utilization,APV-50,50,false,50,Data Utilization,50,50
 20;Data Utilization,APV-20,20,false,20,Data Utilization,20,20
 5;Data Utilization,APV-5,5,false,5,Data Utilization,5,5
@@ -12,10 +13,10 @@ EightFeet;Cable Length Picklist,8ft,8',false,EightFeet,Cable Length Picklist,,8
 C19 to C20;Connector Type Picklist,C19toC20,C19 to C20,false,C19 to C20,Connector Type Picklist,,C19 to C20
 TwelveFeet;Cable Length Picklist,12ft,12',false,TwelveFeet,Cable Length Picklist,,12
 Amazon Linux 2;Operating System Picklist,AL2,Amazon Linux 2,true,Amazon Linux 2,Operating System Picklist,1,Amazon Linux 2
+Flex;API Type Picklist,Flex,Flex,true,Flex,API Type Picklist,1,Flex
 Four;Base Core Count Picklist,4,4,true,Four,Base Core Count Picklist,2,4
 Six;Base Core Count Picklist,6,6,false,Six,Base Core Count Picklist,3,6
 Eight;Base Core Count Picklist,8,8,false,Eight,Base Core Count Picklist,4,8
-Flex;API Type Picklist,Flex,Flex,true,Flex,API Type Picklist,1,Flex
 Pre-Prod;API Type Picklist,Pre-Prod,Pre-Prod,false,Pre-Prod,API Type Picklist,3,Pre-Prod
 Gov;API Type Picklist,Gov,Gov,false,Gov,API Type Picklist,2,Gov
 Redhat Enterprise Linux;Operating System Picklist,REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,Operating System Picklist,2,Redhat Enterprise Linux
@@ -34,14 +35,13 @@ Value;Server Configuration Picklist,Value,Value,false,Value,Server Configuration
 Custom;Server Configuration Picklist,Custom,Custom,false,Custom,Server Configuration Picklist,4,Custom
 16GB;RAM Picklist,16GB,16GB,false,16GB,RAM Picklist,2,16GB
 Memory_Mirroring;RAM Config Picklist,Memory_Mirroring,Memory_Mirroring,false,Memory_Mirroring,RAM Config Picklist,3,Memory_Mirroring
-SFP;Network Adapter Type Picklist,SFP,SFP,false,SFP,Network Adapter Type Picklist,2,SFP
 Evergreen;Subscription Type Picklist,Evergreen,Evergreen,true,Evergreen,Subscription Type Picklist,1,Evergreen
 TermBased;Subscription Type Picklist,TermBased,TermBased,false,TermBased,Subscription Type Picklist,2,TermBased
 3.2GHz;Processor Frequency Picklist,3.2GHz,3.2GHz,true,3.2GHz,Processor Frequency Picklist,1,3.2GHz
 Performance;Server Configuration Picklist,Performance,Performance,false,Performance,Server Configuration Picklist,2,Performance
+8TB;Data Storage Picklist,8TB,8TB,false,8TB,Data Storage Picklist,3,8TB
 Performance_Optimized;RAM Config Picklist,Performance_Optimized,Performance_Optimized,true,Performance_Optimized,RAM Config Picklist,1,Performance_Optimized
 1TB;Data Storage Picklist,1TB,1TB,true,1TB,Data Storage Picklist,1,1TB
-8TB;Data Storage Picklist,8TB,8TB,false,8TB,Data Storage Picklist,3,8TB
 Direct_Attach;Network Adapter Type Picklist,Direct_Attach,Direct_Attach,true,Direct_Attach,Network Adapter Type Picklist,1,Direct_Attach
 Offshore;Resource Location Picklist,Offshore,Offshore,false,Offshore,Resource Location Picklist,3,Offshore
 8TB_Self_Encrypting;Data Storage Picklist,8TB_Self_Encrypting,8TB_Self_Encrypting,false,8TB_Self_Encrypting,Data Storage Picklist,4,8TB_Self_Encrypting

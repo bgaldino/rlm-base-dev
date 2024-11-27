@@ -1,2 +1,3 @@
 Code,Name,Status,UsageAccumulationMethod,UsageAccumulationPeriod
-BillMonth,Bill Total Monthly,Active,Sum,Monthly
+monthlypeak,Monthly Peak,Active,Peak,Monthly
+monthlytotal,Monthly Total,Active,Sum,Monthly

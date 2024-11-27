@@ -1,0 +1,12 @@
+$$Name$ReferenceObject.Name,ActionType,DisplayLabel,InvocableClassName,InvocableMethodName,Name,ReferenceObject.Name
+legalS2;SalesforceContractsCustomAction,ReferenceObject,Move To LegalS2,,,legalS2,SalesforceContractsCustomAction
+submitForApproval,Apex,Submit for Approval,,,submitForApproval,
+cancelContract,Apex,Cancel Contract,,,cancelContract,
+cancelApproval,Apex,Cancel Approval,,,cancelApproval,
+re-draftContract,Apex,Re-draft Contract,,,re-draftContract,
+sendForESign,Apex,Send for Signature,,,sendForESign,
+updateEnvelopeStatus,Apex,Update Envelope Status,,,updateEnvelopeStatus,
+revokeESign,Apex,Revoke Signature,,,revokeESign,
+activateContract,Apex,Activate Contract,,,activateContract,
+terminateContract,Apex,Terminate Contract,,,terminateContract,
+legalS1,Apex,Move To LegalS1,CustomMoveToCS1,executeAction,legalS1,

@@ -1,2 +1,2 @@
-$$Name$DefaultTaxTreatment.Name,DefaultTaxTreatment.$$Name$TaxEngine.TaxEngineName$LegalEntity.Name,Description,Name,Status,TreatmentSelection
-Default Tax Policy;Default Tax Policy,Default Tax Policy;RC_MockTaxAdapter;Default Legal Entity - US,,Default Tax Policy,Draft,Default
+DefaultTaxTreatment.Name,Description,Name,Status,TreatmentSelection
+Default Tax Policy,,Default Tax Policy,Draft,Default

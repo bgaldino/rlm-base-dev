@@ -7,8 +7,8 @@ PC-QB-CPU,Processor,Active
 PC-QB-NIC,Network Adapter,Active
 PC-QB-STORAGE,Hard Drive,Active
 PC-QB-MEMORY,Memory,Active
+PC-QB-PS-RESOURCES,Engineering Resources,Active
 PC-QB-STARTER,QuantumBit,Active
 PC-QB-SUB,Subscription,Active
 PC-QB-PSBUNDLE,Professional Services Bundle,Active
-PC-QB-PS-RESOURCES,Engineering Resources,Active
 PC-QB-SOFTWARE,Software,Draft

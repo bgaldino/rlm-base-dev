@@ -1,25 +1,49 @@
 {
   "apiVersion": "62.0",
-  "excludeIdsFromCSVFiles": "false",
+  "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
       "objects": [
         {
-          "query": "SELECT MasterLabel, Id, Description, DeveloperName, Language, NamespacePrefix, UsageType FROM ClauseCatgConfiguration",
+          "query": "SELECT MasterLabel, Description, DeveloperName, Language, NamespacePrefix, UsageType FROM ClauseCatgConfiguration",
           "operation": "Upsert",
           "externalId": "DeveloperName",
           "excluded": false
         },
         {
-          "query": "SELECT Category, CategoryReferenceId, Id, Name, Status FROM DocumentClauseSet",
+          "query": "SELECT CategoryReferenceId, DefaultLanguage, Name, Status FROM DocumentClauseSet",
           "operation": "Upsert",
           "externalId": "Name;CategoryReference.DeveloperName",
           "excluded": false
         },
         {
-          "query": "SELECT Content, Description, DocumentClauseSetId, Format, IsAlternateClause, Language, Name, Status, Version FROM DocumentClause",
+          "query": "SELECT IsActive, AdditionalField, AdditionalFieldValue, AppUsageType, ReferenceObject, Name, ReferenceField, VersionNumber FROM ObjectStateDefinition",
           "operation": "Upsert",
-          "externalId": "Name;DocumentClauseSet.Name;DocumentClauseSet.CategoryReference.DeveloperName",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, ActionType, InvocableClassName, InvocableMethodName, DisplayLabel, ReferenceObjectId FROM ObjectStateActionDefinition",
+          "operation": "Upsert",
+          "externalId": "Name;ReferenceObject.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, ReferenceRecordAccessType, RefRecordLayoutFieldValue, Description, ObjectStateDefinitionId FROM ObjectStateValue",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CustomPermissionId, Description, Name, ObjectStateDefinitionId, FromStateId, ToStateId FROM ObjectStateTransition",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT IsActive, DisplaySequence, Name, ObjectStateActionDefinitionId, ObjectStateDefinitionId, ObjectStateTransitionId FROM ObjectStateTransitionAction",
+          "operation": "Upsert",
+          "externalId": "Name",
           "excluded": false
         }
       ]
