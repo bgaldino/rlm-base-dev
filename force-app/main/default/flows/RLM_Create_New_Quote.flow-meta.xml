@@ -65,6 +65,36 @@
             </value>
         </inputAssignments>
         <inputAssignments>
+            <field>BillingCity</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.BillingCity</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>BillingCountry</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.BillingCountry</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>BillingPostalCode</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.BillingPostalCode</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>BillingState</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.BillingState</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>BillingStreet</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.BillingStreet</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
             <field>ContactId</field>
             <value>
                 <elementReference>Get_First_Contact_from_Account.Id</elementReference>
@@ -128,6 +158,36 @@
             <field>ServiceStartDate__c</field>
             <value>
                 <elementReference>Service_Start_Date</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ShippingCity</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingCity</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ShippingCountry</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingCountry</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ShippingPostalCode</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingPostalCode</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ShippingState</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingState</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ShippingStreet</field>
+            <value>
+                <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingStreet</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
