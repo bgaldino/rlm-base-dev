@@ -44,7 +44,7 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-unpackaged/pre/5_decisiontables
+#unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
