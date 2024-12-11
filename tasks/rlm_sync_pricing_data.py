@@ -36,10 +36,10 @@ class SyncPricingData(SFDXBaseTask):
     # Execute the task after preparation, where the core functionality will be implemented
     def _run_task(self):
         self._prep_runtime()
-        self._extend_context_definition()
+        self._sync_pricing_data()
 
     # Core logic to extend an existing context definition
-    def _extend_context_definition(self):
+    def _sync_pricing_data(self):
         url, headers = self._build_url_and_headers("connect/core-pricing/sync/syncData")
 
         response = self._make_request("get", url, headers=headers)

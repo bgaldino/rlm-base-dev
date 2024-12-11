@@ -50,7 +50,7 @@ project:
     product_dataset: qb
     qbrix: true
     lotus: true
-    refresh: true
+    refresh: false
     fflib-mocks-pkg: &fflib-mocks-pkg 04t7y000000IM5JAAW
     trigger-framework-pkg: &trigger-framework-pkg 04t7y000000IcQDAA0
     feature-flag-pkg: &feature-flag-pkg 04t0g000000KKxDAAW
@@ -267,7 +267,7 @@ tasks:
       description: "Extension of Standard Sales Transaction Context Definition"
       developerName: *sales_transaction_context_name
       baseReference: "SalesTransactionContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *sales_transaction_context_default_mapping
 
@@ -280,7 +280,7 @@ tasks:
       description: "Extension of Standard Product Discovery Context Definition"
       developerName: *product_discovery_context_name
       baseReference: "ProductDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *product_discovery_context_default_mapping
 
@@ -293,7 +293,7 @@ tasks:
       description: "Extension of Standard Cart Context Definition"
       developerName: *cart_context_name
       baseReference: "CartContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *cart_context_default_mapping  
 
@@ -306,7 +306,7 @@ tasks:
       description: "Extension of Standard Billing Context Definition"
       developerName: *billing_context_name
       baseReference: "BillingContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *billing_context_default_mapping
 
@@ -319,7 +319,7 @@ tasks:
       description: "Extension of Standard Fulfillment Asset Context Definition"
       developerName: *fulfillment_asset_context_name
       baseReference: "FulfillmentAssetContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *fulfillment_asset_context_default_mapping
 
@@ -332,7 +332,7 @@ tasks:
       description: "Extension of Standard Collection Plan Segment Context Definition"
       developerName: *collection_plan_segment_context_name
       baseReference: "CollectionPlanSegmentContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *collection_plan_segment_context_default_mapping
 
@@ -345,7 +345,7 @@ tasks:
       description: "Extension of Standard Rate Management Context Definition"
       developerName: *rate_management_context_name
       baseReference: "RateManagementContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rate_management_context_default_mapping
 
@@ -358,7 +358,7 @@ tasks:
       description: "Extension of Standard Rating Discovery Context Definition"
       developerName: *rating_discovery_context_name
       baseReference: "RatingDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rating_discovery_context_default_mapping
 
@@ -667,6 +667,8 @@ flows:
     steps:
       1:
         flow: prepare_core
+      1.5:
+        flow: prepare_dependencies
       2:
         flow: prepare_expression_sets
       3:
@@ -729,8 +731,6 @@ flows:
         task: util_sleep
         options:
           seconds: *sleep_default
-      6:
-        flow: prepare_dependencies
       7:
         task: assign_permission_set_groups
         options:
