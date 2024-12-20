@@ -5,14 +5,14 @@
     <botDialogs>
         <botSteps>
             <botMessages>
-                <message>Hi! I&apos;m Einstein, an AI assistant. I can do things like search for information, summarize records, and draft and revise emails. What can I help you with?</message>
-                <messageIdentifier>fc46820c-4225-4b25-8f0a-66ac484da9ba</messageIdentifier>
+                <message>Hi! I&apos;m Agentforce, an AI assistant. I can do things like search your Salesforce data or the internet, edit your Salesforce records, and draft or revise emails and fields. Ask me &quot;What else can you do?&quot; to see how I can help simplify your work day.</message>
+                <messageIdentifier>0cf75bf3-9e3d-484e-abc9-5f3a5b474e74</messageIdentifier>
             </botMessages>
-            <stepIdentifier>4adc1301-369c-476d-9ec1-b7eb2ef06f79</stepIdentifier>
+            <stepIdentifier>d3ce80c0-863d-43fd-b4a1-6ac87cf5a138</stepIdentifier>
             <type>Message</type>
         </botSteps>
         <botSteps>
-            <stepIdentifier>88c6392f-5fa7-4154-aa27-6f63061be555</stepIdentifier>
+            <stepIdentifier>ef7fae3f-aa9d-45bd-8f09-caa778f607cf</stepIdentifier>
             <type>Wait</type>
         </botSteps>
         <developerName>Welcome</developerName>
@@ -24,13 +24,13 @@
         <botSteps>
             <botMessages>
                 <message>Something went wrong. Try again.</message>
-                <messageIdentifier>f8e8cfc5-0015-40b8-bb50-b6466b2d2452</messageIdentifier>
+                <messageIdentifier>15ec0bad-929d-4e6e-9cc0-9dd65984fd01</messageIdentifier>
             </botMessages>
-            <stepIdentifier>486ec298-524b-43f9-aea6-1649f539b17c</stepIdentifier>
+            <stepIdentifier>9b9d36fd-b81b-4106-a5b3-df2686320fa4</stepIdentifier>
             <type>Message</type>
         </botSteps>
         <botSteps>
-            <stepIdentifier>01c14cdd-9fdb-4d95-b1fd-8f5a166d3f2f</stepIdentifier>
+            <stepIdentifier>5dbca126-8e62-48fb-927d-7bb5a12d469b</stepIdentifier>
             <type>Wait</type>
         </botSteps>
         <developerName>Rich_Content_Error_Handling</developerName>
@@ -46,6 +46,30 @@
         <dialog>Rich_Content_Error_Handling</dialog>
         <type>ErrorHandling</type>
     </conversationSystemDialogs>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <developerName>currentObjectApiName</developerName>
+        <label>Current Object Api Name</label>
+        <visibility>External</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <developerName>currentAppName</developerName>
+        <label>Current App Name</label>
+        <visibility>External</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <developerName>currentRecordId</developerName>
+        <label>Current Record Id</label>
+        <visibility>External</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <developerName>currentPageType</developerName>
+        <label>Current Page Type</label>
+        <visibility>External</visibility>
+    </conversationVariables>
     <entryDialog>Welcome</entryDialog>
     <intentDisambiguationEnabled>false</intentDisambiguationEnabled>
     <intentV3Enabled>false</intentV3Enabled>
