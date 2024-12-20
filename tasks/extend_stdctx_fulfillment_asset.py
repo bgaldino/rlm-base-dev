@@ -56,7 +56,7 @@ class ExtendStandardContextFulfillmentAsset(SFDXBaseTask):
             "description": "Extension of Fulfillment Asset Context",
             "developerName": "RLM_FulfillmentAssetContext",
             "baseReference": "FulfillmentAssetContext__stdctx",
-            "startDate": "2023-01-01T00:00:00.000Z",
+            "startDate": "2020-01-01T00:00:00.000Z",
             "contextTtl": 20
         }
         response = self._make_request("post", url, headers=headers, json=payload)

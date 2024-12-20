@@ -56,7 +56,7 @@ class ExtendStandardContextBilling(SFDXBaseTask):
             "description": "Extension of Billing Context",
             "developerName": "RLM_BillingContext",
             "baseReference": "BillingContext__stdctx",
-            "startDate": "2023-01-01T00:00:00.000Z",
+            "startDate": "2020-01-01T00:00:00.000Z",
             "contextTtl": 20
         }
         response = self._make_request("post", url, headers=headers, json=payload)

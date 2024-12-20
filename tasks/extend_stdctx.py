@@ -46,7 +46,7 @@ class ExtendStandardContext(SFDXBaseTask):
             "description": "Extension of Standard Sales Transaction Context",
             "developerName": "RLM_SalesTransactionContext",
             "baseReference": "SalesTransactionContext__stdctx",
-            "startDate": "2023-01-01T00:00:00.000Z",
+            "startDate": "2020-01-01T00:00:00.000Z",
             "contextTtl": 20
         }
         response = self._make_request("post", url, headers=headers, json=payload)
