@@ -3,18 +3,18 @@
   "country": "US",
   "edition": "Enterprise",
   "features": [
-    "EnableSetPasswordInApi",
-    "OrderSaveLogicEnabled",
-    "CoreCPQ",
-    "Communities",
-    "EnablePRM",
-    "PartnerCommunity",
     "AdvancedApproval",
+    "CGAnalytics",
+    "Communities",
     "ContractsAIClauseDesigner",
-    "DisclosureFramework",
     "Copilot",
+    "CoreCPQ",
+    "DisclosureFramework",
+    "EnablePRM",
+    "EnableSetPasswordInApi",
     "InsightsPlatform",
-    "CGAnalytics"
+    "OrderSaveLogicEnabled",
+    "PartnerCommunity"
   ],
   "settings": {
     "lightningExperienceSettings": {
