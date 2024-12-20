@@ -24,7 +24,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "62.0"
+    api_version: "63.0"
   git:
     default_branch: "main"
   source_format: sfdx
@@ -51,31 +51,38 @@ project:
     qbrix: true
     lotus: true
     refresh: true
+    commerce: false
     fflib-mocks-pkg: &fflib-mocks-pkg 04t7y000000IM5JAAW
     trigger-framework-pkg: &trigger-framework-pkg 04t7y000000IcQDAA0
     feature-flag-pkg: &feature-flag-pkg 04t0g000000KKxDAAW
 
     rlm_psl_api_names: &rlm_psl_api_names
-      - RevenueLifecycleManagementUserPsl
-      - RevLifecycleMgmtBillingPsl
-      - OmniStudioDesigner
-      - CorePricingDesignTime
+      - BillingSuitePsl
       - BREDesigner
-      - DocGenDesignerPsl
+      - BRERuntime
       - ClauseManagementUser
-      - ProductCatalogManagementAdministratorPsl
       - ContractManagementUser
       - ContractsAIUserPsl
-      - ProductDiscoveryUserPsl
-      - BRERuntime
-      - IndustriesConfiguratorPsl
-      - ObligationManagementUser
-      - Microsoft365WordPsl
-      - DynamicRevenueOrchestratorUserPsl
-      - DocumentBuilderUserPsl
-      - RatingRunTimePsl
-      - RatingDesignTimePsl
+      - CorePricingDesignTime
       - DataProcessingEnginePsl
+      - DecimalQuantityDesigntimePsl
+      - DecimalQuantityRuntimePsl
+      - DocGenDesignerPsl
+      - DocumentBuilderUserPsl
+      - DynamicRevenueOrchestratorUserPsl
+      - IndustriesConfiguratorPsl
+      - Microsoft365WordPsl
+      - ObligationManagementUser
+      - OmniStudioDesigner
+      - ProductCatalogManagementAdministratorPsl
+      - ProductDiscoveryUserPsl
+      - RatingDesignTimePsl
+      - RatingRunTimePsl
+      - RevenueLifecycleManagementUserPsl
+      - RevLifecycleMgmtBillingPsl
+      - UsageDesignTimePsl
+      - UsageRunTimePsl
+      - WalletManagementUserPsl
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
@@ -102,10 +109,6 @@ project:
       - EinsteinSalesGenerativeInsightsPsl
       - EinsteinSalesRepFeedbackPsl
       - ERIPlatformBasic
-      - EinsteinGPTGroundingStructuredDataPsl
-      - EinsteinGPTCallExplorerPsl
-      - EinsteinGPTSalesMiningPsl
-      - EinsteinGPTSalesCallSummariesPsl
       - MySearchPsl
       - RevenueIntelligencePsl
       - SalesActionFindPastCollaboratorsPsl
@@ -153,11 +156,11 @@ project:
       - DisclosureAndComplianceHubUserPsl
       - DocGenDesignerPsl
       - DocumentBuilderUserPsl
+      - InsightsCGAnalyticsPsl
       - Microsoft365WordPsl
       - NLPServicePsl
       - ObligationManagementUser
       - OmniStudioDesigner
-      - InsightsCGAnalyticsPsl
       - ScoringFrameworkPsl
 
     rlm_psg_api_names: &rlm_psg_api_names
@@ -207,7 +210,7 @@ project:
     rating_discovery_context_name: &rating_discovery_context_name RLM_RatingDiscoveryContext
     rating_discovery_context_default_mapping: &rating_discovery_context_default_mapping CatalogMapping
 
-    sleep_default: &sleep_default 20
+    sleep_default: &sleep_default 30
 
 tasks:
   robot:
@@ -267,7 +270,7 @@ tasks:
       description: "Extension of Standard Sales Transaction Context Definition"
       developerName: *sales_transaction_context_name
       baseReference: "SalesTransactionContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *sales_transaction_context_default_mapping
 
@@ -280,7 +283,7 @@ tasks:
       description: "Extension of Standard Product Discovery Context Definition"
       developerName: *product_discovery_context_name
       baseReference: "ProductDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *product_discovery_context_default_mapping
 
@@ -293,7 +296,7 @@ tasks:
       description: "Extension of Standard Cart Context Definition"
       developerName: *cart_context_name
       baseReference: "CartContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *cart_context_default_mapping  
 
@@ -306,7 +309,7 @@ tasks:
       description: "Extension of Standard Billing Context Definition"
       developerName: *billing_context_name
       baseReference: "BillingContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *billing_context_default_mapping
 
@@ -319,7 +322,7 @@ tasks:
       description: "Extension of Standard Fulfillment Asset Context Definition"
       developerName: *fulfillment_asset_context_name
       baseReference: "FulfillmentAssetContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *fulfillment_asset_context_default_mapping
 
@@ -332,7 +335,7 @@ tasks:
       description: "Extension of Standard Collection Plan Segment Context Definition"
       developerName: *collection_plan_segment_context_name
       baseReference: "CollectionPlanSegmentContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *collection_plan_segment_context_default_mapping
 
@@ -345,7 +348,7 @@ tasks:
       description: "Extension of Standard Rate Management Context Definition"
       developerName: *rate_management_context_name
       baseReference: "RateManagementContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rate_management_context_default_mapping
 
@@ -358,7 +361,7 @@ tasks:
       description: "Extension of Standard Rating Discovery Context Definition"
       developerName: *rating_discovery_context_name
       baseReference: "RatingDiscoveryContext__stdctx"
-      startDate: "2023-01-01T00:00:00.000Z"
+      startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *rating_discovery_context_default_mapping
 
@@ -382,6 +385,41 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: force-app/main/default/decisionTables
+
+  deploy_lotus_pages:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/pages
+
+  deploy_lotus_labels:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/labels
+
+  deploy_lotus_objects:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/objects
+
+  deploy_lotus_custom_metadata:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/customMetadata/Feature_Toggle
+
+  deploy_lotus_lwc:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/lwc
 
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -784,6 +822,7 @@ flows:
         task: extend_context_product_discovery
       3:
         task: extend_context_cart
+        when: project_config.project__custom__commerce == true
       4:
         task: extend_context_billing
         when: project_config.project__custom__billing == true
@@ -940,18 +979,36 @@ flows:
     steps:
       1:
         task: install_managed_package_fflib-mocks
+        when: project_config.project__custom__lotus == true
       2:
         task: install_managed_package_trigger-framework
+        when: project_config.project__custom__lotus == true
       3:
         task: install_managed_package_feature-flag
+        when: project_config.project__custom__lotus == true
 
   prepare_lotus:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_lotus
+        task: deploy_lotus_pages
         when: project_config.project__custom__lotus == true
       2:
+        task: deploy_lotus_labels
+        when: project_config.project__custom__lotus == true
+      3:
+        task: deploy_lotus_custom_metadata
+        when: project_config.project__custom__lotus == true
+      4:
+        task: deploy_lotus_objects
+        when: project_config.project__custom__lotus == true
+      5:
+        task: deploy_lotus_lwc
+        when: project_config.project__custom__lotus == true
+      6:
+        task: deploy_post_lotus
+        when: project_config.project__custom__lotus == true
+      7:
         task: assign_permission_sets
         when: project_config.project__custom__lotus == true
         options:
