@@ -13,16 +13,22 @@ package.xml
 
 # rlm-base specific entries
 
-# expressionSetDefinitions
+# default expressionSetDefinitions
+force-app/main/default/expressionSetDefinition/Default_Rating_Discovery_Procedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/Default_Rating_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/Product_Discovery_Qualification_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure.expressionSetDefinition-meta.xml
-force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
+# custom expressionSetDefinitions
+#force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_DefaultRatingDiscoveryProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
-#force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
-force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
+
 
 # contextDefinitions
 force-app/main/default/contextDefinitions
@@ -44,7 +50,7 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-#unpackaged/pre/5_decisiontables
+unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
@@ -61,73 +67,68 @@ force-app/main/default/genAiPromptTemplates/Record_Summ.genAiPromptTemplate-meta
 
 ## LOTUS AGENT EXAMPLES
 # bots
-force-app/main/default/bots
-force-app/main/default/bots/Copilot_for_Salesforce
 unpackaged/post_lotus/bots
 unpackaged/post_lotus/bots/Copilot_for_Salesforce
 #classes
-#force-app/main/default/classes/AmendQuote
-#force-app/main/default/classes/dao
-force-app/main/default/classes/orgsf-quote-base/dao/AppliedTermsDao.cls*
-force-app/main/default/classes/orgsf-quote-base/dao/ApproverQuery.cls*
-force-app/main/default/classes/orgsf-quote-base/dao/IAppliedTermsDao.cls*
-force-app/main/default/classes/orgsf-quote-base/dao/IApproverQuery.cls*
-force-app/main/default/classes/orgsf-quote-base/dao/INotificationQuery.cls*
-force-app/main/default/classes/orgsf-quote-base/dao/NotificationQuery.cls*
-force-app/main/default/classes/orgsf-quote-base/dao/ProductTermsSelector.cls*
-#force-app/main/default/classes/orgsf-quote-base/flowActions/CloneQuoteFlowAction.cls*
-force-app/main/default/classes/orgsf-quote-base/QuoteEventTriggerHandler.cls*
-force-app/main/default/classes/orgsf-quote-base/QuoteLineItemExceptions.cls*
-#force-app/main/default/orgsf-quote-base/classes/PlaceQuote
-#force-app/main/default/orgsf-quote-base/classes/QuoteLineService
-#force-app/main/default/orgsf-quote-base/classes/QuoteLineTrigger
-force-app/main/default/classes/orgsf-quote-base/QuoteLineTrigger/EffectiveDiscount
-force-app/main/default/classes/orgsf-quote-base/QuoteLineTrigger/ApprovalLevelRunner.cls*
-force-app/main/default/classes/orgsf-quote-base/QuoteLineTrigger/ProductRuleRunner.cls*
-force-app/main/default/classes/orgsf-quote-base/ProductListSelector.cls*
-force-app/main/default/classes/orgsf-quote-base/QuoteStatusASTUpdate.cls*
-#force-app/main/default/classes/QuoteUpdate
-#force-app/main/default/classes/QuoteBaseConstants.cls
+#unpackaged/post_lotus/classes/AmendQuote
+#unpackaged/post_lotus/classes/dao
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/AppliedTermsDao.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/ApproverQuery.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/IAppliedTermsDao.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/IApproverQuery.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/INotificationQuery.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/NotificationQuery.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/dao/ProductTermsSelector.cls*
+#unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/CloneQuoteFlowAction.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteEventTriggerHandler.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineItemExceptions.cls*
+#unpackaged/post_lotus/orgsf-quote-base/classes/PlaceQuote
+#unpackaged/post_lotus/orgsf-quote-base/classes/QuoteLineService
+#unpackaged/post_lotus/orgsf-quote-base/classes/QuoteLineTrigger
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/EffectiveDiscount
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/ApprovalLevelRunner.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/ProductRuleRunner.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/ProductListSelector.cls*
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteStatusASTUpdate.cls*
+#unpackaged/post_lotus/classes/QuoteUpdate
+#unpackaged/post_lotus/classes/QuoteBaseConstants.cls
 # flows
-#force-app/main/default/flows/Amend_Field_Updates.flow-meta.xml
-force-app/main/default/flows/Amend_Renew_and_Cancel_Assets_Custom.flow-meta.xml
-force-app/main/default/flows/Close_Opportunity_After_Quote_is_Booked.flow-meta.xml
-force-app/main/default/flows/Create_Asset_from_Order.flow-meta.xml
-force-app/main/default/flows/Create_SM_Order_From_Quote.flow-meta.xml
-force-app/main/default/flows/customer_satisfaction.flow-meta.xml
-force-app/main/default/flows/Duplicate_Tenant_Validation_Flow.flow-meta.xml
-force-app/main/default/flows/ECI_lightning_Dialer_Data_Deletion.flow-meta.xml
-force-app/main/default/flows/Finalize_ContractItemPrice_Records.flow-meta.xml
-force-app/main/default/flows/FLOWURL.flow-meta.xml
-#force-app/main/default/flows/Get_Amend_Opportunities.flow-meta.xml
-force-app/main/default/flows/Is_Quoting_In_Maintenance_Mode.flow-meta.xml
-#force-app/main/default/flows/Lotus_Add_QuoteLine_to_Quote.flow-meta.xml
-#force-app/main/default/flows/Lotus_Apply_discount_to_the_Quote_Line.flow-meta.xml
-#force-app/main/default/flows/Lotus_Create_Amendment_Quote.flow-meta.xml
-#force-app/main/default/flows/Lotus_Create_Tenant.flow-meta.xml
-#force-app/main/default/flows/Lotus_Get_Assets.flow-meta.xml
-#force-app/main/default/flows/Lotus_Get_Product.flow-meta.xml
-#force-app/main/default/flows/Lotus_Get_Tenant_By_Account_and_Custom_Name.flow-meta.xml
-#force-app/main/default/flows/Lotus_Get_Tenant_By_Account.flow-meta.xml
-#force-app/main/default/flows/Lotus_Quoting_Agent_Add_QuoteLine.flow-meta.xml
-#force-app/main/default/flows/Lotus_Quoting_Agent_Create_Amendment_Quote.flow-meta.xml
-#force-app/main/default/flows/Lotus_Quoting_Agent_Create_NB_Quote.flow-meta.xml
-force-app/main/default/flows/net_promoter_score.flow-meta.xml
-force-app/main/default/flows/Order_Before_Trigger_Flow.flow-meta.xml
-force-app/main/default/flows/Order_Product_Before_Trigger.flow-meta.xml
-force-app/main/default/flows/TESTSF.flow-meta.xml
-force-app/main/default/flows/Update_Billing_Info_details_in_Asset_AAS_From_Order_Product.flow-meta.xml
-force-app/main/default/flows/Update_Order_Prices.flow-meta.xml
-force-app/main/default/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
+#unpackaged/post_lotus/flows/Amend_Field_Updates.flow-meta.xml
+unpackaged/post_lotus/flows/Amend_Renew_and_Cancel_Assets_Custom.flow-meta.xml
+unpackaged/post_lotus/flows/Close_Opportunity_After_Quote_is_Booked.flow-meta.xml
+unpackaged/post_lotus/flows/Create_Asset_from_Order.flow-meta.xml
+unpackaged/post_lotus/flows/Create_SM_Order_From_Quote.flow-meta.xml
+unpackaged/post_lotus/flows/customer_satisfaction.flow-meta.xml
+unpackaged/post_lotus/flows/Duplicate_Tenant_Validation_Flow.flow-meta.xml
+unpackaged/post_lotus/flows/ECI_lightning_Dialer_Data_Deletion.flow-meta.xml
+unpackaged/post_lotus/flows/Finalize_ContractItemPrice_Records.flow-meta.xml
+unpackaged/post_lotus/flows/FLOWURL.flow-meta.xml
+#unpackaged/post_lotus/flows/Get_Amend_Opportunities.flow-meta.xml
+unpackaged/post_lotus/flows/Is_Quoting_In_Maintenance_Mode.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Add_QuoteLine_to_Quote.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Apply_discount_to_the_Quote_Line.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Create_Amendment_Quote.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Create_Tenant.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Get_Assets.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Get_Product.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Get_Tenant_By_Account_and_Custom_Name.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Get_Tenant_By_Account.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Quoting_Agent_Add_QuoteLine.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Quoting_Agent_Create_Amendment_Quote.flow-meta.xml
+#unpackaged/post_lotus/flows/Lotus_Quoting_Agent_Create_NB_Quote.flow-meta.xml
+unpackaged/post_lotus/flows/net_promoter_score.flow-meta.xml
+unpackaged/post_lotus/flows/Order_Before_Trigger_Flow.flow-meta.xml
+unpackaged/post_lotus/flows/Order_Product_Before_Trigger.flow-meta.xml
+unpackaged/post_lotus/flows/TESTSF.flow-meta.xml
+unpackaged/post_lotus/flows/Update_Billing_Info_details_in_Asset_AAS_From_Order_Product.flow-meta.xml
+unpackaged/post_lotus/flows/Update_Order_Prices.flow-meta.xml
+unpackaged/post_lotus/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
 # genAiFunctions
-force-app/main/default/genAiFunctions
+#unpackaged/post_lotus/genAiFunctions
 # genAiPlanners
-force-app/main/default/genAiPlanners
-force-app/main/default/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
 unpackaged/post_lotus/genAiPlanners
 unpackaged/post_lotus/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
 # genAiPlugins
-force-app/main/default/genAiPlugins
 #unpackaged/post_lotus/genAiPlugins
 # genAiPromptTemplates
 # objects
@@ -136,7 +137,7 @@ force-app/main/default/genAiPlugins
 #force-app/main/default/objects/Quote/fields/ServiceStartDate__c.field-meta.xml
 #force-app/main/default/objects/Quote/fields/TotalQuoteAmount__c.field-meta.xml
 # permissionsets
-#force-app/main/default/permissionsets/RLM_Lotus.permissionset-meta.xml
+#unpackaged/post_lotus/permissionsets/RLM_Lotus.permissionset-meta.xml
 
 ## ADVANCED APPROVALS
 # classes
