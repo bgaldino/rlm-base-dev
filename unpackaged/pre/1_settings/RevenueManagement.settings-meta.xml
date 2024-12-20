@@ -2,6 +2,8 @@
 <RevenueManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
     <enableCoreCPQ>true</enableCoreCPQ>
+    <enableDeltaPricing>false</enableDeltaPricing>
     <enableRampDeal>true</enableRampDeal>
+    <enableTransactionProcessor>false</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
 </RevenueManagementSettings>

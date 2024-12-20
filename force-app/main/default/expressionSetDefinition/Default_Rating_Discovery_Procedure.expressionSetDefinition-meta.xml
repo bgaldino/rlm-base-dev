@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <contextDefinitions>RLM_RatingDiscoveryContext</contextDefinitions>
+    <contextDefinitions>RatingDiscoveryContext__stdctx</contextDefinitions>
+    <description>Default Rating Discovery Procedure</description>
     <interfaceSourceType>RatingDiscoveryProcedure</interfaceSourceType>
-    <label>RLM Default Rating Discovery Procedure</label>
+    <label>Default Rating Discovery Procedure</label>
     <processType>RatingDiscovery</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_DefaultRatingDiscoveryProcedure_V1</fullName>
-        <description>RLM Default Rating Discovery Procedure</description>
-        <expressionSetDefinition>RLM_DefaultRatingDiscoveryProcedure</expressionSetDefinition>
+        <fullName>Default_Rating_Discovery_Procedure_V1</fullName>
+        <description>Default Rating Discovery Procedure</description>
+        <expressionSetDefinition>Default_Rating_Discovery_Procedure</expressionSetDefinition>
         <interfaceSourceType>RatingDiscoveryProcedure</interfaceSourceType>
-        <label>RLM Default Rating Discovery Procedure</label>
+        <label>Default Rating Discovery Procedure</label>
         <processType>RatingDiscovery</processType>
-        <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2020-01-01T08:00:00.000Z</startDate>
+        <startDate>2024-07-30T17:15:01.000Z</startDate>
         <status>Draft</status>
         <steps>
             <actionType>RateCardEntryResolution</actionType>

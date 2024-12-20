@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <IndustriesPricingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableDebugPriceLogs>true</enableDebugPriceLogs>
     <enableHighAvailability>true</enableHighAvailability>
     <enableLowestPriceCompliance>false</enableLowestPriceCompliance>
     <enablePricingWaterfall>true</enablePricingWaterfall>

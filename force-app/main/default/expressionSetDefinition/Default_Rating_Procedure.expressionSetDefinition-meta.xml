@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <contextDefinitions>RLM_RateManagementContext</contextDefinitions>
+    <contextDefinitions>RateManagementContext__stdctx</contextDefinitions>
+    <description>Default Rating Procedure</description>
     <interfaceSourceType>RatingProcedure</interfaceSourceType>
-    <label>RLM Default Rating Procedure</label>
+    <label>Default Rating Procedure</label>
     <processType>DefaultRating</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_DefaultRatingProcedure_V1</fullName>
-        <description>RLM Default Rating Procedure</description>
-        <expressionSetDefinition>RLM_DefaultRatingProcedure</expressionSetDefinition>
+        <fullName>Default_Rating_Procedure_V1</fullName>
+        <description>Default Rating Procedure</description>
+        <expressionSetDefinition>Default_Rating_Procedure</expressionSetDefinition>
         <interfaceSourceType>RatingProcedure</interfaceSourceType>
-        <label>RLM Default Rating Procedure</label>
+        <label>Default Rating Procedure</label>
         <processType>DefaultRating</processType>
-        <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2020-01-01T08:00:00.000Z</startDate>
+        <startDate>2024-06-26T07:13:52.000Z</startDate>
         <status>Draft</status>
         <steps>
             <actionType>RatingAttributeDiscount</actionType>

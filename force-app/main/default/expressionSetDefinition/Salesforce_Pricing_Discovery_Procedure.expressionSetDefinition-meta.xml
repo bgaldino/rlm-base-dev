@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
-    <description>RLM Default MultiCurrency Pricing Discovery Procedure</description>
-    <label>RLM Default Pricing Discovery Procedure</label>
+    <contextDefinitions>SalesTransactionContext__stdctx</contextDefinitions>
+    <description>Salesforce MultiCurrency Pricing Discovery Procedure</description>
+    <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
+    <label>Salesforce MultiCurrency Pricing Discovery Procedure</label>
     <processType>PricingDiscovery</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_DefaultPricingDiscoveryProcedure_V1</fullName>
-        <description>RLM Default MultiCurrency Pricing Discovery Procedure</description>
-        <expressionSetDefinition>RLM_DefaultPricingDiscoveryProcedure</expressionSetDefinition>
-        <label>RLM Default Pricing Discovery Procedure</label>
+        <fullName>Salesforce_Pricing_Discovery_Procedure_V1</fullName>
+        <description>Salesforce MultiCurrency Pricing Discovery Procedure</description>
+        <expressionSetDefinition>Salesforce_Pricing_Discovery_Procedure</expressionSetDefinition>
+        <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
+        <label>Salesforce MultiCurrency Pricing Discovery Procedure</label>
         <processType>PricingDiscovery</processType>
-        <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2020-01-01T08:00:00.000Z</startDate>
+        <startDate>2024-04-03T05:29:53.000Z</startDate>
         <status>Draft</status>
         <steps>
             <actionType>AssetDiscovery</actionType>
