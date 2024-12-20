@@ -83,7 +83,6 @@
                 <identifier>force_highlightsPanel</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>header</name>
         <type>Region</type>
     </flexiPageRegions>
@@ -604,7 +603,6 @@
                 <identifier>flexipage_fieldSection4</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>detailTabContent</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1179,7 +1177,6 @@
                 <identifier>flexipage_tabset2</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>relatedTabContent</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1282,7 +1279,6 @@
                 <identifier>lst_dynamicRelatedList6</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>attributesTab</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1297,7 +1293,6 @@
                 <identifier>epcProductStructureGraph</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>structureTab</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1394,7 +1389,6 @@
                 <identifier>flexipage_tab</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>maintabs</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1419,12 +1413,10 @@
                 <identifier>flexipage_tabset</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
     <masterLabel>RLM Product Record Page</masterLabel>
-    <parentFlexiPage>runtime_industries_epc__EpcProduct2_rec_L</parentFlexiPage>
     <sobjectType>Product2</sobjectType>
     <template>
         <name>flexipage:recordHomeSingleColTemplateDesktop</name>
