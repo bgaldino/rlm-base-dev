@@ -50,7 +50,7 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-unpackaged/pre/5_decisiontables
+#unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
@@ -68,7 +68,7 @@ force-app/main/default/genAiPromptTemplates/Record_Summ.genAiPromptTemplate-meta
 ## LOTUS AGENT EXAMPLES
 # bots
 unpackaged/post_lotus/bots
-unpackaged/post_lotus/bots/Copilot_for_Salesforce
+#unpackaged/post_lotus/bots/Copilot_for_Salesforce
 #classes
 #unpackaged/post_lotus/classes/AmendQuote
 #unpackaged/post_lotus/classes/dao
@@ -126,8 +126,8 @@ unpackaged/post_lotus/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
 # genAiFunctions
 #unpackaged/post_lotus/genAiFunctions
 # genAiPlanners
-unpackaged/post_lotus/genAiPlanners
-unpackaged/post_lotus/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
+#unpackaged/post_lotus/genAiPlanners
+#unpackaged/post_lotus/genAiPlanners/EmployeeCopilotPlanner.genAiPlanner-meta.xml
 # genAiPlugins
 #unpackaged/post_lotus/genAiPlugins
 # genAiPromptTemplates

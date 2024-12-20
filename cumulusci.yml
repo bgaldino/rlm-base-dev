@@ -421,6 +421,13 @@ tasks:
     options:
       path: unpackaged/post_lotus/lwc
 
+  deploy_lotus_genAiPlanners:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/genAiPlanners
+
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
