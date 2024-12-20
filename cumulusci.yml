@@ -49,8 +49,8 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    lotus: true
-    refresh: true
+    lotus: false
+    refresh: false
     commerce: false
     fflib-mocks-pkg: &fflib-mocks-pkg 04t7y000000IM5JAAW
     trigger-framework-pkg: &trigger-framework-pkg 04t7y000000IcQDAA0
