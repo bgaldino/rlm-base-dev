@@ -449,6 +449,20 @@ tasks:
     options:
       path: unpackaged/post_lotus/genAiPlugins
 
+  deploy_lotus_flows:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/flows
+
+  deploy_lotus_aura:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/aura
+
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1037,18 +1051,24 @@ flows:
         task: deploy_lotus_lwc
         when: project_config.project__custom__lotus == true
       7:
-        task: deploy_lotus_genAiFunctions
+        task: deploy_lotus_aura
         when: project_config.project__custom__lotus == true
       8:
-        task: deploy_lotus_genAiPlugins
+        task: deploy_lotus_flows
         when: project_config.project__custom__lotus == true
       9:
-        task: deploy_lotus_genAiPlanners
+        task: deploy_lotus_genAiFunctions
         when: project_config.project__custom__lotus == true
       10:
-        task: deploy_post_lotus
+        task: deploy_lotus_genAiPlugins
         when: project_config.project__custom__lotus == true
       11:
+        task: deploy_lotus_genAiPlanners
+        when: project_config.project__custom__lotus == true
+      12:
+        task: deploy_post_lotus
+        when: project_config.project__custom__lotus == true
+      13:
         task: assign_permission_sets
         when: project_config.project__custom__lotus == true
         options:
