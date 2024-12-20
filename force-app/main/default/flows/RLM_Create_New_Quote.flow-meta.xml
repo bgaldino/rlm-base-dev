@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>62.0</apiVersion>
+    <apiVersion>63.0</apiVersion>
     <environments>Default</environments>
     <formulas>
         <name>CloseDate</name>
@@ -21,16 +21,6 @@
         <name>QuoteName</name>
         <dataType>String</dataType>
         <expression>&quot;New Quote For&quot; + &quot; &quot; + {!Opportunity_Associated_to_the_Quote.Account.Name}</expression>
-    </formulas>
-    <formulas>
-        <name>ServiceEndDate</name>
-        <dataType>Date</dataType>
-        <expression>DATE(YEAR(TODAY())+1,MONTH(TODAY()), DAY(TODAY()-1))</expression>
-    </formulas>
-    <formulas>
-        <name>ServiceStartDate</name>
-        <dataType>Date</dataType>
-        <expression>Today()</expression>
     </formulas>
     <interviewLabel>RLM Create New Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Create New Quote</label>
@@ -119,12 +109,6 @@
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>NoTaxRegistrationIDReason__c</field>
-            <value>
-                <stringValue>Not Applicable</stringValue>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
             <field>OpportunityId</field>
             <value>
                 <elementReference>recordId</elementReference>
@@ -140,24 +124,6 @@
             <field>QuoteAccountId</field>
             <value>
                 <elementReference>Opportunity_Associated_to_the_Quote.Account.Id</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>RLM_TermMonths__c</field>
-            <value>
-                <elementReference>Term_Months</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>ServiceEndDate__c</field>
-            <value>
-                <elementReference>Service_End_Date</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>ServiceStartDate__c</field>
-            <value>
-                <elementReference>Service_Start_Date</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -188,18 +154,6 @@
             <field>ShippingStreet</field>
             <value>
                 <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingStreet</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>TaxExemptStatus__c</field>
-            <value>
-                <stringValue>Taxable PO</stringValue>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>Term__c</field>
-            <value>
-                <elementReference>Term_Months</elementReference>
             </value>
         </inputAssignments>
         <object>Quote</object>
@@ -286,40 +240,6 @@
             <fieldType>InputField</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-        </fields>
-        <fields>
-            <name>Service_Start_Date</name>
-            <dataType>Date</dataType>
-            <defaultValue>
-                <elementReference>ServiceStartDate</elementReference>
-            </defaultValue>
-            <fieldText>Service Start Date</fieldText>
-            <fieldType>InputField</fieldType>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-            <isRequired>true</isRequired>
-        </fields>
-        <fields>
-            <name>Service_End_Date</name>
-            <dataType>Date</dataType>
-            <defaultValue>
-                <elementReference>ServiceEndDate</elementReference>
-            </defaultValue>
-            <fieldText>Service End Date</fieldText>
-            <fieldType>InputField</fieldType>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-            <isRequired>false</isRequired>
-        </fields>
-        <fields>
-            <name>Term_Months</name>
-            <dataType>Number</dataType>
-            <defaultValue>
-                <numberValue>12.0</numberValue>
-            </defaultValue>
-            <fieldText>Term (Months)</fieldText>
-            <fieldType>InputField</fieldType>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-            <isRequired>false</isRequired>
-            <scale>0</scale>
         </fields>
         <fields>
             <name>Expiration_Date</name>
