@@ -421,12 +421,33 @@ tasks:
     options:
       path: unpackaged/post_lotus/lwc
 
+  deploy_lotus_classes:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/classes
+
   deploy_lotus_genAiPlanners:
     description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_lotus/genAiPlanners
+
+  deploy_lotus_genAiFunctions:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/genAiFunctions
+
+  deploy_lotus_genAiPlugins:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_lotus/genAiPlugins
 
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -1010,12 +1031,24 @@ flows:
         task: deploy_lotus_objects
         when: project_config.project__custom__lotus == true
       5:
-        task: deploy_lotus_lwc
+        task: deploy_lotus_classes
         when: project_config.project__custom__lotus == true
       6:
-        task: deploy_post_lotus
+        task: deploy_lotus_lwc
         when: project_config.project__custom__lotus == true
       7:
+        task: deploy_lotus_genAiFunctions
+        when: project_config.project__custom__lotus == true
+      8:
+        task: deploy_lotus_genAiPlugins
+        when: project_config.project__custom__lotus == true
+      9:
+        task: deploy_lotus_genAiPlanners
+        when: project_config.project__custom__lotus == true
+      10:
+        task: deploy_post_lotus
+        when: project_config.project__custom__lotus == true
+      11:
         task: assign_permission_sets
         when: project_config.project__custom__lotus == true
         options:
