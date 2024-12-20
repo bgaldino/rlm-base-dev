@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <decisions>
+        <name>Event_Status</name>
+        <label>Event Status?</label>
+        <locationX>182</locationX>
+        <locationY>170</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Is_Booked</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Booked</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Close_Parent_Opportunity</targetReference>
+            </connector>
+            <label>Is Booked?</label>
+        </rules>
+    </decisions>
+    <description>Update the Opportunity Stage and Close Date after a Quote is booked.</description>
+    <environments>Default</environments>
+    <interviewLabel>Close Opportunity After Quote is Booked {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Close Opportunity After Quote is Booked</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <description>For each Synced Quote, update the parent Opportunity&apos;s Stage to Close Won and set Close Date to Today.</description>
+        <name>Close_Parent_Opportunity</name>
+        <label>Close Parent Opportunity</label>
+        <locationX>50</locationX>
+        <locationY>278</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SyncedQuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteId__c</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>CloseDate</field>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>StageName</field>
+            <value>
+                <stringValue>Closed Won</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Opportunity</object>
+    </recordUpdates>
+    <start>
+        <locationX>56</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Event_Status</targetReference>
+        </connector>
+        <flowRunAsUser>DefaultWorkflowUser</flowRunAsUser>
+        <object>QuoteChangeEvent__e</object>
+        <triggerType>PlatformEvent</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

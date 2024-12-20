@@ -36,9 +36,6 @@
                         <valueListItems>
                             <value>RecordShareHierarchy</value>
                         </valueListItems>
-                        <valueListItems>
-                            <value>Opportunity.Create_Quote</value>
-                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
