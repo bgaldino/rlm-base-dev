@@ -523,7 +523,7 @@
             <targetReference>Get_Opportunity_Details</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <variables>
         <name>BillToCityRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
