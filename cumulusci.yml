@@ -52,13 +52,9 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    lotus: false
     agents: true
     refresh: false
     commerce: false
-    fflib-mocks-pkg: &fflib-mocks-pkg 04t7y000000IM5JAAW
-    trigger-framework-pkg: &trigger-framework-pkg 04t7y000000IcQDAA0
-    feature-flag-pkg: &feature-flag-pkg 04t0g000000KKxDAAW
 
     rlm_psl_api_names: &rlm_psl_api_names
       - BREDesigner
@@ -89,21 +85,28 @@ project:
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
+      - EinsteinAnalyticsPlusPsl
+      - EinsteinDisclsAndCmplHubUserPsl
+      - EinsteinGPTCopilotPsl
+      - EinsteinGPTPromptTemplatesPsl
+      - MySearchPsl
+      - RevenueIntelligencePsl
+      - ScoringFrameworkPsl
+      - TableauEinsteinBaseCreatorPsl
+      - TableauEinsteinBaseViewerPsl
+
+    rlm_tso_psl_api_names: &rlm_tso_psl_api_names
       # - AnalyticsQueryServicePslForSalesPlanning
       # - AutomatedActionsPsl
       # - EinsteinAgentCWUPsl
       # - EinsteinAgentPsl
-      - EinsteinAnalyticsPlusPsl
       # - EinsteinCopilotReviewMyDayPsl
-      - EinsteinDisclsAndCmplHubUserPsl
       # - EinsteinDiscoveryInTableauPsl
       # - EinsteinGPTCallExplorerPsl
-      - EinsteinGPTCopilotPsl
       # - EinsteinGPTCreateClosePlanPsl
       # - EinsteinGPTGetProductPricingPsl
       # - EinsteinGPTGroundingStructuredDataPsl
       # - EinsteinGPTMeetingFollowUpPsl
-      - EinsteinGPTPromptTemplatesPsl
       # - EinsteinGPTSalesCallSummariesPsl
       # - EinsteinGPTSalesEmailsPsl
       # - EinsteinGPTSalesMiningPsl
@@ -112,25 +115,22 @@ project:
       # - EinsteinSalesGenerativeInsightsPsl
       # - EinsteinSalesRepFeedbackPsl
       # - ERIPlatformBasic
-      - MySearchPsl
-      - RevenueIntelligencePsl
       # - SalesActionFindPastCollaboratorsPsl
       # - SalesActionReviewBuyingCommitteePsl
       # - SalesCloudUnlimitedAnalyticsAdminPsl
       # - SalesCloudUnlimitedPsl
       # - SalesEngagementBasicPsl
-      - ScoringFrameworkPsl
-      - TableauEinsteinBaseCreatorPsl
-      - TableauEinsteinBaseViewerPsl
       # - TableauEinsteinIncludedAppPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       - EinsteinGPTPromptTemplateManager
+      - SalesCloudEinsteinAll
+
+    rlm_tso_ps_api_names: &rlm_tso_ps_api_names
       # - EinsteinGPTSalesSummaries
       # - EinsteinGPTSalesEmails
       # - EinsteinGPTSalesCallSummaries
       # - EinsteinGPTGetProductPricing
-      - SalesCloudEinsteinAll
       # - ERIBasic
 
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
@@ -183,9 +183,6 @@ project:
 
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access
-
-    ps_lotus: &ps_lotus
-      - RLM_Lotus
 
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
@@ -389,83 +386,6 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: force-app/main/default/decisionTables
-
-  deploy_lotus_pages:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/pages
-
-  deploy_lotus_labels:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/labels
-
-  deploy_lotus_objects:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/objects
-
-  deploy_lotus_custom_metadata:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/customMetadata/Feature_Toggle
-
-  deploy_lotus_lwc:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/lwc
-
-  deploy_lotus_classes:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/classes
-
-  deploy_lotus_genAiPlanners:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/genAiPlanners
-
-  deploy_lotus_genAiFunctions:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/genAiFunctions
-
-  deploy_lotus_genAiPlugins:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/genAiPlugins
-
-  deploy_lotus_flows:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/flows
-
-  deploy_lotus_aura:
-    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_lotus/aura
 
   deploy_agents_genAiPlanners:
     description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
@@ -738,11 +658,6 @@ tasks:
     options:
       path: unpackaged/post_docgen
 
-  deploy_post_lotus:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_lotus
-
   create_rule_library:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -826,8 +741,6 @@ flows:
       17:
         task: activate_and_deploy_expression_sets
       18:
-        flow: prepare_lotus
-      19:
         flow: prepare_agents
          
   prepare_core:
@@ -854,46 +767,44 @@ flows:
         options:
           seconds: *sleep_default
       6:
-        flow: prepare_dependencies
-      7:
         task: assign_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
-      8:
+      7:
         task: assign_permission_sets
         options:
           api_names: *rlm_pcm_ps_api_names
-      9:
+      8:
         flow: extend_context_definitions
-      10:
+      9:
         task: util_sleep
         options:
           seconds: *sleep_default
-      11:
+      10:
         task: create_price_adjustment_schedules
         when: org_config.scratch
-      12:
+      11:
         task: create_price_adjustment_schedules_prod
         when: project_config.project__custom__tso == true
+      12:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
       13:
-        task: util_sleep
-        options:
-          seconds: *sleep_default
-      14:
         task: create_rule_library
-      15:
+      14:
         task: util_sleep
         options:
           seconds: *sleep_default
-      16:
+      15:
         task: create_dro_rule_library
         when: project_config.project__custom__dro == true
-      17:
+      16:
         task: assign_permission_sets
         when: project_config.project__custom__einstein == true
         options:
           api_names: *rlm_ai_ps_api_names
-      18:
+      17:
         task: assign_permission_sets
         when: project_config.project__custom__billing == true
         options:
@@ -1059,64 +970,6 @@ flows:
       3:
         task: insert_tax_data_prod
         when: project_config.project__custom__tax == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false
-
-  prepare_dependencies:
-    group: Revenue Lifecycle Management
-    steps:
-      1:
-        task: install_managed_package_fflib-mocks
-        when: project_config.project__custom__lotus == true
-      2:
-        task: install_managed_package_trigger-framework
-        when: project_config.project__custom__lotus == true
-      3:
-        task: install_managed_package_feature-flag
-        when: project_config.project__custom__lotus == true
-
-  prepare_lotus:
-    group: Revenue Lifecycle Management
-    steps:
-      1:
-        task: deploy_lotus_pages
-        when: project_config.project__custom__lotus == true
-      2:
-        task: deploy_lotus_labels
-        when: project_config.project__custom__lotus == true
-      3:
-        task: deploy_lotus_custom_metadata
-        when: project_config.project__custom__lotus == true
-      4:
-        task: deploy_lotus_objects
-        when: project_config.project__custom__lotus == true
-      5:
-        task: deploy_lotus_classes
-        when: project_config.project__custom__lotus == true
-      6:
-        task: deploy_lotus_lwc
-        when: project_config.project__custom__lotus == true
-      7:
-        task: deploy_lotus_aura
-        when: project_config.project__custom__lotus == true
-      8:
-        task: deploy_lotus_flows
-        when: project_config.project__custom__lotus == true
-      9:
-        task: deploy_lotus_genAiFunctions
-        when: project_config.project__custom__lotus == true
-      10:
-        task: deploy_lotus_genAiPlugins
-        when: project_config.project__custom__lotus == true
-      11:
-        task: deploy_lotus_genAiPlanners
-        when: project_config.project__custom__lotus == true
-      12:
-        task: deploy_post_lotus
-        when: project_config.project__custom__lotus == true
-      13:
-        task: assign_permission_sets
-        when: project_config.project__custom__lotus == true
-        options:
-          api_names: *ps_lotus
 
   prepare_agents:
     group: Revenue Lifecycle Management
