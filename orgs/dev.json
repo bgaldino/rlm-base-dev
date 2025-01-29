@@ -4,8 +4,12 @@
   "edition": "Enterprise",
   "features": [
     "AdvancedApproval",
-    "BillingSuite",
+    "AIProviderOpenAI",
+    "AIProviderAWSBedrock",
+    "BillingAdvance",
+    "CallCoaching",
     "CGAnalytics",
+    "Chatbot",
     "Communities",
     "ContractsAIClauseDesigner",
     "Copilot",
@@ -13,16 +17,20 @@
     "CustomerDataPlatform",
     "CustomerDataPlatformLite",
     "DisclosureFramework",
-    "EinsteinGPTFieldGeneration",
-    "EinsteinGPTPlatform",
-    "EinsteinGPTPromptBuilder",
+    "EinsteinAssistant",
+    "Einstein1AIPlatform",
+    "EinsteinGenerativeServices",
+    "EinsteinHawkingC2CEnabled",
     "EinsteinSearch",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "InsightsPlatform",
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
-    "SalesCloudEinstein"
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "SalesforceConfiguratorEngine",
+    "TableauEinsteinBase"
     ],
   "settings": {
     "lightningExperienceSettings": {
@@ -61,7 +69,7 @@
       "enableCustomAddressField": true
     },
     "customerDataPlatformSettings": {
-      "enableCustomerDataPlatform": true
+      "enableCustomerDataPlatform": false
     }
   }
 }

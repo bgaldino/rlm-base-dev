@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningExperienceTheme xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultBrandingSet>LEXTHEMINGQuantumBitSLDSv2</defaultBrandingSet>
+    <designSystemVersion>SLDS_v2</designSystemVersion>
+    <masterLabel>QuantumBit SLDSv2</masterLabel>
+    <shouldOverrideLoadingImage>false</shouldOverrideLoadingImage>
+</LightningExperienceTheme>

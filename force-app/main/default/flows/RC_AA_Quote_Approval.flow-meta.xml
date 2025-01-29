@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <constants>
         <description>Set the USERNAME of the User that will do the Director Approval</description>
         <name>constDirectorApproverUserName</name>
@@ -415,7 +416,7 @@
             <targetReference>Requires_Approval</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <variables>
         <name>ApprovalLevel</name>
         <dataType>Number</dataType>

@@ -15,7 +15,7 @@
     <enableIndustriesIntegrationOrchestratorPref>false</enableIndustriesIntegrationOrchestratorPref>
     <enableInformationLibrary>false</enableInformationLibrary>
     <enableMicrosoftWordAddInEnabled>true</enableMicrosoftWordAddInEnabled>
-    <enablePCMConfigRules>true</enablePCMConfigRules>
+    <enablePCMConfigRules>false</enablePCMConfigRules>
     <enablePartyProfileParentSharingOrgPref>false</enablePartyProfileParentSharingOrgPref>
     <enablePartyprofParentMultiSharingOrgPref>false</enablePartyprofParentMultiSharingOrgPref>
     <enableScoringFrameworkCRMAPref>true</enableScoringFrameworkCRMAPref>

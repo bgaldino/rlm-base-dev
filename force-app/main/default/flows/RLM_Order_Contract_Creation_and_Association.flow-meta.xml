@@ -42,9 +42,9 @@
             <assignToReference>CountOfSubscriptions</assignToReference>
             <name>subscriptionItemCount</name>
         </outputParameters>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Set_Values_of_Contract_with_Opp</name>
         <label>Set Values of Contract with Opp</label>

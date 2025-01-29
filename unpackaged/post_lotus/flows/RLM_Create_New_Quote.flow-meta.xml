@@ -144,6 +144,18 @@
             </value>
         </inputAssignments>
         <inputAssignments>
+            <field>ServiceEndDate__c</field>
+            <value>
+                <elementReference>Service_End_Date</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ServiceStartDate__c</field>
+            <value>
+                <elementReference>Service_Start_Date</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
             <field>ShippingCity</field>
             <value>
                 <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingCity</elementReference>
@@ -171,6 +183,12 @@
             <field>ShippingStreet</field>
             <value>
                 <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingStreet</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Term__c</field>
+            <value>
+                <numberValue>12.0</numberValue>
             </value>
         </inputAssignments>
         <object>Quote</object>
