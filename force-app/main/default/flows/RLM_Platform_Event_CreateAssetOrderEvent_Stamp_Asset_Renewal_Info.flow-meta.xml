@@ -15,9 +15,9 @@
             </value>
         </inputParameters>
         <nameSegment>RLM_AssetInfoUtility</nameSegment>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
     <interviewLabel>Platform Event - {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Platform Event - CreateAssetOrderEvent - Stamp Asset Renewal Info</label>

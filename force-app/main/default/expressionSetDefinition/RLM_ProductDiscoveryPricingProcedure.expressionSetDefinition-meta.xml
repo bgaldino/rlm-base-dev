@@ -16,7 +16,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Draft</status>
+        <status>Active</status>
         <steps>
             <actionType>ListPrice</actionType>
             <customElement>
@@ -145,6 +145,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>SubTotal</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004urMAA</value>
                 </parameters>
             </customElement>
             <description>List Price</description>

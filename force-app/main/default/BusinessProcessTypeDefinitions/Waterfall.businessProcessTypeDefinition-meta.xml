@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BusinessProcessTypeDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationUsageType>ExplainabilityService</applicationUsageType>
+    <description>Pricing Waterfall Business Process Type Definition</description>
+    <masterLabel>Pricing Waterfall Business Process Type Definition</masterLabel>
+</BusinessProcessTypeDefinition>

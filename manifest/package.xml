@@ -622,10 +622,12 @@
         <members>*</members>
         <name>RecordType</name>
     </types>
+    <!--
     <types>
         <members>*</members>
         <name>RuleLibraryDefinition</name>
     </types>
+    -->
     <types>
         <members>Account</members>
         <members>AccountIntelligence</members>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExplainabilityActionDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionLogSchemaType>Other</actionLogSchemaType>
+    <applicationSubtype>Waterfall</applicationSubtype>
+    <applicationType>IndustriesPricing</applicationType>
+    <description>Pricing Waterfall Explainability Action Definition</description>
+    <internal>false</internal>
+    <masterLabel>Pricing Waterfall Explainability Action Definition</masterLabel>
+    <processType>Waterfall</processType>
+</ExplainabilityActionDefinition>

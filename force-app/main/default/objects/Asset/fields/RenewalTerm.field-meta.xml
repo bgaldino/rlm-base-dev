@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RenewalTerm</fullName>
+    <inlineHelpText>The default subscription term for renewal quotes. For example, if the Renewal Term Unit is months and you want a 6-month term, set the Renewal Term to 6.</inlineHelpText>
+    <trackHistory>false</trackHistory>
+</CustomField>

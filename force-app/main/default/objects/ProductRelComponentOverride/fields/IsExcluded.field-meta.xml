@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>IsExcluded</fullName>
+    <inlineHelpText>Excluding a component removes it from the product bundle in the run time.</inlineHelpText>
+    <trackHistory>false</trackHistory>
+</CustomField>

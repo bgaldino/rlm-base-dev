@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All_Price_Books</fullName>
+    <columns>PRICEBOOK2.NAME</columns>
+    <columns>PRICEBOOK2.DESCRIPTION</columns>
+    <columns>PRICEBOOK2.LAST_UPDATE</columns>
+    <columns>PRICEBOOK2.IS_ACTIVE</columns>
+    <filterScope>Everything</filterScope>
+    <label>All Price Books</label>
+</ListView>

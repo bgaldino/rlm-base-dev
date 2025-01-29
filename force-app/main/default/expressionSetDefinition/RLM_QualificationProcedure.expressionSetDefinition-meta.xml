@@ -15,7 +15,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Draft</status>
+        <status>Active</status>
         <steps>
             <actionType>EvaluateQualification</actionType>
             <customElement>
@@ -60,6 +60,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>Reason</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>DTId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000059OMAQ</value>
                 </parameters>
             </customElement>
             <label>Evaluate Qualification</label>

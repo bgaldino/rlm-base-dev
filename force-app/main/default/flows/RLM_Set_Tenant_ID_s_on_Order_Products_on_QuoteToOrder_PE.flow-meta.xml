@@ -21,9 +21,9 @@
             </value>
         </inputParameters>
         <nameSegment>RLM_PatchOrderConvertedFromQuote</nameSegment>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Set_Tenant_Assignment_from_Quote_Line</name>
         <label>Set Tenant Assignment from Quote Line</label>

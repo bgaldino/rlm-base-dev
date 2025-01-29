@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <createdInVersion>63.0</createdInVersion>
     <developerName>Quote_Summary</developerName>
     <masterLabel>Quote Summary</masterLabel>
     <relatedEntity>Quote</relatedEntity>
@@ -80,7 +81,7 @@ Now generate only the plaintext.
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT4Omni</primaryModel>
         <status>Draft</status>
-        <versionNumber>1</versionNumber>
+        <versionIdentifier>SXZRdLH4nEsnFB4xTJD/TjNQwVF5NjR5KSjDQKtK51I=_1</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__recordSummary</type>
     <visibility>Global</visibility>

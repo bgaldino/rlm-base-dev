@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WebToXSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <shouldHideRecordInfoInEmail>false</shouldHideRecordInfoInEmail>
+    <webToCaseSpamFilter>true</webToCaseSpamFilter>
+    <webToLeadSpamFilter>true</webToLeadSpamFilter>
+</WebToXSettings>

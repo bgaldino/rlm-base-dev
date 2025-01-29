@@ -14,8 +14,8 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Draft</status>
-         <steps>
+        <status>Active</status>
+        <steps>
             <actionType>GroupingAndAggregatePricing</actionType>
             <customElement>
                 <parameters>
@@ -1084,6 +1084,13 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004y6MAA</value>
+                </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
             <label>Attribute-Based Price</label>
@@ -1231,6 +1238,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004y6MAA</value>
                 </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
@@ -1393,6 +1407,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000052vMAA</value>
                 </parameters>
             </customElement>
             <description>Bundle-Based Price</description>
@@ -2581,6 +2602,13 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000052wMAA</value>
+                </parameters>
             </customElement>
             <description>List Price</description>
             <label>List Price</label>
@@ -2863,6 +2891,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ListPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004urMAA</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
@@ -3790,6 +3825,13 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000052xMAA</value>
+                </parameters>
             </customElement>
             <description>Volume Discount</description>
             <label>Volume Discount</label>
@@ -3931,6 +3973,13 @@
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004usMAA</value>
+                </parameters>
             </customElement>
             <description>Volume Discount</description>
             <label>Volume Discount Entries</label>
@@ -3963,7 +4012,7 @@
             <name>AttributePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>__ATTRIBUTEPasID__</value>
+            <value>84XEe00000009ksMAA</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -3974,7 +4023,7 @@
             <name>BundlePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>__BUNDLEPasID__</value>
+            <value>84XEe00000009ktMAA</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4062,7 +4111,7 @@
             <name>VolumePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>__VOLUMEPasID__</value>
+            <value>84XEe00000009mTMAQ</value>
         </variables>
         <versionNumber>1</versionNumber>
     </versions>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ContextUseCaseMapping xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contextDefinitionName>ContractsExtractionContext__stdctx</contextDefinitionName>
+    <mappingName>DocExtrctPersistenceMapping</mappingName>
+    <mappingType>Persistence</mappingType>
+    <masterLabel>Default Contract Extraction Template</masterLabel>
+    <targetObjectName>Contract</targetObjectName>
+    <useCaseType>ContractExtraction</useCaseType>
+</ContextUseCaseMapping>

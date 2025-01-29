@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpportunitySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <autoActivateNewReminders>true</autoActivateNewReminders>
+    <customizableProductSchedulesEnabled>false</customizableProductSchedulesEnabled>
+    <doesEnforceStandardOpportunitySaveLogic>true</doesEnforceStandardOpportunitySaveLogic>
+    <enableExpandedPipelineInspectionSetup>true</enableExpandedPipelineInspectionSetup>
+    <enableFindSimilarOpportunities>false</enableFindSimilarOpportunities>
+    <enableForecastCategoryMetrics>true</enableForecastCategoryMetrics>
+    <enableOpportunityFieldHistoryTracking>false</enableOpportunityFieldHistoryTracking>
+    <enableOpportunityInsightsInMobile>false</enableOpportunityInsightsInMobile>
+    <enableOpportunityTeam>false</enableOpportunityTeam>
+    <enablePipelineChangesMetrics>true</enablePipelineChangesMetrics>
+    <enablePipelineInspection>true</enablePipelineInspection>
+    <enablePipelineInspectionFlow>false</enablePipelineInspectionFlow>
+    <enablePipelineInspectionSingleCategoryRollup>true</enablePipelineInspectionSingleCategoryRollup>
+    <enableRevenueInsights>false</enableRevenueInsights>
+    <enableServiceCaseInsights>true</enableServiceCaseInsights>
+    <enableUpdateReminders>true</enableUpdateReminders>
+    <oppAmountDealMotionEnabled>true</oppAmountDealMotionEnabled>
+    <oppCloseDateDealMotionEnabled>true</oppCloseDateDealMotionEnabled>
+    <promptToAddProducts>false</promptToAddProducts>
+    <pushCountEnabled>true</pushCountEnabled>
+    <simpleOppCreateFromContact>true</simpleOppCreateFromContact>
+    <simpleOppCreateFromEvent>true</simpleOppCreateFromEvent>
+</OpportunitySettings>

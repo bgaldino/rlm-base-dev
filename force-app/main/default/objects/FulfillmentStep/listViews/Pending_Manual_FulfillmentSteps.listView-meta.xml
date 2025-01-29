@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pending_Manual_FulfillmentSteps</fullName>
+    <columns>Name</columns>
+    <columns>FulfillmentPlan</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>State</field>
+        <operation>equals</operation>
+        <value>InProgress</value>
+    </filters>
+    <filters>
+        <field>StepType</field>
+        <operation>equals</operation>
+        <value>ManualTask</value>
+    </filters>
+    <label>pendingManualFulfillmentSteps</label>
+</ListView>

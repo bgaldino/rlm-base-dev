@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MyDomainSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <areLegacyRedirectsMaintained>false</areLegacyRedirectsMaintained>
+    <canOnlyLoginWithMyDomainUrl>false</canOnlyLoginWithMyDomainUrl>
+    <doesApiLoginRequireOrgDomain>false</doesApiLoginRequireOrgDomain>
+    <doesWarnOnForceComRedirect>false</doesWarnOnForceComRedirect>
+    <doesWarnOnRedirect>false</doesWarnOnRedirect>
+    <domainPartition>scratch</domainPartition>
+    <enableCrossDomainPreviewCookies>true</enableCrossDomainPreviewCookies>
+    <enableEdgeDuringRollout>true</enableEdgeDuringRollout>
+    <enableExtendedRedirections>false</enableExtendedRedirections>
+    <enableLegacyRedirections>false</enableLegacyRedirections>
+    <enableNativeBrowserForAuthOnAndroid>false</enableNativeBrowserForAuthOnAndroid>
+    <enableNativeBrowserForAuthOnIos>false</enableNativeBrowserForAuthOnIos>
+    <enableShareBrowserSessionAndroidForAuth>false</enableShareBrowserSessionAndroidForAuth>
+    <enableShareBrowserSessionIOSForAuth>false</enableShareBrowserSessionIOSForAuth>
+    <instancedUrlRedirectHandling>NoRedirect</instancedUrlRedirectHandling>
+    <isFirstPartyCookieUseRequired>false</isFirstPartyCookieUseRequired>
+    <logRedirections>false</logRedirections>
+    <myDomainName>playground-oatmilk-8980</myDomainName>
+    <myDomainSuffix>MySalesforce</myDomainSuffix>
+    <onboardCustomerSpecificSuffix>false</onboardCustomerSpecificSuffix>
+    <redirectForceComSiteUrls>true</redirectForceComSiteUrls>
+    <redirectPriorMyDomain>true</redirectPriorMyDomain>
+    <use3rdPartyCookieBlockingCompatibleHostnames>true</use3rdPartyCookieBlockingCompatibleHostnames>
+    <useEdge>true</useEdge>
+    <useEnhancedDomainsInSandbox>true</useEnhancedDomainsInSandbox>
+    <useStabilizedMyDomainHostnames>true</useStabilizedMyDomainHostnames>
+    <useStabilizedSandboxMyDomainHostnames>true</useStabilizedSandboxMyDomainHostnames>
+</MyDomainSettings>

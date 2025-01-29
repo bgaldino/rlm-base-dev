@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM_CLM</label>
+    <permissionSets>force__CGAnalyticsAdmin</permissionSets>
+    <permissionSets>force__CLMAdminUser</permissionSets>
+    <permissionSets>force__CLMAnalyticsAdmin</permissionSets>
+    <permissionSets>force__ClauseDesigner</permissionSets>
+    <permissionSets>force__ContractsAIClauseDesigner</permissionSets>
+    <permissionSets>force__ContractsAIRuntimeUser</permissionSets>
+    <permissionSets>force__DocGenDesigner</permissionSets>
+    <permissionSets>force__Microsoft365WordDesigner</permissionSets>
+    <permissionSets>force__NLPServicePsl</permissionSets>
+    <permissionSets>force__ObligationManager</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

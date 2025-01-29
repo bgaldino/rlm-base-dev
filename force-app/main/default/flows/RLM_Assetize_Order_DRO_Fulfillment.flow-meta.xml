@@ -16,7 +16,6 @@
         </inputParameters>
         <nameSegment>createOrUpdateAssetFromOrderItem</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <actionCalls>
         <name>Create_Assets_from_FOPs</name>
@@ -34,7 +33,6 @@
         </inputParameters>
         <nameSegment>createOrUpdateAssetFromOrderItem</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <actionCalls>
         <name>Create_Assets_from_Order_Items</name>
@@ -52,7 +50,6 @@
         </inputParameters>
         <nameSegment>createOrUpdateAssetFromOrderItem</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <actionCalls>
         <name>Create_Assets_from_Singular_Order_Item</name>
@@ -70,7 +67,6 @@
         </inputParameters>
         <nameSegment>createOrUpdateAssetFromOrderItem</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <actionCalls>
         <name>Determine_DRO_Source_Type</name>
@@ -97,9 +93,9 @@
         </inputParameters>
         <nameSegment>RLM_DetermineDROSourceType</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Add_Order_Id_from_Current_FOP</name>
         <label>Add Order Id from Current FOP</label>

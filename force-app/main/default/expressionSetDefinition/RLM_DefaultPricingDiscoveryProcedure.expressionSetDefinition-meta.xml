@@ -14,7 +14,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Draft</status>
+        <status>Active</status>
         <steps>
             <actionType>AssetDiscovery</actionType>
             <customElement>
@@ -101,6 +101,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ContributorListPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000054XMAQ</value>
                 </parameters>
             </customElement>
             <description>Asset Discovery</description>
@@ -234,6 +241,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ContributorPriceDetail</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004y7MAA</value>
                 </parameters>
             </customElement>
             <description>Fetch Pricing Rules</description>

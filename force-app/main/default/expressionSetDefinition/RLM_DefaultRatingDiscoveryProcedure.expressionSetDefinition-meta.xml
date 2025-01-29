@@ -15,7 +15,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Draft</status>
+        <status>Active</status>
         <steps>
             <actionType>RateCardEntryResolution</actionType>
             <customElement>
@@ -124,6 +124,13 @@
                     <type>Parameter</type>
                     <value>RateCardEntryId</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000051JMAQ</value>
+                </parameters>
             </customElement>
             <description>Get Rate Card Entries</description>
             <label>Get Rate Card Entries</label>
@@ -186,6 +193,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>RCType</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe00000004zhMAA</value>
                 </parameters>
             </customElement>
             <description>Get Rate Cards</description>
@@ -270,6 +284,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>RateAdjustmentByTierId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDEe000000051KMAQ</value>
                 </parameters>
             </customElement>
             <description>Get Tier-Based Rate Adjustments</description>

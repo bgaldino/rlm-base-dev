@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExplainabilityActionDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionLogSchemaType>Other</actionLogSchemaType>
+    <applicationSubtype>DroDcmp</applicationSubtype>
+    <applicationType>IndustriesDroOrderProcess</applicationType>
+    <description>Action def record for DRO</description>
+    <internal>false</internal>
+    <masterLabel>DroDecompScopeAction</masterLabel>
+    <processType>DcmpScp</processType>
+</ExplainabilityActionDefinition>

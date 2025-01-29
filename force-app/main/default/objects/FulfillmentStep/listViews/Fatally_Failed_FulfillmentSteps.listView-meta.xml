@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Fatally_Failed_FulfillmentSteps</fullName>
+    <columns>Name</columns>
+    <columns>AssignedTo</columns>
+    <columns>FalloutQueue</columns>
+    <columns>StepType</columns>
+    <columns>State</columns>
+    <columns>ExecutionMessage</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>State</field>
+        <operation>contains</operation>
+        <value>Failed</value>
+    </filters>
+    <label>fatallyFailedFulfillmentSteps</label>
+</ListView>

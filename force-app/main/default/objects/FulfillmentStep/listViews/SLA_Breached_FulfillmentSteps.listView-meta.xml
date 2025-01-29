@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SLA_Breached_FulfillmentSteps</fullName>
+    <columns>Name</columns>
+    <columns>FulfillmentPlan</columns>
+    <columns>PlannedCompletionDate</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>JeopardyStatus</field>
+        <operation>equals</operation>
+        <value>Overdue</value>
+    </filters>
+    <filters>
+        <field>State</field>
+        <operation>notEqual</operation>
+        <value>Completed</value>
+    </filters>
+    <label>slaBreachedFulfillmentSteps</label>
+</ListView>

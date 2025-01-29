@@ -40,9 +40,9 @@
         </inputParameters>
         <nameSegment>RLM_QuoteHeaderFlowController</nameSegment>
         <offset>0</offset>
-        <versionSegment>1</versionSegment>
     </actionCalls>
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Add_to_Quote_Lines_to_Update</name>
         <label>Add to Quote Lines to Update</label>
