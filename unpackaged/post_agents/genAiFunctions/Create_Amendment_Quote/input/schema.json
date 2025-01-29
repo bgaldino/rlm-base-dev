@@ -1,0 +1,39 @@
+{
+  "required" : [ "AccountId", "QuantityChange", "varAssetIds" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "AccountId" : {
+      "title" : "AccountId",
+      "description" : "The account on which to create the amendment opportunity and quote.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "AmendmentDate" : {
+      "title" : "AmendmentDate",
+      "description" : "Effective start date of the amendment, to be specified in YYYY-MM-DD format. If not provided, this will default to today’s date.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuantityChange" : {
+      "title" : "QuantityChange",
+      "description" : "Quantity to add to or reduce from the asset's existing quantity.",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "varAssetIds" : {
+      "title" : "varAssetIds",
+      "description" : "The IDs of the assets that you want to amend.",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

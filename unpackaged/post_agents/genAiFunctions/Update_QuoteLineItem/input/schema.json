@@ -1,0 +1,35 @@
+{
+  "required" : [ "Field", "QuoteId", "QuoteLineItemId", "Value" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Field" : {
+      "title" : "Field",
+      "description" : "A field on QuoteLineItem to be updated by the agent.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "QuoteId" : {
+      "title" : "QuoteId",
+      "description" : "Quote Id of the quote record upon which this action acts.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "QuoteLineItemId" : {
+      "title" : "QuoteLineItemId",
+      "description" : "QuoteLineItem Id of the quote line item record upon which this action acts.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "Value" : {
+      "title" : "Value",
+      "description" : "The value to set the quote line item to. ",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

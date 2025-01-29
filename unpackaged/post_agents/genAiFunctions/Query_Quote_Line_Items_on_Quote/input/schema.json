@@ -1,0 +1,14 @@
+{
+  "required" : [ "QuoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "QuoteId" : {
+      "title" : "QuoteId",
+      "description" : "The quoteId referenced, on which the quote line item exists.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

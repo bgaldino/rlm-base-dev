@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlowDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionNumber>11</activeVersionNumber>
+    <description>This action can be used to create a new business quote from an opportunity. It takes in an OpportunityID as required input, and returns an 18 digit QuoteID. Optional inputs include quote start date and pricebook ID.</description>
+    <masterLabel>Create New Business Quote</masterLabel>
+</FlowDefinition>

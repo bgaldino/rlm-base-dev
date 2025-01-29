@@ -1,0 +1,28 @@
+{
+  "required" : [ "OpportunityID" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "OpportunityID" : {
+      "title" : "OpportunityID",
+      "description" : "This is the Opportunity record ID needed to create a new business quote.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "PriceBookName" : {
+      "title" : "PriceBookName",
+      "description" : "The name of the pricebook. If left blank, will default to the standard pricebook, so this is an optional input.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuoteName" : {
+      "title" : "QuoteName",
+      "description" : "This is an optional input for the user to specify the quote's name. It can be ignored if the user hasn't specified a quote name explicitly.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

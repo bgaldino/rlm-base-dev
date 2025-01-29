@@ -1,0 +1,28 @@
+{
+  "required" : [ "ProductId", "QuoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "ProductId" : {
+      "title" : "ProductId",
+      "description" : "The product Id for the product to be added to the quote.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "Quantity" : {
+      "title" : "Quantity",
+      "description" : "The quantity of the product to be added to the quote line. If no quantity is provided, default to 1.",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuoteId" : {
+      "title" : "QuoteId",
+      "description" : "The quote Id of the quote record to be modified.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

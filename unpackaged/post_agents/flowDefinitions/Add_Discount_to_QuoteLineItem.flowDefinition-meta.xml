@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlowDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionNumber>17</activeVersionNumber>
+    <description>This action is used to apply discount percentage to the quote line by updating the DiscountPercentage field on the QuoteLineItem record on a Quote record. It accepts DiscountPercentage, Quote Id, and QuoteLineItem Id as required input.</description>
+    <masterLabel>Apply Discount to QuoteLineItem</masterLabel>
+</FlowDefinition>

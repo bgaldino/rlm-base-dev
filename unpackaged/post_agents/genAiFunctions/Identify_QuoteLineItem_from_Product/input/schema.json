@@ -1,0 +1,21 @@
+{
+  "required" : [ "Product2Id", "QuoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Product2Id" : {
+      "title" : "Product2Id",
+      "description" : "The 18 digit Product2Id of the product.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuoteId" : {
+      "title" : "QuoteId",
+      "description" : "The 18 digit Quote Id",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

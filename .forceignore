@@ -139,6 +139,27 @@ unpackaged/post_lotus/flows/UpdateQuoteEligibilityFieldOnAccount.flow-meta.xml
 # permissionsets
 #unpackaged/post_lotus/permissionsets/RLM_Lotus.permissionset-meta.xml
 
+## LOTUS SANITIZED
+unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/GetCreditScoreFlowAction.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/GetDefaultBillingInfoFlowAction.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/GetOrg62UrlFlowAction.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/GetStateCodeFlowAction.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/GetSupportedCountriesFlowAction.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/flowActions/ValidateCurrencySupportFlowAction.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/EffectiveDiscount
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/EffectiveQuantity
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/ApprovalLevelRunner.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineTrigger/DPPValidationRunner.cls
+unpackaged/post_lotus/classes/orgsf-quote-base/RevenueOwner
+unpackaged/post_lotus/classes/orgsf-quote-base/QuoteLineItemDPPValidationService.cls
+
+
+unpackaged/post_agents/flowDefinitions/HardCode_Create_New_Business_Quote.flowDefinition-meta.xml
+unpackaged/post_agents/flows/HardCode_Create_New_Business_Quote.flow-meta.xml
+unpackaged/post_agents/flowDefinitions/Customized_Order_To_Asset_Flow.flowDefinition-meta.xml
+unpackaged/post_agents/flows/Customized_Order_To_Asset_Flow.flow-meta.xml
+unpackaged/post_agents/workflows
+
 ## ADVANCED APPROVALS
 # classes
 #force-app/main/default/classes/RC_QuoteApprovalController.cls

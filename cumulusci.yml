@@ -53,6 +53,7 @@ project:
     product_dataset: qb
     qbrix: true
     lotus: false
+    agents: true
     refresh: false
     commerce: false
     fflib-mocks-pkg: &fflib-mocks-pkg 04t7y000000IM5JAAW
@@ -466,6 +467,34 @@ tasks:
     options:
       path: unpackaged/post_lotus/aura
 
+  deploy_agents_genAiPlanners:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/genAiPlanners
+
+  deploy_agents_genAiFunctions:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/genAiFunctions
+
+  deploy_agents_genAiPlugins:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/genAiPlugins
+
+  deploy_agents_flows:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/flows
+
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -798,6 +827,8 @@ flows:
         task: activate_and_deploy_expression_sets
       18:
         flow: prepare_lotus
+      19:
+        flow: prepare_agents
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -1086,3 +1117,19 @@ flows:
         when: project_config.project__custom__lotus == true
         options:
           api_names: *ps_lotus
+
+  prepare_agents:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_agents_flows
+        when: project_config.project__custom__agents == true
+      2:
+        task: deploy_agents_genAiFunctions
+        when: project_config.project__custom__agents == true
+      3:
+        task: deploy_agents_genAiPlugins
+        when: project_config.project__custom__agents == true
+      4:
+        task: deploy_agents_genAiPlanners
+        when: project_config.project__custom__agents == true
