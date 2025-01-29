@@ -291,7 +291,7 @@
             <targetReference>Get_Quote</targetReference>
         </connector>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>QuoteLinesToUpdate</name>
         <dataType>SObject</dataType>

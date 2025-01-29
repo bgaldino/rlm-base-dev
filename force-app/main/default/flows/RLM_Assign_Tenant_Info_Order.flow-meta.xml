@@ -297,7 +297,7 @@
             <targetReference>Get_Order</targetReference>
         </connector>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>OrderProductsToUpdate</name>
         <dataType>SObject</dataType>

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>This action is used to create Tenant for an Account.  Never ask account id from the user. Identify the account id from the context. You can also identify account id by calling IdentifyObjectByName, IdentifyRecordByName actions.</description>
-    <invocationTarget>Lotus_Create_Tenant</invocationTarget>
-    <invocationTargetType>flow</invocationTargetType>
-    <isConfirmationRequired>false</isConfirmationRequired>
-    <masterLabel>Lotus - Create Tenant</masterLabel>
-</GenAiFunction>
