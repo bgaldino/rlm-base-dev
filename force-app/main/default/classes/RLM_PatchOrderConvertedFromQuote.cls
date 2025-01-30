@@ -75,8 +75,6 @@ public with sharing class RLM_PatchOrderConvertedFromQuote {
 
                 orderLineModel.record.put('attributes', oiAttrMap);
 
-                orderLineModel.record.put('RLM_Tenant_Environment__c', inputOrderLine.RLM_Tenant_Environment__c);
-
                 requestBody.graph.records.add(orderLineModel);
             }
         }

@@ -75,8 +75,6 @@ public with sharing class RLM_PatchQuoteTenantUtility {
 
                 quoteLineModel.record.put('attributes', qlAttrMap);
 
-                quoteLineModel.record.put('RLM_Tenant_Environment__c', tenantEnvironmentId);
-
                 requestBody.graph.records.add(quoteLineModel);
             }
         }

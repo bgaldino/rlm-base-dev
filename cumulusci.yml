@@ -36,11 +36,11 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c quantumbit31.my.salesforce.com"
-    user_alias: &user_alias admin@usa794.cdo.rlm.base.tso.t4
-    combined_flags: &combined_flags " -u admin@usa794.cdo.rlm.base.tso.t4 -c quantumbit31.my.salesforce.com"
+    mydomain: &mydomain "-c energy-platform-6676.scratch.my.salesforce.com"
+    user_alias: &user_alias test-fvhdqpiw7jlc@example.com
+    combined_flags: &combined_flags " -u test-fvhdqpiw7jlc@example.com -c energy-platform-6676.scratch.my.salesforce.com"
     prm: true
-    tso: true
+    tso: false
     qb: true
     prod: true
     qbdata: true
@@ -55,7 +55,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: true
+    agents: false
     refresh: false
     commerce: false
 
