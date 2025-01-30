@@ -232,10 +232,6 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>RLM_Tenant_Environment__c</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
                 <field>TotalAdjustmentAmount</field>
             </layoutItems>
             <layoutItems>

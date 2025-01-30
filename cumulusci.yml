@@ -10,6 +10,9 @@ orgs:
     tfid-cdo:
       config_file: orgs/tfid-cdo.json
       days: 30
+    tfid-cdo-rlm:
+      config_file: orgs/tfid-cdo-rlm.json
+      days: 30
     tfid-sdo:
       config_file: orgs/tfid-sdo.json
       days: 30
@@ -33,11 +36,11 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c usa794cdorlmlicensetsot1.my.salesforce.com"
-    user_alias: &user_alias admin@usa794.cdo.rlm.license.tso.t1
-    combined_flags: &combined_flags " -u admin@usa794.cdo.rlm.license.tso.t1 -c usa794cdorlmlicensetsot1.my.salesforce.com"
+    mydomain: &mydomain "-c energy-platform-6676.scratch.my.salesforce.com"
+    user_alias: &user_alias test-fvhdqpiw7jlc@example.com
+    combined_flags: &combined_flags " -u test-fvhdqpiw7jlc@example.com -c energy-platform-6676.scratch.my.salesforce.com"
     prm: true
-    tso: true
+    tso: false
     qb: true
     prod: true
     qbdata: true
@@ -52,7 +55,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: true
+    agents: false
     refresh: false
     commerce: false
 
@@ -190,8 +193,8 @@ project:
     product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
     product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
 
-    cart_context_name: &cart_context_name RLM_CartContext
-    cart_context_default_mapping: &cart_context_default_mapping CartOperation
+    cart_context_name: &cart_context_name RLM_CommerceCartContext
+    cart_context_default_mapping: &cart_context_default_mapping CommerceCartMapping
 
     billing_context_name: &billing_context_name RLM_BillingContext
     billing_context_default_mapping: &billing_context_default_mapping BSGEntitiesMapping
@@ -278,7 +281,7 @@ tasks:
       name: *cart_context_name
       description: "Extension of Standard Cart Context Definition"
       developerName: *cart_context_name
-      baseReference: "CartContext__stdctx"
+      baseReference: "CommerceCartContextDefinition__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
       contextTtl: 20
       defaultMapping: *cart_context_default_mapping  
@@ -411,13 +414,10 @@ tasks:
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
-                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Volume Based Adjustment' LIMIT 1
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Price Adjustment Tier' LIMIT 1
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
-                api: rest
-              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__TIERPasID__"]
-                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Tier Based Adjustment' LIMIT 1
                 api: rest
 
   activate_and_deploy_expression_sets:
@@ -437,13 +437,10 @@ tasks:
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
-                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Volume Based Adjustment' LIMIT 1
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Price Adjustment Tier' LIMIT 1
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
-                api: rest
-              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__TIERPasID__"]
-                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Tier Based Adjustment' LIMIT 1
                 api: rest
 
   deploy_full:
@@ -460,13 +457,10 @@ tasks:
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
-                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Volume Based Adjustment' LIMIT 1
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Price Adjustment Tier' LIMIT 1
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
-                api: rest
-              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__TIERPasID__"]
-                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Tier Based Adjustment' LIMIT 1
                 api: rest
 
   deploy_org_settings:

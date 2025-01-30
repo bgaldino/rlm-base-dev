@@ -31,7 +31,7 @@ force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProced
 
 
 # contextDefinitions
-#force-app/main/default/contextDefinitions
+force-app/main/default/contextDefinitions
 
 # connectedApps
 force-app/main/default/connectedApps/RLM_Postman.connectedApp-meta.xml

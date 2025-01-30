@@ -37,9 +37,6 @@
                             <value>EmailQuote</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_Manage_Tenants</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>PrintableView</value>
                         </valueListItems>
                     </valueList>

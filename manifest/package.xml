@@ -95,19 +95,11 @@
         <name>CustomApplication</name>
     </types>
     <types>
-        <members>Asset.RLM_Tenant_Environment__c</members>
         <members>Order.RLM_FulfillmentPlanIdText__c</members>
-        <members>Order.RLM_Tenant_Environment__c</members>
         <members>OrderItem.RLM_ProductName__c</members>
-        <members>OrderItem.RLM_Tenant_Environment__c</members>
         <members>Quote.RLM_EndDate__c</members>
-        <members>Quote.RLM_Tenant_Environment__c</members>
         <members>Quote.RLM_TermMonths__c</members>
         <members>QuoteLineItem.RLM_ProductName__c</members>
-        <members>QuoteLineItem.RLM_Tenant_Environment__c</members>
-        <members>RLM_Tenant_Environment__c.RLM_Account__c</members>
-        <members>RLM_Tenant_Environment__c.Status__c</members>
-        <members>RLM_Tenant_Environment__c.Tenant_ID__c</members>
         <name>CustomField</name>
     </types>
     <types>
@@ -221,7 +213,6 @@
         <members>QuoteLineItem</members>
         <members>QuoteLineRelationship</members>
         <members>RevenueTransactionErrorLog</members>
-        <members>RLM_Tenant_Environment__c</members>
         <members>RuleLibrary</members>
         <members>RuleLibraryVersion</members>
         <members>TaxCertificate</members>
@@ -291,7 +282,6 @@
         <members>RLM_QuantumBit_Quote</members>
         <members>RLM_Quote_Line_Item_Record_Page</members>
         <members>RLM_Quote_Record_Page</members>
-        <members>RLM_Tenant_Environment_Record_Page</members>
         <name>FlexiPage</name>
     </types>
     <types>
@@ -318,7 +308,6 @@
         <members>Product2-RLM Product Layout</members>
         <members>Quote-RLM Quote Layout</members>
         <members>QuoteLineItem-RLM Quote Line Item Layout</members>
-        <members>RLM_Tenant_Environment__c-Tenant Environment Layout</members>
         <name>Layout</name>
     </types>
     <types>
@@ -532,7 +521,6 @@
         <members>Recommendation.All_Recommendations</members>
         <members>Refund.Refund</members>
         <members>RefundLinePayment.RefundLinePayment</members>
-        <members>RLM_Tenant_Environment__c.All</members>
         <members>RuleLibrary.All_RuleLibraries</members>
         <members>RuntimeCatalogSnapshot.All_RuntimeCatalogSnapshots</members>
         <members>RuntimeCatalogSnapshotIndex.All_RuntimeCatalogSnapshotIndexs</members>
@@ -615,7 +603,6 @@
         <members>Account.RLM_New_Opportunity</members>
         <members>Opportunity.RLM_New_Quote</members>
         <members>Quote.RLM_CreateContract</members>
-        <members>Quote.RLM_Manage_Tenants</members>
         <name>QuickAction</name>
     </types>
     <types>

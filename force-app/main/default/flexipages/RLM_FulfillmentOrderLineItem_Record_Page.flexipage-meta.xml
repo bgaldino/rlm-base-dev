@@ -569,16 +569,6 @@
                 <identifier>RecordActionField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RLM_Tenant_Environment__c</fieldItem>
-                <identifier>RecordRLM_Tenant_Environment_cField</identifier>
-            </fieldInstance>
-        </itemInstances>
         <name>Facet-fc15b58e-f792-414d-b429-52ad8af56523</name>
         <type>Facet</type>
     </flexiPageRegions>
