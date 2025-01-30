@@ -96,42 +96,42 @@ project:
       - TableauEinsteinBaseViewerPsl
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
-      # - AnalyticsQueryServicePslForSalesPlanning
-      # - AutomatedActionsPsl
-      # - EinsteinAgentCWUPsl
-      # - EinsteinAgentPsl
-      # - EinsteinCopilotReviewMyDayPsl
-      # - EinsteinDiscoveryInTableauPsl
-      # - EinsteinGPTCallExplorerPsl
-      # - EinsteinGPTCreateClosePlanPsl
-      # - EinsteinGPTGetProductPricingPsl
-      # - EinsteinGPTGroundingStructuredDataPsl
-      # - EinsteinGPTMeetingFollowUpPsl
-      # - EinsteinGPTSalesCallSummariesPsl
-      # - EinsteinGPTSalesEmailsPsl
-      # - EinsteinGPTSalesMiningPsl
-      # - EinsteinGPTSalesSummariesPsl
-      # - EinsteinGPTSendMeetingRequestPsl
-      # - EinsteinSalesGenerativeInsightsPsl
-      # - EinsteinSalesRepFeedbackPsl
-      # - ERIPlatformBasic
-      # - SalesActionFindPastCollaboratorsPsl
-      # - SalesActionReviewBuyingCommitteePsl
-      # - SalesCloudUnlimitedAnalyticsAdminPsl
-      # - SalesCloudUnlimitedPsl
-      # - SalesEngagementBasicPsl
-      # - TableauEinsteinIncludedAppPsl
+      - AnalyticsQueryServicePslForSalesPlanning
+      - AutomatedActionsPsl
+      - EinsteinAgentCWUPsl
+      - EinsteinAgentPsl
+      - EinsteinCopilotReviewMyDayPsl
+      - EinsteinDiscoveryInTableauPsl
+      - EinsteinGPTCallExplorerPsl
+      - EinsteinGPTCreateClosePlanPsl
+      - EinsteinGPTGetProductPricingPsl
+      - EinsteinGPTGroundingStructuredDataPsl
+      - EinsteinGPTMeetingFollowUpPsl
+      - EinsteinGPTSalesCallSummariesPsl
+      - EinsteinGPTSalesEmailsPsl
+      - EinsteinGPTSalesMiningPsl
+      - EinsteinGPTSalesSummariesPsl
+      - EinsteinGPTSendMeetingRequestPsl
+      - EinsteinSalesGenerativeInsightsPsl
+      - EinsteinSalesRepFeedbackPsl
+      - ERIPlatformBasic
+      - SalesActionFindPastCollaboratorsPsl
+      - SalesActionReviewBuyingCommitteePsl
+      - SalesCloudUnlimitedAnalyticsAdminPsl
+      - SalesCloudUnlimitedPsl
+      - SalesEngagementBasicPsl
+      - TableauEinsteinIncludedAppPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       - EinsteinGPTPromptTemplateManager
       - SalesCloudEinsteinAll
 
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
-      # - EinsteinGPTSalesSummaries
-      # - EinsteinGPTSalesEmails
-      # - EinsteinGPTSalesCallSummaries
-      # - EinsteinGPTGetProductPricing
-      # - ERIBasic
+      - EinsteinGPTSalesSummaries
+      - EinsteinGPTSalesEmails
+      - EinsteinGPTSalesCallSummaries
+      - EinsteinGPTGetProductPricing
+      - ERIBasic
 
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
       - IndustriesConfiguratorPlatformApi
@@ -233,24 +233,6 @@ tasks:
     description: Sync Pricing Data
     class_path: tasks.rlm_sync_pricing_data.SyncPricingData
     group: Revenue Lifecycle Management
-
-  install_managed_package_fflib-mocks:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-    options:
-      command: "package install -p"
-      extra: *fflib-mocks-pkg
-
-  install_managed_package_trigger-framework:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-    options:
-      command: "package install -p"
-      extra: *trigger-framework-pkg
-
-  install_managed_package_feature-flag:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-    options:
-      command: "package install -p"
-      extra: *feature-flag-pkg
 
   extend_stdctx_contracts:
     description: Extend Standard Contracts Context Definition
