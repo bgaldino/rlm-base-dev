@@ -1,0 +1,33 @@
+$$Name$Picklist.Name,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Value
+1080p Built-in Display;Display Picklist,1080p Built-in Display,1080p Built-in Display,true,1080p Built-in Display,Display Picklist,1,1080p Built-in Display
+4k Built-in Display;Display Picklist,4k Built-in Display,4k Built-in Display,false,4k Built-in Display,Display Picklist,3,4k Built-in Display
+2k Built-in Display;Display Picklist,2k Built-in Display,2k Built-in Display,false,2k Built-in Display,Display Picklist,2,2k Built-in Display
+Intel Iris Xe Graphics;Graphics Picklist,Intel Iris Xe Graphics,Intel Iris Xe Graphics,false,Intel Iris Xe Graphics,Graphics Picklist,1,Intel Iris Xe Graphics
+MSI Gaming GeForce RTX 3060;Graphics Picklist,MSI Gaming GeForce RTX 3060,MSI Gaming GeForce RTX 3060,false,MSI Gaming GeForce RTX 3060,Graphics Picklist,2,MSI Gaming GeForce RTX 3060
+RAM 64GB;Memory Picklist,RAM 64GB,RAM 64GB,false,RAM 64GB,Memory Picklist,4,RAM 64GB
+RAM 32GB;Memory Picklist,RAM 32GB,RAM 32GB,true,RAM 32GB,Memory Picklist,3,RAM 32GB
+i5-CPU 4.4GHz;Processor Picklist,i5-CPU 4.4GHz,i5-CPU 4.4GHz,true,i5-CPU 4.4GHz,Processor Picklist,1,i5-CPU 4.4GHz
+i7-CPU 4.7GHz;Processor Picklist,i7-CPU 4.7GHz,i7-CPU 4.7GHz,false,i7-CPU 4.7GHz,Processor Picklist,2,i7-CPU 4.7GHz
+SSD Hard Drive 2TB;Storage Picklist,SSD Hard Drive 2TB,SSD Hard Drive 2TB,false,SSD Hard Drive 2TB,Storage Picklist,4,SSD Hard Drive 2TB
+SSD Hard Drive 512GB;Storage Picklist,SSD Hard Drive 512GB,SSD Hard Drive 512GB,false,SSD Hard Drive 512GB,Storage Picklist,2,SSD Hard Drive 512GB
+SSD Hard Drive 1TB;Storage Picklist,SSD Hard Drive 1TB,SSD Hard Drive 1TB,false,SSD Hard Drive 1TB,Storage Picklist,3,SSD Hard Drive 1TB
+SSD Hard Drive 256GB;Storage Picklist,SSD Hard Drive 256GB,SSD Hard Drive 256GB,false,SSD Hard Drive 256GB,Storage Picklist,1,SSD Hard Drive 256GB
+A4;Paper Size Picklist,A4,A4,false,A4,Paper Size Picklist,2,A4
+RAM 8GB;Memory Picklist,RAM 8GB,RAM 8GB,false,RAM 8GB,Memory Picklist,1,RAM 8GB
+24 Inch;Display Size Picklist,24IN,24 Inch,false,24 Inch,Display Size Picklist,3,24 Inch
+Software Training;Training Type Picklist,Software Training,Software Training,false,Software Training,Training Type Picklist,1,Software Training
+13 Inch;Display Size Picklist,13IN,13 Inch,false,13 Inch,Display Size Picklist,1,13 Inch
+Inkjet;Printer Picklist,IN001,Inkjet,false,Inkjet,Printer Picklist,2,Inkjet
+Cloud Storage Enterprise - 6 TB;Storage Picklist,CSE - 6TB,Cloud Storage Enterprise - 6 TB,false,Cloud Storage Enterprise - 6 TB,Storage Picklist,6,Cloud Storage Enterprise - 6 TB
+RAM 16GB;Memory Picklist,RAM 16GB,RAM 16GB,false,RAM 16GB,Memory Picklist,2,RAM 16GB
+15 Inch;Display Size Picklist,15IN,15 Inch,false,15 Inch,Display Size Picklist,2,15 Inch
+27 Inch;Display Size Picklist,27IN,27 Inch,false,27 Inch,Display Size Picklist,4,27 Inch
+Premium Support;Support Level Picklist,Premium Support,Premium Support,true,Premium Support,Support Level Picklist,1,Premium Support
+Premium Plus Support;Support Level Picklist,Premium Plus Support,Premium Plus Support,false,Premium Plus Support,Support Level Picklist,2,Premium Plus Support
+Security Training;Training Type Picklist,Security Training,Security Training,false,Security Training,Training Type Picklist,2,Security Training
+Cloud Storage Enterprise - 2 TB;Storage Picklist,CSE-TB,Cloud Storage Enterprise - 2 TB,false,Cloud Storage Enterprise - 2 TB,Storage Picklist,5,Cloud Storage Enterprise - 2 TB
+Intel Core i9 5.2 GHz;Processor Picklist,IC5.2,Intel Core i9 5.2 GHz,false,Intel Core i9 5.2 GHz,Processor Picklist,3,Intel Core i9 5.2 GHz
+Laser;Printer Picklist,LS001,Laser,false,Laser,Printer Picklist,1,Laser
+Letter;Paper Size Picklist,L001,Letter,false,Letter,Paper Size Picklist,1,Letter
+Business;Subscription Type,BUS001,Business,false,Business,Subscription Type,2,Business
+Enterprise;Subscription Type,ENT001,Enterprise,false,Enterprise,Subscription Type,1,Enterprise

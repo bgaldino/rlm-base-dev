@@ -1,0 +1,5 @@
+$$PriceBook.Name$RateCard.Name$RateCardType,Name,PriceBook.Name,RateCard.Name,RateCardType
+Standard Price Book;AT&T Mobile Plan Rate Card;Base,PRC-00000001,Standard Price Book,AT&T Mobile Plan Rate Card,Base
+Standard Price Book;Cloud Storage Pro Rate Card;Base,PRC-00000002,Standard Price Book,Cloud Storage Pro Rate Card,Base
+Standard Price Book;API Access Premium Rate Card;Base,PRC-00000003,Standard Price Book,API Access Premium Rate Card,Base
+Standard Price Book;API Access Premium Tier Rate Card;Tier,PRC-00000004,Standard Price Book,API Access Premium Tier Rate Card,Tier

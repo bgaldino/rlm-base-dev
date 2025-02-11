@@ -1,0 +1,71 @@
+{
+  "apiVersion": "63.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT CurrencyIsoCode, Description, Id, Name FROM FulfillmentWorkspace",
+          "operation": "Upsert",
+          "externalId": "Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
+          "operation": "Upsert",
+          "externalId": "Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, ErrorCode, FlowDefinitionName, Id, IntegrationDefinition.DeveloperName, Name, RetriesAllowed, RetryPolicy, StepType FROM FulfillmentFalloutRule",
+          "operation": "Upsert",
+          "externalId": "Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, EstimatedDuration, EstimatedDurationUnit, FlowDefinition, Id, StepType, JeopardyThreshold, JeopardyThresholdUnit, Name, IntegrationDefinition.DeveloperName FROM FulfillmentStepJeopardyRule",
+          "operation": "Upsert",
+          "externalId": "Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, AssignedToId, ExecuteOnRuleId, FlowDefinitionName, Id, IntegrationDefinitionNameId, Name, OmniscriptName, ResumeOnRuleId, RunAsUserId, Scope, StepDefinitionGroupId, StepType, UsageType FROM FulfillmentStepDefinition",
+          "operation": "Upsert",
+          "externalId": "Name;StepDefinitionGroup.Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, DependencyScope, DependsOnStepDefinitionId, FulfillmentStepDefinitionId, Id, Name FROM FulfillmentStepDependencyDef",
+          "operation": "Upsert",
+          "externalId": "Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, ShowOrder FROM FulfillmentWorkspaceItem",
+          "operation": "Upsert",
+          "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, DestinationProductId, Id, Name, Priority, SourceProductId FROM ProductFulfillmentDecompRule",
+          "operation": "Upsert",
+          "externalId": "Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, Action, FulfillmentStepDefnGroupId, Id, Name, ProductId  FROM ProductFulfillmentScenario",
+          "operation": "Upsert",
+          "externalId": "Name;Product.StockKeepingUnit;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DecompositionScope, FulfillmentQtyCalcMethod, Name, StockKeepingUnit FROM Product2",
+          "operation": "Update",
+          "externalId": "Name;StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

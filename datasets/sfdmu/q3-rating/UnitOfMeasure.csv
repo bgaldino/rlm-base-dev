@@ -1,0 +1,18 @@
+$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,ConversionFactor,CurrencyIsoCode,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.$$Code$BaseUnitOfMeasure.Name$BaseUnitOfMeasure.UnitCode$DefaultUnitOfMeasure.Name$DefaultUnitOfMeasure.UnitCode
+Each;Each;CAS01;Case,1,USD,,Each,,,1,Active,Count,Each,CAS01;Each;Each;Each;Each
+Minutes;MIN;CALLUNITS01;Call Units,1,USD,,Minutes,,,1,Active,Time,MIN,CALLUNITS01;Minutes;MIN;Minutes;MIN
+Count;Count;SMS01;SMS,1,USD,,Count,,,1,Active,Count,Count,SMS01;Count;Count;Count;Count
+MB;MB;DAT01;Data,1,USD,,MB,,,1,Active,Memory,MB,DAT01;MB;MB;MB;MB
+USD;USD;CURRENCY;Currency,1,USD,,USD,,,1,Active,Cost,USD,CURRENCY;USD;USD;USD;USD
+SESH;SESH;COUNT;Count,1,USD,,SESH,,,5,Active,Count,SESH,COUNT;XFER;XFER;XFER;XFER
+GB;GB;DAT01;Data,0.001,USD,Unit of measure for Data,GB,,,2,Active,Memory,GB,DAT01;MB;MB;MB;MB
+XFER;XFER;COUNT;Count,1,USD,,XFER,,,1,Active,Count,XFER,COUNT;XFER;XFER;XFER;XFER
+ACCTS;ACCTS;COUNT;Count,1,USD,,ACCTS,,,2,Active,Count,ACCTS,COUNT;XFER;XFER;XFER;XFER
+LOGS;LOGS;COUNT;Count,1,USD,,LOGS,,,3,Active,Count,LOGS,COUNT;XFER;XFER;XFER;XFER
+CALLS;CALLS;COUNT;Count,1,USD,,CALLS,,,4,Active,Count,CALLS,COUNT;XFER;XFER;XFER;XFER
+TPS;TPS;COUNT;Count,1,USD,,TPS,,,6,Active,Count,TPS,COUNT;XFER;XFER;XFER;XFER
+Grams;GRAMS;Grams;Grams,1000,USD,,Grams,Up,5,1,Active,Weight,GRAMS,Grams;Grams;GRAMS
+Litre;Litre;Litre;Litre,1,USD,,Litre,Down,4,1,Active,Litre,Litre,Litre;Litre;Litre
+Courses Count;UOM3421;COUNT;Count,1,USD,,Courses Count,,,,Active,Count,UOM3421,COUNT;XFER;XFER;XFER;XFER
+Millilitres;ML,0.001,USD,,Millilitres,Down,5,2,Draft,Litre,ML,
+Kilograms;KG,0.001,USD,,Kilograms,Up,3,2,Draft,Weight,KG,

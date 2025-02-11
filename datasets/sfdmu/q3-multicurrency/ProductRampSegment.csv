@@ -1,0 +1,5 @@
+CurrencyIsoCode,DurationType,Name,SegmentType,TrialDuration
+USD,,PPRS-000000002,Yearly,
+USD,Days,PPRS-000000006,FreeTrial,45
+USD,,PPRS-000000007,Yearly,
+USD,,PPRS-000000009,Yearly,

@@ -1,0 +1,54 @@
+$$Name$Pricebook2.Name$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.Name,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+Antivirus;Nonprofit;AV001;Evergreen Annual;USD,USD,true,false,Antivirus,Nonprofit,Antivirus,Evergreen Annual;Evergreen,49.99
+Cloud Storage;Nonprofit;CS001;Evergreen Monthly;USD,USD,true,false,Cloud Storage,Nonprofit,Cloud Storage,Evergreen Monthly;Evergreen,7.99
+Laptop;Nonprofit;LP001;One-Time;USD,USD,true,false,Laptop,Nonprofit,Laptop,One-Time;OneTime,699
+Laptop Care Package;Nonprofit;LCP001;Term Monthly;USD,USD,true,false,Laptop Care Package,Nonprofit,Laptop Care Package,Term Monthly;TermDefined,48.97
+Laptop Pro Bundle;Nonprofit;LPB001;One-Time;USD,USD,true,false,Laptop Pro Bundle,Nonprofit,Laptop Pro Bundle,One-Time;OneTime,799
+Monitor;Nonprofit;MO001;One-Time;USD,USD,true,false,Monitor,Nonprofit,Monitor,One-Time;OneTime,129.99
+Admin Certification;Standard Price Book;ACERT001;Term Annual;USD,USD,true,false,Admin Certification,Standard Price Book;true,Admin Certification,Term Annual;TermDefined,2000
+Advanced Training;Standard Price Book;ATRG001;Term Annual;USD,USD,true,false,Advanced Training,Standard Price Book;true,Advanced Training,Term Annual;TermDefined,5000
+AI Specialist Certification;Standard Price Book;ASTCERT001;Term Annual;USD,USD,true,false,AI Specialist Certification,Standard Price Book;true,AI Specialist Certification,Term Annual;TermDefined,2000
+AI Specialist Training;Standard Price Book;APTRG001;One-Time;USD,USD,true,false,AI Specialist Training,Standard Price Book;true,AI Specialist Training,One-Time;OneTime,1500
+Antivirus;Standard Price Book;AV001;Evergreen Annual;USD,USD,true,false,Antivirus,Standard Price Book;true,Antivirus,Evergreen Annual;Evergreen,99.99
+Basic Training;Standard Price Book;TRG001;Term Monthly;USD,USD,true,false,Basic Training,Standard Price Book;true,Basic Training,Term Monthly;TermDefined,29.99
+Cloud Storage;Standard Price Book;CS001;Evergreen Monthly;USD,USD,true,false,Cloud Storage,Standard Price Book;true,Cloud Storage,Evergreen Monthly;Evergreen,9.99
+Desktop;Standard Price Book;DS001;One-Time;USD,USD,true,false,Desktop,Standard Price Book;true,Desktop,One-Time;OneTime,1149
+External Hard Drive;Standard Price Book;EHD009;One-Time;USD,USD,true,false,External Hard Drive,Standard Price Book;true,External Hard Drive,One-Time;OneTime,179.99
+Figma Subscription;Standard Price Book;FIG001;Term Based - Semi-Annual;USD,USD,true,false,Figma Subscription,Standard Price Book;true,Figma Subscription,Term Based - Semi-Annual;TermDefined,89.99
+Google Workspace;Standard Price Book;GW001;Term Monthly;USD,USD,true,false,Google Workspace,Standard Price Book;true,Google Workspace,Term Monthly;TermDefined,25
+GPT for workspace;Standard Price Book;GPTW001;Term Monthly;USD,USD,true,true,GPT for workspace,Standard Price Book;true,GPT for workspace,Term Monthly;TermDefined,0
+Hardware Maintenance;Standard Price Book;MAIN0098;Term Monthly;USD,USD,true,true,Hardware Maintenance,Standard Price Book;true,Hardware Maintenance,Term Monthly;TermDefined,0
+Headset;Standard Price Book;HDS001;One-Time;USD,USD,true,false,Headset,Standard Price Book;true,Headset,One-Time;OneTime,49.99
+Keyboard;Standard Price Book;KB001;One-Time;USD,USD,true,false,Keyboard,Standard Price Book;true,Keyboard,One-Time;OneTime,14.99
+Laptop;Standard Price Book;LP001;One-Time;USD,USD,true,false,Laptop,Standard Price Book;true,Laptop,One-Time;OneTime,1049
+Laptop Accessories;Standard Price Book;LA001;One-Time;USD,USD,true,false,Laptop Accessories,Standard Price Book;true,Laptop Accessories,One-Time;OneTime,57.24
+Laptop Bag;Standard Price Book;LBG001;One-Time;USD,USD,true,false,Laptop Bag,Standard Price Book;true,Laptop Bag,One-Time;OneTime,15.26
+Laptop Basic Bundle;Standard Price Book;LB001;One-Time;USD,USD,true,false,Laptop Basic Bundle,Standard Price Book;true,Laptop Basic Bundle,One-Time;OneTime,1100
+Laptop Care Package;Standard Price Book;LCP001;Term Monthly;USD,USD,true,false,Laptop Care Package,Standard Price Book;true,Laptop Care Package,Term Monthly;TermDefined,89.97
+Laptop Pro Bundle;Standard Price Book;LPB001;One-Time;USD,USD,true,false,Laptop Pro Bundle,Standard Price Book;true,Laptop Pro Bundle,One-Time;OneTime,1150
+Laptop Productivity Bundle;Standard Price Book;LPB001-1;One-Time;USD,USD,true,false,Laptop Productivity Bundle,Standard Price Book;true,Laptop Productivity Bundle,One-Time;OneTime,1499.99
+Laptop Stand;Standard Price Book;LPST001;One-Time;USD,USD,true,false,Laptop Stand,Standard Price Book;true,Laptop Stand,One-Time;OneTime,79.99
+LLM Certification;Standard Price Book;LLMCERT001;Term Annual;USD,USD,true,false,LLM Certification,Standard Price Book;true,LLM Certification,Term Annual;TermDefined,2000
+Lucidchart;Standard Price Book;LCD001;Term Monthly;USD,USD,true,true,Lucidchart,Standard Price Book;true,Lucidchart,Term Monthly;TermDefined,0
+Machine Learning Model Training;Standard Price Book;LLMTRG001;One-Time;USD,USD,true,false,Machine Learning Model Training,Standard Price Book;true,Machine Learning Model Training,One-Time;OneTime,1895
+Monitor;Standard Price Book;MO001;One-Time;USD,USD,true,false,Monitor,Standard Price Book;true,Monitor,One-Time;OneTime,144.99
+Mouse;Standard Price Book;MOU001;One-Time;USD,USD,true,false,Mouse,Standard Price Book;true,Mouse,One-Time;OneTime,7.99
+Noise-Canceling Headphones;Standard Price Book;NCH025;One-Time;USD,USD,true,false,Noise-Canceling Headphones,Standard Price Book;true,Noise-Canceling Headphones,One-Time;OneTime,89.99
+Office 365;Standard Price Book;OF001;Term Monthly;USD,USD,true,false,Office 365,Standard Price Book;true,Office 365,Term Monthly;TermDefined,9.99
+Podcast Subscription;Standard Price Book;PS001;Term Based - Quarterly;USD,USD,true,false,Podcast Subscription,Standard Price Book;true,Podcast Subscription,Term Based - Quarterly;TermDefined,40
+Printer;Standard Price Book;PRN001;One-Time;USD,USD,true,false,Printer,Standard Price Book;true,Printer,One-Time;OneTime,199
+Printer Bundle;Standard Price Book;PB001;One-Time;USD,USD,true,false,Printer Bundle,Standard Price Book;true,Printer Bundle,One-Time;OneTime,205
+Printer Paper;Standard Price Book;PP001;One-Time;USD,USD,true,false,Printer Paper,Standard Price Book;true,Printer Paper,One-Time;OneTime,8.99
+Professional Certifications;Standard Price Book;PCERT001;Term Annual;USD,USD,true,false,Professional Certifications,Standard Price Book;true,Professional Certifications,Term Annual;TermDefined,3500
+Quip;Standard Price Book;QP001;Term Monthly;USD,USD,true,false,Quip,Standard Price Book;true,Quip,Term Monthly;TermDefined,25
+Skill Development Package;Standard Price Book;SDP001;Term Annual;USD,USD,true,false,Skill Development Package,Standard Price Book;true,Skill Development Package,Term Annual;TermDefined,1500
+Slack;Standard Price Book;SLKSRC001;Term Monthly;USD,USD,true,false,Slack,Standard Price Book;true,Slack,Term Monthly;TermDefined,99.99
+Slack Sandbox;Standard Price Book;SLKDPP009;Term Monthly;USD,USD,true,true,Slack Sandbox,Standard Price Book;true,Slack Sandbox,Term Monthly;TermDefined,0
+Slack Support;Standard Price Book;SLKDPP007;Term Monthly;USD,USD,true,true,Slack Support,Standard Price Book;true,Slack Support,Term Monthly;TermDefined,0
+Slack Training;Standard Price Book;SLKDPP008;USD,USD,true,true,Slack Training,Standard Price Book;true,Slack Training,,0
+Specialized Certifications;Standard Price Book;CERT007;Term Annual;USD,USD,true,false,Specialized Certifications,Standard Price Book;true,Specialized Certifications,Term Annual;TermDefined,3000
+Support;Standard Price Book;SP001;Term Monthly;USD,USD,true,false,Support,Standard Price Book;true,Support,Term Monthly;TermDefined,9.99
+Training Platform Package;Standard Price Book;TPP01;Evergreen Annual;USD,USD,true,false,Training Platform Package,Standard Price Book;true,Training Platform Package,Evergreen Annual;Evergreen,59.99
+Udemy Access;Standard Price Book;UA001;Evergreen Monthly;USD,USD,true,false,Udemy Access,Standard Price Book;true,Udemy Access,Evergreen Monthly;Evergreen,30
+USB C multiport adapter hub with 4K HDMI;Standard Price Book;USB01;One-Time;USD,USD,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB C multiport adapter hub with 4K HDMI,One-Time;OneTime,33.99
+Warranty;Standard Price Book;W001;Term Annual;USD,USD,true,false,Warranty,Standard Price Book;true,Warranty,Term Annual;TermDefined,49.99

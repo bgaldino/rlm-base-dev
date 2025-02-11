@@ -1,0 +1,66 @@
+{
+  "apiVersion": "63.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT EndDate, FinancialYear, Name, StartDate, Status FROM AccountingPeriod",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AccountingPeriodId, LegalEntityId, Name, Status FROM LegalEntyAccountingPeriod",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, IsDefault, Name, Status FROM PaymentTerm",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, PaymentTermId, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem",
+          "operation": "Upsert",
+          "externalId": "PaymentTerm.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingTreatmentSelection, DefaultBillingTreatmentId, Description, Name, Status FROM BillingPolicy",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingPolicyId, CurrencyIsoCode, Description, ExcludeFromBilling, LegalEntityId, Name, Status FROM BillingTreatment",
+          "operation": "Upsert",
+          "externalId": "Name;BillingPolicy.Name;LegalEntity.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingTreatmentId, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, Handling0Amount, Name, Percentage, ProcessingOrder, Sequencing, Status, Type FROM BillingTreatmentItem",
+          "operation": "Upsert",
+          "externalId": "Name;BillingTreatment.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingPolicyId, StockKeepingUnit FROM Product2",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

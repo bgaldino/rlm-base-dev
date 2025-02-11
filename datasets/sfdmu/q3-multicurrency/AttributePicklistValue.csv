@@ -31,3 +31,9 @@ Laser;Printer Picklist,LS001,Laser,false,Laser,Printer Picklist,1,Laser
 Letter;Paper Size Picklist,L001,Letter,false,Letter,Paper Size Picklist,1,Letter
 Business;Subscription Type,BUS001,Business,false,Business,Subscription Type,2,Business
 Enterprise;Subscription Type,ENT001,Enterprise,false,Enterprise,Subscription Type,1,Enterprise
+GEL250;Gel Quantity,GEL250,GEL 250,false,GEL250,Gel Quantity,1,250.55
+GEL500;Gel Quantity,GEL500,GEL 500,false,GEL500,Gel Quantity,2,500.5125
+PasteColorRatio225;Paste Color Ratio,PasteColorRatio225,Paste 2.251,false,PasteColorRatio225,Paste Color Ratio,1,2.25
+PasteColorRatio325;Paste Color Ratio,PasteColorRatio325,Paste 3.251,false,PasteColorRatio325,Paste Color Ratio,2,3.251
+2.5;Compound Weight,WEIGHT25,Weight 2.5,false,2.5,Compound Weight,1,2.50
+3.5;Compound Weight,WEIGHT35,Weight 3.5,false,3.5,Compound Weight,2,3.50

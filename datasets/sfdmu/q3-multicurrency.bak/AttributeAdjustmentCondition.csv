@@ -1,0 +1,13 @@
+$$AttributeBasedAdjRule.Name$AttributeDefinition.Name$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Name,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.Name,StringValue
+Rule_1700199014867;Printer;PRN001,Rule_1700199014867,Printer,,,,,,equals,Printer,Inkjet
+Rule_1700199044009;Printer;PRN001,Rule_1700199044009,Printer,,,,,,equals,Printer,Laser
+Rule_1700199112947;Training;TRG001,Rule_1700199112947,Training,,,,,,equals,Basic Training,Security Training
+Rule_1700199202093;Training;TRG001,Rule_1700199202093,Training,,,,,,equals,Basic Training,Software Training
+Rule_1700199261191;Wireless;MOU001,Rule_1700199261191,Wireless,True,,,,,equals,Mouse,
+Rule_1700633112004;Storage;CS001,Rule_1700633112004,Storage,,,,,,equals,Cloud Storage,Cloud Storage Enterprise - 6 TB
+Rule_1701391285463;Wireless;MOU001,Rule_1701391285463,Wireless,True,,,,,equals,Mouse,
+Rule_1701995193647;Support_Level;SP001,Rule_1701995193647,Support_Level,,,,,,equals,Support,Premium Plus Support
+Rule_1702357862046;Wireless;MOU001,Rule_1702357862046,Wireless,True,,,,,equals,Mouse,
+Rule_1702357916535;Printer;PRN001,Rule_1702357916535,Printer,,,,,,equals,Printer,Inkjet
+Rule_1702358038935;Support_Level;SP001,Rule_1702358038935,Support_Level,,,,,,equals,Support,Premium Plus Support
+Rule_1702358235675;Training;TRG001,Rule_1702358235675,Training,,,,,,equals,Basic Training,Software Training

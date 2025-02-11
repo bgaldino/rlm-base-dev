@@ -1,2 +1,4 @@
 ConversionRate,DecimalPlaces,IsActive,IsCorporate,IsoCode
 1,2,true,true,USD
+157.71,2,true,false,JPY
+0.45,3,true,false,BHD

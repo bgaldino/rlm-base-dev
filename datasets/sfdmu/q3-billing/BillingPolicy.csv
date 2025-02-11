@@ -1,0 +1,4 @@
+BillingTreatmentSelection,DefaultBillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name,Description,Name,Status
+LegalEntity,Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,,Billing Policy - Advance,Draft
+Default,Milestone Billing Treatment;Milestone Billing Policy - Software,,Milestone Billing Policy - Software,Draft
+Default,Arrears Billing Treatment;Billing Policy- Arrears,,Billing Policy- Arrears,Draft
