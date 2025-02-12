@@ -36,9 +36,9 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c vente-rockyroad-3318.scratch.my.salesforce.com"
-    user_alias: &user_alias test-ykx3axjjlabb@example.com
-    combined_flags: &combined_flags " -u test-ykx3axjjlabb@example.com -c vente-rockyroad-3318.scratch.my.salesforce.com"
+    mydomain: &mydomain "-c wonton-virgo-3105.scratch.my.salesforce.com"
+    user_alias: &user_alias test-7kk7pzjtwksy@example.com 
+    combined_flags: &combined_flags " -u test-7kk7pzjtwksy@example.com  -c wonton-virgo-3105.scratch.my.salesforce.com"
     prm: true
     tso: false
     qb: false
@@ -1019,16 +1019,16 @@ flows:
     steps:
       1:
         task: insert_rating_data
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: project_config.project__custom__rating == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
       2:
         task: insert_rating_data_prod
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
       3:
         task: insert_q3_rating_data
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: project_config.project__custom__rating == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
       4:
         task: insert_q3_rating_data_prod
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
   
   prepare_agents:
     group: Revenue Lifecycle Management
