@@ -1,4 +1,4 @@
-$$Name$BillingPolicy.Name$LegalEntity.Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,LegalEntity.Name,Name,Status
-Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,Billing Policy - Advance,USD,,No,Default Legal Entity - US,Billing Treatment - Advance,Draft
-Milestone Billing Treatment;Milestone Billing Policy - Software,Milestone Billing Policy - Software,USD,,No,,Milestone Billing Treatment,Draft
-Arrears Billing Treatment;Billing Policy- Arrears,Billing Policy- Arrears,USD,,No,,Arrears Billing Treatment,Draft
+$$Name$BillingPolicy.Name$LegalEntity.Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,IsMilestoneBilling,LegalEntity.Name,Name,Status
+Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,Billing Policy - Advance,USD,,No,false,Default Legal Entity - US,Billing Treatment - Advance,Draft
+Milestone Billing Treatment;Milestone Billing Policy - Software,Milestone Billing Policy - Software,USD,,No,true,,Milestone Billing Treatment,Draft
+Arrears Billing Treatment;Billing Policy- Arrears,Billing Policy- Arrears,USD,,No,false,,Arrears Billing Treatment,Draft
