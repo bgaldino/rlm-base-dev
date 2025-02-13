@@ -1,0 +1,6 @@
+$$Product.StockKeepingUnit$RateCardEntry.Name$RateUnitOfMeasure.UnitCode$UsageResource.Code,AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,LowerBound,Product.StockKeepingUnit,ProductSellingModel.Name,RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Name,RateCardEntryStatus,RateUnitOfMeasure.Name,RateUnitOfMeasureName,UpperBound,UsageResource.Name
+CLOUD001;RCE-00000015;USD;API002,Override,0.090123,2024-08-22T06:13:00.000+0000,,0,CLOUD001,Term Based - Monthly,CLOUD001;API Access Premium Tier Rate Card;Data Transfers,,USD,USD,100,Data Transfers
+CLOUD001;RCE-00000015;USD;API002,Percentage,0.085,2024-08-22T06:13:00.000+0000,,101,CLOUD001,Term Based - Monthly,CLOUD001;API Access Premium Tier Rate Card;Data Transfers,,USD,USD,200,Data Transfers
+CLOUD001;RCE-00000015;USD;API002,Amount,0.080456,2024-08-22T06:13:00.000+0000,,201,CLOUD001,Term Based - Monthly,CLOUD001;API Access Premium Tier Rate Card;Data Transfers,,USD,USD,300,Data Transfers
+CLOUD001;RCE-00000015;USD;API002,Override,0.075,2024-08-22T06:13:00.000+0000,,301,CLOUD001,Term Based - Monthly,CLOUD001;API Access Premium Tier Rate Card;Data Transfers,,USD,USD,400,Data Transfers
+CLOUD001;RCE-00000015;USD;API002,Percentage,0.070789,2024-08-22T06:13:00.000+0000,,401,CLOUD001,Term Based - Monthly,CLOUD001;API Access Premium Tier Rate Card;Data Transfers,,USD,USD,500,Data Transfers

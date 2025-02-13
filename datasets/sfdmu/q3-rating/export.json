@@ -31,38 +31,14 @@
         },
         {
           "query": "SELECT DrawdownOrder, EffectiveEndDate, EffectiveStartDate, Label, OverageChargeable, ProductOfferId, UsageDefinitionProductId, Quantity, Status, UnitOfMeasureClassId, UnitOfMeasureId, RenewalPolicyId, RolloverPolicyId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant",
-          "operation": "Update",
+          "operation": "Upsert",
           "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.Name;UnitOfMeasure.UnitCode;UsageResource.Name",
           "excluded": false
         },
         {
-          "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard",
-          "operation": "Update",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardId, RateUnitOfMeasureId, RateUnitOfMeasureName, UpperBound, UsageResourceId FROM RateAdjustmentByTier",
-          "operation": "Update",
-          "externalId": "Product.StockKeepingUnit;RateCard.Type;UsageResource.Name",
-          "excluded": false
-        },
-        {
           "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2",
-          "operation": "Readonly",
-          "externalId": "StockKeepingUnit",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Name, PriceBookId, RateCardId, RateCardType FROM PriceBookRateCard",
           "operation": "Update",
-          "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
-          "excluded": false
-        },
-        {
-          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, Name, Status, UsageResourceId FROM RateCardEntry",
-          "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;RateCard.Type;UsageResource.Name",
+          "externalId": "StockKeepingUnit",
           "excluded": false
         },
         {
@@ -81,12 +57,6 @@
           "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Name FROM UsagePrdGrantBindingPolicy",
           "operation": "Upsert",
           "externalId": "Name;Product2.StockKeepingUnit",
-          "excluded": false
-        },
-        {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier",
-          "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;ProductSellingModel.Name;RateCardEntry.Name;RateUnitOfMeasure.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code",
           "excluded": false
         }
       ]

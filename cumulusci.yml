@@ -36,9 +36,9 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c wonton-virgo-3105.scratch.my.salesforce.com"
-    user_alias: &user_alias test-7kk7pzjtwksy@example.com 
-    combined_flags: &combined_flags " -u test-7kk7pzjtwksy@example.com  -c wonton-virgo-3105.scratch.my.salesforce.com"
+    mydomain: &mydomain "-c manhattan-espresso-5506.scratch.my.salesforce.com"
+    user_alias: &user_alias test-zk7huu6iu2nr@example.com 
+    combined_flags: &combined_flags " -u test-zk7huu6iu2nr@example.com -c manhattan-espresso-5506.scratch.my.salesforce.com"
     prm: true
     tso: false
     qb: false
@@ -625,6 +625,12 @@ tasks:
     options:
       command: "sfdmu run -s csvfile -p datasets/sfdmu/scratch_data"
       extra: *mydomain
+
+  insert_q3_rates_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
+      extra: *mydomain
   
   activate_decision_tables:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
@@ -720,6 +726,11 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activatePriceAdjustmentSchedules.apex
+
+  activate_rating_records:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateRatingRecords.apex
 
 flows:
   prepare_rlm_org:
@@ -977,8 +988,10 @@ flows:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
       6:
         task: activate_default_payment_term
+        when: project_config.project__custom__billing == true
       7: 
         task: activate_billing_records
+        when: project_config.project__custom__billing == true
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -1013,6 +1026,9 @@ flows:
       5:
         task: insert_q3_tax_data_prod
         when: project_config.project__custom__tax == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+      6: 
+        task: activate_tax_records
+        when: project_config.project__custom__tax == true
 
   prepare_rating:
     group: Revenue Lifecycle Management
@@ -1029,6 +1045,9 @@ flows:
       4:
         task: insert_q3_rating_data_prod
         when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+      5: 
+        task: activate_rating_records
+        when: project_config.project__custom__rating == true
   
   prepare_agents:
     group: Revenue Lifecycle Management
