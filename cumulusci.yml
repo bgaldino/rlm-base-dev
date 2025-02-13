@@ -49,6 +49,7 @@ project:
     clm: false
     dro: false
     rating: true
+    rates: true
     ramps: true
     einstein: true
     product_dataset: qb
@@ -492,13 +493,13 @@ tasks:
   insert_quantumbit_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-multicurrency"
       extra: *mydomain
 
   insert_quantumbit_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/multicurrency"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-multicurrency"
       extra: *combined_flags
 
   insert_q3_data:
@@ -524,16 +525,16 @@ tasks:
       command: "sfdmu run -s csvfile -p datasets/sfdmu/clm"
       extra: *combined_flags
 
-  insert_dro_data_scratch:
+  insert_qb_dro_data_scratch:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
       command: "sfdmu run -s csvfile -p datasets/sfdmu/dro_scratch"
       extra: *mydomain
 
-  insert_dro_data_prod:
+  insert_qb_dro_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-dro"
       extra: *combined_flags
 
   insert_q3_dro_data_scratch:
@@ -596,16 +597,16 @@ tasks:
       command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-billing"
       extra: *combined_flags
 
-  insert_rating_data:
+  insert_qb_rating_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/rating"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rating"
       extra: *mydomain
 
-  insert_rating_data_prod:
+  insert_qb_rating_data_prod:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/rating"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rating"
       extra: *combined_flags
   
   insert_q3_rating_data:
@@ -620,16 +621,34 @@ tasks:
       command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rating"
       extra: *combined_flags
 
-  insert_scratch_data:
+  insert_qb_rates_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/scratch_data"
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rates"
       extra: *mydomain
+
+  insert_qb_rates_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rates"
+      extra: *combined_flags
 
   insert_q3_rates_data:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
       command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
+      extra: *mydomain
+
+  insert_q3_rates_data_prod:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
+      extra: *combined_flags
+
+  insert_scratch_data:
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/scratch_data"
       extra: *mydomain
   
   activate_decision_tables:
@@ -935,10 +954,10 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_dro_data_scratch
+        task: insert_qb_dro_data_scratch
         when: org_config.scratch and project_config.project__custom__dro == true and project_config.project__custom__qb == true
       2:
-        task: insert_dro_data_prod
+        task: insert_qb_dro_data_prod
         when: project_config.project__custom__tso == true and project_config.project__custom__dro and project_config.project__custom__qb == true
       3:
         task: insert_q3_dro_data_scratch
@@ -1034,10 +1053,10 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_rating_data
+        task: insert_qb_rating_data
         when: project_config.project__custom__rating == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
       2:
-        task: insert_rating_data_prod
+        task: insert_qb_rating_data_prod
         when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
       3:
         task: insert_q3_rating_data
@@ -1045,7 +1064,19 @@ flows:
       4:
         task: insert_q3_rating_data_prod
         when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
-      5: 
+      5:
+        task: insert_qb_rates_data
+        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+      6:
+        task: insert_qb_rates_data_prod
+        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+      7:
+        task: insert_q3_rates_data
+        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+      8:
+        task: insert_q3_rates_data_prod
+        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+      9: 
         task: activate_rating_records
         when: project_config.project__custom__rating == true
   
