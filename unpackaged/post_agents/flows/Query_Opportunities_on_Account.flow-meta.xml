@@ -66,7 +66,7 @@
             <targetReference>Opportunities_on_Account</targetReference>
         </connector>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <description>The account Id that is being referenced.</description>
         <name>AccountId</name>

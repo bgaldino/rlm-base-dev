@@ -11,7 +11,7 @@
     },
     "PriceBookName" : {
       "title" : "PriceBookName",
-      "description" : "The name of the pricebook. If left blank, will default to the standard pricebook, so this is an optional input.",
+      "description" : "The name of the pricebook. If left blank, it will default to the standard pricebook, so this is an optional input.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true

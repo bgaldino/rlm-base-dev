@@ -1,21 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <description>call RLM initiate amendment action</description>
+        <description>Call RLM initiate amendment action</description>
         <name>Create_Amendment_Quote</name>
         <label>Create Amendment Quote</label>
         <locationX>176</locationX>
         <locationY>758</locationY>
         <actionName>initiateAmendment</actionName>
         <actionType>initiateAmendment</actionType>
-        <connector>
-            <targetReference>Populate_Quote_ID</targetReference>
-        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amendAssetIds</name>
             <value>
-                <elementReference>varAssetIds</elementReference>
+                <elementReference>AssetIds</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -50,11 +47,15 @@
         </inputParameters>
         <nameSegment>initiateAmendment</nameSegment>
         <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <outputParameters>
+            <assignToReference>AmendmentQuoteId</assignToReference>
+            <name>amendRecordId</name>
+        </outputParameters>
     </actionCalls>
-    <apiVersion>63.0</apiVersion>
+    <apiVersion>62.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <description>Set the opportunity id for the new amendment quote based on the new opportunity record.</description>
         <name>AssignOpportunityId</name>
         <label>Assign OpportunityId</label>
         <locationX>176</locationX>
@@ -71,6 +72,7 @@
         </connector>
     </assignments>
     <assignments>
+        <description>Get the asset Id of the current element in the loop.</description>
         <name>Get_Asset_ID</name>
         <label>Get Asset ID</label>
         <locationX>264</locationX>
@@ -90,29 +92,17 @@
             <targetReference>Assets</targetReference>
         </connector>
     </assignments>
-    <assignments>
-        <name>Populate_Quote_ID</name>
-        <label>Populate Quote ID</label>
-        <locationX>176</locationX>
-        <locationY>866</locationY>
-        <assignmentItems>
-            <assignToReference>AmendmentQuoteId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Create_Amendment_Quote.amendRecordId</elementReference>
-            </value>
-        </assignmentItems>
-    </assignments>
     <description>This can be used to create an amendment quote and a related amendment opportunity on an account with active assets.</description>
     <environments>Default</environments>
     <interviewLabel>Create Amendment Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Create Amendment Quote</label>
     <loops>
+        <description>Loop through the input asset collection in order to retrieve each element.</description>
         <name>Assets</name>
         <label>Assets</label>
         <locationX>176</locationX>
         <locationY>350</locationY>
-        <collectionReference>varAssetIds</collectionReference>
+        <collectionReference>AssetIds</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
             <targetReference>Get_Asset_ID</targetReference>
@@ -141,6 +131,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordCreates>
+        <description>Create an amendment opportunity before creating an amendment quote, based on the account information and amendment date.</description>
         <name>Create_Amend_Opportunity</name>
         <label>Create Amend Opportunity</label>
         <locationX>176</locationX>
@@ -182,6 +173,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>
     <recordLookups>
+        <description>Determine the asset contract relationship using one of the input asset Ids.</description>
         <name>Find_Contract</name>
         <label>Find Contract</label>
         <locationX>176</locationX>
@@ -257,10 +249,19 @@
         <isOutput>true</isOutput>
     </variables>
     <variables>
+        <description>Asset Id from input used to find the asset contract relationship.</description>
         <name>assetId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>The IDs of the assets that you want to amend.</description>
+        <name>AssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
         <isOutput>false</isOutput>
     </variables>
     <variables>
@@ -274,13 +275,5 @@
         <value>
             <numberValue>0.0</numberValue>
         </value>
-    </variables>
-    <variables>
-        <description>The IDs of the assets that you want to amend.</description>
-        <name>varAssetIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
     </variables>
 </Flow>

@@ -1,10 +1,13 @@
 {
   "unevaluatedProperties" : false,
   "properties" : {
-    "QuoteId" : {
-      "title" : "QuoteId",
-      "description" : "This is the QuoteId of the Quote record that has been created.",
-      "lightning:type" : "lightning__textType",
+    "QuoteOutput" : {
+      "title" : "QuoteOutput",
+      "description" : "QuoteOutput is Quote record.",
+      "lightning:type" : "lightning__recordInfoType",
+      "lightning:sObjectInfo" : {
+        "apiName" : "Quote"
+      },
       "lightning:isPII" : false,
       "copilotAction:isDisplayable" : true,
       "copilotAction:isUsedByPlanner" : true

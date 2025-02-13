@@ -1,0 +1,21 @@
+{
+  "required" : [ "OpportunityId", "SearchProductsRepresentationsJson" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "OpportunityId" : {
+      "title" : "OpportunityId",
+      "description" : "Get Opportunity Id from page context.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "SearchProductsRepresentationsJson" : {
+      "title" : "SearchProductsRepresentationsJson",
+      "description" : "SearchProductsRepresentationsJson is from the output of Agent Action Get Products from Product Mentions.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

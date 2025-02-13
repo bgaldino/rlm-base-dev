@@ -3,7 +3,7 @@
   "properties" : {
     "QuoteId" : {
       "title" : "QuoteId",
-      "description" : "This is the QuoteId of the Quote record that has been created.",
+      "description" : "The quote Id that was operated on.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isDisplayable" : true,

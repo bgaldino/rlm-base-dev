@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <description>Call the PlaceSalesTransaction IA in order to create a quote.</description>
         <name>PlaceSalesTransaction_IA</name>
         <label>PlaceSalesTransaction IA</label>
         <locationX>176</locationX>
@@ -24,6 +25,7 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <description>Assign all quote fields by populating the RecordMapWrappers, to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
         <name>Assign_Quote_Fields</name>
         <label>Assign Quote Fields</label>
         <locationX>176</locationX>
@@ -39,7 +41,7 @@
             <assignToReference>QuoteNameRMW.obj</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>CalculatedQuoteName</elementReference>
+                <elementReference>QuoteName</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -243,6 +245,7 @@
         </connector>
     </assignments>
     <assignments>
+        <description>For quote naming purposes, identify the number of the quote based on the total count of related quotes on the opportunity.</description>
         <name>Calculate_Quote_Number</name>
         <label>Calculate Quote Number</label>
         <locationX>176</locationX>
@@ -266,6 +269,7 @@
         </connector>
     </assignments>
     <assignments>
+        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
         <name>Create_Graph</name>
         <label>Create Graph</label>
         <locationX>176</locationX>
@@ -289,6 +293,7 @@
         </connector>
     </assignments>
     <assignments>
+        <description>Assign values for the QuoteRecordReference Apex-defined type to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
         <name>Create_Quote_Record_Reference</name>
         <label>Create Quote Record Reference</label>
         <locationX>176</locationX>
@@ -335,90 +340,6 @@
                 <elementReference>PricebookRMW</elementReference>
             </value>
         </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>BillToCityRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>BillToCountryRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>BillToNameRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>BillToPostalCodeRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>BillToStateProvinceRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>BillToStreetRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ShipToCityRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ShipToCountryRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ShipToNameRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ShipToPostalCodeRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ShipToStateProvinceRMW</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ShipToStreetRMW</elementReference>
-            </value>
-        </assignmentItems>
         <connector>
             <targetReference>Create_Graph</targetReference>
         </connector>
@@ -426,6 +347,7 @@
     <description>This action can be used to create a new business quote from an opportunity. It takes in an OpportunityID and Products as required inputs, and returns a Quote Id. Optional inputs include the quote name and pricebook.</description>
     <environments>Default</environments>
     <formulas>
+        <description>Used to calculate the quote name based on the number of quotes already on the opportunity.</description>
         <name>CalculatedQuoteName</name>
         <dataType>String</dataType>
         <expression>&quot;Quote &quot; + TEXT({!QuoteNumber}) + &quot; for &quot; + {!Get_Opportunity_Details.Name}</expression>
@@ -452,6 +374,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
+        <description>Identify the opportunity record for which a new related quote will be created.</description>
         <name>Get_Opportunity_Details</name>
         <label>Get Opportunity Details</label>
         <locationX>176</locationX>
@@ -473,6 +396,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <description>Identify the Pricebook2Id of the pricebook to be assigned to the Quote.</description>
         <name>Get_Price_Book_Id</name>
         <label>Get Price Book Id</label>
         <locationX>176</locationX>
@@ -495,6 +419,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <description>Identify existing quotes related to the opportunity.</description>
         <name>Get_Quotes_on_Opportunity</name>
         <label>Get Quotes on Opportunity</label>
         <locationX>176</locationX>
@@ -525,6 +450,7 @@
     </start>
     <status>Active</status>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.BillToCity field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>BillToCityRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -533,6 +459,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.BillToCountry field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>BillToCountryRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -541,6 +468,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.BillToName field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>BillToNameRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -549,6 +477,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.BillToPostalCode field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>BillToPostalCodeRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -557,6 +486,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.BillToStreet field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>BillToStateProvinceRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -565,20 +495,13 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper to specify Quote.BillToStreet field name (key) and value (obj) for the new quote.</description>
         <name>BillToStreetRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <name>newQuote</name>
-        <dataType>SObject</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-        <objectType>Quote</objectType>
     </variables>
     <variables>
         <description>This is the Opportunity record ID needed to create a new business quote.</description>
@@ -589,6 +512,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.Opportunity field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>OpportunityRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -597,7 +521,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The name of the pricebook. If left blank, will default to the standard pricebook, so this is an optional input.</description>
+        <description>The name of the pricebook. If left blank, it will default to the standard pricebook, so this is an optional input.</description>
         <name>PriceBookName</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -608,6 +532,7 @@
         </value>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.Pricebook2Id field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>PricebookRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -616,6 +541,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>The Graph Apex-defined type used as input to the PlaceSalesTransaction invokable action call.</description>
         <name>PST_Graph</name>
         <apexClass>RevSalesTrxn__Graph</apexClass>
         <dataType>Apex</dataType>
@@ -624,7 +550,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>This is the quote id of the quote record that this Action has created.</description>
+        <description>This is the QuoteId of the Quote record that has been created.</description>
         <name>QuoteId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -643,6 +569,7 @@
         </value>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.Name field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteNameRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -651,6 +578,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>Used to calculate the count of total quotes on the opportunity after quote creation.</description>
         <name>QuoteNumber</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
@@ -659,6 +587,7 @@
         <scale>0</scale>
     </variables>
     <variables>
+        <description>Record Apex-defined type for Quote to be created. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteRecord</name>
         <apexClass>RevSalesTrxn__Record</apexClass>
         <dataType>Apex</dataType>
@@ -667,6 +596,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordReference for Quote to be created. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
@@ -675,6 +605,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.ShipToCity field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>ShipToCityRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -683,6 +614,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.ShipToCountry field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>ShipToCountryRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -691,6 +623,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify  Quote.ShipToName field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>ShipToNameRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -699,6 +632,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.ShipToPostalCode field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>ShipToPostalCodeRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -707,6 +641,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.ShipToStateProvince field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>ShipToStateProvinceRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -715,6 +650,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordMapWrapper Apex-defined type to specify Quote.ShipToStreet field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>ShipToStreetRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>

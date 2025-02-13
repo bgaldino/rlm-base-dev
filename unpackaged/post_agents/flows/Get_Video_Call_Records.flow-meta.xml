@@ -3,23 +3,21 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <description>Populate the output QuoteLineItem Id if it was found.</description>
-        <name>Output_QuoteLineItemId</name>
-        <label>Output QuoteLineItemId</label>
+        <name>Assign_Video_Call_Records_to_Output</name>
+        <label>Assign Video Call Records to Output</label>
         <locationX>176</locationX>
         <locationY>242</locationY>
         <assignmentItems>
-            <assignToReference>QuoteLineItemId</assignToReference>
+            <assignToReference>VideoCallRecordsOutput</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>Identify_QuoteLineItem.Id</elementReference>
+                <elementReference>Get_Video_Call_Records</elementReference>
             </value>
         </assignmentItems>
     </assignments>
-    <description>This action is used to take a Product2 Id and return a QuoteLineItem Id of that product.</description>
     <environments>Default</environments>
-    <interviewLabel>Identify QuoteLineItem from Product {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Identify QuoteLineItem from Product</label>
+    <interviewLabel>Get Video Call Records Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Get Video Call Records</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -40,64 +38,47 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <description>Identify the quote line item on the quote record based on the Product2Id.</description>
-        <name>Identify_QuoteLineItem</name>
-        <label>Identify QuoteLineItem</label>
+        <name>Get_Video_Call_Records</name>
+        <label>Get Video Call Records</label>
         <locationX>176</locationX>
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Output_QuoteLineItemId</targetReference>
+            <targetReference>Assign_Video_Call_Records_to_Output</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>QuoteId</field>
+            <field>RelatedRecordId</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>QuoteId</elementReference>
+                <elementReference>recordId</elementReference>
             </value>
         </filters>
-        <filters>
-            <field>Product2Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>Product2Id</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>QuoteLineItem</object>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>VideoCall</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <start>
         <locationX>50</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Identify_QuoteLineItem</targetReference>
+            <targetReference>Get_Video_Call_Records</targetReference>
         </connector>
     </start>
     <status>Active</status>
     <variables>
-        <description>The 18 digit Product2Id of the product.</description>
-        <name>Product2Id</name>
+        <name>recordId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The 18 digit Quote Id.</description>
-        <name>QuoteId</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>The 18 digit quote line item Id.</description>
-        <name>QuoteLineItemId</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
+        <name>VideoCallRecordsOutput</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
         <isInput>false</isInput>
         <isOutput>true</isOutput>
+        <objectType>VideoCall</objectType>
     </variables>
 </Flow>

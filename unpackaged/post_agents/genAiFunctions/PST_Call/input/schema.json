@@ -1,0 +1,14 @@
+{
+  "required" : [ "GraphId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "GraphId" : {
+      "title" : "GraphId",
+      "description" : "The graph Apex-defined type used to call the PST IA. ",
+      "lightning:type" : "@apexClassType/RevSalesTrxn__Graph?isAuraEnabled=true",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

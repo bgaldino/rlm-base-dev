@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <description>Call the PlaceSalesTransaction Invocable Action in order to apply a discount to the quote.</description>
         <name>PlaceSalesTransactionCall</name>
         <label>PlaceSalesTransactionCall</label>
         <locationX>182</locationX>
@@ -14,7 +15,7 @@
         <inputParameters>
             <name>graph</name>
             <value>
-                <elementReference>Graph</elementReference>
+                <elementReference>PSTGraph</elementReference>
             </value>
         </inputParameters>
         <nameSegment>placeSalesTransaction</nameSegment>
@@ -24,38 +25,9 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <name>Create_Graph_Input</name>
-        <label>Create Graph Input</label>
-        <locationX>182</locationX>
-        <locationY>350</locationY>
-        <assignmentItems>
-            <assignToReference>Graph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>Graph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteLineRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>Graph.graphId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>placeholder</stringValue>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>PlaceSalesTransactionCall</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Create_PST_Quote_Input</name>
-        <label>Create PST Quote Input</label>
+        <description>Create Quote Record Reference to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
+        <name>Assign_Quote_Values</name>
+        <label>Assign Quote Values</label>
         <locationX>182</locationX>
         <locationY>242</locationY>
         <assignmentItems>
@@ -91,19 +63,20 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Create_PST_QuoteLineItem_Input</name>
-        <label>Create PST QuoteLineItem Input</label>
+        <description>Assign new QuoteLineItem fields by populating the RecordMapWrappers and create QuoteLineItem Record Reference to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
+        <name>Assign_QuoteLineItem_Values</name>
+        <label>Assign QuoteLineItem Values</label>
         <locationX>182</locationX>
         <locationY>134</locationY>
         <assignmentItems>
-            <assignToReference>QuoteLineRecordMapWrapper.key</assignToReference>
+            <assignToReference>DiscountRecordMapWrapper.key</assignToReference>
             <operator>Assign</operator>
             <value>
                 <stringValue>Discount</stringValue>
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>QuoteLineRecordMapWrapper.obj</assignToReference>
+            <assignToReference>DiscountRecordMapWrapper.obj</assignToReference>
             <operator>Assign</operator>
             <value>
                 <elementReference>DiscountPercentage</elementReference>
@@ -113,7 +86,7 @@
             <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>QuoteLineRecordMapWrapper</elementReference>
+                <elementReference>DiscountRecordMapWrapper</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -145,10 +118,42 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Create_PST_Quote_Input</targetReference>
+            <targetReference>Assign_Quote_Values</targetReference>
         </connector>
     </assignments>
     <assignments>
+        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
+        <name>Create_Graph_Input</name>
+        <label>Create Graph Input</label>
+        <locationX>182</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>PSTGraph.records</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>QuoteRecordReference</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PSTGraph.records</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>QuoteLineRecordReference</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PSTGraph.graphId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>placeholder</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>PlaceSalesTransactionCall</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Indicate failure through an output message.</description>
         <name>Failure_Message</name>
         <label>Failure Message</label>
         <locationX>314</locationX>
@@ -162,6 +167,7 @@
         </assignmentItems>
     </assignments>
     <assignments>
+        <description>Indicate success through an output message.</description>
         <name>Output_Message</name>
         <label>Output Message</label>
         <locationX>50</locationX>
@@ -175,6 +181,7 @@
         </assignmentItems>
     </assignments>
     <decisions>
+        <description>Validate if the discount has been applied successfully to the quote.</description>
         <name>Validate_Success</name>
         <label>Validate Success</label>
         <locationX>182</locationX>
@@ -223,6 +230,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
+        <description>Get the quote line item in order to validate that the discount has been applied successfully.</description>
         <name>Get_QuoteLineItem</name>
         <label>Get QuoteLineItem</label>
         <locationX>182</locationX>
@@ -256,7 +264,7 @@
         <locationX>56</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Create_PST_QuoteLineItem_Input</targetReference>
+            <targetReference>Assign_QuoteLineItem_Values</targetReference>
         </connector>
     </start>
     <status>Active</status>
@@ -270,19 +278,30 @@
         <scale>2</scale>
     </variables>
     <variables>
-        <name>Graph</name>
-        <apexClass>RevSalesTrxn__Graph</apexClass>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.Discount field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>DiscountRecordMapWrapper</name>
+        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>Defines the output message based on the new QuoteLineItem and updated Quote subtotal.</description>
         <name>OutputMessage</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
+        <name>PSTGraph</name>
+        <apexClass>RevSalesTrxn__Graph</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
     <variables>
         <description>Quote Id of the quote record upon which this action acts.</description>
@@ -301,14 +320,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <name>QuoteLineRecordMapWrapper</name>
-        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
-        <dataType>Apex</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
+        <description>RecordReference for QuoteLineItem to be modified. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteLineRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
@@ -317,6 +329,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>RecordReference for Quote to be modified. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
