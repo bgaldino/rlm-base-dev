@@ -751,6 +751,11 @@ tasks:
     options:
       path: scripts/apex/activateRatingRecords.apex
 
+  activate_rates:
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateRateCardEntries.apex
+
 flows:
   prepare_rlm_org:
     group: Revenue Lifecycle Management
@@ -1078,7 +1083,10 @@ flows:
         when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
       9: 
         task: activate_rating_records
-        when: project_config.project__custom__rating == true
+        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true
+      10: 
+        task: activate_rates
+        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true
   
   prepare_agents:
     group: Revenue Lifecycle Management

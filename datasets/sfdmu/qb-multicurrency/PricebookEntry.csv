@@ -61,6 +61,7 @@ QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Term Monthly;USD,US
 QuantumBit Database;Standard Price Book;QB-DB;Term Annual;USD,USD,true,false,QuantumBit Database,Standard Price Book;true,QB-DB,Term Annual;TermDefined,12000
 QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time;USD,USD,true,false,QuantumBit Essentials Training,Standard Price Book;true,QB-TRN-ESSNTLS,One-Time;OneTime,8500
 QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time;USD,USD,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,6500
+QuantumBit Generative AI License;Standard Price Book;QB-GEN-AI-LIC;Term Annual;USD,USD,true,false,QuantumBit Generative AI License,Standard Price Book;true,QB-GEN-AI-LIC,Term Annual;TermDefined,149.99
 QuantumBit Services Project;Standard Price Book;QB-BDL-SRVC;One-Time;USD,USD,true,false,QuantumBit Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
 QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time;USD,USD,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
 QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,420

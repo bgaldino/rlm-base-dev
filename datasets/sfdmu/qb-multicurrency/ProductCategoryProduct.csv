@@ -1,4 +1,5 @@
 $$ProductCategory.Name$Product.StockKeepingUnit$Catalog.Code,Catalog.Name,CurrencyIsoCode,Product.StockKeepingUnit,ProductCategory.$$Name$Catalog.Code$ParentCategory.Name
+Licenses;CAT-QB-SFT,QuantumBit Software,USD,,Licenses;CAT-QB-SFT
 Licenses;QB-DB;CAT-QB-SFT,QuantumBit Software,USD,QB-DB,Licenses;CAT-QB-SFT
 Accessories;QB-CMPC-5889;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5889,Accessories;CAT-QB-HW
 Network Adapter;QB-NET X710;CAT-QB-HW,QuantumBit Hardware,USD,QB-NET X710,Network Adapter;CAT-QB-HW
@@ -50,3 +51,4 @@ Memory;QB-MEM 32GB;CAT-QB-HW,QuantumBit Hardware,USD,QB-MEM 32GB,Memory;CAT-QB-H
 Hard Drive;QB-HD 1TB;CAT-QB-HW,QuantumBit Hardware,USD,QB-HD 1TB,Hard Drive;CAT-QB-HW
 API;QB-API;CAT-QB-SFT,QuantumBit Software,USD,QB-API,API;CAT-QB-SFT
 Bundle;QB-COMPLETE;CAT-QB-SFT,QuantumBit Software,USD,QB-COMPLETE,Bundle;CAT-QB-SFT
+Licenses;QB-GEN-AI-LIC;CAT-QB-SFT,QuantumBit Software,USD,QB-GEN-AI-LIC,Licenses;CAT-QB-SFT

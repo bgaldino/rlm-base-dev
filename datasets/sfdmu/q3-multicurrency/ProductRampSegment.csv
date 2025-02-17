@@ -1,5 +1,5 @@
-CurrencyIsoCode,DurationType,Name,SegmentType,TrialDuration
-USD,,PPRS-000000002,Yearly,
-USD,Days,PPRS-000000006,FreeTrial,45
-USD,,PPRS-000000007,Yearly,
-USD,,PPRS-000000009,Yearly,
+$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,CurrencyIsoCode,DurationType,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
+QBO0021;TermDefined;Yearly,USD,,QBO0021,Term Based - Yearly;TermDefined,Yearly,
+QBO0021;TermDefined;FreeTrial,USD,Days,QBO0021,Term Based - Yearly;TermDefined,FreeTrial,45
+SLKSRC001;TermDefined;Yearly,USD,,SLKSRC001,Term Based - Monthly;TermDefined,Yearly,
+SLKSRC002;TermDefined;Yearly,USD,,SLKSRC002,Term Based - Yearly;TermDefined,Yearly,

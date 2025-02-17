@@ -1,4 +1,4 @@
-Code,CurrencyIsoCode,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.Name,ValueDescription
+Code,CurrencyIsoCode,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,ValueDescription
 ATTR-QB-CONNECTOR,USD,Picklist,,,,Connector_Type,true,false,Connector Type,Connector Type,Connector Type Picklist,,,
 ATTR-QB-BASECORECNT,USD,Picklist,,4,,Base_Core_Count,true,false,Base Core Count,Base Core Count,Base Core Count Picklist,,,
 ATTR-QB-API,USD,Picklist,,Flex,,Type,true,false,Type,Type,API Type Picklist,,,

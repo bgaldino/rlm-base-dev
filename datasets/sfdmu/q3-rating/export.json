@@ -8,13 +8,13 @@
         {
           "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure",
           "operation": "Upsert",
-          "externalId": "Name;UnitCode;UnitOfMeasureClass.Code;UnitOfMeasureClass.Name",
+          "externalId": "UnitCode",
           "excluded": false
         },
         {
           "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass",
           "operation": "Upsert",
-          "externalId": "Code;BaseUnitOfMeasure.Name;BaseUnitOfMeasure.UnitCode;DefaultUnitOfMeasure.Name;DefaultUnitOfMeasure.UnitCode",
+          "externalId": "Code",
           "excluded": false
         },
         {
@@ -32,7 +32,7 @@
         {
           "query": "SELECT DrawdownOrder, EffectiveEndDate, EffectiveStartDate, Label, OverageChargeable, ProductOfferId, UsageDefinitionProductId, Quantity, Status, UnitOfMeasureClassId, UnitOfMeasureId, RenewalPolicyId, RolloverPolicyId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant",
           "operation": "Upsert",
-          "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.Name;UnitOfMeasure.UnitCode;UsageResource.Name",
+          "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;UsageResource.Code",
           "excluded": false
         },
         {

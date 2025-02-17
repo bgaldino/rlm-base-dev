@@ -5,10 +5,10 @@ Licenses;CAT-QB-SFT,QuantumBit Software,,,Licenses,,30
 Training;CAT-QB-SFT,QuantumBit Software,,,Training,,40
 Maintenance;CAT-QB-SFT,QuantumBit Software,,,Maintenance,,50
 Hardware Maintenance;CAT-QB-HW,QuantumBit Hardware,,,Hardware Maintenance,,
-Hard Drive;CAT-QB-HW,QuantumBit Hardware,,,Hard Drive,,
 Memory;CAT-QB-HW,QuantumBit Hardware,,,Memory,,
 Network Adapter;CAT-QB-HW,QuantumBit Hardware,,,Network Adapter,,
 Processor;CAT-QB-HW,QuantumBit Hardware,,,Processor,,
+Hard Drive;CAT-QB-HW,QuantumBit Hardware,,,Hard Drive,,
 Subscription;CAT-QB-SFT,QuantumBit Software,,,Subscription,,100
 Services;CAT-QB-SRV,QuantumBit Services,,,Services,,
 Server;CAT-QB-HW,QuantumBit Hardware,,,Server,,

@@ -1,5 +1,6 @@
-$$Name$BillingPolicy.Name$LegalEntity.Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,LegalEntity.Name,Name,Status
-Billing Treatment - Advance;Billing Policy - Advance;Default Legal Entity - US,Billing Policy - Advance,USD,,No,Default Legal Entity - US,Billing Treatment - Advance,Draft
-Billing Treatment - USA - Arrears;Billing Policy - Arrears;Default Legal Entity - US,Billing Policy - Arrears,USD,,No,Default Legal Entity - US,Billing Treatment - USA - Arrears,Draft
-Billing Treatment - Advance - Canada;Billing Policy - Advance;Default Legal Entity - Canada,Billing Policy - Advance,USD,,No,Default Legal Entity - Canada,Billing Treatment - Advance - Canada,Draft
-Billing Treatment - Canada - Arrears;Billing Policy - Arrears;Default Legal Entity - Canada,Billing Policy - Arrears,USD,,No,Default Legal Entity - Canada,Billing Treatment - Canada - Arrears,Draft
+$$Name$BillingPolicy.Name$LegalEntity.Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,IsMilestoneBilling,LegalEntity.Name,Name,Status
+Billing Treatment - USA - Advance;Billing Policy - Advance;Default Legal Entity - US,Billing Policy - Advance,USD,,No,false,Default Legal Entity - US,Billing Treatment - USA - Advance,Draft
+Billing Treatment - USA - Arrears;Billing Policy - Arrears;Default Legal Entity - US,Billing Policy - Arrears,USD,,No,false,Default Legal Entity - US,Billing Treatment - USA - Arrears,Draft
+Billing Treatment - Advance - Canada;Billing Policy - Advance;Default Legal Entity - Canada,Billing Policy - Advance,USD,,No,false,Default Legal Entity - Canada,Billing Treatment - Advance - Canada,Draft
+Billing Treatment - Canada - Arrears;Billing Policy - Arrears;Default Legal Entity - Canada,Billing Policy - Arrears,USD,,No,false,Default Legal Entity - Canada,Billing Treatment - Canada - Arrears,Draft
+Milestone Billing Treatment;Milestone Billing Policy - Software,Milestone Billing Policy - Software,USD,,No,true,,Milestone Billing Treatment,Draft

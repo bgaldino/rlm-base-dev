@@ -58,6 +58,18 @@
           "operation": "Update",
           "externalId": "StockKeepingUnit",
           "excluded": false
+        },
+        {
+          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name FROM GeneralLedgerAccount",
+          "operation": "Upsert",
+          "externalId": "Name;LegalEntity.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, DebitGeneralLedgerAccountId, CreditGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionType FROM GeneralLedgerAcctAsgntRule",
+          "operation": "Upsert",
+          "externalId": "Name;LegalEntity.Name",
+          "excluded": false
         }
       ]
     }

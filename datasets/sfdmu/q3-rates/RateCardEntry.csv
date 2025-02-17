@@ -1,17 +1,17 @@
 $$Product.StockKeepingUnit$RateCard.Name$UsageResource.Name,DefaultUnitOfMeasure.Name,DefaultUnitOfMeasureClass.Name,EffectiveFrom,EffectiveTo,Product.StockKeepingUnit,ProductSellingModel.Name,Rate,RateCard.Name,RateNegotiation,RateUnitOfMeasure.Name,RateUnitOfMeasureClass.Name,Status,UsageResource.Name
-CLOUD002;API Access Premium Rate Card;Data Transfers,GB,Data,2024-08-25T19:00:00.000+0000,,CLOUD002,Term Based - Monthly,0.098765,API Access Premium Rate Card,,USD,Currency,,Data Transfers
-CLOUD001;API Access Premium Tier Rate Card;Data Transfers,GB,Data,2024-08-22T06:13:00.000+0000,,CLOUD001,Term Based - Monthly,,API Access Premium Tier Rate Card,,USD,Currency,,Data Transfers
-CLOUD001;API Access Premium Rate Card;Rate Limits,TPS,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.56789,API Access Premium Rate Card,,USD,Currency,,Rate Limits
-CLOUD001;API Access Premium Rate Card;Error Logs,LOGS,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.014567,API Access Premium Rate Card,,USD,Currency,,Error Logs
-CLOUD001;API Access Premium Rate Card;User Sessions,SESH,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.056789,API Access Premium Rate Card,,USD,Currency,,User Sessions
-CLOUD001;API Access Premium Rate Card;Data Transfers,GB,Data,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.098765,API Access Premium Rate Card,,USD,Currency,,Data Transfers
-CLOUD001;API Access Premium Rate Card;API Calls,CALLS,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.023456,API Access Premium Rate Card,,USD,Currency,,API Calls
-CLOUD003;Cloud Storage Pro Rate Card;Access Logs,LOGS,Count,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.012345,Cloud Storage Pro Rate Card,,USD,Currency,,Access Logs
-CLOUD003;Cloud Storage Pro Rate Card;User Accounts,ACCTS,Count,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,1.234567,Cloud Storage Pro Rate Card,,USD,Currency,,User Accounts
-CLOUD003;Cloud Storage Pro Rate Card;File Transfers,XFER,Count,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.045678,Cloud Storage Pro Rate Card,,USD,Currency,,File Transfers
-CLOUD003;Cloud Storage Pro Rate Card;Backup Data,GB,Data,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.078912,Cloud Storage Pro Rate Card,,USD,Currency,,Backup Data
-CLOUD003;Cloud Storage Pro Rate Card;Storage Data,GB,Data,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.414521,Cloud Storage Pro Rate Card,,USD,Currency,,Storage Data
-ATTMB001;AT&T Mobile Plan Rate Card;Usage for SMS,Count,SMS,2024-08-15T00:33:00.000+0000,,ATTMB001,Term Based - Monthly,0.1,AT&T Mobile Plan Rate Card,,USD,Currency,,Usage for SMS
-ATTMB001;AT&T Mobile Plan Rate Card;Usage for Data,MB,Data,2024-08-15T00:32:00.000+0000,,ATTMB001,Term Based - Monthly,0.15,AT&T Mobile Plan Rate Card,,USD,Currency,,Usage for Data
-ATTMB001;AT&T Mobile Plan Rate Card;Usage for Calls,Minutes,Call Units,2024-08-14T19:00:00.000+0000,,ATTMB001,Term Based - Monthly,0.25,AT&T Mobile Plan Rate Card,,USD,Currency,,Usage for Calls
-ATTMB001;AT&T Mobile Plan Rate Card;Usage for Case,Each,Case,2024-08-15T00:35:00.000+0000,,ATTMB001,Term Based - Monthly,1,AT&T Mobile Plan Rate Card,,USD,Currency,,Usage for Case
+CLOUD002;API Access Premium Rate Card;Data Transfers,GB,Data,2024-08-25T19:00:00.000+0000,,CLOUD002,Term Based - Monthly,0.098765,API Access Premium Rate Card,NonNegotiable,USD,Currency,Draft,Data Transfers
+CLOUD001;API Access Premium Tier Rate Card;Data Transfers,GB,Data,2024-08-22T06:13:00.000+0000,,CLOUD001,Term Based - Monthly,,API Access Premium Tier Rate Card,NonNegotiable,USD,Currency,Draft,Data Transfers
+CLOUD001;API Access Premium Rate Card;Rate Limits,TPS,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.56789,API Access Premium Rate Card,NonNegotiable,USD,Currency,Draft,Rate Limits
+CLOUD001;API Access Premium Rate Card;Error Logs,LOGS,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.014567,API Access Premium Rate Card,NonNegotiable,USD,Currency,Draft,Error Logs
+CLOUD001;API Access Premium Rate Card;User Sessions,SESH,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.056789,API Access Premium Rate Card,NonNegotiable,USD,Currency,Draft,User Sessions
+CLOUD001;API Access Premium Rate Card;Data Transfers,GB,Data,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.098765,API Access Premium Rate Card,NonNegotiable,USD,Currency,Draft,Data Transfers
+CLOUD001;API Access Premium Rate Card;API Calls,CALLS,Count,2024-08-21T19:00:00.000+0000,,CLOUD001,Term Based - Monthly,0.023456,API Access Premium Rate Card,NonNegotiable,USD,Currency,Draft,API Calls
+CLOUD003;Cloud Storage Pro Rate Card;Access Logs,LOGS,Count,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.012345,Cloud Storage Pro Rate Card,NonNegotiable,USD,Currency,Draft,Access Logs
+CLOUD003;Cloud Storage Pro Rate Card;User Accounts,ACCTS,Count,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,1.234567,Cloud Storage Pro Rate Card,NonNegotiable,USD,Currency,Draft,User Accounts
+CLOUD003;Cloud Storage Pro Rate Card;File Transfers,XFER,Count,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.045678,Cloud Storage Pro Rate Card,NonNegotiable,USD,Currency,Draft,File Transfers
+CLOUD003;Cloud Storage Pro Rate Card;Backup Data,GB,Data,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.078912,Cloud Storage Pro Rate Card,NonNegotiable,USD,Currency,Draft,Backup Data
+CLOUD003;Cloud Storage Pro Rate Card;Storage Data,GB,Data,2024-08-21T19:00:00.000+0000,,CLOUD003,Term Based - Monthly,0.414521,Cloud Storage Pro Rate Card,NonNegotiable,USD,Currency,Draft,Storage Data
+ATTMB001;AT&T Mobile Plan Rate Card;Usage for SMS,Count,SMS,2024-08-15T00:33:00.000+0000,,ATTMB001,Term Based - Monthly,0.1,AT&T Mobile Plan Rate Card,NonNegotiable,USD,Currency,Draft,Usage for SMS
+ATTMB001;AT&T Mobile Plan Rate Card;Usage for Data,MB,Data,2024-08-15T00:32:00.000+0000,,ATTMB001,Term Based - Monthly,0.15,AT&T Mobile Plan Rate Card,NonNegotiable,USD,Currency,Draft,Usage for Data
+ATTMB001;AT&T Mobile Plan Rate Card;Usage for Calls,Minutes,Call Units,2024-08-14T19:00:00.000+0000,,ATTMB001,Term Based - Monthly,0.25,AT&T Mobile Plan Rate Card,NonNegotiable,USD,Currency,Draft,Usage for Calls
+ATTMB001;AT&T Mobile Plan Rate Card;Usage for Case,Each,Case,2024-08-15T00:35:00.000+0000,,ATTMB001,Term Based - Monthly,1,AT&T Mobile Plan Rate Card,NonNegotiable,USD,Currency,Draft,Usage for Case

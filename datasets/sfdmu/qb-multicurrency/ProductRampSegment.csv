@@ -1,0 +1,4 @@
+$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,CurrencyIsoCode,DurationType,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
+QB-GEN-AI-LIC;TermDefined;Custom,USD,,QB-GEN-AI-LIC,Term Annual;TermDefined,Custom,
+QB-GEN-AI-LIC;TermDefined;FreeTrial,USD,Months,QB-GEN-AI-LIC,Term Annual;TermDefined,FreeTrial,1
+QB-GEN-AI-LIC;TermDefined;Yearly,USD,,QB-GEN-AI-LIC,Term Annual;TermDefined,Yearly,

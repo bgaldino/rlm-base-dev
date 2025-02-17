@@ -1,10 +1,10 @@
-$$Code$BaseUnitOfMeasure.Name$BaseUnitOfMeasure.UnitCode$DefaultUnitOfMeasure.Name$DefaultUnitOfMeasure.UnitCode,BaseUnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,Code,DefaultUnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,Description,Name,Status
-CAS01;Each;Each;Each;Each,Each;Each;CAS01;Case,CAS01,Each;Each;CAS01;Case,Support Cases,Case,Draft
-CALLUNITS01;Minutes;MIN;Minutes;MIN,Minutes;MIN;CALLUNITS01;Call Units,CALLUNITS01,Minutes;MIN;CALLUNITS01;Call Units,Call Units in Minutes,Call Units,Draft
-SMS01;Count;Count;Count;Count,Count;Count;SMS01;SMS,SMS01,Count;Count;SMS01;SMS,Class for SMS,SMS,Draft
-DAT01;MB;MB;MB;MB,MB;MB;DAT01;Data,DAT01,MB;MB;DAT01;Data,The unit refers to the amount of data,Data,Draft
-CURRENCY;USD;USD;USD;USD,USD;USD;CURRENCY;Currency,CURRENCY,USD;USD;CURRENCY;Currency,,Currency,Draft
-COUNT;XFER;XFER;XFER;XFER,XFER;XFER;COUNT;Count,COUNT,XFER;XFER;COUNT;Count,,Count,Draft
-Grams;Grams;GRAMS,,Grams,Grams;GRAMS;Grams;Grams,,Grams,Draft
-Litre;Litre;Litre,,Litre,Litre;Litre;Litre;Litre,,Litre,Draft
-Unit;Each;Each;Each;Each,Each;Each;CAS01;Case,Unit,Each;Each;CAS01;Case,,Unit,Draft
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status
+Each,CAS01,Each,Support Cases,Case,Active
+MIN,CALLUNITS01,MIN,Call Units in Minutes,Call Units,Active
+Count,SMS01,Count,Class for SMS,SMS,Active
+MB,DAT01,MB,The unit refers to the amount of data,Data,Active
+USD,CURRENCY,USD,,Currency,Active
+XFER,COUNT,XFER,,Count,Active
+,Grams,GRAMS,,Grams,Active
+,Litre,Litre,,Litre,Active
+Each,Unit,Each,,Unit,Inactive

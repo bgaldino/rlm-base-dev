@@ -1,4 +1,4 @@
-Code,CurrencyIsoCode,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.Name,ValueDescription
+Code,CurrencyIsoCode,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,ValueDescription
 DISPLAY,USD,Picklist,,1080p Built-in Display,,Display,true,true,Display,Display,Display Picklist,,,
 MEMORY,USD,Picklist,,RAM 32GB,,Memory,true,true,Memory,Memory,Memory Picklist,,,
 PAPERSIZE,USD,Picklist,,,,Printer_Paper,true,false,Printer Paper,Paper Size,Paper Size Picklist,,,

@@ -1,16 +1,16 @@
-Category,Code,DefaultUnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,Description,Name,Status,UnitOfMeasureClass.$$Code$BaseUnitOfMeasure.Name$BaseUnitOfMeasure.UnitCode$DefaultUnitOfMeasure.Name$DefaultUnitOfMeasure.UnitCode,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
-Usage,URSMS01,Count;Count;SMS01;SMS,,Usage for SMS,Draft,SMS01;Count;Count;Count;Count,,MOBPOL01
-Usage,URCASE01,Each;Each;CAS01;Case,,Usage for Case,Draft,CAS01;Each;Each;Each;Each,,MOBPOL01
-Usage,URDATA01,MB;MB;DAT01;Data,,Usage for Data,Draft,DAT01;MB;MB;MB;MB,,MOBPOL01
-Usage,URCALLS01,Minutes;MIN;CALLUNITS01;Call Units,,Usage for Calls,Draft,CALLUNITS01;Minutes;MIN;Minutes;MIN,,MOBPOL01
-Usage,CS001,GB;GB;DAT01;Data,,Storage Data,Draft,DAT01;MB;MB;MB;MB,CO478,DefaultUsageResourceBillingPolicy
-Usage,CS002,GB;GB;DAT01;Data,,Backup Data,Draft,DAT01;MB;MB;MB;MB,,DefaultUsageResourceBillingPolicy
-Usage,CS003,XFER;XFER;COUNT;Count,,File Transfers,Draft,COUNT;XFER;XFER;XFER;XFER,,DefaultUsageResourceBillingPolicy
-Usage,CS004,ACCTS;ACCTS;COUNT;Count,,User Accounts,Draft,COUNT;XFER;XFER;XFER;XFER,,DefaultUsageResourceBillingPolicy
-Usage,CS005,LOGS;LOGS;COUNT;Count,,Access Logs,Draft,COUNT;XFER;XFER;XFER;XFER,,DefaultUsageResourceBillingPolicy
-Usage,API001,CALLS;CALLS;COUNT;Count,,API Calls,Draft,COUNT;XFER;XFER;XFER;XFER,CO479,DefaultUsageResourceBillingPolicy
-Usage,API002,GB;GB;DAT01;Data,,Data Transfers,Draft,DAT01;MB;MB;MB;MB,,DefaultUsageResourceBillingPolicy
-Usage,API003,SESH;SESH;COUNT;Count,,User Sessions,Draft,COUNT;XFER;XFER;XFER;XFER,,DefaultUsageResourceBillingPolicy
-Usage,API004,LOGS;LOGS;COUNT;Count,,Error Logs,Draft,COUNT;XFER;XFER;XFER;XFER,,DefaultUsageResourceBillingPolicy
-Usage,API005,TPS;TPS;COUNT;Count,,Rate Limits,Draft,COUNT;XFER;XFER;XFER;XFER,,DefaultUsageResourceBillingPolicy
-Usage,CO457,Courses Count;UOM3421;COUNT;Count,,Courses,Draft,COUNT;XFER;XFER;XFER;XFER,CO480,DefaultUsageResourceBillingPolicy
+Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,URSMS01,Count,,Usage for SMS,Active,SMS01,,MOBPOL01
+Usage,URCASE01,Each,,Usage for Case,Active,CAS01,,MOBPOL01
+Usage,URDATA01,MB,,Usage for Data,Active,DAT01,,MOBPOL01
+Usage,URCALLS01,MIN,,Usage for Calls,Active,CALLUNITS01,,MOBPOL01
+Usage,CS001,GB,,Storage Data,Active,DAT01,CO478,DefaultUsageResourceBillingPolicy
+Usage,CS002,GB,,Backup Data,Active,DAT01,,DefaultUsageResourceBillingPolicy
+Usage,CS003,XFER,,File Transfers,Active,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,CS004,ACCTS,,User Accounts,Active,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,CS005,LOGS,,Access Logs,Active,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,API001,CALLS,,API Calls,Active,COUNT,CO479,DefaultUsageResourceBillingPolicy
+Usage,API002,GB,,Data Transfers,Active,DAT01,,DefaultUsageResourceBillingPolicy
+Usage,API003,SESH,,User Sessions,Active,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,API004,LOGS,,Error Logs,Active,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,API005,TPS,,Rate Limits,Active,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,CO457,UOM3421,,Courses,Active,COUNT,CO480,DefaultUsageResourceBillingPolicy

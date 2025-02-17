@@ -25,10 +25,10 @@ QB-MEM 16GB;One-Time,true,QB-MEM 16GB,One-Time;OneTime,
 QB-HD 4TB;One-Time,true,QB-HD 4TB,One-Time;OneTime,
 QB-HD 8TB;One-Time,true,QB-HD 8TB,One-Time;OneTime,
 QB-HD 8TBSE;One-Time,true,QB-HD 8TBSE,One-Time;OneTime,
-QB-SRV-PD;One-Time,true,QB-SRV-PD,One-Time;OneTime,
 QB-BDL-SRVC;One-Time,true,QB-BDL-SRVC,One-Time;OneTime,
 QB-SUPP-1000;Term Annual,true,QB-SUPP-1000,Term Annual;TermDefined,Default Proration Policy
 QB-SRV-MEE;One-Time,true,QB-SRV-MEE,One-Time;OneTime,
+QB-SRV-PD;One-Time,true,QB-SRV-PD,One-Time;OneTime,
 QB-INTEL E5-2660;One-Time,true,QB-INTEL E5-2660,One-Time;OneTime,
 QB-SRV-QAE;One-Time,true,QB-SRV-QAE,One-Time;OneTime,
 QB-NET X710;One-Time,true,QB-NET X710,One-Time;OneTime,
@@ -63,11 +63,12 @@ QB-DAT-THPT;Term Monthly,false,QB-DAT-THPT,Term Monthly;TermDefined,Default Pror
 QB-API-MGMT;Term Monthly,false,QB-API-MGMT,Term Monthly;TermDefined,Default Proration Policy
 QB-COMPLETE;Term Monthly,false,QB-COMPLETE,Term Monthly;TermDefined,Default Proration Policy
 QB-MSG-STRT;Term Monthly,false,QB-MSG-STRT,Term Monthly;TermDefined,Default Proration Policy
-QB-SUPP-2000;Term Annual,true,QB-SUPP-2000,Term Annual;TermDefined,Default Proration Policy
 QB-AUT-CRED;Term Monthly,false,QB-AUT-CRED,Term Monthly;TermDefined,Default Proration Policy
 TEST-SUB;Term Annual,true,TEST-SUB,Term Annual;TermDefined,Default Proration Policy
 TEST-SUB;Evergreen Annual,false,TEST-SUB,Evergreen Annual;Evergreen,Default Proration Policy
+QB-SUPP-2000;Term Annual,true,QB-SUPP-2000,Term Annual;TermDefined,Default Proration Policy
 QB-LIC-CLOUD;Term Annual,true,QB-LIC-CLOUD,Term Annual;TermDefined,Default Proration Policy
 QB-LIC-CLOUD;Term Monthly,false,QB-LIC-CLOUD,Term Monthly;TermDefined,Default Proration Policy
 QB-CS;Term Annual,true,QB-CS,Term Annual;TermDefined,Default Proration Policy
 QB-CS;Term Monthly,false,QB-CS,Term Monthly;TermDefined,Default Proration Policy
+QB-GEN-AI-LIC;Term Annual,true,QB-GEN-AI-LIC,Term Annual;TermDefined,Default Proration Policy

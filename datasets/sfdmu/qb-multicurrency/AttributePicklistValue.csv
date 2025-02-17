@@ -13,10 +13,10 @@ EightFeet;Cable Length Picklist,8ft,8',false,EightFeet,Cable Length Picklist,,8
 C19 to C20;Connector Type Picklist,C19toC20,C19 to C20,false,C19 to C20,Connector Type Picklist,,C19 to C20
 TwelveFeet;Cable Length Picklist,12ft,12',false,TwelveFeet,Cable Length Picklist,,12
 Amazon Linux 2;Operating System Picklist,AL2,Amazon Linux 2,true,Amazon Linux 2,Operating System Picklist,1,Amazon Linux 2
-Flex;API Type Picklist,Flex,Flex,true,Flex,API Type Picklist,1,Flex
 Four;Base Core Count Picklist,4,4,true,Four,Base Core Count Picklist,2,4
 Six;Base Core Count Picklist,6,6,false,Six,Base Core Count Picklist,3,6
 Eight;Base Core Count Picklist,8,8,false,Eight,Base Core Count Picklist,4,8
+Flex;API Type Picklist,Flex,Flex,true,Flex,API Type Picklist,1,Flex
 Pre-Prod;API Type Picklist,Pre-Prod,Pre-Prod,false,Pre-Prod,API Type Picklist,3,Pre-Prod
 Gov;API Type Picklist,Gov,Gov,false,Gov,API Type Picklist,2,Gov
 Redhat Enterprise Linux;Operating System Picklist,REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,Operating System Picklist,2,Redhat Enterprise Linux

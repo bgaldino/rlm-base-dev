@@ -1,0 +1,11 @@
+$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,ConversionFactor,CurrencyIsoCode,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.$$Code$BaseUnitOfMeasure.Name$BaseUnitOfMeasure.UnitCode$DefaultUnitOfMeasure.Name$DefaultUnitOfMeasure.UnitCode
+Hour;hr;time;Time,60,USD,,Hour,,,3,Active,Time,hr,time;Seconds;s;Seconds;s
+Seconds;s;time;Time,1,USD,,Seconds,,,1,Active,Time,s,time;Seconds;s;Seconds;s
+Gigabyte;GB;datavolume;Data Volume,1000,USD,,Gigabyte,,,4,Active,Data,GB,datavolume;Byte;B;Terabyte;TB
+Minutes;min;time;Time,60,USD,,Minutes,,,2,Active,Time,min,time;Seconds;s;Seconds;s
+Petabyte;PB;datavolume;Data Volume,1000,USD,,Petabyte,,,6,Active,Data,PB,datavolume;Byte;B;Terabyte;TB
+Byte;B;datavolume;Data Volume,1,USD,,Byte,,,1,Active,Data,B,datavolume;Byte;B;Terabyte;TB
+Kilobyte;kB;datavolume;Data Volume,1000,USD,,Kilobyte,,,2,Active,Data,kB,datavolume;Byte;B;Terabyte;TB
+Megabyte;MB;datavolume;Data Volume,1000,USD,,Megabyte,,,3,Active,Data,MB,datavolume;Byte;B;Terabyte;TB
+Terabyte;TB;datavolume;Data Volume,1000,USD,,Terabyte,,,5,Active,Data,TB,datavolume;Byte;B;Terabyte;TB
+USD;USD,1,USD,,USD,,,1,Draft,Currency,USD,

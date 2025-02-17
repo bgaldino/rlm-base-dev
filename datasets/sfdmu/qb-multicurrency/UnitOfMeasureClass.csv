@@ -1,0 +1,3 @@
+$$Code$BaseUnitOfMeasure.Name$BaseUnitOfMeasure.UnitCode$DefaultUnitOfMeasure.Name$DefaultUnitOfMeasure.UnitCode,BaseUnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,Code,DefaultUnitOfMeasure.$$Name$UnitCode$UnitOfMeasureClass.Code$UnitOfMeasureClass.Name,Description,Name,Status
+time;Seconds;s;Seconds;s,Seconds;s;time;Time,time,Seconds;s;time;Time,,Time,Active
+datavolume;Byte;B;Terabyte;TB,Byte;B;datavolume;Data Volume,datavolume,Terabyte;TB;datavolume;Data Volume,,Data Volume,Active
