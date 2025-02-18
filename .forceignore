@@ -50,6 +50,10 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
+force-app/main/default/genAiPromptTemplates
+force-app/main/default/flows/RLM_Find_Customer_Solutions_Page.flow-meta.xml
+force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
+
 #unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters

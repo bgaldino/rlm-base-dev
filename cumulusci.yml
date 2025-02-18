@@ -36,11 +36,11 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c rockaway-brooklyn-9778.scratch.my.salesforce.com"
-    user_alias: &user_alias test-6mvk7lijfrzm@example.com 
-    combined_flags: &combined_flags " -u test-6mvk7lijfrzm@example.com -c rockaway-brooklyn-9778.scratch.my.salesforce.com"
+    mydomain: &mydomain "-c quantumbit-tso-test.my.salesforce.com"
+    user_alias: &user_alias admin@rlm.tso.test  
+    combined_flags: &combined_flags " -u admin@rlm.tso.test -c quantumbit-tso-test.my.salesforce.com"
     prm: true
-    tso: false
+    tso: true
     qb: true
     q3: false
     calmdelete: true
@@ -961,6 +961,20 @@ flows:
         when: project_config.project__custom__quantumbit == true and project_config.project__custom__calmdelete == true
         options:
           api_names: *ps_calmdelete
+
+  prepare_tso:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__tso == true
+        options:
+          api_names: *rlm_tso_psl_api_names
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__tso == true
+        options:
+          api_names: *rlm_tso_ps_api_names
 
   prepare_dro:
     group: Revenue Lifecycle Management

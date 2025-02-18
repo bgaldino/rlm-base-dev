@@ -2,5 +2,4 @@ BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,S
 EACH,CAS01,EACH,Support Cases,Case,Draft
 USD,CURRENCY,USD,,Currency,Draft
 GB,DATAVOL,GB,,Data Volume,Draft
-,DISTANCE,,,Distance,Draft
 m,TIME,m,,Time,Draft

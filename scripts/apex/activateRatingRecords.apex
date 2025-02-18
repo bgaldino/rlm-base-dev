@@ -1,11 +1,11 @@
-// Step 1: Query UnitOfMeasureClass records that need to be updated
+/* // Step 1: Query UnitOfMeasureClass records that need to be updated
 List<UnitOfMeasureClass> uomcs = [SELECT Id, Status FROM UnitOfMeasureClass WHERE Status != 'Active'];
 
 // Step 2: Update UnitOfMeasureClass records to Active
 for (UnitOfMeasureClass uomc : uomcs) {
     uomc.Status = 'Active';
 }
-update uomcs;
+update uomcs; */
 
 // Step 3: Query UsageResource records that need to be updated
 List<UsageResource> urs = [SELECT Id, Status FROM UsageResource WHERE Status != 'Active'];
