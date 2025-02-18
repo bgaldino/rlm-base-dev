@@ -41,13 +41,13 @@ project:
     combined_flags: &combined_flags " -u test-zk7huu6iu2nr@example.com -c manhattan-espresso-5506.scratch.my.salesforce.com"
     prm: true
     tso: false
-    qb: false
-    q3: true
+    qb: true
+    q3: false
     calmdelete: true
     tax: true
     billing: true
     clm: false
-    dro: false
+    dro: true
     rating: true
     rates: true
     ramps: true
@@ -528,7 +528,7 @@ tasks:
   insert_qb_dro_data_scratch:
     class_path: cumulusci.tasks.sfdx.SFDXOrgTask
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/dro_scratch"
+      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-dro_scratch"
       extra: *mydomain
 
   insert_qb_dro_data_prod:

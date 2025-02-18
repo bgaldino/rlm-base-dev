@@ -1,2 +1,0 @@
-$$ProductOffer.StockKeepingUnit$UsageResource.Name,EffectiveEndDate,EffectiveStartDate,Label,OverageChargeable,ProductOffer.StockKeepingUnit,Quantity,RenewalPolicy.Code,RolloverPolicy.Code,Status,UnitOfMeasure.Name,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResource.Code,ValidityPeriodTerm,ValidityPeriodUnit
-QB-DAT-THPT;Call Resource,,2024-08-21,Included Minutes,Yes,QB-DAT-THPT,1000,Renew,M2M,Active,Minutes,Time,,Call,1,Month
