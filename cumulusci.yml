@@ -99,7 +99,6 @@ project:
       - TableauEinsteinBaseViewerPsl
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
-      - AnalyticsQueryServicePslForSalesPlanning
       - AutomatedActionsPsl
       - EinsteinAgentCWUPsl
       - EinsteinAgentPsl
