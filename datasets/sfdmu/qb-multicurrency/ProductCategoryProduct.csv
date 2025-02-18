@@ -1,54 +1,54 @@
 $$ProductCategory.Name$Product.StockKeepingUnit$Catalog.Code,Catalog.Name,CurrencyIsoCode,Product.StockKeepingUnit,ProductCategory.$$Name$Catalog.Code$ParentCategory.Name
-Licenses;CAT-QB-SFT,QuantumBit Software,USD,,Licenses;CAT-QB-SFT
-Licenses;QB-DB;CAT-QB-SFT,QuantumBit Software,USD,QB-DB,Licenses;CAT-QB-SFT
-Accessories;QB-CMPC-5889;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5889,Accessories;CAT-QB-HW
-Network Adapter;QB-NET X710;CAT-QB-HW,QuantumBit Hardware,USD,QB-NET X710,Network Adapter;CAT-QB-HW
+API;QB-API;CAT-QB-SFT,QuantumBit Software,USD,QB-API,API;CAT-QB-SFT
+API;QB-API-FLEX;CAT-QB-SFT,QuantumBit Software,USD,QB-API-FLEX,API;CAT-QB-SFT
+API;QB-API-GOVT;CAT-QB-SFT,QuantumBit Software,USD,QB-API-GOVT,API;CAT-QB-SFT
+API;QB-API-PREP;CAT-QB-SFT,QuantumBit Software,USD,QB-API-PREP,API;CAT-QB-SFT
+API;QB-API-PROD;CAT-QB-SFT,QuantumBit Software,USD,QB-API-PROD,API;CAT-QB-SFT
+API;QB-API-REQT;CAT-QB-SFT,QuantumBit Software,USD,QB-API-REQT,API;CAT-QB-SFT
+API;QB-AUT-CRED;CAT-QB-SFT,QuantumBit Software,USD,QB-AUT-CRED,API;CAT-QB-SFT
+Bundle;QB-BDL-CRTL;CAT-QB-SFT,QuantumBit Software,USD,QB-BDL-CRTL,Bundle;CAT-QB-SFT
+Bundle;QB-BDL-ENTR;CAT-QB-SFT,QuantumBit Software,USD,QB-BDL-ENTR,Bundle;CAT-QB-SFT
+Server;QB-BDL-R750;CAT-QB-HW,QuantumBit Hardware,USD,QB-BDL-R750,Server;CAT-QB-HW
+Services;QB-BDL-SRVC;CAT-QB-SRV,QuantumBit Services,USD,QB-BDL-SRVC,Services;CAT-QB-SRV
+Bundle;QB-BDL-STND;CAT-QB-SFT,QuantumBit Software,USD,QB-BDL-STND,Bundle;CAT-QB-SFT
+Network Adapter;QB-BET X710SFP;CAT-QB-HW,QuantumBit Hardware,USD,QB-BET X710SFP,Network Adapter;CAT-QB-HW
+Accessories;QB-BMX-1050;CAT-QB-HW,QuantumBit Hardware,USD,QB-BMX-1050,Accessories;CAT-QB-HW
+Accessories;QB-BMX-1051;CAT-QB-HW,QuantumBit Hardware,USD,QB-BMX-1051,Accessories;CAT-QB-HW
+Accessories;QB-BMX-1053;CAT-QB-HW,QuantumBit Hardware,USD,QB-BMX-1053,Accessories;CAT-QB-HW
+Accessories;QB-CMPC-5881;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5881,Accessories;CAT-QB-HW
+Accessories;QB-CMPC-5882;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5882,Accessories;CAT-QB-HW
+Accessories;QB-CMPC-5883;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5883,Accessories;CAT-QB-HW
+Accessories;QB-CMPC-5884;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5884,Accessories;CAT-QB-HW
 Accessories;QB-CMPC-5887;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5887,Accessories;CAT-QB-HW
 Accessories;QB-CMPC-5888;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5888,Accessories;CAT-QB-HW
+Accessories;QB-CMPC-5889;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5889,Accessories;CAT-QB-HW
 Accessories;QB-CMPC-5890;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5890,Accessories;CAT-QB-HW
 Accessories;QB-CMPC-5891;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5891,Accessories;CAT-QB-HW
 Accessories;QB-CMPC-5892;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5892,Accessories;CAT-QB-HW
-Maintenance;QB-SUPP-1005;CAT-QB-SFT,QuantumBit Software,USD,QB-SUPP-1005,Maintenance;CAT-QB-SFT
-Hardware Maintenance;QB-SUPP-1005;CAT-QB-HW,QuantumBit Hardware,USD,QB-SUPP-1005,Hardware Maintenance;CAT-QB-HW
-Maintenance;QB-SUPP-1000;CAT-QB-SFT,QuantumBit Software,USD,QB-SUPP-1000,Maintenance;CAT-QB-SFT
+Bundle;QB-COMPLETE;CAT-QB-SFT,QuantumBit Software,USD,QB-COMPLETE,Bundle;CAT-QB-SFT
+Subscription;QB-CS;CAT-QB-SFT,QuantumBit Software,USD,QB-CS,Subscription;CAT-QB-SFT
+API;QB-DAT-GRPH;CAT-QB-SFT,QuantumBit Software,USD,QB-DAT-GRPH,API;CAT-QB-SFT
+Licenses;QB-DB;CAT-QB-SFT,QuantumBit Software,USD,QB-DB,Licenses;CAT-QB-SFT
+Licenses;QB-GEN-AI-LIC;CAT-QB-SFT,QuantumBit Software,USD,QB-GEN-AI-LIC,Licenses;CAT-QB-SFT
+Hard Drive;QB-HD 1TB;CAT-QB-HW,QuantumBit Hardware,USD,QB-HD 1TB,Hard Drive;CAT-QB-HW
 Hard Drive;QB-HD 4TB;CAT-QB-HW,QuantumBit Hardware,USD,QB-HD 4TB,Hard Drive;CAT-QB-HW
-Memory;QB-MEM 8GB;CAT-QB-HW,QuantumBit Hardware,USD,QB-MEM 8GB,Memory;CAT-QB-HW
-Hardware Maintenance;QB-SUPP-1000;CAT-QB-HW,QuantumBit Hardware,USD,QB-SUPP-1000,Hardware Maintenance;CAT-QB-HW
-API;QB-AUT-CRED;CAT-QB-SFT,QuantumBit Software,USD,QB-AUT-CRED,API;CAT-QB-SFT
-API;QB-API-PROD;CAT-QB-SFT,QuantumBit Software,USD,QB-API-PROD,API;CAT-QB-SFT
-Bundle;QB-BDL-ENTR;CAT-QB-SFT,QuantumBit Software,USD,QB-BDL-ENTR,Bundle;CAT-QB-SFT
-Bundle;QB-BDL-CRTL;CAT-QB-SFT,QuantumBit Software,USD,QB-BDL-CRTL,Bundle;CAT-QB-SFT
-Training;QB-TRN-FUND;CAT-QB-SFT,QuantumBit Software,USD,QB-TRN-FUND,Training;CAT-QB-SFT
-Training;QB-TRN-ESSNTLS;CAT-QB-SFT,QuantumBit Software,USD,QB-TRN-ESSNTLS,Training;CAT-QB-SFT
-Services;QB-SRV-OG-PSH;CAT-QB-SRV,QuantumBit Services,USD,QB-SRV-OG-PSH,Services;CAT-QB-SRV
-Services;QB-SRV-SOW;CAT-QB-SRV,QuantumBit Services,USD,QB-SRV-SOW,Services;CAT-QB-SRV
-Processor;QB-INTEL E5-2609;CAT-QB-HW,QuantumBit Hardware,USD,QB-INTEL E5-2609,Processor;CAT-QB-HW
-Server;QB-BDL-R750;CAT-QB-HW,QuantumBit Hardware,USD,QB-BDL-R750,Server;CAT-QB-HW
-Subscription;TEST-SUB;CAT-QB-SFT,QuantumBit Software,USD,TEST-SUB,Subscription;CAT-QB-SFT
-Memory;QB-MEM 16GB;CAT-QB-HW,QuantumBit Hardware,USD,QB-MEM 16GB,Memory;CAT-QB-HW
 Hard Drive;QB-HD 8TB;CAT-QB-HW,QuantumBit Hardware,USD,QB-HD 8TB,Hard Drive;CAT-QB-HW
 Hard Drive;QB-HD 8TBSE;CAT-QB-HW,QuantumBit Hardware,USD,QB-HD 8TBSE,Hard Drive;CAT-QB-HW
-Network Adapter;QB-BET X710SFP;CAT-QB-HW,QuantumBit Hardware,USD,QB-BET X710SFP,Network Adapter;CAT-QB-HW
-Services;QB-BDL-SRVC;CAT-QB-SRV,QuantumBit Services,USD,QB-BDL-SRVC,Services;CAT-QB-SRV
-Accessories;QB-CMPC-5882;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5882,Accessories;CAT-QB-HW
-Subscription;QB-CS;CAT-QB-SFT,QuantumBit Software,USD,QB-CS,Subscription;CAT-QB-SFT
-API;QB-API-PREP;CAT-QB-SFT,QuantumBit Software,USD,QB-API-PREP,API;CAT-QB-SFT
-API;QB-API-GOVT;CAT-QB-SFT,QuantumBit Software,USD,QB-API-GOVT,API;CAT-QB-SFT
-API;QB-API-FLEX;CAT-QB-SFT,QuantumBit Software,USD,QB-API-FLEX,API;CAT-QB-SFT
-API;QB-DAT-GRPH;CAT-QB-SFT,QuantumBit Software,USD,QB-DAT-GRPH,API;CAT-QB-SFT
-Accessories;QB-CMPC-5883;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5883,Accessories;CAT-QB-HW
-API;QB-API-REQT;CAT-QB-SFT,QuantumBit Software,USD,QB-API-REQT,API;CAT-QB-SFT
-Accessories;QB-CMPC-5881;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5881,Accessories;CAT-QB-HW
-Accessories;QB-CMPC-5884;CAT-QB-HW,QuantumBit Hardware,USD,QB-CMPC-5884,Accessories;CAT-QB-HW
-Accessories;QB-BMX-1051;CAT-QB-HW,QuantumBit Hardware,USD,QB-BMX-1051,Accessories;CAT-QB-HW
-Accessories;QB-BMX-1050;CAT-QB-HW,QuantumBit Hardware,USD,QB-BMX-1050,Accessories;CAT-QB-HW
-Accessories;QB-BMX-1053;CAT-QB-HW,QuantumBit Hardware,USD,QB-BMX-1053,Accessories;CAT-QB-HW
-Bundle;QB-BDL-STND;CAT-QB-SFT,QuantumBit Software,USD,QB-BDL-STND,Bundle;CAT-QB-SFT
+Processor;QB-INTEL E5-2609;CAT-QB-HW,QuantumBit Hardware,USD,QB-INTEL E5-2609,Processor;CAT-QB-HW
 Processor;QB-INTEL E5-2660;CAT-QB-HW,QuantumBit Hardware,USD,QB-INTEL E5-2660,Processor;CAT-QB-HW
 Processor;QB-INTEL E5-2667;CAT-QB-HW,QuantumBit Hardware,USD,QB-INTEL E5-2667,Processor;CAT-QB-HW
 Processor;QB-INTEL E5-2683;CAT-QB-HW,QuantumBit Hardware,USD,QB-INTEL E5-2683,Processor;CAT-QB-HW
+Memory;QB-MEM 16GB;CAT-QB-HW,QuantumBit Hardware,USD,QB-MEM 16GB,Memory;CAT-QB-HW
 Memory;QB-MEM 32GB;CAT-QB-HW,QuantumBit Hardware,USD,QB-MEM 32GB,Memory;CAT-QB-HW
-Hard Drive;QB-HD 1TB;CAT-QB-HW,QuantumBit Hardware,USD,QB-HD 1TB,Hard Drive;CAT-QB-HW
-API;QB-API;CAT-QB-SFT,QuantumBit Software,USD,QB-API,API;CAT-QB-SFT
-Bundle;QB-COMPLETE;CAT-QB-SFT,QuantumBit Software,USD,QB-COMPLETE,Bundle;CAT-QB-SFT
-Licenses;QB-GEN-AI-LIC;CAT-QB-SFT,QuantumBit Software,USD,QB-GEN-AI-LIC,Licenses;CAT-QB-SFT
+Memory;QB-MEM 8GB;CAT-QB-HW,QuantumBit Hardware,USD,QB-MEM 8GB,Memory;CAT-QB-HW
+Network Adapter;QB-NET X710;CAT-QB-HW,QuantumBit Hardware,USD,QB-NET X710,Network Adapter;CAT-QB-HW
+Services;QB-SRV-OG-PSH;CAT-QB-SRV,QuantumBit Services,USD,QB-SRV-OG-PSH,Services;CAT-QB-SRV
+Services;QB-SRV-SOW;CAT-QB-SRV,QuantumBit Services,USD,QB-SRV-SOW,Services;CAT-QB-SRV
+Hardware Maintenance;QB-SUPP-1000;CAT-QB-HW,QuantumBit Hardware,USD,QB-SUPP-1000,Hardware Maintenance;CAT-QB-HW
+Maintenance;QB-SUPP-1000;CAT-QB-SFT,QuantumBit Software,USD,QB-SUPP-1000,Maintenance;CAT-QB-SFT
+Hardware Maintenance;QB-SUPP-1005;CAT-QB-HW,QuantumBit Hardware,USD,QB-SUPP-1005,Hardware Maintenance;CAT-QB-HW
+Maintenance;QB-SUPP-1005;CAT-QB-SFT,QuantumBit Software,USD,QB-SUPP-1005,Maintenance;CAT-QB-SFT
+Maintenance;QB-SUPP-2000;CAT-QB-SFT,QuantumBit Software,USD,QB-SUPP-2000,Maintenance;CAT-QB-SFT
+Training;QB-TRN-ESSNTLS;CAT-QB-SFT,QuantumBit Software,USD,QB-TRN-ESSNTLS,Training;CAT-QB-SFT
+Training;QB-TRN-FUND;CAT-QB-SFT,QuantumBit Software,USD,QB-TRN-FUND,Training;CAT-QB-SFT
+Subscription;TEST-SUB;CAT-QB-SFT,QuantumBit Software,USD,TEST-SUB,Subscription;CAT-QB-SFT

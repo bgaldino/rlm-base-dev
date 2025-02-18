@@ -5,77 +5,77 @@
     {
       "objects": [
         {
-          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure",
+          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure ORDER BY UnitCode ASC",
           "operation": "Upsert",
-          "externalId": "Name;UnitCode;UnitOfMeasureClass.Code;UnitOfMeasureClass.Name",
+          "externalId": "UnitCode",
           "excluded": false
         },
         {
-          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass",
+          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
-          "externalId": "Code;BaseUnitOfMeasure.Name;BaseUnitOfMeasure.UnitCode;DefaultUnitOfMeasure.Name;DefaultUnitOfMeasure.UnitCode",
+          "externalId": "Code",
           "excluded": false
         },
         {
-          "query": "SELECT ConversionRate, DecimalPlaces, IsActive, IsCorporate, IsoCode FROM CurrencyType",
+          "query": "SELECT ConversionRate, DecimalPlaces, IsActive, IsCorporate, IsoCode FROM CurrencyType ORDER BY IsoCode ASC",
           "operation": "Insert",
           "externalId": "IsoCode",
           "excluded": false
         },
         {
-          "query": "SELECT Name, CatalogType, Code, Description FROM ProductCatalog",
+          "query": "SELECT Name, CatalogType, Code, Description FROM ProductCatalog ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT Name, CatalogId, Code, Description, ParentCategoryId, SortOrder FROM ProductCategory",
+          "query": "SELECT Name, CatalogId, Code, Description, ParentCategoryId, SortOrder FROM ProductCategory ORDER BY Catalog.Code ASC, ParentCategory.Name ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "Name;Catalog.Code;ParentCategory.Name",
           "excluded": false
         },
         {
-          "query": "SELECT Name, Status, PricingTerm, PricingTermUnit, SellingModelType FROM ProductSellingModel",
+          "query": "SELECT Name, Status, PricingTerm, PricingTermUnit, SellingModelType FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
           "operation": "Upsert",
           "externalId": "Name;SellingModelType",
           "excluded": false
         },
         {
-          "query": "SELECT Name, Code FROM AttributeCategory",
+          "query": "SELECT Name, Code FROM AttributeCategory ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, DataType, Description, Name, Status FROM AttributePicklist",
+          "query": "SELECT CurrencyIsoCode, DataType, Description, Name, Status FROM AttributePicklist ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         },
         {
-          "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, DisplayValue  FROM AttributePicklistValue",
+          "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, DisplayValue  FROM AttributePicklistValue ORDER BY Code ASC",
           "operation": "Upsert",
-          "externalId": "Name;Picklist.Name"
+          "externalId": "Code"
         },
         {
-          "query": "SELECT Code, CurrencyIsoCode, DataType, DefaultHelpText, DefaultValue, Description, DeveloperName, IsActive, IsRequired, Label, Name, PicklistId, SourceSystemIdentifier, UnitOfMeasureId, ValueDescription FROM AttributeDefinition",
+          "query": "SELECT Code, CurrencyIsoCode, DataType, DefaultHelpText, DefaultValue, Description, DeveloperName, IsActive, IsRequired, Label, Name, PicklistId, SourceSystemIdentifier, UnitOfMeasureId, ValueDescription FROM AttributeDefinition ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
         },
         {
-          "query": "SELECT AttributeCategoryId, AttributeDefinitionId FROM AttributeCategoryAttribute",
+          "query": "SELECT AttributeCategoryId, AttributeDefinitionId FROM AttributeCategoryAttribute ORDER BY AttributeCategory.Name ASC, AttributeDefinition.Code ASC",
           "operation": "Upsert",
           "externalId": "AttributeCategory.Name;AttributeDefinition.Code",
           "excluded": false
         },
         {
-          "query": "SELECT Name, Code, Status FROM ProductClassification",
+          "query": "SELECT Name, Code, Status FROM ProductClassification ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
         },
         {
-          "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, CurrencyIsoCode, DefaultValue, Description, DisplayType, HelpText, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, ProductClassificationId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductClassificationAttr",
+          "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, CurrencyIsoCode, DefaultValue, Description, DisplayType, HelpText, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, ProductClassificationId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductClassificationAttr ORDER BY ProductClassification.Code ASC, AttributeDefinition.Code ASC, AttributeCategory.Code ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "ProductClassification.Code;AttributeDefinition.Code;AttributeCategory.Code",
           "excluded": false
@@ -87,30 +87,30 @@
           "excluded": false
         },
         {
-          "query": "SELECT ProductCategoryId, ProductId, CatalogId, CurrencyIsoCode FROM ProductCategoryProduct",
+          "query": "SELECT ProductCategoryId, ProductId, CatalogId, CurrencyIsoCode FROM ProductCategoryProduct ORDER BY Product.StockKeepingUnit ASC, Catalog.Code ASC, ProductCategory.Name ASC",
           "operation": "Upsert",
           "externalId": "ProductCategory.Name;Product.StockKeepingUnit;Catalog.Code",
           "excluded": false
         },
         {
-          "query": "SELECT IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId FROM ProductSellingModelOption",
+          "query": "SELECT IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC",
           "operation": "Upsert",
           "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name"
         },
         {
-          "query": "SELECT Name, Code, ParentProductId, Sequence, MinBundleComponents, MaxBundleComponents, Description, CurrencyIsoCode FROM ProductComponentGroup",
+          "query": "SELECT Name, Code, ParentProductId, Sequence, MinBundleComponents, MaxBundleComponents, Description, CurrencyIsoCode FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
           "operation": "Upsert",
           "externalId": "Code;ParentProduct.StockKeepingUnit",
           "excluded": false
         },
         {
-          "query": "SELECT AssociatedProductRoleCat, MainProductRoleCat, Name FROM ProductRelationshipType",
+          "query": "SELECT AssociatedProductRoleCat, MainProductRoleCat, Name FROM ProductRelationshipType ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT ChildProductClassificationId, ChildProductId, ChildProductRole, ChildSellingModelId, DoesBundlePriceIncludeChild, IsComponentRequired, IsDefaultComponent, IsQuantityEditable, MaxQuantity, MinQuantity, ParentProductId, ParentProductRole, ParentSellingModelId, ProductComponentGroupId, ProductRelationshipTypeId, Quantity, QuantityScaleMethod, Sequence, UnitOfMeasureId FROM ProductRelatedComponent",
+          "query": "SELECT ChildProductClassificationId, ChildProductId, ChildProductRole, ChildSellingModelId, DoesBundlePriceIncludeChild, IsComponentRequired, IsDefaultComponent, IsQuantityEditable, MaxQuantity, MinQuantity, ParentProductId, ParentProductRole, ParentSellingModelId, ProductComponentGroupId, ProductRelationshipTypeId, Quantity, QuantityScaleMethod, Sequence, UnitOfMeasureId FROM ProductRelatedComponent ORDER BY ChildProductClassification.Code ASC, ChildProduct.StockKeepingUnit ASC, ParentProduct.StockKeepingUnit ASC, ProductComponentGroup.Code ASC, ProductRelationshipType.Name ASC",
           "operation": "Upsert",
           "externalId": "ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name",
           "excluded": false
@@ -122,9 +122,9 @@
           "excluded": false
         },
         {
-          "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, CurrencyIsoCode, DefaultValue, Description, DisplayType, HelpText, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, OverrideContextId$Product2, OverriddenProductAttributeDefinitionId, ProductClassificationAttributeId, Product2Id, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductAttributeDefinition",
+          "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, CurrencyIsoCode, DefaultValue, Description, DisplayType, HelpText, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, OverriddenProductAttributeDefinitionId, ProductClassificationAttributeId, Product2Id, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductAttributeDefinition ORDER BY Product2.StockKeepingUnit ASC, AttributeCategory.Name ASC, AttributeDefinition.Code ASC, ProductClassificationAttribute.Name ASC",
           "operation": "Upsert",
-          "externalId": "AttributeCategory.Code;AttributeDefinition.Code;ProductClassificationAttribute.Name;Product2.StockKeepingUnit",
+          "externalId": "AttributeCategory.Code;AttributeDefinition.Code;Product2.StockKeepingUnit",
           "excluded": false
         },
         {
@@ -140,19 +140,19 @@
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier",
+          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
           "operation": "Upsert",
           "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name,TierType,TierValue,UpperBound,LowerBound,CurrencyIsoCode",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL",
+          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
           "operation": "Upsert",
           "externalId": "Name;CurrencyIsoCode;Pricebook2.Name",
           "excluded": false
         },
         {
-          "query": "SELECT Name FROM AttributeBasedAdjRule",
+          "query": "SELECT Name FROM AttributeBasedAdjRule ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -194,7 +194,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, DurationType, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment",
+          "query": "SELECT CurrencyIsoCode, DurationType, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType",
           "excluded": false

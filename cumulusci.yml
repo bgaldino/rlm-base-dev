@@ -36,9 +36,9 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c manhattan-espresso-5506.scratch.my.salesforce.com"
-    user_alias: &user_alias test-zk7huu6iu2nr@example.com 
-    combined_flags: &combined_flags " -u test-zk7huu6iu2nr@example.com -c manhattan-espresso-5506.scratch.my.salesforce.com"
+    mydomain: &mydomain "-c rockaway-brooklyn-9778.scratch.my.salesforce.com"
+    user_alias: &user_alias test-6mvk7lijfrzm@example.com 
+    combined_flags: &combined_flags " -u test-6mvk7lijfrzm@example.com -c rockaway-brooklyn-9778.scratch.my.salesforce.com"
     prm: true
     tso: false
     qb: true
@@ -399,6 +399,13 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents/flows
+
+  deploy_agents_settings:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/settings
 
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -1092,14 +1099,17 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_agents_flows
+        task: deploy_agents_settings
         when: project_config.project__custom__agents == true
       2:
-        task: deploy_agents_genAiFunctions
+        task: deploy_agents_flows
         when: project_config.project__custom__agents == true
       3:
-        task: deploy_agents_genAiPlugins
+        task: deploy_agents_genAiFunctions
         when: project_config.project__custom__agents == true
       4:
+        task: deploy_agents_genAiPlugins
+        when: project_config.project__custom__agents == true
+      5:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents == true

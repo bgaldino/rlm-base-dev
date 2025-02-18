@@ -1,0 +1,4 @@
+Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,UR-CPUTIME,m,,Compute Time,Draft,TIME,QB-CPU-BLNG,monthlytotal
+Usage,UR-DATASTORAGE,TB,,Data Storage,Draft,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
+Usage,UR-DATAXFR,MB,,Data Throughput,Draft,DATAVOL,QB-DATA-THPT-BLNG,monthlytotal

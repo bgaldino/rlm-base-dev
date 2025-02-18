@@ -1,15 +1,15 @@
 $$Name$Catalog.Code$ParentCategory.Name,Catalog.Name,Code,Description,Name,ParentCategory.$$Name$Catalog.Code$ParentCategory.Name,SortOrder
-Bundle;CAT-QB-SFT,QuantumBit Software,,,Bundle,,10
 Accessories;CAT-QB-HW,QuantumBit Hardware,,,Accessories,,
-Licenses;CAT-QB-SFT,QuantumBit Software,,,Licenses,,30
-Training;CAT-QB-SFT,QuantumBit Software,,,Training,,40
-Maintenance;CAT-QB-SFT,QuantumBit Software,,,Maintenance,,50
+Hard Drive;CAT-QB-HW,QuantumBit Hardware,,,Hard Drive,,
 Hardware Maintenance;CAT-QB-HW,QuantumBit Hardware,,,Hardware Maintenance,,
 Memory;CAT-QB-HW,QuantumBit Hardware,,,Memory,,
 Network Adapter;CAT-QB-HW,QuantumBit Hardware,,,Network Adapter,,
 Processor;CAT-QB-HW,QuantumBit Hardware,,,Processor,,
-Hard Drive;CAT-QB-HW,QuantumBit Hardware,,,Hard Drive,,
-Subscription;CAT-QB-SFT,QuantumBit Software,,,Subscription,,100
-Services;CAT-QB-SRV,QuantumBit Services,,,Services,,
 Server;CAT-QB-HW,QuantumBit Hardware,,,Server,,
 API;CAT-QB-SFT,QuantumBit Software,,,API,,20
+Bundle;CAT-QB-SFT,QuantumBit Software,,,Bundle,,10
+Licenses;CAT-QB-SFT,QuantumBit Software,,,Licenses,,30
+Maintenance;CAT-QB-SFT,QuantumBit Software,,,Maintenance,,50
+Subscription;CAT-QB-SFT,QuantumBit Software,,,Subscription,,100
+Training;CAT-QB-SFT,QuantumBit Software,,,Training,,40
+Services;CAT-QB-SRV,QuantumBit Services,,,Services,,
