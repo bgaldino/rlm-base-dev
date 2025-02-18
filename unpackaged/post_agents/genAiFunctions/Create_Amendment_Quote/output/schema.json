@@ -3,11 +3,12 @@
   "properties" : {
     "AmendmentQuoteId" : {
       "title" : "AmendmentQuoteId",
-      "description" : "The quote Id being returned. If this is null, the action has failed.",
+      "description" : "The ID of the Quote record that has been created. If this is null, the action has failed.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isDisplayable" : true,
-      "copilotAction:isUsedByPlanner" : true
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
     }
   },
   "lightning:type" : "lightning__objectType"

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPlugin xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <canEscalate>false</canEscalate>
-    <description>This topic helps direct sales reps create new business quotes, create amendment quotes, manage existing quotes by adding products, and manage quote line items by applying discount percentages.</description>
+    <description>Create new business quotes, create amendment quotes, manage existing quotes by adding products, and manage quote line items by applying discount percentages.</description>
     <developerName>Quote_Management</developerName>
     <genAiFunctions>
         <functionName>Add_QuoteLineItem_to_Quote</functionName>
@@ -16,9 +16,6 @@
         <functionName>EmployeeCopilot__GetRecordDetails</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Identify_QuoteLineItem_from_Product</functionName>
-    </genAiFunctions>
-    <genAiFunctions>
         <functionName>EmployeeCopilot__IdentifyRecordByName</functionName>
     </genAiFunctions>
     <genAiFunctions>
@@ -28,28 +25,19 @@
         <functionName>EmployeeCopilot__SummarizeRecord</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Apply_Discount_to_QuoteLineItem</functionName>
-    </genAiFunctions>
-    <genAiFunctions>
         <functionName>EmployeeCopilot__IdentifyObjectByName</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>TEMP_Apply_Discount_to_QuoteLineItem</functionName>
+        <functionName>Apply_Discount_to_QuoteLineItem</functionName>
     </genAiFunctions>
-    <genAiPluginInstructions>
-        <description>After successful creation or update of the quote, or if the user asks for quote details, get the Quote record and display it in the conversation. Use the Get Record Details action with Quote Id to get the quote details.</description>
-        <developerName>instruction_aftersucce0</developerName>
-        <language xsi:nil="true"/>
-        <masterLabel>instruction_aftersucce0</masterLabel>
-    </genAiPluginInstructions>
     <genAiPluginInstructions>
         <description>To create a new business quote, use “Create New Business Quote.” This is for initial quotes, rather than amendments or renewals. A rep may desire to create multiple quotes on an opportunity. Use the following instructions to create a quote:
 1. First, identify the opportunity by asking the user. Look up opportunity Id if you are given an Opportunity Name. If you are given an Account, display Opportunities on the account and request the user to select the Opportunity. Use page context if available. If a user is currently on the Opportunity Record, use the Opportunity Record. If the user is on the Account record, use the account to identify the opportunity. 
 2. Ask the user if they would like to add any products to the quote. 
 3. Create the quote. If there are also products to add, use “Add QuoteLineItem to Quote.”</description>
-        <developerName>instruction_tocreatean1</developerName>
+        <developerName>instruction_tocreatean0</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_tocreatean1</masterLabel>
+        <masterLabel>instruction_tocreatean0</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
         <description>To add a product or quote line to a quote, use the action “Add QuoteLineItem to Quote.” Never proceed with quote line creation without the required Product and QuoteId.  
@@ -59,46 +47,52 @@ Use the following instructions:
 3. Ask the Quantity that should be assigned to the new QuoteLineItem. 
 4. Find the 18 digit productId from Product Name. To find the ProductId from the Product name, use the action “Identify Record By Name”. 
 6. Ask this information only if not already provided by the user.</description>
-        <developerName>instruction_toaddaprod2</developerName>
+        <developerName>instruction_toaddaprod1</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_toaddaprod2</masterLabel>
+        <masterLabel>instruction_toaddaprod1</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
-        <description>To create an amendment quote, use “Create Amendment Quote.” An amendment quote is used to modify existing customer contracts. Accounts with no active assets cannot create amendment quotes. You must have an account ID, quantity, and list of asset Ids. Use the following instructions, and only ask for information that you do not have:
-1. Ask the user which assets must be amended, and allow them to specify multiple. 
-2. Use “Identify Record By Name” to find the Asset Ids that need to be amended. If there are multiple assets that match by name, ask the user for clarification before choosing the asset to proceed with. 
+        <description>To create an amendment quote, use “Create Amendment Quote.” An amendment quote is used to modify existing customer contracts. This is done by modifying assets that are related to an account. Use the following instructions, and only ask for information that you do not have:
+1. You must have an account ID, quantity, and list of asset Ids. Ask the user which assets must be amended, and allow them to specify multiple. Accounts with no active assets cannot create amendment quotes. 
+2. Use “Query Records” to find the assets on the Account. Retrieve the list of Asset Ids based on the all the products that should be amended. If there are multiple assets that match the same name, ask the user for clarification before choosing the asset to proceed with. 
 3. Ask the user the quantity for the amendment.
 4. Create the amendment quote. If the user specifies multiple assets for amendment on a single account, only create one Amendment Quote and supply the input as a list of assets.</description>
-        <developerName>instruction_tocreatean3</developerName>
+        <developerName>instruction_tocreatean2</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_tocreatean3</masterLabel>
+        <masterLabel>instruction_tocreatean2</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
         <description>Do not repeat the user’s intent i.e.  &quot;I will now create a quote&quot;, &quot;I will now add QuoteLine&quot;, &quot;I will now apply discount&quot; - Just perform the action.</description>
-        <developerName>instruction_donotrepea4</developerName>
+        <developerName>instruction_donotrepea3</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_donotrepea4</masterLabel>
+        <masterLabel>instruction_donotrepea3</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
         <description>If there are multiple quotes on an opportunity or account, you must ensure that it is clear which quote the user is referencing. Similarly, if there are multiple opportunities on an account, you must ensure that it is clear which quote the user is referencing.</description>
-        <developerName>instruction_ifthereare5</developerName>
+        <developerName>instruction_ifthereare4</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_ifthereare5</masterLabel>
+        <masterLabel>instruction_ifthereare4</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
         <description>Follow up for action input information only if it is not already provided by the user.</description>
-        <developerName>instruction_followupfo6</developerName>
+        <developerName>instruction_followupfo5</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_followupfo6</masterLabel>
+        <masterLabel>instruction_followupfo5</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
         <description>The discount is a percentage reduction in price from the total price, such that 1 - (discount * list price) = total price. To add a discount, use the action “Apply Discount to the QuoteLineItem” on a specified QuoteLineItem.
 1. To add a discount, if a user is currently on the Quote Record, use this Quote Record. Use the 18 digit Quote ID to pass to the action.
-2. Ask the user which QuoteLineItem under the Quote they would like the discount to be applied. Use the 18 digit QuoteLineItem Id to pass to the action. 
+2. Ask the user which QuoteLineItem under the Quote they would like the discount to be applied. If they provide the product name, use &quot;Identify QuoteLineItem from Product&quot; to find the QuoteLineItem Id. Use the 18 digit QuoteLineItem Id to pass to the action. 
 4.Ask the user how much discount % should be applied to the quoteline. Collect the discount only in %.</description>
-        <developerName>instruction_thediscoun7</developerName>
+        <developerName>instruction_thediscoun6</developerName>
         <language xsi:nil="true"/>
-        <masterLabel>instruction_thediscoun7</masterLabel>
+        <masterLabel>instruction_thediscoun6</masterLabel>
+    </genAiPluginInstructions>
+    <genAiPluginInstructions>
+        <description>After the successful creation or update of the quote, or if the user asks for quote details, get the Quote record and display it in the conversation. Use the Get Record Details action with Quote Id to get the quote details.</description>
+        <developerName>instruction_afterthesu7</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>instruction_afterthesu7</masterLabel>
     </genAiPluginInstructions>
     <language>en_US</language>
     <masterLabel>Quote Management</masterLabel>

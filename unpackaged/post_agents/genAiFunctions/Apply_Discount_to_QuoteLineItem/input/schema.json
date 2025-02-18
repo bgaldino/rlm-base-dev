@@ -11,14 +11,14 @@
     },
     "QuoteId" : {
       "title" : "QuoteId",
-      "description" : "Quote Id of the quote record upon which this action acts.",
+      "description" : "18 character Id of the quote record.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     },
     "QuoteLineItemId" : {
       "title" : "QuoteLineItemId",
-      "description" : "QuoteLineItem Id of the quote line item record upon which this action acts. This is not the Product2 Id.",
+      "description" : "18 character Id of the QuoteLineItem record on which this action acts. This is not the Product2 Id.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true

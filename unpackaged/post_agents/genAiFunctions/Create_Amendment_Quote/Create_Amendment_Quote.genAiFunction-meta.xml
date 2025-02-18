@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>This can be used to create an amendment quote and a related amendment opportunity on an account with active assets. You must show the amendment quote record upon completion. If the action did not result in a successful output, you must mention that amendment quote creation failed. Here are some examples of utterances that would call this action: -Create amendment for 20 QuantumBit licenses -Create add-on quote for the account -Help me create an add-on quote - Create an amendment quote for this account.</description>
+    <description>Create an amendment quote and a related amendment opportunity on an account with active assets.</description>
     <invocationTarget>Create_Amendment_Quote</invocationTarget>
     <invocationTargetType>flow</invocationTargetType>
     <isConfirmationRequired>false</isConfirmationRequired>
