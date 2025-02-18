@@ -36,9 +36,9 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c quantumbit-tso-test.my.salesforce.com"
-    user_alias: &user_alias admin@rlm.tso.test  
-    combined_flags: &combined_flags " -u admin@rlm.tso.test -c quantumbit-tso-test.my.salesforce.com"
+    mydomain: &mydomain "-c quantumbit-tso-test2.my.salesforce.com"
+    user_alias: &user_alias admin@t2.rlm.tso  
+    combined_flags: &combined_flags " -u admin@t2.rlm.tso -c quantumbit-tso-test2.my.salesforce.com"
     prm: true
     tso: true
     qb: true
@@ -54,7 +54,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: false
+    agents: true
     refresh: false
     commerce: false
     quantumbit: true
@@ -86,6 +86,10 @@ project:
       - UsageRunTimePsl
       - WalletManagementUserPsl
 
+    rlm_ai_psg_api_names: &rlm_ai_psg_api_names
+      - CopilotSalesforceUserPSG
+      - CopilotSalesforceAdminPSG
+
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       - AIAcceleratorPsl
       - EinsteinAnalyticsPlusPsl
@@ -97,6 +101,10 @@ project:
       - ScoringFrameworkPsl
       - TableauEinsteinBaseCreatorPsl
       - TableauEinsteinBaseViewerPsl
+
+    rlm_ai_ps_api_names: &rlm_ai_ps_api_names
+      - EinsteinGPTPromptTemplateManager
+      - SalesCloudEinsteinAll
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
       - AutomatedActionsPsl
@@ -124,9 +132,9 @@ project:
       - SalesEngagementBasicPsl
       - TableauEinsteinIncludedAppPsl
 
-    rlm_ai_ps_api_names: &rlm_ai_ps_api_names
-      - EinsteinGPTPromptTemplateManager
-      - SalesCloudEinsteinAll
+    rlm_tso_psg_api_names: &rlm_tso_psg_api_names
+      - CopilotSalesforceUserPSG
+      - CopilotSalesforceAdminPSG
 
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
       - EinsteinGPTSalesSummaries
@@ -969,6 +977,11 @@ flows:
         when: project_config.project__custom__tso == true
         options:
           api_names: *rlm_tso_psl_api_names
+      2:
+        task: assign_permission_set_groups
+        when: project_config.project__custom__tso == true
+        options:
+          api_names: *rlm_tso_psg_api_names
       3:
         task: assign_permission_sets
         when: project_config.project__custom__tso == true
@@ -1112,17 +1125,22 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: assign_permission_set_groups
+        when: project_config.project__custom__agents == true
+        options:
+          api_names: *rlm_ai_psg_api_names
+      2:
         task: deploy_agents_settings
         when: project_config.project__custom__agents == true
-      2:
+      3:
         task: deploy_agents_flows
         when: project_config.project__custom__agents == true
-      3:
+      4:
         task: deploy_agents_genAiFunctions
         when: project_config.project__custom__agents == true
-      4:
+      5:
         task: deploy_agents_genAiPlugins
         when: project_config.project__custom__agents == true
-      5:
+      6:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents == true

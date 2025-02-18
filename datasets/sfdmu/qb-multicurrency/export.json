@@ -47,7 +47,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, DataType, Description, Name, Status FROM AttributePicklist ORDER BY Name ASC",
+          "query": "SELECT CurrencyIsoCode, DataType, Code, Description, Name, Status FROM AttributePicklist ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         },
