@@ -103,6 +103,7 @@ project:
       - TableauEinsteinBaseViewerPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
+      - EinsteinGPTSalesEmails
       - EinsteinGPTPromptTemplateManager
       - SalesCloudEinsteinAll
 
@@ -144,6 +145,7 @@ project:
       - ERIBasic
 
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
+      - AdvancedCsvDataImport
       - IndustriesConfiguratorPlatformApi
       - ProductConfigurationRulesDesigner
       - ProductCatalogManagementAdministrator
@@ -193,6 +195,23 @@ project:
 
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access
+
+    dt_rating_decision_tables: &dt_rating_decision_tables
+      - Asset_Rate_Card_Entry_Resolution
+      - Asset_Rate_Decision_Table
+      - Asset_Tier_based_Rate_Adjustment
+      - Asset_Volume_based_Rate_Adjustment
+      - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+      - Pricebook_Rate_Card_Decision_Table
+      - Rate_Adjustment_by_Attribute_Entries_2
+      - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
+      - Rate_Adjustment_by_Tier_Entries_2
+      - Rate_Adjustment_by_Tier_Resolution_Decision_Table
+      - Rate_Adjustment_by_Volume_Entries_2
+      - Rate_Card_Entries_2
+      - Rate_Card_Entry_Resolution_Entries_2
+      - Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+      - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
 
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
@@ -770,6 +789,13 @@ tasks:
     options:
       path: scripts/apex/activateRateCardEntries.apex
 
+  refresh_dt_rating:
+    group: Revenue Lifecycle Management
+    description: Refresh Rating Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_rating_decision_tables
+
 flows:
   prepare_rlm_org:
     group: Revenue Lifecycle Management
@@ -816,6 +842,10 @@ flows:
         task: activate_and_deploy_expression_sets
       19:
         flow: prepare_agents
+      20:
+        flow: prepare_tso
+      21:
+        flow: refresh_decision_tables
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -1144,3 +1174,12 @@ flows:
       6:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents == true
+  
+  refresh_decision_tables:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: sync_pricing_data
+      2:
+        task: refresh_dt_rating
+        when: project_config.project__custom__rating == true

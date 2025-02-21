@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Determines whether the usage ratable summary was generated or not by checking if the status of the usageRatableSummaryFlowStatus is Success.</description>
+        <name>IsUsageRatableSummaryGenerated</name>
+        <label>Is Usage Ratable Summary Generated?</label>
+        <locationX>182</locationX>
+        <locationY>576</locationY>
+        <defaultConnectorLabel>No (Default)</defaultConnectorLabel>
+        <rules>
+            <name>IsGeneratedUsageRatableSummary</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>usageRatableSummaryFlowStatus</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Success</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CreateLiableSummary</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Determines whether the usage summary was generated or not by checking if the value of the usageSummaryFlowStatus is Success.</description>
+        <name>IsUsageSummaryGenerated</name>
+        <label>Is Usage Summary Generated?</label>
+        <locationX>380</locationX>
+        <locationY>360</locationY>
+        <defaultConnectorLabel>NO (Default)</defaultConnectorLabel>
+        <rules>
+            <name>IsGeneratedUsageSummary</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>usageSummaryFlowStatus</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Success</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CreateUsageRatableSummary</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <interviewLabel>RLM Orchestrate Usage Management {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Orchestrate Usage Management</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <runInMode>DefaultMode</runInMode>
+    <sourceTemplate>runtime_industries_usage__OrchUseMgmt</sourceTemplate>
+    <start>
+        <locationX>254</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>CreateUsageSummary</targetReference>
+        </connector>
+        <schedule>
+            <frequency>Daily</frequency>
+            <startDate>2025-01-01</startDate>
+            <startTime>00:00:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+    <subflows>
+        <description>Calls a flow that creates a liable summary for consumption overages determined by using the usage summaries and ratable summaries.</description>
+        <name>CreateLiableSummary</name>
+        <label>Create Liable Summary</label>
+        <locationX>50</locationX>
+        <locationY>684</locationY>
+        <flowName>runtime_industries_usage__LiabSum</flowName>
+    </subflows>
+    <subflows>
+        <description>Calls a flow that creates usage ratable summary by rating the usage summaries using the rating batch job.</description>
+        <name>CreateUsageRatableSummary</name>
+        <label>Create Usage Ratable Summary</label>
+        <locationX>182</locationX>
+        <locationY>468</locationY>
+        <connector>
+            <targetReference>IsUsageRatableSummaryGenerated</targetReference>
+        </connector>
+        <flowName>runtime_industries_usage__UseRateSum</flowName>
+        <outputAssignments>
+            <assignToReference>usageRatableSummaryFlowStatus</assignToReference>
+            <name>usageRatableSummaryFlowStatus</name>
+        </outputAssignments>
+    </subflows>
+    <subflows>
+        <description>Calls a flow that creates usage summary by aggregating usage details and calculating overages by processing the consumption overages.</description>
+        <name>CreateUsageSummary</name>
+        <label>Create Usage Summary</label>
+        <locationX>380</locationX>
+        <locationY>252</locationY>
+        <connector>
+            <targetReference>IsUsageSummaryGenerated</targetReference>
+        </connector>
+        <flowName>runtime_industries_usage__CreaUseSum</flowName>
+        <outputAssignments>
+            <assignToReference>usageSummaryFlowStatus</assignToReference>
+            <name>usageSummaryFlowStatus</name>
+        </outputAssignments>
+    </subflows>
+    <variables>
+        <description>Stores the status of the create usage ratable summary flow.</description>
+        <name>usageRatableSummaryFlowStatus</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Stores the status of UsageSummary flow.</description>
+        <name>usageSummaryFlowStatus</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

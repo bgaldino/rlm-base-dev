@@ -101,6 +101,13 @@
                 <stringValue>Activated</stringValue>
             </value>
         </filters>
+        <filters>
+            <field>OrchestrationSbmsStatus</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Submitted</stringValue>
+            </value>
+        </filters>
         <object>Order</object>
         <recordTriggerType>Update</recordTriggerType>
         <scheduledPaths>
@@ -111,5 +118,5 @@
         </scheduledPaths>
         <triggerType>RecordAfterSave</triggerType>
     </start>
-    <status>Obsolete</status>
+    <status>Active</status>
 </Flow>
