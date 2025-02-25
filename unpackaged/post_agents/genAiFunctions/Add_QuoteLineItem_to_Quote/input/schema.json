@@ -25,7 +25,7 @@
     },
     "StartDate" : {
       "title" : "StartDate",
-      "description" : "The optional user input startDate for subscription based products.",
+      "description" : "The startDate, needed only for subscription based products. The format must be yyyy-mm-dd. ",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true

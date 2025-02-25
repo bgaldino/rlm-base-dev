@@ -11,14 +11,14 @@
     },
     "PriceBookName" : {
       "title" : "PriceBookName",
-      "description" : "The name of the pricebook.",
+      "description" : "The name of the pricebook. If left blank, it will default to the standard pricebook, so this is an optional input.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     },
     "QuoteName" : {
       "title" : "QuoteName",
-      "description" : "The quote's name.",
+      "description" : "The quote's name. It can be ignored if the user hasn't specified a quote name explicitly.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true

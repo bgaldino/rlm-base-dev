@@ -11,7 +11,7 @@
     },
     "QuoteId" : {
       "title" : "QuoteId",
-      "description" : "The 18 digit Quote Id",
+      "description" : "The 18 digit Quote Id.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
