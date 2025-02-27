@@ -13,6 +13,9 @@
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>BillNow</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>CallHighlightAction</value>
                         </valueListItems>
                         <valueListItems>
@@ -95,9 +98,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>BrowseCatalogs</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>ViewDigitalWallet</value>
                         </valueListItems>
                         <valueListItems>
                             <value>CreateSalesSummaries</value>
