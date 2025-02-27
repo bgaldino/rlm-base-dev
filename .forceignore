@@ -29,43 +29,8 @@ force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProced
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
 
-unpackaged/post_agents/flows/Agentforce_Quoting_Add_Quote_Line_Item_to_Quote.flow-meta.xml
-unpackaged/post_agents/flows/Agentforce_Quoting_Apply_Discount_to_Quote.flow-meta.xml
-unpackaged/post_agents/flows/Apply_Discount_without_PST.flow-meta.xml
-unpackaged/post_agents/flows/Create_Quote_from_Products.flow-meta.xml
-unpackaged/post_agents/flows/Custom_Product_Configurator_Flow.flow-meta.xml
-unpackaged/post_agents/flows/Customized_Order_To_Asset_Flow.flow-meta.xml
-unpackaged/post_agents/flows/Discount_Approval_Process.flow-meta.xml
-unpackaged/post_agents/flows/FlowPST_Test.flow-meta.xml
-unpackaged/post_agents/flows/Get_Products_from_Product_Mentions.flow-meta.xml
-unpackaged/post_agents/flows/Get_Video_Call_Records.flow-meta.xml
-unpackaged/post_agents/flows/GetProduct.flow-meta.xml
-unpackaged/post_agents/flows/HardCode_Create_New_Business_Quote.flow-meta.xml
 #unpackaged/post_agents/flows/Identify_QuoteLineItem_from_Product.flow-meta.xml
-unpackaged/post_agents/flows/MultiLevel_Quote_Apporval.flow-meta.xml
-unpackaged/post_agents/flows/PST_Call.flow-meta.xml
-unpackaged/post_agents/flows/PST_IA_Test_Add_Discount_to_Quote_Line.flow-meta.xml
-unpackaged/post_agents/flows/Query_Opportunities_on_Account.flow-meta.xml
-unpackaged/post_agents/flows/Query_Quotes_on_Opportunity.flow-meta.xml
-unpackaged/post_agents/flows/Update_Quote_Status.flow-meta.xml
-unpackaged/post_agents/flows/Update_QuoteLineItem.flow-meta.xml
-
-unpackaged/post_agents/genAiFunctions/Agentforce_Quoting_Get_Product_Pilot
-unpackaged/post_agents/genAiFunctions/Create_Quote_from_Products
-unpackaged/post_agents/genAiFunctions/Get_Products_from_Product_Mentions
-unpackaged/post_agents/genAiFunctions/Get_Video_Call_Records
 #unpackaged/post_agents/genAiFunctions/Identify_QuoteLineItem_from_Product
-
-unpackaged/post_agents/genAiFunctions/TEMP_Apply_Discount_to_QuoteLineItem
-unpackaged/post_agents/genAiFunctions/Lotus_Get_Amend_Opportunities
-unpackaged/post_agents/genAiFunctions/PST_Call
-unpackaged/post_agents/genAiFunctions/Query_Opportunities_on_Account
-unpackaged/post_agents/genAiFunctions/Query_Quote_Line_Items_on_Quote
-unpackaged/post_agents/genAiFunctions/Query_Quotes_on_Account
-unpackaged/post_agents/genAiFunctions/Query_Quotes_on_Opportunity
-unpackaged/post_agents/genAiFunctions/Update_QuoteLineItem
-
-unpackaged/post_agents/genAiPlugins/Smart_Quote_Creation.genAiPlugin-meta.xml
 
 # contextDefinitions
 force-app/main/default/contextDefinitions
@@ -87,24 +52,11 @@ unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/
 unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 unpackaged/post_sharing/force-app/main/default/objects
 
-force-app/main/default/genAiPromptTemplates
-force-app/main/default/flows/RLM_Find_Customer_Solutions_Page.flow-meta.xml
-force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
-
 #unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
 
-## DRO Examples from PM
-force-app/main/default/flows/F1YG.flow-meta.xml
-force-app/main/default/contextDefinitions/ConsulateToContract_C.contextDefinition-meta.xml
-force-app/main/default/contextDefinitions/OpportunityToContract_C.contextDefinition-meta.xml
-force-app/main/default/contextDefinitions/OrderToContract_C.contextDefinition-meta.xml
-force-app/main/default/contextDefinitions/QuoteToContract_C.contextDefinition-meta.xml
-force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
-force-app/main/default/genAiPromptTemplates/Order_Delay_Emails.genAiPromptTemplate-meta.xml
-force-app/main/default/genAiPromptTemplates/Record_Summ.genAiPromptTemplate-meta.xml
 
 ## ADVANCED APPROVALS
 # classes
