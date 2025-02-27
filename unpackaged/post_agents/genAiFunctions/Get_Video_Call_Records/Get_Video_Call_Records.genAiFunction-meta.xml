@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Finds and retrieves Salesforce CRM Video Call records based on opportunity Id. This action automatically identifies the opportunity Id from page context or user input. And ask user to select single Video Call record, the selection will be used for the following action.</description>
-    <invocationTarget>Get_Video_Call_Records</invocationTarget>
-    <invocationTargetType>flow</invocationTargetType>
-    <isConfirmationRequired>false</isConfirmationRequired>
-    <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
-    <masterLabel>Get Video Call Records</masterLabel>
-</GenAiFunction>
