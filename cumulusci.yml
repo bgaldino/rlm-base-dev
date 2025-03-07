@@ -214,7 +214,7 @@ project:
       - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
 
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
-    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
+    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
 
     product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
     product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
