@@ -36,11 +36,11 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c quantumbit-tso-test2.my.salesforce.com"
-    user_alias: &user_alias admin@t2.rlm.tso  
-    combined_flags: &combined_flags " -u admin@t2.rlm.tso -c quantumbit-tso-test2.my.salesforce.com"
+    mydomain: &mydomain "-c drive-energy-2196.scratch.my.salesforce.com"
+    user_alias: &user_alias test-prxtakdifkjt@example.com
+    combined_flags: &combined_flags " -u test-prxtakdifkjt@example.com -c drive-energy-2196.scratch.my.salesforce.com"
     prm: true
-    tso: true
+    tso: false
     qb: true
     q3: false
     calmdelete: true
@@ -54,10 +54,11 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: true
+    agents: false
     refresh: false
     commerce: false
     quantumbit: true
+    breconfig: false
 
     rlm_psl_api_names: &rlm_psl_api_names
       - BREDesigner
@@ -103,7 +104,6 @@ project:
       - TableauEinsteinBaseViewerPsl
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
-      - EinsteinGPTSalesEmails
       - EinsteinGPTPromptTemplateManager
       - SalesCloudEinsteinAll
 
@@ -214,7 +214,7 @@ project:
       - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
 
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
-    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
+    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
 
     product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
     product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
@@ -837,11 +837,11 @@ flows:
       16:
         flow: prepare_rating
       17:
-        task: sync_pricing_data
-      18:
         task: activate_and_deploy_expression_sets
-      19:
+      18:
         flow: prepare_agents
+      19:
+        flow: prepare_prm
       20:
         flow: prepare_tso
       21:
@@ -876,6 +876,7 @@ flows:
           api_names: *rlm_psg_api_names
       7:
         task: assign_permission_sets
+        when: project_config.project__custom__tso == true
         options:
           api_names: *rlm_pcm_ps_api_names
       8:
@@ -896,6 +897,7 @@ flows:
           seconds: *sleep_default
       13:
         task: create_rule_library
+        when: project_config.project__custom__breconfig == true
       14:
         task: util_sleep
         options:
