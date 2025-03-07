@@ -17,26 +17,66 @@
             </contextMappingIntents>
             <contextNodeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingRequest/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>RatingRequestId</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>RatingRequest</contextAttribute>
                     <contextInputAttributeName>RatingRequest</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingRequest</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageRatableSummaryId/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>Id</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>UsageRatableSummaryId</contextAttribute>
                     <contextInputAttributeName>UsageRatableSummaryId</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageRatableSummaryId</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
+                            <contextAttrHydrationDetails>
+                                <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/SellableProduct/hydrationInfo-3</inheritedFrom>
+                                <objectName>PricebookEntry</objectName>
+                                <queryAttribute>Product2Id</queryAttribute>
+                            </contextAttrHydrationDetails>
+                            <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/SellableProduct/hydrationInfo-2</inheritedFrom>
+                            <objectName>UsageEntitlementAccount</objectName>
+                            <queryAttribute>PricebookEntry</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/SellableProduct/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>UsageEntitlementAccount</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>SellableProduct</contextAttribute>
                     <contextInputAttributeName>SellableProduct</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/SellableProduct</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageResource/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>UsageResourceId</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>UsageResource</contextAttribute>
                     <contextInputAttributeName>UsageResource</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageResource</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
+                            <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageProduct/hydrationInfo-2</inheritedFrom>
+                            <objectName>UsageResource</objectName>
+                            <queryAttribute>UsageDefinitionProductId</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageProduct/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>UsageResource</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>UsageProduct</contextAttribute>
                     <contextInputAttributeName>UsageProduct</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageProduct</inheritedFrom>
@@ -57,56 +97,121 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/AttributeRateCard</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/OverageQuantity/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>OverageQuantity</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>OverageQuantity</contextAttribute>
                     <contextInputAttributeName>OverageQuantity</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/OverageQuantity</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/TierQuantity/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>TierQuantity</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>TierQuantity</contextAttribute>
                     <contextInputAttributeName>TierQuantity</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/TierQuantity</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingDecisionDateTime/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>RatingDecisionDateTime</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>RatingDecisionDateTime</contextAttribute>
                     <contextInputAttributeName>RatingDecisionDateTime</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingDecisionDateTime</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/NetUnitRateUom/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>NetUnitRateUomId</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>NetUnitRateUom</contextAttribute>
                     <contextInputAttributeName>NetUnitRateUom</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/NetUnitRateUom</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/Status/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>Status</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>Status</contextAttribute>
                     <contextInputAttributeName>Status</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/Status</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/NetUnitRate/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>NetUnitRate</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>NetUnitRate</contextAttribute>
                     <contextInputAttributeName>NetUnitRate</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/NetUnitRate</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/TotalAmount/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>TotalAmount</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>TotalAmount</contextAttribute>
                     <contextInputAttributeName>TotalAmount</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/TotalAmount</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
+                            <contextAttrHydrationDetails>
+                                <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ProductSellingModel/hydrationInfo-3</inheritedFrom>
+                                <objectName>PricebookEntry</objectName>
+                                <queryAttribute>ProductSellingModelId</queryAttribute>
+                            </contextAttrHydrationDetails>
+                            <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ProductSellingModel/hydrationInfo-2</inheritedFrom>
+                            <objectName>UsageEntitlementAccount</objectName>
+                            <queryAttribute>PricebookEntry</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ProductSellingModel/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>UsageEntitlementAccount</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>ProductSellingModel</contextAttribute>
                     <contextInputAttributeName>ProductSellingModel</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ProductSellingModel</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ErrorCode/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>ErrorCode</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>ErrorCode</contextAttribute>
                     <contextInputAttributeName>ErrorCode</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ErrorCode</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ErrorDescription/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>ErrorDescription</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>ErrorDescription</contextAttribute>
                     <contextInputAttributeName>ErrorDescription</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/ErrorDescription</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingExecutionIdentifier/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>RatingExecutionIdentifier</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>RatingExecutionIdentifier</contextAttribute>
                     <contextInputAttributeName>RatingExecutionIdentifier</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingExecutionIdentifier</inheritedFrom>
@@ -117,6 +222,11 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/RatingWaterfall</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/Asset/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>AssetId</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>Asset</contextAttribute>
                     <contextInputAttributeName>Asset</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/Asset</inheritedFrom>
@@ -142,6 +252,21 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/IsTierNegotiated</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
+                            <contextAttrHydrationDetails>
+                                <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/PriceBook/hydrationInfo-3</inheritedFrom>
+                                <objectName>PricebookEntry</objectName>
+                                <queryAttribute>Pricebook2Id</queryAttribute>
+                            </contextAttrHydrationDetails>
+                            <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/PriceBook/hydrationInfo-2</inheritedFrom>
+                            <objectName>UsageEntitlementAccount</objectName>
+                            <queryAttribute>PricebookEntry</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/PriceBook/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>UsageEntitlementAccount</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>PriceBook</contextAttribute>
                     <contextInputAttributeName>PriceBook</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/PriceBook</inheritedFrom>

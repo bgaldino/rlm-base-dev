@@ -343,28 +343,6 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id/PricebookId</inheritedFrom>
-                    <title>PricebookId</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id</inheritedFrom>
-                <key>false</key>
-                <title>id</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextTags>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/Pricebook</inheritedFrom>
-                <title>Pricebook</title>
-            </contextTags>
-            <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook</inheritedFrom>
-            <title>Pricebook</title>
-            <transposable>false</transposable>
-        </contextNodes>
-        <contextNodes>
-            <contextAttributes>
-                <contextTags>
                     <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/Type/RCType</inheritedFrom>
                     <title>RCType</title>
                 </contextTags>
@@ -638,6 +616,28 @@
             </contextTags>
             <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCardEntry</inheritedFrom>
             <title>RateCardEntry</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id/PricebookId</inheritedFrom>
+                    <title>PricebookId</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id</inheritedFrom>
+                <key>false</key>
+                <title>id</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/Pricebook</inheritedFrom>
+                <title>Pricebook</title>
+            </contextTags>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook</inheritedFrom>
+            <title>Pricebook</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
