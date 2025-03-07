@@ -3,20 +3,20 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <description>Populate the output QuoteLineItem Id if it was found.</description>
-        <name>Output_QuoteLineItemId</name>
-        <label>Output QuoteLineItemId</label>
+        <description>Sets the quote line item for the product record</description>
+        <name>Set_QuoteLineItem_Id</name>
+        <label>Set Quote Line Item Id</label>
         <locationX>176</locationX>
         <locationY>242</locationY>
         <assignmentItems>
             <assignToReference>QuoteLineItemId</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>Identify_QuoteLineItem.Id</elementReference>
+                <elementReference>Identify_Quote_Line_Item.Id</elementReference>
             </value>
         </assignmentItems>
     </assignments>
-    <description>This action is used to take a Product2 Id and return a QuoteLineItem Id of that product.</description>
+    <description>Gets a QuoteLineItem record Id from a Product2 record.</description>
     <environments>Default</environments>
     <interviewLabel>Identify QuoteLineItem from Product {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Identify QuoteLineItem from Product</label>
@@ -40,14 +40,14 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <description>Identify the quote line item on the quote record based on the Product2Id.</description>
-        <name>Identify_QuoteLineItem</name>
-        <label>Identify QuoteLineItem</label>
+        <description>Identifies the quote line item on a quote record, given a Product2 record ID.</description>
+        <name>Identify_Quote_Line_Item</name>
+        <label>Identify Quote Line Item</label>
         <locationX>176</locationX>
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Output_QuoteLineItemId</targetReference>
+            <targetReference>Set_QuoteLineItem_Id</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -72,12 +72,12 @@
         <locationX>50</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Identify_QuoteLineItem</targetReference>
+            <targetReference>Identify_Quote_Line_Item</targetReference>
         </connector>
     </start>
     <status>Active</status>
     <variables>
-        <description>The 18 digit Product2Id of the product.</description>
+        <description>Stores the 18-digit product record ID.</description>
         <name>Product2Id</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -85,7 +85,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The 18 digit Quote Id.</description>
+        <description>Stores the 18-digit quote record ID.</description>
         <name>QuoteId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -93,7 +93,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The 18 digit quote line item Id.</description>
+        <description>Stores the 18-digit QuoteLineItem record Id.</description>
         <name>QuoteLineItemId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>

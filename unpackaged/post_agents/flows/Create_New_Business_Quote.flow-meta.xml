@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <description>Call the PlaceSalesTransaction IA in order to create a quote.</description>
-        <name>PlaceSalesTransaction_IA</name>
-        <label>PlaceSalesTransaction IA</label>
+        <description>Calls the PlaceSalesTransaction invocable action to create a quote.</description>
+        <name>CallPlaceSalesTransaction</name>
+        <label>Call Place Sales Transaction</label>
         <locationX>176</locationX>
         <locationY>890</locationY>
         <actionName>placeSalesTransaction</actionName>
@@ -12,7 +12,7 @@
         <inputParameters>
             <name>graph</name>
             <value>
-                <elementReference>PST_Graph</elementReference>
+                <elementReference>PSTGraph</elementReference>
             </value>
         </inputParameters>
         <nameSegment>placeSalesTransaction</nameSegment>
@@ -25,276 +25,8 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <description>Assign all quote fields by populating the RecordMapWrappers, to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
-        <name>Assign_Quote_Fields</name>
-        <label>Assign Quote Fields</label>
-        <locationX>176</locationX>
-        <locationY>566</locationY>
-        <assignmentItems>
-            <assignToReference>QuoteNameRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Name</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteNameRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>QuoteName</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>OpportunityRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>OpportunityId</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>OpportunityRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PricebookRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Pricebook2Id</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PricebookRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Price_Book_Id.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToCityRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>BillingCity</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToCityRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.BillingCity</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToCountryRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>BillingCountry</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToCountryRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.BillingCountry</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToNameRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>BillingName</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToNameRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.Name</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToStateProvinceRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>BillingState</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToStateProvinceRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.BillingState</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToStreetRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>BillingStreet</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToStreetRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.BillingStreet</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToPostalCodeRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>BillingPostalCode</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>BillToPostalCodeRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.BillingPostalCode</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToCityRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>ShippingCity</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToCityRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.ShippingCity</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToCountryRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>ShippingCountry</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToCountryRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.ShippingCountry</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToNameRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>ShippingName</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToNameRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.Name</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToStateProvinceRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>ShippingState</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToStateProvinceRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.ShippingState</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToStreetRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>ShippingStreet</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToStreetRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.ShippingStreet</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToPostalCodeRMW.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>ShippingPostalCode</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ShipToPostalCodeRMW.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Opportunity_Details.Account.ShippingPostalCode</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Create_Quote_Record_Reference</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>For quote naming purposes, identify the number of the quote based on the total count of related quotes on the opportunity.</description>
-        <name>Calculate_Quote_Number</name>
-        <label>Calculate Quote Number</label>
-        <locationX>176</locationX>
-        <locationY>350</locationY>
-        <assignmentItems>
-            <assignToReference>QuoteNumber</assignToReference>
-            <operator>AssignCount</operator>
-            <value>
-                <elementReference>Get_Quotes_on_Opportunity</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteNumber</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <numberValue>1.0</numberValue>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Get_Price_Book_Id</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
-        <name>Create_Graph</name>
-        <label>Create Graph</label>
-        <locationX>176</locationX>
-        <locationY>782</locationY>
-        <assignmentItems>
-            <assignToReference>PST_Graph.graphId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>placeholder</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PST_Graph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>PlaceSalesTransaction_IA</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Assign values for the QuoteRecordReference Apex-defined type to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
-        <name>Create_Quote_Record_Reference</name>
+        <description>Creates a quote record reference that’s used within the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <name>CreateQuoteRecordReference</name>
         <label>Create Quote Record Reference</label>
         <locationX>176</locationX>
         <locationY>674</locationY>
@@ -323,37 +55,305 @@
             <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>QuoteNameRMW</elementReference>
+                <elementReference>QuoteNameRecordMapWrapper</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>OpportunityRMW</elementReference>
+                <elementReference>OppNameRecordMapWrapper</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>PricebookRMW</elementReference>
+                <elementReference>PricebookNameRecordMapWrapper</elementReference>
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Create_Graph</targetReference>
+            <targetReference>SetGraphInput</targetReference>
         </connector>
     </assignments>
-    <description>This action can be used to create a new business quote from an opportunity. It takes in an OpportunityID and Products as required inputs, and returns a Quote Id. Optional inputs include the quote name and pricebook.</description>
+    <assignments>
+        <description>Sets the values for the Graph Apex-defined type as an input to the PlaceSalesTransaction invocable action</description>
+        <name>SetGraphInput</name>
+        <label>Set Graph Input</label>
+        <locationX>176</locationX>
+        <locationY>782</locationY>
+        <assignmentItems>
+            <assignToReference>PSTGraph.graphId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>placeholder</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PSTGraph.records</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>QuoteRecordReference</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>CallPlaceSalesTransaction</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Sets the fields on the quote by populating the record map wrappers. This element is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <name>SetQuoteFields</name>
+        <label>Set Quote Fields</label>
+        <locationX>176</locationX>
+        <locationY>566</locationY>
+        <assignmentItems>
+            <assignToReference>QuoteNameRecordMapWrapper.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Name</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteNameRecordMapWrapper.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>QuoteName</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>OppNameRecordMapWrapper.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>OpportunityId</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>OppNameRecordMapWrapper.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PricebookNameRecordMapWrapper.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Pricebook2Id</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PricebookNameRecordMapWrapper.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetPriceBookId.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToCityRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingCity</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToCityRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.BillingCity</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToCountryRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingCountry</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToCountryRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.BillingCountry</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToNameRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingName</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToNameRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.Name</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToStateProvinceRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingState</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToStateProvinceRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.BillingState</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToStreetRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingStreet</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToStreetRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.BillingStreet</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToPostalCodeRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingPostalCode</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillToPostalCodeRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.BillingPostalCode</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToCityRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>ShippingCity</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToCityRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.ShippingCity</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToCountryRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>ShippingCountry</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToCountryRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.ShippingCountry</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToNameRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>ShippingName</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToNameRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.Name</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToStateProvinceRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>ShippingState</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToStateProvinceRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.ShippingState</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToStreetRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>ShippingStreet</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToStreetRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.ShippingStreet</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToPostalCodeRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>ShippingPostalCode</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ShipToPostalCodeRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOpportunityRecord.Account.ShippingPostalCode</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>CreateQuoteRecordReference</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Determines the number of the quote based on the total count of related quotes on the opportunity. Used to name the quote. For example, an opportunity has 10 quotes. This quote is quote 11.</description>
+        <name>SetQuoteNumber</name>
+        <label>Set Quote Number</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>QuoteNumber</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>GetQuotesOnOpportunity</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteNumber</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>GetPriceBookId</targetReference>
+        </connector>
+    </assignments>
+    <description>Creates a quote record for new business on an opportunity.</description>
     <environments>Default</environments>
     <formulas>
         <description>Used to calculate the quote name based on the number of quotes already on the opportunity.</description>
         <name>CalculatedQuoteName</name>
         <dataType>String</dataType>
-        <expression>&quot;Quote &quot; + TEXT({!QuoteNumber}) + &quot; for &quot; + {!Get_Opportunity_Details.Name}</expression>
+        <expression>&quot;Quote &quot; + TEXT({!QuoteNumber}) + &quot; for &quot; + {!GetOpportunityRecord.Name}</expression>
     </formulas>
     <interviewLabel>Create New Business Quote {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Create New Business Quote from Opportunity</label>
+    <label>Create a Quote for New Business on an Opportunity</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -374,14 +374,14 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <description>Identify the opportunity record for which a new related quote will be created.</description>
-        <name>Get_Opportunity_Details</name>
-        <label>Get Opportunity Details</label>
+        <description>Gets the opportunity record that’s related to the quote that this flow creates.</description>
+        <name>GetOpportunityRecord</name>
+        <label>Get Opportunity Record</label>
         <locationX>176</locationX>
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Get_Quotes_on_Opportunity</targetReference>
+            <targetReference>GetQuotesOnOpportunity</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -396,14 +396,14 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Identify the Pricebook2Id of the pricebook to be assigned to the Quote.</description>
-        <name>Get_Price_Book_Id</name>
+        <description>Gets the ID of the Pricebook2 record for the pricebook that’s assigned to the quote</description>
+        <name>GetPriceBookId</name>
         <label>Get Price Book Id</label>
         <locationX>176</locationX>
         <locationY>458</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Assign_Quote_Fields</targetReference>
+            <targetReference>SetQuoteFields</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -419,21 +419,21 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Identify existing quotes related to the opportunity.</description>
-        <name>Get_Quotes_on_Opportunity</name>
+        <description>Gets all quotes related to the opportunity.</description>
+        <name>GetQuotesOnOpportunity</name>
         <label>Get Quotes on Opportunity</label>
         <locationX>176</locationX>
         <locationY>242</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Calculate_Quote_Number</targetReference>
+            <targetReference>SetQuoteNumber</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>OpportunityId</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>Get_Opportunity_Details.Id</elementReference>
+                <elementReference>GetOpportunityRecord.Id</elementReference>
             </value>
         </filters>
         <getFirstRecordOnly>false</getFirstRecordOnly>
@@ -445,7 +445,7 @@
         <locationX>50</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Opportunity_Details</targetReference>
+            <targetReference>GetOpportunityRecord</targetReference>
         </connector>
     </start>
     <status>Active</status>
@@ -504,16 +504,8 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>This is the Opportunity record ID needed to create a new business quote.</description>
-        <name>OpportunityID</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>RecordMapWrapper Apex-defined type to specify Quote.Opportunity field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
-        <name>OpportunityRMW</name>
+        <description>Sets the record map wrapper Apex-defined type that specifies the Quote.Opportunity field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <name>OppNameRecordMapWrapper</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -521,7 +513,15 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The name of the pricebook. If left blank, it will default to the standard pricebook, so this is an optional input.</description>
+        <description>The ID of the opportunity record that’s used to create a quote for new business</description>
+        <name>OpportunityID</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Stores the name of the pricebook that’s assigned to the quote.</description>
         <name>PriceBookName</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -532,8 +532,8 @@
         </value>
     </variables>
     <variables>
-        <description>RecordMapWrapper Apex-defined type to specify Quote.Pricebook2Id field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
-        <name>PricebookRMW</name>
+        <description>Sets the record map wrapper Apex-defined type that specifies the Quote.Pricebook2Id field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <name>PricebookNameRecordMapWrapper</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -541,8 +541,8 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The Graph Apex-defined type used as input to the PlaceSalesTransaction invokable action call.</description>
-        <name>PST_Graph</name>
+        <description>Sets values for the Graph Apex-defined type that’s used as an input for the PlaceSalesTransaction invocable action.</description>
+        <name>PSTGraph</name>
         <apexClass>RevSalesTrxn__Graph</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -550,7 +550,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>This is the QuoteId of the Quote record that has been created.</description>
+        <description>Stores the 18-character ID for the quote record that this flow modifies.</description>
         <name>QuoteId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -558,7 +558,7 @@
         <isOutput>true</isOutput>
     </variables>
     <variables>
-        <description>This is an optional input for the user to specify the quote&apos;s name. It can be ignored if the user hasn&apos;t specified a quote name explicitly.</description>
+        <description>Stores the name of the quote.</description>
         <name>QuoteName</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -569,8 +569,8 @@
         </value>
     </variables>
     <variables>
-        <description>RecordMapWrapper Apex-defined type to specify Quote.Name field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
-        <name>QuoteNameRMW</name>
+        <description>Sets the record map wrapper Apex-defined type that specifies the Quote.Name field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <name>QuoteNameRecordMapWrapper</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -578,7 +578,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Used to calculate the count of total quotes on the opportunity after quote creation.</description>
+        <description>Sets the count of all quotes on the opportunity after this flow creates a quote.</description>
         <name>QuoteNumber</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
@@ -596,7 +596,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>RecordReference for Quote to be created. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <description>Sets the record reference for the quote that this flow modifies. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
         <name>QuoteRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>

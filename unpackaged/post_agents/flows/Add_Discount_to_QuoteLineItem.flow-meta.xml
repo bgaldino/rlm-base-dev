@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <description>Call the PlaceSalesTransaction Invocable Action in order to apply a discount to the quote.</description>
-        <name>PlaceSalesTransactionCall</name>
-        <label>PlaceSalesTransactionCall</label>
+        <description>Calls the PlaceSalesTransaction invocable action so it can apply the discount to the quote.</description>
+        <name>CallPlaceSalesTransaction</name>
+        <label>Call Place Sales Transaction</label>
         <locationX>182</locationX>
         <locationY>458</locationY>
         <actionName>placeSalesTransaction</actionName>
         <actionType>placeSalesTransaction</actionType>
         <connector>
-            <targetReference>Get_QuoteLineItem</targetReference>
+            <targetReference>GetQuoteLineItem</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -25,47 +25,68 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <description>Create Quote Record Reference to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
-        <name>Assign_Quote_Values</name>
-        <label>Assign Quote Values</label>
+        <description>Indicate success through an output message.</description>
+        <name>Output_Message</name>
+        <label>Output Message</label>
+        <locationX>50</locationX>
+        <locationY>782</locationY>
+        <assignmentItems>
+            <assignToReference>OutputMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Discount successfully applied. </stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <description>Shows a message to indicate when the discount wasn’t successfully applied</description>
+        <name>SetFailureMessage</name>
+        <label>Set Failure Message</label>
+        <locationX>314</locationX>
+        <locationY>782</locationY>
+        <assignmentItems>
+            <assignToReference>OutputMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Discount was not successfully applied.</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <description>Sets the values for the Graph Apex-defined type as an input to the PlaceSalesTransaction invocable action.</description>
+        <name>SetGraphInput</name>
+        <label>Set Graph Input</label>
         <locationX>182</locationX>
-        <locationY>242</locationY>
+        <locationY>350</locationY>
         <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.type</assignToReference>
-            <operator>Assign</operator>
+            <assignToReference>PSTGraph.records</assignToReference>
+            <operator>Add</operator>
             <value>
-                <stringValue>Quote</stringValue>
+                <elementReference>QuoteRecordReference</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.method</assignToReference>
-            <operator>Assign</operator>
+            <assignToReference>PSTGraph.records</assignToReference>
+            <operator>Add</operator>
             <value>
-                <stringValue>PATCH</stringValue>
+                <elementReference>QuoteLineRecordReference</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>QuoteRecordReference.record.id</assignToReference>
+            <assignToReference>PSTGraph.graphId</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>QuoteId</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteRecordReference.referenceId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>QuoteId</elementReference>
+                <stringValue>placeholder</stringValue>
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Create_Graph_Input</targetReference>
+            <targetReference>CallPlaceSalesTransaction</targetReference>
         </connector>
     </assignments>
     <assignments>
         <description>Assign new QuoteLineItem fields by populating the RecordMapWrappers and create QuoteLineItem Record Reference to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
-        <name>Assign_QuoteLineItem_Values</name>
-        <label>Assign QuoteLineItem Values</label>
+        <name>SetQuoteLineItemValues</name>
+        <label>Set Quote Line Item Values</label>
         <locationX>182</locationX>
         <locationY>134</locationY>
         <assignmentItems>
@@ -118,83 +139,62 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Assign_Quote_Values</targetReference>
+            <targetReference>SetQuoteValues</targetReference>
         </connector>
     </assignments>
     <assignments>
-        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
-        <name>Create_Graph_Input</name>
-        <label>Create Graph Input</label>
+        <description>Creates a quote record reference that’s used within the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <name>SetQuoteValues</name>
+        <label>Set Quote Values</label>
         <locationX>182</locationX>
-        <locationY>350</locationY>
+        <locationY>242</locationY>
         <assignmentItems>
-            <assignToReference>PSTGraph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PSTGraph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteLineRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PSTGraph.graphId</assignToReference>
+            <assignToReference>QuoteRecordReference.record.type</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>placeholder</stringValue>
+                <stringValue>Quote</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteRecordReference.record.method</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>PATCH</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteRecordReference.record.id</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>QuoteId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteRecordReference.referenceId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>QuoteId</elementReference>
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>PlaceSalesTransactionCall</targetReference>
+            <targetReference>SetGraphInput</targetReference>
         </connector>
     </assignments>
-    <assignments>
-        <description>Indicate failure through an output message.</description>
-        <name>Failure_Message</name>
-        <label>Failure Message</label>
-        <locationX>314</locationX>
-        <locationY>782</locationY>
-        <assignmentItems>
-            <assignToReference>OutputMessage</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Discount was not successfully applied.</stringValue>
-            </value>
-        </assignmentItems>
-    </assignments>
-    <assignments>
-        <description>Indicate success through an output message.</description>
-        <name>Output_Message</name>
-        <label>Output Message</label>
-        <locationX>50</locationX>
-        <locationY>782</locationY>
-        <assignmentItems>
-            <assignToReference>OutputMessage</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Discount successfully applied. </stringValue>
-            </value>
-        </assignmentItems>
-    </assignments>
     <decisions>
-        <description>Validate if the discount has been applied successfully to the quote.</description>
-        <name>Validate_Success</name>
-        <label>Validate Success</label>
+        <description>Determines whether the discount was applied to the quote line item.</description>
+        <name>IsDiscountApplied</name>
+        <label>Is Discount Applied?</label>
         <locationX>182</locationX>
         <locationY>674</locationY>
         <defaultConnector>
-            <targetReference>Failure_Message</targetReference>
+            <targetReference>SetFailureMessage</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Failure</defaultConnectorLabel>
+        <defaultConnectorLabel>No(Default)</defaultConnectorLabel>
         <rules>
             <name>Discount_Applied</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_QuoteLineItem.Discount</leftValueReference>
+                <leftValueReference>GetQuoteLineItem.Discount</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <elementReference>DiscountPercentage</elementReference>
@@ -206,10 +206,10 @@
             <label>Discount Applied</label>
         </rules>
     </decisions>
-    <description>This action is used to apply discount percentage to the quote line by updating the DiscountPercentage field on the QuoteLineItem record on a Quote record. It accepts DiscountPercentage, Quote Id, and QuoteLineItem Id as required input.</description>
+    <description>Applies a discount, expressed as a percentage, to the individual quote line item.</description>
     <environments>Default</environments>
     <interviewLabel>Add Discount to QuoteLineItem {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Add Discount to QuoteLineItem</label>
+    <label>Add Discount to Quote Line Item</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -230,14 +230,14 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <description>Get the quote line item in order to validate that the discount has been applied successfully.</description>
-        <name>Get_QuoteLineItem</name>
-        <label>Get QuoteLineItem</label>
+        <description>Gets the quote line item record to validate that the discount was applied successfully.</description>
+        <name>GetQuoteLineItem</name>
+        <label>Get Quote Line Item</label>
         <locationX>182</locationX>
         <locationY>566</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Validate_Success</targetReference>
+            <targetReference>IsDiscountApplied</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -264,12 +264,12 @@
         <locationX>56</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Assign_QuoteLineItem_Values</targetReference>
+            <targetReference>SetQuoteLineItemValues</targetReference>
         </connector>
     </start>
     <status>Active</status>
     <variables>
-        <description>The discount percentage that should be applied to the QuoteLineItem. The input should be a number with up to 2 decimals. Maximum value is 100.</description>
+        <description>The discount, expressed as a percentage, that’s applied to the quote line item. The input value must be a number with up to decimals. For example, specifying 33.33 applies a 33.33% discount. The maximum value is 100.</description>
         <name>DiscountPercentage</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
@@ -278,7 +278,7 @@
         <scale>2</scale>
     </variables>
     <variables>
-        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.Discount field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.Discount field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
         <name>DiscountRecordMapWrapper</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
@@ -287,7 +287,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Defines the output message based on the new QuoteLineItem and updated Quote subtotal.</description>
+        <description>Defines the content of the output message using the quote line item and the updated subtotal for the quote</description>
         <name>OutputMessage</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -295,7 +295,7 @@
         <isOutput>true</isOutput>
     </variables>
     <variables>
-        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
+        <description>Sets values for the Graph Apex-defined type that’s used as an input for the PlaceSalesTransaction invocable action.</description>
         <name>PSTGraph</name>
         <apexClass>RevSalesTrxn__Graph</apexClass>
         <dataType>Apex</dataType>
@@ -304,7 +304,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Quote Id of the quote record upon which this action acts.</description>
+        <description>Stores the 18-character ID for the quote record that this flow modifies</description>
         <name>QuoteId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -312,7 +312,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>QuoteLineItem Id of the quote line item record upon which this action acts. This is not the Product2 Id.</description>
+        <description>Stores the 18-character ID for the quote line item record that this flow modifies.</description>
         <name>QuoteLineItemId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -320,7 +320,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>RecordReference for QuoteLineItem to be modified. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <description>Sets the record reference for the quote line item that this flow modifies. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
         <name>QuoteLineRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
@@ -329,7 +329,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>RecordReference for Quote to be modified. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <description>Sets the record reference for the quote that this flow modifies. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
         <name>QuoteRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
