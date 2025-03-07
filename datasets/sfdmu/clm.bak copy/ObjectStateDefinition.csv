@@ -1,3 +1,0 @@
-AdditionalField,AdditionalFieldValue,AppUsageType,IsActive,Name,ReferenceField,ReferenceObject,VersionNumber
-ContractType,Default,,true,Contract LifeCycle Management,Status,Contract,1
-ContractType,LegalType,,true,Legal,Status,Contract,1

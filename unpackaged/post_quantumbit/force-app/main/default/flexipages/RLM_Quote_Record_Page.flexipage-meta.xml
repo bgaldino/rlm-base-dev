@@ -113,6 +113,9 @@
                             <value>QuoteLineItem.Discount</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>QuoteLineItem.RC_Approval__c</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>QuoteLineItem.NetUnitPrice</value>
                         </valueListItems>
                         <valueListItems>
@@ -156,6 +159,12 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Quantity</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RC_Approval__c</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RC_Approval_Level_Calc__c</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -1250,6 +1259,10 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>Tabs</value>
+                </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>tabs</name>
                     <value>maintabs</value>

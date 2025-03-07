@@ -29,6 +29,13 @@ force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProced
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
 
+#unpackaged/post_agents/flows/Identify_QuoteLineItem_from_Product.flow-meta.xml
+#unpackaged/post_agents/genAiFunctions/Identify_QuoteLineItem_from_Product
+
+## Pilot Agent Components
+unpackaged/post_agents/flows/Get_Amend_Opportunities.flow-meta.xml
+unpackaged/post_agents/flows/Query_Quote_Line_Items_on_Quote.flow-meta.xml
+unpackaged/post_agents/flows/Query_Quotes_on_Account.flow-meta.xml
 
 # contextDefinitions
 force-app/main/default/contextDefinitions
@@ -55,24 +62,11 @@ unpackaged/post_sharing/force-app/main/default/objects
 ## pricingActionParameters
 unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
 
-## DRO Examples from PM
-force-app/main/default/flows/F1YG.flow-meta.xml
-force-app/main/default/contextDefinitions/ConsulateToContract_C.contextDefinition-meta.xml
-force-app/main/default/contextDefinitions/OpportunityToContract_C.contextDefinition-meta.xml
-force-app/main/default/contextDefinitions/OrderToContract_C.contextDefinition-meta.xml
-force-app/main/default/contextDefinitions/QuoteToContract_C.contextDefinition-meta.xml
-force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
-force-app/main/default/genAiPromptTemplates/Order_Delay_Emails.genAiPromptTemplate-meta.xml
-force-app/main/default/genAiPromptTemplates/Record_Summ.genAiPromptTemplate-meta.xml
 
 ## ADVANCED APPROVALS
 # classes
 #force-app/main/default/classes/RC_QuoteApprovalController.cls
 # flows
-#force-app/main/default/flows/Is_Any_Discount_Greater_than_30.flow-meta.xml
-#force-app/main/default/flows/Is_Discount_Greater_than_20.flow-meta.xml
-#force-app/main/default/flows/Is_there_a_Services_Offering.flow-meta.xml
-#force-app/main/default/flows/Quote_Approval_Process.flow-meta.xml
 #force-app/main/default/flows/RC_AA_Evaluate_Approval_Request.flow-meta.xml
 #force-app/main/default/flows/RC_AA_Quote_Approval.flow-meta.xml
 #force-app/main/default/flows/RC_AA_Set_Quote_Status.flow-meta.xml

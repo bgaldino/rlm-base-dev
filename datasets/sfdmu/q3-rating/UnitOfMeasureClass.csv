@@ -1,0 +1,10 @@
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status
+Each,CAS01,Each,Support Cases,Case,Active
+MIN,CALLUNITS01,MIN,Call Units in Minutes,Call Units,Active
+Count,SMS01,Count,Class for SMS,SMS,Active
+MB,DAT01,MB,The unit refers to the amount of data,Data,Active
+USD,CURRENCY,USD,,Currency,Active
+XFER,COUNT,XFER,,Count,Active
+,Grams,GRAMS,,Grams,Active
+,Litre,Litre,,Litre,Active
+Each,Unit,Each,,Unit,Inactive

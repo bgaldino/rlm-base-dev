@@ -4,7 +4,7 @@
   "properties" : {
     "ProductId" : {
       "title" : "ProductId",
-      "description" : "The product Id for the product to be added to the quote.",
+      "description" : "The Product2Id for the product to be added to the quote.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
@@ -19,6 +19,13 @@
     "QuoteId" : {
       "title" : "QuoteId",
       "description" : "The quote Id of the quote record to be modified.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "StartDate" : {
+      "title" : "StartDate",
+      "description" : "The startDate, needed only for subscription based products. The format must be yyyy-mm-dd. ",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true

@@ -6,19 +6,46 @@
         <description>Set the USERNAME of the User that will do the Director Approval</description>
         <name>constDirectorApproverUserName</name>
         <dataType>String</dataType>
+        <value>
+            <stringValue>bgaldino@bgaldino-250224-779.demo</stringValue>
+        </value>
     </constants>
     <constants>
         <description>Set the USERNAME of the User that will do the Manager Approval</description>
         <name>constManagerApproverUserName</name>
         <dataType>String</dataType>
         <value>
-            <stringValue>bgaldino@bgaldino-241014-677.demo</stringValue>
+            <stringValue>bgaldino@bgaldino-250224-779.demo</stringValue>
         </value>
     </constants>
     <constants>
         <description>Set the USERNAME of the User that will do the VP Approval</description>
         <name>constVPApproverUserName</name>
         <dataType>String</dataType>
+        <value>
+            <stringValue>bgaldino@bgaldino-250224-779.demo</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <name>directorGroupName</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Director</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <name>managerGroupName</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Manager</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <name>vpGroupName</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>VP</stringValue>
+        </value>
     </constants>
     <decisions>
         <name>Approve_or_Rejected_Level_2</name>
@@ -201,9 +228,9 @@
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <elementReference>constDirectorApproverUserName</elementReference>
+                    <elementReference>directorGroupName</elementReference>
                 </assignee>
-                <assigneeType>User</assigneeType>
+                <assigneeType>Group</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
             <entryConditionLogic>and</entryConditionLogic>
@@ -239,9 +266,9 @@
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <elementReference>constVPApproverUserName</elementReference>
+                    <elementReference>vpGroupName</elementReference>
                 </assignee>
-                <assigneeType>User</assigneeType>
+                <assigneeType>Group</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
             <entryConditionLogic>and</entryConditionLogic>
@@ -302,13 +329,19 @@
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <elementReference>constManagerApproverUserName</elementReference>
+                    <elementReference>managerGroupName</elementReference>
                 </assignee>
-                <assigneeType>User</assigneeType>
+                <assigneeType>Group</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
+            <inputParameters>
+                <name>recordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
             <inputParameters>
                 <name>ActionInput__RecordId</name>
                 <value>

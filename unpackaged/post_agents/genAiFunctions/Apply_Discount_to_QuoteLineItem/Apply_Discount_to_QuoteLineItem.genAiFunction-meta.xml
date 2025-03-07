@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>This action is used to apply discount percentage to the individual quote line item by updating the DiscountPercentage field on the QuoteLineItem record on a Quote record. It accepts DiscountPercentage, 18 digit Quote Id, and 18 digit QuoteLineItem Id as required input. Note that QuoteLineItem Id is different from the Product2 Id.</description>
+    <description>Apply a discount percentage to the individual quote line item. Ensure that the user has explicitly specified the line for which to apply the discount.</description>
     <invocationTarget>Add_Discount_to_QuoteLineItem</invocationTarget>
     <invocationTargetType>flow</invocationTargetType>
     <isConfirmationRequired>false</isConfirmationRequired>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ContextDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <canBeReferenceDefinition>false</canBeReferenceDefinition>
     <contextDefinitionVersions>
         <contextMappings>
             <contextMappingIntents>
@@ -205,6 +206,11 @@
                     <contextInputAttributeName>LegalEntity</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/LegalEntity</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>SavedPaymentMethod</contextAttribute>
+                    <contextInputAttributeName>SavedPaymentMethod</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/SavedPaymentMethod</inheritedFrom>
+                </contextAttributeMappings>
                 <contextNode>BillingTransaction</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction</inheritedFrom>
                 <object>Order</object>
@@ -261,6 +267,11 @@
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/BillingFrequency</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/RampIdentifier/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItem</objectName>
+                        <queryAttribute>RampIdentifier</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>RampIdentifier</contextAttribute>
                     <contextInputAttributeName>RampIdentifier</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/RampIdentifier</inheritedFrom>
@@ -413,6 +424,21 @@
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
                         <contextAttrHydrationDetails>
+                            <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/ProductUsageModelType/hydrationInfo-2</inheritedFrom>
+                            <objectName>Product2</objectName>
+                            <queryAttribute>UsageModelType</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/ProductUsageModelType/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItem</objectName>
+                        <queryAttribute>Product2</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ProductUsageModelType</contextAttribute>
+                    <contextInputAttributeName>ProductUsageModelType</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/ProductUsageModelType</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
                             <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/ProductName/hydrationInfo-2</inheritedFrom>
                             <objectName>Product2</objectName>
                             <queryAttribute>Name</queryAttribute>
@@ -454,6 +480,16 @@
                     <contextAttribute>Quantity</contextAttribute>
                     <contextInputAttributeName>Quantity</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/Quantity</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/UnitOfMeasure/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItem</objectName>
+                        <queryAttribute>QuantityUnitOfMeasureId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UnitOfMeasure</contextAttribute>
+                    <contextInputAttributeName>UnitOfMeasure</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/UnitOfMeasure</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
@@ -520,10 +556,6 @@
                     <contextInputAttributeName>UnitPrice</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/UnitPrice</inheritedFrom>
                 </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
                 <contextNode>BillingTransactionItem</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem</inheritedFrom>
                 <object>OrderItem</object>
@@ -588,10 +620,6 @@
                     <contextAttribute>ProductRelationshipType</contextAttribute>
                     <contextInputAttributeName>ProductRelationshipType</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemRelationship/ProductRelationshipType</inheritedFrom>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
                 </contextAttributeMappings>
                 <contextNode>BillingTransactionItemRelationship</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemRelationship</inheritedFrom>
@@ -678,317 +706,9 @@
                     <contextInputAttributeName>RelatedBillingTransactionItemDetail</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail/RelatedBillingTransactionItemDetail</inheritedFrom>
                 </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
                 <contextNode>BillingTransactionItemDetail</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail</inheritedFrom>
                 <object>OrderItemDetail</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Account</contextAttribute>
-                    <contextInputAttributeName>Account</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillDayOfMonth</contextAttribute>
-                    <contextInputAttributeName>BillDayOfMonth</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingCity</contextAttribute>
-                    <contextInputAttributeName>BillingCity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingCountry</contextAttribute>
-                    <contextInputAttributeName>BillingCountry</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingPostalCode</contextAttribute>
-                    <contextInputAttributeName>BillingPostalCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingState</contextAttribute>
-                    <contextInputAttributeName>BillingState</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingStreet</contextAttribute>
-                    <contextInputAttributeName>BillingStreet</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTransactionSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionSource</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillStartMonth</contextAttribute>
-                    <contextInputAttributeName>BillStartMonth</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillToContact</contextAttribute>
-                    <contextInputAttributeName>BillToContact</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>CurrencyIsoCode</contextAttribute>
-                    <contextInputAttributeName>CurrencyIsoCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>EndDate</contextAttribute>
-                    <contextInputAttributeName>EndDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>EffectiveNextBillingDate</contextAttribute>
-                    <contextInputAttributeName>EffectiveNextBillingDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PaymentTerm</contextAttribute>
-                    <contextInputAttributeName>PaymentTerm</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTerm</contextAttribute>
-                    <contextInputAttributeName>BillingTerm</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTermUnit</contextAttribute>
-                    <contextInputAttributeName>BillingTermUnit</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingType</contextAttribute>
-                    <contextInputAttributeName>BillingType</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingMethod</contextAttribute>
-                    <contextInputAttributeName>BillingMethod</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Controller</contextAttribute>
-                    <contextInputAttributeName>Controller</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PeriodBoundary</contextAttribute>
-                    <contextInputAttributeName>PeriodBoundary</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Product</contextAttribute>
-                    <contextInputAttributeName>Product</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProductName</contextAttribute>
-                    <contextInputAttributeName>ProductName</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProrationPolicy</contextAttribute>
-                    <contextInputAttributeName>ProrationPolicy</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingCity</contextAttribute>
-                    <contextInputAttributeName>ShippingCity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingCountry</contextAttribute>
-                    <contextInputAttributeName>ShippingCountry</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingPostalCode</contextAttribute>
-                    <contextInputAttributeName>ShippingPostalCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingState</contextAttribute>
-                    <contextInputAttributeName>ShippingState</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingStreet</contextAttribute>
-                    <contextInputAttributeName>ShippingStreet</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>StartDate</contextAttribute>
-                    <contextInputAttributeName>StartDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>CancellationDate</contextAttribute>
-                    <contextInputAttributeName>CancellationDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>LegalEntity</contextAttribute>
-                    <contextInputAttributeName>LegalEntity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTreatment</contextAttribute>
-                    <contextInputAttributeName>BillingTreatment</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TaxTreatment</contextAttribute>
-                    <contextInputAttributeName>TaxTreatment</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingScheduleGroup</contextNode>
-                <object>BillingScheduleGroup</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillDayOfMonth</contextAttribute>
-                    <contextInputAttributeName>BillDayOfMonth</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BilledAmount</contextAttribute>
-                    <contextInputAttributeName>BilledAmount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BilledThroughPeriod</contextAttribute>
-                    <contextInputAttributeName>BilledThroughPeriod</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingAccount</contextAttribute>
-                    <contextInputAttributeName>BillingAccount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingMethod</contextAttribute>
-                    <contextInputAttributeName>BillingMethod</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingPeriodAmount</contextAttribute>
-                    <contextInputAttributeName>BillingPeriodAmount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingScheduleGroup</contextAttribute>
-                    <contextInputAttributeName>BillingScheduleGroup</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTerm</contextAttribute>
-                    <contextInputAttributeName>BillingTerm</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTermUnit</contextAttribute>
-                    <contextInputAttributeName>BillingTermUnit</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTransactionItemSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionItemSource</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTransactionSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionSource</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTreatmentItem</contextAttribute>
-                    <contextInputAttributeName>BillingTreatmentItem</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingType</contextAttribute>
-                    <contextInputAttributeName>BillingType</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>CancellationDate</contextAttribute>
-                    <contextInputAttributeName>CancellationDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Category</contextAttribute>
-                    <contextInputAttributeName>Category</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>EndDate</contextAttribute>
-                    <contextInputAttributeName>EndDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>LineAmount</contextAttribute>
-                    <contextInputAttributeName>LineAmount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>NextBillingDate</contextAttribute>
-                    <contextInputAttributeName>NextBillingDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>NextChargeDate</contextAttribute>
-                    <contextInputAttributeName>NextChargeDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>OriginalBillingSchedule</contextAttribute>
-                    <contextInputAttributeName>OriginalBillingSchedule</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PendingAmount</contextAttribute>
-                    <contextInputAttributeName>PendingAmount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Quantity</contextAttribute>
-                    <contextInputAttributeName>Quantity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Reference</contextAttribute>
-                    <contextInputAttributeName>Reference</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ReferenceItem</contextAttribute>
-                    <contextInputAttributeName>ReferenceItem</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ReferenceEntity</contextAttribute>
-                    <contextInputAttributeName>ReferenceEntity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ReferenceEntityItem</contextAttribute>
-                    <contextInputAttributeName>ReferenceEntityItem</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>StartDate</contextAttribute>
-                    <contextInputAttributeName>StartDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Status</contextAttribute>
-                    <contextInputAttributeName>Status</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TaxTreatment</contextAttribute>
-                    <contextInputAttributeName>TaxTreatment</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TotalAmount</contextAttribute>
-                    <contextInputAttributeName>TotalAmount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Type</contextAttribute>
-                    <contextInputAttributeName>Type</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>UnitPrice</contextAttribute>
-                    <contextInputAttributeName>UnitPrice</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingSchedule</contextNode>
-                <object>BillingSchedule</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>MainBillingScheduleGroup</contextAttribute>
-                    <contextInputAttributeName>MainBillingScheduleGroup</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>AssociatedBillingScheduleGroup</contextAttribute>
-                    <contextInputAttributeName>AssociatedBillingScheduleGroup</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>MainBillingScheduleGroupRole</contextAttribute>
-                    <contextInputAttributeName>MainBillingScheduleGroupRole</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>AssociatedBillingScheduleGroupRole</contextAttribute>
-                    <contextInputAttributeName>AssociatedBillingScheduleGroupRole</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>AssociatedBillingScheduleGroupPricing</contextAttribute>
-                    <contextInputAttributeName>AssociatedBillingScheduleGroupPricing</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProductRelationshipType</contextAttribute>
-                    <contextInputAttributeName>ProductRelationshipType</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingScheduleGroupRelationship</contextNode>
-                <object>BillingScheduleGroupRelationship</object>
             </contextNodeMappings>
             <default>false</default>
             <description>Mapping between Order, OrderItem entities and the BillingTransaction Context</description>
@@ -1018,6 +738,16 @@
                     <contextAttribute>Account</contextAttribute>
                     <contextInputAttributeName>Account</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/Account</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/AnchorProdtBillingSchdGrp/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>AnchorProdtBillingSchdGrpId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AnchorProdtBillingSchdGrp</contextAttribute>
+                    <contextInputAttributeName>AnchorProdtBillingSchdGrp</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/AnchorProdtBillingSchdGrp</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
@@ -1339,6 +1069,21 @@
                     <contextInputAttributeName>TaxTreatment</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/TaxTreatment</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/BindingInstance/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>BindingInstanceId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>BindingInstance</contextAttribute>
+                    <contextInputAttributeName>BindingInstance</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/BindingInstance</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>SavedPaymentMethod</contextAttribute>
+                    <contextInputAttributeName>SavedPaymentMethod</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/SavedPaymentMethod</inheritedFrom>
+                </contextAttributeMappings>
                 <contextNode>BillingScheduleGroup</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup</inheritedFrom>
                 <object>BillingScheduleGroup</object>
@@ -1365,6 +1110,11 @@
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BilledAmount</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BilledThroughPeriod/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingSchedule</objectName>
+                        <queryAttribute>BilledThroughPeriod</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>BilledThroughPeriod</contextAttribute>
                     <contextInputAttributeName>BilledThroughPeriod</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BilledThroughPeriod</inheritedFrom>
@@ -1571,6 +1321,16 @@
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/UnitOfMeasure/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingSchedule</objectName>
+                        <queryAttribute>UnitOfMeasureId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UnitOfMeasure</contextAttribute>
+                    <contextInputAttributeName>UnitOfMeasure</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/UnitOfMeasure</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
                         <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/Reference/hydrationInfo-1</inheritedFrom>
                         <objectName>BillingSchedule</objectName>
                         <queryAttribute>Reference</queryAttribute>
@@ -1660,8 +1420,24 @@
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/UnitPrice</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/UsageResource/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingSchedule</objectName>
+                        <queryAttribute>UsageResourceId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UsageResource</contextAttribute>
+                    <contextInputAttributeName>UsageResource</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/UsageResource</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingMilestonePlan/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingSchedule</objectName>
+                        <queryAttribute>BillingMilestonePlanId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>BillingMilestonePlan</contextAttribute>
+                    <contextInputAttributeName>BillingMilestonePlan</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingMilestonePlan</inheritedFrom>
                 </contextAttributeMappings>
                 <contextNode>BillingSchedule</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule</inheritedFrom>
@@ -1728,696 +1504,15 @@
                     <contextInputAttributeName>ProductRelationshipType</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroupRelationship/ProductRelationshipType</inheritedFrom>
                 </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
                 <contextNode>BillingScheduleGroupRelationship</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroupRelationship</inheritedFrom>
                 <object>BsgRelationship</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Account</contextAttribute>
-                    <contextInputAttributeName>Account</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingCity</contextAttribute>
-                    <contextInputAttributeName>BillingCity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingCountry</contextAttribute>
-                    <contextInputAttributeName>BillingCountry</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingPostalCode</contextAttribute>
-                    <contextInputAttributeName>BillingPostalCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingState</contextAttribute>
-                    <contextInputAttributeName>BillingState</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingStreet</contextAttribute>
-                    <contextInputAttributeName>BillingStreet</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillToContact</contextAttribute>
-                    <contextInputAttributeName>BillToContact</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTransactionSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionSource</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>CurrencyIsoCode</contextAttribute>
-                    <contextInputAttributeName>CurrencyIsoCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>EndDate</contextAttribute>
-                    <contextInputAttributeName>EndDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PaymentTerm</contextAttribute>
-                    <contextInputAttributeName>PaymentTerm</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingCity</contextAttribute>
-                    <contextInputAttributeName>ShippingCity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingCountry</contextAttribute>
-                    <contextInputAttributeName>ShippingCountry</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingPostalCode</contextAttribute>
-                    <contextInputAttributeName>ShippingPostalCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingState</contextAttribute>
-                    <contextInputAttributeName>ShippingState</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ShippingStreet</contextAttribute>
-                    <contextInputAttributeName>ShippingStreet</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>StartDate</contextAttribute>
-                    <contextInputAttributeName>StartDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>StatusCode</contextAttribute>
-                    <contextInputAttributeName>StatusCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>LegalEntity</contextAttribute>
-                    <contextInputAttributeName>LegalEntity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingTransaction</contextNode>
-                <object>BillingTransaction</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Asset</contextAttribute>
-                    <contextInputAttributeName>Asset</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingAction</contextAttribute>
-                    <contextInputAttributeName>BillingAction</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingActionType</contextAttribute>
-                    <contextInputAttributeName>BillingActionType</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>RampIdentifier</contextAttribute>
-                    <contextInputAttributeName>RampIdentifier</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingFrequency</contextAttribute>
-                    <contextInputAttributeName>BillingFrequency</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTransactionItemSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionItemSource</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>BillingTreatment</contextAttribute>
-                    <contextInputAttributeName>BillingTreatment</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>CurrencyIsoCode</contextAttribute>
-                    <contextInputAttributeName>CurrencyIsoCode</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>EndDate</contextAttribute>
-                    <contextInputAttributeName>EndDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PeriodBoundary</contextAttribute>
-                    <contextInputAttributeName>PeriodBoundary</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PeriodBoundaryDay</contextAttribute>
-                    <contextInputAttributeName>PeriodBoundaryDay</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PeriodBoundaryStartMonth</contextAttribute>
-                    <contextInputAttributeName>PeriodBoundaryStartMonth</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PricebookEntry</contextAttribute>
-                    <contextInputAttributeName>PricebookEntry</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PricingTerm</contextAttribute>
-                    <contextInputAttributeName>PricingTerm</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>PricingTermUnit</contextAttribute>
-                    <contextInputAttributeName>PricingTermUnit</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProductBillingPolicy</contextAttribute>
-                    <contextInputAttributeName>ProductBillingPolicy</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Product</contextAttribute>
-                    <contextInputAttributeName>Product</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProductName</contextAttribute>
-                    <contextInputAttributeName>ProductName</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProductSellingModel</contextAttribute>
-                    <contextInputAttributeName>ProductSellingModel</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProrationPolicy</contextAttribute>
-                    <contextInputAttributeName>ProrationPolicy</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Quantity</contextAttribute>
-                    <contextInputAttributeName>Quantity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>RelatedBillingTransactionItem</contextAttribute>
-                    <contextInputAttributeName>RelatedBillingTransactionItem</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>SellingModelType</contextAttribute>
-                    <contextInputAttributeName>SellingModelType</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>StartDate</contextAttribute>
-                    <contextInputAttributeName>StartDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TaxTreatment</contextAttribute>
-                    <contextInputAttributeName>TaxTreatment</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>LegalEntity</contextAttribute>
-                    <contextInputAttributeName>LegalEntity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TotalPrice</contextAttribute>
-                    <contextInputAttributeName>TotalPrice</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>UnitPrice</contextAttribute>
-                    <contextInputAttributeName>UnitPrice</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingTransactionItem</contextNode>
-                <object>BillingTransactionItem</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>MainBillingTransactionItem</contextAttribute>
-                    <contextInputAttributeName>MainBillingTransactionItem</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>AssociatedBillingTransactionItem</contextAttribute>
-                    <contextInputAttributeName>AssociatedBillingTransactionItem</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>MainBillingTransactionItemRole</contextAttribute>
-                    <contextInputAttributeName>MainBillingTransactionItemRole</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>AssociatedBillingTransactionItemRole</contextAttribute>
-                    <contextInputAttributeName>AssociatedBillingTransactionItemRole</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>AssociatedBillingTransactionItemPricing</contextAttribute>
-                    <contextInputAttributeName>AssociatedBillingTransactionItemPricing</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ProductRelationshipType</contextAttribute>
-                    <contextInputAttributeName>ProductRelationshipType</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingTransactionItemRelationship</contextNode>
-                <object>BillingTransactionItemRelationship</object>
-            </contextNodeMappings>
-            <contextNodeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Parent</contextAttribute>
-                    <contextInputAttributeName>Parent</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>Quantity</contextAttribute>
-                    <contextInputAttributeName>Quantity</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>UnitPrice</contextAttribute>
-                    <contextInputAttributeName>UnitPrice</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>NetUnitPrice</contextAttribute>
-                    <contextInputAttributeName>NetUnitPrice</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TotalPrice</contextAttribute>
-                    <contextInputAttributeName>TotalPrice</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>TotalLineAmount</contextAttribute>
-                    <contextInputAttributeName>TotalLineAmount</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ReferenceDate</contextAttribute>
-                    <contextInputAttributeName>ReferenceDate</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>RelatedBillingTransactionItemDetail</contextAttribute>
-                    <contextInputAttributeName>RelatedBillingTransactionItemDetail</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttribute>ParentReference</contextAttribute>
-                    <contextInputAttributeName>ParentReference</contextInputAttributeName>
-                </contextAttributeMappings>
-                <contextNode>BillingTransactionItemDetail</contextNode>
-                <object>BillingTransactionItemDetail</object>
             </contextNodeMappings>
             <default>true</default>
             <description>Mapping to map Billing Schedule Group with BillingTransaction Context</description>
             <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping</inheritedFrom>
             <title>BSGEntitiesMapping</title>
         </contextMappings>
-        <contextNodes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Account/BillingScheduleGroupAccount</inheritedFrom>
-                    <title>BillingScheduleGroupAccount</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Account</inheritedFrom>
-                <key>false</key>
-                <title>Account</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillDayOfMonth/BillingScheduleGroupBillDayOfMonth</inheritedFrom>
-                    <title>BillingScheduleGroupBillDayOfMonth</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillDayOfMonth</inheritedFrom>
-                <key>false</key>
-                <title>BillDayOfMonth</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCity/BillingScheduleGroupBillingCity</inheritedFrom>
-                    <title>BillingScheduleGroupBillingCity</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCity</inheritedFrom>
-                <key>false</key>
-                <title>BillingCity</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCountry/BillingScheduleGroupBillingCountry</inheritedFrom>
-                    <title>BillingScheduleGroupBillingCountry</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCountry</inheritedFrom>
-                <key>false</key>
-                <title>BillingCountry</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingPostalCode/BillingScheduleGroupBillingPostalCode</inheritedFrom>
-                    <title>BillingScheduleGroupBillingPostalCode</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingPostalCode</inheritedFrom>
-                <key>false</key>
-                <title>BillingPostalCode</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingState/BillingScheduleGroupBillingState</inheritedFrom>
-                    <title>BillingScheduleGroupBillingState</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingState</inheritedFrom>
-                <key>false</key>
-                <title>BillingState</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingStreet/BillingScheduleGroupBillingStreet</inheritedFrom>
-                    <title>BillingScheduleGroupBillingStreet</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingStreet</inheritedFrom>
-                <key>false</key>
-                <title>BillingStreet</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTransactionSource/BillingScheduleGroupBillingTransactionSource</inheritedFrom>
-                    <title>BillingScheduleGroupBillingTransactionSource</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTransactionSource</inheritedFrom>
-                <key>false</key>
-                <title>BillingTransactionSource</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillStartMonth/BillingScheduleGroupBillStartMonth</inheritedFrom>
-                    <title>BillingScheduleGroupBillStartMonth</title>
-                </contextTags>
-                <dataType>picklist</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillStartMonth</inheritedFrom>
-                <key>false</key>
-                <title>BillStartMonth</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillToContact/BillingScheduleGroupBillToContact</inheritedFrom>
-                    <title>BillingScheduleGroupBillToContact</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillToContact</inheritedFrom>
-                <key>false</key>
-                <title>BillToContact</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CurrencyIsoCode/BillingScheduleGroupCurrencyIsoCode</inheritedFrom>
-                    <title>BillingScheduleGroupCurrencyIsoCode</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CurrencyIsoCode</inheritedFrom>
-                <key>false</key>
-                <title>CurrencyIsoCode</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EndDate/BillingScheduleGroupEndDate</inheritedFrom>
-                    <title>BillingScheduleGroupEndDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EndDate</inheritedFrom>
-                <key>false</key>
-                <title>EndDate</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EffectiveNextBillingDate/BillingScheduleGroupEffectiveNextBillingDate</inheritedFrom>
-                    <title>BillingScheduleGroupEffectiveNextBillingDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EffectiveNextBillingDate</inheritedFrom>
-                <key>false</key>
-                <title>EffectiveNextBillingDate</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PaymentTerm/BillingScheduleGroupPaymentTerm</inheritedFrom>
-                    <title>BillingScheduleGroupPaymentTerm</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PaymentTerm</inheritedFrom>
-                <key>false</key>
-                <title>PaymentTerm</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTerm/BillingScheduleGroupBillingTerm</inheritedFrom>
-                    <title>BillingScheduleGroupBillingTerm</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTerm</inheritedFrom>
-                <key>false</key>
-                <title>BillingTerm</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTermUnit/BillingScheduleGroupBillingTermUnit</inheritedFrom>
-                    <title>BillingScheduleGroupBillingTermUnit</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTermUnit</inheritedFrom>
-                <key>false</key>
-                <title>BillingTermUnit</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingType/BillingScheduleGroupBillingType</inheritedFrom>
-                    <title>BillingScheduleGroupBillingType</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingType</inheritedFrom>
-                <key>false</key>
-                <title>BillingType</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingMethod/BillingScheduleGroupBillingMethod</inheritedFrom>
-                    <title>BillingScheduleGroupBillingMethod</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingMethod</inheritedFrom>
-                <key>false</key>
-                <title>BillingMethod</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Controller/BillingScheduleGroupController</inheritedFrom>
-                    <title>BillingScheduleGroupController</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Controller</inheritedFrom>
-                <key>false</key>
-                <title>Controller</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PeriodBoundary/BillingScheduleGroupPeriodBoundary</inheritedFrom>
-                    <title>BillingScheduleGroupPeriodBoundary</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PeriodBoundary</inheritedFrom>
-                <key>false</key>
-                <title>PeriodBoundary</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Product/BillingScheduleGroupProduct</inheritedFrom>
-                    <title>BillingScheduleGroupProduct</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Product</inheritedFrom>
-                <key>false</key>
-                <title>Product</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProductName/BillingScheduleGroupProductName</inheritedFrom>
-                    <title>BillingScheduleGroupProductName</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProductName</inheritedFrom>
-                <key>false</key>
-                <title>ProductName</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProrationPolicy/BillingScheduleGroupProrationPolicy</inheritedFrom>
-                    <title>BillingScheduleGroupProrationPolicy</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProrationPolicy</inheritedFrom>
-                <key>false</key>
-                <title>ProrationPolicy</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCity/BillingScheduleGroupShippingCity</inheritedFrom>
-                    <title>BillingScheduleGroupShippingCity</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCity</inheritedFrom>
-                <key>false</key>
-                <title>ShippingCity</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCountry/BillingScheduleGroupShippingCountry</inheritedFrom>
-                    <title>BillingScheduleGroupShippingCountry</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCountry</inheritedFrom>
-                <key>false</key>
-                <title>ShippingCountry</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingPostalCode/BillingScheduleGroupShippingPostalCode</inheritedFrom>
-                    <title>BillingScheduleGroupShippingPostalCode</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingPostalCode</inheritedFrom>
-                <key>false</key>
-                <title>ShippingPostalCode</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingState/BillingScheduleGroupShippingState</inheritedFrom>
-                    <title>BillingScheduleGroupShippingState</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingState</inheritedFrom>
-                <key>false</key>
-                <title>ShippingState</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingStreet/BillingScheduleGroupShippingStreet</inheritedFrom>
-                    <title>BillingScheduleGroupShippingStreet</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingStreet</inheritedFrom>
-                <key>false</key>
-                <title>ShippingStreet</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/StartDate/BillingScheduleGroupStartDate</inheritedFrom>
-                    <title>BillingScheduleGroupStartDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/StartDate</inheritedFrom>
-                <key>false</key>
-                <title>StartDate</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CancellationDate/BillingScheduleGroupCancellationDate</inheritedFrom>
-                    <title>BillingScheduleGroupCancellationDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CancellationDate</inheritedFrom>
-                <key>false</key>
-                <title>CancellationDate</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/LegalEntity/BillingScheduleGroupLegalEntity</inheritedFrom>
-                    <title>BillingScheduleGroupLegalEntity</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/LegalEntity</inheritedFrom>
-                <key>false</key>
-                <title>LegalEntity</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTreatment/BillingScheduleGroupBillingTreatment</inheritedFrom>
-                    <title>BillingScheduleGroupBillingTreatment</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTreatment</inheritedFrom>
-                <key>false</key>
-                <title>BillingTreatment</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/TaxTreatment/BillingScheduleGroupTaxTreatment</inheritedFrom>
-                    <title>BillingScheduleGroupTaxTreatment</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/TaxTreatment</inheritedFrom>
-                <key>false</key>
-                <title>TaxTreatment</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextTags>
-                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroup</inheritedFrom>
-                <title>BillingScheduleGroup</title>
-            </contextTags>
-            <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup</inheritedFrom>
-            <title>BillingScheduleGroup</title>
-            <transposable>false</transposable>
-        </contextNodes>
         <contextNodes>
             <contextAttributes>
                 <contextTags>
@@ -2429,6 +1524,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/Account</inheritedFrom>
                 <key>false</key>
                 <title>Account</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2441,6 +1537,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingCity</inheritedFrom>
                 <key>false</key>
                 <title>BillingCity</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2453,6 +1550,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingCountry</inheritedFrom>
                 <key>false</key>
                 <title>BillingCountry</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2465,6 +1563,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingPostalCode</inheritedFrom>
                 <key>false</key>
                 <title>BillingPostalCode</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2477,6 +1576,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingState</inheritedFrom>
                 <key>false</key>
                 <title>BillingState</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2489,6 +1589,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingStreet</inheritedFrom>
                 <key>false</key>
                 <title>BillingStreet</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2501,6 +1602,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillToContact</inheritedFrom>
                 <key>false</key>
                 <title>BillToContact</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2513,6 +1615,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionSource</inheritedFrom>
                 <key>false</key>
                 <title>BillingTransactionSource</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2525,6 +1628,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/CurrencyIsoCode</inheritedFrom>
                 <key>false</key>
                 <title>CurrencyIsoCode</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2537,6 +1641,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/EndDate</inheritedFrom>
                 <key>false</key>
                 <title>EndDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2549,6 +1654,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/PaymentTerm</inheritedFrom>
                 <key>false</key>
                 <title>PaymentTerm</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2561,6 +1667,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/ShippingCity</inheritedFrom>
                 <key>false</key>
                 <title>ShippingCity</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2573,6 +1680,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/ShippingCountry</inheritedFrom>
                 <key>false</key>
                 <title>ShippingCountry</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2585,6 +1693,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/ShippingPostalCode</inheritedFrom>
                 <key>false</key>
                 <title>ShippingPostalCode</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2597,6 +1706,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/ShippingState</inheritedFrom>
                 <key>false</key>
                 <title>ShippingState</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2609,6 +1719,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/ShippingStreet</inheritedFrom>
                 <key>false</key>
                 <title>ShippingStreet</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2621,6 +1732,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/StartDate</inheritedFrom>
                 <key>false</key>
                 <title>StartDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2633,6 +1745,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/StatusCode</inheritedFrom>
                 <key>false</key>
                 <title>StatusCode</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2645,6 +1758,20 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/LegalEntity</inheritedFrom>
                 <key>false</key>
                 <title>LegalEntity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/SavedPaymentMethod/BillingTransactionSavedPaymentMethod</inheritedFrom>
+                    <title>BillingTransactionSavedPaymentMethod</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/SavedPaymentMethod</inheritedFrom>
+                <key>false</key>
+                <title>SavedPaymentMethod</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextTags>
@@ -2658,6 +1785,892 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Account/BillingScheduleGroupAccount</inheritedFrom>
+                    <title>BillingScheduleGroupAccount</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Account</inheritedFrom>
+                <key>false</key>
+                <title>Account</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/AnchorProdtBillingSchdGrp/BillingScheduleGroupAnchorProdtBillingSchdGrp</inheritedFrom>
+                    <title>BillingScheduleGroupAnchorProdtBillingSchdGrp</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/AnchorProdtBillingSchdGrp</inheritedFrom>
+                <key>false</key>
+                <title>AnchorProdtBillingSchdGrp</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillDayOfMonth/BillingScheduleGroupBillDayOfMonth</inheritedFrom>
+                    <title>BillingScheduleGroupBillDayOfMonth</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillDayOfMonth</inheritedFrom>
+                <key>false</key>
+                <title>BillDayOfMonth</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCity/BillingScheduleGroupBillingCity</inheritedFrom>
+                    <title>BillingScheduleGroupBillingCity</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCity</inheritedFrom>
+                <key>false</key>
+                <title>BillingCity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCountry/BillingScheduleGroupBillingCountry</inheritedFrom>
+                    <title>BillingScheduleGroupBillingCountry</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingCountry</inheritedFrom>
+                <key>false</key>
+                <title>BillingCountry</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingPostalCode/BillingScheduleGroupBillingPostalCode</inheritedFrom>
+                    <title>BillingScheduleGroupBillingPostalCode</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingPostalCode</inheritedFrom>
+                <key>false</key>
+                <title>BillingPostalCode</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingState/BillingScheduleGroupBillingState</inheritedFrom>
+                    <title>BillingScheduleGroupBillingState</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingState</inheritedFrom>
+                <key>false</key>
+                <title>BillingState</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingStreet/BillingScheduleGroupBillingStreet</inheritedFrom>
+                    <title>BillingScheduleGroupBillingStreet</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingStreet</inheritedFrom>
+                <key>false</key>
+                <title>BillingStreet</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTransactionSource/BillingScheduleGroupBillingTransactionSource</inheritedFrom>
+                    <title>BillingScheduleGroupBillingTransactionSource</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTransactionSource</inheritedFrom>
+                <key>false</key>
+                <title>BillingTransactionSource</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillStartMonth/BillingScheduleGroupBillStartMonth</inheritedFrom>
+                    <title>BillingScheduleGroupBillStartMonth</title>
+                </contextTags>
+                <dataType>picklist</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillStartMonth</inheritedFrom>
+                <key>false</key>
+                <title>BillStartMonth</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillToContact/BillingScheduleGroupBillToContact</inheritedFrom>
+                    <title>BillingScheduleGroupBillToContact</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillToContact</inheritedFrom>
+                <key>false</key>
+                <title>BillToContact</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CurrencyIsoCode/BillingScheduleGroupCurrencyIsoCode</inheritedFrom>
+                    <title>BillingScheduleGroupCurrencyIsoCode</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CurrencyIsoCode</inheritedFrom>
+                <key>false</key>
+                <title>CurrencyIsoCode</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EndDate/BillingScheduleGroupEndDate</inheritedFrom>
+                    <title>BillingScheduleGroupEndDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EndDate</inheritedFrom>
+                <key>false</key>
+                <title>EndDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EffectiveNextBillingDate/BillingScheduleGroupEffectiveNextBillingDate</inheritedFrom>
+                    <title>BillingScheduleGroupEffectiveNextBillingDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/EffectiveNextBillingDate</inheritedFrom>
+                <key>false</key>
+                <title>EffectiveNextBillingDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PaymentTerm/BillingScheduleGroupPaymentTerm</inheritedFrom>
+                    <title>BillingScheduleGroupPaymentTerm</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PaymentTerm</inheritedFrom>
+                <key>false</key>
+                <title>PaymentTerm</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTerm/BillingScheduleGroupBillingTerm</inheritedFrom>
+                    <title>BillingScheduleGroupBillingTerm</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTerm</inheritedFrom>
+                <key>false</key>
+                <title>BillingTerm</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTermUnit/BillingScheduleGroupBillingTermUnit</inheritedFrom>
+                    <title>BillingScheduleGroupBillingTermUnit</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTermUnit</inheritedFrom>
+                <key>false</key>
+                <title>BillingTermUnit</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingType/BillingScheduleGroupBillingType</inheritedFrom>
+                    <title>BillingScheduleGroupBillingType</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingType</inheritedFrom>
+                <key>false</key>
+                <title>BillingType</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingMethod/BillingScheduleGroupBillingMethod</inheritedFrom>
+                    <title>BillingScheduleGroupBillingMethod</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingMethod</inheritedFrom>
+                <key>false</key>
+                <title>BillingMethod</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Controller/BillingScheduleGroupController</inheritedFrom>
+                    <title>BillingScheduleGroupController</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Controller</inheritedFrom>
+                <key>false</key>
+                <title>Controller</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PeriodBoundary/BillingScheduleGroupPeriodBoundary</inheritedFrom>
+                    <title>BillingScheduleGroupPeriodBoundary</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/PeriodBoundary</inheritedFrom>
+                <key>false</key>
+                <title>PeriodBoundary</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Product/BillingScheduleGroupProduct</inheritedFrom>
+                    <title>BillingScheduleGroupProduct</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/Product</inheritedFrom>
+                <key>false</key>
+                <title>Product</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProductName/BillingScheduleGroupProductName</inheritedFrom>
+                    <title>BillingScheduleGroupProductName</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProductName</inheritedFrom>
+                <key>false</key>
+                <title>ProductName</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProrationPolicy/BillingScheduleGroupProrationPolicy</inheritedFrom>
+                    <title>BillingScheduleGroupProrationPolicy</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ProrationPolicy</inheritedFrom>
+                <key>false</key>
+                <title>ProrationPolicy</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCity/BillingScheduleGroupShippingCity</inheritedFrom>
+                    <title>BillingScheduleGroupShippingCity</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCity</inheritedFrom>
+                <key>false</key>
+                <title>ShippingCity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCountry/BillingScheduleGroupShippingCountry</inheritedFrom>
+                    <title>BillingScheduleGroupShippingCountry</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingCountry</inheritedFrom>
+                <key>false</key>
+                <title>ShippingCountry</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingPostalCode/BillingScheduleGroupShippingPostalCode</inheritedFrom>
+                    <title>BillingScheduleGroupShippingPostalCode</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingPostalCode</inheritedFrom>
+                <key>false</key>
+                <title>ShippingPostalCode</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingState/BillingScheduleGroupShippingState</inheritedFrom>
+                    <title>BillingScheduleGroupShippingState</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingState</inheritedFrom>
+                <key>false</key>
+                <title>ShippingState</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingStreet/BillingScheduleGroupShippingStreet</inheritedFrom>
+                    <title>BillingScheduleGroupShippingStreet</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingStreet</inheritedFrom>
+                <key>false</key>
+                <title>ShippingStreet</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/StartDate/BillingScheduleGroupStartDate</inheritedFrom>
+                    <title>BillingScheduleGroupStartDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/StartDate</inheritedFrom>
+                <key>false</key>
+                <title>StartDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CancellationDate/BillingScheduleGroupCancellationDate</inheritedFrom>
+                    <title>BillingScheduleGroupCancellationDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/CancellationDate</inheritedFrom>
+                <key>false</key>
+                <title>CancellationDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/LegalEntity/BillingScheduleGroupLegalEntity</inheritedFrom>
+                    <title>BillingScheduleGroupLegalEntity</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/LegalEntity</inheritedFrom>
+                <key>false</key>
+                <title>LegalEntity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTreatment/BillingScheduleGroupBillingTreatment</inheritedFrom>
+                    <title>BillingScheduleGroupBillingTreatment</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingTreatment</inheritedFrom>
+                <key>false</key>
+                <title>BillingTreatment</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/TaxTreatment/BillingScheduleGroupTaxTreatment</inheritedFrom>
+                    <title>BillingScheduleGroupTaxTreatment</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/TaxTreatment</inheritedFrom>
+                <key>false</key>
+                <title>TaxTreatment</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BindingInstance/BillingScheduleGroupBindingInstance</inheritedFrom>
+                    <title>BillingScheduleGroupBindingInstance</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BindingInstance</inheritedFrom>
+                <key>false</key>
+                <title>BindingInstance</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/SavedPaymentMethod/BillingScheduleGroupSavedPaymentMethod</inheritedFrom>
+                    <title>BillingScheduleGroupSavedPaymentMethod</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/SavedPaymentMethod</inheritedFrom>
+                <key>false</key>
+                <title>SavedPaymentMethod</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroup</inheritedFrom>
+                <title>BillingScheduleGroup</title>
+            </contextTags>
+            <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup</inheritedFrom>
+            <title>BillingScheduleGroup</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Asset/BillingTransactionItemAsset</inheritedFrom>
+                    <title>BillingTransactionItemAsset</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Asset</inheritedFrom>
+                <key>false</key>
+                <title>Asset</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingAction/BillingTransactionItemBillingAction</inheritedFrom>
+                    <title>BillingTransactionItemBillingAction</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingAction</inheritedFrom>
+                <key>false</key>
+                <title>BillingAction</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingActionType/BillingTransactionItemBillingActionType</inheritedFrom>
+                    <title>BillingTransactionItemBillingActionType</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingActionType</inheritedFrom>
+                <key>false</key>
+                <title>BillingActionType</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RampIdentifier/BillingTransactionItemRampIdentifier</inheritedFrom>
+                    <title>BillingTransactionItemRampIdentifier</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RampIdentifier</inheritedFrom>
+                <key>false</key>
+                <title>RampIdentifier</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingFrequency/BillingTransactionItemBillingFrequency</inheritedFrom>
+                    <title>BillingTransactionItemBillingFrequency</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingFrequency</inheritedFrom>
+                <key>false</key>
+                <title>BillingFrequency</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemSource/BillingTransactionItemSource</inheritedFrom>
+                    <title>BillingTransactionItemSource</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemSource</inheritedFrom>
+                <key>false</key>
+                <title>BillingTransactionItemSource</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTreatment/BillingTransactionItemBillingTreatment</inheritedFrom>
+                    <title>BillingTransactionItemBillingTreatment</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTreatment</inheritedFrom>
+                <key>false</key>
+                <title>BillingTreatment</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/CurrencyIsoCode/BillingTransactionItemCurrencyIsoCode</inheritedFrom>
+                    <title>BillingTransactionItemCurrencyIsoCode</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/CurrencyIsoCode</inheritedFrom>
+                <key>false</key>
+                <title>CurrencyIsoCode</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/EndDate/BillingTransactionItemEndDate</inheritedFrom>
+                    <title>BillingTransactionItemEndDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/EndDate</inheritedFrom>
+                <key>false</key>
+                <title>EndDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundary/BillingTransactionItemPeriodBoundary</inheritedFrom>
+                    <title>BillingTransactionItemPeriodBoundary</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundary</inheritedFrom>
+                <key>false</key>
+                <title>PeriodBoundary</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryDay/BillingTransactionItemPeriodBoundaryDay</inheritedFrom>
+                    <title>BillingTransactionItemPeriodBoundaryDay</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryDay</inheritedFrom>
+                <key>false</key>
+                <title>PeriodBoundaryDay</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryStartMonth/BillingTransactionItemPeriodBoundaryStartMonth</inheritedFrom>
+                    <title>BillingTransactionItemPeriodBoundaryStartMonth</title>
+                </contextTags>
+                <dataType>picklist</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryStartMonth</inheritedFrom>
+                <key>false</key>
+                <title>PeriodBoundaryStartMonth</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricebookEntry/BillingTransactionItemPricebookEntry</inheritedFrom>
+                    <title>BillingTransactionItemPricebookEntry</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricebookEntry</inheritedFrom>
+                <key>false</key>
+                <title>PricebookEntry</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTerm/BillingTransactionItemPricingTerm</inheritedFrom>
+                    <title>BillingTransactionItemPricingTerm</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTerm</inheritedFrom>
+                <key>false</key>
+                <title>PricingTerm</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTermUnit/BillingTransactionItemPricingTermUnit</inheritedFrom>
+                    <title>BillingTransactionItemPricingTermUnit</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTermUnit</inheritedFrom>
+                <key>false</key>
+                <title>PricingTermUnit</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductBillingPolicy/BillingTransactionItemProductBillingPolicy</inheritedFrom>
+                    <title>BillingTransactionItemProductBillingPolicy</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductBillingPolicy</inheritedFrom>
+                <key>false</key>
+                <title>ProductBillingPolicy</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductUsageModelType/BillingTransactionItemProductUsageModelType</inheritedFrom>
+                    <title>BillingTransactionItemProductUsageModelType</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductUsageModelType</inheritedFrom>
+                <key>false</key>
+                <title>ProductUsageModelType</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Product/BillingTransactionItemProduct</inheritedFrom>
+                    <title>BillingTransactionItemProduct</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Product</inheritedFrom>
+                <key>false</key>
+                <title>Product</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductName/BillingTransactionItemProductName</inheritedFrom>
+                    <title>BillingTransactionItemProductName</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductName</inheritedFrom>
+                <key>false</key>
+                <title>ProductName</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductSellingModel/BillingTransactionItemProductSellingModel</inheritedFrom>
+                    <title>BillingTransactionItemProductSellingModel</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductSellingModel</inheritedFrom>
+                <key>false</key>
+                <title>ProductSellingModel</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProrationPolicy/BillingTransactionItemProrationPolicy</inheritedFrom>
+                    <title>BillingTransactionItemProrationPolicy</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProrationPolicy</inheritedFrom>
+                <key>false</key>
+                <title>ProrationPolicy</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Quantity/BillingTransactionItemQuantity</inheritedFrom>
+                    <title>BillingTransactionItemQuantity</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Quantity</inheritedFrom>
+                <key>false</key>
+                <title>Quantity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/UnitOfMeasure/BillingTransactionItemUnitOfMeasure</inheritedFrom>
+                    <title>BillingTransactionItemUnitOfMeasure</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/UnitOfMeasure</inheritedFrom>
+                <key>false</key>
+                <title>UnitOfMeasure</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RelatedBillingTransactionItem/RelatedBillingTransactionItem</inheritedFrom>
+                    <title>RelatedBillingTransactionItem</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RelatedBillingTransactionItem</inheritedFrom>
+                <key>false</key>
+                <title>RelatedBillingTransactionItem</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/SellingModelType/BillingTransactionItemSellingModelType</inheritedFrom>
+                    <title>BillingTransactionItemSellingModelType</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/SellingModelType</inheritedFrom>
+                <key>false</key>
+                <title>SellingModelType</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/StartDate/BillingTransactionItemStartDate</inheritedFrom>
+                    <title>BillingTransactionItemStartDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/StartDate</inheritedFrom>
+                <key>false</key>
+                <title>StartDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TaxTreatment/BillingTransactionItemTaxTreatment</inheritedFrom>
+                    <title>BillingTransactionItemTaxTreatment</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TaxTreatment</inheritedFrom>
+                <key>false</key>
+                <title>TaxTreatment</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/LegalEntity/BillingTransactionItemLegalEntity</inheritedFrom>
+                    <title>BillingTransactionItemLegalEntity</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/LegalEntity</inheritedFrom>
+                <key>false</key>
+                <title>LegalEntity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TotalPrice/BillingTransactionItemTotalPrice</inheritedFrom>
+                    <title>BillingTransactionItemTotalPrice</title>
+                </contextTags>
+                <dataType>currency</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TotalPrice</inheritedFrom>
+                <key>false</key>
+                <title>TotalPrice</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/UnitPrice/BillingTransactionItemUnitPrice</inheritedFrom>
+                    <title>BillingTransactionItemUnitPrice</title>
+                </contextTags>
+                <dataType>currency</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/UnitPrice</inheritedFrom>
+                <key>false</key>
+                <title>UnitPrice</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <dataType>reference</dataType>
+                <domainSet>BillingTransaction</domainSet>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ParentReference</inheritedFrom>
+                <key>false</key>
+                <title>ParentReference</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItem</inheritedFrom>
+                <title>BillingTransactionItem</title>
+            </contextTags>
+            <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem</inheritedFrom>
+            <title>BillingTransactionItem</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillDayOfMonth/BillingScheduleBillDayOfMonth</inheritedFrom>
                     <title>BillingScheduleBillDayOfMonth</title>
                 </contextTags>
@@ -2666,6 +2679,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillDayOfMonth</inheritedFrom>
                 <key>false</key>
                 <title>BillDayOfMonth</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2678,6 +2692,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BilledAmount</inheritedFrom>
                 <key>false</key>
                 <title>BilledAmount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2690,6 +2705,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BilledThroughPeriod</inheritedFrom>
                 <key>false</key>
                 <title>BilledThroughPeriod</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2702,6 +2718,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingAccount</inheritedFrom>
                 <key>false</key>
                 <title>BillingAccount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2714,6 +2731,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingMethod</inheritedFrom>
                 <key>false</key>
                 <title>BillingMethod</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2726,6 +2744,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingPeriodAmount</inheritedFrom>
                 <key>false</key>
                 <title>BillingPeriodAmount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2738,6 +2757,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingScheduleGroup</inheritedFrom>
                 <key>false</key>
                 <title>BillingScheduleGroup</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2750,6 +2770,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingTerm</inheritedFrom>
                 <key>false</key>
                 <title>BillingTerm</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2762,6 +2783,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingTermUnit</inheritedFrom>
                 <key>false</key>
                 <title>BillingTermUnit</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2774,6 +2796,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingTransactionItemSource</inheritedFrom>
                 <key>false</key>
                 <title>BillingTransactionItemSource</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2786,6 +2809,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingTransactionSource</inheritedFrom>
                 <key>false</key>
                 <title>BillingTransactionSource</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2798,6 +2822,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingTreatmentItem</inheritedFrom>
                 <key>false</key>
                 <title>BillingTreatmentItem</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2810,6 +2835,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingType</inheritedFrom>
                 <key>false</key>
                 <title>BillingType</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2822,6 +2848,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/CancellationDate</inheritedFrom>
                 <key>false</key>
                 <title>CancellationDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2834,6 +2861,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/Category</inheritedFrom>
                 <key>false</key>
                 <title>Category</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2846,6 +2874,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/EndDate</inheritedFrom>
                 <key>false</key>
                 <title>EndDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2858,6 +2887,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/LineAmount</inheritedFrom>
                 <key>false</key>
                 <title>LineAmount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2870,6 +2900,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/NextBillingDate</inheritedFrom>
                 <key>false</key>
                 <title>NextBillingDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2882,6 +2913,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/NextChargeDate</inheritedFrom>
                 <key>false</key>
                 <title>NextChargeDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2894,6 +2926,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/OriginalBillingSchedule</inheritedFrom>
                 <key>false</key>
                 <title>OriginalBillingSchedule</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2906,6 +2939,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/PendingAmount</inheritedFrom>
                 <key>false</key>
                 <title>PendingAmount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2918,6 +2952,20 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/Quantity</inheritedFrom>
                 <key>false</key>
                 <title>Quantity</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/UnitOfMeasure/BillingScheduleUnitOfMeasure</inheritedFrom>
+                    <title>BillingScheduleUnitOfMeasure</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/UnitOfMeasure</inheritedFrom>
+                <key>false</key>
+                <title>UnitOfMeasure</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2930,6 +2978,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/Reference</inheritedFrom>
                 <key>false</key>
                 <title>Reference</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2942,6 +2991,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/ReferenceItem</inheritedFrom>
                 <key>false</key>
                 <title>ReferenceItem</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2954,6 +3004,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/ReferenceEntity</inheritedFrom>
                 <key>false</key>
                 <title>ReferenceEntity</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2966,6 +3017,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/ReferenceEntityItem</inheritedFrom>
                 <key>false</key>
                 <title>ReferenceEntityItem</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2978,6 +3030,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/StartDate</inheritedFrom>
                 <key>false</key>
                 <title>StartDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -2990,6 +3043,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/Status</inheritedFrom>
                 <key>false</key>
                 <title>Status</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3002,6 +3056,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/TaxTreatment</inheritedFrom>
                 <key>false</key>
                 <title>TaxTreatment</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3014,6 +3069,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/TotalAmount</inheritedFrom>
                 <key>false</key>
                 <title>TotalAmount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3026,6 +3082,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/Type</inheritedFrom>
                 <key>false</key>
                 <title>Type</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3038,6 +3095,33 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/UnitPrice</inheritedFrom>
                 <key>false</key>
                 <title>UnitPrice</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/UsageResource/BillingScheduleUsageResource</inheritedFrom>
+                    <title>BillingScheduleUsageResource</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/UsageResource</inheritedFrom>
+                <key>false</key>
+                <title>UsageResource</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingMilestonePlan/BillingScheduleBillingMilestonePlan</inheritedFrom>
+                    <title>BillingScheduleBillingMilestonePlan</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingMilestonePlan</inheritedFrom>
+                <key>false</key>
+                <title>BillingMilestonePlan</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3047,6 +3131,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/ParentReference</inheritedFrom>
                 <key>false</key>
                 <title>ParentReference</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextTags>
@@ -3068,6 +3153,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/MainBillingScheduleGroup</inheritedFrom>
                 <key>false</key>
                 <title>MainBillingScheduleGroup</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3080,6 +3166,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/AssociatedBillingScheduleGroup</inheritedFrom>
                 <key>false</key>
                 <title>AssociatedBillingScheduleGroup</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3092,6 +3179,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/MainBillingScheduleGroupRole</inheritedFrom>
                 <key>false</key>
                 <title>MainBillingScheduleGroupRole</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3104,6 +3192,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/AssociatedBillingScheduleGroupRole</inheritedFrom>
                 <key>false</key>
                 <title>AssociatedBillingScheduleGroupRole</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3116,6 +3205,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/AssociatedBillingScheduleGroupPricing</inheritedFrom>
                 <key>false</key>
                 <title>AssociatedBillingScheduleGroupPricing</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3128,6 +3218,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/ProductRelationshipType</inheritedFrom>
                 <key>false</key>
                 <title>ProductRelationshipType</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3137,6 +3228,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroupRelationship/ParentReference</inheritedFrom>
                 <key>false</key>
                 <title>ParentReference</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextTags>
@@ -3150,360 +3242,6 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Asset/BillingTransactionItemAsset</inheritedFrom>
-                    <title>BillingTransactionItemAsset</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Asset</inheritedFrom>
-                <key>false</key>
-                <title>Asset</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingAction/BillingTransactionItemBillingAction</inheritedFrom>
-                    <title>BillingTransactionItemBillingAction</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingAction</inheritedFrom>
-                <key>false</key>
-                <title>BillingAction</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingActionType/BillingTransactionItemBillingActionType</inheritedFrom>
-                    <title>BillingTransactionItemBillingActionType</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingActionType</inheritedFrom>
-                <key>false</key>
-                <title>BillingActionType</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RampIdentifier/BillingTransactionItemRampIdentifier</inheritedFrom>
-                    <title>BillingTransactionItemRampIdentifier</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RampIdentifier</inheritedFrom>
-                <key>false</key>
-                <title>RampIdentifier</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingFrequency/BillingTransactionItemBillingFrequency</inheritedFrom>
-                    <title>BillingTransactionItemBillingFrequency</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingFrequency</inheritedFrom>
-                <key>false</key>
-                <title>BillingFrequency</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemSource/BillingTransactionItemSource</inheritedFrom>
-                    <title>BillingTransactionItemSource</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemSource</inheritedFrom>
-                <key>false</key>
-                <title>BillingTransactionItemSource</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTreatment/BillingTransactionItemBillingTreatment</inheritedFrom>
-                    <title>BillingTransactionItemBillingTreatment</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTreatment</inheritedFrom>
-                <key>false</key>
-                <title>BillingTreatment</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/CurrencyIsoCode/BillingTransactionItemCurrencyIsoCode</inheritedFrom>
-                    <title>BillingTransactionItemCurrencyIsoCode</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/CurrencyIsoCode</inheritedFrom>
-                <key>false</key>
-                <title>CurrencyIsoCode</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/EndDate/BillingTransactionItemEndDate</inheritedFrom>
-                    <title>BillingTransactionItemEndDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/EndDate</inheritedFrom>
-                <key>false</key>
-                <title>EndDate</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundary/BillingTransactionItemPeriodBoundary</inheritedFrom>
-                    <title>BillingTransactionItemPeriodBoundary</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundary</inheritedFrom>
-                <key>false</key>
-                <title>PeriodBoundary</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryDay/BillingTransactionItemPeriodBoundaryDay</inheritedFrom>
-                    <title>BillingTransactionItemPeriodBoundaryDay</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryDay</inheritedFrom>
-                <key>false</key>
-                <title>PeriodBoundaryDay</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryStartMonth/BillingTransactionItemPeriodBoundaryStartMonth</inheritedFrom>
-                    <title>BillingTransactionItemPeriodBoundaryStartMonth</title>
-                </contextTags>
-                <dataType>picklist</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PeriodBoundaryStartMonth</inheritedFrom>
-                <key>false</key>
-                <title>PeriodBoundaryStartMonth</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricebookEntry/BillingTransactionItemPricebookEntry</inheritedFrom>
-                    <title>BillingTransactionItemPricebookEntry</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricebookEntry</inheritedFrom>
-                <key>false</key>
-                <title>PricebookEntry</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTerm/BillingTransactionItemPricingTerm</inheritedFrom>
-                    <title>BillingTransactionItemPricingTerm</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTerm</inheritedFrom>
-                <key>false</key>
-                <title>PricingTerm</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTermUnit/BillingTransactionItemPricingTermUnit</inheritedFrom>
-                    <title>BillingTransactionItemPricingTermUnit</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTermUnit</inheritedFrom>
-                <key>false</key>
-                <title>PricingTermUnit</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductBillingPolicy/BillingTransactionItemProductBillingPolicy</inheritedFrom>
-                    <title>BillingTransactionItemProductBillingPolicy</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductBillingPolicy</inheritedFrom>
-                <key>false</key>
-                <title>ProductBillingPolicy</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Product/BillingTransactionItemProduct</inheritedFrom>
-                    <title>BillingTransactionItemProduct</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Product</inheritedFrom>
-                <key>false</key>
-                <title>Product</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductName/BillingTransactionItemProductName</inheritedFrom>
-                    <title>BillingTransactionItemProductName</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductName</inheritedFrom>
-                <key>false</key>
-                <title>ProductName</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductSellingModel/BillingTransactionItemProductSellingModel</inheritedFrom>
-                    <title>BillingTransactionItemProductSellingModel</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProductSellingModel</inheritedFrom>
-                <key>false</key>
-                <title>ProductSellingModel</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProrationPolicy/BillingTransactionItemProrationPolicy</inheritedFrom>
-                    <title>BillingTransactionItemProrationPolicy</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ProrationPolicy</inheritedFrom>
-                <key>false</key>
-                <title>ProrationPolicy</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Quantity/BillingTransactionItemQuantity</inheritedFrom>
-                    <title>BillingTransactionItemQuantity</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/Quantity</inheritedFrom>
-                <key>false</key>
-                <title>Quantity</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RelatedBillingTransactionItem/RelatedBillingTransactionItem</inheritedFrom>
-                    <title>RelatedBillingTransactionItem</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/RelatedBillingTransactionItem</inheritedFrom>
-                <key>false</key>
-                <title>RelatedBillingTransactionItem</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/SellingModelType/BillingTransactionItemSellingModelType</inheritedFrom>
-                    <title>BillingTransactionItemSellingModelType</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/SellingModelType</inheritedFrom>
-                <key>false</key>
-                <title>SellingModelType</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/StartDate/BillingTransactionItemStartDate</inheritedFrom>
-                    <title>BillingTransactionItemStartDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/StartDate</inheritedFrom>
-                <key>false</key>
-                <title>StartDate</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TaxTreatment/BillingTransactionItemTaxTreatment</inheritedFrom>
-                    <title>BillingTransactionItemTaxTreatment</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TaxTreatment</inheritedFrom>
-                <key>false</key>
-                <title>TaxTreatment</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/LegalEntity/BillingTransactionItemLegalEntity</inheritedFrom>
-                    <title>BillingTransactionItemLegalEntity</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/LegalEntity</inheritedFrom>
-                <key>false</key>
-                <title>LegalEntity</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TotalPrice/BillingTransactionItemTotalPrice</inheritedFrom>
-                    <title>BillingTransactionItemTotalPrice</title>
-                </contextTags>
-                <dataType>currency</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/TotalPrice</inheritedFrom>
-                <key>false</key>
-                <title>TotalPrice</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/UnitPrice/BillingTransactionItemUnitPrice</inheritedFrom>
-                    <title>BillingTransactionItemUnitPrice</title>
-                </contextTags>
-                <dataType>currency</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/UnitPrice</inheritedFrom>
-                <key>false</key>
-                <title>UnitPrice</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <dataType>reference</dataType>
-                <domainSet>BillingTransaction</domainSet>
-                <fieldType>input</fieldType>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ParentReference</inheritedFrom>
-                <key>false</key>
-                <title>ParentReference</title>
-                <value>false</value>
-            </contextAttributes>
-            <contextTags>
-                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItem</inheritedFrom>
-                <title>BillingTransactionItem</title>
-            </contextTags>
-            <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem</inheritedFrom>
-            <title>BillingTransactionItem</title>
-            <transposable>false</transposable>
-        </contextNodes>
-        <contextNodes>
-            <contextAttributes>
-                <contextTags>
                     <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/MainBillingTransactionItem/MainBillingTransactionItem</inheritedFrom>
                     <title>MainBillingTransactionItem</title>
                 </contextTags>
@@ -3512,6 +3250,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/MainBillingTransactionItem</inheritedFrom>
                 <key>false</key>
                 <title>MainBillingTransactionItem</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3524,6 +3263,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/AssociatedBillingTransactionItem</inheritedFrom>
                 <key>false</key>
                 <title>AssociatedBillingTransactionItem</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3536,6 +3276,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/MainBillingTransactionItemRole</inheritedFrom>
                 <key>false</key>
                 <title>MainBillingTransactionItemRole</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3548,6 +3289,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/AssociatedBillingTransactionItemRole</inheritedFrom>
                 <key>false</key>
                 <title>AssociatedBillingTransactionItemRole</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3560,6 +3302,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/AssociatedBillingTransactionItemPricing</inheritedFrom>
                 <key>false</key>
                 <title>AssociatedBillingTransactionItemPricing</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3572,6 +3315,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/ProductRelationshipType</inheritedFrom>
                 <key>false</key>
                 <title>ProductRelationshipType</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3581,6 +3325,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemRelationship/ParentReference</inheritedFrom>
                 <key>false</key>
                 <title>ParentReference</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextTags>
@@ -3602,6 +3347,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/Parent</inheritedFrom>
                 <key>false</key>
                 <title>Parent</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3614,6 +3360,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/Quantity</inheritedFrom>
                 <key>false</key>
                 <title>Quantity</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3626,6 +3373,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/UnitPrice</inheritedFrom>
                 <key>false</key>
                 <title>UnitPrice</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3638,6 +3386,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/NetUnitPrice</inheritedFrom>
                 <key>false</key>
                 <title>NetUnitPrice</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3650,6 +3399,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/TotalPrice</inheritedFrom>
                 <key>false</key>
                 <title>TotalPrice</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3662,6 +3412,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/TotalLineAmount</inheritedFrom>
                 <key>false</key>
                 <title>TotalLineAmount</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3674,6 +3425,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/ReferenceDate</inheritedFrom>
                 <key>false</key>
                 <title>ReferenceDate</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3686,6 +3438,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/RelatedBillingTransactionItemDetail</inheritedFrom>
                 <key>false</key>
                 <title>RelatedBillingTransactionItemDetail</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
@@ -3695,6 +3448,7 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/ParentReference</inheritedFrom>
                 <key>false</key>
                 <title>ParentReference</title>
+                <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextTags>
@@ -3706,13 +3460,14 @@
             <transposable>false</transposable>
         </contextNodes>
         <isActive>true</isActive>
-        <startDate>2023-01-01 08:00:00</startDate>
-        <versionNumber>2</versionNumber>
+        <startDate>2020-01-01 00:00:00</startDate>
+        <versionNumber>3</versionNumber>
     </contextDefinitionVersions>
     <contextTtl>20</contextTtl>
-    <description>Extension of Billing Context</description>
+    <description>Extension of Standard Billing Context Definition</description>
+    <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>BillingContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>62.09</inheritedFromVersion>
+    <inheritedFromVersion>62.16</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_BillingContext</masterLabel>
     <title>RLM_BillingContext</title>

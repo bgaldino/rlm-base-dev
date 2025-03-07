@@ -1,0 +1,12 @@
+$$Product.StockKeepingUnit$RateCardEntry.Name$RateUnitOfMeasure.UnitCode$UsageResource.Code,AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,LowerBound,Product.StockKeepingUnit,ProductSellingModel.Name,RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Name,RateCardEntryStatus,RateUnitOfMeasure.Name,RateUnitOfMeasureName,UpperBound,UsageResource.Name
+QB-DAT-THPT;RCE-00000002;USD;UR-DATAXFR,Override,0.9,2024-10-01T19:00:00.000+0000,,1000,QB-DAT-THPT,Term Annual,QB-DAT-THPT;Tier Rate Card;Data Throughput,Active,USD,USD,5000,Data Throughput
+QB-DAT-THPT;RCE-00000002;USD;UR-DATAXFR,Override,0.7,2024-10-01T19:00:00.000+0000,,10000,QB-DAT-THPT,Term Annual,QB-DAT-THPT;Tier Rate Card;Data Throughput,Active,USD,USD,999999999,Data Throughput
+QB-DAT-THPT;RCE-00000002;USD;UR-DATAXFR,Override,0.8,2024-10-01T19:00:00.000+0000,,5000,QB-DAT-THPT,Term Annual,QB-DAT-THPT;Tier Rate Card;Data Throughput,Active,USD,USD,10000,Data Throughput
+QB-DB;RCE-00000005;USD;UR-DATASTORAGE,Override,12.5,2024-10-01T19:00:00.000+0000,,100,QB-DB,Term Annual,QB-DB;Tier Rate Card;Data Storage,Active,USD,USD,500,Data Storage
+QB-DB;RCE-00000005;USD;UR-DATASTORAGE,Percentage,0,2024-10-01T19:00:00.000+0000,,1,QB-DB,Term Annual,QB-DB;Tier Rate Card;Data Storage,Active,USD,USD,100,Data Storage
+QB-DB;RCE-00000005;USD;UR-DATASTORAGE,Override,15,2024-10-01T19:00:00.000+0000,,500,QB-DB,Term Annual,QB-DB;Tier Rate Card;Data Storage,Active,USD,USD,5000,Data Storage
+QB-DB;RCE-00000005;USD;UR-DATASTORAGE,Override,18,2024-10-01T19:00:00.000+0000,,5000,QB-DB,Term Annual,QB-DB;Tier Rate Card;Data Storage,Active,USD,USD,999999999,Data Storage
+QB-DB;RCE-00000006;USD;UR-CPUTIME,Override,0.0045,2024-10-01T19:00:00.000+0000,,100,QB-DB,Term Annual,QB-DB;Tier Rate Card;Compute Time,Active,USD,USD,200,Compute Time
+QB-DB;RCE-00000006;USD;UR-CPUTIME,Override,0.005,2024-10-01T19:00:00.000+0000,,200,QB-DB,Term Annual,QB-DB;Tier Rate Card;Compute Time,Active,USD,USD,300,Compute Time
+QB-DB;RCE-00000006;USD;UR-CPUTIME,Override,0.006,2024-10-01T19:00:00.000+0000,,300,QB-DB,Term Annual,QB-DB;Tier Rate Card;Compute Time,Active,USD,USD,999999999,Compute Time
+QB-DB;RCE-00000006;USD;UR-CPUTIME,Override,0.004,2024-10-01T19:00:00.000+0000,,1,QB-DB,Term Annual,QB-DB;Tier Rate Card;Compute Time,Active,USD,USD,100,Compute Time

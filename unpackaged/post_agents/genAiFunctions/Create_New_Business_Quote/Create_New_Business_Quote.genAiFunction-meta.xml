@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>This action can be used to create a new business quote from an opportunity. It takes in an OpportunityID as required input, and returns a Quote Id. Optional inputs include the Quote Name and Pricebook name.
-
-Before calling this action call action QueryRecords to find the Opportunity ID that will be passed to this Action.</description>
+    <description>Create a new business quote from an opportunity. It takes in an OpportunityID as required input, and returns a Quote Id. Optional inputs include the Quote Name and Pricebook Name.</description>
     <invocationTarget>Create_New_Business_Quote</invocationTarget>
     <invocationTargetType>flow</invocationTargetType>
     <isConfirmationRequired>false</isConfirmationRequired>
     <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-    <masterLabel>Create New Business Quote (Pilot)</masterLabel>
+    <masterLabel>Create New Business Quote from Opportunity (Pilot)</masterLabel>
     <progressIndicatorMessage>Creating quote...</progressIndicatorMessage>
 </GenAiFunction>

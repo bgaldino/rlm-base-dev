@@ -1,5 +1,5 @@
 {
-  "required" : [ "AccountId", "QuantityChange", "varAssetIds" ],
+  "required" : [ "AccountId", "AssetIds", "QuantityChange" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "AccountId" : {
@@ -16,21 +16,21 @@
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     },
-    "QuantityChange" : {
-      "title" : "QuantityChange",
-      "description" : "Quantity to add to or reduce from the asset's existing quantity.",
-      "lightning:type" : "lightning__numberType",
-      "lightning:isPII" : false,
-      "copilotAction:isUserInput" : true
-    },
-    "varAssetIds" : {
-      "title" : "varAssetIds",
-      "description" : "The IDs of the assets that you want to amend.",
+    "AssetIds" : {
+      "title" : "AssetIds",
+      "description" : "The list of asset IDs to amend.",
       "maxItems" : 2000,
       "items" : {
         "lightning:type" : "lightning__textType"
       },
       "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuantityChange" : {
+      "title" : "QuantityChange",
+      "description" : "Quantity to add to or reduce from the asset's existing quantity.",
+      "lightning:type" : "lightning__numberType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     }

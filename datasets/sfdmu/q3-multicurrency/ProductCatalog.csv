@@ -1,5 +1,6 @@
 CatalogType,Code,Description,Name
-Sales,SF001,,SmartBytes Software Catalog
-Sales,HC001,,SmartBytes Hardware Catalog
-ServiceProcess,SC001,,SmartBytes Services Catalog
-Sales,MED001,Catalog for all Media,SmartBytes Media Catalog
+Sales,SF001,,Software Catalog
+Sales,HC001,,Hardware Catalog
+ServiceProcess,SC001,,Service Catalog
+Sales,MED001,Catalog for all Media,Media Catalog
+Sales,TMC009893,Thermal Management Catalog,Thermal Management Catalog

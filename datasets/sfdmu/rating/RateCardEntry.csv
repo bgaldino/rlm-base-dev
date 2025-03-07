@@ -1,7 +1,0 @@
-$$Product.StockKeepingUnit$RateCard.Type$UsageResource.Name,DefaultUnitOfMeasure.Name,DefaultUnitOfMeasureClass.Code,EffectiveFrom,EffectiveTo,Product.StockKeepingUnit,ProductSellingModel.Name,Rate,RateCard.Type,RateUnitOfMeasure.Name,RateUnitOfMeasureClass.Code,RateUnitOfMeasureName,UsageProduct.StockKeepingUnit,UsageResource.Code
-QB-DB;Tier;Compute Time,Hour,time,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,,Tier,USD,,USD,,ComputeTime
-QB-DB;Tier;Data Storage,Terabyte,datavolume,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,,Tier,USD,,USD,,datastorage
-QB-DB;Base;Data Storage,Terabyte,datavolume,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,10,Base,USD,,USD,,datastorage
-QB-DB;Base;Compute Time,Hour,time,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,0.004,Base,USD,,USD,,ComputeTime
-QB-DAT-THPT;Base;Data Throughput,Megabyte,datavolume,2024-10-01T19:00:00.000+0000,,QB-DAT-THPT,Term Annual,1,Base,USD,,USD,,datathroughput
-QB-DAT-THPT;Tier;Data Throughput,Megabyte,datavolume,2024-10-01T19:00:00.000+0000,,QB-DAT-THPT,Term Annual,,Tier,USD,,USD,,datathroughput

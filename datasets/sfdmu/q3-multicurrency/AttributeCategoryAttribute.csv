@@ -1,12 +1,15 @@
-$$AttributeCategory.Name$AttributeDefinition.Name,AttributeCategory.Name,AttributeDefinition.Name
-Connection Type;Wireless,Connection Type,Wireless
-Training;Training,Training,Training
-Display;Display,Display,Display
-Processor;Windows_Processor,Processor,Windows_Processor
-Graphics;Graphics,Graphics,Graphics
-Display;Display_Size,Display,Display_Size
-Memory;Memory,Memory,Memory
-Paper;Paper Size,Paper,Paper Size
-Printer;Printer,Printer,Printer
-Storage;Storage,Storage,Storage
-Support;Support_Level,Support,Support_Level
+$$AttributeCategory.Name$AttributeDefinition.Code,AttributeCategory.Code,AttributeDefinition.Code
+Connection Type;WIRELESS,CT001,WIRELESS
+Training;TRAINING,T001,TRAINING
+Display;DISPLAY,DIS,DISPLAY
+Processor;WINDOWSPROCESSOR,PRO,WINDOWSPROCESSOR
+Graphics;GRAPHICS,GRA,GRAPHICS
+Display;DISPLAYSIZE,DIS,DISPLAYSIZE
+Memory;MEMORY,MEM,MEMORY
+Paper;PAPERSIZE,PP001,PAPERSIZE
+Printer;PRINTER,P001,PRINTER
+Storage;STORAGE,STO,STORAGE
+Support;SUPPORTLEVEL,SP001,SUPPORTLEVEL
+Thermal Composition;GELQTY,TC009C67,GELQTY
+Thermal Composition;POWDERWEIGHT,TC009C67,POWDERWEIGHT
+Paste Ratio;PCR0090CD,PSR67832,PCR0090CD

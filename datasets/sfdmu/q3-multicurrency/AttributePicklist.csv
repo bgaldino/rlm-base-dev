@@ -1,4 +1,7 @@
 CurrencyIsoCode,DataType,Description,Name,Status
+USD,Number,Paste Color Ratio,Paste Color Ratio,Active
+USD,Number,Gel Quantity in grams,Gel Quantity,Active
+USD,Number,Weight In Kilograms,Compound Weight,Active
 USD,Text,,Display Picklist,Active
 USD,Text,,Memory Picklist,Active
 USD,Text,,Paper Size Picklist,Active

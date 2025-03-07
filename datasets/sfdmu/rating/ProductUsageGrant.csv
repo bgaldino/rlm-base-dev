@@ -1,4 +1,0 @@
-$$ProductOffer.StockKeepingUnit$UsageResource.Name,EffectiveEndDate,EffectiveStartDate,Label,OverageChargeable,ProductOffer.StockKeepingUnit,Quantity,RenewalPolicy.Code,RolloverPolicy.Code,Status,UnitOfMeasure.Name,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResource.Code,ValidityPeriodTerm,ValidityPeriodUnit
-QB-DB;Data Storage,,2024-10-11,Database Storage - Included,Yes,QB-DB,100,,,Active,Terabyte,datavolume,QB-DB,datastorage,1,Year
-QB-DB;Compute Time,,2024-10-11,Database Compute - Pay-as-You-Go,Yes,QB-DB,0,,,Active,Hour,time,QB-DB,ComputeTime,1,Year
-QB-DAT-THPT;Data Throughput,,2024-10-09,Data Throughput - Pay-as-You-Go,,QB-DAT-THPT,0,,,Active,Megabyte,datavolume,QB-DAT-THPT,datathroughput,1,Year

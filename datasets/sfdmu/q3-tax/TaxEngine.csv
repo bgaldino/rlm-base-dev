@@ -1,0 +1,2 @@
+Description,MerchantCredential.DeveloperName,SellerCode,Status,TaxEngineCountry,TaxEngineGeocodeAccuracy,TaxEngineName,TaxEngineProvider.DeveloperName
+,RLM_MockTax,Billing2,Active,US,,RC_MockTaxAdapter,RC_MockTaxAdapter

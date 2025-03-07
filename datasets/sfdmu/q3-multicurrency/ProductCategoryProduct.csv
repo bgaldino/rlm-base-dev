@@ -1,45 +1,64 @@
-$$ProductCategory.Name$Product.StockKeepingUnit$Catalog.Name,Catalog.Name,CurrencyIsoCode,Product.Name,ProductCategory.$$Name$Catalog.Name$ParentCategory.Name
-Protection Software;AV001;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Antivirus,Protection Software;SmartBytes Software Catalog
-Desktops;DS001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Desktop,Desktops;SmartBytes Hardware Catalog
-Accessories;KB001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Keyboard,Accessories;SmartBytes Hardware Catalog
-Cloud Services;CS001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Cloud Storage,Cloud Services;SmartBytes Services Catalog
-Laptops;LP001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Laptop,Laptops;SmartBytes Hardware Catalog
-Laptops;LB001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Laptop Basic Bundle,Laptops;SmartBytes Hardware Catalog
-Support;LCP001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Laptop Care Package,Support;SmartBytes Services Catalog
-Laptops;LPB001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Laptop Pro Bundle,Laptops;SmartBytes Hardware Catalog
-Accessories;MO001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Monitor,Accessories;SmartBytes Hardware Catalog
-Accessories;MOU001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Mouse,Accessories;SmartBytes Hardware Catalog
-Accessories;PRN001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Printer,Accessories;SmartBytes Hardware Catalog
-Accessories;PB001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Printer Bundle,Accessories;SmartBytes Hardware Catalog
-Accessories;PP001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Printer Paper,Accessories;SmartBytes Hardware Catalog
-Support;SP001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Support,Support;SmartBytes Services Catalog
-Training;TRG001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Basic Training,Training;SmartBytes Services Catalog
-Warranty;W001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Warranty,Warranty;SmartBytes Services Catalog
-Accessories;USB01;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,USB C multiport adapter hub with 4K HDMI,Accessories;SmartBytes Hardware Catalog
-Accessories;HDS001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Headset,Accessories;SmartBytes Hardware Catalog
-Training;TPP01;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Training Platform Package,Training;SmartBytes Services Catalog
-Training;LLMTRG001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Machine Learning Model Training,Training;SmartBytes Services Catalog
-Training;UA001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Udemy Access,Training;SmartBytes Services Catalog
-Training;SDP001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Skill Development Package,Training;SmartBytes Services Catalog
-Training;ASTCERT001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,AI Specialist Certification,Training;SmartBytes Services Catalog
-Training;ATRG001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Advanced Training,Training;SmartBytes Services Catalog
-Training;APTRG001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,AI Specialist Training,Training;SmartBytes Services Catalog
-Training;ACERT001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Admin Certification,Training;SmartBytes Services Catalog
-Training;DCERT001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Developer Certification,Training;SmartBytes Services Catalog
-Training;CERT007;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Specialized Certifications,Training;SmartBytes Services Catalog
-Training;LLMCERT001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,LLM Certification,Training;SmartBytes Services Catalog
-Cloud Services;QP001;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Quip,Cloud Services;SmartBytes Services Catalog
-Productivity Software;GW001;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Google Workspace,Productivity Software;SmartBytes Software Catalog
-Productivity Software;GPTW001;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,GPT for workspace,Productivity Software;SmartBytes Software Catalog
-Productivity Software;LCD001;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Lucidchart,Productivity Software;SmartBytes Software Catalog
-Support;MAIN0098;SmartBytes Services Catalog,SmartBytes Services Catalog,USD,Hardware Maintenance,Support;SmartBytes Services Catalog
-Productivity Software;SLKDPP007;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Slack Support,Productivity Software;SmartBytes Software Catalog
-Productivity Software;SLKDPP008;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Slack Training,Productivity Software;SmartBytes Software Catalog
-Productivity Software;SLKSRC001;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Slack,Productivity Software;SmartBytes Software Catalog
-Productivity Software;SLKDPP009;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Slack Sandbox,Productivity Software;SmartBytes Software Catalog
-Accessories;EHD009;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,External Hard Drive,Accessories;SmartBytes Hardware Catalog
-Productivity Software;FIG001;SmartBytes Software Catalog,SmartBytes Software Catalog,USD,Figma Subscription,Productivity Software;SmartBytes Software Catalog
-Podcast;PS001;SmartBytes Media Catalog,SmartBytes Media Catalog,USD,Podcast Subscription,Podcast;SmartBytes Media Catalog
-Accessories;NCH025;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Noise-Canceling Headphones,Accessories;SmartBytes Hardware Catalog
-Accessories;LPST001;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Laptop Stand,Accessories;SmartBytes Hardware Catalog
-Laptops;LPB001-1;SmartBytes Hardware Catalog,SmartBytes Hardware Catalog,USD,Laptop Productivity Bundle,Laptops;SmartBytes Hardware Catalog
+$$ProductCategory.Name$Product.StockKeepingUnit$Catalog.Code,Catalog.Name,CurrencyIsoCode,Product.StockKeepingUnit,ProductCategory.$$Name$Catalog.Code$ParentCategory.Name
+Protection Software;AV001;SF001,Software Catalog,USD,AV001,Protection Software;SF001
+Desktops;DS001;HC001,Hardware Catalog,USD,DS001,Desktops;HC001
+Accessories;KB001;HC001,Hardware Catalog,USD,KB001,Accessories;HC001
+Cloud Services;CS001;SC001,Service Catalog,USD,CS001,Cloud Services;SC001
+Laptops;LP001;HC001,Hardware Catalog,USD,LP001,Laptops;HC001
+Laptops;LB001;HC001,Hardware Catalog,USD,LB001,Laptops;HC001
+Support;LCP001;SC001,Service Catalog,USD,LCP001,Support;SC001
+Laptops;LPB001;HC001,Hardware Catalog,USD,LPB001,Laptops;HC001
+Accessories;MO001;HC001,Hardware Catalog,USD,MO001,Accessories;HC001
+Accessories;MOU001;HC001,Hardware Catalog,USD,MOU001,Accessories;HC001
+Accessories;PRN001;HC001,Hardware Catalog,USD,PRN001,Accessories;HC001
+Accessories;PB001;HC001,Hardware Catalog,USD,PB001,Accessories;HC001
+Accessories;PP001;HC001,Hardware Catalog,USD,PP001,Accessories;HC001
+Support;SP001;SC001,Service Catalog,USD,SP001,Support;SC001
+Training;TRG001;SC001,Service Catalog,USD,TRG001,Training;SC001
+Warranty;W001;SC001,Service Catalog,USD,W001,Warranty;SC001
+Accessories;USB01;HC001,Hardware Catalog,USD,USB01,Accessories;HC001
+Accessories;HDS001;HC001,Hardware Catalog,USD,HDS001,Accessories;HC001
+Training;TPP01;SC001,Service Catalog,USD,TPP01,Training;SC001
+Training;LLMTRG001;SC001,Service Catalog,USD,LLMTRG001,Training;SC001
+Training;UA001;SC001,Service Catalog,USD,UA001,Training;SC001
+Training;SDP001;SC001,Service Catalog,USD,SDP001,Training;SC001
+Training;ASTCERT001;SC001,Service Catalog,USD,ASTCERT001,Training;SC001
+Training;ATRG001;SC001,Service Catalog,USD,ATRG001,Training;SC001
+Training;APTRG001;SC001,Service Catalog,USD,APTRG001,Training;SC001
+Training;ACERT001;SC001,Service Catalog,USD,ACERT001,Training;SC001
+Training;DCERT001;SC001,Service Catalog,USD,DCERT001,Training;SC001
+Training;CERT007;SC001,Service Catalog,USD,CERT007,Training;SC001
+Training;LLMCERT001;SC001,Service Catalog,USD,LLMCERT001,Training;SC001
+Cloud Services;QP001;SC001,Service Catalog,USD,QP001,Cloud Services;SC001
+Productivity Software;GW001;SF001,Software Catalog,USD,GW001,Productivity Software;SF001
+Productivity Software;GPTW001;SF001,Software Catalog,USD,GPTW001,Productivity Software;SF001
+Productivity Software;LCD001;SF001,Software Catalog,USD,LCD001,Productivity Software;SF001
+Support;MAIN0098;SC001,Service Catalog,USD,MAIN0098,Support;SC001
+Productivity Software;SLKDPP007;SF001,Software Catalog,USD,SLKDPP007,Productivity Software;SF001
+Productivity Software;SLKDPP008;SF001,Software Catalog,USD,SLKDPP008,Productivity Software;SF001
+Productivity Software;SLKSRC001;SF001,Software Catalog,USD,SLKSRC001,Productivity Software;SF001
+Productivity Software;SLKDPP009;SF001,Software Catalog,USD,SLKDPP009,Productivity Software;SF001
+Training;PCERT001;SC001,Service Catalog,USD,PCERT001,Training;SC001
+Accessories;LBG001;HC001,Hardware Catalog,USD,LBG001,Accessories;HC001
+Accessories;EHD009;HC001,Hardware Catalog,USD,EHD009,Accessories;HC001
+Productivity Software;FIG001;SF001,Software Catalog,USD,FIG001,Productivity Software;SF001
+Podcast;PS001;MED001,Media Catalog,USD,PS001,Podcast;MED001
+Accessories;NCH025;HC001,Hardware Catalog,USD,NCH025,Accessories;HC001
+Accessories;LPST001;HC001,Hardware Catalog,USD,LPST001,Accessories;HC001
+Laptops;LPB002;HC001,Hardware Catalog,USD,LPB002,Laptops;HC001
+Phone Plans;ATTMB001;SC001,Service Catalog,USD,ATTMB001,Phone Plans;SC001
+Cloud Services;CLOUD003;SC001,Service Catalog,USD,CLOUD003,Cloud Services;SC001
+Cloud Services;CLOUD001;SC001,Service Catalog,USD,CLOUD001,Cloud Services;SC001
+Productivity Software;QBO0021;SF001,Software Catalog,USD,QBO0021,Productivity Software;SF001
+Cloud Services;CLOUD002;SC001,Service Catalog,USD,CLOUD002,Cloud Services;SC001
+Support;PM002;SC001,Service Catalog,USD,PM002,Support;SC001
+Surveillance;SSS001;SC001,Service Catalog,USD,SSS001,Surveillance;SC001
+Thermal Compounds;TIM67542E;TMC009893,Thermal Management Catalog,USD,TIM67542E,Thermal Compounds;TMC009893
+Thermal Compounds;TIM12367;TMC009893,Thermal Management Catalog,USD,TIM12367,Thermal Compounds;TMC009893
+Thermal Compounds;TIM235A7;TMC009893,Thermal Management Catalog,USD,TIM235A7,Thermal Compounds;TMC009893
+Thermal Compounds;TIMB893AB45;TMC009893,Thermal Management Catalog,USD,TIMB893AB45,Thermal Compounds;TMC009893
+Thermal Compounds;KTC677R;TMC009893,Thermal Management Catalog,USD,KTC677R,Thermal Compounds;TMC009893
+Thermal Compounds;PUP001A45;TMC009893,Thermal Management Catalog,USD,PUP001A45,Thermal Compounds;TMC009893
+Thermal Compounds;VIL8899089;TMC009893,Thermal Management Catalog,USD,VIL8899089,Thermal Compounds;TMC009893
+Professional Services;ED001;SC001,Service Catalog,USD,ED001,Professional Services;SC001
+Training;CLOUD004;SC001,Service Catalog,USD,CLOUD004,Training;SC001
+Productivity Software;SLKSRC002;SF001,Software Catalog,USD,SLKSRC002,Productivity Software;SF001

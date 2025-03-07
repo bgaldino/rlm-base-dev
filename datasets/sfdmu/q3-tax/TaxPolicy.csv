@@ -1,0 +1,4 @@
+DefaultTaxTreatment.Name,Description,Name,Status,TreatmentSelection
+Tax Treatment for taxable products,Test Tax Policy,Tax Policy for taxable products,Draft,Default
+Tax Treatment for non-taxable products,,Tax Policy for non-taxable products,Draft,Manual
+Tax Treatment for US LE,,Tax Policy for LE,Draft,LegalEntity

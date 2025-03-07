@@ -1,4 +1,0 @@
-ConversionFactor,CurrencyIsoCode,Description,Name,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
-1,USD,,Minutes,1,Active,Count,MIN,Time
-0.01666666667,USD,,Seconds,1,Active,Time,Sec,Time
-1,USD,,USD Dollar,1,Active,Currency,USD,CUR

@@ -1,0 +1,2 @@
+Code,IsRenewalAllowed,Name,RenewalFrequency,RenewalFrequencyUnit,Status
+URRENEW01,true,Mobile Plan Renewal Policy,1,Month,Active

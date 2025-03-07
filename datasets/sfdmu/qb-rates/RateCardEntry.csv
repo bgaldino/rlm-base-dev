@@ -1,0 +1,7 @@
+$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Name,DefaultUnitOfMeasure.Name,DefaultUnitOfMeasureClass.Name,EffectiveFrom,EffectiveTo,Product.StockKeepingUnit,ProductSellingModel.Name,Rate,RateCard.Name,RateNegotiation,RateUnitOfMeasure.Name,RateUnitOfMeasureClass.Name,Status,UsageResource.Name
+QB-DAT-THPT;Base Rate Card;Data Throughput,Megabyte,Data Volume,2024-10-01T19:00:00.000+0000,,QB-DAT-THPT,Term Annual,1,Base Rate Card,Negotiable,USD,Currency,Draft,Data Throughput
+QB-DAT-THPT;Tier Rate Card;Data Throughput,Megabyte,Data Volume,2024-10-01T19:00:00.000+0000,,QB-DAT-THPT,Term Annual,,Tier Rate Card,Negotiable,USD,Currency,Draft,Data Throughput
+QB-DB;Base Rate Card;Compute Time,Minutes,Time,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,0.004,Base Rate Card,Negotiable,USD,Currency,Draft,Compute Time
+QB-DB;Base Rate Card;Data Storage,Terabyte,Data Volume,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,10,Base Rate Card,Negotiable,USD,Currency,Draft,Data Storage
+QB-DB;Tier Rate Card;Compute Time,Minutes,Time,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card,Negotiable,USD,Currency,Draft,Compute Time
+QB-DB;Tier Rate Card;Data Storage,Terabyte,Data Volume,2024-10-01T19:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card,Negotiable,USD,Currency,Draft,Data Storage

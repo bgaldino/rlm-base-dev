@@ -1,0 +1,42 @@
+{
+  "apiVersion": "63.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT PriceBookId, RateCardId, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
+          "operation": "Upsert",
+          "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, Status, UsageResourceId FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
+          "operation": "Upsert",
+          "externalId": "Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

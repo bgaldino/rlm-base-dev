@@ -1,49 +1,72 @@
-$$Product2.StockKeepingUnit$ProductSellingModel.Name,IsDefault,Product2.Name,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
-CS001;Evergreen Monthly,true,Cloud Storage,Evergreen Monthly;Evergreen,Default Proration Policy
-KB001;One-Time,true,Keyboard,One-Time;OneTime,
-MOU001;One-Time,true,Mouse,One-Time;OneTime,
-W001;Term Annual,true,Warranty,Term Annual;TermDefined,Default Proration Policy
-AV001;Evergreen Annual,true,Antivirus,Evergreen Annual;Evergreen,Default Proration Policy
-LCP001;Term Monthly,true,Laptop Care Package,Term Monthly;TermDefined,Default Proration Policy
-LB001;One-Time,true,Laptop Basic Bundle,One-Time;OneTime,
-MO001;One-Time,true,Monitor,One-Time;OneTime,
-LP001;One-Time,true,Laptop,One-Time;OneTime,
-PP001;One-Time,true,Printer Paper,One-Time;OneTime,
-DS001;One-Time,true,Desktop,One-Time;OneTime,
-PRN001;One-Time,true,Printer,One-Time;OneTime,
-HDS001;One-Time,true,Headset,One-Time;OneTime,
-SP001;Term Monthly,true,Support,Term Monthly;TermDefined,Default Proration Policy
-TRG001;Term Monthly,true,Basic Training,Term Monthly;TermDefined,Default Proration Policy
-PB001;One-Time,true,Printer Bundle,One-Time;OneTime,
-LPB001;One-Time,true,Laptop Pro Bundle,One-Time;OneTime,
-LLMCERT001;Term Annual,true,LLM Certification,Term Annual;TermDefined,Default Proration Policy
-ASTCERT001;Term Annual,true,AI Specialist Certification,Term Annual;TermDefined,Default Proration Policy
-CERT007;Term Annual,true,Specialized Certifications,Term Annual;TermDefined,Default Proration Policy
-ATRG001;Term Annual,true,Advanced Training,Term Annual;TermDefined,Default Proration Policy
-UA001;Evergreen Monthly,true,Udemy Access,Evergreen Monthly;Evergreen,Default Proration Policy
-SDP001;Term Annual,true,Skill Development Package,Term Annual;TermDefined,Default Proration Policy
-PCERT001;Term Annual,true,Professional Certifications,Term Annual;TermDefined,Default Proration Policy
-TPP01;Evergreen Annual,true,Training Platform Package,Evergreen Annual;Evergreen,Default Proration Policy
-ACERT001;Term Annual,true,Admin Certification,Term Annual;TermDefined,Default Proration Policy
-DCERT001;Term Annual,true,Developer Certification,Term Annual;TermDefined,Default Proration Policy
-LLMTRG001;One-Time,true,Machine Learning Model Training,One-Time;OneTime,
-APTRG001;One-Time,true,AI Specialist Training,One-Time;OneTime,
-QP001;Term Monthly,true,Quip,Term Monthly;TermDefined,Default Proration Policy
-OF001;Term Monthly,true,Office 365,Term Monthly;TermDefined,Default Proration Policy
-GW001;Term Monthly,true,Google Workspace,Term Monthly;TermDefined,Default Proration Policy
-GPTW001;Term Monthly,true,GPT for workspace,Term Monthly;TermDefined,Default Proration Policy
-LCD001;Term Monthly,true,Lucidchart,Term Monthly;TermDefined,Default Proration Policy
-MAIN0098;Term Monthly,true,Hardware Maintenance,Term Monthly;TermDefined,Default Proration Policy
-SLKSRC001;Term Monthly,true,Slack,Term Monthly;TermDefined,Default Proration Policy
-SLKDPP007;Term Monthly,true,Slack Support,Term Monthly;TermDefined,Default Proration Policy
-SLKDPP008;Term Monthly,true,Slack Training,Term Monthly;TermDefined,Default Proration Policy
-SLKDPP009;Term Monthly,true,Slack Sandbox,Term Monthly;TermDefined,Default Proration Policy
-EHD009;One-Time,true,External Hard Drive,One-Time;OneTime,
-FIG001;Term Based - Semi-Annual,true,Figma Subscription,Term Based - Semi-Annual;TermDefined,Default Proration Policy
-PS001;Term Based - Quarterly,true,Podcast Subscription,Term Based - Quarterly;TermDefined,Default Proration Policy
-NCH025;One-Time,true,Noise-Canceling Headphones,One-Time;OneTime,
-LPST001;One-Time,true,Laptop Stand,One-Time;OneTime,
-LPB001-1;One-Time,true,Laptop Productivity Bundle,One-Time;OneTime,
-LA001;One-Time,true,Laptop Accessories,One-Time;OneTime,
-USB01;One-Time,true,USB C multiport adapter hub with 4K HDMI,One-Time;OneTime,
-LBG001;One-Time,true,Laptop Bag,One-Time;OneTime,
+$$Product2.StockKeepingUnit$ProductSellingModel.Name,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+CS001;Evergreen - Monthly,true,CS001,Evergreen - Monthly;Evergreen,Default Proration Policy
+KB001;One Time,true,KB001,One Time;OneTime,
+MOU001;One Time,true,MOU001,One Time;OneTime,
+W001;Term Based - Yearly,true,W001,Term Based - Yearly;TermDefined,Default Proration Policy
+AV001;Evergreen - Yearly,true,AV001,Evergreen - Yearly;Evergreen,Default Proration Policy
+LCP001;Term Based - Monthly,true,LCP001,Term Based - Monthly;TermDefined,Default Proration Policy
+LB001;One Time,true,LB001,One Time;OneTime,
+MO001;One Time,true,MO001,One Time;OneTime,
+LP001;One Time,true,LP001,One Time;OneTime,
+PP001;One Time,true,PP001,One Time;OneTime,
+DS001;One Time,true,DS001,One Time;OneTime,
+PRN001;One Time,true,PRN001,One Time;OneTime,
+HDS001;One Time,true,HDS001,One Time;OneTime,
+SP001;Term Based - Monthly,true,SP001,Term Based - Monthly;TermDefined,Default Proration Policy
+TRG001;Term Based - Monthly,true,TRG001,Term Based - Monthly;TermDefined,Default Proration Policy
+PB001;One Time,true,PB001,One Time;OneTime,
+LPB001;One Time,true,LPB001,One Time;OneTime,
+LLMCERT001;Term Based - Yearly,true,LLMCERT001,Term Based - Yearly;TermDefined,Default Proration Policy
+ASTCERT001;Term Based - Yearly,true,ASTCERT001,Term Based - Yearly;TermDefined,Default Proration Policy
+CERT007;Term Based - Yearly,true,CERT007,Term Based - Yearly;TermDefined,Default Proration Policy
+UA001;Evergreen - Monthly,true,UA001,Evergreen - Monthly;Evergreen,Default Proration Policy
+ATRG001;Term Based - Yearly,true,ATRG001,Term Based - Yearly;TermDefined,Default Proration Policy
+SDP001;Term Based - Yearly,true,SDP001,Term Based - Yearly;TermDefined,Default Proration Policy
+PCERT001;Term Based - Yearly,true,PCERT001,Term Based - Yearly;TermDefined,Default Proration Policy
+TPP01;Evergreen - Yearly,true,TPP01,Evergreen - Yearly;Evergreen,Default Proration Policy
+ACERT001;Term Based - Yearly,true,ACERT001,Term Based - Yearly;TermDefined,Default Proration Policy
+DCERT001;Term Based - Yearly,true,DCERT001,Term Based - Yearly;TermDefined,Default Proration Policy
+LLMTRG001;One Time,true,LLMTRG001,One Time;OneTime,
+APTRG001;One Time,true,APTRG001,One Time;OneTime,
+QP001;Term Based - Monthly,true,QP001,Term Based - Monthly;TermDefined,Default Proration Policy
+OF001;Term Based - Monthly,true,OF001,Term Based - Monthly;TermDefined,Default Proration Policy
+GW001;Term Based - Monthly,true,GW001,Term Based - Monthly;TermDefined,Default Proration Policy
+GPTW001;Term Based - Monthly,true,GPTW001,Term Based - Monthly;TermDefined,Default Proration Policy
+LCD001;Term Based - Monthly,true,LCD001,Term Based - Monthly;TermDefined,Default Proration Policy
+MAIN0098;Term Based - Monthly,true,MAIN0098,Term Based - Monthly;TermDefined,Default Proration Policy
+SLKSRC001;Term Based - Monthly,true,SLKSRC001,Term Based - Monthly;TermDefined,Default Proration Policy
+SLKDPP007;Term Based - Monthly,true,SLKDPP007,Term Based - Monthly;TermDefined,Default Proration Policy
+SLKDPP008;Term Based - Monthly,true,SLKDPP008,Term Based - Monthly;TermDefined,Default Proration Policy
+SLKDPP009;Term Based - Monthly,true,SLKDPP009,Term Based - Monthly;TermDefined,Default Proration Policy
+EHD009;One Time,true,EHD009,One Time;OneTime,
+FIG001;Term Based - Semi-Annual,true,FIG001,Term Based - Semi-Annual;TermDefined,Default Proration Policy
+PS001;Term Based - Quarterly,true,PS001,Term Based - Quarterly;TermDefined,Default Proration Policy
+NCH025;One Time,true,NCH025,One Time;OneTime,
+LPST001;One Time,true,LPST001,One Time;OneTime,
+LPB002;One Time,true,LPB002,One Time;OneTime,
+LA001;One Time,true,LA001,One Time;OneTime,
+USB01;One Time,true,USB01,One Time;OneTime,
+LBG001;One Time,true,LBG001,One Time;OneTime,
+CLOUD003;Term Based - Monthly,true,CLOUD003,Term Based - Monthly;TermDefined,Default Proration Policy
+CLOUD001;Term Based - Monthly,true,CLOUD001,Term Based - Monthly;TermDefined,Default Proration Policy
+QBO0021;Term Based - Yearly,true,QBO0021,Term Based - Yearly;TermDefined,Default Proration Policy
+DEF001;Term Based - Monthly,true,DEF001,Term Based - Monthly;TermDefined,Default Proration Policy
+CLOUD002;Term Based - Monthly,false,CLOUD002,Term Based - Monthly;TermDefined,Default Proration Policy
+ATTMB001;Term Based - Monthly,true,ATTMB001,Term Based - Monthly;TermDefined,Default Proration Policy
+SSS001;Evergreen - Semi-Annual,true,SSS001,Evergreen - Semi-Annual;Evergreen,Default Proration Policy
+ATTSMS07;One Time,true,ATTSMS07,One Time;OneTime,
+PM002;Evergreen - Quarterly,true,PM002,Evergreen - Quarterly;Evergreen,Default Proration Policy
+TIM67542E;One Time,true,TIM67542E,One Time;OneTime,
+TIM12367;One Time,true,TIM12367,One Time;OneTime,
+TIM235A7;One Time,true,TIM235A7,One Time;OneTime,
+TIMB893AB45;One Time,true,TIMB893AB45,One Time;OneTime,
+TIMB893AB45;Term Based - Monthly,false,TIMB893AB45,Term Based - Monthly;TermDefined,Default Proration Policy
+KTC677R;Term Based - Yearly,true,KTC677R,Term Based - Yearly;TermDefined,Default Proration Policy
+KTC677R;One Time,false,KTC677R,One Time;OneTime,
+VIL8899089;One Time,true,VIL8899089,One Time;OneTime,
+PUP001A45;One Time,true,PUP001A45,One Time;OneTime,
+ED001;One Time,true,ED001,One Time;OneTime,
+CLOUD004;Term Based - Monthly,true,CLOUD004,Term Based - Monthly;TermDefined,Default Proration Policy
+SLKSRC002;Term Based - Yearly,true,SLKSRC002,Term Based - Yearly;TermDefined,Default Proration Policy
+CLOUD002;One Time,true,CLOUD002,One Time;OneTime,
+QP001;Evergreen - Yearly,false,QP001,Evergreen - Yearly;Evergreen,Default Proration Policy

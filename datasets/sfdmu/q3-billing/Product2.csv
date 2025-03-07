@@ -1,0 +1,73 @@
+BillingPolicy.Name,StockKeepingUnit
+,AV001
+,DS001
+,KB001
+,CS001
+Billing Policy - Advance,LP001
+Billing Policy - Advance,LB001
+Billing Policy - Advance,LCP001
+,LPB001
+,MO001
+Billing Policy - Advance,MOU001
+,PRN001
+,PB001
+,PP001
+,SP001
+Billing Policy - Advance,TRG001
+,W001
+,USB01
+Billing Policy - Advance,HDS001
+,TPP01
+,LLMTRG001
+Billing Policy - Advance,UA001
+,SDP001
+,ASTCERT001
+Billing Policy - Advance,ATRG001
+,APTRG001
+,ACERT001
+,DCERT001
+,CERT007
+Billing Policy - Advance,LLMCERT001
+,QP001
+,GW001
+,GPTW001
+,LCD001
+,MAIN0098
+,SLKDPP007
+,SLKDPP008
+Billing Policy - Advance,SLKSRC001
+,SLKDPP009
+,PCERT001
+,LBG001
+,EHD009
+,FIG001
+,PS001
+,NCH025
+,LPST001
+,LPB002
+,ATTMB001
+,CLOUD003
+,CLOUD001
+,QBO0021
+,CLOUD002
+,PM002
+,SSS001
+,TIM67542E
+,TIM12367
+,TIM235A7
+,TIMB893AB45
+,KTC677R
+,PUP001A45
+,VIL8899089
+Milestone Billing Policy - Software,ED001
+Billing Policy - Advance,CLOUD004
+Billing Policy - Advance,SLKSRC002
+,LA001
+,ATTM001
+,OF001
+,ATTSMS07
+,DEF001
+Billing Policy- Arrears,CO478
+Billing Policy- Arrears,CO479
+Billing Policy- Arrears,CO480
+Billing Policy- Arrears,TEST-USG

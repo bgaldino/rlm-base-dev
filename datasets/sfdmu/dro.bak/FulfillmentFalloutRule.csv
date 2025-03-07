@@ -1,2 +1,0 @@
-$$Name$CurrencyIsoCode,CurrencyIsoCode,ErrorCode,FlowDefinitionName,IntegrationDefinition.DeveloperName,Name,RetriesAllowed,RetryPolicy,StepType
-000000001;USD,USD,,,RLM_DFOTenantProvisioningCallout,000000001,,Staggered,Callout
