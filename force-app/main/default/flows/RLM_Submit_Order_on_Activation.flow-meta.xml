@@ -7,9 +7,6 @@
         <locationY>600</locationY>
         <actionName>createOrUpdateAssetFromOrder</actionName>
         <actionType>createOrUpdateAssetFromOrder</actionType>
-        <connector>
-            <targetReference>Call_Order_To_Billing_Schedule</targetReference>
-        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>orderId</name>
@@ -18,24 +15,6 @@
             </value>
         </inputParameters>
         <nameSegment>createOrUpdateAssetFromOrder</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Call_Order_To_Billing_Schedule</name>
-        <label>Call Order To Billing Schedule</label>
-        <locationX>242</locationX>
-        <locationY>708</locationY>
-        <actionName>createBillingSchedulesFromBillingTransaction</actionName>
-        <actionType>createBillingSchedulesFromBillingTransaction</actionType>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>billingTransactionId</name>
-            <value>
-                <elementReference>$Record.Id</elementReference>
-            </value>
-        </inputParameters>
-        <nameSegment>createBillingSchedulesFromBillingTransaction</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
