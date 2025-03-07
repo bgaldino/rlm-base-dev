@@ -26,6 +26,10 @@
                 <behavior>Readonly</behavior>
                 <field>TotalPrice</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BindingInstanceTargetId</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
@@ -48,6 +52,10 @@
                 <behavior>Edit</behavior>
                 <field>SubscriptionTerm</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>LineNumber</field>
+            </layoutItems>
         </layoutColumns>
         <style>TwoColumnsTopToBottom</style>
     </layoutSections>
@@ -57,10 +65,6 @@
         <editHeading>true</editHeading>
         <label>Pricing Information</label>
         <layoutColumns>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>PricingTransactionType</field>
-            </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>QuoteLineItemId</field>
@@ -98,30 +102,18 @@
                 <field>PeriodBoundaryDay</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Edit</behavior>
-                <field>StartingUnitPriceSource</field>
-            </layoutItems>
-            <layoutItems>
                 <behavior>Readonly</behavior>
                 <field>QuantityUnitOfMeasureId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>PriceWaterfallIdentifier</field>
             </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
-                <behavior>Edit</behavior>
-                <field>StartingPriceTotal</field>
-            </layoutItems>
-            <layoutItems>
                 <behavior>Readonly</behavior>
                 <field>ListPrice</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>ListPriceTotal</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>GrossUnitPrice</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
@@ -174,7 +166,7 @@
         <layoutColumns>
             <layoutItems>
                 <behavior>Readonly</behavior>
-                <field>BillingFrequency</field>
+                <field>BillingFrequency2</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
@@ -182,7 +174,7 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>BillingFrequency2</field>
+                <field>BillingReference2</field>
             </layoutItems>
         </layoutColumns>
         <layoutColumns>
@@ -202,11 +194,46 @@
         <style>TwoColumnsLeftToRight</style>
     </layoutSections>
     <layoutSections>
+        <customLabel>true</customLabel>
+        <detailHeading>true</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Segment Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>RampIdentifier</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>SegmentIdentifier</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>IsPrimarySegment</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>SegmentName</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>SegmentType</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsLeftToRight</style>
+    </layoutSections>
+    <layoutSections>
         <customLabel>false</customLabel>
         <detailHeading>false</detailHeading>
         <editHeading>false</editHeading>
         <label>System Information</label>
         <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ValidationResult</field>
+            </layoutItems>
             <layoutItems>
                 <behavior>Readonly</behavior>
                 <field>CreatedById</field>
@@ -273,14 +300,6 @@
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
-        <fields>Invoice</fields>
-        <fields>ChargeAmountWithTax</fields>
-        <fields>InvoiceLineStartDate</fields>
-        <fields>InvoiceLineEndDate</fields>
-        <relatedList>InvoiceLines</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>Name</fields>
         <fields>AssociatedOrderItem</fields>
         <fields>AssociatedOrderItemRole</fields>
         <fields>AssociatedOrderItemPricing</fields>
@@ -316,7 +335,7 @@
     <showRunAssignmentRulesCheckbox>false</showRunAssignmentRulesCheckbox>
     <showSubmitAndAttachButton>false</showSubmitAndAttachButton>
     <summaryLayout>
-        <masterLabel>00hKj00000WMeWa</masterLabel>
+        <masterLabel>00hRL000007VZK1</masterLabel>
         <sizeX>4</sizeX>
         <sizeY>0</sizeY>
         <summaryLayoutStyle>Default</summaryLayoutStyle>
