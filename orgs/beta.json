@@ -14,8 +14,6 @@
     "ContractsAIClauseDesigner",
     "Copilot",
     "CoreCPQ",
-    "CustomerDataPlatform",
-    "CustomerDataPlatformLite",
     "DisclosureFramework",
     "EinsteinAssistant",
     "Einstein1AIPlatform",
@@ -30,7 +28,9 @@
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "SalesforceConfiguratorEngine",
-    "TableauEinsteinBase"
+    "SalesforcePaymentsFeature",
+    "TableauEinsteinBase",
+    "UsageManagement"
     ],
   "settings": {
     "lightningExperienceSettings": {
@@ -64,12 +64,6 @@
     },
     "einsteinGptSettings" : {
       "enableEinsteinGptPlatform" : true
-    },
-    "customAddressFieldSettings": {
-      "enableCustomAddressField": true
-    },
-    "customerDataPlatformSettings": {
-      "enableCustomerDataPlatform": false
     }
   }
 }
