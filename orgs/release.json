@@ -3,14 +3,35 @@
   "country": "US",
   "edition": "Enterprise",
   "features": [
-    "EnableSetPasswordInApi",
-    "OrderSaveLogicEnabled",
-    "CoreCPQ",
+    "AdvancedApproval",
+    "AIProviderOpenAI",
+    "AIProviderAWSBedrock",
+    "BillingAdvance",
+    "CallCoaching",
+    "CGAnalytics",
+    "Chatbot",
     "Communities",
+    "ContractsAIClauseDesigner",
+    "Copilot",
+    "CoreCPQ",
+    "DisclosureFramework",
+    "EinsteinAssistant",
+    "Einstein1AIPlatform",
+    "EinsteinGenerativeServices",
+    "EinsteinHawkingC2CEnabled",
+    "EinsteinSearch",
     "EnablePRM",
+    "EnableSetPasswordInApi",
+    "InsightsPlatform",
+    "OrderSaveLogicEnabled",
     "PartnerCommunity",
-    "AdvancedApproval"
-  ],
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "SalesforceConfiguratorEngine",
+    "SalesforcePaymentsFeature",
+    "TableauEinsteinBase",
+    "UsageManagement"
+    ],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
@@ -26,35 +47,6 @@
       "enableEnhancedPermsetMgmt": true,
       "enableNewProfileUI": true
     },
-    "orderSettings": {
-      "enableOrders": true,
-      "enableEnhancedCommerceOrders": true,
-      "enableOrderEvents": true,
-      "enableZeroQuantity": true,
-      "enableNegativeQuantity": true
-    },
-    "quoteSettings": {
-      "enableQuote": true,
-      "enableQuotesWithoutOppEnabled": true
-    },
-    "revenueManagementSettings": {
-      "enableCoreCPQ": true
-    },
-    "industriesContextSettings": {
-      "enableContextDefinitions": true
-    },
-    "industriesPricingSettings": {
-      "enableSalesforcePricing": true,
-      "enablePricingWaterfall": true,
-      "enablePricingWaterfallPersistence": true,
-      "enableHighAvailability": true
-    },
-    "productConfiguratorSettings": {
-      "enableProductConfigurator": true
-    },
-    "dynamicFulfillmentOrchestratorSettings": {
-      "enableDFOPref": true
-    },
     "securitySettings": {
       "enableAdminLoginAsAnyUser": true,
       "sessionSettings": {
@@ -67,11 +59,11 @@
     "currencySettings": {
       "enableMultiCurrency": true
     },
-    "experienceBundleSettings": {
-      "enableExperienceBundleMetadata": true
-    },
     "communitiesSettings": {
       "enableNetworksEnabled": true
+    },
+    "einsteinGptSettings" : {
+      "enableEinsteinGptPlatform" : true
     }
   }
 }

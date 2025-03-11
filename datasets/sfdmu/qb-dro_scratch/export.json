@@ -17,7 +17,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, ErrorCode, FlowDefinitionName, Id, IntegrationDefinition.DeveloperName, Name, RetriesAllowed, RetryPolicy, StepType FROM FulfillmentFalloutRule",
+          "query": "SELECT CurrencyIsoCode, ErrorCode, FlowDefinitionName, Id, IntegrationDefinition.DeveloperName, Name, RetriesAllowed, RetryIntervals, RetryPolicy, StepType FROM FulfillmentFalloutRule",
           "operation": "Upsert",
           "externalId": "Name;CurrencyIsoCode",
           "excluded": false
@@ -47,7 +47,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, DestinationProductId, Id, Name, Priority, SourceProductId FROM ProductFulfillmentDecompRule",
+          "query": "SELECT CurrencyIsoCode, DestinationProductId, Id, Name, Priority, SourceProductId FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
           "operation": "Upsert",
           "externalId": "Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit;CurrencyIsoCode",
           "excluded": false
@@ -59,7 +59,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT DecompositionScope, FulfillmentQtyCalcMethod, Name, StockKeepingUnit FROM Product2",
+          "query": "SELECT DecompositionScope, FulfillmentQtyCalcMethod, Name, StockKeepingUnit FROM Product2 ORDER BY Product2.StockKeepingUnit ASC",
           "operation": "Update",
           "externalId": "Name;StockKeepingUnit",
           "excluded": false

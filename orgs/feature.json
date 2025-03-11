@@ -4,18 +4,34 @@
   "edition": "Enterprise",
   "features": [
     "AdvancedApproval",
+    "AIProviderOpenAI",
+    "AIProviderAWSBedrock",
+    "BillingAdvance",
+    "CallCoaching",
     "CGAnalytics",
+    "Chatbot",
     "Communities",
     "ContractsAIClauseDesigner",
     "Copilot",
     "CoreCPQ",
     "DisclosureFramework",
+    "EinsteinAssistant",
+    "Einstein1AIPlatform",
+    "EinsteinGenerativeServices",
+    "EinsteinHawkingC2CEnabled",
+    "EinsteinSearch",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "InsightsPlatform",
     "OrderSaveLogicEnabled",
-    "PartnerCommunity"
-  ],
+    "PartnerCommunity",
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "SalesforceConfiguratorEngine",
+    "SalesforcePaymentsFeature",
+    "TableauEinsteinBase",
+    "UsageManagement"
+    ],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
@@ -45,6 +61,9 @@
     },
     "communitiesSettings": {
       "enableNetworksEnabled": true
+    },
+    "einsteinGptSettings" : {
+      "enableEinsteinGptPlatform" : true
     }
   }
 }

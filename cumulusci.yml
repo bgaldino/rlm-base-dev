@@ -1,4 +1,4 @@
-minimum_cumulusci_version: "3.84.3"
+minimum_cumulusci_version: "4.0.0"
 orgs:
   scratch:
     beta:
@@ -25,6 +25,9 @@ orgs:
     dev_previous:
       config_file: orgs/dev_previous.json
       days: 30
+    dev_datacloud:
+      config_file: orgs/dev_datacloud.json
+      days: 30
 
 project:
   name: rlm-base
@@ -36,14 +39,11 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c drive-energy-2196.scratch.my.salesforce.com"
-    user_alias: &user_alias test-prxtakdifkjt@example.com
-    combined_flags: &combined_flags " -u test-prxtakdifkjt@example.com -c drive-energy-2196.scratch.my.salesforce.com"
     prm: true
     tso: false
     qb: true
     q3: false
-    calmdelete: true
+    calmdelete: false
     tax: true
     billing: true
     clm: false
@@ -59,6 +59,7 @@ project:
     commerce: false
     quantumbit: true
     breconfig: false
+    docgen: true
 
     rlm_psl_api_names: &rlm_psl_api_names
       - BREDesigner
@@ -512,207 +513,174 @@ tasks:
       skip_existing: true
 
   create_price_adjustment_schedules:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/pas"
 
   create_price_adjustment_schedules_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/pas"
 
   insert_quantumbit_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-multicurrency"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-multicurrency"
 
   insert_quantumbit_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-multicurrency"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-multicurrency"
 
   insert_q3_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-multicurrency"
 
   insert_q3_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-multicurrency"
 
   insert_clm_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm"
+      pathtoexportjson: "datasets/sfdmu/test-clm"
 
   insert_clm_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/clm"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/clm"
 
   insert_qb_dro_data_scratch:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-dro_scratch"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-dro_scratch"
 
   insert_qb_dro_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-dro"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-dro"
 
   insert_q3_dro_data_scratch:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-dro_scratch"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-dro_scratch"
 
   insert_q3_dro_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-dro"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-dro"
 
   insert_tax_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/tax"
 
   insert_tax_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/tax"
 
   insert_q3_tax_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-tax"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-tax"
 
   insert_q3_tax_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-tax"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-tax"
 
   insert_billing_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/billing"
 
   insert_billing_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/billing"
 
   insert_q3_billing_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-billing"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-billing"
 
   insert_q3_billing_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-billing"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-billing"
 
   insert_qb_rating_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rating"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-rating"
 
   insert_qb_rating_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rating"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-rating"
   
   insert_q3_rating_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rating"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-rating"
 
   insert_q3_rating_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rating"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-rating"
 
   insert_qb_rates_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rates"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-rates"
 
   insert_qb_rates_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rates"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-rates"
 
   insert_q3_rates_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-rates"
 
   insert_q3_rates_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-rates"
 
   insert_scratch_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/scratch_data"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/scratch_data"
   
   activate_decision_tables:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/decision_tables_active"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/decision_tables_active"
 
   activate_expression_sets:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/expressionsets_active"
 
   activate_expression_sets_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/expressionsets_active"
 
   deactivate_expression_sets:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
 
   deactivate_expression_sets_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
 
   deploy_sharing_rules:
     class_path: cumulusci.tasks.salesforce.DeployBundles
@@ -796,6 +764,11 @@ tasks:
     options:
       developerNames: *dt_rating_decision_tables
 
+  load_sfdmu_data:
+    group: Revenue Lifecycle Management
+    description: Load SFDMU Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+
 flows:
   prepare_rlm_org:
     group: Revenue Lifecycle Management
@@ -806,7 +779,7 @@ flows:
         flow: prepare_expression_sets
       3:
         task: createPartnerCentral
-        when: project_config.project__custom__prm == true
+        when: project_config.project__custom__prm
       4:
         task: activate_decision_tables
         when: org_config.scratch
@@ -858,12 +831,12 @@ flows:
         task: deploy_pre
       3:
         task: assign_permission_set_licenses
-        when: project_config.project__custom__clm == true
+        when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
       4:
         task: assign_permission_set_licenses
-        when: project_config.project__custom__einstein == true
+        when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_psl_api_names  
       5:
@@ -876,7 +849,7 @@ flows:
           api_names: *rlm_psg_api_names
       7:
         task: assign_permission_sets
-        when: project_config.project__custom__tso == true
+        when: project_config.project__custom__tso
         options:
           api_names: *rlm_pcm_ps_api_names
       8:
@@ -890,29 +863,29 @@ flows:
         when: org_config.scratch
       11:
         task: create_price_adjustment_schedules_prod
-        when: project_config.project__custom__tso == true
+        when: not org_config.scratch and project_config.project__custom__tso
       12:
         task: util_sleep
         options:
           seconds: *sleep_default
       13:
         task: create_rule_library
-        when: project_config.project__custom__breconfig == true
+        when: project_config.project__custom__breconfig
       14:
         task: util_sleep
         options:
           seconds: *sleep_default
       15:
         task: create_dro_rule_library
-        when: project_config.project__custom__dro == true
+        when: project_config.project__custom__dro
       16:
         task: assign_permission_sets
-        when: project_config.project__custom__einstein == true
+        when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
       17:
         task: assign_permission_sets
-        when: project_config.project__custom__billing == true
+        when: project_config.project__custom__billing
         options:
           api_names: *rlm_blng_ps_api_names
 
@@ -925,28 +898,28 @@ flows:
         task: extend_context_product_discovery
       3:
         task: extend_context_cart
-        when: project_config.project__custom__commerce == true
+        when: project_config.project__custom__commerce
       4:
         task: extend_context_billing
-        when: project_config.project__custom__billing == true
+        when: project_config.project__custom__billing
       5:
         task: extend_context_collection_plan_segment
-        when: project_config.project__custom__billing == true
+        when: project_config.project__custom__billing
       6:
         task: extend_context_fulfillment_asset
-        when: project_config.project__custom__dro == true
+        when: project_config.project__custom__dro
       7:
         task: extend_stdctx_contracts
-        when: project_config.project__custom__clm == true
+        when: project_config.project__custom__clm
       8:
         task: extend_stdctx_contracts_extraction
-        when: project_config.project__custom__clm == true
+        when: project_config.project__custom__clm
       9:
         task: extend_context_rate_management
-        when: project_config.project__custom__rating == true
+        when: project_config.project__custom__rating
       10:
         task: extend_context_rating_discovery
-        when: project_config.project__custom__rating == true
+        when: project_config.project__custom__rating
 
   prepare_expression_sets:
     group: Revenue Lifecycle Management
@@ -956,48 +929,48 @@ flows:
         when: org_config.scratch
       2:
         task: deactivate_expression_sets_prod
-        when: project_config.project__custom__tso == true
+        when: not org_config.scratch
   
   prepare_product_data:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: insert_quantumbit_data
-        when: org_config.scratch and project_config.project__custom__qb == true
+        when: org_config.scratch and project_config.project__custom__qb
       2:
         task: insert_quantumbit_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__qb == true
+        when: not org_config.scratch and project_config.project__custom__qb
       3:
         task: insert_q3_data
-        when: org_config.scratch and project_config.project__custom__q3 == true
+        when: org_config.scratch and project_config.project__custom__q3
       4:
         task: insert_q3_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__q3 == true
+        when: not org_config.scratch and project_config.project__custom__q3
 
   prepare_scratch:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: insert_scratch_data
-        when: org_config.scratch
+        when: org_config.scratch and not project_config.project__custom__tso
       2:
         task: deploy_post_scratch
-        when: org_config.scratch
+        when: org_config.scratch and not project_config.project__custom__tso
 
   prepare_quantumbit:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: deploy_quantumbit
-        when: project_config.project__custom__quantumbit == true
+        when: project_config.project__custom__quantumbit
       2:
         task: assign_permission_sets
-        when: project_config.project__custom__quantumbit == true
+        when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_quantumbit
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__quantumbit == true and project_config.project__custom__calmdelete == true
+        when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
           api_names: *ps_calmdelete
 
@@ -1006,17 +979,17 @@ flows:
     steps:
       1:
         task: assign_permission_set_licenses
-        when: project_config.project__custom__tso == true
+        when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_psl_api_names
       2:
         task: assign_permission_set_groups
-        when: project_config.project__custom__tso == true
+        when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_psg_api_names
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__tso == true
+        when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
 
@@ -1025,26 +998,26 @@ flows:
     steps:
       1:
         task: insert_qb_dro_data_scratch
-        when: org_config.scratch and project_config.project__custom__dro == true and project_config.project__custom__qb == true
+        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__qb
       2:
         task: insert_qb_dro_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__dro and project_config.project__custom__qb == true
+        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__qb
       3:
         task: insert_q3_dro_data_scratch
-        when: org_config.scratch and project_config.project__custom__dro == true and project_config.project__custom__q3 == true
+        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
       4:
         task: insert_q3_dro_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__dro and project_config.project__custom__q3 == true
+        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
 
   prepare_clm:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: insert_clm_data
-        when: org_config.scratch and project_config.project__custom__clm == true
+        when: org_config.scratch and project_config.project__custom__clm
       2:
         task: insert_clm_data_prod
-        when: project_config.project__custom__tso == true and project_config.project__custom__clm == true
+        when: not org_config.scratch and project_config.project__custom__clm
 
   prepare_docgen:
     group: Revenue Lifecycle Management
@@ -1053,129 +1026,129 @@ flows:
         task: create_docgen_library
       2:
         task: deploy_post_docgen
-        when: project_config.project__custom__tso == true
+        when: project_config.project__custom__tso
 
   prepare_billing:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: insert_billing_data
-        when: project_config.project__custom__billing == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
       2:
         task: insert_billing_data_prod
-        when: project_config.project__custom__billing == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: not org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_billing_data
-        when: project_config.project__custom__billing == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
       4:
         task: insert_q3_billing_data_prod
-        when: project_config.project__custom__billing == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: not org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
       5:
         task: activate_flow
-        when: project_config.project__custom__billing == true
+        when: project_config.project__custom__billing
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
       6:
         task: activate_default_payment_term
-        when: project_config.project__custom__billing == true
+        when: project_config.project__custom__billing
       7: 
         task: activate_billing_records
-        when: project_config.project__custom__billing == true
+        when: project_config.project__custom__billing
 
   prepare_prm:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: deploy_post_prm
-        when: project_config.project__custom__prm == true
+        when: project_config.project__custom__prm
       2:
         task: publish_community
-        when: project_config.project__custom__prm == true
+        when: project_config.project__custom__prm
         options:
           name: rlm
       3:
         task: deploy_sharing_rules
-        when: project_config.project__custom__prm == true
+        when: project_config.project__custom__prm
 
   prepare_tax:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: create_tax_engine
-        when: project_config.project__custom__tax == true
+        when: project_config.project__custom__tax
       2:
         task: insert_tax_data
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_tax_data_prod
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: not org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
       4:
         task: insert_q3_tax_data
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
       5:
         task: insert_q3_tax_data_prod
-        when: project_config.project__custom__tax == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: not org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
       6: 
         task: activate_tax_records
-        when: project_config.project__custom__tax == true
+        when: project_config.project__custom__tax
 
   prepare_rating:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: insert_qb_rating_data
-        when: project_config.project__custom__rating == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       2:
         task: insert_qb_rating_data_prod
-        when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: not org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_rating_data
-        when: project_config.project__custom__rating == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
       4:
         task: insert_q3_rating_data_prod
-        when: project_config.project__custom__rating == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: not org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
       5:
         task: insert_qb_rates_data
-        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
       6:
         task: insert_qb_rates_data_prod
-        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__qb == true
+        when: not org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
       7:
         task: insert_q3_rates_data
-        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == false and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
       8:
         task: insert_q3_rates_data_prod
-        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true and project_config.project__custom__tso == true and project_config.project__custom__refresh == false and project_config.project__custom__q3 == true
+        when: not org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
       9: 
         task: activate_rating_records
-        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true
+        when: project_config.project__custom__rating and project_config.project__custom__rates
       10: 
         task: activate_rates
-        when: project_config.project__custom__rating == true and project_config.project__custom__rates == true
+        when: project_config.project__custom__rating and project_config.project__custom__rates
   
   prepare_agents:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: assign_permission_set_groups
-        when: project_config.project__custom__agents == true
+        when: project_config.project__custom__agents
         options:
           api_names: *rlm_ai_psg_api_names
       2:
         task: deploy_agents_settings
-        when: project_config.project__custom__agents == true
+        when: project_config.project__custom__agents
       3:
         task: deploy_agents_flows
-        when: project_config.project__custom__agents == true
+        when: project_config.project__custom__agents
       4:
         task: deploy_agents_genAiFunctions
-        when: project_config.project__custom__agents == true
+        when: project_config.project__custom__agents
       5:
         task: deploy_agents_genAiPlugins
-        when: project_config.project__custom__agents == true
+        when: project_config.project__custom__agents
       6:
         task: deploy_agents_genAiPlanners
-        when: project_config.project__custom__agents == true
+        when: project_config.project__custom__agents
   
   refresh_decision_tables:
     group: Revenue Lifecycle Management
@@ -1184,4 +1157,4 @@ flows:
         task: sync_pricing_data
       2:
         task: refresh_dt_rating
-        when: project_config.project__custom__rating == true
+        when: project_config.project__custom__rating
