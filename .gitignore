@@ -88,3 +88,4 @@ mdapi
 temp_folder
 temp
 datasets/sfdmu/test*/**
+tasks/sfdmuload.py
