@@ -40,10 +40,10 @@ project:
 
   custom:
     prm: true
-    tso: true
+    tso: false
     qb: true
     q3: false
-    calmdelete: true
+    calmdelete: false
     tax: true
     billing: true
     clm: false
@@ -54,7 +54,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: true
+    agents: false
     refresh: false
     commerce: false
     quantumbit: true
@@ -779,7 +779,7 @@ flows:
         flow: prepare_expression_sets
       3:
         task: createPartnerCentral
-        when: project_config.project__custom__prm == true
+        when: project_config.project__custom__prm
       4:
         task: activate_decision_tables
         when: org_config.scratch
