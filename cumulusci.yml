@@ -39,9 +39,6 @@ project:
   source_format: sfdx
 
   custom:
-    mydomain: &mydomain "-c process-river-7142.scratch.my.salesforce.com"
-    user_alias: &user_alias $org_config.username
-    combined_flags: &combined_flags " -u test-ubaxirpk1s8m@example.com -c process-river-7142.scratch.my.salesforce.com"
     prm: true
     tso: true
     qb: true
@@ -516,207 +513,174 @@ tasks:
       skip_existing: true
 
   create_price_adjustment_schedules:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/pas"
 
   create_price_adjustment_schedules_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/pas"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/pas"
 
   insert_quantumbit_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-multicurrency"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-multicurrency"
 
   insert_quantumbit_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-multicurrency"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-multicurrency"
 
   insert_q3_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-multicurrency"
 
   insert_q3_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-multicurrency"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-multicurrency"
 
   insert_clm_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/test-clm"
+      pathtoexportjson: "datasets/sfdmu/test-clm"
 
   insert_clm_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/clm"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/clm"
 
   insert_qb_dro_data_scratch:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-dro_scratch"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-dro_scratch"
 
   insert_qb_dro_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/qb-dro"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-dro"
 
   insert_q3_dro_data_scratch:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-dro_scratch"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-dro_scratch"
 
   insert_q3_dro_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-dro"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-dro"
 
   insert_tax_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/tax"
 
   insert_tax_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/tax"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/tax"
 
   insert_q3_tax_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-tax"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-tax"
 
   insert_q3_tax_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/q3-tax"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-tax"
 
   insert_billing_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/billing"
 
   insert_billing_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/billing"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/billing"
 
   insert_q3_billing_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-billing"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-billing"
 
   insert_q3_billing_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-billing"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-billing"
 
   insert_qb_rating_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rating"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-rating"
 
   insert_qb_rating_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rating"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-rating"
   
   insert_q3_rating_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rating"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-rating"
 
   insert_q3_rating_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rating"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-rating"
 
   insert_qb_rates_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rates"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/qb-rates"
 
   insert_qb_rates_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/qb-rates"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/qb-rates"
 
   insert_q3_rates_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/q3-rates"
 
   insert_q3_rates_data_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/q3-rates"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/q3-rates"
 
   insert_scratch_data:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/scratch_data"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/scratch_data"
   
   activate_decision_tables:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/decision_tables_active"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/decision_tables_active"
 
   activate_expression_sets:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/expressionsets_active"
 
   activate_expression_sets_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -s csvfile -p datasets/sfdmu/expressionsets_active"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/expressionsets_active"
 
   deactivate_expression_sets:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive"
-      extra: *mydomain
+      pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
 
   deactivate_expression_sets_prod:
-    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      command: "sfdmu run -n -s csvfile -p datasets/sfdmu/expressionsets_inactive"
-      extra: *combined_flags
+      pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
 
   deploy_sharing_rules:
     class_path: cumulusci.tasks.salesforce.DeployBundles

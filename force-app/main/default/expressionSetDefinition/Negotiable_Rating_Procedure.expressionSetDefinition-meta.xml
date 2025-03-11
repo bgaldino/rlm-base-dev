@@ -100,13 +100,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDKj000000kCuKMAU</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -231,13 +224,6 @@
                     <type>Parameter</type>
                     <value>TierRateCardEntry</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDKj000000kCuJMAU</value>
-                </parameters>
             </customElement>
             <description>Negotiated Rate Card Entries</description>
             <label>Negotiated Rate Card Entries</label>
@@ -342,13 +328,6 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>Asset</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDKj000000kCuLMAU</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -496,13 +475,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>TotalAmount</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDKj000000kCuHMAU</value>
                 </parameters>
             </customElement>
             <description>Volume-Based Rate Discount</description>

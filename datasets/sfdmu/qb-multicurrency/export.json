@@ -147,7 +147,7 @@
         },
         {
           "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
-          "operation": "Upsert",
+          "operation": "Readonly",
           "externalId": "Name;CurrencyIsoCode;Pricebook2.Name",
           "excluded": false
         },

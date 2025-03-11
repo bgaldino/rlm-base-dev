@@ -1,21 +1,21 @@
 {
-    "apiVersion": "63.0",
-    "excludeIdsFromCSVFiles": "true",
-    "objectSets": [
+  "apiVersion": "63.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
         {
-            "objects": [
-                {
-                    "query": "SELECT AccountSource, AnnualRevenue, BillingCity, BillingCountry, BillingPostalCode, BillingState, BillingStreet,ChannelProgramLevelName, ChannelProgramName, CurrencyIsoCode, Description, Fax, Id, Industry, MasterRecordId, Name, NumberOfEmployees, ParentId, Phone, PhotoUrl, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, ShippingStreet, Type, Website FROM Account",
-                    "operation": "Upsert",
-                    "externalId": "Name"
-                },
-                {
-                    "query": "SELECT AccountId, AssistantName, AssistantPhone, Birthdate, CurrencyIsoCode, Department, Description, Email, Fax, FirstName, HomePhone, Id, LastName, LeadSource, MailingCity, MailingCountry, MailingPostalCode, MailingState, MailingStreet, MobilePhone, Name, OtherCity, OtherCountry, OtherPostalCode, OtherState, OtherStreet, OtherPhone, Phone, PhotoUrl, ReportsToId, Salutation, Title FROM Contact",
-                    "operation": "Upsert",
-                    "externalId": "Name"
-                }
-            ]
+          "query": "SELECT AccountSource, AnnualRevenue, BillingCity, BillingCountry, BillingPostalCode, BillingState, BillingStreet,ChannelProgramLevelName, ChannelProgramName, CurrencyIsoCode, Description, Fax, Id, Industry, MasterRecordId, Name, NumberOfEmployees, ParentId, Phone, PhotoUrl, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, ShippingStreet, Type, Website FROM Account",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT AccountId, AssistantName, AssistantPhone, Birthdate, CurrencyIsoCode, Department, Description, Email, Fax, FirstName, HomePhone, Id, LastName, LeadSource, MailingCity, MailingCountry, MailingPostalCode, MailingState, MailingStreet, MobilePhone, Name, OtherCity, OtherCountry, OtherPostalCode, OtherState, OtherStreet, OtherPhone, Phone, PhotoUrl, ReportsToId, Salutation, Title FROM Contact",
+          "operation": "Upsert",
+          "externalId": "Name"
         }
-    ],
-    "orgs": []
+      ]
+    }
+  ],
+  "orgs": []
 }
