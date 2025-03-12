@@ -4,6 +4,6 @@
     <enableCoreCPQ>true</enableCoreCPQ>
     <enableDeltaPricing>false</enableDeltaPricing>
     <enableRampDeal>true</enableRampDeal>
-    <enableTransactionProcessor>false</enableTransactionProcessor>
+    <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
 </RevenueManagementSettings>
