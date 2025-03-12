@@ -250,6 +250,16 @@
                 <identifier>RecordRC_Approval_Status_cField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.StartDate</fieldItem>
+                <identifier>RecordStartDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -312,6 +322,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.RC_Approval_Level__c</fieldItem>
                 <identifier>RecordRC_Approval_Level_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RLM_TermMonths__c</fieldItem>
+                <identifier>RecordRLM_TermMonths_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-c9141212-f773-4904-af60-53cb9861f9e0</name>
@@ -628,10 +648,30 @@
                 <identifier>RecordLineItemCountField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.ValidationResult</fieldItem>
+                <identifier>RecordValidationResultField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-852b10dd-72a2-463a-bd87-90ceaf3fa84a</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TransactionType</fieldItem>
+                <identifier>RecordTransactionTypeField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
@@ -650,6 +690,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.LastPricedDate</fieldItem>
                 <identifier>RecordLastPricedDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.CalculationStatus</fieldItem>
+                <identifier>RecordCalculationStatusField2</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-7a57f133-c909-4107-b11e-367d9248a0da</name>
