@@ -372,7 +372,7 @@
           "ctaBtnOneTextColor" : "",
           "ctaBtnOneTextHoverColor" : "",
           "ctaBtnOneUrl" : "",
-          "ctaBtnRadius" : 2,
+          "ctaBtnRadius" : 50,
           "ctaBtnTwoBgColor" : "rgba(255, 255, 255, 0)",
           "ctaBtnTwoBgHoverColor" : "rgba(255, 255, 255, 0.2)",
           "ctaBtnTwoBorderColor" : "#FFFFFF",
