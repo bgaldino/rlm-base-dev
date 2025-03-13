@@ -56,6 +56,16 @@
             "objectApiName" : "Quote",
             "recordId" : "{!recordId}"
           },
+          "componentName" : "runtime_revenue_foundation:progressIndicator",
+          "id" : "9cd6d8ff-31ea-4cc6-b43d-3c2981c22e2c",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        }, {
+          "componentAttributes" : {
+            "objectApiName" : "Quote",
+            "recordId" : "{!recordId}"
+          },
           "componentName" : "runtime_revenue_foundation:transactionLineTable",
           "id" : "b3220e31-53c7-460d-be15-c3ae0878d896",
           "renderPriority" : "NEUTRAL",

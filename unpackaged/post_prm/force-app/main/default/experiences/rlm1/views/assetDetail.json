@@ -44,6 +44,13 @@
             "seedComponents" : [ ],
             "tabKey" : "3",
             "tabName" : "Asset Lifecycle"
+          }, {
+            "UUID" : "6097347b-820b-45e2-988d-431c42ae351a",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "6ad46",
+            "tabName" : "Rates"
           } ],
           "useOverflowMenu" : true
         }
@@ -113,6 +120,23 @@
         "id" : "109b0606-59bc-4d0f-b691-971d1b7c756e",
         "regionLabel" : "Asset Lifecycle",
         "regionName" : "3",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "objectApiName" : "Asset",
+            "recordId" : "{!recordId}"
+          },
+          "componentName" : "runtime_revenue_foundation:usageBasedPricingResources",
+          "id" : "e2a13c7f-a155-4df1-8c27-98b560473204",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "6097347b-820b-45e2-988d-431c42ae351a",
+        "regionLabel" : "Rates",
+        "regionName" : "6ad46",
         "renditionMap" : { },
         "type" : "region"
       } ],
