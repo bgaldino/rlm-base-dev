@@ -89,3 +89,4 @@ temp_folder
 temp
 datasets/sfdmu/test*/**
 tasks/sfdmuload.py
+experience-bundle-package*/**
