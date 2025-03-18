@@ -63,8 +63,10 @@
           "type" : "component"
         }, {
           "componentAttributes" : {
+            "displayFields" : "[QuoteLineItem.Product2.Name[Product2],QuoteLineItem.Quantity,QuoteLineItem.ListPrice,QuoteLineItem.PartnerDiscountPercent,QuoteLineItem.PartnerUnitPrice,QuoteLineItem.NetUnitPrice,QuoteLineItem.NetTotalPrice]",
             "objectApiName" : "Quote",
-            "recordId" : "{!recordId}"
+            "recordId" : "{!recordId}",
+            "sidepanelDetailFields" : "[QuoteLineItem.StartDate,QuoteLineItem.EndDate,QuoteLineItem.SubscriptionTerm,QuoteLineItem.SubscriptionTermUnit,QuoteLineItem.SellingModelType]"
           },
           "componentName" : "runtime_revenue_foundation:transactionLineTable",
           "id" : "b3220e31-53c7-460d-be15-c3ae0878d896",
