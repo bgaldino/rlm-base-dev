@@ -111,7 +111,7 @@ class ExtendStandardContext(SFDXBaseTask):
             if mapping.get("name") == self.options.get("defaultMapping"):
                 self.default_context_mapping_id = mapping["contextMappingId"]
                 self.logger.info(
-                    f"{self.options.get("defaultMapping")} Context Mapping ID: {self.default_context_mapping_id}"
+                    f"{self.options.get('defaultMapping')} Context Mapping ID: {self.default_context_mapping_id}"
                 )
                 self._update_context_mappings()
                 break
