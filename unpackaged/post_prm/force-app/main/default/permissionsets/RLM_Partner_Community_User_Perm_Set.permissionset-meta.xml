@@ -994,11 +994,6 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>true</editable>
-        <field>Order.TaxLocaleType</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
         <editable>false</editable>
         <field>Order.TotalAdjDeliveryAmtWithTax</field>
         <readable>true</readable>
@@ -1825,7 +1820,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Quote.EndDate</field>
+        <field>Quote.RLM_EndDate__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -1906,11 +1901,6 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.RLM_TermMonths__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Quote.RatingDate</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2150,11 +2140,6 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>QuoteLineItem.Status</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>QuoteLineItem.SubscriptionTerm</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -2186,11 +2171,6 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>QuoteLineItem.ValidationResult</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>QuoteLineItem.WorkTypeId</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
