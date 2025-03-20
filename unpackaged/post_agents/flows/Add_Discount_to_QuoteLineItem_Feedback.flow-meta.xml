@@ -209,7 +209,7 @@
     <description>Applies a discount, expressed as a percentage, to the individual quote line item.</description>
     <environments>Default</environments>
     <interviewLabel>Add Discount to QuoteLineItem {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Add Discount to Quote Line Item</label>
+    <label>Add Discount to Quote Line Item Feedback</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

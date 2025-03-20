@@ -19,7 +19,7 @@
     <description>Gets a QuoteLineItem record Id from a Product2 record.</description>
     <environments>Default</environments>
     <interviewLabel>Identify QuoteLineItem from Product {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Identify QuoteLineItem from Product</label>
+    <label>Identify QuoteLineItem from Product Feedback</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

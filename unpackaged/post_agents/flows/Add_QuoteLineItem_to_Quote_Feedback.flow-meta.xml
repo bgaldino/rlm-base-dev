@@ -410,7 +410,7 @@
         <expression>&quot;Quote Line Item Added to &quot; + {!GetQuote.Name} + &quot;.&quot;</expression>
     </formulas>
     <interviewLabel>Add QuoteLineItem to Quote {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Add QuoteLineItem to Quote</label>
+    <label>Add QuoteLineItem to Quote Feedback</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
