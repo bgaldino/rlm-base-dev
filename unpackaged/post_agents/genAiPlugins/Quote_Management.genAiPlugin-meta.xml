@@ -4,13 +4,13 @@
     <description>Assist sales reps with the creation of new business quotes, create amendment quotes, manage existing quotes by adding products, and manage quote line items by applying discount percentages.</description>
     <developerName>Quote_Management</developerName>
     <genAiFunctions>
-        <functionName>Add_QuoteLineItem_to_Quote</functionName>
+        <functionName>Add_QuoteLineItem_to_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Create_Amendment_Quote</functionName>
+        <functionName>Create_Amendment_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Create_New_Business_Quote</functionName>
+        <functionName>Create_New_Business_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
         <functionName>EmployeeCopilot__GetRecordDetails</functionName>
@@ -28,10 +28,10 @@
         <functionName>EmployeeCopilot__IdentifyObjectByName</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Apply_Discount_to_QuoteLineItem</functionName>
+        <functionName>Apply_Discount_to_QuoteLineItem_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Identify_QuoteLineItem_from_Product</functionName>
+        <functionName>Identify_QuoteLineItem_from_Product_Feedback</functionName>
     </genAiFunctions>
     <genAiPluginInstructions>
         <description>After the successful creation or update of the quote, or if the user asks for quote details, get the Quote record and display it in the conversation. Use the Get Record Details action with Quote Id to get the quote details.</description>

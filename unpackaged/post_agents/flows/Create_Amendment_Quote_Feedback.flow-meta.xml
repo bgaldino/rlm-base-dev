@@ -95,7 +95,7 @@
     <description>Creates an amendment quote and related opportunity for the amendment on an account that has active assets.</description>
     <environments>Default</environments>
     <interviewLabel>Create Amendment Quote {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Create Amendment Quote</label>
+    <label>Create Amendment Quote Feedback</label>
     <loops>
         <description>Repeats actions for each asset collection so it can retrieve each element</description>
         <name>IterateOverAssetCollection</name>

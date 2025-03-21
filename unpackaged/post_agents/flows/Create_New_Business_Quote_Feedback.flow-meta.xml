@@ -353,7 +353,7 @@
         <expression>&quot;Quote &quot; + TEXT({!QuoteNumber}) + &quot; for &quot; + {!GetOpportunityRecord.Name}</expression>
     </formulas>
     <interviewLabel>Create New Business Quote {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Create a Quote for New Business on an Opportunity</label>
+    <label>Create a Quote for New Business on an Opportunity Feedback</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
