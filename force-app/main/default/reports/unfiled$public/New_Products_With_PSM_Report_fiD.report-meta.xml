@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <columns>
+        <field>Product2$Name</field>
+    </columns>
+    <columns>
+        <field>Product2$Type</field>
+    </columns>
+    <columns>
+        <field>Product2.ProductSellingModelOptions$Name</field>
+    </columns>
+    <columns>
+        <field>Product2$UsageModelType</field>
+    </columns>
+    <columns>
+        <field>Product2$ConfigureDuringSale</field>
+    </columns>
+    <columns>
+        <aggregateTypes>Sum</aggregateTypes>
+        <field>Product2.ProductSellingModelOptions$PricingTerm</field>
+    </columns>
+    <columns>
+        <aggregateTypes>Sum</aggregateTypes>
+        <field>Product2$IsSoldOnlyWithOtherProds</field>
+    </columns>
+    <columns>
+        <field>Product2.ProductSellingModelOptions$PricingTermUnit</field>
+    </columns>
+    <currency>USD</currency>
+    <format>Tabular</format>
+    <name>Products With PSM Report</name>
+    <params>
+        <name>co</name>
+        <value>1</value>
+    </params>
+    <reportType>Products_With_PSM__c</reportType>
+    <scope>organization</scope>
+    <showDetails>true</showDetails>
+    <showGrandTotal>true</showGrandTotal>
+    <showSubTotals>true</showSubTotals>
+    <timeFrameFilter>
+        <dateColumn>Product2.ProductSellingModelOptions$CreatedDate</dateColumn>
+        <interval>INTERVAL_CUSTOM</interval>
+    </timeFrameFilter>
+</Report>
