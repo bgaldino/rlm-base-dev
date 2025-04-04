@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <contextDefinitions>SalesTransactionContext__stdctx</contextDefinitions>
+    <contextDefinitions>RLM_SalesTransactionContext__stdctx</contextDefinitions>
     <description>Revenue Management Default Pricing Procedure</description>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
     <label>Revenue Management Default Pricing Procedure</label>
