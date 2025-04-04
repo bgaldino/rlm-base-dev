@@ -4,6 +4,9 @@ orgs:
     beta:
       config_file: orgs/beta.json
       days: 30
+    dev-sb0:
+      config_file: orgs/dev-sb0.json
+      days: 30
     tfid:
       config_file: orgs/tfid.json
       days: 30
@@ -43,7 +46,7 @@ project:
     tso: false
     qb: true
     q3: false
-    calmdelete: false
+    calmdelete: true
     tax: true
     billing: true
     clm: false
@@ -54,7 +57,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: false
+    agents: true
     refresh: false
     commerce: false
     quantumbit: true
@@ -240,6 +243,13 @@ project:
 
     rating_discovery_context_name: &rating_discovery_context_name RLM_RatingDiscoveryContext
     rating_discovery_context_default_mapping: &rating_discovery_context_default_mapping CatalogMapping
+
+    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-multicurrency"
+    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/billing"
+    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"
+    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/tax"
+    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating"
+    quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"
 
     sleep_default: &sleep_default 30
 
@@ -525,12 +535,12 @@ tasks:
   insert_quantumbit_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-multicurrency"
+      pathtoexportjson: *quantumbit_product_dataset
 
   insert_quantumbit_data_prod:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-multicurrency"
+      pathtoexportjson: *quantumbit_product_dataset
 
   insert_q3_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -615,12 +625,12 @@ tasks:
   insert_qb_rating_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-rating"
+      pathtoexportjson: *quantumbit_rating_dataset
 
   insert_qb_rating_data_prod:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-rating"
+      pathtoexportjson: *quantumbit_rating_dataset
   
   insert_q3_rating_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -635,12 +645,12 @@ tasks:
   insert_qb_rates_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-rates"
+      pathtoexportjson: *quantumbit_rates_dataset
 
   insert_qb_rates_data_prod:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-rates"
+      pathtoexportjson: *quantumbit_rates_dataset
 
   insert_q3_rates_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData

@@ -2,6 +2,7 @@
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
     <description>RLM Default MultiCurrency Pricing Discovery Procedure</description>
+    <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
     <label>RLM Default Pricing Discovery Procedure</label>
     <processType>PricingDiscovery</processType>
     <template>false</template>

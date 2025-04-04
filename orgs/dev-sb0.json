@@ -1,0 +1,71 @@
+{
+  "orgName": "Salesforce Revenue Lifecycle Management",
+  "country": "US",
+  "edition": "Enterprise",
+  "instance": "USA794",
+  "features": [
+    "AdvancedApproval",
+    "AIProviderOpenAI",
+    "AIProviderAWSBedrock",
+    "BillingAdvance",
+    "CallCoaching",
+    "CGAnalytics",
+    "Chatbot",
+    "Communities",
+    "ConstraintBuilderPilot",
+    "ContractsAIClauseDesigner",
+    "Copilot",
+    "CoreCPQ",
+    "DisclosureFramework",
+    "EinsteinAssistant",
+    "Einstein1AIPlatform",
+    "EinsteinGenerativeServices",
+    "EinsteinHawkingC2CEnabled",
+    "EinsteinSearch",
+    "EnablePRM",
+    "EnableSetPasswordInApi",
+    "InsightsPlatform",
+    "OrderSaveLogicEnabled",
+    "PartnerCommunity",
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "SalesforceConfiguratorEngine",
+    "SalesforcePaymentsFeature",
+    "TableauEinsteinBase",
+    "UsageManagement"
+    ],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    },
+    "userEngagementSettings": {
+      "enableShowSalesforceUserAssist": false
+    },
+    "userManagementSettings": {
+      "enableEnhancedProfileMgmt": true,
+      "enableEnhancedPermsetMgmt": true,
+      "enableNewProfileUI": true
+    },
+    "securitySettings": {
+      "enableAdminLoginAsAnyUser": true,
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    },
+    "languageSettings": {
+      "enableTranslationWorkbench": true
+    },
+    "currencySettings": {
+      "enableMultiCurrency": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    },
+    "einsteinGptSettings" : {
+      "enableEinsteinGptPlatform" : true
+    }
+  }
+}
