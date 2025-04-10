@@ -96,6 +96,7 @@ project:
       - CopilotSalesforceAdminPSG
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
+      - AgentforceServiceAgentBuilderPsl
       - AIAcceleratorPsl
       - EinsteinAnalyticsPlusPsl
       - EinsteinDisclsAndCmplHubUserPsl
@@ -104,8 +105,15 @@ project:
       - MySearchPsl
       - RevenueIntelligencePsl
       - ScoringFrameworkPsl
-      - TableauEinsteinBaseCreatorPsl
-      - TableauEinsteinBaseViewerPsl
+
+    rlm_tableaunext_psl_api_names: &rlm_tableaunext_psl_api_names
+      - TableauEinsteinUserPsl
+
+    rlm_tableaunext_ps_api_names: &rlm_tableaunext_ps_api_names
+      - TableauEinsteinAdmin
+      - TableauEinsteinBusinessUser
+      - TableauEinsteinAnalyst
+      - TableauSelfServiceAnalyst
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       - EinsteinGPTPromptTemplateManager
@@ -135,7 +143,6 @@ project:
       - SalesCloudUnlimitedAnalyticsAdminPsl
       - SalesCloudUnlimitedPsl
       - SalesEngagementBasicPsl
-      - TableauEinsteinIncludedAppPsl
 
     rlm_tso_psg_api_names: &rlm_tso_psg_api_names
       - CopilotSalesforceUserPSG

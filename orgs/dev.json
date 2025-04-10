@@ -19,6 +19,7 @@
     "EinsteinAssistant",
     "Einstein1AIPlatform",
     "EinsteinGenerativeServices",
+    "EinsteinGPT",
     "EinsteinHawkingC2CEnabled",
     "EinsteinSearch",
     "EnablePRM",
@@ -30,7 +31,7 @@
     "SalesCloudEinstein",
     "SalesforceConfiguratorEngine",
     "SalesforcePaymentsFeature",
-    "TableauEinsteinBase",
+    "TableauEinstein",
     "UsageManagement"
     ],
   "settings": {
