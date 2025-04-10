@@ -213,6 +213,13 @@ project:
       - Asset_Tier_based_Rate_Adjustment
       - Asset_Volume_based_Rate_Adjustment
       - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+      - Binding_Object_Rate_Adjustment_Resolution_Entries
+      - Binding_Object_Rate_Card_Entry_Resolution
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries
+      - Binding_Object_Rate_Decision_Table
+      - Binding_Object_Tier_based_Rate_Adjustment
+      - Binding_Object_Volume_based_Rate_Adjustment
+      - Bundle_Based_Adjustment_Decision_Table
       - Pricebook_Rate_Card_Decision_Table
       - Rate_Adjustment_by_Attribute_Entries_2
       - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
@@ -1043,7 +1050,6 @@ flows:
         task: create_docgen_library
       2:
         task: deploy_post_docgen
-        when: project_config.project__custom__tso
 
   prepare_billing:
     group: Revenue Lifecycle Management

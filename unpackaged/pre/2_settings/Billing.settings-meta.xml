@@ -3,6 +3,10 @@
     <enableBillingSetup>true</enableBillingSetup>
     <enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>
     <enableInvoiceEmailDelivery>false</enableInvoiceEmailDelivery>
+    <enableInvoicePdfGeneration>false</enableInvoicePdfGeneration>
     <enableNegInvoiceLnConversionToCrMemoLn>true</enableNegInvoiceLnConversionToCrMemoLn>
+    <enablePaymentSchedulesAndItemsCreation>false</enablePaymentSchedulesAndItemsCreation>
+    <enableTransactionJournalCreation>false</enableTransactionJournalCreation>
     <enableTransactionsApplicationToInvoices>false</enableTransactionsApplicationToInvoices>
+    <enableTrxnAmountsStorageInCorpCurrency>false</enableTrxnAmountsStorageInCorpCurrency>
 </BillingSettings>
