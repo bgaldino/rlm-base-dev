@@ -24,7 +24,7 @@
             <name>promptResponse</name>
         </outputParameters>
     </actionCalls>
-    <apiVersion>63.0</apiVersion>
+    <apiVersion>64.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <choices>
         <description>Approve the request</description>

@@ -16,7 +16,7 @@ public with sharing class RLM_PatchQuoteDateHeader {
 
         System.debug(JSON.serializePretty(requestBody));
 
-        httpRequest.setEndpoint('callout:RLM/services/data/v63.0/commerce/quotes/actions/place');
+        httpRequest.setEndpoint('callout:RLM/services/data/v64.0/commerce/quotes/actions/place');
 
         HttpResponse response = http.send(httpRequest);
 
@@ -92,7 +92,7 @@ public with sharing class RLM_PatchQuoteDateHeader {
 
     static String buildPlaceQuoteRestAPIURL() {
         String sfdcURL = Url.getOrgDomainUrl().toExternalForm();
-        String restAPIURL = sfdcURL + '/services/data/v63.0/commerce/quotes/actions/place';
+        String restAPIURL = sfdcURL + '/services/data/v64.0/commerce/quotes/actions/place';
         system.debug(restAPIURL);
         return restAPIURL;
     }
