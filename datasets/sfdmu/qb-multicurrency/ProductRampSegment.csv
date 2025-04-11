@@ -1,7 +1,7 @@
 $$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,CurrencyIsoCode,DurationType,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
 QB-API;TermDefined;Yearly,USD,,QB-API,Term Annual;TermDefined,Yearly,
 QB-API;TermDefined;Custom,USD,,QB-API,Term Annual;TermDefined,Custom,
+QB-GEN-AI-LIC;TermDefined;Yearly,USD,,QB-GEN-AI-LIC,Term Annual;TermDefined,Yearly,
 QB-GEN-AI-LIC;TermDefined;Custom,USD,,QB-GEN-AI-LIC,Term Annual;TermDefined,Custom,
 QB-GEN-AI-LIC;TermDefined;FreeTrial,USD,Months,QB-GEN-AI-LIC,Term Annual;TermDefined,FreeTrial,1
-QB-GEN-AI-LIC;TermDefined;Yearly,USD,,QB-GEN-AI-LIC,Term Annual;TermDefined,Yearly,
 QB-SUPP-2000;TermDefined;Yearly,USD,,QB-SUPP-2000,Term Annual;TermDefined,Yearly,

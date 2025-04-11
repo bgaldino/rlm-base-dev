@@ -4,6 +4,10 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_BLNG</label>
     <permissionSets>force__AnalyticsStoreUser</permissionSets>
+    <permissionSets>force__BillingAdvancedBillingCustomerService</permissionSets>
+    <permissionSets>force__BillingAdvancedPaymentAdministrator</permissionSets>
+    <permissionSets>force__BillingAdvancedPaymentOperations</permissionSets>
+    <permissionSets>force__BillingCollectionsAndRecoverySpecialist</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementAccountingAdmin</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementBillingAdmin</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementBillingCreateInvoiceFromBillingScheduleApi</permissionSets>

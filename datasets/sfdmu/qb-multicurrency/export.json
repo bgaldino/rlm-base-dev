@@ -29,6 +29,12 @@
           "excluded": false
         },
         {
+          "query": "SELECT ArePartialPeriodsAllowed, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
           "query": "SELECT Name, CatalogId, Code, Description, ParentCategoryId, SortOrder FROM ProductCategory ORDER BY Catalog.Code ASC, ParentCategory.Name ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "Name;Catalog.Code;ParentCategory.Name",
@@ -52,7 +58,7 @@
           "externalId": "Name"
         },
         {
-          "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, DisplayValue  FROM AttributePicklistValue ORDER BY Code ASC",
+          "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, Abbreviation, Status  FROM AttributePicklistValue ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code"
         },

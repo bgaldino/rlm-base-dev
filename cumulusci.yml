@@ -57,7 +57,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: true
+    agents: false
     refresh: false
     commerce: false
     quantumbit: true
@@ -90,6 +90,9 @@ project:
       - UsageDesignTimePsl
       - UsageRunTimePsl
       - WalletManagementUserPsl
+      - BillingAdvancedPsl
+      - IndustriesARCPsl
+      - CollectionsAndRecoveryPsl
 
     rlm_ai_psg_api_names: &rlm_ai_psg_api_names
       - CopilotSalesforceUserPSG
@@ -213,23 +216,48 @@ project:
       - Asset_Tier_based_Rate_Adjustment
       - Asset_Volume_based_Rate_Adjustment
       - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
-      - Binding_Object_Rate_Adjustment_Resolution_Entries
       - Binding_Object_Rate_Card_Entry_Resolution
-      - Binding_Object_Rate_Card_Entry_Resolution_Entries
       - Binding_Object_Rate_Decision_Table
       - Binding_Object_Tier_based_Rate_Adjustment
       - Binding_Object_Volume_based_Rate_Adjustment
-      - Bundle_Based_Adjustment_Decision_Table
-      - Pricebook_Rate_Card_Decision_Table
       - Rate_Adjustment_by_Attribute_Entries_2
-      - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
       - Rate_Adjustment_by_Tier_Entries_2
-      - Rate_Adjustment_by_Tier_Resolution_Decision_Table
       - Rate_Adjustment_by_Volume_Entries_2
       - Rate_Card_Entries_2
-      - Rate_Card_Entry_Resolution_Entries_2
       - Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID
       - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+
+    dt_rating_discovery_decision_tables: &dt_rating_discovery_decision_tables
+      - Binding_Object_Rate_Adjustment_Resolution_Entries
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries
+      - Pricebook_Rate_Card_Decision_Table
+      - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
+      - Rate_Adjustment_by_Tier_Resolution_Decision_Table
+      - Rate_Card_Entry_Resolution_Entries_2
+
+    dt_default_pricing_decision_tables: &dt_default_pricing_decision_tables
+      - Attribute_Based_Adjustment_Decision_Table
+      - Bundle_Based_Adjustment_Decision_Table
+      - Contract_Pricing_Adjustment_Tiers
+      - Contract_Pricing_Entries_Decision_Table
+      - Contract_Pricing_Volume_Tiers
+      - Price_Adjustment_Tier_Decision_Table
+      - Price_Book_Entry_Decision_Table_v2
+      - Tiered_Adjustment_Tier_Decision_Table
+
+    dt_asset_decision_tables: &dt_asset_decision_tables
+      - Asset_Action_Source_Entries_Decision_Table_V2
+      - Asset_Rate_Card_Entry_Resolution
+      - Asset_Rate_Decision_Table
+      - Asset_Tier_based_Rate_Adjustment
+      - Asset_Volume_based_Rate_Adjustment
+
+    dt_pricing_discovery_decision_tables: &dt_pricing_discovery_decision_tables
+      - Asset_Action_Source_Entries_Decision_Table_V2
+      - Derived_Pricing_Entries_Decision_Table
+  
+    asset_context_name: &asset_context_name RLM_AssetContext
+    asset_context_default_mapping: &asset_context_default_mapping AssetEntitiesMapping
 
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
@@ -297,6 +325,19 @@ tasks:
     description: Extend Standard Contracts Extraction Context Definition
     class_path: tasks.extend_stdctx_contracts_extraction.ExtendStandardContextContractsExtraction
     group: Revenue Lifecycle Management
+
+  extend_context_asset:
+    group: Revenue Lifecycle Management
+    description: Extend Standard Asset Context
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *asset_context_name
+      description: "Extension of Standard Sales Transaction Context Definition"
+      developerName: *asset_context_name
+      baseReference: "AssetContext__stdctx"
+      startDate: "2020-01-01T00:00:00.000Z"
+      contextTtl: 20
+      defaultMapping: *asset_context_default_mapping
 
   extend_context_sales_transaction:
     group: Revenue Lifecycle Management
@@ -788,6 +829,34 @@ tasks:
     options:
       developerNames: *dt_rating_decision_tables
 
+  refresh_dt_rating_discovery:
+    group: Revenue Lifecycle Management
+    description: Refresh Rating Discovery Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_rating_discovery_decision_tables
+
+  refresh_dt_default_pricing:
+    group: Revenue Lifecycle Management
+    description: Refresh Rating Discovery Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_default_pricing_decision_tables
+
+  refresh_dt_pricing_discovery:
+    group: Revenue Lifecycle Management
+    description: Refresh Pricing Discovery Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_pricing_discovery_decision_tables
+
+  refresh_dt_asset:
+    group: Revenue Lifecycle Management
+    description: Refresh Asset Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_asset_decision_tables
+
   load_sfdmu_data:
     group: Revenue Lifecycle Management
     description: Load SFDMU Data
@@ -842,7 +911,7 @@ flows:
       20:
         flow: prepare_tso
       21:
-        flow: refresh_decision_tables
+        flow: refresh_all_decision_tables
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -944,6 +1013,8 @@ flows:
       10:
         task: extend_context_rating_discovery
         when: project_config.project__custom__rating
+      11:
+        task: extend_context_asset
 
   prepare_expression_sets:
     group: Revenue Lifecycle Management
@@ -1173,11 +1244,19 @@ flows:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents
   
-  refresh_decision_tables:
+  refresh_all_decision_tables:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: sync_pricing_data
       2:
+        task: refresh_dt_pricing_discovery
+      3:
+        task: refresh_dt_asset
+        when: project_config.project__custom__rating
+      4:
         task: refresh_dt_rating
+        when: project_config.project__custom__rating
+      5:
+        task: refresh_dt_rating_discovery
         when: project_config.project__custom__rating

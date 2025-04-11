@@ -71,13 +71,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDWs000000EZifMAG</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -187,13 +180,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Derived Pricing Entries</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDWs000000EZh3MAG</value>
                 </parameters>
                 <parameters>
                     <input>true</input>

@@ -1,52 +1,52 @@
-Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Value
-0,0,true,0,Data Utilization,0,0
-1.7GHz,1.7GHz,false,1.7GHz,Processor Frequency Picklist,2,1.7GHz
-12ft,12',false,TwelveFeet,Cable Length Picklist,,12
-16GB,16GB,false,16GB,RAM Picklist,2,16GB
-1TB,1TB,true,1TB,Data Storage Picklist,1,1TB
-2,2,false,Two,Base Core Count Picklist,1,2
-2.0GHz,2.0GHz,false,2.0GHz,Processor Frequency Picklist,3,2.0GHz
-2.1GHz,2.1GHz,false,2.1GHz,Processor Frequency Picklist,4,2.1GHz
-3.2GHz,3.2GHz,true,3.2GHz,Processor Frequency Picklist,1,3.2GHz
-32GB,32GB,false,32GB,RAM Picklist,3,32GB
-3ft,3',true,ThreeFeet,Cable Length Picklist,,3
-4,4,true,Four,Base Core Count Picklist,2,4
-4TB,4TB,false,4TB,Data Storage Picklist,2,4TB
-5ft,5',false,FiveFeet,Cable Length Picklist,,5
-6,6,false,Six,Base Core Count Picklist,3,6
-8,8,false,Eight,Base Core Count Picklist,4,8
-8ft,8',false,EightFeet,Cable Length Picklist,,8
-8GB,8GB,true,8GB,RAM Picklist,1,8GB
-8TB,8TB,false,8TB,Data Storage Picklist,3,8TB
-8TB_Self_Encrypting,8TB_Self_Encrypting,false,8TB_Self_Encrypting,Data Storage Picklist,4,8TB_Self_Encrypting
-AL2,Amazon Linux 2,true,Amazon Linux 2,Operating System Picklist,1,Amazon Linux 2
-APV-10,10,false,10,Data Utilization,10,10
-APV-20,20,false,20,Data Utilization,20,20
-APV-30,30,false,30,Data Utilization,30,30
-APV-40,40,false,40,Data Utilization,40,40
-APV-5,5,false,5,Data Utilization,5,5
-APV-50,50,false,50,Data Utilization,50,50
-Basic,Basic,false,Basic,Engineering Options Picklist,2,Basic
-C13toC14,C13 to C14,true,C13 to C14,Connector Type Picklist,,C13 to C14
-C19toC20,C19 to C20,false,C19 to C20,Connector Type Picklist,,C19 to C20
-Custom,Custom,false,Custom,Server Configuration Picklist,4,Custom
-Direct_Attach,Direct_Attach,true,Direct_Attach,Network Adapter Type Picklist,1,Direct_Attach
-Evergreen,Evergreen,true,Evergreen,Subscription Type Picklist,1,Evergreen
-Extended_Care,Extended_Care,true,Extended_Care,Engineering Options Picklist,1,Extended_Care
-Flex,Flex,true,Flex,API Type Picklist,1,Flex
-Gov,Gov,false,Gov,API Type Picklist,2,Gov
-L5-20,L5-20,false,L5-20,Connector Type Picklist,,L5-20
-Memory_Mirroring,Memory_Mirroring,false,Memory_Mirroring,RAM Config Picklist,3,Memory_Mirroring
-Offshore,Offshore,false,Offshore,Resource Location Picklist,3,Offshore
-Onsite,Onsite,true,Onsite,Resource Location Picklist,1,Onsite
-Performance,Performance,false,Performance,Server Configuration Picklist,2,Performance
-Performance_Optimized,Performance_Optimized,true,Performance_Optimized,RAM Config Picklist,1,Performance_Optimized
-Performance_Optimized_with_Sparing,Performance_Optimized_with_Sparing,false,Performance_Optimized_with_Sparing,RAM Config Picklist,2,Performance_Optimized_with_Sparing
-Pre-Prod,Pre-Prod,false,Pre-Prod,API Type Picklist,3,Pre-Prod
-Prod,Prod,false,Prod,API Type Picklist,4,Prod
-REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,Operating System Picklist,2,Redhat Enterprise Linux
-Remote,Remote,false,Remote,Resource Location Picklist,2,Remote
-Security,Security,true,Security,Server Configuration Picklist,1,Security
-SFP,SFP,false,SFP,Network Adapter Type Picklist,2,SFP
-TermBased,TermBased,false,TermBased,Subscription Type Picklist,2,TermBased
-Value,Value,false,Value,Server Configuration Picklist,3,Value
+Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Value,Abbreviation,Status
+0,0,true,0,Data Utilization,0,0,,Active
+1.7GHz,1.7GHz,false,1.7GHz,Processor Frequency Picklist,2,1.7GHz,,Active
+12ft,12',false,TwelveFeet,Cable Length Picklist,,12,,Active
+16GB,16GB,false,16GB,RAM Picklist,2,16GB,,Active
+1TB,1TB,true,1TB,Data Storage Picklist,1,1TB,,Active
+2,2,false,Two,Base Core Count Picklist,1,2,,Active
+2.0GHz,2.0GHz,false,2.0GHz,Processor Frequency Picklist,3,2.0GHz,,Active
+2.1GHz,2.1GHz,false,2.1GHz,Processor Frequency Picklist,4,2.1GHz,,Active
+3.2GHz,3.2GHz,true,3.2GHz,Processor Frequency Picklist,1,3.2GHz,,Active
+32GB,32GB,false,32GB,RAM Picklist,3,32GB,,Active
+3ft,3',true,ThreeFeet,Cable Length Picklist,,3,,Active
+4,4,true,Four,Base Core Count Picklist,2,4,,Active
+4TB,4TB,false,4TB,Data Storage Picklist,2,4TB,,Active
+5ft,5',false,FiveFeet,Cable Length Picklist,,5,,Active
+6,6,false,Six,Base Core Count Picklist,3,6,,Active
+8,8,false,Eight,Base Core Count Picklist,4,8,,Active
+8ft,8',false,EightFeet,Cable Length Picklist,,8,,Active
+8GB,8GB,true,8GB,RAM Picklist,1,8GB,,Active
+8TB,8TB,false,8TB,Data Storage Picklist,3,8TB,,Active
+8TB_Self_Encrypting,8TB_Self_Encrypting,false,8TB_Self_Encrypting,Data Storage Picklist,4,8TB_Self_Encrypting,,Active
+AL2,Amazon Linux 2,true,Amazon Linux 2,Operating System Picklist,1,Amazon Linux 2,,Active
+APV-10,10,false,10,Data Utilization,10,10,,Active
+APV-20,20,false,20,Data Utilization,20,20,,Active
+APV-30,30,false,30,Data Utilization,30,30,,Active
+APV-40,40,false,40,Data Utilization,40,40,,Active
+APV-5,5,false,5,Data Utilization,5,5,,Active
+APV-50,50,false,50,Data Utilization,50,50,,Active
+Basic,Basic,false,Basic,Engineering Options Picklist,2,Basic,,Active
+C13toC14,C13 to C14,true,C13 to C14,Connector Type Picklist,,C13 to C14,,Active
+C19toC20,C19 to C20,false,C19 to C20,Connector Type Picklist,,C19 to C20,,Active
+Custom,Custom,false,Custom,Server Configuration Picklist,4,Custom,,Active
+Direct_Attach,Direct_Attach,true,Direct_Attach,Network Adapter Type Picklist,1,Direct_Attach,,Active
+Evergreen,Evergreen,true,Evergreen,Subscription Type Picklist,1,Evergreen,,Active
+Extended_Care,Extended_Care,true,Extended_Care,Engineering Options Picklist,1,Extended_Care,,Active
+Flex,Flex,true,Flex,API Type Picklist,1,Flex,,Active
+Gov,Gov,false,Gov,API Type Picklist,2,Gov,,Active
+L5-20,L5-20,false,L5-20,Connector Type Picklist,,L5-20,,Active
+Memory_Mirroring,Memory_Mirroring,false,Memory_Mirroring,RAM Config Picklist,3,Memory_Mirroring,,Active
+Offshore,Offshore,false,Offshore,Resource Location Picklist,3,Offshore,,Active
+Onsite,Onsite,true,Onsite,Resource Location Picklist,1,Onsite,,Active
+Performance,Performance,false,Performance,Server Configuration Picklist,2,Performance,,Active
+Performance_Optimized,Performance_Optimized,true,Performance_Optimized,RAM Config Picklist,1,Performance_Optimized,,Active
+Performance_Optimized_with_Sparing,Performance_Optimized_with_Sparing,false,Performance_Optimized_with_Sparing,RAM Config Picklist,2,Performance_Optimized_with_Sparing,,Active
+Pre-Prod,Pre-Prod,false,Pre-Prod,API Type Picklist,3,Pre-Prod,,Active
+Prod,Prod,false,Prod,API Type Picklist,4,Prod,,Active
+REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,Operating System Picklist,2,Redhat Enterprise Linux,,Active
+Remote,Remote,false,Remote,Resource Location Picklist,2,Remote,,Active
+Security,Security,true,Security,Server Configuration Picklist,1,Security,,Active
+SFP,SFP,false,SFP,Network Adapter Type Picklist,2,SFP,,Active
+TermBased,TermBased,false,TermBased,Subscription Type Picklist,2,TermBased,,Active
+Value,Value,false,Value,Server Configuration Picklist,3,Value,,Active
