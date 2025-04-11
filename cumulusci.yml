@@ -43,7 +43,7 @@ project:
 
   custom:
     prm: true
-    tso: false
+    tso: true
     qb: true
     q3: false
     calmdelete: true
@@ -57,7 +57,7 @@ project:
     einstein: true
     product_dataset: qb
     qbrix: true
-    agents: false
+    agents: true
     refresh: false
     commerce: false
     quantumbit: true
