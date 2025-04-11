@@ -1,0 +1,4 @@
+$$Product.StockKeepingUnit$UsageResource.Code,Product.StockKeepingUnit,RatingDelayDuration,RatingPeriod,UsageResource.Code
+QB-DB;UR-DATASTORAGE,QB-DB,,Monthly,UR-DATASTORAGE
+QB-DB;UR-CPUTIME,QB-DB,,Monthly,UR-CPUTIME
+QB-DAT-THPT;UR-DATAXFR,QB-DAT-THPT,,Monthly,UR-DATAXFR

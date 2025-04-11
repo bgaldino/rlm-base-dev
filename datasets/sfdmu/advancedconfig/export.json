@@ -1,0 +1,24 @@
+{
+  "apiVersion": "64.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObjectId FROM ExpressionSetConstraintObj WHERE ReferenceObject.Type = 'Product2'",
+          "operation": "Upsert",
+          "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

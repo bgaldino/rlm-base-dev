@@ -1,0 +1,2 @@
+Code,IsRenewalAllowed,Name,RenewalFrequency,RenewalFrequencyUnit,Status
+QB-DB-REFRESH,true,QuantumBit Database Refresh Policy,1,Month,Active

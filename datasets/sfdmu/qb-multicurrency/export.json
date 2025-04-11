@@ -11,7 +11,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
@@ -203,6 +203,12 @@
           "query": "SELECT CurrencyIsoCode, DurationType, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
           "excluded": false
         }
       ]

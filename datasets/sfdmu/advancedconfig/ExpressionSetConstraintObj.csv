@@ -1,0 +1,17 @@
+$$ConstraintModelTag$ExpressionSet.ApiName,ConstraintModelTag,ConstraintModelTagType,CurrencyIsoCode,ExpressionSet.Name,ReferenceObject.Name
+OneTB;Test,OneTB,Type,USD,Test,1TB 7.2k RPM NLSAS
+QuantumBitComplete;Test,QuantumBitComplete,Type,USD,Test,QuantumBit Complete Solution
+QuantumBitEssentialsTraining;Test,QuantumBitEssentialsTraining,Type,USD,Test,QuantumBit Essentials Training
+ProfessionalServicesScopeofWork;Test,ProfessionalServicesScopeofWork,Type,USD,Test,Professional Services Scope of Work
+SoftwareMaintenance;Test,SoftwareMaintenance,Type,USD,Test,Software Maintenance
+QuantumBitServicesProject;Test,QuantumBitServicesProject,Type,USD,Test,QuantumBit Services Project
+ProfessionalServicesDailyRate;Test,ProfessionalServicesDailyRate,Type,USD,Test,Professional Services Daily Rate
+APIAccessRequestsAEH;Test,APIAccessRequestsAEH,Type,USD,Test,API Access Requests (AEH)
+QuantumBitFundamentalsTraining;Test,QuantumBitFundamentalsTraining,Type,USD,Test,QuantumBit Fundamentals Training
+AdditionalAPI;Test,AdditionalAPI,Type,USD,Test,Additional API
+QuantumBitGenerativeAILicense;Test,QuantumBitGenerativeAILicense,Type,USD,Test,QuantumBit Generative AI License
+QBAPIManagementSolution;Test,QBAPIManagementSolution,Type,USD,Test,QB API Management Solution
+AdditionalFlowsQBStarter;Test,AdditionalFlowsQBStarter,Type,USD,Test,Additional Flows - QB Starter
+QuantumBitDatabase;Test,QuantumBitDatabase,Type,USD,Test,QuantumBit Database
+AdditionalAutomationQBCredits;Test,AdditionalAutomationQBCredits,Type,USD,Test,Additional Automation QB Credits
+AdditionalMessagesQBStarter;Test,AdditionalMessagesQBStarter,Type,USD,Test,Additional Messages - QB Starter

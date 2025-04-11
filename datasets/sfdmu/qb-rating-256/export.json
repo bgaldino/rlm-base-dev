@@ -12,7 +12,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
@@ -30,7 +30,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT DrawdownOrder, Label, OverageChargeable, ProductOfferId, ProductUsageGrantNum, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY ProductOffer.StockKeepingUnit ASC, UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC, UsageResource.Code ASC",
+          "query": "SELECT DrawdownOrder, Label, OverageChargeable, ProductOfferId, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY ProductOffer.StockKeepingUnit ASC, UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC, UsageResource.Code ASC",
           "operation": "Upsert",
           "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;UsageResource.Code",
           "excluded": false
@@ -66,7 +66,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT EffectiveEndDate, EffectiveStartDate, ProductId, ProductUsageResourceNum, Status, UsageResourceId FROM ProductUsageResource",
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, ProductId, Status, UsageResourceId FROM ProductUsageResource",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
           "excluded": false
