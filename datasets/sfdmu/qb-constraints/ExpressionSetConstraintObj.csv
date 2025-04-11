@@ -15,3 +15,6 @@ AdditionalFlowsQBStarter;Test,AdditionalFlowsQBStarter,Type,USD,Test,Additional 
 QuantumBitDatabase;Test,QuantumBitDatabase,Type,USD,Test,QuantumBit Database
 AdditionalAutomationQBCredits;Test,AdditionalAutomationQBCredits,Type,USD,Test,Additional Automation QB Credits
 AdditionalMessagesQBStarter;Test,AdditionalMessagesQBStarter,Type,USD,Test,Additional Messages - QB Starter
+ConfiguredPowerCable;TransactionConstraint,ConfiguredPowerCable,Type,USD,TransactionConstraint,Configured Power Cable
+QBAPIManagementSolution;QB,QBAPIManagementSolution,Type,USD,QB,QB API Management Solution
+QuantumBitCompleteSolution;QB,QuantumBitCompleteSolution,Type,USD,QB,QuantumBit Complete Solution

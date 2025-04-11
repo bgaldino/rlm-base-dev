@@ -7,7 +7,7 @@
       "objects": [
         {
           "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "DeveloperName",
           "excluded": false
         },
