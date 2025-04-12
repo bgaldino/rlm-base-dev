@@ -22,7 +22,7 @@
             <name>salesTransactionId</name>
         </outputParameters>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <description>Creates a quote record reference that’s used within the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>

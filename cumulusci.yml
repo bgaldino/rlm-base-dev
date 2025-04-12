@@ -470,7 +470,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
-      path: unpackaged/post_agents/genAiPlanners
+      path: unpackaged/post_agents/genAiPlannerBundles
 
   deploy_agents_genAiFunctions:
     description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first

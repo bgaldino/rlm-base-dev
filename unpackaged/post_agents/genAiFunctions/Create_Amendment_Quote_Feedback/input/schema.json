@@ -1,36 +1,36 @@
 {
-  "required" : [ "AccountId", "AssetIds", "QuantityChange" ],
+  "required" : [ "AccountId", "AmendmentQuantityChange", "AssetIds" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "AccountId" : {
       "title" : "AccountId",
-      "description" : "The account on which to create the amendment opportunity and quote.",
+      "description" : "Stores the account record that's related to the amendment opportunity and amendment quote.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     },
     "AmendmentDate" : {
       "title" : "AmendmentDate",
-      "description" : "Effective start date of the amendment, to be specified in YYYY-MM-DD format. If not provided, this will default to today’s date.",
+      "description" : "Stores the effective start date of the amendment. The date must be specified in YYYY-MM-DD format. If a start date isn't provided, the amendment date defaults to today's date.",
       "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "AmendmentQuantityChange" : {
+      "title" : "AmendmentQuantityChange",
+      "description" : "Stores the quantity of the asset that the amendment increases or decreases compared to the current asset quantity.",
+      "lightning:type" : "lightning__numberType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     },
     "AssetIds" : {
       "title" : "AssetIds",
-      "description" : "The list of asset IDs to amend.",
+      "description" : "Stores the list of asset IDs to amend.",
       "maxItems" : 2000,
       "items" : {
         "lightning:type" : "lightning__textType"
       },
       "lightning:type" : "lightning__listType",
-      "lightning:isPII" : false,
-      "copilotAction:isUserInput" : true
-    },
-    "QuantityChange" : {
-      "title" : "QuantityChange",
-      "description" : "Quantity to add to or reduce from the asset's existing quantity.",
-      "lightning:type" : "lightning__numberType",
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     }

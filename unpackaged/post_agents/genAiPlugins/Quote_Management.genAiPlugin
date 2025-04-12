@@ -7,9 +7,6 @@
         <functionName>Add_QuoteLineItem_to_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Create_Amendment_Quote_Feedback</functionName>
-    </genAiFunctions>
-    <genAiFunctions>
         <functionName>Create_New_Business_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
@@ -33,6 +30,9 @@
     <genAiFunctions>
         <functionName>Identify_QuoteLineItem_from_Product_Feedback</functionName>
     </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Create_Amendment_Quote_Feedback</functionName>
+    </genAiFunctions>
     <genAiPluginInstructions>
         <description>After the successful creation or update of the quote, or if the user asks for quote details, get the Quote record and display it in the conversation. Use the Get Record Details action with Quote Id to get the quote details.</description>
         <developerName>instruction_afterthesu0</developerName>
@@ -51,7 +51,7 @@
     <genAiPluginInstructions>
         <description>To add a product or quote line to a quote, use the action “Add QuoteLineItem to Quote.” Never proceed with quote line creation without the required Product and QuoteId.  
 Use the following instructions: 
-1. A Quote record is needed. If a user is currently on the Quote record, use this Quote record’s Id. If you cannot find the Quote Id, ask the user for the Quote Name they are referencing. You can then find the 18-digit Quote ID based on the Quote Number or Quote Name specified by the User.
+1. A Quote record is needed. If a user is currently on the Quote record, use this Quote record's Id. If you cannot find the Quote Id, ask the user for the Quote Name they are referencing. You can then find the 18-digit Quote ID based on the Quote Number or Quote Name specified by the User.
 2. Ask the Product that should be assigned to the new QuoteLine.
 3. Ask the Quantity that should be assigned to the new QuoteLineItem. 
 4. Find the 18 digit productId from Product Name. To find the ProductId from the Product name, use the action “Identify Record By Name”. 
@@ -63,7 +63,7 @@ Use the following instructions:
     <genAiPluginInstructions>
         <description>To add a discount, use the action “Apply Discount to the QuoteLineItem” on a specified individual QuoteLineItem. The discount is a percentage reduction in price from the total price, such that 1 - (discount * list price) = total price. You must not apply a discount to the quote at a header level. If a user asks to apply a discount to a quote without specifying quote line items or products, you must ask which lines they would like to apply it to.
 1. To add a discount, if a user is currently on the Quote Record, use this Quote Record. Use the 18 digit Quote ID to pass to the action.
-2. You must ask the user which QuoteLineItem under the Quote they would like the discount to be applied. Do not assume you are to apply discounts to all lines on the quote unless it is explicitly specified by the user. If they provide the product name, use &quot;Identify QuoteLineItem from Product&quot; to find the QuoteLineItem Id. Use the 18 digit QuoteLineItem Id to pass to the action. 
+2. You must ask the user which QuoteLineItem under the Quote they would like the discount to be applied. Do not assume you are to apply discounts to all lines on the quote unless it is explicitly specified by the user. If they provide the product name, use "Identify QuoteLineItem from Product" to find the QuoteLineItem Id. Use the 18 digit QuoteLineItem Id to pass to the action. 
 3.Ask the user how much discount % should be applied to the quote line item. Collect the discount only in %.</description>
         <developerName>instruction_toaddadisc3</developerName>
         <language xsi:nil="true"/>
@@ -80,7 +80,7 @@ Use the following instructions:
         <masterLabel>instruction_tocreatean4</masterLabel>
     </genAiPluginInstructions>
     <genAiPluginInstructions>
-        <description>Do not repeat the user’s intent i.e.  &quot;I will now create a quote&quot;, &quot;I will now add QuoteLine&quot;, &quot;I will now apply discount&quot; - Just perform the action.</description>
+        <description>Do not repeat the user's intent i.e.  "I will now create a quote", "I will now add QuoteLine", "I will now apply discount" - Just perform the action.</description>
         <developerName>instruction_donotrepea5</developerName>
         <language xsi:nil="true"/>
         <masterLabel>instruction_donotrepea5</masterLabel>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GenAiPlanner xmlns="http://soap.sforce.com/2006/04/metadata">
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <description>Planner for ReAct-based Employee copilot.</description>
     <genAiFunctions>
         <genAiFunctionName>EmployeeCopilot__AnswerQuestionsWithKnowledge</genAiFunctionName>
@@ -15,4 +15,4 @@
     </genAiPlugins>
     <masterLabel>EmployeeCopilotPlanner</masterLabel>
     <plannerType>AiCopilot__ReAct</plannerType>
-</GenAiPlanner>
+</GenAiPlannerBundle>

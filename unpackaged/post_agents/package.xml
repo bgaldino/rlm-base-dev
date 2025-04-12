@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AgentforceQuoting</fullName>
+    <types>
+        <members>Add_Discount_to_QuoteLineItem_Feedback</members>
+        <members>Add_QuoteLineItem_to_Quote_Feedback</members>
+        <members>Create_Amendment_Quote_Feedback</members>
+        <members>Create_New_Business_Quote_Feedback</members>
+        <members>Identify_QuoteLineItem_from_Product_Feedback</members>
+        <name>Flow</name>
+    </types>
+    <types>
+        <members>Add_QuoteLineItem_to_Quote_Feedback</members>
+        <members>Apply_Discount_to_QuoteLineItem_Feedback</members>
+        <members>Create_Amendment_Quote_Feedback</members>
+        <members>Create_New_Business_Quote_Feedback</members>
+        <members>Identify_QuoteLineItem_from_Product_Feedback</members>
+        <name>GenAiFunction</name>
+    </types>
+    <types>
+        <members>EmployeeCopilotPlanner</members>
+        <name>GenAiPlannerBundle</name>
+    </types>
+    <types>
+        <members>Quote_Management</members>
+        <name>GenAiPlugin</name>
+    </types>
+    <version>64.0</version>
+</Package>
