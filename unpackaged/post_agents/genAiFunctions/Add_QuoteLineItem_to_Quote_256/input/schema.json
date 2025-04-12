@@ -1,0 +1,35 @@
+{
+  "required" : [ "ProductId", "QuoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "ProductId" : {
+      "title" : "ProductId",
+      "description" : "The Product2Id for the product to be added to the quote.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "Quantity" : {
+      "title" : "Quantity",
+      "description" : "The quantity of the product to be added to the quote line. If no quantity is provided, default to 1.",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "QuoteId" : {
+      "title" : "QuoteId",
+      "description" : "The quote Id of the quote record to be modified.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "StartDate" : {
+      "title" : "StartDate",
+      "description" : "The startDate, needed only for subscription based products. The format must be yyyy-mm-dd.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

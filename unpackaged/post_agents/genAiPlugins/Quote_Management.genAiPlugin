@@ -4,7 +4,7 @@
     <description>Assist sales reps with the creation of new business quotes, create amendment quotes, manage existing quotes by adding products, and manage quote line items by applying discount percentages.</description>
     <developerName>Quote_Management</developerName>
     <genAiFunctions>
-        <functionName>Add_QuoteLineItem_to_Quote_Feedback</functionName>
+        <functionName>Add_QuoteLineItem_to_Quote_256</functionName>
     </genAiFunctions>
     <genAiFunctions>
         <functionName>Create_New_Business_Quote_Feedback</functionName>
