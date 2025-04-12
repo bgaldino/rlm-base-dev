@@ -6,5 +6,4 @@
     <permissionSets>force__AdvancedConfiguratorUser</permissionSets>
     <permissionSets>force__IndustriesConfiguratorPlatformApi</permissionSets>
     <permissionSets>force__ProductConfigurationRulesDesigner</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

@@ -5,5 +5,4 @@
     <permissionSets>force__CorePricingAdmin</permissionSets>
     <permissionSets>force__CorePricingDesignTimeUser</permissionSets>
     <permissionSets>force__CorePricingManager</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

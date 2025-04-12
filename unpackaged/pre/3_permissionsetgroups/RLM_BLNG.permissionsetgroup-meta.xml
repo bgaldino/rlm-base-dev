@@ -18,5 +18,4 @@
     <permissionSets>force__RevenueLifecycleManagementBillingTaxAdmin</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementBillingVoidPostedInvoiceApi</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

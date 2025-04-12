@@ -8,5 +8,4 @@
     <permissionSets>force__ProductCatalogManagementAdministrator</permissionSets>
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
     <permissionSets>force__ProductConfigurationRulesDesigner</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

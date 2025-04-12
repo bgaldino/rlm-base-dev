@@ -10,5 +10,4 @@
     <permissionSets>force__UsageManagementDesigner</permissionSets>
     <permissionSets>force__UsageManagementRunTimeUser</permissionSets>
     <permissionSets>force__WalletManagementUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

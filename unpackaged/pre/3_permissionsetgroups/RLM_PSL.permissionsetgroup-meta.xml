@@ -18,5 +18,4 @@
     <permissionSets>force__RevLifecycleManagementTaxConfiguration</permissionSets>
     <permissionSets>force__RevLifecycleManagementUsageDesignUser</permissionSets>
     <permissionSets>force__CorePricingAdmin</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

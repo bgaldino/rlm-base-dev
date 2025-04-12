@@ -6,5 +6,4 @@
     <permissionSets>force__DFOManagerOperatorUser</permissionSets>
     <permissionSets>force__DfoAdminUser</permissionSets>
     <permissionSets>force__OrderSubmitUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

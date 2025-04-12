@@ -4,5 +4,4 @@
     <label>RLM_PD</label>
     <permissionSets>force__ProductDiscoveryAdmin</permissionSets>
     <permissionSets>force__ProductDiscoveryUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

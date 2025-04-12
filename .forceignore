@@ -93,7 +93,8 @@ force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.la
 
 #unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
 force-app/main/default/settings/UserInterface.settings-meta.xml
-unpackaged/pre/3_permissionsetgroups/RLM_NGP.permissionsetgroup-meta.xml
+#unpackaged/pre/3_permissionsetgroups
+force-app/main/default/permissionsetgroups
 **/tsconfig.json
 
 **/*.ts
