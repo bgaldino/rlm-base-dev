@@ -7,9 +7,6 @@
         <functionName>Add_QuoteLineItem_to_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
-        <functionName>Create_Amendment_Quote_Feedback</functionName>
-    </genAiFunctions>
-    <genAiFunctions>
         <functionName>Create_New_Business_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiFunctions>
@@ -32,6 +29,9 @@
     </genAiFunctions>
     <genAiFunctions>
         <functionName>Identify_QuoteLineItem_from_Product_Feedback</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>Create_Amendment_Quote_Feedback</functionName>
     </genAiFunctions>
     <genAiPluginInstructions>
         <description>After the successful creation or update of the quote, or if the user asks for quote details, get the Quote record and display it in the conversation. Use the Get Record Details action with Quote Id to get the quote details.</description>

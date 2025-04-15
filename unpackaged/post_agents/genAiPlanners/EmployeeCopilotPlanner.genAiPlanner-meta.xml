@@ -11,6 +11,9 @@
         <genAiPluginName>EmployeeCopilot__OOTBSingleRecordSummary</genAiPluginName>
     </genAiPlugins>
     <genAiPlugins>
+        <genAiPluginName>MigrationDefaultTopic</genAiPluginName>
+    </genAiPlugins>
+    <genAiPlugins>
         <genAiPluginName>Quote_Management</genAiPluginName>
     </genAiPlugins>
     <masterLabel>EmployeeCopilotPlanner</masterLabel>

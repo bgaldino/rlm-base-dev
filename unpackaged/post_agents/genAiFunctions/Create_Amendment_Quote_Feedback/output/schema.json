@@ -3,7 +3,7 @@
   "properties" : {
     "AmendmentQuoteId" : {
       "title" : "AmendmentQuoteId",
-      "description" : "The ID of the Quote record that has been created. If this is null, the action has failed.",
+      "description" : "Stores the ID of the quote record the flow creates. If this variable is null, the action failed.",
       "lightning:type" : "lightning__textType",
       "lightning:isPII" : false,
       "copilotAction:isDisplayable" : true,
