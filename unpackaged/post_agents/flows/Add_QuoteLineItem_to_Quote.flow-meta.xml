@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <description>Calls the PlaceSalesTransaction invocable action to create a quote.</description>
-        <name>CallPlaceSalesTransaction</name>
-        <label>Call Place Sales Transaction</label>
-        <locationX>314</locationX>
+        <description>Call the PlaceSalesTransaction Invocable Action in order to create a quote.</description>
+        <name>PlaceSalesTransactionIA</name>
+        <label>PlaceSalesTransaction IA</label>
+        <locationX>446</locationX>
         <locationY>1598</locationY>
         <actionName>placeSalesTransaction</actionName>
         <actionType>placeSalesTransaction</actionType>
         <connector>
-            <targetReference>SetSuccessMessage</targetReference>
+            <targetReference>Populate_Output_Message</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>graph</name>
             <value>
-                <elementReference>PSTGraph</elementReference>
+                <elementReference>Graph</elementReference>
             </value>
         </inputParameters>
         <nameSegment>placeSalesTransaction</nameSegment>
@@ -24,23 +24,374 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <description>Creates a quote line item record reference that’s used within the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>CreateQuoteLineItemRecordReference</name>
-        <label>Create Quote Line Item Record Reference</label>
+        <description>For evergreen products, assign QuoteLineItem StartDate and PeriodBoundary field values by populating the RecordMapWrappers.</description>
+        <name>Assign_Monthly_Start_Date_and_Period_Boundary</name>
+        <label>Assign Monthly Start Date and Period Boundary</label>
+        <locationX>578</locationX>
+        <locationY>1298</locationY>
+        <assignmentItems>
+            <assignToReference>StartDateRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>StartDate</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>StartDateRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>StartDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>StartDateRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PeriodBoundaryRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>PeriodBoundary</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PeriodBoundaryRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Anniversary</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>PeriodBoundaryRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>EndDateRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>EndDate</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>EndDateRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>CalculatedEndDateString</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>EndDateRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillingFrequencyRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingFrequency</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillingFrequencyRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Monthly</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>BillingFrequencyRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Graph</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign all quote fields by populating the RecordMapWrappers, to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
+        <name>Assign_QuoteLineItem_Fields</name>
+        <label>Assign QuoteLineItem Fields</label>
+        <locationX>446</locationX>
+        <locationY>974</locationY>
+        <assignmentItems>
+            <assignToReference>QuoteIdRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>QuoteId</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteIdRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Quote_Details.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ProductRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Product2Id</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ProductRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>ProductId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PricebookEntryRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>PricebookEntryId</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PricebookEntryRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Price_Book_Entry.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuantityRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Quantity</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuantityRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Quantity</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PricebookIdRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Pricebook2Id</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PricebookIdRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>PricebookId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_QuoteLine_Record_Reference</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>For evergreen products, assign QuoteLineItem StartDate and PeriodBoundary field values by populating the RecordMapWrappers.</description>
+        <name>Assign_Start_Date_and_Period_Boundary</name>
+        <label>Assign Start Date and Period Boundary</label>
+        <locationX>50</locationX>
+        <locationY>1298</locationY>
+        <assignmentItems>
+            <assignToReference>StartDateRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>StartDate</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>StartDateRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>StartDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>StartDateRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PeriodBoundaryRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>PeriodBoundary</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PeriodBoundaryRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Anniversary</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>PeriodBoundaryRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Graph</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>For evergreen products, assign QuoteLineItem StartDate and PeriodBoundary field values by populating the RecordMapWrappers.</description>
+        <name>Assign_Yearly_Start_Date_and_Period_Boundary</name>
+        <label>Assign Yearly Start Date and Period Boundary</label>
         <locationX>314</locationX>
+        <locationY>1298</locationY>
+        <assignmentItems>
+            <assignToReference>StartDateRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>StartDate</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>StartDateRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>StartDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>StartDateRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PeriodBoundaryRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>PeriodBoundary</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PeriodBoundaryRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Anniversary</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>PeriodBoundaryRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>EndDateRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>EndDate</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>EndDateRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>CalculatedEndDateString</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>EndDateRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillingFrequencyRMW.key</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>BillingFrequency</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>BillingFrequencyRMW.obj</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Annual</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>BillingFrequencyRMW</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Graph</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign values for the Graph Apex-defined type as an input to the PlaceSalesTransaction IA.</description>
+        <name>Create_Graph</name>
+        <label>Create Graph</label>
+        <locationX>446</locationX>
+        <locationY>1490</locationY>
+        <assignmentItems>
+            <assignToReference>Graph.graphId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>placeholder</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Graph.records</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>QuoteRecordReference</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Graph.records</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>QuoteLineRecordReference</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>PlaceSalesTransactionIA</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign values for the QuoteLineItem RecordReference Apex-defined type to be used within the Graph Apex-defined type, as an input to the PlaceSalesTransaction IA.</description>
+        <name>Create_QuoteLine_Record_Reference</name>
+        <label>Create QuoteLine Record Reference</label>
+        <locationX>446</locationX>
         <locationY>1082</locationY>
         <assignmentItems>
             <assignToReference>QuoteRecordReference.referenceId</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>GetQuote.Id</elementReference>
+                <elementReference>Get_Quote_Details.Id</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteRecordReference.record.id</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>GetQuote.Id</elementReference>
+                <elementReference>Get_Quote_Details.Id</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -82,321 +433,212 @@
             <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>QuoteIdRecordMapWrapper</elementReference>
+                <elementReference>QuoteIdRMW</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>PricebookEntryRecordMapWrapper</elementReference>
+                <elementReference>PricebookEntryRMW</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>ProductRecordMapWrapper</elementReference>
+                <elementReference>ProductRMW</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>QuantityRecordMapWrapper</elementReference>
+                <elementReference>QuantityRMW</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
             <assignToReference>QuoteRecordReference.record.fieldValues</assignToReference>
             <operator>Add</operator>
             <value>
-                <elementReference>PricebookNameRecordMapWrapper</elementReference>
+                <elementReference>PricebookIdRMW</elementReference>
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>HaveProductType</targetReference>
+            <targetReference>Check_Product_Type</targetReference>
         </connector>
     </assignments>
     <assignments>
-        <description>Sets the values for the Graph Apex-defined type as an input to the PlaceSalesTransaction invocable action.</description>
-        <name>SetGraphInput</name>
-        <label>Set Graph Input</label>
-        <locationX>314</locationX>
-        <locationY>1490</locationY>
-        <assignmentItems>
-            <assignToReference>PSTGraph.graphId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>placeholder</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PSTGraph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PSTGraph.records</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>QuoteLineRecordReference</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>CallPlaceSalesTransaction</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Uses the price book that’s assigned to the opportunity to price the quote line item.</description>
-        <name>SetOpportunityPriceBook</name>
-        <label>Set Opportunity Price Book</label>
-        <locationX>314</locationX>
-        <locationY>350</locationY>
-        <assignmentItems>
-            <assignToReference>PricebookId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>GetQuote.Opportunity.Pricebook2Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>GetProduct</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Sets the fields on the quote by populating the record map wrappers. This element is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>SetQuoteFields</name>
-        <label>Set Quote Fields</label>
-        <locationX>314</locationX>
-        <locationY>974</locationY>
-        <assignmentItems>
-            <assignToReference>QuoteIdRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>QuoteId</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteIdRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>GetQuote.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ProductRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Product2Id</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>ProductRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>ProductId</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PricebookEntryRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>PricebookEntryId</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PricebookEntryRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>GetPriceBookEntry.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuantityRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Quantity</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuantityRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Quantity</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PricebookNameRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Pricebook2Id</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PricebookNameRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>PricebookId</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>CreateQuoteLineItemRecordReference</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Uses the price book that’s assigned to the quote to price the quote line item.</description>
-        <name>SetQuotePriceBook</name>
-        <label>Set Quote Price Book</label>
-        <locationX>50</locationX>
-        <locationY>350</locationY>
-        <assignmentItems>
-            <assignToReference>PricebookId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>GetQuote.Pricebook2Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>GetProduct</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Sets the start date and period boundary fields on the quote line item record for evergreen products.</description>
-        <name>SetStartDateandPeriodBoundary</name>
-        <label>Set Start Date and Period Boundary</label>
-        <locationX>182</locationX>
-        <locationY>1298</locationY>
-        <assignmentItems>
-            <assignToReference>StartDateRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>StartDate</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>StartDateRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>StartDate</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>StartDateRecordMapWrapper</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PeriodBoundaryRecordMapWrapper.key</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>PeriodBoundary</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>PeriodBoundaryRecordMapWrapper.obj</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <stringValue>Anniversary</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>QuoteLineRecordReference.record.fieldValues</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>PeriodBoundaryRecordMapWrapper</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>SetGraphInput</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <description>Shows a message to indicate that the quote line item was successfully added to the quote.</description>
-        <name>SetSuccessMessage</name>
-        <label>Set Success Message</label>
-        <locationX>314</locationX>
+        <description>Indicate the success of the action with a descriptive message.</description>
+        <name>Populate_Output_Message</name>
+        <label>Populate Output Message</label>
+        <locationX>446</locationX>
         <locationY>1706</locationY>
         <assignmentItems>
-            <assignToReference>SetOutputMessage</assignToReference>
+            <assignToReference>OutputMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>OutputMessage</elementReference>
+                <elementReference>OutputMessageFormula</elementReference>
             </value>
         </assignmentItems>
     </assignments>
+    <assignments>
+        <description>Since the opportunity has a price book assigned, we will use it to create the new quote line item.</description>
+        <name>Use_Opportunity_Pricebook</name>
+        <label>Use Opportunity Pricebook</label>
+        <locationX>446</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>PricebookId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Quote_Details.Opportunity.Pricebook2Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>GetProduct</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Since the quote has a price book assigned, we will use it to create the new quote line item.</description>
+        <name>Use_Quote_Pricebook</name>
+        <label>Use Quote Pricebook</label>
+        <locationX>182</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>PricebookId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Quote_Details.Pricebook2Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>GetProduct</targetReference>
+        </connector>
+    </assignments>
     <decisions>
-        <description>Determines what information is needed to add to the quote by checking whether the product record specifies a product type.</description>
-        <name>HaveProductType</name>
-        <label>Have Product Type?</label>
-        <locationX>314</locationX>
+        <description>Check the type of the Product2 record to determine what information is needed to add it to the quote.</description>
+        <name>Check_Product_Type</name>
+        <label>Check Product Type</label>
+        <locationX>446</locationX>
         <locationY>1190</locationY>
         <defaultConnector>
-            <targetReference>SetGraphInput</targetReference>
+            <targetReference>Create_Graph</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Not Evergreen Product (No)</defaultConnectorLabel>
+        <defaultConnectorLabel>Not Termed Product</defaultConnectorLabel>
         <rules>
-            <name>IsEvergreenProduct</name>
+            <name>Is_Evergreen_Product</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>GetProductSellingModel.SellingModelType</leftValueReference>
+                <leftValueReference>Get_Product_Selling_Model.SellingModelType</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <stringValue>Evergreen</stringValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>SetStartDateandPeriodBoundary</targetReference>
+                <targetReference>Assign_Start_Date_and_Period_Boundary</targetReference>
             </connector>
             <label>Is Evergreen Product</label>
         </rules>
+        <rules>
+            <name>Is_Termed_Yearly</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Product_Selling_Model.SellingModelType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>TermDefined</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Product_Selling_Model.PricingTermUnit</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Annual</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Yearly_Start_Date_and_Period_Boundary</targetReference>
+            </connector>
+            <label>Is Termed Yearly</label>
+        </rules>
+        <rules>
+            <name>Is_Termed_Monthly</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Product_Selling_Model.SellingModelType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>TermDefined</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Product_Selling_Model.PricingTermUnit</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Months</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Monthly_Start_Date_and_Period_Boundary</targetReference>
+            </connector>
+            <label>Is Termed Monthly</label>
+        </rules>
     </decisions>
     <decisions>
-        <description>Determines whether a price book is assigned to a quote or an opportunity that can be applied to the quote line item. If no price book is assigned, then the flow uses the standard price book.</description>
-        <name>HaveQuotePriceBook</name>
-        <label>HaveQuotePriceBook?</label>
-        <locationX>314</locationX>
+        <description>Identify whether there is a price book assigned to the quote or opportunity that we can use to add a quote line item. If not, we can use the Standard Price book.</description>
+        <name>Decision_1</name>
+        <label>Check for Quote Pricebook</label>
+        <locationX>446</locationX>
         <locationY>242</locationY>
         <defaultConnector>
-            <targetReference>GetStandardPriceBook</targetReference>
+            <targetReference>Get_Standard_PricebookId</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>NoPriceBookSet (Default)</defaultConnectorLabel>
+        <defaultConnectorLabel>No Pricebook Set</defaultConnectorLabel>
         <rules>
-            <name>QuoteHasPriceBook</name>
+            <name>Outcome_1_of_Decision_1</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>GetQuote.Pricebook2Id</leftValueReference>
+                <leftValueReference>Get_Quote_Details.Pricebook2Id</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>SetQuotePriceBook</targetReference>
+                <targetReference>Use_Quote_Pricebook</targetReference>
             </connector>
-            <label>PriceBookOnQuote</label>
+            <label>Quote Has Pricebook Specified</label>
         </rules>
         <rules>
-            <name>OpportunityHasPriceBook</name>
+            <name>Outcome_2_of_Decision_1</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>GetQuote.Opportunity.Pricebook2Id</leftValueReference>
+                <leftValueReference>Get_Quote_Details.Opportunity.Pricebook2Id</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>SetOpportunityPriceBook</targetReference>
+                <targetReference>Use_Opportunity_Pricebook</targetReference>
             </connector>
-            <label>PriceBookOnOpportunity</label>
+            <label>Opportunity Has Pricebook Specified</label>
         </rules>
     </decisions>
-    <description>Creates a quote line item record and adds it to a quote.</description>
+    <description>This action creates a new QuoteLineItem record and adds it to an existing Quote.</description>
     <environments>Default</environments>
+    <formulas>
+        <name>CalculatedEndDate</name>
+        <dataType>Date</dataType>
+        <expression> ADDMONTHS(DATEVALUE({!StartDate}),12) -1</expression>
+    </formulas>
+    <formulas>
+        <name>CalculatedEndDateString</name>
+        <dataType>String</dataType>
+        <expression>TEXT(YEAR( ADDMONTHS(DATEVALUE({!StartDate}),12) -1)) &amp;&quot;-&quot;&amp; TEXT(MONTH( ADDMONTHS(DATEVALUE({!StartDate}),12) -1)) &amp;&quot;-&quot;&amp; TEXT(DAY( ADDMONTHS(DATEVALUE({!StartDate}),12) -1))</expression>
+    </formulas>
     <formulas>
         <description>Calculate current date, the format is yyyy-mm-dd. If no StartDate input, the CurrentStartDate will be used in QuoteLineItem.</description>
         <name>CurrentStartDate</name>
@@ -404,10 +646,10 @@
         <expression>TEXT(Year({!$Flow.CurrentDate})) + &quot;-&quot; + TEXT(Month({!$Flow.CurrentDate})) + &quot;-&quot; + TEXT(Day({!$Flow.CurrentDate}))</expression>
     </formulas>
     <formulas>
-        <description>Defines the content of the output message using the quote line item and the updated subtotal for the quote.</description>
-        <name>OutputMessage</name>
+        <description>Defines the output message based on the new QuoteLineItem and updated Quote subtotal.</description>
+        <name>OutputMessageFormula</name>
         <dataType>String</dataType>
-        <expression>&quot;Quote Line Item Added to &quot; + {!GetQuote.Name} + &quot;.&quot;</expression>
+        <expression>&quot;Quote Line Item Added to &quot; + {!Get_Quote_Details.Name} + &quot;.&quot;</expression>
     </formulas>
     <interviewLabel>Add QuoteLineItem to Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Add QuoteLineItem to Quote</label>
@@ -431,14 +673,94 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <description>Gets the default product selling model option specified for the product record so it can be used for the quote line item</description>
-        <name>GetDefaultPSMOption</name>
+        <description>Identify the price book entry associated with the product and the product selling model.</description>
+        <name>Get_Price_Book_Entry</name>
+        <label>Get Price Book Entry</label>
+        <locationX>446</locationX>
+        <locationY>866</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Assign_QuoteLineItem_Fields</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Pricebook2Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>PricebookId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Product2Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>ProductId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>ProductSellingModelId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Product_Selling_Model.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>PricebookEntry</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Identify the product selling model associated with the default product selling model option.</description>
+        <name>Get_Product_Selling_Model</name>
+        <label>Get Product Selling Model</label>
+        <locationX>446</locationX>
+        <locationY>758</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Price_Book_Entry</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Records_5.ProductSellingModelId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>ProductSellingModel</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Used to retrieve Quote record from the input QuoteId.</description>
+        <name>Get_Quote_Details</name>
+        <label>Get Quote Details</label>
+        <locationX>446</locationX>
+        <locationY>134</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Decision_1</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>QuoteId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Quote</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Identify the default product selling model option for the product to use for adding the quote line item.</description>
+        <name>Get_Records_5</name>
         <label>Get Default Product Selling Model Option</label>
-        <locationX>314</locationX>
+        <locationX>446</locationX>
         <locationY>650</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>GetProductSellingModel</targetReference>
+            <targetReference>Get_Product_Selling_Model</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -460,112 +782,10 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Gets the price book entry that’s associated with the product and the product selling model.</description>
-        <name>GetPriceBookEntry</name>
-        <label>Get Price Book Entry</label>
-        <locationX>314</locationX>
-        <locationY>866</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>SetQuoteFields</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Pricebook2Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>PricebookId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Product2Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>ProductId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>ProductSellingModelId</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>GetProductSellingModel.Id</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>PricebookEntry</object>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>Gets the product record from the input Product2 ID.</description>
-        <name>GetProduct</name>
-        <label>Get Product</label>
-        <locationX>314</locationX>
-        <locationY>542</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>GetDefaultPSMOption</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>ProductId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Product2</object>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>Gets the product selling model that’s associated with the default product selling model option</description>
-        <name>GetProductSellingModel</name>
-        <label>Get Product Selling Model</label>
-        <locationX>314</locationX>
-        <locationY>758</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>GetPriceBookEntry</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>GetDefaultPSMOption.ProductSellingModelId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>ProductSellingModel</object>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>Gets the quote record from the input quote ID</description>
-        <name>GetQuote</name>
-        <label>GetQuote</label>
-        <locationX>314</locationX>
-        <locationY>134</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>HaveQuotePriceBook</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>QuoteId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Quote</object>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>If a price book isn’t specified for either the quote or the opportunity, the flow uses the standard price book.</description>
-        <name>GetStandardPriceBook</name>
-        <label>Get Standard Price Book</label>
-        <locationX>578</locationX>
+        <description>Since both quote and opportunity do not have a price book assigned, we will use the standard price book, by first retrieving the</description>
+        <name>Get_Standard_PricebookId</name>
+        <label>Get Standard Pricebook Id</label>
+        <locationX>710</locationX>
         <locationY>350</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
@@ -585,17 +805,38 @@
             <field>Id</field>
         </outputAssignments>
     </recordLookups>
+    <recordLookups>
+        <description>Identify the Product2 record from the input Product2Id.</description>
+        <name>GetProduct</name>
+        <label>GetProduct</label>
+        <locationX>446</locationX>
+        <locationY>542</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Records_5</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>ProductId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Product2</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <start>
-        <locationX>188</locationX>
+        <locationX>320</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>GetQuote</targetReference>
+            <targetReference>Get_Quote_Details</targetReference>
         </connector>
     </start>
     <status>Active</status>
     <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.PeriodBoundary field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>PeriodBoundaryRecordMapWrapper</name>
+        <name>BillingFrequencyRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -603,8 +844,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.PricebookEntry field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>PricebookEntryRecordMapWrapper</name>
+        <name>EndDateRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -612,42 +852,8 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Stores the ID of the price book record that’s used to add a quote line item to the quote. If a price book isn’t specified on the quote or the opportunity, then the flow uses the standard pricebook as a default.</description>
-        <name>PricebookId</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.Pricebook2Id field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>PricebookNameRecordMapWrapper</name>
-        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
-        <dataType>Apex</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>Stores the ID of the Product2 record that the flow adds to the quote</description>
-        <name>ProductId</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.Product2 field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>ProductRecordMapWrapper</name>
-        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
-        <dataType>Apex</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>Sets values for the Graph Apex-defined type that’s used as an input for the PlaceSalesTransaction invocable action.</description>
-        <name>PSTGraph</name>
+        <description>The Graph Apex-defined type used as input to the PlaceSalesTransaction invokable action call.</description>
+        <name>Graph</name>
         <apexClass>RevSalesTrxn__Graph</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -655,7 +861,67 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Stores the quantity of the product that the flow adds to the quote line item. If no quantity is specified, the flow uses the default of 1.</description>
+        <description>Indicates success of the action with a descriptive message.</description>
+        <name>OutputMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.PeriodBoundary field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>PeriodBoundaryRMW</name>
+        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.PricebookEntry field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>PricebookEntryRMW</name>
+        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Used to define the pricebook that will be used to add a QuoteLineItem. Defaults to the standard pricebook if there is no pricebook on the Quote or Opportunity.</description>
+        <name>PricebookId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.Pricebook2Id field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>PricebookIdRMW</name>
+        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>The Product2Id for the product to be added to the quote.</description>
+        <name>ProductId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.Product2 field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>ProductRMW</name>
+        <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>The quantity of the product to be added to the quote line. If no quantity is provided, default to 1.</description>
         <name>Quantity</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
@@ -667,8 +933,8 @@
         </value>
     </variables>
     <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.PricebookEntry field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>QuantityRecordMapWrapper</name>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.Quantity field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>QuantityRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -676,7 +942,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Stores the ID of the quote record that this flow modifies.</description>
+        <description>The quote Id of the quote record to be modified.</description>
         <name>QuoteId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -684,8 +950,8 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.QuoteId field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>QuoteIdRecordMapWrapper</name>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.QuoteId field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>QuoteIdRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
@@ -693,7 +959,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Sets the record reference for the quote line item that this flow creates. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <description>RecordReference for QuoteLineItem to be created. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteLineRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
@@ -702,7 +968,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Sets the record reference for the quote that this flow modifies.This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
+        <description>RecordReference for Quote to be modified. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
         <name>QuoteRecordReference</name>
         <apexClass>RevSalesTrxn__RecordReference</apexClass>
         <dataType>Apex</dataType>
@@ -711,15 +977,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Shows a message to indicate that the quote line item was successfully added to the quote.</description>
-        <name>SetOutputMessage</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>true</isOutput>
-    </variables>
-    <variables>
-        <description>Stores the startDate for subscription products. Optional user input. The format must be yyyy-mm-dd.</description>
+        <description>The optional user input startDate for subscription based products.</description>
         <name>StartDate</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -730,8 +988,8 @@
         </value>
     </variables>
     <variables>
-        <description>Sets the record map wrapper Apex-defined type that specifies the QuoteLineItem.StartDate field name (key) and value (object) for the quote. This variable is used to construct the Graph Apex-defined type input for the PlaceSalesTransaction invocable action.</description>
-        <name>StartDateRecordMapWrapper</name>
+        <description>RecordMapWrapper Apex-defined type to specify QuoteLineItem.StartDate field name (key) and value (obj) for the new quote. Used to construct the Graph Apex-defined type input for the PlaceSalesTransaction Invokable Action.</description>
+        <name>StartDateRMW</name>
         <apexClass>RevSalesTrxn__RecordMapWrapper</apexClass>
         <dataType>Apex</dataType>
         <isCollection>false</isCollection>
