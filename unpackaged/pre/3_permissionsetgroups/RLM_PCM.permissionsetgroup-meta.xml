@@ -3,7 +3,6 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_PCM</label>
     <permissionSets>force__AdvancedConfiguratorDesigner</permissionSets>
-    <permissionSets>force__AdvancedConfiguratorUser</permissionSets>
     <permissionSets>force__IndustriesConfiguratorPlatformApi</permissionSets>
     <permissionSets>force__ProductCatalogManagementAdministrator</permissionSets>
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
