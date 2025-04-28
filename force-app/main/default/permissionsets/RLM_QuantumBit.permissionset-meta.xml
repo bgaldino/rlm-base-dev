@@ -303,7 +303,7 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>false</editable>
+        <editable>true</editable>
         <field>OrderItem.RLM_ConstraintEngineNodeStatus__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -448,8 +448,8 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>false</editable>
-        <field>OrderItem.RLM_ConstraintEngineNodeStatus__c</field>
+        <editable>true</editable>
+        <field>QuoteLineItem.RLM_ConstraintEngineNodeStatus__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
