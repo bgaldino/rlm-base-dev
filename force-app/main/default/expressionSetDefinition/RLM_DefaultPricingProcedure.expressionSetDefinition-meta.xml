@@ -2487,6 +2487,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -2575,6 +2582,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemContractPrice</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemSubtotal</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -2791,6 +2805,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -2861,10 +2882,31 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
+                    <name>Id</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemPricebookEntry</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>IsDerived</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>DerivedPricingAttribute</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
                     <name>ListPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ListPrice</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemSubtotal</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
@@ -2886,6 +2928,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
