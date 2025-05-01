@@ -880,23 +880,18 @@ flows:
       1:
         flow: prepare_core
       2:
+        flow: prepare_decision_tables
+      4:
         flow: prepare_expression_sets
-      3:
+      5:
         task: createPartnerCentral
         when: project_config.project__custom__prm
-      4:
-        task: activate_decision_tables
-        when: org_config.scratch
-      5:
-        task: deploy_expression_sets
-        when: org_config.scratch
       6:
         task: deploy_full
       7:
         flow: prepare_product_data
       8:
-        task: activate_price_adjustment_schedules
-        when: org_config.scratch
+        flow: prepare_price_adjustment_schedules
       9:
         flow: prepare_scratch
       10:
@@ -904,23 +899,23 @@ flows:
       11:
         flow: prepare_dro
       12:
-        flow: prepare_docgen
-      13:
         flow: prepare_tax
-      14:
+      13:
         flow: prepare_billing
-      15:
+      14:
         flow: prepare_clm
-      16:
+      15:
         flow: prepare_rating
-      17:
+      16:
         task: activate_and_deploy_expression_sets
-      18:
+      17:
         flow: prepare_agents
-      19:
+      18:
         flow: prepare_prm
-      20:
+      19:
         flow: prepare_tso
+      20:
+        flow: prepare_docgen
       21:
         flow: refresh_all_decision_tables
          
@@ -1036,6 +1031,9 @@ flows:
       2:
         task: deactivate_expression_sets_prod
         when: not org_config.scratch
+      3:
+        task: deploy_expression_sets
+        when: org_config.scratch
   
   prepare_product_data:
     group: Revenue Lifecycle Management
@@ -1271,3 +1269,17 @@ flows:
       5:
         task: refresh_dt_rating_discovery
         when: project_config.project__custom__rating
+
+  prepare_decision_tables:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: activate_decision_tables
+        when: org_config.scratch
+
+  prepare_price_adjustment_schedules:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: activate_price_adjustment_schedules
+        when: org_config.scratch
