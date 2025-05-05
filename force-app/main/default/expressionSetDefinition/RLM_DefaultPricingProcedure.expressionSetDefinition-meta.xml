@@ -8,6 +8,7 @@
     <template>false</template>
     <versions>
         <fullName>RLM_DefaultPricingProcedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>RLM Default Pricing Procedure</description>
         <expressionSetDefinition>RLM_DefaultPricingProcedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
@@ -1018,6 +1019,20 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>AdjustmentTypeField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_AdjustmentType_Attribute_Based_Adjustment_Decision_Table_ABP</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>AdjustmentValueField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_AdjustmentValue_Attribute_Based_Adjustment_Decision_Table_ABP</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -1170,6 +1185,20 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>NetUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>AdjustmentTypeField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_AdjustmentType_Attribute_Based_Adjustment_Decision_Table_ABP</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>AdjustmentValueField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_AdjustmentValue_Attribute_Based_Adjustment_Decision_Table_ABP</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1332,6 +1361,20 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>NetUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>AdjustmentTypeField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_AdjustmentType_Bundle_Based_Adjustment_Decision_Table_BBP</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>AdjustmentValueField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_AdjustmentValue_Bundle_Based_Adjustment_Decision_Table_BBP</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -2487,6 +2530,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ContractCurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -2575,6 +2625,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemContractPrice</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemSubtotal</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -2791,6 +2848,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ContractCurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -2861,10 +2925,31 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
+                    <name>Id</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemPricebookEntry</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>IsDerived</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>DerivedPricingAttribute</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
                     <name>ListPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ListPrice</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemSubtotal</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
@@ -2886,6 +2971,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ContractCurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3724,6 +3816,20 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>TierTypeField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_TierType_Contract_Pricing_Volume_Tiers_VD</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>TierValueField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_TierValue_Contract_Pricing_Volume_Tiers_VD</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -3872,6 +3978,20 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>TierTypeField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_TierType_Price_Adjustment_Tier_Decision_Table_VD</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>TierValueField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_TierValue_Price_Adjustment_Tier_Decision_Table_VD</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -3977,6 +4097,94 @@
             <output>false</output>
             <type>Constant</type>
             <value>__BUNDLEPasID__</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_AdjustmentType_Attribute_Based_Adjustment_Decision_Table_ABP</description>
+            <input>false</input>
+            <name>Constant_AdjustmentType_Attribute_Based_Adjustment_Decision_Table_ABP</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>AdjustmentType</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_AdjustmentType_Bundle_Based_Adjustment_Decision_Table_BBP</description>
+            <input>false</input>
+            <name>Constant_AdjustmentType_Bundle_Based_Adjustment_Decision_Table_BBP</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>AdjustmentType</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_AdjustmentValue_Attribute_Based_Adjustment_Decision_Table_ABP</description>
+            <input>false</input>
+            <name>Constant_AdjustmentValue_Attribute_Based_Adjustment_Decision_Table_ABP</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>AdjustmentValue</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_AdjustmentValue_Bundle_Based_Adjustment_Decision_Table_BBP</description>
+            <input>false</input>
+            <name>Constant_AdjustmentValue_Bundle_Based_Adjustment_Decision_Table_BBP</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>AdjustmentValue</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_TierType_Contract_Pricing_Volume_Tiers_VD</description>
+            <input>false</input>
+            <name>Constant_TierType_Contract_Pricing_Volume_Tiers_VD</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>TierType</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_TierType_Price_Adjustment_Tier_Decision_Table_VD</description>
+            <input>false</input>
+            <name>Constant_TierType_Price_Adjustment_Tier_Decision_Table_VD</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>TierType</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_TierValue_Contract_Pricing_Volume_Tiers_VD</description>
+            <input>false</input>
+            <name>Constant_TierValue_Contract_Pricing_Volume_Tiers_VD</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>TierValue</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_TierValue_Price_Adjustment_Tier_Decision_Table_VD</description>
+            <input>false</input>
+            <name>Constant_TierValue_Price_Adjustment_Tier_Decision_Table_VD</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>TierValue</value>
         </variables>
         <variables>
             <collection>false</collection>

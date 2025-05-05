@@ -104,3 +104,4 @@ force-app/main/default/permissionsetgroups
 **/tsconfig*.json
 **/*.tsbuildinfo
 **/eslint.config.mjs
+unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics

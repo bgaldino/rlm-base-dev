@@ -909,11 +909,11 @@ flows:
       16:
         task: activate_and_deploy_expression_sets
       17:
-        flow: prepare_agents
+        flow: prepare_tso
       18:
         flow: prepare_prm
       19:
-        flow: prepare_tso
+        flow: prepare_agents
       20:
         flow: prepare_docgen
       21:
