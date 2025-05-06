@@ -337,7 +337,7 @@ tasks:
       developerName: *asset_context_name
       baseReference: "AssetContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *asset_context_default_mapping
 
   extend_context_sales_transaction:
@@ -350,7 +350,7 @@ tasks:
       developerName: *sales_transaction_context_name
       baseReference: "SalesTransactionContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *sales_transaction_context_default_mapping
 
   extend_context_product_discovery:
@@ -363,7 +363,7 @@ tasks:
       developerName: *product_discovery_context_name
       baseReference: "ProductDiscoveryContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *product_discovery_context_default_mapping
 
   extend_context_cart:
@@ -376,7 +376,7 @@ tasks:
       developerName: *cart_context_name
       baseReference: "CommerceCartContextDefinition__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *cart_context_default_mapping  
 
   extend_context_billing:
@@ -389,7 +389,7 @@ tasks:
       developerName: *billing_context_name
       baseReference: "BillingContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *billing_context_default_mapping
 
   extend_context_fulfillment_asset:
@@ -402,7 +402,7 @@ tasks:
       developerName: *fulfillment_asset_context_name
       baseReference: "FulfillmentAssetContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *fulfillment_asset_context_default_mapping
 
   extend_context_collection_plan_segment:
@@ -415,7 +415,7 @@ tasks:
       developerName: *collection_plan_segment_context_name
       baseReference: "CollectionPlanSegmentContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *collection_plan_segment_context_default_mapping
 
   extend_context_rate_management:
@@ -428,7 +428,7 @@ tasks:
       developerName: *rate_management_context_name
       baseReference: "RateManagementContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *rate_management_context_default_mapping
 
   extend_context_rating_discovery:
@@ -441,7 +441,7 @@ tasks:
       developerName: *rating_discovery_context_name
       baseReference: "RatingDiscoveryContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *rating_discovery_context_default_mapping
 
   deploy_context_definitions:
