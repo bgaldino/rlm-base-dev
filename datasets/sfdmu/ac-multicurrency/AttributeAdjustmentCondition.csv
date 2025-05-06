@@ -1,0 +1,14 @@
+$$AttributeBasedAdjRule.Name$AttributeDefinition.Code$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Code,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.StockKeepingUnit,StringValue
+Rule_1700199014867,Rule_1700199014867,,,,,,,equals,,Inkjet
+Rule_1700199044009,Rule_1700199044009,,,,,,,equals,,Laser
+Rule_1700199112947,Rule_1700199112947,,,,,,,equals,,Security Training
+Rule_1700199202093,Rule_1700199202093,,,,,,,equals,,Software Training
+Rule_1700199261191,Rule_1700199261191,,True,,,,,equals,,
+Rule_1700633112004,Rule_1700633112004,,,,,,,equals,,Cloud Storage Enterprise - 6 TB
+Rule_1701391285463,Rule_1701391285463,,True,,,,,equals,,
+Rule_1701995193647,Rule_1701995193647,,,,,,,equals,,Premium Plus Support
+Rule_1702357862046,Rule_1702357862046,,True,,,,,equals,,
+Rule_1702357916535,Rule_1702357916535,,,,,,,equals,,Inkjet
+Rule_1702358038935,Rule_1702358038935,,,,,,,equals,,Premium Plus Support
+Rule_1702358235675,Rule_1702358235675,,,,,,,equals,,Software Training
+Rule_1736705552125,Rule_1736705552125,,,,,,,equals,,Data Center Continuous (DCC)

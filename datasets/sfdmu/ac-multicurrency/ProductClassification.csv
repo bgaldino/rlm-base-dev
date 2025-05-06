@@ -1,0 +1,29 @@
+Code,Name,Status
+Accessory001,Accessory,Active
+Alternator,Alternator,Active
+BaseTank001,BaseTank,Active
+Battery001,Battery,Active
+CircuitBreaker,CircuitBreaker,Active
+CMP001,Computer,Active
+Control PC,Control PC,Active
+CS001,Cloud Storage,Active
+Enclosure001,Enclosure,Active
+Generac Solution,Generac Solution,Active
+Generator,Generator,Active
+Generator Set PC,Generator Set PC,Active
+Isolator001,Isolator,Active
+KB001,Keyboard,Active
+M001,Mouse,Active
+MED01,Media,Active
+MiscGen,Generator Misc,Active
+MN001,Monitor,Active
+Model PC,Model PC,Active
+MPS_Solution,MPS Solution,Active
+P001,Paper,Active
+PR001,Printer,Active
+SEC001,Security,Active
+SFT001,Software,Active
+SL001,Support,Active
+Testing001,Testing,Active
+TL001,Training,Active
+Voltage PC,Voltage PC,Active
