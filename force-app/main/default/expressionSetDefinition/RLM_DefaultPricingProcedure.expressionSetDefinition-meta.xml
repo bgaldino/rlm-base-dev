@@ -2533,7 +2533,7 @@
                     <name>CurrencyIsoCode</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>ContractCurrencyIsoCode</value>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -2851,7 +2851,7 @@
                     <name>CurrencyIsoCode</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>ContractCurrencyIsoCode</value>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -2977,7 +2977,7 @@
                     <name>CurrencyIsoCode</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>ContractCurrencyIsoCode</value>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>

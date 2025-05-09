@@ -7,6 +7,7 @@
     <template>false</template>
     <versions>
         <fullName>Rev_Mgmt_Default_Pricing_Procedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Revenue Management Default Pricing Procedure</description>
         <expressionSetDefinition>Rev_Mgmt_Default_Pricing_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
@@ -14,8 +15,8 @@
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Inactive</status>
+        <startDate>2023-10-24T19:56:40.000Z</startDate>
+        <status>Active</status>
         <steps>
             <actionType>GroupingAndAggregatePricing</actionType>
             <customElement>
@@ -1099,6 +1100,13 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOHhMAO</value>
+                </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
             <label>Attribute-Based Price</label>
@@ -1260,6 +1268,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOHhMAO</value>
                 </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
@@ -1436,6 +1451,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOEVMA4</value>
                 </parameters>
             </customElement>
             <description>Bundle-Based Price</description>
@@ -2282,7 +2304,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND 2 AND 3 AND 4 AND 5</conditionLogic>
+                <conditionLogic>1 AND 2 AND 3 AND 4 AND 5 AND 6</conditionLogic>
                 <criteria>
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -2313,6 +2335,11 @@
                     <sourceFieldName>SalesTransactionActionType</sourceFieldName>
                     <value>&apos;Renew&apos;</value>
                     <valueType>Literal</valueType>
+                </criteria>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>6</sequenceNumber>
+                    <sourceFieldName>ItemUnitPriceUplift__std</sourceFieldName>
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
@@ -2679,6 +2706,13 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOJJMA4</value>
+                </parameters>
             </customElement>
             <description>List Price</description>
             <label>List Price</label>
@@ -2961,6 +2995,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ListPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOETMA4</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
@@ -3966,6 +4007,13 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOKvMAO</value>
+                </parameters>
             </customElement>
             <description>Volume Discount</description>
             <label>Volume Discount</label>
@@ -4121,6 +4169,13 @@
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWs000000GOG5MAO</value>
+                </parameters>
             </customElement>
             <description>Volume Discount</description>
             <label>Volume Discount Entries</label>
@@ -4153,7 +4208,7 @@
             <name>AttributePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>84XWs000000Zv9uMAC</value>
+            <value>&apos;&apos;</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4164,7 +4219,7 @@
             <name>BundlePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>84XWs000000Zv9vMAC</value>
+            <value>&apos;&apos;</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4340,7 +4395,7 @@
             <name>VolumePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>84XWs000000Zv9tMAC</value>
+            <value>&apos;&apos;</value>
         </variables>
         <versionNumber>1</versionNumber>
     </versions>
