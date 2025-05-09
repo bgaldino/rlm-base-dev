@@ -1,0 +1,43 @@
+$$Code$ParentProduct.StockKeepingUnit,Code,CurrencyIsoCode,Description,MaxBundleComponents,MinBundleComponents,Name,ParentProduct.StockKeepingUnit,Sequence
+FESBA-FRD,,USD,,,,Install & Misc,FESBA-FRD,7
+FESBA-FRD,,USD,,,,Misc,FESBA-FRD,2
+FESBA-FRD,,USD,,,,Installation,FESBA-FRD,7
+Accessories;FESBA-FRD,Accessories,USD,,,,Accessories,FESBA-FRD,6
+Accessories Main;FESBA-FRD,Accessories Main,USD,,99,1,Accessories Main,FESBA-FRD,50
+Air Cleaner Duty Rating;FESBA-FRD,Air Cleaner Duty Rating,USD,,1,1,Air Cleaner Duty Rating,FESBA-FRD,18
+Alternator;FESBA-FRD,Alternator,USD,,,,Alternator,FESBA-FRD,2
+Battery Charging Alternator;FESBA-FRD,Battery Charging Alternator,USD,,1,1,Battery Charging Alternator,FESBA-FRD,20
+Bearing Hardened Cartridge;FESBA-FRD,Bearing Hardened Cartridge,USD,,1,0,Bearing Hardened Cartridge,FESBA-FRD,31
+Circuit Breaker or Box Arrangement;FESBA-FRD,Circuit Breaker or Box Arrangement,USD,,1,1,Circuit Breaker or Box Arrangement,FESBA-FRD,34
+Circuit Breaker or Terminal Box;FESBA-FRD,Circuit Breaker or Terminal Box,USD,,2,0,Circuit Breaker or Terminal Box,FESBA-FRD,35
+Control;FESBA-FRD,Control,USD,,,,Control,FESBA-FRD,4
+Control Cabinet Heater;FESBA-FRD,Control Cabinet Heater,USD,,1,0,Control Cabinet Heater,FESBA-FRD,43
+Control Main;FESBA-FRD,Control Main,USD,,1,1,Control Main,FESBA-FRD,40
+Control Options;FESBA-FRD,Control Options,USD,,99,0,Control Options,FESBA-FRD,44
+Coolant Heater;FESBA-FRD,Coolant Heater,USD,,1,0,Coolant Heater,FESBA-FRD,24
+Cooling System;FESBA-FRD,Cooling System,USD,,1,1,Cooling System,FESBA-FRD,25
+Cooling System Connection;FESBA-FRD,Cooling System Connection,USD,,1,0,Cooling System Connection,FESBA-FRD,26
+Cooling System Protection;FESBA-FRD,Cooling System Protection,USD,,1,1,Cooling System Protection,FESBA-FRD,27
+Differential CT's;FESBA-FRD,Differential CT's,USD,,99,0,Differential CT's,FESBA-FRD,33
+Enclosure;FESBA-FRD,Enclosure,USD,,1,1,Enclosure,FESBA-FRD,49
+Engine;FESBA-FRD,Engine,USD,,,,Engine,FESBA-FRD,3
+Engine Model;FESBA-FRD,Engine Model,USD,,1,1,Engine Model,FESBA-FRD,17
+Fuel Filter;FESBA-FRD,Fuel Filter,USD,,1,1,Fuel Filter,FESBA-FRD,23
+Fuel System Options;FESBA-FRD,Fuel System Options,USD,,99,0,Fuel System Options,FESBA-FRD,22
+General;FESBA-FRD,General,USD,,,,General,FESBA-FRD,1
+Heater;FESBA-FRD,Heater,USD,,1,0,Heater,FESBA-FRD,28
+Literature Language;FESBA-FRD,Literature Language,USD,,99,1,Literature Language,FESBA-FRD,47
+Load Connections;FESBA-FRD,Load Connections,USD,,4,0,Load Connections,FESBA-FRD,36
+Main Alternator;FESBA-FRD,Main Alternator,USD,,1,1,Main Alternator,FESBA-FRD,16
+Model;FESBA-FRD,Model,USD,,1,1,Model,FESBA-FRD,7
+Oil System Options;FESBA-FRD,Oil System Options,USD,,99,0,Oil System Options,FESBA-FRD,21
+Output Terminals;FESBA-FRD,Output Terminals,USD,,1,0,Output Terminals,FESBA-FRD,31
+Packing for Shipment;FESBA-FRD,Packing for Shipment,USD,,1,1,Packing for Shipment,FESBA-FRD,48
+PMG;FESBA-FRD,PMG,USD,,1,1,PMG,FESBA-FRD,30
+Primary Electrical Isolation Device Options;FESBA-FRD,Primary Electrical Isolation Device Options,USD,,99,0,Primary Electrical Isolation Device Options,FESBA-FRD,39
+Services;FESBA-FRD,Services,USD,,,,Services,FESBA-FRD,5
+Starter Motor;FESBA-FRD,Starter Motor,USD,,1,1,Starter Motor,FESBA-FRD,19
+Temperature Sensors;FESBA-FRD,Temperature Sensors,USD,,2,0,Temperature Sensors,FESBA-FRD,29
+Testing;FESBA-FRD,Testing,USD,,99,1,Testing,FESBA-FRD,46
+Voltage Connection;FESBA-FRD,Voltage Connection,USD,,1,1,Voltage Connection,FESBA-FRD,15
+Warranty;FESBA-FRD,Warranty,USD,,1,1,Warranty,FESBA-FRD,45

@@ -1,0 +1,24 @@
+{
+  "apiVersion": "64.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT CurrencyIsoCode, FlowIdentifier, IsDefault, Status FROM ProductConfigurationFlow",
+          "operation": "Insert",
+          "externalId": "FlowIdentifier",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, ProductClassificationId, ProductConfigurationFlowId, ProductId FROM ProductConfigFlowAssignment",
+          "operation": "Upsert",
+          "externalId": "ProductConfigurationFlow.FlowIdentifier;Product.StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

@@ -1,0 +1,45 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,1200,1200,false,1200,Power,1200,Draft,1200
+,1500,1500,false,1500,Power,1500,Draft,1500
+,1750,1750,false,1750,Power,1750,Draft,1750
+,220/380,220/380,false,220/380,Voltage,10,Draft,220/380
+,240/416,240/416,false,240/416,Voltage,20,Draft,240/416
+,2400/4160,2400/4160,false,2400/4160,Voltage,60,Draft,2400/4160
+,2500,2500,false,2500,Power,2500,Draft,2500
+,255/440,255/440,false,255/440,Voltage,30,Draft,255/440
+,277/480,277/480,false,277/480,Voltage,40,Draft,277/480
+,347/600,347/600,false,347/600,Voltage,50,Draft,347/600
+,7200/12470,7200/12470,false,7200/12470,Voltage,70,Draft,7200/12470
+,7621/13200,7621/13200,false,7621/13200,Voltage,80,Draft,7621/13200
+,7976/13800,7976/13800,false,7976/13800,Voltage,90,Draft,7976/13800
+,900,900,false,900,Power,900,Draft,900
+,Certification-CSA,Certification-CSA,false,Certification-CSA,standardsAndCompliance,10,Draft,Certification-CSA
+,Continuous Power (COP),Continuous Power (COP),false,Continuous Power (COP),DutyRating,30,Draft,Continuous Power (COP)
+,Data Center Continuous (DCC),Data Center Continuous (DCC),false,Data Center Continuous (DCC),DutyRating,40,Draft,Data Center Continuous (DCC)
+,Emergency Standby Power (ESP),Emergency Standby Power (ESP),false,Emergency Standby Power (ESP),DutyRating,10,Draft,Emergency Standby Power (ESP)
+,Entrance_Bottom,Bottom,false,Bottom,Entrance Types,5,Draft,Bottom
+,Entrance_Left,Left,false,Left,Entrance Types,2,Draft,Left
+,Entrance_None,None,false,None,Entrance Types,1,Draft,None
+,Entrance_Right,Right,false,Right,Entrance Types,3,Draft,Right
+,Entrance_Top,Top,false,Top,Entrance Types,4,Draft,Top
+,IBC Seismic Certification,IBC Seismic Certification,false,IBC Seismic Certification,seismicCertification,10,Draft,IBC Seismic Certification
+,Install-OutsideUS,Install-OutsideUS,false,Install-OutsideUS,applicationEmissionCertification,20,Draft,Install-OutsideUS
+,Install-US-Stat,Install-US-Stat,false,Install-US-Stat,applicationEmissionCertification,10,Draft,Install-US-Stat
+,Language_Chinese(Mandarin),Chinese (Mandarin),false,Chinese (Mandarin),Languages,1,Draft,Chinese (Mandarin)
+,Language_Danish,Danish,false,Danish,Languages,2,Draft,Danish
+,Language_Dutch,Dutch,false,Dutch,Languages,3,Draft,Dutch
+,Language_English,English,true,English,Languages,4,Draft,English
+,Language_Finnish,Finnish,false,Finnish,Languages,5,Draft,Finnish
+,Language_French,French,false,French,Languages,6,Draft,French
+,Language_German,German,false,German,Languages,7,Draft,German
+,Language_Greek,Greek,false,Greek,Languages,8,Draft,Greek
+,Language_Italian,Italian,false,Italian,Languages,9,Draft,Italian
+,Language_Norwegian,Norwegian,false,Norwegian,Languages,10,Draft,Norwegian
+,Language_Portuguese,Portuguese,false,Portuguese,Languages,11,Draft,Portuguese
+,Language_Russian,Russian,false,Russian,Languages,12,Draft,Russian
+,Language_Spanish,Spanish,false,Spanish,Languages,13,Draft,Spanish
+,Listing-UL 2200,Listing-UL 2200,false,Listing-UL 2200,standardsAndCompliance,20,Draft,Listing-UL 2200
+,Motor Starting,Motor Starting,false,Motor Starting,SpecialApplication,20,Draft,Motor Starting
+,None - Standard,None - Standard,true,None - Standard,SpecialApplication,10,Draft,None - Standard
+,OSHPD Seismic Certification,OSHPD Seismic Certification,false,OSHPD Seismic Certification,seismicCertification,20,Draft,OSHPD Seismic Certification
+,Prime Power (PRP),Prime Power (PRP),false,Prime Power (PRP),DutyRating,20,Draft,Prime Power (PRP)

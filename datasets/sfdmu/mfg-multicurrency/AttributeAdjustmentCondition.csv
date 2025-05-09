@@ -1,0 +1,2 @@
+$$AttributeBasedAdjRule.Name$AttributeDefinition.Code$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Code,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.StockKeepingUnit,StringValue
+Rule_1746130494502;Duty Rating;FESBA-FRD,Rule_1746130494502,Duty Rating,,,,,,equals,FESBA-FRD,Data Center Continuous (DCC)

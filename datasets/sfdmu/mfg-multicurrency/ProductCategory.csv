@@ -1,0 +1,6 @@
+$$Name$Catalog.Code$ParentCategory.Name,Catalog.Name,Code,Description,Name,ParentCategory.$$Name$Catalog.Code$ParentCategory.Name,SortOrder
+Batteries;GeneratorCatalog,Power Management,Batteries,,Batteries,,40
+Connectivity;GeneratorCatalog,Power Management,Connectivity,,Connectivity,,50
+Fuel Cells;GeneratorCatalog,Power Management,Fuel Cells,,Fuel Cells,,30
+Generators;GeneratorCatalog,Power Management,Generators,,Generators,,10
+Solar Panels;GeneratorCatalog,Power Management,Solar Panels,,Solar Panels,,20
