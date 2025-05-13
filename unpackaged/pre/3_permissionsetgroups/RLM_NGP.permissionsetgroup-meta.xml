@@ -5,4 +5,5 @@
     <permissionSets>force__CorePricingAdmin</permissionSets>
     <permissionSets>force__CorePricingDesignTimeUser</permissionSets>
     <permissionSets>force__CorePricingManager</permissionSets>
+    <permissionSets>force__DecimalQuantityDesigntime</permissionSets>
 </PermissionSetGroup>
