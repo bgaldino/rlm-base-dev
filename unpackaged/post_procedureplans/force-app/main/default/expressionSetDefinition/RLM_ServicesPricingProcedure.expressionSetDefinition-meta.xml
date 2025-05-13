@@ -17,7 +17,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2025-01-01T08:00:00.000Z</startDate>
-        <status>Active</status>
+        <status>Inactive</status>
         <steps>
             <actionType>DiscountDistributionService</actionType>
             <customElement>
