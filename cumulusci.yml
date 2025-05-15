@@ -709,6 +709,11 @@ tasks:
     options:
       path: unpackaged/post_quantumbit
 
+  deploy_post_mfg:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/deploy_post_mfg
+
   deploy_post_scratch:
     class_path: cumulusci.tasks.salesforce.DeployBundles
     options:
