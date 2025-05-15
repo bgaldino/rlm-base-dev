@@ -1,4 +1,9 @@
 minimum_cumulusci_version: "4.0.0"
+
+#-------------------------#
+# SCRATCH ORG DEFINITIONS #
+#-------------------------#
+
 orgs:
   scratch:
     beta:
@@ -41,6 +46,13 @@ project:
     default_branch: "main"
   source_format: sfdx
 
+#-----------------#
+# CUSTOM SETTINGS #
+#-----------------#
+# These custom settings are used to configure how tasks are run based on the target org
+# and the features that are enabled. The settings are used in the tasks as when clauses
+# and should be updated to match the target org configuration.
+
   custom:
     prm: true
     tso: true
@@ -63,6 +75,12 @@ project:
     quantumbit: true
     breconfig: false
     docgen: true
+
+#------------------------------#
+# PERMISSION SETS AND LICENSES #
+#------------------------------#
+# These are lists of the permission sets and licenses that are to be assigned based on target org type and
+# the features that are available in the org.
 
     rlm_psl_api_names: &rlm_psl_api_names
       - BREDesigner
@@ -210,6 +228,11 @@ project:
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access
 
+#-----------------#
+# DECISION TABLES #
+#-----------------#
+# These are lists of the decision tables that are to be refreshed at certain points in the deployment process.
+
     dt_rating_decision_tables: &dt_rating_decision_tables
       - Asset_Rate_Card_Entry_Resolution
       - Asset_Rate_Decision_Table
@@ -256,6 +279,11 @@ project:
       - Asset_Action_Source_Entries_Decision_Table_V2
       - Derived_Pricing_Entries_Decision_Table
   
+#-----------------------------#
+# CONTEXT DEFINITION SETTINGS #
+#-----------------------------#
+# Context definition names and default mappings that are used in the deployment process.
+
     asset_context_name: &asset_context_name RLM_AssetContext
     asset_context_default_mapping: &asset_context_default_mapping AssetEntitiesMapping
 
@@ -286,6 +314,11 @@ project:
     rating_discovery_context_name: &rating_discovery_context_name RLM_RatingDiscoveryContext
     rating_discovery_context_default_mapping: &rating_discovery_context_default_mapping CatalogMapping
 
+#------------------------------------#
+# DATA PLAN NAMES AND PATHS SETTINGS #
+#------------------------------------#
+# Context definition names and default mappings that are used in the deployment process.
+
     quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-multicurrency"
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"
@@ -295,6 +328,10 @@ project:
     quantumbit_constraints_dataset: &quantumbit_constraints_dataset "datasets/sfdmu/qb-constraints"
 
     sleep_default: &sleep_default 30
+
+#-------#
+# TASKS #
+#-------#
 
 tasks:
   robot:
@@ -312,11 +349,9 @@ tasks:
     options:
       required_org_code_coverage_percent: 75
 
-  sync_pricing_data:
-    description: Sync Pricing Data
-    class_path: tasks.rlm_sync_pricing_data.SyncPricingData
-    group: Revenue Lifecycle Management
-
+#--------------------------#
+# CONTEXT DEFINITION TASKS #
+#--------------------------#
   extend_stdctx_contracts:
     description: Extend Standard Contracts Context Definition
     class_path: tasks.extend_stdctx_contracts.ExtendStandardContextContracts
@@ -444,6 +479,12 @@ tasks:
       contextTtl: 30
       defaultMapping: *rating_discovery_context_default_mapping
 
+#--------------#
+# DEPLOY TASKS #
+#--------------#
+# All deploy tasks are managed here and can be called in any order
+# TODO: Organize pre/post deploy tasks into their own sections
+
   deploy_context_definitions:
     description: Context Definitions need to be deployed and activated before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -499,6 +540,36 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents/settings
+
+  deploy_sharing_rules:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_sharing
+
+  deploy_quantumbit:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_quantumbit
+
+  deploy_post_scratch:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_scratch
+
+  deploy_post_prm:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_prm
+
+  deploy_post_docgen:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_docgen
+
+  deploy_post_constraints:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_constraints
 
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -578,15 +649,14 @@ tasks:
       template: "Build Your Own"
       skip_existing: true
 
-  create_price_adjustment_schedules:
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/pas"
+#------------------#
+# SFDMU DATA TASKS #
+#------------------#
 
-  create_price_adjustment_schedules_prod:
+  load_sfdmu_data:
+    group: Revenue Lifecycle Management
+    description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/pas"
 
   insert_quantumbit_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -753,35 +823,19 @@ tasks:
     options:
       pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
 
-  deploy_sharing_rules:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
+  create_price_adjustment_schedules:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      path: unpackaged/post_sharing
+      pathtoexportjson: "datasets/sfdmu/pas"
 
-  deploy_quantumbit:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
+  create_price_adjustment_schedules_prod:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      path: unpackaged/post_quantumbit
+      pathtoexportjson: "datasets/sfdmu/pas"
 
-  deploy_post_scratch:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_scratch
-
-  deploy_post_prm:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_prm
-
-  deploy_post_docgen:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_docgen
-
-  deploy_post_constraints:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_constraints
+#------------#
+# APEX TASKS #
+#------------#
 
   create_rule_library:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -833,6 +887,15 @@ tasks:
     options:
       path: scripts/apex/activateRateCardEntries.apex
 
+#------------------#
+# PYTHON CCI TASKS #
+#------------------#
+
+  sync_pricing_data:
+    description: Sync Pricing Data
+    class_path: tasks.rlm_sync_pricing_data.SyncPricingData
+    group: Revenue Lifecycle Management
+
   refresh_dt_rating:
     group: Revenue Lifecycle Management
     description: Refresh Rating Decision Tables
@@ -868,10 +931,12 @@ tasks:
     options:
       developerNames: *dt_asset_decision_tables
 
-  load_sfdmu_data:
-    group: Revenue Lifecycle Management
-    description: Load SFDMU Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+#----------------#
+# MAIN CCI FLOWS #
+#----------------#
+# prepare_rlm_org is the main flow that will be called in the deployment process.
+# It will call all the other flows and tasks in the order they are defined.
+# The order of the flows and tasks is important and should not be changed.
 
 flows:
   prepare_rlm_org:
