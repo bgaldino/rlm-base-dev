@@ -571,6 +571,16 @@ tasks:
     options:
       path: unpackaged/post_constraints
 
+  deploy_post_utils:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_utils
+
+  deploy_post_procedureplans:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_utils
+
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
