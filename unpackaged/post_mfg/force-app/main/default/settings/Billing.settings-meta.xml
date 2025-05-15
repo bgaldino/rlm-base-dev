@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableBillingSetup>true</enableBillingSetup>
+    <enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>
+    <enableInvoiceEmailDelivery>false</enableInvoiceEmailDelivery>
+    <enableInvoicePdfGeneration>true</enableInvoicePdfGeneration>
+    <enableNegInvoiceLnConversionToCrMemoLn>true</enableNegInvoiceLnConversionToCrMemoLn>
+    <enableTransactionJournalCreation>false</enableTransactionJournalCreation>
+    <enableTransactionsApplicationToInvoices>false</enableTransactionsApplicationToInvoices>
+    <enableTrxnAmountsStorageInCorpCurrency>false</enableTrxnAmountsStorageInCorpCurrency>
+</BillingSettings>

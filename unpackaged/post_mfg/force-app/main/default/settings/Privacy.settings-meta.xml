@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PrivacySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <authorizationCaptureBrowser>false</authorizationCaptureBrowser>
+    <authorizationCaptureEmail>false</authorizationCaptureEmail>
+    <authorizationCaptureIp>false</authorizationCaptureIp>
+    <authorizationCaptureLocation>false</authorizationCaptureLocation>
+    <authorizationCustomSharing>false</authorizationCustomSharing>
+    <authorizationCustomSharingPCU>false</authorizationCustomSharingPCU>
+    <authorizationLockingAndVersioning>false</authorizationLockingAndVersioning>
+    <enableConsentEventStream>false</enableConsentEventStream>
+    <enableDefaultMetadataValues>true</enableDefaultMetadataValues>
+</PrivacySettings>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<InventorySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableOCIB2CIntegration>false</enableOCIB2CIntegration>
+    <enableOmniChannelInventory>false</enableOmniChannelInventory>
+</InventorySettings>

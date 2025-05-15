@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EventSettings xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <bypassMeteringBlock>false</bypassMeteringBlock>
+    <enableDeleteMonitoringData>false</enableDeleteMonitoringData>
+    <enableDynamicStreamingChannel>false</enableDynamicStreamingChannel>
+    <enableEventLogGeneration>false</enableEventLogGeneration>
+    <enableEventLogObjectFeature xsi:nil="true"/>
+    <enableEventLogWaveIntegration>true</enableEventLogWaveIntegration>
+    <enableLightningLoggerEvents>false</enableLightningLoggerEvents>
+    <enableLoginForensics>false</enableLoginForensics>
+    <enableStreamingApi>true</enableStreamingApi>
+    <enableTransactionSecurityPolicies>false</enableTransactionSecurityPolicies>
+    <eventLogRetentionDuration>0</eventLogRetentionDuration>
+</EventSettings>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AccountSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAccountDiscovery>false</enableAccountDiscovery>
+    <enableAccountHistoryTracking>true</enableAccountHistoryTracking>
+    <enableAccountInsightsInMobile>false</enableAccountInsightsInMobile>
+    <enableAccountTeams>true</enableAccountTeams>
+    <enableContactHistoryTracking>true</enableContactHistoryTracking>
+    <enableRelateContactToMultipleAccounts>true</enableRelateContactToMultipleAccounts>
+    <enableReportsToOnPersonAccount>false</enableReportsToOnPersonAccount>
+    <showViewHierarchyLink>true</showViewHierarchyLink>
+</AccountSettings>

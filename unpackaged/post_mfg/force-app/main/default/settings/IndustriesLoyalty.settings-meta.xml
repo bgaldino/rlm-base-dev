@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IndustriesLoyaltySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAutomaticMemberTierAssessmentSelection>false</enableAutomaticMemberTierAssessmentSelection>
+    <enableAutomaticVoucherCodeGeneration>true</enableAutomaticVoucherCodeGeneration>
+    <enableFixedTypeNQPAggregation>false</enableFixedTypeNQPAggregation>
+    <enableLoyaltyApiAccessForExternalSiteUsers>false</enableLoyaltyApiAccessForExternalSiteUsers>
+    <enableLoyaltyGenerativeAi>false</enableLoyaltyGenerativeAi>
+    <enableLoyaltyRedeemedPointsExpirationInfoPref>false</enableLoyaltyRedeemedPointsExpirationInfoPref>
+    <enableLoyaltyRulesVerifyCdpMemberSegment>false</enableLoyaltyRulesVerifyCdpMemberSegment>
+    <enableLoyaltyServiceExcellence>false</enableLoyaltyServiceExcellence>
+    <enableNQPRealTimePointBalance>true</enableNQPRealTimePointBalance>
+    <enableNegativePointBalance>false</enableNegativePointBalance>
+    <enableNonQualifyingPointsConsolidation>true</enableNonQualifyingPointsConsolidation>
+    <enablePointsLifecycleTracking>false</enablePointsLifecycleTracking>
+    <enablePromSetupProcRuleStatusInheritDplymt>false</enablePromSetupProcRuleStatusInheritDplymt>
+    <enableQPRealTimePointBalance>true</enableQPRealTimePointBalance>
+    <enableSegmentQueryByDataGraph>false</enableSegmentQueryByDataGraph>
+</IndustriesLoyaltySettings>

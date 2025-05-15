@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ServiceCloudVoiceSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <disableSCVTaskCreationForHVS>false</disableSCVTaskCreationForHVS>
+    <enableAmazonQueueManagement>false</enableAmazonQueueManagement>
+    <enableDefaultChannelForSCV>false</enableDefaultChannelForSCV>
+    <enableDigitalVoiceWhatsapp>false</enableDigitalVoiceWhatsapp>
+    <enableEndUserForSCV>false</enableEndUserForSCV>
+    <enableOmniCapacityForSCV>true</enableOmniCapacityForSCV>
+    <enablePTQueueManagement>false</enablePTQueueManagement>
+    <enablePhoneNumberMaskingForSCV>false</enablePhoneNumberMaskingForSCV>
+    <enableRZoneCloudVoiceOptIn>false</enableRZoneCloudVoiceOptIn>
+    <enableSCVBYOT>false</enableSCVBYOT>
+    <enableSCVExternalTelephony>false</enableSCVExternalTelephony>
+    <enableSCVOpenVCAsNewTabHVS>false</enableSCVOpenVCAsNewTabHVS>
+    <enableSCVSupportBannerDisplayed>false</enableSCVSupportBannerDisplayed>
+    <enableServiceCloudVoice>false</enableServiceCloudVoice>
+</ServiceCloudVoiceSettings>

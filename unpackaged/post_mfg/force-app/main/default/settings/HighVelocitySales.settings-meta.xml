@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HighVelocitySalesSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableACAutoSendEmail>false</enableACAutoSendEmail>
+    <enableACChangeTargetAssignee>false</enableACChangeTargetAssignee>
+    <enableACSkipWeekends>false</enableACSkipWeekends>
+    <enableBusinessHours>true</enableBusinessHours>
+    <enableCadenceVariantTestingPref>true</enableCadenceVariantTestingPref>
+    <enableChgTgtAssigneeUsrPermPref>false</enableChgTgtAssigneeUsrPermPref>
+    <enableEngagementWaveAnalyticsPref>false</enableEngagementWaveAnalyticsPref>
+    <enableHighVelocitySalesSetup>false</enableHighVelocitySalesSetup>
+    <enableLogACallForCTIPref>false</enableLogACallForCTIPref>
+    <enableLogTasksForLinkedInPref>true</enableLogTasksForLinkedInPref>
+    <enableMultipleCadencesPref>true</enableMultipleCadencesPref>
+    <enableOpportunityAttributionPermPref>false</enableOpportunityAttributionPermPref>
+    <enableTaskLoggingPref>true</enableTaskLoggingPref>
+</HighVelocitySalesSettings>

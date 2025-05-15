@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FieldServiceSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apptAssistantExpiration>60</apptAssistantExpiration>
+    <apptAssistantInfoUrl>https://quantumbit-tso-test2.my.site.com/___COMMUNITY_SUBDOMAIN___/s/sfs-appointment-assistant</apptAssistantInfoUrl>
+    <apptAssistantRadiusUnitValue>Mile</apptAssistantRadiusUnitValue>
+    <apptAssistantRadiusValue>3</apptAssistantRadiusValue>
+    <apptAssistantStatus>Dispatched</apptAssistantStatus>
+    <canPopulateGoogleAddress>true</canPopulateGoogleAddress>
+    <canSendAppCenterCrashReports>true</canSendAppCenterCrashReports>
+    <canStoreMobileAnalytics>true</canStoreMobileAnalytics>
+    <doesAllowEditSaForCrew>false</doesAllowEditSaForCrew>
+    <doesAvlCalcInclOvertime>false</doesAvlCalcInclOvertime>
+    <doesAvlCalcInclPrimOnly>false</doesAvlCalcInclPrimOnly>
+    <doesShareSaParentWoWithAr>false</doesShareSaParentWoWithAr>
+    <doesShareSaWithAr>false</doesShareSaWithAr>
+    <enableBatchWindow>false</enableBatchWindow>
+    <enableDocumentBuilder>false</enableDocumentBuilder>
+    <enableFloatingWorkOrder>false</enableFloatingWorkOrder>
+    <enableLsdkMode>false</enableLsdkMode>
+    <enablePopulateWorkOrderAddress>false</enablePopulateWorkOrderAddress>
+    <enableStandbyMode>false</enableStandbyMode>
+    <enableWorkOrders>false</enableWorkOrders>
+    <enableWorkPlansAutoGeneration>false</enableWorkPlansAutoGeneration>
+    <enableWorkStepManualStatusUpdate>false</enableWorkStepManualStatusUpdate>
+    <fieldServiceNotificationsOrgPref>false</fieldServiceNotificationsOrgPref>
+    <fieldServiceOrgPref>true</fieldServiceOrgPref>
+    <isGeoCodeSyncEnabled>false</isGeoCodeSyncEnabled>
+    <isLocationHistoryEnabled>false</isLocationHistoryEnabled>
+    <o2EngineEnabled>true</o2EngineEnabled>
+    <optimizationServiceAccess>true</optimizationServiceAccess>
+    <overrideDefaultLwcStyling>false</overrideDefaultLwcStyling>
+    <serviceAppointmentsDueDateOffsetOrgValue>7</serviceAppointmentsDueDateOffsetOrgValue>
+    <workOrderLineItemSearchFields>Subject</workOrderLineItemSearchFields>
+    <workOrderSearchFields>Subject</workOrderSearchFields>
+</FieldServiceSettings>

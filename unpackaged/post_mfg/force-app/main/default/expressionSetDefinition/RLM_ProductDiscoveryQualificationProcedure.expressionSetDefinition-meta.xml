@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contextDefinitions>RLM_ProductDiscoveryContext</contextDefinitions>
+    <interfaceSourceType>QualificationProcedure</interfaceSourceType>
+    <label>RLM Product Discovery Qualification Procedure</label>
+    <processType>ProductQualification</processType>
+    <template>false</template>
+    <versions>
+        <fullName>RLM_ProductDiscoveryQualificationProcedure_V1</fullName>
+        <description>Creates qualification procedures that determine product eligibility for Product Discovery.</description>
+        <expressionSetDefinition>RLM_ProductDiscoveryQualificationProcedure</expressionSetDefinition>
+        <interfaceSourceType>QualificationProcedure</interfaceSourceType>
+        <label>RLM Product Discovery Qualification Procedure</label>
+        <processType>ProductQualification</processType>
+        <rank>1</rank>
+        <shouldShowExplExternally>false</shouldShowExplExternally>
+        <startDate>2020-01-01T08:00:00.000Z</startDate>
+        <status>Active</status>
+        <steps>
+            <actionType>EvaluateCategoryQualification</actionType>
+            <customElement/>
+            <description>Evaluate Category Qualification</description>
+            <label>Evaluate Category Qualification</label>
+            <name>EvaluateCategoryQualification</name>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>EvaluateQualification</actionType>
+            <customElement/>
+            <description>Evaluate Qualification</description>
+            <label>Evaluate Qualification</label>
+            <name>EvaluateQualification</name>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <versionNumber>1</versionNumber>
+    </versions>
+</ExpressionSetDefinition>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAggregateCodeCoverageOnly>false</enableAggregateCodeCoverageOnly>
+    <enableApexAccessRightsPref>false</enableApexAccessRightsPref>
+    <enableApexApprovalLockUnlock>true</enableApexApprovalLockUnlock>
+    <enableApexCtrlImplicitWithSharingPref>false</enableApexCtrlImplicitWithSharingPref>
+    <enableApexPropertyGetterPref>false</enableApexPropertyGetterPref>
+    <enableAuraApexCtrlAuthUserAccessCheckPref>false</enableAuraApexCtrlAuthUserAccessCheckPref>
+    <enableAuraApexCtrlGuestUserAccessCheckPref>false</enableAuraApexCtrlGuestUserAccessCheckPref>
+    <enableCompileOnDeploy>false</enableCompileOnDeploy>
+    <enableDisableParallelApexTesting>false</enableDisableParallelApexTesting>
+    <enableGaplessTestAutoNum>false</enableGaplessTestAutoNum>
+    <enableMngdCtrlActionAccessPref>true</enableMngdCtrlActionAccessPref>
+    <enableNonCertifiedApexMdCrud>false</enableNonCertifiedApexMdCrud>
+    <enableRestrictCommunityExecAnon>false</enableRestrictCommunityExecAnon>
+    <enableSecureNoArgConstructorPref>false</enableSecureNoArgConstructorPref>
+    <enableTestSetupSkipTestResults>false</enableTestSetupSkipTestResults>
+</ApexSettings>

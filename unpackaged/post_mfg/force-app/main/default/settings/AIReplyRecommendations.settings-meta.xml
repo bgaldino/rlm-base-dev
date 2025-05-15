@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AIReplyRecommendationsSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAIReplyRecommendations>false</enableAIReplyRecommendations>
+    <enableGenReplyRecommendations>false</enableGenReplyRecommendations>
+    <enableServiceEinsteinGPTGrounding>false</enableServiceEinsteinGPTGrounding>
+</AIReplyRecommendationsSettings>

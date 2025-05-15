@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UserManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableCanAnswerContainUsername>false</enableCanAnswerContainUsername>
+    <enableContactlessExternalIdentityUsers>false</enableContactlessExternalIdentityUsers>
+    <enableEnhancedConcealPersonalInfo>true</enableEnhancedConcealPersonalInfo>
+    <enableEnhancedPermsetMgmt>true</enableEnhancedPermsetMgmt>
+    <enableEnhancedProfileMgmt>true</enableEnhancedProfileMgmt>
+    <enableEnhcUiUserAccessPolicies>false</enableEnhcUiUserAccessPolicies>
+    <enableNewProfileUI>true</enableNewProfileUI>
+    <enableProfileFiltering>false</enableProfileFiltering>
+    <enableRestrictEmailDomains>false</enableRestrictEmailDomains>
+    <enableScrambleUserData>false</enableScrambleUserData>
+    <enableUserSelfDeactivate>true</enableUserSelfDeactivate>
+    <enhancedPermSetList>false</enhancedPermSetList>
+    <enhancedUserListView>false</enhancedUserListView>
+    <enhancedUserRoleListView>false</enhancedUserRoleListView>
+    <groupSummaryUIEnhancement>true</groupSummaryUIEnhancement>
+    <permsetsInFieldCreation>false</permsetsInFieldCreation>
+    <psaExpirationUIEnabled>true</psaExpirationUIEnabled>
+    <restrictedProfileCloning>false</restrictedProfileCloning>
+    <userAccessPoliciesEnabled>false</userAccessPoliciesEnabled>
+</UserManagementSettings>

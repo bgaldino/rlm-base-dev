@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AccountingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAccountingSubledger>false</enableAccountingSubledger>
+    <enableFinancePeriod>false</enableFinancePeriod>
+    <enablePaymentMethodAdjust>false</enablePaymentMethodAdjust>
+    <enableScheduledJob>false</enableScheduledJob>
+    <enableSkipReversalLogic>false</enableSkipReversalLogic>
+</AccountingSettings>

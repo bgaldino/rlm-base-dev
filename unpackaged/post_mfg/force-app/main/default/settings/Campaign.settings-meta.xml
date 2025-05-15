@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CampaignSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <aiAttributionTimeframe>6</aiAttributionTimeframe>
+    <enableAIAttribution>false</enableAIAttribution>
+    <enableAccountsAsCM>false</enableAccountsAsCM>
+    <enableAutoCampInfluenceDisabled>false</enableAutoCampInfluenceDisabled>
+    <enableB2bmaCampaignInfluence2>false</enableB2bmaCampaignInfluence2>
+    <enableCampaignHistoryTrackEnabled>false</enableCampaignHistoryTrackEnabled>
+    <enableCampaignInfluence2>true</enableCampaignInfluence2>
+    <enableCampaignMemberTWCF>true</enableCampaignMemberTWCF>
+    <enableEKAI>false</enableEKAI>
+    <enableOpportunityInfluence>false</enableOpportunityInfluence>
+    <enableSuppressNoValueCI2>false</enableSuppressNoValueCI2>
+</CampaignSettings>

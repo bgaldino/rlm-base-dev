@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IncidentMgmtSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAlertBroadcastType>false</enableAlertBroadcastType>
+    <enableEmailBroadcastType>false</enableEmailBroadcastType>
+    <enableITSMChangeMgmt>false</enableITSMChangeMgmt>
+    <enableITSMIncidentMgmt>false</enableITSMIncidentMgmt>
+    <enableITSMProblemMgmt>false</enableITSMProblemMgmt>
+    <enableIncidentMgmt>true</enableIncidentMgmt>
+    <enableSiteBannerBroadcastType>false</enableSiteBannerBroadcastType>
+    <enableSlackBroadcastType>false</enableSlackBroadcastType>
+</IncidentMgmtSettings>

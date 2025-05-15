@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OauthOidcSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <blockOAuthUnPwFlow>true</blockOAuthUnPwFlow>
+    <blockOAuthUsrAgtFlow>false</blockOAuthUsrAgtFlow>
+    <isPkceRequired>false</isPkceRequired>
+    <oAuthCdCrdtFlowEnable>false</oAuthCdCrdtFlowEnable>
+</OauthOidcSettings>

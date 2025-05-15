@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PardotSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAIEinsteinEngageFreq>false</enableAIEinsteinEngageFreq>
+    <enableAIOptimizedSendTime>false</enableAIOptimizedSendTime>
+    <enableB2bmaAppEnabled>false</enableB2bmaAppEnabled>
+    <enableEngagementHistoryDashboards>false</enableEngagementHistoryDashboards>
+    <enableEnhancedProspectCustomFieldsSync>false</enableEnhancedProspectCustomFieldsSync>
+    <enablePardotAppV1Enabled>false</enablePardotAppV1Enabled>
+    <enablePardotEnabled>false</enablePardotEnabled>
+    <enablePardotObjectSync>false</enablePardotObjectSync>
+    <enableProspectActivityDataset>false</enableProspectActivityDataset>
+</PardotSettings>
