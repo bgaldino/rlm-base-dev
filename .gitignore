@@ -92,6 +92,7 @@ tasks/sfdmuload.py
 experience-bundle-package*/**
 
 # Added by Illuminated Cloud
+/.idea/
 /IlluminatedCloud/
 /out/
 /.illuminatedCloud/

@@ -30,14 +30,6 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
 
-#unpackaged/post_agents/flows/Identify_QuoteLineItem_from_Product.flow-meta.xml
-#unpackaged/post_agents/genAiFunctions/Identify_QuoteLineItem_from_Product
-
-## Pilot Agent Components
-unpackaged/post_agents/flows/Get_Amend_Opportunities.flow-meta.xml
-unpackaged/post_agents/flows/Query_Quote_Line_Items_on_Quote.flow-meta.xml
-unpackaged/post_agents/flows/Query_Quotes_on_Account.flow-meta.xml
-
 # contextDefinitions
 force-app/main/default/contextDefinitions
 
@@ -100,6 +92,7 @@ force-app/main/default/settings/UserInterface.settings-meta.xml
 **/*.ts
 
 # Added by Illuminated Cloud
+/.idea/
 /.illuminatedCloud/
 **/tsconfig*.json
 **/*.tsbuildinfo
