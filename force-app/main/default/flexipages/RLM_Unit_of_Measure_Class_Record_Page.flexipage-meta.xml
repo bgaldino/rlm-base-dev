@@ -150,6 +150,16 @@
                 <identifier>RecordDefaultUnitOfMeasureIdField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Type</fieldItem>
+                <identifier>RecordTypeField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-7df5f170-21b0-466b-924a-8bcc388fe61d</name>
         <type>Facet</type>
     </flexiPageRegions>

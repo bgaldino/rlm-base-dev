@@ -7,6 +7,48 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
+                            <value>FeedItem.TextPost</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FeedItem.ContentPost</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.NewEvent</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.NewTask</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.NewContact</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.LogACall</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.NewOpportunity</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.NewCase</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Global.NewLead</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FeedItem.ContentNote</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FeedItem.RypplePost</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FeedItem.LinkPost</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FeedItem.PollPost</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FeedItem.QuestionPost</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
@@ -57,70 +99,22 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>actionNames</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>New</value>
-                        </valueListItems>
-                    </valueList>
+                    <name>relatedListComponentOverride</name>
+                    <value>NONE</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>maxRecordsToDisplay</name>
+                    <name>rowsToDisplay</name>
                     <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>UsageRatableSummary.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>RS_UsageSummaries</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListDisplayType</name>
-                    <value>ADVGRID</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListFieldAliases</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>Name</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Asset</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>ConsumptionUnits</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Status</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>UsageResource</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListLabel</name>
-                    <value>Usage Summary</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>showActionBar</name>
                     <value>true</value>
                 </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldAlias</name>
-                    <value>__DEFAULT__</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldOrder</name>
-                    <value>Default</value>
-                </componentInstanceProperties>
-                <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_dynamicRelatedList</identifier>
+                <componentName>force:relatedListContainer</componentName>
+                <identifier>force_relatedListContainer</identifier>
             </componentInstance>
         </itemInstances>
-        <name>relatedTabContent</name>
+        <name>Facet-2d2034e7-8df2-4ea9-ae58-ba89c2f1d844</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -140,8 +134,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.AccountId</fieldItem>
-                <identifier>RecordAccountIdField</identifier>
+                <fieldItem>Record.TransactionType</fieldItem>
+                <identifier>RecordTransactionTypeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -150,8 +144,18 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.StartDateTime</fieldItem>
-                <identifier>RecordStartDateTimeField</identifier>
+                <fieldItem>Record.TransactionDate</fieldItem>
+                <identifier>RecordTransactionDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TransactionalBucketId</fieldItem>
+                <identifier>RecordTransactionalBucketIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -160,8 +164,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.NetUnitRateUomId</fieldItem>
-                <identifier>RecordNetUnitRateUomIdField</identifier>
+                <fieldItem>Record.OpeningBalance</fieldItem>
+                <identifier>RecordOpeningBalanceField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -170,8 +174,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.OverageQuantityUomId</fieldItem>
-                <identifier>RecordOverageQuantityUomIdField</identifier>
+                <fieldItem>Record.ClosingBalance</fieldItem>
+                <identifier>RecordClosingBalanceField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -180,31 +184,11 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TierQuantityUomId</fieldItem>
-                <identifier>RecordTierQuantityUomIdField</identifier>
+                <fieldItem>Record.EffectiveStartDateTime</fieldItem>
+                <identifier>RecordEffectiveStartDateTimeField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.UsageEntitlementBucketId</fieldItem>
-                <identifier>RecordUsageEntitlementBucketIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.Status</fieldItem>
-                <identifier>RecordStatusField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-62c7fd7b-4333-47c9-943e-6ce555b5e3e6</name>
+        <name>Facet-1cbd3e2d-2bae-4073-b369-d78aa5837844</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -214,18 +198,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.AssetId</fieldItem>
-                <identifier>RecordAssetIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.UsageEntitlementAccountId</fieldItem>
-                <identifier>RecordUsageEntitlementAccountIdField</identifier>
+                <fieldItem>Record.TransactionUsageEntitlementId</fieldItem>
+                <identifier>RecordTransactionUsageEntitlementIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -234,18 +208,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.EndDateTime</fieldItem>
-                <identifier>RecordEndDateTimeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.NetUnitRate</fieldItem>
-                <identifier>RecordNetUnitRateField</identifier>
+                <fieldItem>Record.TransactionReason</fieldItem>
+                <identifier>RecordTransactionReasonField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -254,8 +218,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.OverageQuantity</fieldItem>
-                <identifier>RecordOverageQuantityField</identifier>
+                <fieldItem>Record.EntitlementBucketId</fieldItem>
+                <identifier>RecordEntitlementBucketIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -264,8 +228,18 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TierQuantity</fieldItem>
-                <identifier>RecordTierQuantityField</identifier>
+                <fieldItem>Record.TransactionQuantity</fieldItem>
+                <identifier>RecordTransactionQuantityField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.UomId</fieldItem>
+                <identifier>RecordUomIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -274,8 +248,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.GrantBindingTargetId</fieldItem>
-                <identifier>RecordGrantBindingTargetIdField</identifier>
+                <fieldItem>Record.EffectiveEndDateTime</fieldItem>
+                <identifier>RecordEffectiveEndDateTimeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -284,11 +258,11 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TotalAmount</fieldItem>
-                <identifier>RecordTotalAmountField</identifier>
+                <fieldItem>Record.UsageSummaryId</fieldItem>
+                <identifier>RecordUsageSummaryIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-6254782f-0288-4ff9-82cc-2865c9576c49</name>
+        <name>Facet-15b51fba-5983-4fec-b3b9-3bf885931e0d</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -296,7 +270,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-62c7fd7b-4333-47c9-943e-6ce555b5e3e6</value>
+                    <value>Facet-1cbd3e2d-2bae-4073-b369-d78aa5837844</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column</identifier>
@@ -306,95 +280,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-6254782f-0288-4ff9-82cc-2865c9576c49</value>
+                    <value>Facet-15b51fba-5983-4fec-b3b9-3bf885931e0d</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column2</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-c5f127fa-584c-40c3-a4ab-d1d6c52864b2</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RatingDecisionDateTime</fieldItem>
-                <identifier>RecordRatingDecisionDateTimeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RatingRequestId</fieldItem>
-                <identifier>RecordRatingRequestIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.ErrorDescription</fieldItem>
-                <identifier>RecordErrorDescriptionField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-c9e51a3c-cc8e-4e3d-bd4e-0452ab23fe87</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RatingExecutionIdentifier</fieldItem>
-                <identifier>RecordRatingExecutionIdentifierField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.ErrorCode</fieldItem>
-                <identifier>RecordErrorCodeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-af9d9c68-fa75-439f-a7b5-9bd8ac1c9eb2</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-c9e51a3c-cc8e-4e3d-bd4e-0452ab23fe87</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column5</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-af9d9c68-fa75-439f-a7b5-9bd8ac1c9eb2</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column6</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-d37711d2-4249-471b-b840-36af187207df</name>
+        <name>Facet-dd164774-d98b-4897-8cfc-b9f71d48e761</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -418,7 +310,7 @@
                 <identifier>RecordCreatedDateField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-e308d952-e358-4c4e-9e9a-9e24fc2586b9</name>
+        <name>Facet-902a9afc-e3da-4ab7-a64e-be2607c07e33</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -442,7 +334,7 @@
                 <identifier>RecordLastModifiedDateField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-8a99d333-2ce5-45d8-a58b-27148d4c71ce</name>
+        <name>Facet-c4c4f1a0-739f-442f-9a6d-ab462c50141b</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -450,7 +342,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-e308d952-e358-4c4e-9e9a-9e24fc2586b9</value>
+                    <value>Facet-902a9afc-e3da-4ab7-a64e-be2607c07e33</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column3</identifier>
@@ -460,13 +352,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-8a99d333-2ce5-45d8-a58b-27148d4c71ce</value>
+                    <value>Facet-c4c4f1a0-739f-442f-9a6d-ab462c50141b</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column4</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-59ae8537-5d31-4bf7-8235-5dbb6d30e26d</name>
+        <name>Facet-36e14c6a-6f51-4ac6-a800-889d1fb6ef55</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -474,7 +366,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-c5f127fa-584c-40c3-a4ab-d1d6c52864b2</value>
+                    <value>Facet-dd164774-d98b-4897-8cfc-b9f71d48e761</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
@@ -492,25 +384,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-d37711d2-4249-471b-b840-36af187207df</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>horizontalAlignment</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>label</name>
-                    <value>Rating Information</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:fieldSection</componentName>
-                <identifier>flexipage_fieldSection3</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>columns</name>
-                    <value>Facet-59ae8537-5d31-4bf7-8235-5dbb6d30e26d</value>
+                    <value>Facet-36e14c6a-6f51-4ac6-a800-889d1fb6ef55</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
@@ -524,22 +398,26 @@
                 <identifier>flexipage_fieldSection2</identifier>
             </componentInstance>
         </itemInstances>
-        <name>detailTabContent</name>
+        <name>Facet-18da6eda-7088-4eac-a5d8-9a3721e9b40a</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>active</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
                     <name>body</name>
-                    <value>relatedTabContent</value>
+                    <value>Facet-2d2034e7-8df2-4ea9-ae58-ba89c2f1d844</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
                     <value>Standard.Tab.relatedLists</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
-                <identifier>relatedListsTab</identifier>
+                <identifier>flexipage_tab</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
@@ -550,17 +428,17 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>detailTabContent</value>
+                    <value>Facet-18da6eda-7088-4eac-a5d8-9a3721e9b40a</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
                     <value>Standard.Tab.detail</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
-                <identifier>detailTab</identifier>
+                <identifier>flexipage_tab2</identifier>
             </componentInstance>
         </itemInstances>
-        <name>maintabs</name>
+        <name>Facet-fa32bb8f-0c96-4128-aca2-90788a59518b</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -572,7 +450,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>tabs</name>
-                    <value>maintabs</value>
+                    <value>Facet-fa32bb8f-0c96-4128-aca2-90788a59518b</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tabset</componentName>
                 <identifier>flexipage_tabset</identifier>
@@ -581,10 +459,14 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RLM Usage Ratable Summary Record Page</masterLabel>
-    <sobjectType>UsageRatableSummary</sobjectType>
+    <masterLabel>RLM Usage Entitlement Entry Record Page</masterLabel>
+    <sobjectType>UsageEntitlementEntry</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>
+        <properties>
+            <name>enablePageActionConfig</name>
+            <value>false</value>
+        </properties>
     </template>
     <type>RecordPage</type>
 </FlexiPage>
