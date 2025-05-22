@@ -3,70 +3,21 @@
     <contextDefinitions>RLM_SalesTrxnContextCustom</contextDefinitions>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>RLM Hardware Pricing Procedure</label>
+    <label>RLM Target Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_HardwarePricingProcedure_V1</fullName>
+        <fullName>RLM_Target_Pricing_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>
-        <description>RLM Default Pricing Procedure</description>
-        <expressionSetDefinition>RLM_HardwarePricingProcedure</expressionSetDefinition>
+        <description>RLM Target Pricing Procedure</description>
+        <expressionSetDefinition>RLM_Target_Pricing_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>RLM Hardware Pricing Procedure</label>
+        <label>RLM Target Pricing Procedure</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2025-01-01T08:00:00.000Z</startDate>
-        <status>Active</status>
-        <steps>
-            <actionType>AssignmentElement</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>section-0-input1</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>1</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionJsonString1</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionJsonString2</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;NetUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>section-0-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>InputUnitPrice</value>
-                </parameters>
-            </customElement>
-            <description>Assignment</description>
-            <label>Assignment</label>
-            <name>Assignment</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
+        <status>Draft</status>
         <steps>
             <actionType>DiscountDistributionService</actionType>
             <customElement>
@@ -75,14 +26,14 @@
                     <name>DiscountType</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>HeaderDiscountTypeAmount</value>
+                    <value>HeaderDiscountTypeOverride</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>DiscountValue</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>HardwareDiscountAmount__c</value>
+                    <value>ServicesTarget__c</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -131,7 +82,7 @@
                     <name>HeaderSubtotal</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Subtotal</value>
+                    <value>ServicesTotal__c</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -145,7 +96,7 @@
                     <name>condition-0-output-data</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>&apos;Hardware&apos;</value>
+                    <value>&apos;Services&apos;</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -222,7 +173,7 @@
             <label>DiscountDistributionService</label>
             <name>DiscountDistributionService</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>5</sequenceNumber>
+            <sequenceNumber>4</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -236,7 +187,7 @@
                     <name>Calculation Formula</name>
                     <output>false</output>
                     <type>Formula</type>
-                    <value>HardwareTotal__c - HardwareTarget__c</value>
+                    <value>ServicesTotal__c - ServicesTarget__c</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -271,7 +222,7 @@
                     <name>Output Variable</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>HardwareDiscountAmount__c</value>
+                    <value>ServicesDiscountAmount__c</value>
                 </parameters>
             </customElement>
             <description>Formula Based Pricing</description>
@@ -332,45 +283,13 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <label>Formula Based Pricing</label>
-            <name>FormulaBasedPricing6</name>
-            <parentStep>ListContainer</parentStep>
+            <name>FormulaBasedPricing3</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
+            <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
             <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <label>List Container</label>
-            <name>ListContainer</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>4</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>ListGroup</stepType>
-        </steps>
-        <steps>
-            <advancedCondition>
-                <conditionLogic>1</conditionLogic>
-                <criteria>
-                    <operator>GreaterThan</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>PricingTermCount</sourceFieldName>
-                    <value>0</value>
-                    <valueType>Literal</valueType>
-                </criteria>
-            </advancedCondition>
-            <label>List Operation</label>
-            <name>ListOperation</name>
-            <parentStep>ListContainer</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>AdvancedListFilter</stepType>
         </steps>
         <steps>
             <actionType>PricingSettings</actionType>
@@ -437,6 +356,62 @@
             <name>PricingSetting</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>RoundingValues</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>Precision</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RoundingPrecision2</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>1</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>roundUp</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>HideWaterfall</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
+            </customElement>
+            <description>Rounding Values</description>
+            <label>RoundingValues</label>
+            <name>RoundingValues</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>5</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
