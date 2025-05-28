@@ -3,6 +3,7 @@
     <enableDebugPriceLogs>true</enableDebugPriceLogs>
     <enableHighAvailability>true</enableHighAvailability>
     <enableLowestPriceCompliance>false</enableLowestPriceCompliance>
+    <enablePricingProcParallelization>true</enablePricingProcParallelization>
     <enablePricingWaterfall>true</enablePricingWaterfall>
     <enablePricingWaterfallPersistence>true</enablePricingWaterfallPersistence>
     <enableSalesforcePricing>true</enableSalesforcePricing>
