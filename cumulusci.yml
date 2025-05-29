@@ -75,6 +75,8 @@ project:
     quantumbit: true
     breconfig: false
     docgen: true
+    psg_debug: false
+    pas_debug: false
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -1040,7 +1042,7 @@ flows:
           api_names: *rlm_psg_api_names
       7:
         task: assign_permission_sets
-        when: project_config.project__custom__tso
+        when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
       8:
@@ -1051,10 +1053,10 @@ flows:
           seconds: *sleep_default
       10:
         task: create_price_adjustment_schedules
-        when: org_config.scratch
+        when: org_config.scratch and project_config.project__custom__pas_debug 
       11:
         task: create_price_adjustment_schedules_prod
-        when: not org_config.scratch and project_config.project__custom__tso
+        when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
       12:
         task: util_sleep
         options:
@@ -1076,7 +1078,7 @@ flows:
           api_names: *rlm_ai_ps_api_names
       17:
         task: assign_permission_sets
-        when: project_config.project__custom__billing
+        when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_blng_ps_api_names
 
@@ -1188,6 +1190,9 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
+      4:
+        task: deploy_post_utils
+        when: project_config.project__custom__tso
 
   prepare_dro:
     group: Revenue Lifecycle Management
