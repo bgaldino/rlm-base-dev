@@ -1,2 +1,3 @@
 Description,DeveloperName,Language,MasterLabel,RuleEngine,SaveType
-Save type for Standard2 tran.,Standard10,en_US,Adv config,AdvancedConfigurator,Standard
+Transaction Type for Standard Config,StandardConfigurator,en_US,Standard Configurator,StandardConfigurator,Standard
+Transaction Type for Advanced Config,AdvancedConfigurator,en_US,Advanced Configurator,AdvancedConfigurator,Standard

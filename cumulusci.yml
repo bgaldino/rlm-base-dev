@@ -215,10 +215,11 @@ project:
       - RLM_DRO
       - RLM_NGP
       - RLM_PSL
-      - RLM_BLNG
       - RLM_PCM
       - RLM_USG
       - RLM_CFG
+      - RC_RCB
+      - RC_RMI
 
     ps_quantumbit: &ps_quantumbit
       - RLM_QuantumBit
@@ -326,6 +327,14 @@ project:
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating-256"
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"
     quantumbit_constraints_dataset: &quantumbit_constraints_dataset "datasets/sfdmu/qb-constraints"
+
+    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3-multicurrency"
+    q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3-billing"
+    q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3-dro"
+    q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3-tax"
+    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3-rating-256"
+    q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3-rates"
+    q3_constraints_dataset: &q3_constraints_dataset "datasets/sfdmu/q3-constraints"
 
     sleep_default: &sleep_default 30
 

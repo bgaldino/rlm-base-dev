@@ -198,6 +198,12 @@
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType",
           "excluded": false
+        },
+        {
+          "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
+          "operation": "Insert",
+          "externalId": "DeveloperName",
+          "excluded": false
         }
       ]
     }
