@@ -338,8 +338,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM - Assetize Order - DRO Fulfillment {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM - Assetize Order - DRO Fulfillment</label>
+    <interviewLabel>RLM Assetize Order - DRO Fulfillment {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Assetize Order - DRO Fulfillment</label>
     <loops>
         <name>Loop_2</name>
         <label>Loop 2</label>

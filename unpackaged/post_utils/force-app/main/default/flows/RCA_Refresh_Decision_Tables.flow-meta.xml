@@ -164,5 +164,5 @@
             <targetReference>Asset_Refresh</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
 </Flow>

@@ -65,8 +65,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM - Submit Order on Activation {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM - Submit Order on Activation</label>
+    <interviewLabel>RLM Submit Order on Activation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Submit Order on Activation</label>
     <overriddenFlow>revenue_o2aflows__o2aFlow</overriddenFlow>
     <processMetadataValues>
         <name>BuilderType</name>

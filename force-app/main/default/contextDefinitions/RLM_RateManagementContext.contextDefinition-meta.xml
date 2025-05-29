@@ -232,6 +232,16 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/Asset</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/BindingObject__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>GrantBindingTargetId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>BindingObject__std</contextAttribute>
+                    <contextInputAttributeName>BindingObject__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/BindingObject__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
                     <contextAttribute>BaseRateCardEntry</contextAttribute>
                     <contextInputAttributeName>BaseRateCardEntry</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/BaseRateCardEntry</inheritedFrom>
@@ -576,6 +586,19 @@
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObject__std/BindingObject__std</inheritedFrom>
+                    <title>BindingObject__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObject__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObject__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BaseRateCardEntry/BaseRateCardEntry</inheritedFrom>
                     <title>BaseRateCardEntry</title>
                 </contextTags>
@@ -722,11 +745,11 @@
         <startDate>2020-01-01 00:00:00</startDate>
         <versionNumber>3</versionNumber>
     </contextDefinitionVersions>
-    <contextTtl>20</contextTtl>
+    <contextTtl>30</contextTtl>
     <description>Extension of Standard Rate Management Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>RateManagementContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>2.06</inheritedFromVersion>
+    <inheritedFromVersion>2.09</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_RateManagementContext</masterLabel>
     <title>RLM_RateManagementContext</title>

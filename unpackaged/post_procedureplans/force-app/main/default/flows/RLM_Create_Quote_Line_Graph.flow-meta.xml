@@ -159,8 +159,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM - Create Quote Line Graph {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM - Create Quote Line Graph</label>
+    <interviewLabel>RLM Create Quote Line Graph {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Create Quote Line Graph</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

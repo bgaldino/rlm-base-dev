@@ -5,10 +5,10 @@
     <enableCoreCPQ>true</enableCoreCPQ>
     <enableDeltaPricing>false</enableDeltaPricing>
     <enableRampDeal>true</enableRampDeal>
-    <enableRevUnifiedSetup>false</enableRevUnifiedSetup>
+    <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
-    <relaxUniqueCipValidation>false</relaxUniqueCipValidation>
+    <relaxUniqueCipValidation>true</relaxUniqueCipValidation>
     <skipOrgSttPricing>false</skipOrgSttPricing>
 </RevenueManagementSettings>

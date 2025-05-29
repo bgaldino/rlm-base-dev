@@ -44,8 +44,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM - Order to Billing Schedule Flow {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM - Order to Billing Schedule Flow</label>
+    <interviewLabel>RLM Order to Billing Schedule Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Order to Billing Schedule Flow</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

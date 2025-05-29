@@ -98,3 +98,4 @@ force-app/main/default/settings/UserInterface.settings-meta.xml
 **/*.tsbuildinfo
 **/eslint.config.mjs
 unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
+unpackaged/post_utils/force-app/main/default/flows/RCA_Event_Trigger.flow-meta.xml

@@ -234,6 +234,9 @@ project:
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access
 
+    ps_aea: &ps_aea
+      - RLM_Agentforce_Employee_Agent
+
 #-----------------#
 # DECISION TABLES #
 #-----------------#
@@ -1352,6 +1355,11 @@ flows:
       6:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents
+      7:
+        task: assign_permission_sets
+        when: project_config.project__custom__agents
+        options:
+          api_names: *ps_aea
   
   refresh_all_decision_tables:
     group: Revenue Lifecycle Management
