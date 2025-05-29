@@ -10,6 +10,13 @@ public with sharing class RLM_QuoteHeaderFlowController{
         quoteValues.put('RLM_TermMonths__c', input.quoteTermMonths);
         quoteValues.put('StartDate', String.valueOf(input.quoteStartDate));
         quoteValues.put('RLM_EndDate__c', String.valueOf(input.quoteEndDate));
+        quoteValues.put('RLM_SoftwareTargetAmount__c', input.quoteSoftwareTarget);
+        quoteValues.put('RLM_HardwareTargetAmount__c', input.quoteHardwareTarget);
+        quoteValues.put('RLM_ServicesTargetAmount__c', input.quoteServicesTarget);
+        quoteValues.put('RLM_SoftwareDiscountPercent__c', input.quoteSoftwareDiscountPercent);
+        quoteValues.put('RLM_HardwareDiscountPercent__c', input.quoteHardwareDiscountPercent);
+        quoteValues.put('RLM_ServicesDiscountPercent__c', input.quoteServicesDiscountPercent);
+        quoteValues.put('RLM_TargetNetTotal__c', input.quoteTotalTarget);
         quoteRecord.fieldValues = quoteValues;
         PlaceQuote.RecordWithReferenceRequest quoteItemRecord = new PlaceQuote.RecordWithReferenceRequest('refQuote', quoteRecord);
         listOfRecords.add(quoteItemRecord);
@@ -20,6 +27,8 @@ public with sharing class RLM_QuoteHeaderFlowController{
             Map<String, Object> quoteLineItemValues = new Map<String, Object>();
             quoteLineItemValues.put('StartDate', String.valueOf(inputQuoteLine.StartDate));
             quoteLineItemValues.put('EndDate', String.valueOf(inputQuoteLine.EndDate));
+            quoteLineItemValues.put('Discount', inputQuoteLine.Discount);
+            quoteLineItemValues.put('DiscountAmount', inputQuoteLine.DiscountAmount);
             quoteLineRecord.fieldValues = quoteLineItemValues;
             PlaceQuote.RecordWithReferenceRequest quoteLineItemRecord = new PlaceQuote.RecordWithReferenceRequest('refQuoteItem'+(i+1), quoteLineRecord);
             listOfRecords.add(quoteLineItemRecord);
@@ -53,5 +62,26 @@ public with sharing class RLM_QuoteHeaderFlowController{
 
         @InvocableVariable
         public Integer quoteTermMonths;
+
+        @InvocableVariable
+        public Decimal quoteSoftwareTarget;
+        
+        @InvocableVariable
+        public Decimal quoteHardwareTarget;
+        
+        @InvocableVariable
+        public Decimal quoteServicesTarget;
+
+        @InvocableVariable
+        public Decimal quoteSoftwareDiscountPercent;
+        
+        @InvocableVariable
+        public Decimal quoteHardwareDiscountPercent;
+        
+        @InvocableVariable
+        public Decimal quoteServicesDiscountPercent;
+
+        @InvocableVariable
+        public Decimal quoteTotalTarget;
     }
 }
