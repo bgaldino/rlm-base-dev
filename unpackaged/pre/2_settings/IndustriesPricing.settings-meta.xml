@@ -2,6 +2,7 @@
 <IndustriesPricingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableDebugPriceLogs>true</enableDebugPriceLogs>
     <enableHighAvailability>true</enableHighAvailability>
+    <enableHighestPriceCompliance>false</enableHighestPriceCompliance>
     <enableLowestPriceCompliance>false</enableLowestPriceCompliance>
     <enablePricingProcParallelization>true</enablePricingProcParallelization>
     <enablePricingWaterfall>true</enablePricingWaterfall>

@@ -211,15 +211,18 @@ project:
       - ScoringFrameworkPsl
 
     rlm_psg_api_names: &rlm_psg_api_names
-      - RLM_CLM
-      - RLM_DRO
-      - RLM_NGP
-      - RLM_PSL
-      - RLM_PCM
-      - RLM_USG
-      - RLM_CFG
+      - RC_QB_AI
       - RC_RCB
       - RC_RMI
+      - RLM_CFG
+      - RLM_CLM
+      - RLM_DOC
+      - RLM_DRO
+      - RLM_NGP
+      - RLM_PCM
+      - RLM_PSL
+      - RLM_USG
+      
 
     ps_quantumbit: &ps_quantumbit
       - RLM_QuantumBit
@@ -588,7 +591,12 @@ tasks:
   deploy_post_procedureplans:
     class_path: cumulusci.tasks.salesforce.DeployBundles
     options:
-      path: unpackaged/post_utils
+      path: unpackaged/post_procedureplans
+
+  deploy_post_billing:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_billing
 
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -1240,6 +1248,9 @@ flows:
         when: project_config.project__custom__billing
       7: 
         task: activate_billing_records
+        when: project_config.project__custom__billing
+      8:
+        task: deploy_post_billing
         when: project_config.project__custom__billing
 
   prepare_prm:
