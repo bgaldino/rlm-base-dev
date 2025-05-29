@@ -3,78 +3,21 @@
     <contextDefinitions>RLM_SalesTrxnContextCustom</contextDefinitions>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>RLM Software Pricing Procedure</label>
+    <label>RLM Target Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_SoftwarePricingProcedure_RLM_Software_Pricing_Procedure_v20</fullName>
+        <fullName>RLM_Target_Pricing_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>
-        <description>RLM Default Pricing Procedure</description>
-        <expressionSetDefinition>RLM_SoftwarePricingProcedure</expressionSetDefinition>
+        <description>RLM Target Pricing Procedure</description>
+        <expressionSetDefinition>RLM_Target_Pricing_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>RLM Software Pricing Procedure</label>
+        <label>RLM Target Pricing Procedure</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2025-01-01T08:00:00.000Z</startDate>
         <status>Active</status>
-        <steps>
-            <actionType>FormulaBasedPricing</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>Calculation Formula</name>
-                    <output>false</output>
-                    <type>Formula</type>
-                    <value>PricingTermCount * NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>HideWaterfall</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>selectedFunction</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Get</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsRealTime</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Output Variable</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>InputUnitPrice</value>
-                </parameters>
-            </customElement>
-            <description>Formula Based Pricing</description>
-            <label>Calculate Termed Price to Adjust</label>
-            <name>CalculateTermedPricetoAdjust</name>
-            <parentStep>ListContainer</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
         <steps>
             <actionType>DiscountDistributionService</actionType>
             <customElement>
@@ -90,7 +33,7 @@
                     <name>DiscountValue</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>SoftwareDiscountAmount__c</value>
+                    <value>TransactionDiscountAmount__c</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -139,42 +82,7 @@
                     <name>HeaderSubtotal</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>SoftwareTotal__c</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>condition-0-input</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>ItemProductFamily__c</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>condition-0-output-data</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>&apos;Software&apos;</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>condition-0-operator</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>equalTo</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>condition-0-input-data-type</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Text</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>where-condition-count</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>1</value>
+                    <value>TotalAmount</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -227,7 +135,7 @@
                 </parameters>
             </customElement>
             <description>Discount Distribution Service</description>
-            <label>Discount Distribution Service</label>
+            <label>DiscountDistributionService</label>
             <name>DiscountDistributionService</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>5</sequenceNumber>
@@ -244,7 +152,7 @@
                     <name>Calculation Formula</name>
                     <output>false</output>
                     <type>Formula</type>
-                    <value>SoftwareTotal__c - SoftwareTarget__c</value>
+                    <value>TotalAmount - TransactionTotalTarget__c</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -279,7 +187,7 @@
                     <name>Output Variable</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>SoftwareDiscountAmount__c</value>
+                    <value>TransactionDiscountAmount__c</value>
                 </parameters>
             </customElement>
             <description>Formula Based Pricing</description>
@@ -293,35 +201,61 @@
             <stepType>BusinessKnowledgeModel</stepType>
         </steps>
         <steps>
-            <label>List Container</label>
-            <name>ListContainer</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>ListGroup</stepType>
-        </steps>
-        <steps>
-            <advancedCondition>
-                <conditionLogic>1</conditionLogic>
-                <criteria>
-                    <operator>Equals</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;TermDefined&apos;</value>
-                    <valueType>Literal</valueType>
-                </criteria>
-            </advancedCondition>
-            <label>List Operation</label>
-            <name>ListOperation</name>
+            <actionType>FormulaBasedPricing</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>Calculation Formula</name>
+                    <output>false</output>
+                    <type>Formula</type>
+                    <value>PricingTermCount * NetUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>HideWaterfall</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>selectedFunction</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Get</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Output Variable</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>InputUnitPrice</value>
+                </parameters>
+            </customElement>
+            <description>Formula Based Pricing</description>
+            <label>Formula Based Pricing</label>
+            <name>FormulaBasedPricing5</name>
             <parentStep>ListContainer</parentStep>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
+            <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>AdvancedListFilter</stepType>
+            <stepType>BusinessKnowledgeModel</stepType>
         </steps>
         <steps>
             <actionType>FormulaBasedPricing</actionType>
@@ -370,14 +304,45 @@
                 </parameters>
             </customElement>
             <description>Formula Based Pricing</description>
-            <label>Price to Adjust</label>
-            <name>PricetoAdjust</name>
+            <label>Formula Based Pricing</label>
+            <name>FormulaBasedPricing6</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>4</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
             <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <label>List Container</label>
+            <name>ListContainer</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>3</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <advancedCondition>
+                <conditionLogic>1</conditionLogic>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>SellingModelType</sourceFieldName>
+                    <value>&apos;TermDefined&apos;</value>
+                    <valueType>Literal</valueType>
+                </criteria>
+            </advancedCondition>
+            <label>List Operation</label>
+            <name>ListOperation</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
         </steps>
         <steps>
             <actionType>PricingSettings</actionType>
@@ -440,7 +405,7 @@
                 </parameters>
             </customElement>
             <description>Pricing Setting</description>
-            <label>Pricing Setting</label>
+            <label>PricingSetting</label>
             <name>PricingSetting</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>

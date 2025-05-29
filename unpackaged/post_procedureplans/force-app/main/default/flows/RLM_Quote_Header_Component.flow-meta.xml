@@ -88,8 +88,8 @@
     <assignments>
         <name>Add_to_Quote_Lines_to_Update</name>
         <label>Add to Quote Lines to Update</label>
-        <locationX>396</locationX>
-        <locationY>974</locationY>
+        <locationX>408</locationX>
+        <locationY>1165</locationY>
         <assignmentItems>
             <assignToReference>QuoteLinesToUpdate</assignToReference>
             <operator>Add</operator>
@@ -102,16 +102,33 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Assign_Line_Info_Non_Termed</name>
-        <label>Assign Line Info (Non-Termed)</label>
-        <locationX>528</locationX>
-        <locationY>782</locationY>
+        <name>Assign_Line_Info_Evergreen</name>
+        <label>Assign Line Info (Evergreen)</label>
+        <locationX>541</locationX>
+        <locationY>795</locationY>
         <assignmentItems>
             <assignToReference>Loop_Over_Quote_Lines.StartDate</assignToReference>
             <operator>Assign</operator>
             <value>
                 <elementReference>InputStartDate</elementReference>
             </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_for_Header_Discounts_Applied</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Clear_Manual_Discount</name>
+        <label>Clear Manual Discount</label>
+        <locationX>695</locationX>
+        <locationY>1055</locationY>
+        <assignmentItems>
+            <assignToReference>Loop_Over_Quote_Lines.DiscountAmount</assignToReference>
+            <operator>Assign</operator>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Loop_Over_Quote_Lines.Discount</assignToReference>
+            <operator>Assign</operator>
         </assignmentItems>
         <connector>
             <targetReference>Add_to_Quote_Lines_to_Update</targetReference>
@@ -121,7 +138,7 @@
         <name>Set_Quote_Line_Info</name>
         <label>Set Quote Line Info</label>
         <locationX>264</locationX>
-        <locationY>782</locationY>
+        <locationY>781</locationY>
         <assignmentItems>
             <assignToReference>Loop_Over_Quote_Lines.StartDate</assignToReference>
             <operator>Assign</operator>
@@ -137,7 +154,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Add_to_Quote_Lines_to_Update</targetReference>
+            <targetReference>Check_for_Header_Discounts_Applied</targetReference>
         </connector>
     </assignments>
     <constants>
@@ -162,12 +179,79 @@
         </value>
     </constants>
     <decisions>
+        <name>Check_for_Header_Discounts_Applied</name>
+        <label>Check for Header Discounts Applied</label>
+        <locationX>397</locationX>
+        <locationY>933</locationY>
+        <defaultConnector>
+            <targetReference>Add_to_Quote_Lines_to_Update</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Inputted_Discounts</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>Target_Hardware_Amount</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Target_Services_Amount</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Target_Software_Amount</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>TargetTotalAmount</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>HardwareDiscountPercent</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>ServicesDiscountPercent</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>SoftwareDiscountPercent</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Clear_Manual_Discount</targetReference>
+            </connector>
+            <label>Inputted Discounts?</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Check_if_Line_if_Term_Defined</name>
         <label>Check if Line if Term-Defined</label>
         <locationX>396</locationX>
         <locationY>674</locationY>
         <defaultConnector>
-            <targetReference>Assign_Line_Info_Non_Termed</targetReference>
+            <targetReference>Check_for_Header_Discounts_Applied</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Non-Term Defined</defaultConnectorLabel>
         <rules>
@@ -184,6 +268,21 @@
                 <targetReference>Set_Quote_Line_Info</targetReference>
             </connector>
             <label>Term-Defined Line</label>
+        </rules>
+        <rules>
+            <name>Evergreen_Line</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Over_Quote_Lines.SellingModelType</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Evergreen</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_Line_Info_Evergreen</targetReference>
+            </connector>
+            <label>Evergreen Line</label>
         </rules>
     </decisions>
     <environments>Default</environments>
@@ -230,8 +329,8 @@
     <recordLookups>
         <name>Get_Related_Quote_Lines</name>
         <label>Get Related Quote Lines</label>
-        <locationX>176</locationX>
-        <locationY>458</locationY>
+        <locationX>175</locationX>
+        <locationY>459</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Loop_Over_Quote_Lines</targetReference>
@@ -380,6 +479,9 @@
                 <fields>
                     <name>TargetTotalAmount</name>
                     <dataType>Currency</dataType>
+                    <defaultValue>
+                        <elementReference>GetQuote.RLM_TargetNetTotal__c</elementReference>
+                    </defaultValue>
                     <fieldText>Target Total Amount</fieldText>
                     <fieldType>InputField</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
@@ -420,19 +522,6 @@
             <fields>
                 <name>Quote_Discounts_Column1</name>
                 <fieldType>Region</fieldType>
-                <fields>
-                    <name>SoftwareTotal</name>
-                    <fieldText>&lt;p&gt;&lt;strong&gt;Software Total: &lt;/strong&gt;{!GetQuote.RLM_SoftwareTotal__c} &lt;strong&gt;{!GetQuote.CurrencyIsoCode}&lt;/strong&gt;&lt;/p&gt;</fieldText>
-                    <fieldType>DisplayText</fieldType>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
                 <fields>
                     <name>Target_Software_Amount</name>
                     <dataType>Currency</dataType>
@@ -485,19 +574,6 @@
                 <name>Quote_Discounts_Column2</name>
                 <fieldType>Region</fieldType>
                 <fields>
-                    <name>HardwareTotal</name>
-                    <fieldText>&lt;p&gt;&lt;strong style=&quot;background-color: rgb(255, 255, 255); color: rgb(68, 68, 68);&quot;&gt; Hardware Total:&lt;/strong&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: rgb(68, 68, 68);&quot;&gt;{!GetQuote.RLM_HardwareTotal__c} &lt;/span&gt;&lt;strong style=&quot;background-color: rgb(255, 255, 255); color: rgb(68, 68, 68);&quot;&gt;{!GetQuote.CurrencyIsoCode}&lt;/strong&gt;&lt;/p&gt;</fieldText>
-                    <fieldType>DisplayText</fieldType>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
-                <fields>
                     <name>Target_Hardware_Amount</name>
                     <dataType>Currency</dataType>
                     <defaultValue>
@@ -548,19 +624,6 @@
             <fields>
                 <name>Quote_Discounts_Column3</name>
                 <fieldType>Region</fieldType>
-                <fields>
-                    <name>ServicesTotal</name>
-                    <fieldText>&lt;p&gt;&lt;strong style=&quot;background-color: rgb(255, 255, 255); color: rgb(68, 68, 68);&quot;&gt;Services Total: &lt;/strong&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: rgb(68, 68, 68);&quot;&gt;{!GetQuote.RLM_ServicesTotal__c} &lt;/span&gt;&lt;strong style=&quot;background-color: rgb(255, 255, 255); color: rgb(68, 68, 68);&quot;&gt;{!GetQuote.CurrencyIsoCode}&lt;/strong&gt;&lt;/p&gt;</fieldText>
-                    <fieldType>DisplayText</fieldType>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>12</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
                 <fields>
                     <name>Target_Services_Amount</name>
                     <dataType>Currency</dataType>

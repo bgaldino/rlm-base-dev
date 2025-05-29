@@ -3270,6 +3270,38 @@
                     <contextAttribute>ServicesDiscountAmount__c</contextAttribute>
                     <contextInputAttributeName>ServicesDiscountAmount__c</contextInputAttributeName>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>Quote</objectName>
+                        <queryAttribute>RLM_TargetNetTotal__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>TransactionTotalTarget__c</contextAttribute>
+                    <contextInputAttributeName>TransactionTotalTarget__c</contextInputAttributeName>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>Quote</objectName>
+                        <queryAttribute>RLM_SoftwareDiscountPercent__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>TransactionSoftwareDiscountPercentage__c</contextAttribute>
+                    <contextInputAttributeName>TransactionSoftwareDiscountPercentage__c</contextInputAttributeName>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>Quote</objectName>
+                        <queryAttribute>RLM_HardwareDiscountPercent__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>TransactionHardwareDiscountPercentage__c</contextAttribute>
+                    <contextInputAttributeName>TransactionHardwareDiscountPercentage__c</contextInputAttributeName>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>Quote</objectName>
+                        <queryAttribute>RLM_ServicesDiscountPercent__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>TransactionServicesDiscountPercentage__c</contextAttribute>
+                    <contextInputAttributeName>TransactionServicesDiscountPercentage__c</contextInputAttributeName>
+                </contextAttributeMappings>
                 <contextNode>SalesTransaction</contextNode>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/QuoteEntitiesMapping/SalesTransaction</inheritedFrom>
                 <object>Quote</object>
@@ -12698,6 +12730,61 @@
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>TransactionTotalTarget__c</title>
+                </contextTags>
+                <dataType>currency</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>TransactionTotalTarget__c</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>TransactionDiscountAmount__c</title>
+                </contextTags>
+                <dataType>currency</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>TransactionDiscountAmount__c</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>TransactionSoftwareDiscountPercentage__c</title>
+                </contextTags>
+                <dataType>percent</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>TransactionSoftwareDiscountPercentage__c</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>TransactionHardwareDiscountPercentage__c</title>
+                </contextTags>
+                <dataType>percent</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>TransactionHardwareDiscountPercentage__c</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>TransactionServicesDiscountPercentage__c</title>
+                </contextTags>
+                <dataType>percent</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>TransactionServicesDiscountPercentage__c</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
             <contextTags>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransaction</inheritedFrom>
                 <title>SalesTransaction</title>
@@ -18625,7 +18712,7 @@
         </contextNodes>
         <isActive>true</isActive>
         <startDate>2025-01-01 08:00:00</startDate>
-        <versionNumber>8</versionNumber>
+        <versionNumber>10</versionNumber>
     </contextDefinitionVersions>
     <contextTtl>20</contextTtl>
     <hasSystemTags>false</hasSystemTags>
