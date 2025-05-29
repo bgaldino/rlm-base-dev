@@ -434,16 +434,6 @@
                 <identifier>RecordEndOfLifeDateField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.TransferRecordMode</fieldItem>
-                <identifier>RecordTransferRecordModeField</identifier>
-            </fieldInstance>
-        </itemInstances>
         <name>Facet-cf84a789-2607-448c-a72d-4aa63ae399e3</name>
         <type>Facet</type>
     </flexiPageRegions>
