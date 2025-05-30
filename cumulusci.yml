@@ -590,6 +590,11 @@ tasks:
     options:
       path: unpackaged/post_scratch
 
+  deploy_post_tso:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_tso
+
   deploy_post_prm:
     class_path: cumulusci.tasks.salesforce.DeployBundles
     options:
@@ -1228,6 +1233,9 @@ flows:
         options:
           api_names: *rlm_tso_ps_api_names
       4:
+        task: deploy_post_tso
+        when: project_config.project__custom__tso
+      5:
         task: deploy_post_utils
         when: project_config.project__custom__tso
 
