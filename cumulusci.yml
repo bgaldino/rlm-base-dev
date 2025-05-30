@@ -523,6 +523,13 @@ tasks:
     options:
       path: force-app/main/default/decisionTables
 
+  deploy_agents_bots:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/bots
+
   deploy_agents_genAiPlanners:
     description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -557,6 +564,13 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents/settings
+
+  deploy_agents_permissionsets:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/permissionsets
 
   deploy_sharing_rules:
     class_path: cumulusci.tasks.salesforce.DeployBundles
@@ -597,6 +611,21 @@ tasks:
     class_path: cumulusci.tasks.salesforce.DeployBundles
     options:
       path: unpackaged/post_procedureplans
+  
+  deploy_post_procedureplans_objects:
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_procedureplans/objects
+
+  deploy_post_procedureplans_classes:
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_procedureplans/classes
+
+  deploy_post_procedureplans_permissionsets:
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_procedureplans/permissionsets
 
   deploy_post_billing:
     class_path: cumulusci.tasks.salesforce.DeployBundles
@@ -1008,12 +1037,14 @@ flows:
       17:
         flow: prepare_tso
       18:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       19:
-        flow: prepare_agents
+        flow: prepare_prm
       20:
-        flow: prepare_docgen
+        flow: prepare_agents
       21:
+        flow: prepare_docgen
+      22:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -1356,6 +1387,12 @@ flows:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents
       7:
+        task: deploy_agents_bots
+        when: project_config.project__custom__agents
+      8:
+        task: deploy_agents_permissionsets
+        when: project_config.project__custom__agents
+      9:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:
@@ -1391,3 +1428,25 @@ flows:
       1:
         task: activate_price_adjustment_schedules
         when: org_config.scratch
+
+  prepare_procedureplans:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_procedureplans_objects
+        when: project_config.project__custom__tso
+      2:
+        task: deploy_post_procedureplans_classes
+        when: project_config.project__custom__tso
+      3:
+        task: deploy_post_procedureplans_permissionsets
+        when: project_config.project__custom__tso
+      4:
+        task: assign_permission_sets
+        when: project_config.project__custom__tso
+        options:
+          api_names: *ps_quantumbit
+      5:
+        task: deploy_post_procedureplans
+        when: project_config.project__custom__tso
+      
