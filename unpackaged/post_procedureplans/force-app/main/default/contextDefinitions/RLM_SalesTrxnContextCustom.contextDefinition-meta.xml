@@ -18710,9 +18710,9 @@
             <title>LineItemDecomposition</title>
             <transposable>false</transposable>
         </contextNodes>
-        <isActive>false</isActive>
-        <startDate>2020-01-01 08:00:00</startDate>
-        <versionNumber>1</versionNumber>
+        <isActive>true</isActive>
+        <startDate>2020-01-01 00:00:00</startDate>
+        <versionNumber>2</versionNumber>
     </contextDefinitionVersions>
     <contextTtl>20</contextTtl>
     <hasSystemTags>false</hasSystemTags>
