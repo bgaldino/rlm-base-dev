@@ -55,5 +55,5 @@
         <readable>true</readable>
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RLM QuantumBit</label>
+    <label>RLM Procedure Plans</label>
 </PermissionSet>
