@@ -237,6 +237,9 @@ project:
     ps_aea: &ps_aea
       - RLM_Agentforce_Employee_Agent
 
+    ps_procedureplans: &ps_procedureplans
+      - RLM_ProcedurePlans
+
 #-----------------#
 # DECISION TABLES #
 #-----------------#
@@ -1445,7 +1448,7 @@ flows:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
-          api_names: *ps_quantumbit
+          api_names: *ps_procedureplans
       5:
         task: deploy_post_procedureplans
         when: project_config.project__custom__tso
