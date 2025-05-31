@@ -648,7 +648,7 @@
                     <name>ServicesDiscountPercent</name>
                     <dataType>Number</dataType>
                     <defaultValue>
-                        <elementReference>ServicesDiscountPercent</elementReference>
+                        <elementReference>GetQuote.RLM_ServicesDiscountPercent__c</elementReference>
                     </defaultValue>
                     <fieldText>Services Discount (%)</fieldText>
                     <fieldType>InputField</fieldType>

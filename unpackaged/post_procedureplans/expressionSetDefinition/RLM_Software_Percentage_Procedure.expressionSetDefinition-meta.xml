@@ -17,7 +17,7 @@
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2025-01-01T08:00:00.000Z</startDate>
-        <status>Inactive</status>
+        <status>Active</status>
         <steps>
             <actionType>DiscountDistributionService</actionType>
             <customElement>
@@ -75,7 +75,7 @@
                     <name>InputUnitPrice</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>InputUnitPrice</value>
+                    <value>NetUnitPrice</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
