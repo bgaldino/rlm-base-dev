@@ -1,0 +1,22 @@
+$$Name$Catalog.Code$ParentCategory.Name,Catalog.Name,Code,Description,Name,ParentCategory.$$Name$Catalog.Code$ParentCategory.Name,SortOrder
+Additives & Catalysts;Badger Chemicals,Badger Chemicals,Additives & Catalysts,Substances added in small amounts to enhance or modify chemical reactions or product properties.,Additives & Catalysts,,50
+Base Chemicals;Badger Chemicals,Badger Chemicals,Base Chemicals,Fundamental chemical compounds used as building blocks in various industrial processes.,Base Chemicals,,10
+Industrial Solvents;Badger Chemicals,Badger Chemicals,Industrial Solvents,"Liquids used to dissolve, suspend, or extract materials.",Industrial Solvents,,40
+Polymers & Resins;Badger Chemicals,Badger Chemicals,Polymers & Resins,"Materials used in plastics, coatings, and adhesives.",Polymers & Resins,,30
+Specialty Chemicals;Badger Chemicals,Badger Chemicals,Specialty Chemicals,"High-value, custom-formulated chemicals tailored for specific applications.",Specialty Chemicals,,20
+Attachments;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Attachments,,Attachments,,60
+Equipment;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Equipment,,Equipment,,20
+Lubricants;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Lubricants,,Lubricants,,10
+Replacement Parts;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Replacement Parts,,Replacement Parts,,50
+Rippers;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Rippers,,Rippers,,70
+Service Contracts;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Service Contracts,,Service Contracts,,90
+Trenchers;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),Trenchers,,Trenchers,,80
+Excavators;Badger Equipment Catalog (RLM);Equipment,Badger Equipment Catalog (RLM),Excavators,,Excavators,Equipment;Badger Equipment Catalog (RLM),40
+Skid Steers;Badger Equipment Catalog (RLM);Equipment,Badger Equipment Catalog (RLM),Skid Steers,,Skid Steers,Equipment;Badger Equipment Catalog (RLM),30
+Batteries;GeneratorCatalog,Power Management,Batteries,,Batteries,,40
+Connectivity;GeneratorCatalog,Power Management,Connectivity,,Connectivity,,50
+Fuel Cells;GeneratorCatalog,Power Management,Fuel Cells,,Fuel Cells,,30
+Generators;GeneratorCatalog,Power Management,Generators,,Generators,,10
+Solar Panels;GeneratorCatalog,Power Management,Solar Panels,,Solar Panels,,20
+Tiers;Service Contracts,Service Contracts,Tiers,,Tiers,,1
+Warranty;Service Contracts,Service Contracts,Warranty,,Warranty,,2

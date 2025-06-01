@@ -1,0 +1,44 @@
+$$ProductCategory.Name$Product.StockKeepingUnit$Catalog.Code,Catalog.Name,CurrencyIsoCode,Product.StockKeepingUnit,ProductCategory.$$Name$Catalog.Code$ParentCategory.Name
+Equipment;414LP-KAA-E-SSL;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,414LP-KAA-E-SSL,Equipment;Badger Equipment Catalog (RLM)
+Skid Steers;414LP-KAA-E-SSL;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,414LP-KAA-E-SSL,Skid Steers;Badger Equipment Catalog (RLM);Equipment
+Replacement Parts;414LP-KAA-TT1;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,414LP-KAA-TT1,Replacement Parts;Badger Equipment Catalog (RLM)
+Replacement Parts;414LP-KAA-TT2;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,414LP-KAA-TT2,Replacement Parts;Badger Equipment Catalog (RLM)
+Industrial Solvents;ACET-50-200L;Badger Chemicals,Badger Chemicals,USD,ACET-50-200L,Industrial Solvents;Badger Chemicals
+Industrial Solvents;ACET-50-20L;Badger Chemicals,Badger Chemicals,USD,ACET-50-20L,Industrial Solvents;Badger Chemicals
+Generators;AMEL-FRD;GeneratorCatalog,Power Management,USD,AMEL-FRD,Generators;GeneratorCatalog
+Additives & Catalysts;AO-1000-25KG;Badger Chemicals,Badger Chemicals,USD,AO-1000-25KG,Additives & Catalysts;Badger Chemicals
+Additives & Catalysts;AO-1000-50KG;Badger Chemicals,Badger Chemicals,USD,AO-1000-50KG,Additives & Catalysts;Badger Chemicals
+Polymers & Resins;AR-300-1000KG;Badger Chemicals,Badger Chemicals,USD,AR-300-1000KG,Polymers & Resins;Badger Chemicals
+Polymers & Resins;AR-300-200KG-DR;Badger Chemicals,Badger Chemicals,USD,AR-300-200KG-DR,Polymers & Resins;Badger Chemicals
+Specialty Chemicals;CI-3000-200L;Badger Chemicals,Badger Chemicals,USD,CI-3000-200L,Specialty Chemicals;Badger Chemicals
+Specialty Chemicals;CI-3000-20L;Badger Chemicals,Badger Chemicals,USD,CI-3000-20L,Specialty Chemicals;Badger Chemicals
+Generators;CUGR-FRD;GeneratorCatalog,Power Management,USD,CUGR-FRD,Generators;GeneratorCatalog
+Specialty Chemicals;DF-4000-200L;Badger Chemicals,Badger Chemicals,USD,DF-4000-200L,Specialty Chemicals;Badger Chemicals
+Specialty Chemicals;DF-4000-20L;Badger Chemicals,Badger Chemicals,USD,DF-4000-20L,Specialty Chemicals;Badger Chemicals
+Attachments;DIRT-BUCKET;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,DIRT-BUCKET,Attachments;Badger Equipment Catalog (RLM)
+Replacement Parts;EP-43253;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,EP-43253,Replacement Parts;Badger Equipment Catalog (RLM)
+Polymers & Resins;EPX-500-200KG;Badger Chemicals,Badger Chemicals,USD,EPX-500-200KG,Polymers & Resins;Badger Chemicals
+Polymers & Resins;EPX-500-20KG;Badger Chemicals,Badger Chemicals,USD,EPX-500-20KG,Polymers & Resins;Badger Chemicals
+Warranty;EW;Service Contracts,Service Contracts,USD,EW,Warranty;Service Contracts
+Generators;FESBA-FRD;GeneratorCatalog,Power Management,USD,FESBA-FRD,Generators;GeneratorCatalog
+Generators;GAMD-FRD;GeneratorCatalog,Power Management,USD,GAMD-FRD,Generators;GeneratorCatalog
+Attachments;GP-Bucket;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,GP-Bucket,Attachments;Badger Equipment Catalog (RLM)
+Base Chemicals;H2SO4-1000L-IBC;Badger Chemicals,Badger Chemicals,USD,H2SO4-1000L-IBC,Base Chemicals;Badger Chemicals
+Base Chemicals;H2SO4-200L-DR;Badger Chemicals,Badger Chemicals,USD,H2SO4-200L-DR,Base Chemicals;Badger Chemicals
+Base Chemicals;NaOH-25KG;Badger Chemicals,Badger Chemicals,USD,NaOH-25KG,Base Chemicals;Badger Chemicals
+Base Chemicals;NaOH-50KG;Badger Chemicals,Badger Chemicals,USD,NaOH-50KG,Base Chemicals;Badger Chemicals
+Base Chemicals;NH3-CYL;Badger Chemicals,Badger Chemicals,USD,NH3-CYL,Base Chemicals;Badger Chemicals
+Additives & Catalysts;PC-500-5KG;Badger Chemicals,Badger Chemicals,USD,PC-500-5KG,Additives & Catalysts;Badger Chemicals
+Polymers & Resins;PE-1000-25KG;Badger Chemicals,Badger Chemicals,USD,PE-1000-25KG,Polymers & Resins;Badger Chemicals
+Replacement Parts;RHO-ENG-022;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,RHO-ENG-022,Replacement Parts;Badger Equipment Catalog (RLM)
+Lubricants;RLM-SW-40;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,RLM-SW-40,Lubricants;Badger Equipment Catalog (RLM)
+Service Contracts;SC-GOLD;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,SC-GOLD,Service Contracts;Badger Equipment Catalog (RLM)
+Tiers;SC-GOLD;Service Contracts,Service Contracts,USD,SC-GOLD,Tiers;Service Contracts
+Additives & Catalysts;TiO2-500-1000KG;Badger Chemicals,Badger Chemicals,USD,TiO2-500-1000KG,Additives & Catalysts;Badger Chemicals
+Additives & Catalysts;TiO2-500-25KG;Badger Chemicals,Badger Chemicals,USD,TiO2-500-25KG,Additives & Catalysts;Badger Chemicals
+Industrial Solvents;TOL-100-1000L;Badger Chemicals,Badger Chemicals,USD,TOL-100-1000L,Industrial Solvents;Badger Chemicals
+Industrial Solvents;TOL-100-200L;Badger Chemicals,Badger Chemicals,USD,TOL-100-200L,Industrial Solvents;Badger Chemicals
+Attachments;TRENCHING-BUCKET;Badger Equipment Catalog (RLM),Badger Equipment Catalog (RLM),USD,TRENCHING-BUCKET,Attachments;Badger Equipment Catalog (RLM)
+Specialty Chemicals;UV-2000-25KG;Badger Chemicals,Badger Chemicals,USD,UV-2000-25KG,Specialty Chemicals;Badger Chemicals
+Industrial Solvents;XYL-200-1000L;Badger Chemicals,Badger Chemicals,USD,XYL-200-1000L,Industrial Solvents;Badger Chemicals
+Industrial Solvents;XYL-200-200L;Badger Chemicals,Badger Chemicals,USD,XYL-200-200L,Industrial Solvents;Badger Chemicals

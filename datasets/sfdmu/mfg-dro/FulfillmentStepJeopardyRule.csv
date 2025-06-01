@@ -1,0 +1,4 @@
+$$Name$CurrencyIsoCode,CurrencyIsoCode,EstimatedDuration,EstimatedDurationUnit,FlowDefinition,IntegrationDefinition.DeveloperName,JeopardyThreshold,JeopardyThresholdUnit,Name,StepType
+000000001;USD,USD,1,Days,,,20,Hours,000000001,ManualTask
+000000002;USD,USD,1,Minutes,RLM_Assetize_Order_DRO_Fulfillment,,10,Seconds,000000002,AutoTask
+000000003;USD,USD,10,Seconds,,,5,Seconds,000000003,Callout

@@ -1,0 +1,14 @@
+Code,CurrencyIsoCode,DataType,Description,Name,Status
+applicationEmissionCertification,USD,Text,,applicationEmissionCertification,Draft
+Bucket_Size,USD,Text,,Bucket_Size,Active
+DutyRating,USD,Text,,DutyRating,Draft
+Entrance Types,USD,Text,,Entrance Types,Draft
+Equipment Power,USD,Text,,Equipment Power,Active
+Languages,USD,Text,,Languages,Draft
+Power,USD,Text,,Power,Active
+Ripper_Size,USD,Text,,Ripper_Size,Active
+seismicCertification,USD,Text,,seismicCertification,Draft
+SpecialApplication,USD,Text,,SpecialApplication,Draft
+standardsAndCompliance,USD,Text,,standardsAndCompliance,Draft
+Transmission,USD,Text,,Transmission,Active
+Voltage,USD,Text,,Voltage,Draft

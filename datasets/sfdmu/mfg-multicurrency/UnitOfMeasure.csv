@@ -1,0 +1,13 @@
+ConversionFactor,CurrencyIsoCode,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
+1,USD,1000KG Super Sack,1000KG Sack,Up,0,,Active,Custom,1000KG-Sack,
+1,USD,1000 Kg Totes,1000KG Tote,Up,0,,Active,Custom,1000KG-TOTE,
+1,USD,1000-liter Intermediate Bulk Container,1000L IBC,Up,3,,Active,Custom,1000L-IBC,
+1,USD,200 Kg Drums,200KG Drum,Up,0,,Active,Custom,200KG-DR,
+1,USD,,200L Drum,,,,Active,Custom,200L-DR,
+1,USD,20 Kg Pails,20KG Pail,Up,0,,Active,Custom,20KG-PAIL,
+1,USD,20 L Pails,20L Pail,Up,0,,Active,Custom,20L-PAIL,
+1,USD,25 Kg Bags,25KG Bag,Up,0,,Active,Custom,25kg-BAG,
+1,USD,50 Kg Bags,50KG Bag,Up,0,,Active,Custom,50kg-BAG,
+1,USD,5 Kg Pails,5KG Pail,Up,0,,Active,Custom,5KG-PAIL,
+1,USD,Pressured Cylinder,Cylinder,Up,0,,Active,Custom,CYL,
+1,USD,,Each,,,1,Active,Count,EACH,

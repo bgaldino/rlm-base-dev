@@ -1,0 +1,4 @@
+$$Name$Product.StockKeepingUnit$CurrencyIsoCode,Action,CurrencyIsoCode,FulfillmentStepDefnGroup.$$Name$CurrencyIsoCode,Name,Product.$$Name$StockKeepingUnit
+Work Order: Service Contract;SC-GOLD;USD,Add,USD,Work Order;USD,Work Order: Service Contract,Service Contract;SC-GOLD
+IoT: Add Service Contract;SC-GOLD;USD,Add,USD,Equipment Health Check;USD,IoT: Add Service Contract,Service Contract;SC-GOLD
+Add: Svc Contract Gold;SC-GOLD;USD,Add,USD,Service Contract & Assetization;USD,Add: Svc Contract Gold,Service Contract;SC-GOLD
