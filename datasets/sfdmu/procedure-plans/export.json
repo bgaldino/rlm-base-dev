@@ -7,12 +7,14 @@
         {
           "query": "SELECT ApiName, IsActive, Name, Rank, VersionNumber FROM ExpressionSetVersion",
           "operation": "Update",
-          "excluded": false
+          "excluded": false,
+          "externalId": "ApiName"
         },
         {
           "query": "SELECT Description,DeveloperName,Language,MasterLabel,PrimaryObject,ProcessType FROM ProcedurePlanDefinition",
           "operation": "Upsert",
-          "excluded": false
+          "excluded": false,
+          "externalId": "DeveloperName"
         },
         {
           "query": "SELECT CreatedDate,Description,IsInherited,ProcedurePlanVersionId,ResolutionType,SectionType,Sequence,SubSectionType FROM ProcedurePlanSection",
@@ -30,7 +32,7 @@
           "excluded": false
         },     
         {
-          "query": "SELECT ContextDefinition,,CreatedDate,DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,InheritedFrom,IsActive,ProcedurePlanDefinitionId,Rank FROM ProcedurePlanDefinitionVersion",
+          "query": "SELECT ContextDefinition,,DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,InheritedFrom,IsActive,ProcedurePlanDefinitionId,Rank FROM ProcedurePlanDefinitionVersion",
           "operation": "Upsert",
           "excluded": false
         }
