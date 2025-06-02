@@ -10,6 +10,35 @@
           "excluded": false
         }
       ]
+    },
+    {
+      "objects": [
+        {
+          "query": "SELECT Description,DeveloperName,Language,MasterLabel,PrimaryObject,ProcessType FROM ProcedurePlanDefinition",
+          "operation": "Upsert",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ActualValue,DataType,FieldPath,ObjectField,Operator,ProcedurePlanOptionId,Sequence FROM ProcedurePlanCriterion",
+          "operation": "Upsert",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CriteriaLogic,CtxDefinitionOutputFieldId,CtxMappingOutputFieldId,DecisionTableId,ExpressionSetApiName,ExpressionSetDefinitionId,ExpressionSetLabel,ExpressionSetOutputFieldId,Id,IsDeleted,LastModifiedById,LastModifiedDate,PrimaryObject,Priority,ProcedurePlanSectionId,ReadContextMapping,SaveContextMapping,SystemModstamp FROM ProcedurePlanOption",
+          "operation": "Upsert",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ,CreatedDate,Description,Id,IsDeleted,IsInherited,LastModifiedById,LastModifiedDate,ProcedurePlanVersionId,ResolutionType,SectionType,Sequence,SubSectionType,SystemModstamp FROM ProcedurePlanSection",
+          "operation": "Upsert",
+          "excluded": false
+        },
+         {
+          "query": "SELECT ContextDefinition,,CreatedDate,DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,Id,InheritedFrom,IsActive,IsDeleted,LastModifiedById,LastModifiedDate,ProcedurePlanDefinitionId,Rank,SystemModstamp FROM ProcedurePlanDefinitionVersion",
+          "operation": "Upsert",
+          "excluded": false
+        }
+      ]
     }
   ],
   "orgs": []
