@@ -2,7 +2,7 @@
 <DocumentGenerationSetting xmlns="http://soap.sforce.com/2006/04/metadata">
     <batchDocGnrnPctLimitPerHour>0.6</batchDocGnrnPctLimitPerHour>
     <documentTemplateLibraryName>DocgenDocumentTemplateLibrary</documentTemplateLibraryName>
-    <generationMechanism>ClientSide</generationMechanism>
+    <generationMechanism>ServerSide</generationMechanism>
     <isBatchDocGnrnEnabled>true</isBatchDocGnrnEnabled>
     <isServerSideDocGenEnabled>true</isServerSideDocGenEnabled>
     <masterLabel>DocGen</masterLabel>
