@@ -113,6 +113,12 @@
                             <value>QuoteLineItem.Discount</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>QuoteLineItem.DiscountAmount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.UnitPriceUplift</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>QuoteLineItem.RC_Approval__c</value>
                         </valueListItems>
                         <valueListItems>
@@ -158,6 +164,12 @@
                             <value>QuoteLineItem.Discount</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>QuoteLineItem.DiscountAmount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.UnitPriceUplift</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>QuoteLineItem.Quantity</value>
                         </valueListItems>
                         <valueListItems>
@@ -181,6 +193,20 @@
                 <componentInstanceProperties>
                     <name>displayTotalPriceBreakdown</name>
                     <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>footerFields</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Quote.Subtotal</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Quote.TotalPrice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Quote.GrandTotal</value>
+                        </valueListItems>
+                    </valueList>
                 </componentInstanceProperties>
                 <componentName>runtime_revenue_foundation:transactionSummary</componentName>
                 <identifier>runtime_revenue_foundation_transactionSummary</identifier>
