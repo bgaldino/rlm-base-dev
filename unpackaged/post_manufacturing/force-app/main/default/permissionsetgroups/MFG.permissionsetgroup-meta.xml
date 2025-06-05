@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>MFG</label>
+    <permissionSets>force__DecimalQuantityDesigntime</permissionSets>
+    <permissionSets>force__DecimalQuantityRuntime</permissionSets>
+    <permissionSets>force__ManagePricingFeaturesForMfg</permissionSets>
+    <permissionSets>force__ManufacturingAccountManagerTargetsPsl</permissionSets>
+    <permissionSets>force__ManufacturingAdvancedAccountForecastPsl</permissionSets>
+    <permissionSets>force__ManufacturingSalesAgreementsPsl</permissionSets>
+    <permissionSets>force__MngProdtCatalogFeaturesForMfg</permissionSets>
+    <permissionSets>force__PricingFeatrForSalesAgr</permissionSets>
+    <permissionSets>force__ProductCatalogMgmtForSalesAgr</permissionSets>
+    <permissionSets>force__RebateManagementAdminPsl</permissionSets>
+    <permissionSets>force__RebateManagementUserPsl</permissionSets>
+    <permissionSets>force__ShipAndDebitManagementAdminPsl</permissionSets>
+    <permissionSets>force__ShipAndDebitManagementUserPsl</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>
