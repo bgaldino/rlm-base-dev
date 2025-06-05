@@ -50,7 +50,7 @@
         <object>CreateAssetOrderEvent</object>
         <triggerType>PlatformEvent</triggerType>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <variables>
         <name>AssetDetails</name>
         <dataType>SObject</dataType>
