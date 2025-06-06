@@ -163,8 +163,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM_DiscoverProducts {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM_DiscoverProducts</label>
+    <interviewLabel>RLM Discover Products {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Discover Products</label>
     <loops>
         <description>Runs an action for the catalog record in the record in Catalogs from getProductCatalogs record collection.</description>
         <name>RunActionForCatalog</name>
