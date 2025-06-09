@@ -16,6 +16,9 @@
                             <value>BillNow</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Account.RLM_Reset_Account</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>CallHighlightAction</value>
                         </valueListItems>
                         <valueListItems>
