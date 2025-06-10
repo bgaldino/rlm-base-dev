@@ -1,17 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <name>Reset_Account_Objects</name>
-        <label>Reset Account Objects</label>
-        <locationX>176</locationX>
-        <locationY>134</locationY>
+        <name>Reset_Account</name>
+        <label>Reset Account</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>RCAccountUtilities</actionName>
         <actionType>apex</actionType>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>accountId</name>
             <value>
-                <elementReference>recordId</elementReference>
+                <elementReference>recordId.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>DeleteAssets</name>
+            <value>
+                <elementReference>Delete_Assets</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>DeleteBilling</name>
+            <value>
+                <elementReference>Delete_Billing</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>DeleteFulfillment</name>
+            <value>
+                <elementReference>Delete_Fulfillment</elementReference>
             </value>
         </inputParameters>
         <nameSegment>RCAccountUtilities</nameSegment>
@@ -26,8 +44,8 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RCA Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RCA Account Utilities</label>
+    <interviewLabel>RC - Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RC - Account Utilities</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -47,19 +65,82 @@
         </value>
     </processMetadataValues>
     <processType>Flow</processType>
+    <screens>
+        <name>Account_Utility</name>
+        <label>Account Utility</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <connector>
+            <targetReference>Reset_Account</targetReference>
+        </connector>
+        <fields>
+            <name>Delete_Assets</name>
+            <dataType>Boolean</dataType>
+            <fieldText>Delete Assets</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Fulfillment</name>
+            <dataType>Boolean</dataType>
+            <fieldText>Delete Fulfillment</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Billing</name>
+            <dataType>Boolean</dataType>
+            <fieldText>Delete Billing</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Reset_Account_Objects</targetReference>
+            <targetReference>Account_Utility</targetReference>
         </connector>
     </start>
     <status>Active</status>
     <variables>
         <name>recordId</name>
-        <dataType>String</dataType>
+        <dataType>SObject</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
+        <objectType>Account</objectType>
     </variables>
 </Flow>
