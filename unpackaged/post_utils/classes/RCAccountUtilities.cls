@@ -650,7 +650,7 @@ public class RCAccountUtilities {
         List<BillingScheduleGroup> recordsToDelete = [
             SELECT Id 
             FROM BillingScheduleGroup 
-            WHERE AccountId = :accountId
+            WHERE BillingAccountId = :accountId
         ];
         
         if (!recordsToDelete.isEmpty()) {
