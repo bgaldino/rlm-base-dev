@@ -21,21 +21,195 @@
  * - Delete child buckets before parent buckets
  * - Maintain referential integrity
  * - Handle complex multi-level hierarchies
+ * 
+ * @author John Rozsits, Brian Galdino, Anthropic Claude 4 Sonnet
+ * @date 2025-06-10
  */
 public class RCAccountUtilities {
     /**
-     * Input Variables Class
-     * Used to pass parameters to the main deletion method
+     * Input variables for the account cleanup process.
+     * These variables control which types of objects should be deleted.
      */
     public class InputVariables {
-        @InvocableVariable
+        @InvocableVariable(required=true)
         public String accountId;
-        @InvocableVariable
+        
+        @InvocableVariable(required=true)
         public Boolean DeleteAssets;
-        @InvocableVariable
+        
+        @InvocableVariable(required=true)
         public Boolean DeleteFulfillment;
-        @InvocableVariable
+        
+        @InvocableVariable(required=true)
         public Boolean DeleteBilling;
+    }
+
+    /**
+     * Helper class to store Order and OrderItem data
+     * This class centralizes all queries for related objects to avoid redundant queries.
+     * It maintains lists and sets of IDs for efficient lookups and deletions.
+     */
+    private class OrderData {
+        // Orders and their IDs
+        public List<Order> orders;
+        public Set<Id> orderIds;
+        
+        // OrderItems and their IDs
+        public List<OrderItem> orderItems;
+        public Set<Id> orderItemIds;
+        
+        // Source identifiers for FulfillmentPlans (Order and OrderItem IDs)
+        public Set<String> sourceIdentifiers;
+        
+        // FulfillmentOrders and their IDs
+        public List<FulfillmentOrder> fulfillmentOrders;
+        public Set<Id> fulfillmentOrderIds;
+        
+        // FulfillmentPlans and their IDs
+        public List<FulfillmentPlan> fulfillmentPlans;
+        public Set<Id> fulfillmentPlanIds;
+        
+        // FulfillmentSteps and their IDs
+        public List<FulfillmentStep> fulfillmentSteps;
+        public Set<Id> fulfillmentStepIds;
+        
+        // FulfillmentAssets and their IDs
+        public List<FulfillmentAsset> fulfillmentAssets;
+        public Set<Id> fulfillmentAssetIds;
+        
+        // FulfillmentOrderLineItems and their IDs
+        public List<FulfillmentOrderLineItem> fulfillmentOrderLineItems;
+        public Set<Id> fulfillmentOrderLineItemIds;
+        
+        /**
+         * Constructor that initializes all data for the given account.
+         * Queries are executed in a specific order to maintain referential integrity:
+         * 1. Orders and OrderItems (base objects)
+         * 2. Invoices and OrderSummaries (for FulfillmentOrders)
+         * 3. FulfillmentOrders (depends on Orders, Invoices, Summaries)
+         * 4. FulfillmentPlans (depends on Orders and OrderItems)
+         * 5. FulfillmentSteps (depends on FulfillmentPlans)
+         * 6. FulfillmentAssets (depends on Account)
+         * 7. FulfillmentOrderLineItems (depends on FulfillmentOrders)
+         */
+        public OrderData(String accountId) {
+            // Get all Orders for this account
+            this.orders = [
+                SELECT Id 
+                FROM Order 
+                WHERE AccountId = :accountId
+            ];
+            
+            this.orderIds = new Set<Id>();
+            for(Order o : this.orders) {
+                this.orderIds.add(o.Id);
+            }
+            
+            // Get all OrderItems for this account
+            this.orderItems = [
+                SELECT Id 
+                FROM OrderItem 
+                WHERE Order.AccountId = :accountId
+            ];
+            
+            this.orderItemIds = new Set<Id>();
+            this.sourceIdentifiers = new Set<String>();
+            for(OrderItem oi : this.orderItems) {
+                this.orderItemIds.add(oi.Id);
+                this.sourceIdentifiers.add(oi.Id);
+            }
+            for(Order o : this.orders) {
+                this.sourceIdentifiers.add(o.Id);
+            }
+
+            // Get all Invoices for this account
+            List<Invoice> invoices = [
+                SELECT Id 
+                FROM Invoice 
+                WHERE BillingAccountId = :accountId
+            ];
+            
+            Set<Id> invoiceIds = new Set<Id>();
+            for(Invoice inv : invoices) {
+                invoiceIds.add(inv.Id);
+            }
+
+            // Get all OrderSummaries for this account
+            List<OrderSummary> summaries = [
+                SELECT Id 
+                FROM OrderSummary 
+                WHERE AccountId = :accountId
+            ];
+            
+            Set<Id> summaryIds = new Set<Id>();
+            for(OrderSummary summary : summaries) {
+                summaryIds.add(summary.Id);
+            }
+
+            // Get all FulfillmentOrders that reference any of these
+            this.fulfillmentOrders = [
+                SELECT Id 
+                FROM FulfillmentOrder 
+                WHERE AccountId = :accountId
+                OR OrderId IN :this.orderIds
+                OR InvoiceId IN :invoiceIds
+                OR OrderSummaryId IN :summaryIds
+            ];
+            
+            this.fulfillmentOrderIds = new Set<Id>();
+            for(FulfillmentOrder fo : this.fulfillmentOrders) {
+                this.fulfillmentOrderIds.add(fo.Id);
+            }
+
+            // Get all FulfillmentPlans for these orders and order items
+            this.fulfillmentPlans = [
+                SELECT Id 
+                FROM FulfillmentPlan 
+                WHERE SourceIdentifier IN :this.sourceIdentifiers
+                AND (SourceType = 'StandardOrder' OR SourceType = 'OrderItem')
+            ];
+            
+            this.fulfillmentPlanIds = new Set<Id>();
+            for(FulfillmentPlan plan : this.fulfillmentPlans) {
+                this.fulfillmentPlanIds.add(plan.Id);
+            }
+
+            // Get all FulfillmentSteps for these plans
+            this.fulfillmentSteps = [
+                SELECT Id 
+                FROM FulfillmentStep 
+                WHERE FulfillmentPlanId IN :this.fulfillmentPlanIds
+            ];
+            
+            this.fulfillmentStepIds = new Set<Id>();
+            for(FulfillmentStep step : this.fulfillmentSteps) {
+                this.fulfillmentStepIds.add(step.Id);
+            }
+
+            // Get all FulfillmentAssets for this account
+            this.fulfillmentAssets = [
+                SELECT Id 
+                FROM FulfillmentAsset 
+                WHERE AccountId = :accountId
+            ];
+            
+            this.fulfillmentAssetIds = new Set<Id>();
+            for(FulfillmentAsset fa : this.fulfillmentAssets) {
+                this.fulfillmentAssetIds.add(fa.Id);
+            }
+
+            // Get all FulfillmentOrderLineItems for these FulfillmentOrders
+            this.fulfillmentOrderLineItems = [
+                SELECT Id 
+                FROM FulfillmentOrderLineItem 
+                WHERE FulfillmentOrderId IN :this.fulfillmentOrderIds
+            ];
+            
+            this.fulfillmentOrderLineItemIds = new Set<Id>();
+            for(FulfillmentOrderLineItem foli : this.fulfillmentOrderLineItems) {
+                this.fulfillmentOrderLineItemIds.add(foli.Id);
+            }
+        }
     }
 
     /**
@@ -45,22 +219,39 @@ public class RCAccountUtilities {
      * 
      * @param request List of InputVariables containing the account ID and deletion flags
      */
-    @InvocableMethod(label='Reset Account Related Objects.')
+    @InvocableMethod(label='Reset Account Related Objects' description='Deletes all related objects for an account in the correct order')
     public static void delAccountRelatedObjects(List<InputVariables> request) {
+        if (request == null || request.isEmpty()) {
+            return;
+        }
+
         String accountId = request.get(0).accountId;
         Boolean deleteAssets = request.get(0).DeleteAssets;
         Boolean deleteFulfillment = request.get(0).DeleteFulfillment;
         Boolean deleteBilling = request.get(0).DeleteBilling;
 
-        deleteOrders(accountId);
-        deleteTransactionJournal(accountId);
-        deleteUsageSummaries(accountId);
-        deleteBillingScheduleGroups(accountId);
-        deleteContracts(accountId);
-        deleteAssets(accountId);
-        deleteInvoices(accountId);
-        deleteQuotes(accountId);
-        deleteOpportunities(accountId);
+        // Start a savepoint for transaction control
+        Savepoint sp = Database.setSavepoint();
+        try {
+            // Get Order data once
+            OrderData orderData = new OrderData(accountId);
+            
+            // First handle orders and their related objects
+            deleteOrders(accountId);
+            deleteTransactionJournal(accountId);
+            deleteUsageSummaries(accountId);
+            deleteBillingScheduleGroups(accountId);
+            
+            // Handle contracts
+            deleteContracts(accountId);
+            deleteAssets(accountId);
+            deleteInvoices(accountId);
+            deleteQuotes(accountId);
+            deleteOpportunities(accountId);
+        } catch(Exception e) {
+            Database.rollback(sp);
+            throw e;
+        }
     }
 
     /**
@@ -154,12 +345,18 @@ public class RCAccountUtilities {
     }
 
     /**
-     * Deletes fulfillment line source relationships for a set of order items.
+     * Deletes FulfillmentLineSourceRel records for a given account.
+     * These records establish relationships between:
+     * - FulfillmentOrderLineItems and OrderItems
+     * - FulfillmentOrderLineItems and other FulfillmentOrderLineItems
+     * 
+     * This method must be called before deleting FulfillmentOrderLineItems
+     * to maintain referential integrity.
      * 
      * @param orderItems List of order items whose fulfillment relationships should be deleted
-     * @return Boolean indicating success
+     * @return Boolean indicating success of the operation
      */
-    private static Boolean deleteFulfillmentLineSourceRel(OrderItem[] orderItems) {
+    private static Boolean deleteFulfillmentLineSourceRel(List<OrderItem> orderItems) {
         if (!orderItems.isEmpty()) {
             Set<Id> orderItemIds = new Set<Id>();
             for (OrderItem oi : orderItems) {
@@ -190,7 +387,10 @@ public class RCAccountUtilities {
      */
     private static Boolean deleteUsageEntitlementBucket(Set<Id> entitlementIds) {
         System.debug('Delete Entitlement Bucket - Starting deletion for entitlement IDs: ' + entitlementIds);
-        
+        if (entitlementIds.isEmpty()) {
+            return true;
+        }
+
         // First, find all buckets that might be related (either directly or through parent relationships)
         UsageEntitlementBucket[] allBuckets = [
             SELECT Id, Name, ParentId, Parent.Type, Parent.Name 
@@ -319,7 +519,10 @@ public class RCAccountUtilities {
      */
     private static Boolean deleteUsageEntitlementBucketParent(Set<Id> entitlementIds) {
         System.debug('Delete Entitlement Bucket Parent - Starting deletion for entitlement IDs: ' + entitlementIds);
-        
+        if (entitlementIds.isEmpty()) {
+            return true;
+        }
+
         // First, find all buckets that might be related (either directly or through parent relationships)
         UsageEntitlementBucket[] allBuckets = [
             SELECT Id, Name, ParentId, Parent.Type, Parent.Name 
@@ -327,6 +530,7 @@ public class RCAccountUtilities {
             WHERE ParentId IN :entitlementIds
             OR Id IN :entitlementIds
         ];
+
         System.debug('Found ' + allBuckets.size() + ' total Usage Entitlement Buckets');
         for(UsageEntitlementBucket bucket : allBuckets) {
             System.debug('Bucket: ' + bucket.Name + ' (ID: ' + bucket.Id + ') - Parent: ' + (bucket.ParentId != null ? bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ')' : 'None'));
@@ -479,55 +683,96 @@ public class RCAccountUtilities {
     }
 
     /**
-     * Deletes transaction journals associated with the account.
+     * Deletes TransactionJournal records for a given account.
+     * These records represent financial transactions and can be related to:
+     * - Account
+     * - Orders
+     * - Invoices
      * 
-     * @param accountId The ID of the account whose transaction journals should be deleted
-     * @return Boolean indicating success
+     * This method must be called after deleting Orders but before deleting Invoices
+     * to maintain referential integrity.
+     * 
+     * @param accountId The ID of the account whose records should be deleted
+     * @return Boolean indicating success of the operation
      */
     private static Boolean deleteTransactionJournal(String accountId) {
-        TransactionJournal[] transactionJournalToDelete = 
-            [SELECT Id FROM TransactionJournal WHERE AccountId = :accountId];
-        if (!transactionJournalToDelete.isEmpty()) {
-            Database.delete(transactionJournalToDelete);
+        // Get all TransactionJournals for this account
+        List<TransactionJournal> recordsToDelete = [
+            SELECT Id 
+            FROM TransactionJournal 
+            WHERE AccountId = :accountId
+        ];
+        
+        if (!recordsToDelete.isEmpty()) {
+            Database.delete(recordsToDelete, false);
         }
         return true;
     }
 
     /**
-     * Deletes usage summaries associated with the account.
+     * Deletes UsageSummary records for a given account.
+     * These records represent usage summaries and can be related to:
+     * - Account
+     * - UsageEntitlements
      * 
-     * @param accountId The ID of the account whose usage summaries should be deleted
-     * @return Boolean indicating success
+     * This method must be called after deleting UsageEntitlementAccounts
+     * to maintain referential integrity.
+     * 
+     * @param accountId The ID of the account whose records should be deleted
+     * @return Boolean indicating success of the operation
      */
     private static Boolean deleteUsageSummaries(String accountId) {
-        UsageSummary[] usageSummaryToDelete = 
-            [SELECT Id FROM UsageSummary WHERE AccountId = :accountId];
-        if (!usageSummaryToDelete.isEmpty()) {
-            Database.delete(usageSummaryToDelete);
+        // Get all UsageSummaries for this account
+        List<UsageSummary> recordsToDelete = [
+            SELECT Id 
+            FROM UsageSummary 
+            WHERE AccountId = :accountId
+        ];
+        
+        if (!recordsToDelete.isEmpty()) {
+            Database.delete(recordsToDelete, false);
         }
         return true;
     }
 
     /**
-     * Deletes billing schedule groups associated with the account.
+     * Deletes BillingScheduleGroup records for a given account.
+     * These records represent billing schedule groups and can be related to:
+     * - Account
+     * - BillingSchedules
      * 
-     * @param accountId The ID of the account whose billing schedule groups should be deleted
-     * @return Boolean indicating success
+     * This method must be called after deleting Orders but before deleting Invoices
+     * to maintain referential integrity.
+     * 
+     * @param accountId The ID of the account whose records should be deleted
+     * @return Boolean indicating success of the operation
      */
     private static Boolean deleteBillingScheduleGroups(String accountId) {
-        BillingScheduleGroup[] billingScheduleGroupsToDelete = 
-            [SELECT Id FROM BillingScheduleGroup WHERE BillingAccountId = :accountId];
-        if (!billingScheduleGroupsToDelete.isEmpty()) {
-            Database.delete(billingScheduleGroupsToDelete);
+        // Get all BillingScheduleGroups for this account
+        List<BillingScheduleGroup> recordsToDelete = [
+            SELECT Id 
+            FROM BillingScheduleGroup 
+            WHERE BillingAccountId = :accountId
+        ];
+        
+        if (!recordsToDelete.isEmpty()) {
+            Database.delete(recordsToDelete, false);
         }
         return true;
     }
 
     /**
-     * Deletes contracts associated with the account.
+     * Deletes Contract records for a given account.
+     * These records represent contracts and can be related to:
+     * - Account
+     * - Orders
+     * - Assets
      * 
-     * @param accountId The ID of the account whose contracts should be deleted
-     * @return Boolean indicating success
+     * This method must be called after deleting Orders but before deleting Assets
+     * to maintain referential integrity.
+     * 
+     * @param accountId The ID of the account whose records should be deleted
+     * @return Boolean indicating success of the operation
      */
     private static Boolean deleteContracts(String accountId) {
         Contract[] contractsToDelete = 
