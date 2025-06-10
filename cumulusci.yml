@@ -1229,10 +1229,10 @@ flows:
         options:
           api_names: *rlm_tso_psg_api_names
       3:
-        task: deploy_post_tso
+        task: deploy_post_utils
         when: project_config.project__custom__tso
       4:
-        task: deploy_post_utils
+        task: deploy_post_tso
         when: project_config.project__custom__tso
       5:
         task: assign_permission_sets
