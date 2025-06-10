@@ -3,13 +3,21 @@
     <description>RC Revenue Management Intelligence with Data Cloud and Tableau Next</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC_RMI</label>
+    <permissionSets>force__AnalyticsStoreUser</permissionSets>
+    <permissionSets>force__CDPAdmin</permissionSets>
+    <permissionSets>force__CDPDataAwareSpecialistEnhancedSecurity</permissionSets>
+    <permissionSets>force__CDPMarketingManagerEnhancedSecurity</permissionSets>
+    <permissionSets>force__CDPMarketingSpecialistEnhancedSecurity</permissionSets>
     <permissionSets>force__DataCloudMtrcsVisualizationPsl</permissionSets>
     <permissionSets>force__EinsteinAnalyticsAdmin</permissionSets>
     <permissionSets>force__EinsteinAnalyticsPlusAdmin</permissionSets>
     <permissionSets>force__GenieAdmin</permissionSets>
+    <permissionSets>force__PriceMonitoringRuntimeUser</permissionSets>
     <permissionSets>force__PulseRuntimeUser</permissionSets>
     <permissionSets>force__TableauEinsteinAdmin</permissionSets>
     <permissionSets>force__TableauEinsteinAnalyst</permissionSets>
     <permissionSets>force__TableauEinsteinIncludedAppBusinessUser</permissionSets>
     <permissionSets>force__TableauIncludedAppManager</permissionSets>
+    <permissionSets>force__TableauNextLimitedViewer</permissionSets>
+    <permissionSets>force__TableauUser</permissionSets>
 </PermissionSetGroup>

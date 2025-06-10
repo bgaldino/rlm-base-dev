@@ -1115,7 +1115,7 @@ flows:
           seconds: *sleep_default
       15:
         task: create_dro_rule_library
-        when: project_config.project__custom__dro
+        when: project_config.project__custom__dro and project_config.project__custom__breconfig
       16:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
