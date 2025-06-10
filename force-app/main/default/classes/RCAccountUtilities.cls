@@ -236,16 +236,28 @@ public class RCAccountUtilities {
             // Get Order data once
             OrderData orderData = new OrderData(accountId);
             
-            // First handle orders and their related objects
-            deleteOrders(accountId);
+            // First handle all usage entitlements
+            deleteTransactionUsageEntitlement(accountId);
+            deleteUsageEntitlementAccount(accountId);
+            
+            // Then handle other usage and billing related records
             deleteTransactionJournal(accountId);
             deleteUsageSummaries(accountId);
             deleteBillingScheduleGroups(accountId);
+            if (deleteBilling) {
+                deleteInvoices(accountId);
+            }
             
-            // Handle contracts
+            // Then handle contracts and orders
             deleteContracts(accountId);
-            deleteAssets(accountId);
-            deleteInvoices(accountId);
+            deleteOrders(accountId, orderData);
+            
+            // Handle assets if needed
+            if (deleteAssets) {
+                deleteAssets(accountId);
+            }
+            
+            // Finally handle remaining objects
             deleteQuotes(accountId);
             deleteOpportunities(accountId);
         } catch(Exception e) {
@@ -291,46 +303,30 @@ public class RCAccountUtilities {
     /**
      * Deletes all orders and related objects for an account.
      * The deletion process follows this hierarchy:
-     * 1. Orders
-     * 2. Order Items
-     * 3. Usage Entitlement Accounts (UEA)
-     * 4. Transaction Usage Entitlements (TUE)
-     * 5. Usage Entitlement Buckets (UEB)
-     * 
-     * The UEB deletion is particularly complex as it needs to handle parent-child relationships:
-     * - UEBs can be parents of other UEBs
-     * - UEBs can be children of UEAs or other UEBs
-     * - Deletion must happen from bottom to top of the hierarchy
+     * 1. Usage Entitlement Accounts (UEA)
+     * 2. Transaction Usage Entitlements (TUE)
+     * 3. Orders (after updating to Draft)
      * 
      * @param accountId The ID of the account whose orders should be deleted
+     * @param orderData The OrderData object containing pre-queried information
      * @return Boolean indicating success
      */
-    private static Boolean deleteOrders(String accountId) {
-        Id accountIdConverted = accountId;
-        Order[] ordersToDelete = [SELECT Id FROM Order WHERE AccountId = :accountIdConverted];
-        if (!ordersToDelete.isEmpty()) {
-            Set<Id> orderIds = new Set<Id>();
-            for (Order o : ordersToDelete) {
-                orderIds.add(o.Id);
+    private static Boolean deleteOrders(String accountId, OrderData orderData) {
+        // First delete Usage Entitlement Accounts and Transaction Usage Entitlements
+        deleteUsageEntitlementAccount(accountId);
+        deleteTransactionUsageEntitlement(accountId);
+        
+        // Then handle the orders
+        if (!orderData.orders.isEmpty()) {
+            // Update orders to Draft status before deletion
+            for(Order o : orderData.orders) {
                 o.Status = 'Draft';
             }
-            update ordersToDelete;
+            Database.update(orderData.orders, false);
             
-            OrderItem[] orderItems = getOrderItems(orderIds);
-            if (!orderItems.isEmpty()) {
-                // Delete in correct order: UEA -> TUE -> UEB
-                deleteUsageEntitlementAccount(accountId);
-                deleteTransactionUsageEntitlement(accountId);
-                deleteFulfillmentLineSourceRel(orderItems);
-            }
-            
-            for (Order o : ordersToDelete) {
-                o.Status = 'Draft';
-            }
-            Database.update(ordersToDelete);
-            Database.delete(ordersToDelete);
+            // Delete the orders
+            Database.delete(orderData.orders, false);
         }
-        System.debug('Total Number of SOQL Queries after deleteOrders(): ' + Limits.getQueries());
         return true;
     }
 
