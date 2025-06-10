@@ -173,15 +173,15 @@ project:
     rlm_tso_psg_api_names: &rlm_tso_psg_api_names
       - CopilotSalesforceUserPSG
       - CopilotSalesforceAdminPSG
+      - UnifiedCatalogAdminPsl
+      - UnifiedCatalogDesignerPsl
 
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
-      - EinsteinGPTSalesSummaries
-      - EinsteinGPTSalesEmails
-      - EinsteinGPTSalesCallSummaries
-      - EinsteinGPTGetProductPricing
       - ERIBasic
       - RLM_Utilities
-
+      - OrchestrationProcessManagerPermissionSet
+      - EventMonitoringPermSet
+  
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
       - AdvancedCsvDataImport
       - IndustriesConfiguratorPlatformApi
@@ -231,8 +231,6 @@ project:
       
     ps_quantumbit: &ps_quantumbit
       - RLM_QuantumBit
-      - DocumentBuilderUser
-      - RevLifecycleManagementUsageDesignUser
 
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access

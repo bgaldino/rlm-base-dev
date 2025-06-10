@@ -4,6 +4,7 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC_RMI</label>
     <permissionSets>force__AnalyticsStoreUser</permissionSets>
+    <permissionSets>force__AnalyticsQueryService</permissionSets>
     <permissionSets>force__CDPAdmin</permissionSets>
     <permissionSets>force__CDPDataAwareSpecialistEnhancedSecurity</permissionSets>
     <permissionSets>force__CDPMarketingManagerEnhancedSecurity</permissionSets>
@@ -14,6 +15,7 @@
     <permissionSets>force__GenieAdmin</permissionSets>
     <permissionSets>force__PriceMonitoringRuntimeUser</permissionSets>
     <permissionSets>force__PulseRuntimeUser</permissionSets>
+    <permissionSets>force__QueryForDataPipelines</permissionSets>
     <permissionSets>force__TableauEinsteinAdmin</permissionSets>
     <permissionSets>force__TableauEinsteinAnalyst</permissionSets>
     <permissionSets>force__TableauEinsteinIncludedAppBusinessUser</permissionSets>
