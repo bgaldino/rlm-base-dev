@@ -1,8 +1,6 @@
 public class RCAccountUtilities {
-
     @InvocableMethod(label='Reset Account Related Objects.')
     public static void delAccountRelatedObjects(List<InputVariables> request){
-
         String accountId = request.get(0).accountId;
         Boolean DeleteAssets = request.get(0).DeleteAssets; 
         Boolean DeleteFulfillment = request.get(0).DeleteFulfillment;
@@ -11,6 +9,7 @@ public class RCAccountUtilities {
         //deleteUsageEntitlementAccount(accountId);
        deleteOrders(accountId);
        deleteTransactionJournal(accountId);
+       deleteUsageSummaries(accountId);
        deleteBillingScheduleGroups(accountId);
        deleteContracts(accountId);
        deleteAssets(accountId);
@@ -30,7 +29,6 @@ public class RCAccountUtilities {
       public Boolean DeleteBilling;
     }
         
-
     private static Boolean deleteOpportunities(String accountId) {
         Id a = accountId;
         Opportunity[] opportinitiesToDelete = [SELECT Id FROM Opportunity WHERE AccountId = :a];
@@ -80,16 +78,13 @@ public class RCAccountUtilities {
             Database.update(ordersToDelete);
             Database.delete(ordersToDelete);
         }
-
         System.debug('Total Number of SOQL Queries after deleteOrders(): ' + Limits.getQueries());
-
         return true;
     }
     private static List<OrderItem> getOrderItems(Set<Id> orderIds) {
         OrderItem[] orderItems = [SELECT Id FROM OrderItem WHERE OrderId IN :orderIds];
         return orderItems;
     }
-
     
     // Fulfillment Records *** START **
     private static Boolean deleteFulfillmentLineSourceRel(OrderItem[] orderItems) {
@@ -105,7 +100,6 @@ public class RCAccountUtilities {
         }
         return true;
     }
-
     // Delete Usage Entitlement Buckets
     private static Boolean deleteUsageEntitlementBucket(Set<Id> entitlementIds) {
         System.debug('Delete Entitlement Bucket');
@@ -113,7 +107,6 @@ public class RCAccountUtilities {
         if (!usageEntitlementBucketsToDelete.isEmpty()) {
             Database.delete(usageEntitlementBucketsToDelete);
         }
-
         return true;
     }
     private static Boolean deleteUsageEntitlementBucketParent(Set<Id> entitlementIds) {
@@ -122,7 +115,6 @@ public class RCAccountUtilities {
         if (!usageEntitlementBucketsToDelete.isEmpty()) {
             Database.delete(usageEntitlementBucketsToDelete);
         }
-
         return true;
     }
      // Delete TransactionUsageEntitlement
@@ -168,7 +160,14 @@ public class RCAccountUtilities {
         }
         return true;
     }   
-    
+    private static Boolean deleteUsageSummaries(String accountId) {
+     //   Id a = AccountId;
+        UsageSummary [] UsageSummaryToDelete = [SELECT Id FROM UsageSummary WHERE AccountId = :accountId];
+        if (!UsageSummaryToDelete.isEmpty()) {
+            Database.delete(UsageSummaryToDelete);
+        }
+        return true;
+    }   
     
     private static Boolean deleteBillingScheduleGroups(String accountId) {
      //   Id a = AccountId;
@@ -195,7 +194,6 @@ public class RCAccountUtilities {
         if (!assetRelationshipToDelete.isEmpty()) {
             Database.delete(assetRelationshipToDelete);
         }
-
         return true;
     }
     
