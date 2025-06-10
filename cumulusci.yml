@@ -178,7 +178,7 @@ project:
 
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
       - ERIBasic
-      - RLM_Utilities
+      - RC_Utilities
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   

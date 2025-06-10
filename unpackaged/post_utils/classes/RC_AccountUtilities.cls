@@ -1,38 +1,31 @@
 /**
- * Utility class for managing account-related object deletions.
- * This class provides methods to delete various objects related to an account in the correct order
- * to maintain referential integrity. It handles:
+ * RC_AccountUtilities
  * 
- * 1. Order Management:
- *    - Orders and OrderItems
- *    - TransactionUsageEntitlements
- *    - UsageEntitlementAccounts
+ * This class provides functionality to delete all related objects for an account in the correct order.
+ * It handles complex relationships between objects, particularly focusing on Usage Entitlement Buckets
+ * which have parent-child relationships that must be respected during deletion.
  * 
- * 2. Fulfillment Management:
- *    - FulfillmentOrders and FulfillmentOrderLineItems
- *    - FulfillmentPlans and FulfillmentSteps
- *    - FulfillmentAssets and AssetFulfillmentDecomp
- *    - FulfillmentLineSourceRel and FulfillmentStepSource
+ * The deletion process follows this general hierarchy:
+ * 1. Orders and Order Items
+ * 2. Usage Entitlement Accounts (UEA)
+ * 3. Transaction Usage Entitlements (TUE)
+ * 4. Usage Entitlement Buckets (UEB)
+ * 5. Assets and Asset Relationships
+ * 6. Contracts
+ * 7. Invoices
+ * 8. Quotes
+ * 9. Opportunities
  * 
- * 3. Usage and Billing:
- *    - TransactionJournals
- *    - UsageSummaries
- *    - BillingScheduleGroups
- *    - Invoices
- * 
- * 4. Other Related Objects:
- *    - Contracts
- *    - Quotes
- *    - Opportunities
- *    - Assets
- * 
- * The class uses a centralized data structure (OrderData) to avoid redundant queries
- * and ensure efficient deletion of related objects.
+ * Special attention is paid to the Usage Entitlement Bucket deletion process, which must:
+ * - Handle parent-child relationships
+ * - Delete child buckets before parent buckets
+ * - Maintain referential integrity
+ * - Handle complex multi-level hierarchies
  * 
  * @author John Rozsits, Brian Galdino, Anthropic Claude 4 Sonnet
  * @date 2025-06-10
  */
-public class RCAccountUtilities {
+public class RC_AccountUtilities {
     /**
      * Input variables for the account cleanup process.
      * These variables control which types of objects should be deleted.
@@ -87,6 +80,10 @@ public class RCAccountUtilities {
         // FulfillmentOrderLineItems and their IDs
         public List<FulfillmentOrderLineItem> fulfillmentOrderLineItems;
         public Set<Id> fulfillmentOrderLineItemIds;
+
+        // FulfillmentLineSourceRel records
+        public List<FulfillmentLineSourceRel> fulfillmentLineSourceRels;
+        public Set<Id> fulfillmentLineSourceRelIds;
         
         /**
          * Constructor that initializes all data for the given account.
@@ -98,6 +95,7 @@ public class RCAccountUtilities {
          * 5. FulfillmentSteps (depends on FulfillmentPlans)
          * 6. FulfillmentAssets (depends on Account)
          * 7. FulfillmentOrderLineItems (depends on FulfillmentOrders)
+         * 8. FulfillmentLineSourceRel (depends on OrderItems)
          */
         public OrderData(String accountId) {
             // Get all Orders for this account
@@ -169,12 +167,18 @@ public class RCAccountUtilities {
             }
 
             // Get all FulfillmentPlans for these orders and order items
+            System.debug('Querying FulfillmentPlans');
+            System.debug('Source identifiers for query: ' + this.sourceIdentifiers);
             this.fulfillmentPlans = [
-                SELECT Id 
+                SELECT Id, SourceIdentifier, SourceType 
                 FROM FulfillmentPlan 
                 WHERE SourceIdentifier IN :this.sourceIdentifiers
                 AND (SourceType = 'StandardOrder' OR SourceType = 'OrderItem')
             ];
+            System.debug('Found ' + this.fulfillmentPlans.size() + ' FulfillmentPlan records');
+            for(FulfillmentPlan plan : this.fulfillmentPlans) {
+                System.debug('FulfillmentPlan - ID: ' + plan.Id + ', SourceIdentifier: ' + plan.SourceIdentifier + ', SourceType: ' + plan.SourceType);
+            }
             
             this.fulfillmentPlanIds = new Set<Id>();
             for(FulfillmentPlan plan : this.fulfillmentPlans) {
@@ -216,45 +220,26 @@ public class RCAccountUtilities {
             for(FulfillmentOrderLineItem foli : this.fulfillmentOrderLineItems) {
                 this.fulfillmentOrderLineItemIds.add(foli.Id);
             }
+
+            // Get all FulfillmentLineSourceRel records for these order items
+            this.fulfillmentLineSourceRels = [
+                SELECT Id 
+                FROM FulfillmentLineSourceRel 
+                WHERE SourceLineItemId IN :this.orderItemIds
+                OR FulfilmentOrderLineId IN :this.fulfillmentOrderLineItemIds
+            ];
+            
+            this.fulfillmentLineSourceRelIds = new Set<Id>();
+            for(FulfillmentLineSourceRel flsr : this.fulfillmentLineSourceRels) {
+                this.fulfillmentLineSourceRelIds.add(flsr.Id);
+            }
         }
     }
 
     /**
      * Main Method
      * Entry point for the account cleanup process.
-     * This method orchestrates the deletion of all related objects in the correct order:
-     * 
-     * 1. Orders and Related Objects:
-     *    - Orders (after updating to Draft)
-     *    - TransactionUsageEntitlements
-     *    - UsageEntitlementAccounts
-     * 
-     * 2. Usage and Billing:
-     *    - TransactionJournals
-     *    - UsageSummaries
-     *    - BillingScheduleGroups
-     * 
-     * 3. Contracts and Assets:
-     *    - Contracts
-     *    - Assets (if DeleteAssets is true)
-     * 
-     * 4. Fulfillment Objects (if DeleteFulfillment is true):
-     *    - FulfillmentLineSourceRel
-     *    - FulfillmentStepSource
-     *    - FulfillmentOrderLineItem
-     *    - FulfillmentOrder
-     *    - FulfillmentPlan
-     *    - FulfillmentAsset
-     *    - AssetFulfillmentDecomp
-     * 
-     * 5. Sales Objects:
-     *    - Quotes
-     *    - Opportunities
-     * 
-     * 6. Billing Objects (if DeleteBilling is true):
-     *    - Invoices
-     * 
-     * The method uses a savepoint to ensure all deletions are rolled back if any error occurs.
+     * This method orchestrates the deletion of all related objects in the correct order.
      * 
      * @param request List of InputVariables containing the account ID and deletion flags
      */
@@ -275,51 +260,45 @@ public class RCAccountUtilities {
             // Get Order data once
             OrderData orderData = new OrderData(accountId);
             
-            // First handle orders and their related objects
-            deleteOrders(accountId, orderData);
-            
-            // Then handle usage entitlements
+            // First handle all usage entitlements
             deleteTransactionUsageEntitlement(accountId);
             deleteUsageEntitlementAccount(accountId);
             
-            // Then handle journals and summaries
+            // Then handle other usage and billing related records
             deleteTransactionJournal(accountId);
             deleteUsageSummaries(accountId);
             deleteBillingScheduleGroups(accountId);
-            
-            // Handle contracts
-            deleteContracts(accountId);
-            
-            if (deleteFulfillment) {
-                // Delete fulfillment objects in the correct order
-                // First delete the source relationships
-                deleteFulfillmentLineSourceRel(accountId, orderData);
-                deleteFulfillmentStepSource(accountId, orderData);
-                
-                // Then delete the line items
-                deleteFulfillmentOrderLineItem(accountId, orderData);
-                
-                // Then delete the orders
-                deleteFulfillmentOrder(accountId, orderData);
-                
-                // Finally delete the plans
-                deleteFulfillmentPlan(accountId, orderData);
-                
-                // Delete quotes and opportunities last
-                deleteQuotes(accountId);
-                deleteOpportunities(accountId);
-            }
-            
-            // Handle assets and billing after fulfillment is cleaned up
-            if (deleteAssets) {
-                deleteAssets(accountId);
-                deleteFulfillmentAsset(accountId, orderData);
-                deleteAssetFulfillmentDecomp(accountId, orderData);
-            }
             if (deleteBilling) {
                 deleteInvoices(accountId);
             }
-        } catch (Exception e) {
+            
+            // Handle fulfillment records if needed (before contracts and orders)
+            if (deleteFulfillment) {
+                deleteFulfillmentLineSourceRel(accountId, orderData);
+                deleteFulfillmentStepSource(accountId, orderData);
+                deleteFulfillmentOrderLineItem(accountId, orderData);
+                deleteFulfillmentOrder(accountId, orderData);
+            }
+            
+            // Then handle contracts and orders
+            deleteContracts(accountId);
+            deleteOrders(accountId, orderData);
+
+            if (deleteFulfillment) {
+                deleteFulfillmentPlan(accountId, orderData);
+                deleteAssetFulfillmentDecomp(accountId, orderData);
+                deleteFulfillmentAsset(accountId, orderData);
+            }
+            
+            // Handle assets if needed
+            if (deleteAssets) {
+                deleteAssets(accountId);
+            }
+            
+            // Finally handle remaining objects
+            deleteQuotes(accountId);
+            deleteOpportunities(accountId);
+        } catch(Exception e) {
             Database.rollback(sp);
             throw e;
         }
@@ -361,10 +340,21 @@ public class RCAccountUtilities {
 
     /**
      * Deletes all orders and related objects for an account.
-     * Uses a single query to get all related objects.
+     * The deletion process follows this hierarchy:
+     * 1. Usage Entitlement Accounts (UEA)
+     * 2. Transaction Usage Entitlements (TUE)
+     * 3. Orders (after updating to Draft)
+     * 
+     * @param accountId The ID of the account whose orders should be deleted
+     * @param orderData The OrderData object containing pre-queried information
+     * @return Boolean indicating success
      */
     private static Boolean deleteOrders(String accountId, OrderData orderData) {
-        // First get all Orders for this account
+        // First delete Usage Entitlement Accounts and Transaction Usage Entitlements
+        deleteUsageEntitlementAccount(accountId);
+        deleteTransactionUsageEntitlement(accountId);
+        
+        // Then handle the orders
         if (!orderData.orders.isEmpty()) {
             // Update orders to Draft status before deletion
             for(Order o : orderData.orders) {
@@ -389,193 +379,312 @@ public class RCAccountUtilities {
     }
 
     /**
-     * Deletes FulfillmentLineSourceRel records for a given account.
-     * These records establish relationships between:
-     * - FulfillmentOrderLineItems and OrderItems
-     * - FulfillmentOrderLineItems and other FulfillmentOrderLineItems
-     * 
-     * This method must be called before deleting FulfillmentOrderLineItems
-     * to maintain referential integrity.
-     * 
-     * @param accountId The ID of the account whose records should be deleted
-     * @param orderData The OrderData object containing pre-queried information
-     * @return Boolean indicating success of the operation
-     */
-    private static Boolean deleteFulfillmentLineSourceRel(String accountId, OrderData orderData) {
-        // Get all FulfillmentLineSourceRel records that reference either line items
-        List<FulfillmentLineSourceRel> recordsToDelete = [
-            SELECT Id 
-            FROM FulfillmentLineSourceRel 
-            WHERE SourceLineItemId IN :orderData.orderItemIds
-            OR FulfilmentOrderLineId IN :orderData.fulfillmentOrderLineItemIds
-        ];
-        
-        if (!recordsToDelete.isEmpty()) {
-            Database.delete(recordsToDelete, false);
-        }
-        return true;
-    }
-
-    /**
      * Deletes Usage Entitlement Buckets (UEB) related to Transaction Usage Entitlements (TUE).
-     * Uses a single query to get all related buckets and builds the hierarchy.
+     * The deletion process:
+     * 1. Finds all UEBs related to the TUEs (either directly or through parent relationships)
+     * 2. Builds a complete map of parent-child relationships
+     * 3. Identifies top-level parent buckets
+     * 4. Deletes buckets level by level, starting from the bottom of the hierarchy
+     * 5. Finally deletes top-level parent buckets
+     * 
+     * This ensures that child buckets are always deleted before their parents.
+     * 
+     * @param entitlementIds Set of Transaction Usage Entitlement IDs
+     * @return Boolean indicating success
      */
     private static Boolean deleteUsageEntitlementBucket(Set<Id> entitlementIds) {
+        System.debug('Delete Entitlement Bucket - Starting deletion for entitlement IDs: ' + entitlementIds);
         if (entitlementIds.isEmpty()) {
             return true;
         }
 
-        // Get all related buckets in a single query
-        List<UsageEntitlementBucket> allBuckets = [
+        // First, find all buckets that might be related (either directly or through parent relationships)
+        UsageEntitlementBucket[] allBuckets = [
             SELECT Id, Name, ParentId, Parent.Type, Parent.Name 
             FROM UsageEntitlementBucket 
             WHERE TransactionUsageEntitlementId IN :entitlementIds
             OR ParentId IN :entitlementIds
             OR Id IN :entitlementIds
         ];
-
-        return deleteBucketsInOrder(allBuckets);
+        System.debug('Found ' + allBuckets.size() + ' total Usage Entitlement Buckets');
+        for(UsageEntitlementBucket bucket : allBuckets) {
+            System.debug('Bucket: ' + bucket.Name + ' (ID: ' + bucket.Id + ') - Parent: ' + (bucket.ParentId != null ? bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ')' : 'None'));
+        }
+        
+        // Create maps to track relationships
+        Map<Id, List<Id>> parentToChildrenMap = new Map<Id, List<Id>>();
+        Map<Id, Id> childToParentMap = new Map<Id, Id>();
+        Set<Id> allBucketIds = new Set<Id>();
+        
+        // First pass - collect all bucket IDs and build child-to-parent map
+        for(UsageEntitlementBucket bucket : allBuckets) {
+            allBucketIds.add(bucket.Id);
+            if(bucket.ParentId != null) {
+                childToParentMap.put(bucket.Id, bucket.ParentId);
+            }
+        }
+        
+        // Find all child buckets
+        UsageEntitlementBucket[] childBuckets = [
+            SELECT Id, Name, ParentId, Parent.Type, Parent.Name 
+            FROM UsageEntitlementBucket 
+            WHERE ParentId IN :allBucketIds
+        ];
+        System.debug('Found ' + childBuckets.size() + ' child buckets');
+        for(UsageEntitlementBucket bucket : childBuckets) {
+            System.debug('Child Bucket: ' + bucket.Name + ' (ID: ' + bucket.Id + ') - Parent: ' + bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ')');
+            allBucketIds.add(bucket.Id);
+            childToParentMap.put(bucket.Id, bucket.ParentId);
+        }
+        
+        // Build parent-to-children map
+        for(UsageEntitlementBucket bucket : childBuckets) {
+            if(bucket.ParentId != null && bucket.Parent.Type == 'UsageEntitlementBucket') {
+                if(!parentToChildrenMap.containsKey(bucket.ParentId)) {
+                    parentToChildrenMap.put(bucket.ParentId, new List<Id>());
+                }
+                parentToChildrenMap.get(bucket.ParentId).add(bucket.Id);
+                System.debug('Added relationship - Parent: ' + bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ') -> Child: ' + bucket.Name + ' (ID: ' + bucket.Id + ')');
+            }
+        }
+        
+        // Find top-level parent buckets (those that are not children of any other bucket)
+        Set<Id> topLevelParentIds = new Set<Id>();
+        for(Id bucketId : allBucketIds) {
+            if(!childToParentMap.containsKey(bucketId)) {
+                topLevelParentIds.add(bucketId);
+            }
+        }
+        System.debug('Found ' + topLevelParentIds.size() + ' top-level parent buckets');
+        
+        // Process buckets level by level, starting from the bottom
+        Set<Id> processedIds = new Set<Id>();
+        Set<Id> currentLevel = new Set<Id>(allBucketIds);
+        currentLevel.removeAll(topLevelParentIds);
+        
+        while(!currentLevel.isEmpty()) {
+            Set<Id> nextLevel = new Set<Id>();
+            Set<Id> toDelete = new Set<Id>();
+            
+            // Find leaf nodes (buckets that have no children or whose children are already processed)
+            for(Id bucketId : currentLevel) {
+                if(!parentToChildrenMap.containsKey(bucketId) || 
+                   (parentToChildrenMap.containsKey(bucketId) && 
+                    processedIds.containsAll(parentToChildrenMap.get(bucketId)))) {
+                    toDelete.add(bucketId);
+                } else {
+                    nextLevel.add(bucketId);
+                }
+            }
+            
+            // Delete leaf nodes
+            if(!toDelete.isEmpty()) {
+                System.debug('Deleting ' + toDelete.size() + ' leaf buckets');
+                try {
+                    Database.delete([SELECT Id, Name FROM UsageEntitlementBucket WHERE Id IN :toDelete]);
+                    System.debug('Successfully deleted leaf buckets');
+                    processedIds.addAll(toDelete);
+                } catch(Exception e) {
+                    System.debug('Error deleting leaf buckets: ' + e.getMessage());
+                    System.debug('Stack trace: ' + e.getStackTraceString());
+                    throw e;
+                }
+            }
+            
+            currentLevel = nextLevel;
+        }
+        
+        // Finally delete top-level parent buckets
+        if(!topLevelParentIds.isEmpty()) {
+            System.debug('Deleting ' + topLevelParentIds.size() + ' top-level parent buckets');
+            try {
+                Database.delete([SELECT Id, Name FROM UsageEntitlementBucket WHERE Id IN :topLevelParentIds]);
+                System.debug('Successfully deleted top-level parent buckets');
+            } catch(Exception e) {
+                System.debug('Error deleting top-level parent buckets: ' + e.getMessage());
+                System.debug('Stack trace: ' + e.getStackTraceString());
+                throw e;
+            }
+        }
+        
+        return true;
     }
 
     /**
      * Deletes Usage Entitlement Buckets (UEB) related to Usage Entitlement Accounts (UEA).
-     * Uses a single query to get all related buckets and builds the hierarchy.
+     * The deletion process:
+     * 1. Finds all UEBs related to the UEAs (either directly or through parent relationships)
+     * 2. Builds a complete map of parent-child relationships
+     * 3. Identifies top-level parent buckets
+     * 4. Deletes buckets level by level, starting from the bottom of the hierarchy
+     * 5. Finally deletes top-level parent buckets
+     * 
+     * This ensures that child buckets are always deleted before their parents.
+     * 
+     * @param entitlementIds Set of Usage Entitlement Account IDs
+     * @return Boolean indicating success
      */
     private static Boolean deleteUsageEntitlementBucketParent(Set<Id> entitlementIds) {
+        System.debug('Delete Entitlement Bucket Parent - Starting deletion for entitlement IDs: ' + entitlementIds);
         if (entitlementIds.isEmpty()) {
             return true;
         }
 
-        // Get all related buckets in a single query
-        List<UsageEntitlementBucket> allBuckets = [
+        // First, find all buckets that might be related (either directly or through parent relationships)
+        UsageEntitlementBucket[] allBuckets = [
             SELECT Id, Name, ParentId, Parent.Type, Parent.Name 
             FROM UsageEntitlementBucket 
             WHERE ParentId IN :entitlementIds
             OR Id IN :entitlementIds
         ];
 
-        return deleteBucketsInOrder(allBuckets);
-    }
-
-    /**
-     * Helper method to delete buckets in the correct order.
-     * Handles the common logic for both bucket deletion methods.
-     */
-    private static Boolean deleteBucketsInOrder(List<UsageEntitlementBucket> allBuckets) {
-        if (allBuckets.isEmpty()) {
-            return true;
+        System.debug('Found ' + allBuckets.size() + ' total Usage Entitlement Buckets');
+        for(UsageEntitlementBucket bucket : allBuckets) {
+            System.debug('Bucket: ' + bucket.Name + ' (ID: ' + bucket.Id + ') - Parent: ' + (bucket.ParentId != null ? bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ')' : 'None'));
         }
-
+        
         // Create maps to track relationships
         Map<Id, List<Id>> parentToChildrenMap = new Map<Id, List<Id>>();
         Map<Id, Id> childToParentMap = new Map<Id, Id>();
         Set<Id> allBucketIds = new Set<Id>();
-
-        // Build relationship maps
-        for (UsageEntitlementBucket bucket : allBuckets) {
+        
+        // First pass - collect all bucket IDs and build child-to-parent map
+        for(UsageEntitlementBucket bucket : allBuckets) {
             allBucketIds.add(bucket.Id);
-            if (bucket.ParentId != null) {
+            if(bucket.ParentId != null) {
                 childToParentMap.put(bucket.Id, bucket.ParentId);
-                if (!parentToChildrenMap.containsKey(bucket.ParentId)) {
+            }
+        }
+        
+        // Find all child buckets
+        UsageEntitlementBucket[] childBuckets = [
+            SELECT Id, Name, ParentId, Parent.Type, Parent.Name 
+            FROM UsageEntitlementBucket 
+            WHERE ParentId IN :allBucketIds
+        ];
+        System.debug('Found ' + childBuckets.size() + ' child buckets');
+        for(UsageEntitlementBucket bucket : childBuckets) {
+            System.debug('Child Bucket: ' + bucket.Name + ' (ID: ' + bucket.Id + ') - Parent: ' + bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ')');
+            allBucketIds.add(bucket.Id);
+            childToParentMap.put(bucket.Id, bucket.ParentId);
+        }
+        
+        // Build parent-to-children map
+        for(UsageEntitlementBucket bucket : childBuckets) {
+            if(bucket.ParentId != null && bucket.Parent.Type == 'UsageEntitlementBucket') {
+                if(!parentToChildrenMap.containsKey(bucket.ParentId)) {
                     parentToChildrenMap.put(bucket.ParentId, new List<Id>());
                 }
                 parentToChildrenMap.get(bucket.ParentId).add(bucket.Id);
+                System.debug('Added relationship - Parent: ' + bucket.Parent.Name + ' (ID: ' + bucket.ParentId + ') -> Child: ' + bucket.Name + ' (ID: ' + bucket.Id + ')');
             }
         }
-
-        // Find top-level parent buckets
+        
+        // Find top-level parent buckets (those that are not children of any other bucket)
         Set<Id> topLevelParentIds = new Set<Id>();
-        for (Id bucketId : allBucketIds) {
-            if (!childToParentMap.containsKey(bucketId)) {
+        for(Id bucketId : allBucketIds) {
+            if(!childToParentMap.containsKey(bucketId)) {
                 topLevelParentIds.add(bucketId);
             }
         }
-
-        // Process buckets level by level
+        System.debug('Found ' + topLevelParentIds.size() + ' top-level parent buckets');
+        
+        // Process buckets level by level, starting from the bottom
         Set<Id> processedIds = new Set<Id>();
         Set<Id> currentLevel = new Set<Id>(allBucketIds);
         currentLevel.removeAll(topLevelParentIds);
-
-        while (!currentLevel.isEmpty()) {
+        
+        while(!currentLevel.isEmpty()) {
             Set<Id> nextLevel = new Set<Id>();
             Set<Id> toDelete = new Set<Id>();
-
-            // Find leaf nodes
-            for (Id bucketId : currentLevel) {
-                if (!parentToChildrenMap.containsKey(bucketId) || 
-                    (parentToChildrenMap.containsKey(bucketId) && 
-                     processedIds.containsAll(parentToChildrenMap.get(bucketId)))) {
+            
+            // Find leaf nodes (buckets that have no children or whose children are already processed)
+            for(Id bucketId : currentLevel) {
+                if(!parentToChildrenMap.containsKey(bucketId) || 
+                   (parentToChildrenMap.containsKey(bucketId) && 
+                    processedIds.containsAll(parentToChildrenMap.get(bucketId)))) {
                     toDelete.add(bucketId);
                 } else {
                     nextLevel.add(bucketId);
                 }
             }
-
+            
             // Delete leaf nodes
-            if (!toDelete.isEmpty()) {
-                Database.delete([SELECT Id FROM UsageEntitlementBucket WHERE Id IN :toDelete], false);
-                processedIds.addAll(toDelete);
+            if(!toDelete.isEmpty()) {
+                System.debug('Deleting ' + toDelete.size() + ' leaf buckets');
+                try {
+                    Database.delete([SELECT Id, Name FROM UsageEntitlementBucket WHERE Id IN :toDelete]);
+                    System.debug('Successfully deleted leaf buckets');
+                    processedIds.addAll(toDelete);
+                } catch(Exception e) {
+                    System.debug('Error deleting leaf buckets: ' + e.getMessage());
+                    System.debug('Stack trace: ' + e.getStackTraceString());
+                    throw e;
+                }
             }
-
+            
             currentLevel = nextLevel;
         }
-
-        // Delete top-level parent buckets
-        if (!topLevelParentIds.isEmpty()) {
-            Database.delete([SELECT Id FROM UsageEntitlementBucket WHERE Id IN :topLevelParentIds], false);
+        
+        // Finally delete top-level parent buckets
+        if(!topLevelParentIds.isEmpty()) {
+            System.debug('Deleting ' + topLevelParentIds.size() + ' top-level parent buckets');
+            try {
+                Database.delete([SELECT Id, Name FROM UsageEntitlementBucket WHERE Id IN :topLevelParentIds]);
+                System.debug('Successfully deleted top-level parent buckets');
+            } catch(Exception e) {
+                System.debug('Error deleting top-level parent buckets: ' + e.getMessage());
+                System.debug('Stack trace: ' + e.getStackTraceString());
+                throw e;
+            }
         }
-
+        
         return true;
     }
 
     /**
-     * Deletes TransactionUsageEntitlement records for a given account.
-     * These records represent usage entitlements for transactions and can be related to:
-     * - OrderItems
-     * - UsageEntitlementAccounts
+     * Deletes Transaction Usage Entitlements (TUE) and their related Usage Entitlement Buckets (UEB)
+     * for a given account.
      * 
-     * This method must be called after deleting Orders but before deleting UsageEntitlementAccounts
-     * to maintain referential integrity.
-     * 
-     * @param accountId The ID of the account whose records should be deleted
-     * @return Boolean indicating success of the operation
+     * @param accountId The ID of the account whose TUEs should be deleted
+     * @return Boolean indicating success
      */
     private static Boolean deleteTransactionUsageEntitlement(String accountId) {
-        // Get all TransactionUsageEntitlements for this account
-        List<TransactionUsageEntitlement> recordsToDelete = [
-            SELECT Id 
-            FROM TransactionUsageEntitlement 
-            WHERE AccountId = :accountId
-        ];
-        
-        if (!recordsToDelete.isEmpty()) {
-            Database.delete(recordsToDelete, false);
+        Id accountIdConverted = accountId;
+        System.debug('JOHN');
+        TransactionUsageEntitlement[] transactionUsageEntitlementToDelete = 
+            [SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountIdConverted];
+        if (!transactionUsageEntitlementToDelete.isEmpty()) {
+            Set<Id> tueIds = new Set<Id>();
+            for (TransactionUsageEntitlement tue : transactionUsageEntitlementToDelete) {
+                tueIds.add(tue.Id);
+            }
+            deleteUsageEntitlementBucket(tueIds);
+            Database.delete(transactionUsageEntitlementToDelete);
         }
         return true;
     }
 
     /**
-     * Deletes UsageEntitlementAccount records for a given account.
-     * These records represent usage entitlements at the account level and can be related to:
-     * - Account
-     * - UsageEntitlementBuckets
+     * Deletes Usage Entitlement Accounts (UEA) and their related Usage Entitlement Buckets (UEB)
+     * for a given account.
      * 
-     * This method must be called after deleting TransactionUsageEntitlements
-     * to maintain referential integrity.
-     * 
-     * @param accountId The ID of the account whose records should be deleted
-     * @return Boolean indicating success of the operation
+     * @param accountId The ID of the account whose UEAs should be deleted
+     * @return Boolean indicating success
      */
     private static Boolean deleteUsageEntitlementAccount(String accountId) {
-        // Get all UsageEntitlementAccounts for this account
-        List<UsageEntitlementAccount> recordsToDelete = [
-            SELECT Id 
-            FROM UsageEntitlementAccount 
-            WHERE AccountId = :accountId
-        ];
-        
-        if (!recordsToDelete.isEmpty()) {
-            Database.delete(recordsToDelete, false);
+        Id accountIdConverted = accountId;
+        System.debug('UEA ' + accountIdConverted);
+        UsageEntitlementAccount[] usageEntitlementAccountToDelete = 
+            [SELECT Id FROM UsageEntitlementAccount WHERE AccountId = :accountIdConverted];
+        if (!usageEntitlementAccountToDelete.isEmpty()) {
+            Set<Id> ueaIds = new Set<Id>();
+            for (UsageEntitlementAccount uea : usageEntitlementAccountToDelete) {
+                ueaIds.add(uea.Id);
+            }
+            System.debug('UEA Ids ' + ueaIds);
+            deleteUsageEntitlementBucketParent(ueaIds);
+            Database.delete(usageEntitlementAccountToDelete);
         }
         return true;
     }
@@ -673,33 +782,47 @@ public class RCAccountUtilities {
      * @return Boolean indicating success of the operation
      */
     private static Boolean deleteContracts(String accountId) {
-        // Get all Contracts for this account
-        List<Contract> recordsToDelete = [
-            SELECT Id 
-            FROM Contract 
-            WHERE AccountId = :accountId
-        ];
-        
-        if (!recordsToDelete.isEmpty()) {
-            Database.delete(recordsToDelete, false);
+        Contract[] contractsToDelete = 
+            [SELECT Id FROM Contract WHERE AccountId = :accountId];
+        if (!contractsToDelete.isEmpty()) {
+            Database.delete(contractsToDelete);
+        }
+        return true;
+    }
+
+    /**
+     * Deletes asset relationships for a set of assets.
+     * 
+     * @param assetIds Set of asset IDs whose relationships should be deleted
+     * @return Boolean indicating success
+     */
+    private static Boolean deleteAssetRelationship(Set<Id> assetIds) {
+        AssetRelationship[] assetRelationshipToDelete = 
+            [SELECT Id FROM AssetRelationship WHERE AssetId IN :assetIds];
+        if (!assetRelationshipToDelete.isEmpty()) {
+            Database.delete(assetRelationshipToDelete);
         }
         return true;
     }
 
     /**
      * Deletes assets and their relationships associated with the account.
-     * Uses a single query to get all related objects.
+     * 
+     * @param accountId The ID of the account whose assets should be deleted
+     * @return Boolean indicating success
      */
     private static Boolean deleteAssets(String accountId) {
-        // Get all Assets for this account
-        List<Asset> recordsToDelete = [
-            SELECT Id 
-            FROM Asset 
-            WHERE AccountId = :accountId
-        ];
-        
-        if (!recordsToDelete.isEmpty()) {
-            Database.delete(recordsToDelete, false);
+        Id accountIdConverted = accountId;
+        System.debug('ASS ' + accountIdConverted);
+        Asset[] assetsToDelete = [SELECT Id FROM Asset WHERE AccountId = :accountIdConverted];
+        if (!assetsToDelete.isEmpty()) {
+            Set<Id> assIds = new Set<Id>();
+            for (Asset ass : assetsToDelete) {
+                assIds.add(ass.Id);
+            }
+            System.debug('ASS Ids ' + assIds);
+            deleteAssetRelationship(assIds);
+            Database.delete(assetsToDelete);
         }
         return true;
     }
@@ -711,11 +834,35 @@ public class RCAccountUtilities {
      * @return Boolean indicating success
      */
     private static Boolean deleteInvoices(String accountId) {
-        // Get all Invoices for this account
-        List<Invoice> recordsToDelete = [
+        Invoice[] invoicesToDelete = 
+            [SELECT Id FROM Invoice WHERE BillingAccountId = :accountId AND Status = 'Draft'];
+        if (!invoicesToDelete.isEmpty()) {
+            Database.delete(invoicesToDelete);
+        }
+        return true;
+    }
+
+
+        /**
+     * Deletes FulfillmentLineSourceRel records for a given account.
+     * These records establish relationships between:
+     * - FulfillmentOrderLineItems and OrderItems
+     * - FulfillmentOrderLineItems and other FulfillmentOrderLineItems
+     * 
+     * This method must be called before deleting FulfillmentOrderLineItems
+     * to maintain referential integrity.
+     * 
+     * @param accountId The ID of the account whose records should be deleted
+     * @param orderData The OrderData object containing pre-queried information
+     * @return Boolean indicating success of the operation
+     */
+    private static Boolean deleteFulfillmentLineSourceRel(String accountId, OrderData orderData) {
+        // Get all FulfillmentLineSourceRel records that reference either line items
+        List<FulfillmentLineSourceRel> recordsToDelete = [
             SELECT Id 
-            FROM Invoice 
-            WHERE BillingAccountId = :accountId
+            FROM FulfillmentLineSourceRel 
+            WHERE SourceLineItemId IN :orderData.orderItemIds
+            OR FulfilmentOrderLineId IN :orderData.fulfillmentOrderLineItemIds
         ];
         
         if (!recordsToDelete.isEmpty()) {
@@ -723,6 +870,7 @@ public class RCAccountUtilities {
         }
         return true;
     }
+
 
     /**
      * Deletes FulfillmentStepSource records for a given account.
@@ -807,8 +955,55 @@ public class RCAccountUtilities {
      * @return Boolean indicating success of the operation
      */
     private static Boolean deleteFulfillmentPlan(String accountId, OrderData orderData) {
+        System.debug('Starting deleteFulfillmentPlan');
+        System.debug('Number of FulfillmentPlans found: ' + orderData.fulfillmentPlans.size());
+        System.debug('FulfillmentPlan IDs: ' + orderData.fulfillmentPlanIds);
+        
         if (!orderData.fulfillmentPlans.isEmpty()) {
-            Database.delete(orderData.fulfillmentPlans, false);
+            try {
+                // First, let's verify the records still exist
+                List<FulfillmentPlan> verifyPlans = [
+                    SELECT Id, SourceIdentifier, SourceType 
+                    FROM FulfillmentPlan 
+                    WHERE Id IN :orderData.fulfillmentPlanIds
+                ];
+                System.debug('Verification query found ' + verifyPlans.size() + ' plans');
+                for(FulfillmentPlan plan : verifyPlans) {
+                    System.debug('Plan to delete - ID: ' + plan.Id + ', SourceIdentifier: ' + plan.SourceIdentifier + ', SourceType: ' + plan.SourceType);
+                }
+                
+                // Try to delete with allOrNone=false to get detailed errors
+                Database.DeleteResult[] results = Database.delete(verifyPlans, false);
+                
+                // Check results
+                for(Database.DeleteResult result : results) {
+                    if(!result.isSuccess()) {
+                        for(Database.Error err : result.getErrors()) {
+                            System.debug('Error deleting FulfillmentPlan ' + result.getId() + ': ' + err.getMessage());
+                            System.debug('Error fields: ' + err.getFields());
+                            System.debug('Error status code: ' + err.getStatusCode());
+                        }
+                    }
+                }
+                
+                // Verify deletion
+                List<FulfillmentPlan> remainingPlans = [
+                    SELECT Id, SourceIdentifier, SourceType 
+                    FROM FulfillmentPlan 
+                    WHERE Id IN :orderData.fulfillmentPlanIds
+                ];
+                System.debug('After deletion, found ' + remainingPlans.size() + ' remaining plans');
+                for(FulfillmentPlan plan : remainingPlans) {
+                    System.debug('Remaining plan - ID: ' + plan.Id + ', SourceIdentifier: ' + plan.SourceIdentifier + ', SourceType: ' + plan.SourceType);
+                }
+                
+            } catch(Exception e) {
+                System.debug('Error in deleteFulfillmentPlan: ' + e.getMessage());
+                System.debug('Stack trace: ' + e.getStackTraceString());
+                throw e;
+            }
+        } else {
+            System.debug('No FulfillmentPlan records found to delete');
         }
         return true;
     }
@@ -858,4 +1053,5 @@ public class RCAccountUtilities {
         }
         return true;
     }
+
 }

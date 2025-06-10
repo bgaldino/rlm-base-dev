@@ -5,7 +5,7 @@
         <label>Reset Account</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>RCAccountUtilities</actionName>
+        <actionName>RC_AccountUtilities</actionName>
         <actionType>apex</actionType>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
@@ -32,7 +32,7 @@
                 <elementReference>Delete_Fulfillment</elementReference>
             </value>
         </inputParameters>
-        <nameSegment>RCAccountUtilities</nameSegment>
+        <nameSegment>RC_AccountUtilities</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <apiVersion>64.0</apiVersion>
@@ -44,8 +44,8 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RC - Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC - Account Utilities</label>
+    <interviewLabel>RC Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RC Account Utilities</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
