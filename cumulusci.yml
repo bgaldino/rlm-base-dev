@@ -180,6 +180,7 @@ project:
       - EinsteinGPTSalesCallSummaries
       - EinsteinGPTGetProductPricing
       - ERIBasic
+      - RLM_Utilities
 
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
       - AdvancedCsvDataImport
@@ -228,7 +229,6 @@ project:
       - RLM_PSL
       - RLM_USG
       
-
     ps_quantumbit: &ps_quantumbit
       - RLM_QuantumBit
       - DocumentBuilderUser
@@ -1231,16 +1231,16 @@ flows:
         options:
           api_names: *rlm_tso_psg_api_names
       3:
+        task: deploy_post_tso
+        when: project_config.project__custom__tso
+      4:
+        task: deploy_post_utils
+        when: project_config.project__custom__tso
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      4:
-        task: deploy_post_tso
-        when: project_config.project__custom__tso
-      5:
-        task: deploy_post_utils
-        when: project_config.project__custom__tso
 
   prepare_dro:
     group: Revenue Lifecycle Management

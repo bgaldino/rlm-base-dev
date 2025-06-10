@@ -16,13 +16,7 @@
                             <value>BillNow</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>CallHighlightAction</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>Global.NewTask</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewEvent</value>
                         </valueListItems>
                         <valueListItems>
                             <value>FeedItem.TextPost</value>
@@ -34,28 +28,13 @@
                             <value>Global.NewContact</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Global.NewCase</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.LogACall</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>FeedItem.LinkPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.PollPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.QuestionPost</value>
                         </valueListItems>
                         <valueListItems>
                             <value>ChangeOwnerOne</value>
                         </valueListItems>
                         <valueListItems>
                             <value>ChangeRecordType</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>SendSurveyInvitation</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Delete</value>
@@ -73,16 +52,10 @@
                             <value>IncludeOffline</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>CreateSurveyInvitation</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>XClean</value>
                         </valueListItems>
                         <valueListItems>
                             <value>PartnerScorecard</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>CreateCallList</value>
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
@@ -101,12 +74,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>Entitlements</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>SmsHighlightAction</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>EmailHighlightAction</value>
                         </valueListItems>
                         <valueListItems>
                             <value>WebsiteHighlightAction</value>
