@@ -10,6 +10,6 @@
     <genAiPlugins>
         <genAiPluginName>quotingAI__QuoteManagement</genAiPluginName>
     </genAiPlugins>
-    <masterLabel>Agentforce Employee Agent</masterLabel>
+    <masterLabel>Revenue Cloud Agent</masterLabel>
     <plannerType>AiCopilot__ReAct</plannerType>
 </GenAiPlannerBundle>

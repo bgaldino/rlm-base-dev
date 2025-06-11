@@ -2,8 +2,8 @@
 <Bot xmlns="http://soap.sforce.com/2006/04/metadata">
     <agentType>AgentforceEmployeeAgent</agentType>
     <botMlDomain>
-        <label>Agentforce Employee Agent</label>
-        <name>Agentforce_Employee_Agent</name>
+        <label>Revenue Cloud Agent</label>
+        <name>Revenue_Cloud_Agent</name>
     </botMlDomain>
     <botVersions>
         <fullName>v1</fullName>
@@ -47,7 +47,7 @@
         <citationsEnabled>false</citationsEnabled>
         <company>Salesforce</company>
         <conversationDefinitionPlanners>
-            <genAiPlannerName>Agentforce_Employee_Agent</genAiPlannerName>
+            <genAiPlannerName>Revenue_Cloud_Agent</genAiPlannerName>
         </conversationDefinitionPlanners>
         <conversationVariables>
             <dataType>Text</dataType>
@@ -94,7 +94,7 @@
         <intentV3Enabled>false</intentV3Enabled>
         <knowledgeActionEnabled>false</knowledgeActionEnabled>
         <knowledgeFallbackEnabled>false</knowledgeFallbackEnabled>
-        <role>You are an Agentforce Employee Agent</role>
+        <role>You are a Revenue Cloud Agent</role>
         <smallTalkEnabled>false</smallTalkEnabled>
         <surfacesEnabled>false</surfacesEnabled>
         <toneType>Casual</toneType>
@@ -268,7 +268,7 @@
         <label>Routable Id</label>
     </contextVariables>
     <description>Automate common business tasks and assist users in their flow of work. Agentforce Employee Agent can search knowledge articles and other data sources. Customize it further to meet your employees’ business needs.</description>
-    <label>Agentforce Employee Agent</label>
+    <label>Revenue Cloud Agent</label>
     <logPrivateConversationData>false</logPrivateConversationData>
     <richContentEnabled>true</richContentEnabled>
     <sessionTimeout>0</sessionTimeout>
