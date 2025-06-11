@@ -13256,6 +13256,10 @@
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
+        <name>BillingTransactionToBSApiUser</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
         <name>CollectionsAndRecoveryAdmin</name>
     </userPermissions>
     <userPermissions>
@@ -13276,7 +13280,27 @@
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
+        <name>DfoAdminUser</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>HeadlessConfiguratorUser</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>InvoiceOrErrorRecoveryAPI</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
         <name>InvoicePreview</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>InvoiceSchedulerUser</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ManageAssets</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
@@ -13288,7 +13312,27 @@
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
+        <name>OrderToBSAPIUser</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
         <name>PersonalizationPlatform</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ProductCatalogApiAccess</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ProductConfigurationRuleAccess</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ProductConfiguratorUser</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ProductDiscoveryUser</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
@@ -13337,6 +13381,10 @@
     <userPermissions>
         <enabled>true</enabled>
         <name>ViewPlatformEvents</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ViewProductCatalogObjects</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
