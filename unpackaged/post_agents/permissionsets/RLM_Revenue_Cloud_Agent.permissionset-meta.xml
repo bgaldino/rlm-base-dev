@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <agentAccesses>
-        <agentName>Agentforce_Employee_Agent</agentName>
+        <agentName>Revenue_Cloud_Agent</agentName>
         <enabled>true</enabled>
     </agentAccesses>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RLM Agentforce Employee Agent</label>
+    <label>RLM Revenue Cloud Agent</label>
 </PermissionSet>
