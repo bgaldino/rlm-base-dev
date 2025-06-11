@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataStreamTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataSourceBundleDefinition>Billing_common_bundle</dataSourceBundleDefinition>
+    <dataSourceObject>InvoiceBatchRun_Home3</dataSourceObject>
+    <masterLabel>InvoiceBatchRun_Home</masterLabel>
+    <objectCategory>Salesforce_SFDCReferenceModel_0_93.Related</objectCategory>
+    <refreshFrequency>BATCH</refreshFrequency>
+    <refreshMode>UPSERT</refreshMode>
+    <sourceObjectName>InvoiceBatchRun_Home</sourceObjectName>
+    <streamType>INGEST</streamType>
+    <templateVersion>1</templateVersion>
+</DataStreamTemplate>

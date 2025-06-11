@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataPackageKitDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataKitSource>EXTERNAL</dataKitSource>
+    <dataKitType>NONE</dataKitType>
+    <deploymentOrder>{&quot;isAutoSequence&quot;:true,&quot;sequence&quot;:[{&quot;devName&quot;:&quot;asset_bundle6&quot;,&quot;type&quot;:&quot;DataStream&quot;},{&quot;devName&quot;:&quot;RCA_billing_bundle_add_on&quot;,&quot;type&quot;:&quot;DataStream&quot;},{&quot;devName&quot;:&quot;rlm_bundle5&quot;,&quot;type&quot;:&quot;DataStream&quot;},{&quot;devName&quot;:&quot;dro_bundle3&quot;,&quot;type&quot;:&quot;DataStream&quot;},{&quot;devName&quot;:&quot;Billing_common_bundle&quot;,&quot;type&quot;:&quot;DataStream&quot;}]}</deploymentOrder>
+    <developerName>rlm_common_datakit_v15</developerName>
+    <isDeployed>false</isDeployed>
+    <isEnabled>false</isEnabled>
+    <masterLabel>rlm_common_datakit_v15</masterLabel>
+    <versionNumber>29.0</versionNumber>
+</DataPackageKitDefinition>
