@@ -183,7 +183,6 @@ project:
       - EventMonitoringPermSet
   
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
-      - AdvancedCsvDataImport
       - IndustriesConfiguratorPlatformApi
       - ProductConfigurationRulesDesigner
       - ProductCatalogManagementAdministrator

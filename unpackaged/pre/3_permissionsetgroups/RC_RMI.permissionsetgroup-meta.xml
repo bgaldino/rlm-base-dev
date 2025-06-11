@@ -6,9 +6,6 @@
     <permissionSets>force__AnalyticsStoreUser</permissionSets>
     <permissionSets>force__AnalyticsQueryService</permissionSets>
     <permissionSets>force__CDPAdmin</permissionSets>
-    <permissionSets>force__CDPDataAwareSpecialistEnhancedSecurity</permissionSets>
-    <permissionSets>force__CDPMarketingManagerEnhancedSecurity</permissionSets>
-    <permissionSets>force__CDPMarketingSpecialistEnhancedSecurity</permissionSets>
     <permissionSets>force__DataCloudMtrcsVisualizationPsl</permissionSets>
     <permissionSets>force__EinsteinAnalyticsAdmin</permissionSets>
     <permissionSets>force__EinsteinAnalyticsPlusAdmin</permissionSets>
