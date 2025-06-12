@@ -3,6 +3,8 @@
     <enableBillingSetup>true</enableBillingSetup>
     <enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>
     <enableInvoiceEmailDelivery>false</enableInvoiceEmailDelivery>
+    <enableInvoicePdfGeneration>false</enableInvoicePdfGeneration>
     <enableNegInvoiceLnConversionToCrMemoLn>true</enableNegInvoiceLnConversionToCrMemoLn>
+    <enablePaymentSchedulesAndItemsCreation>false</enablePaymentSchedulesAndItemsCreation>
     <enableTransactionsApplicationToInvoices>false</enableTransactionsApplicationToInvoices>
 </BillingSettings>

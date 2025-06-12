@@ -178,6 +178,16 @@
                 <identifier>RecordDrawdownOrderField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.ProductUsageResourceId</fieldItem>
+                <identifier>RecordProductUsageResourceIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-debc0c3f-fd73-4ba1-aae5-88b652c41f67</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -230,6 +240,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.UsageDefinitionProductId</fieldItem>
                 <identifier>RecordUsageDefinitionProductIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Type</fieldItem>
+                <identifier>RecordTypeField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-96d5337e-1220-4180-b200-170168464425</name>

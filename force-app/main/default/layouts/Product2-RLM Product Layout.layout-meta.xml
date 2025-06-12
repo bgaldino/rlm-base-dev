@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <excludeButtons>OpenSlackRecordChannel</excludeButtons>
     <excludeButtons>Submit</excludeButtons>
     <layoutSections>
         <customLabel>false</customLabel>
@@ -202,6 +203,14 @@
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
+        <fields>ParentProduct</fields>
+        <fields>RootBundle</fields>
+        <fields>AdjustmentType</fields>
+        <fields>AdjustmentValue</fields>
+        <relatedList>RelatedBundleBasedAdjustment</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
         <fields>AdjustmentType</fields>
         <fields>AdjustmentValue</fields>
         <fields>SellingModelType</fields>
@@ -229,12 +238,53 @@
         <relatedList>RelatedParentProduct</relatedList>
     </relatedLists>
     <relatedLists>
+        <fields>Product</fields>
+        <fields>PricingSource</fields>
+        <fields>DerivedPricingScope</fields>
+        <fields>Formula</fields>
+        <fields>EffectiveFrom</fields>
+        <fields>EffectiveTo</fields>
+        <relatedList>RelatedPriceBookEntryDerivedPrice</relatedList>
+    </relatedLists>
+    <relatedLists>
         <fields>Name</fields>
         <fields>MinBundleComponents</fields>
         <fields>MaxBundleComponents</fields>
         <fields>Description</fields>
         <fields>Sequence</fields>
         <relatedList>ProductComponentGroups</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>Label</fields>
+        <fields>UsageResource</fields>
+        <fields>Quantity</fields>
+        <fields>UnitOfMeasureClass</fields>
+        <fields>UnitOfMeasure</fields>
+        <fields>ValidityPeriodTerm</fields>
+        <fields>ValidityPeriodUnit</fields>
+        <fields>Status</fields>
+        <fields>EffectiveStartDate</fields>
+        <fields>EffectiveEndDate</fields>
+        <relatedList>ProductUsageGrants</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>UsageResource</fields>
+        <fields>ProductSellingModel</fields>
+        <fields>EffectiveFrom</fields>
+        <fields>EffectiveTo</fields>
+        <fields>LastModifiedBy</fields>
+        <fields>LastModifiedDate</fields>
+        <relatedList>RateCardEntry</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>UsageResource</fields>
+        <fields>Status</fields>
+        <fields>EffectiveStartDate</fields>
+        <fields>EffectiveEndDate</fields>
+        <relatedList>ProductUsageResources</relatedList>
     </relatedLists>
     <relatedLists>
         <relatedList>RelatedEntityHistoryList</relatedList>
@@ -248,7 +298,7 @@
     <showRunAssignmentRulesCheckbox>false</showRunAssignmentRulesCheckbox>
     <showSubmitAndAttachButton>false</showSubmitAndAttachButton>
     <summaryLayout>
-        <masterLabel>00hAE000000OUI5</masterLabel>
+        <masterLabel>00hWs000005liMF</masterLabel>
         <sizeX>4</sizeX>
         <sizeY>0</sizeY>
         <summaryLayoutStyle>Default</summaryLayoutStyle>

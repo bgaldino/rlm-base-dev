@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RevenueManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <enableAsIsRenewals>true</enableAsIsRenewals>
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
     <enableCoreCPQ>true</enableCoreCPQ>
     <enableDeltaPricing>false</enableDeltaPricing>
     <enableRampDeal>true</enableRampDeal>
+    <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
+    <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
+    <relaxUniqueCipValidation>true</relaxUniqueCipValidation>
+    <skipOrgSttPricing>false</skipOrgSttPricing>
 </RevenueManagementSettings>

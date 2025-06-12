@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <attributeMappings>
+        <attributeName>Analytics__SemanticDataAnalysis.Analytics__AnalyzeSemanticData.targetEntityId</attributeName>
+        <attributeType>StandardPluginFunctionInput</attributeType>
+        <mappingTargetName>targetEntityId</mappingTargetName>
+        <mappingType>Variable</mappingType>
+    </attributeMappings>
+    <attributeMappings>
+        <attributeName>Analytics__SemanticDataAnalysis.Analytics__AnalyzeSemanticData.targetEntityType</attributeName>
+        <attributeType>StandardPluginFunctionInput</attributeType>
+        <mappingTargetName>targetEntityType</mappingTargetName>
+        <mappingType>Variable</mappingType>
+    </attributeMappings>
+    <attributeMappings>
+        <attributeName>Analytics__SemanticDataAnalysis.Analytics__AnalyzeSemanticData.targetEntityState</attributeName>
+        <attributeType>StandardPluginFunctionInput</attributeType>
+        <mappingTargetName>targetEntityState</mappingTargetName>
+        <mappingType>Variable</mappingType>
+    </attributeMappings>
+    <attributeMappings>
+        <attributeName>Analytics__DataAlertManagement.Analytics__CreateDataAlert.targetEntityId</attributeName>
+        <attributeType>StandardPluginFunctionInput</attributeType>
+        <mappingTargetName>targetEntityId</mappingTargetName>
+        <mappingType>Variable</mappingType>
+    </attributeMappings>
+    <attributeMappings>
+        <attributeName>Analytics__DataAlertManagement.Analytics__CreateDataAlert.targetEntityType</attributeName>
+        <attributeType>StandardPluginFunctionInput</attributeType>
+        <mappingTargetName>targetEntityType</mappingTargetName>
+        <mappingType>Variable</mappingType>
+    </attributeMappings>
+    <attributeMappings>
+        <attributeName>Analytics__DataAlertManagement.Analytics__CreateDataAlert.targetEntityState</attributeName>
+        <attributeType>StandardPluginFunctionInput</attributeType>
+        <mappingTargetName>targetEntityState</mappingTargetName>
+        <mappingType>Variable</mappingType>
+    </attributeMappings>
+    <description>Help people see and understand data with conversational analytics. Agentforce for Analytics generates natural language insights, visualizations, and proactive alerts.</description>
+    <genAiPlugins>
+        <genAiPluginName>Analytics__DataAlertManagement</genAiPluginName>
+    </genAiPlugins>
+    <genAiPlugins>
+        <genAiPluginName>Analytics__SemanticDataAnalysis</genAiPluginName>
+    </genAiPlugins>
+    <masterLabel>Agentforce for Analytics</masterLabel>
+    <plannerType>AiCopilot__ReAct</plannerType>
+</GenAiPlannerBundle>

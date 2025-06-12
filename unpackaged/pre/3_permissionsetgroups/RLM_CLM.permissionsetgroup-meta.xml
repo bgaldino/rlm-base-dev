@@ -12,5 +12,4 @@
     <permissionSets>force__Microsoft365WordDesigner</permissionSets>
     <permissionSets>force__NLPServicePsl</permissionSets>
     <permissionSets>force__ObligationManager</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

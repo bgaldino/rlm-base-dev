@@ -1,4 +1,9 @@
 minimum_cumulusci_version: "4.0.0"
+
+#-------------------------#
+# SCRATCH ORG DEFINITIONS #
+#-------------------------#
+
 orgs:
   scratch:
     beta:
@@ -15,6 +20,9 @@ orgs:
       days: 30
     tfid-cdo-rlm:
       config_file: orgs/tfid-cdo-rlm.json
+      days: 30
+    tfid-qb-tso:
+      config_file: orgs/tfid-qb-tso.json
       days: 30
     tfid-sdo:
       config_file: orgs/tfid-sdo.json
@@ -36,14 +44,21 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "63.0"
+    api_version: "64.0"
   git:
     default_branch: "main"
   source_format: sfdx
 
+#-----------------#
+# CUSTOM SETTINGS #
+#-----------------#
+# These custom settings are used to configure how tasks are run based on the target org
+# and the features that are enabled. The settings are used in the tasks as when clauses
+# and should be updated to match the target org configuration.
+
   custom:
     prm: true
-    tso: false
+    tso: true
     qb: true
     q3: false
     calmdelete: true
@@ -63,6 +78,14 @@ project:
     quantumbit: true
     breconfig: false
     docgen: true
+    psg_debug: false
+    pas_debug: false
+
+#------------------------------#
+# PERMISSION SETS AND LICENSES #
+#------------------------------#
+# These are lists of the permission sets and licenses that are to be assigned based on target org type and
+# the features that are available in the org.
 
     rlm_psl_api_names: &rlm_psl_api_names
       - BREDesigner
@@ -90,6 +113,9 @@ project:
       - UsageDesignTimePsl
       - UsageRunTimePsl
       - WalletManagementUserPsl
+      - BillingAdvancedPsl
+      - IndustriesARCPsl
+      - CollectionsAndRecoveryPsl
 
     rlm_ai_psg_api_names: &rlm_ai_psg_api_names
       - CopilotSalesforceUserPSG
@@ -147,16 +173,16 @@ project:
     rlm_tso_psg_api_names: &rlm_tso_psg_api_names
       - CopilotSalesforceUserPSG
       - CopilotSalesforceAdminPSG
+      - UnifiedCatalogAdminPsl
+      - UnifiedCatalogDesignerPsl
 
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
-      - EinsteinGPTSalesSummaries
-      - EinsteinGPTSalesEmails
-      - EinsteinGPTSalesCallSummaries
-      - EinsteinGPTGetProductPricing
       - ERIBasic
-
+      - RC_Utilities
+      - OrchestrationProcessManagerPermissionSet
+      - EventMonitoringPermSet
+  
     rlm_pcm_ps_api_names: &rlm_pcm_ps_api_names
-      - AdvancedCsvDataImport
       - IndustriesConfiguratorPlatformApi
       - ProductConfigurationRulesDesigner
       - ProductCatalogManagementAdministrator
@@ -190,22 +216,34 @@ project:
       - ScoringFrameworkPsl
 
     rlm_psg_api_names: &rlm_psg_api_names
+      - RC_QB_AI
+      - RC_RCB
+      - RC_RMI
+      - RLM_CFG
       - RLM_CLM
+      - RLM_DOC
       - RLM_DRO
       - RLM_NGP
-      - RLM_PSL
-      - RLM_BLNG
       - RLM_PCM
+      - RLM_PSL
       - RLM_USG
-      - RLM_CFG
-
+      
     ps_quantumbit: &ps_quantumbit
       - RLM_QuantumBit
-      - DocumentBuilderUser
-      - RevLifecycleManagementUsageDesignUser
 
     ps_calmdelete: &ps_calmdelete
       - RLM_CALM_SObject_Access
+
+    ps_aea: &ps_aea
+      - RLM_Agentforce_Employee_Agent
+
+    ps_procedureplans: &ps_procedureplans
+      - RLM_ProcedurePlans
+
+#-----------------#
+# DECISION TABLES #
+#-----------------#
+# These are lists of the decision tables that are to be refreshed at certain points in the deployment process.
 
     dt_rating_decision_tables: &dt_rating_decision_tables
       - Asset_Rate_Card_Entry_Resolution
@@ -213,16 +251,53 @@ project:
       - Asset_Tier_based_Rate_Adjustment
       - Asset_Volume_based_Rate_Adjustment
       - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
-      - Pricebook_Rate_Card_Decision_Table
+      - Binding_Object_Rate_Card_Entry_Resolution
+      - Binding_Object_Rate_Decision_Table
+      - Binding_Object_Tier_based_Rate_Adjustment
+      - Binding_Object_Volume_based_Rate_Adjustment
       - Rate_Adjustment_by_Attribute_Entries_2
-      - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
       - Rate_Adjustment_by_Tier_Entries_2
-      - Rate_Adjustment_by_Tier_Resolution_Decision_Table
       - Rate_Adjustment_by_Volume_Entries_2
       - Rate_Card_Entries_2
-      - Rate_Card_Entry_Resolution_Entries_2
       - Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID
       - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+
+    dt_rating_discovery_decision_tables: &dt_rating_discovery_decision_tables
+      - Binding_Object_Rate_Adjustment_Resolution_Entries
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries
+      - Pricebook_Rate_Card_Decision_Table
+      - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
+      - Rate_Adjustment_by_Tier_Resolution_Decision_Table
+      - Rate_Card_Entry_Resolution_Entries_2
+
+    dt_default_pricing_decision_tables: &dt_default_pricing_decision_tables
+      - Attribute_Based_Adjustment_Decision_Table
+      - Bundle_Based_Adjustment_Decision_Table
+      - Contract_Pricing_Adjustment_Tiers
+      - Contract_Pricing_Entries_Decision_Table
+      - Contract_Pricing_Volume_Tiers
+      - Price_Adjustment_Tier_Decision_Table
+      - Price_Book_Entry_Decision_Table_v2
+      - Tiered_Adjustment_Tier_Decision_Table
+
+    dt_asset_decision_tables: &dt_asset_decision_tables
+      - Asset_Action_Source_Entries_Decision_Table_V2
+      - Asset_Rate_Card_Entry_Resolution
+      - Asset_Rate_Decision_Table
+      - Asset_Tier_based_Rate_Adjustment
+      - Asset_Volume_based_Rate_Adjustment
+
+    dt_pricing_discovery_decision_tables: &dt_pricing_discovery_decision_tables
+      - Asset_Action_Source_Entries_Decision_Table_V2
+      - Derived_Pricing_Entries_Decision_Table
+  
+#-----------------------------#
+# CONTEXT DEFINITION SETTINGS #
+#-----------------------------#
+# Context definition names and default mappings that are used in the deployment process.
+
+    asset_context_name: &asset_context_name RLM_AssetContext
+    asset_context_default_mapping: &asset_context_default_mapping AssetEntitiesMapping
 
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping SalesTransaction
@@ -251,14 +326,32 @@ project:
     rating_discovery_context_name: &rating_discovery_context_name RLM_RatingDiscoveryContext
     rating_discovery_context_default_mapping: &rating_discovery_context_default_mapping CatalogMapping
 
+#------------------------------------#
+# DATA PLAN NAMES AND PATHS SETTINGS #
+#------------------------------------#
+# Context definition names and default mappings that are used in the deployment process.
+
     quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-multicurrency"
-    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/billing"
+    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"
-    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/tax"
-    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating"
+    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb-tax"
+    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating-256"
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"
+    quantumbit_constraints_dataset: &quantumbit_constraints_dataset "datasets/sfdmu/qb-constraints"
+
+    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3-multicurrency"
+    q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3-billing"
+    q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3-dro"
+    q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3-tax"
+    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3-rating-256"
+    q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3-rates"
+    q3_constraints_dataset: &q3_constraints_dataset "datasets/sfdmu/q3-constraints"
 
     sleep_default: &sleep_default 30
+
+#-------#
+# TASKS #
+#-------#
 
 tasks:
   robot:
@@ -276,11 +369,9 @@ tasks:
     options:
       required_org_code_coverage_percent: 75
 
-  sync_pricing_data:
-    description: Sync Pricing Data
-    class_path: tasks.rlm_sync_pricing_data.SyncPricingData
-    group: Revenue Lifecycle Management
-
+#--------------------------#
+# CONTEXT DEFINITION TASKS #
+#--------------------------#
   extend_stdctx_contracts:
     description: Extend Standard Contracts Context Definition
     class_path: tasks.extend_stdctx_contracts.ExtendStandardContextContracts
@@ -290,6 +381,19 @@ tasks:
     description: Extend Standard Contracts Extraction Context Definition
     class_path: tasks.extend_stdctx_contracts_extraction.ExtendStandardContextContractsExtraction
     group: Revenue Lifecycle Management
+
+  extend_context_asset:
+    group: Revenue Lifecycle Management
+    description: Extend Standard Asset Context
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *asset_context_name
+      description: "Extension of Standard Sales Transaction Context Definition"
+      developerName: *asset_context_name
+      baseReference: "AssetContext__stdctx"
+      startDate: "2020-01-01T00:00:00.000Z"
+      contextTtl: 30
+      defaultMapping: *asset_context_default_mapping
 
   extend_context_sales_transaction:
     group: Revenue Lifecycle Management
@@ -301,7 +405,7 @@ tasks:
       developerName: *sales_transaction_context_name
       baseReference: "SalesTransactionContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *sales_transaction_context_default_mapping
 
   extend_context_product_discovery:
@@ -314,7 +418,7 @@ tasks:
       developerName: *product_discovery_context_name
       baseReference: "ProductDiscoveryContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *product_discovery_context_default_mapping
 
   extend_context_cart:
@@ -327,7 +431,7 @@ tasks:
       developerName: *cart_context_name
       baseReference: "CommerceCartContextDefinition__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *cart_context_default_mapping  
 
   extend_context_billing:
@@ -340,7 +444,7 @@ tasks:
       developerName: *billing_context_name
       baseReference: "BillingContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *billing_context_default_mapping
 
   extend_context_fulfillment_asset:
@@ -353,7 +457,7 @@ tasks:
       developerName: *fulfillment_asset_context_name
       baseReference: "FulfillmentAssetContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *fulfillment_asset_context_default_mapping
 
   extend_context_collection_plan_segment:
@@ -366,7 +470,7 @@ tasks:
       developerName: *collection_plan_segment_context_name
       baseReference: "CollectionPlanSegmentContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *collection_plan_segment_context_default_mapping
 
   extend_context_rate_management:
@@ -379,7 +483,7 @@ tasks:
       developerName: *rate_management_context_name
       baseReference: "RateManagementContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *rate_management_context_default_mapping
 
   extend_context_rating_discovery:
@@ -392,8 +496,14 @@ tasks:
       developerName: *rating_discovery_context_name
       baseReference: "RatingDiscoveryContext__stdctx"
       startDate: "2020-01-01T00:00:00.000Z"
-      contextTtl: 20
+      contextTtl: 30
       defaultMapping: *rating_discovery_context_default_mapping
+
+#--------------#
+# DEPLOY TASKS #
+#--------------#
+# All deploy tasks are managed here and can be called in any order
+# TODO: Organize pre/post deploy tasks into their own sections
 
   deploy_context_definitions:
     description: Context Definitions need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -416,12 +526,19 @@ tasks:
     options:
       path: force-app/main/default/decisionTables
 
+  deploy_agents_bots:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/bots
+
   deploy_agents_genAiPlanners:
     description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
-      path: unpackaged/post_agents/genAiPlanners
+      path: unpackaged/post_agents/genAiPlannerBundles
 
   deploy_agents_genAiFunctions:
     description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
@@ -450,6 +567,78 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents/settings
+
+  deploy_agents_permissionsets:
+    description: Decision Tables are required to be deployed first before other metadata -- this prioritizes this deployment first
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/permissionsets
+
+  deploy_sharing_rules:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_sharing
+
+  deploy_quantumbit:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_quantumbit
+
+  deploy_post_scratch:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_scratch
+
+  deploy_post_tso:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_tso
+
+  deploy_post_prm:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_prm
+
+  deploy_post_docgen:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_docgen
+
+  deploy_post_constraints:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_constraints
+
+  deploy_post_utils:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_utils
+
+  deploy_post_procedureplans:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_procedureplans
+  
+  deploy_post_procedureplans_objects:
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_procedureplans/objects
+
+  deploy_post_procedureplans_classes:
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_procedureplans/classes
+
+  deploy_post_procedureplans_permissionsets:
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_procedureplans/permissionsets
+
+  deploy_post_billing:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_billing
 
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
@@ -529,15 +718,14 @@ tasks:
       template: "Build Your Own"
       skip_existing: true
 
-  create_price_adjustment_schedules:
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/pas"
+#------------------#
+# SFDMU DATA TASKS #
+#------------------#
 
-  create_price_adjustment_schedules_prod:
+  load_sfdmu_data:
+    group: Revenue Lifecycle Management
+    description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/pas"
 
   insert_quantumbit_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -577,7 +765,7 @@ tasks:
   insert_qb_dro_data_prod:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-dro"
+      pathtoexportjson: *quantumbit_dro_dataset
 
   insert_q3_dro_data_scratch:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -592,12 +780,12 @@ tasks:
   insert_tax_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/tax"
+      pathtoexportjson: *quantumbit_tax_dataset
 
   insert_tax_data_prod:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/tax"
+      pathtoexportjson: *quantumbit_tax_dataset
 
   insert_q3_tax_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -612,12 +800,12 @@ tasks:
   insert_billing_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/billing"
+      pathtoexportjson: *quantumbit_billing_dataset
 
   insert_billing_data_prod:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/billing"
+      pathtoexportjson: *quantumbit_billing_dataset
 
   insert_q3_billing_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -673,6 +861,11 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: "datasets/sfdmu/scratch_data"
+
+  insert_qb_constraints_data:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_constraints_dataset
   
   activate_decision_tables:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -699,30 +892,19 @@ tasks:
     options:
       pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
 
-  deploy_sharing_rules:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
+  create_price_adjustment_schedules:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      path: unpackaged/post_sharing
+      pathtoexportjson: "datasets/sfdmu/pas"
 
-  deploy_quantumbit:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
+  create_price_adjustment_schedules_prod:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      path: unpackaged/post_quantumbit
+      pathtoexportjson: "datasets/sfdmu/pas"
 
-  deploy_post_scratch:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_scratch
-
-  deploy_post_prm:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_prm
-
-  deploy_post_docgen:
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_docgen
+#------------#
+# APEX TASKS #
+#------------#
 
   create_rule_library:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
@@ -774,6 +956,15 @@ tasks:
     options:
       path: scripts/apex/activateRateCardEntries.apex
 
+#------------------#
+# PYTHON CCI TASKS #
+#------------------#
+
+  sync_pricing_data:
+    description: Sync Pricing Data
+    class_path: tasks.rlm_sync_pricing_data.SyncPricingData
+    group: Revenue Lifecycle Management
+
   refresh_dt_rating:
     group: Revenue Lifecycle Management
     description: Refresh Rating Decision Tables
@@ -781,10 +972,40 @@ tasks:
     options:
       developerNames: *dt_rating_decision_tables
 
-  load_sfdmu_data:
+  refresh_dt_rating_discovery:
     group: Revenue Lifecycle Management
-    description: Load SFDMU Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    description: Refresh Rating Discovery Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_rating_discovery_decision_tables
+
+  refresh_dt_default_pricing:
+    group: Revenue Lifecycle Management
+    description: Refresh Rating Discovery Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_default_pricing_decision_tables
+
+  refresh_dt_pricing_discovery:
+    group: Revenue Lifecycle Management
+    description: Refresh Pricing Discovery Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_pricing_discovery_decision_tables
+
+  refresh_dt_asset:
+    group: Revenue Lifecycle Management
+    description: Refresh Asset Decision Tables
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_asset_decision_tables
+
+#----------------#
+# MAIN CCI FLOWS #
+#----------------#
+# prepare_rlm_org is the main flow that will be called in the deployment process.
+# It will call all the other flows and tasks in the order they are defined.
+# The order of the flows and tasks is important and should not be changed.
 
 flows:
   prepare_rlm_org:
@@ -793,23 +1014,18 @@ flows:
       1:
         flow: prepare_core
       2:
+        flow: prepare_decision_tables
+      4:
         flow: prepare_expression_sets
-      3:
+      5:
         task: createPartnerCentral
         when: project_config.project__custom__prm
-      4:
-        task: activate_decision_tables
-        when: org_config.scratch
-      5:
-        task: deploy_expression_sets
-        when: org_config.scratch
       6:
         task: deploy_full
       7:
         flow: prepare_product_data
       8:
-        task: activate_price_adjustment_schedules
-        when: org_config.scratch
+        flow: prepare_price_adjustment_schedules
       9:
         flow: prepare_scratch
       10:
@@ -817,25 +1033,27 @@ flows:
       11:
         flow: prepare_dro
       12:
-        flow: prepare_docgen
-      13:
         flow: prepare_tax
-      14:
+      13:
         flow: prepare_billing
-      15:
+      14:
         flow: prepare_clm
-      16:
+      15:
         flow: prepare_rating
-      17:
+      16:
         task: activate_and_deploy_expression_sets
+      17:
+        flow: prepare_tso
       18:
-        flow: prepare_agents
+        flow: prepare_procedureplans
       19:
         flow: prepare_prm
       20:
-        flow: prepare_tso
+        flow: prepare_agents
       21:
-        flow: refresh_decision_tables
+        flow: prepare_docgen
+      22:
+        flow: refresh_all_decision_tables
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -866,7 +1084,7 @@ flows:
           api_names: *rlm_psg_api_names
       7:
         task: assign_permission_sets
-        when: project_config.project__custom__tso
+        when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
       8:
@@ -877,10 +1095,10 @@ flows:
           seconds: *sleep_default
       10:
         task: create_price_adjustment_schedules
-        when: org_config.scratch
+        when: org_config.scratch and project_config.project__custom__pas_debug 
       11:
         task: create_price_adjustment_schedules_prod
-        when: not org_config.scratch and project_config.project__custom__tso
+        when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
       12:
         task: util_sleep
         options:
@@ -894,7 +1112,7 @@ flows:
           seconds: *sleep_default
       15:
         task: create_dro_rule_library
-        when: project_config.project__custom__dro
+        when: project_config.project__custom__dro and project_config.project__custom__breconfig
       16:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
@@ -902,7 +1120,7 @@ flows:
           api_names: *rlm_ai_ps_api_names
       17:
         task: assign_permission_sets
-        when: project_config.project__custom__billing
+        when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_blng_ps_api_names
 
@@ -937,6 +1155,8 @@ flows:
       10:
         task: extend_context_rating_discovery
         when: project_config.project__custom__rating
+      11:
+        task: extend_context_asset
 
   prepare_expression_sets:
     group: Revenue Lifecycle Management
@@ -947,6 +1167,9 @@ flows:
       2:
         task: deactivate_expression_sets_prod
         when: not org_config.scratch
+      3:
+        task: deploy_expression_sets
+        when: org_config.scratch
   
   prepare_product_data:
     group: Revenue Lifecycle Management
@@ -1005,6 +1228,12 @@ flows:
         options:
           api_names: *rlm_tso_psg_api_names
       3:
+        task: deploy_post_utils
+        when: project_config.project__custom__tso
+      4:
+        task: deploy_post_tso
+        when: project_config.project__custom__tso
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
@@ -1043,7 +1272,6 @@ flows:
         task: create_docgen_library
       2:
         task: deploy_post_docgen
-        when: project_config.project__custom__tso
 
   prepare_billing:
     group: Revenue Lifecycle Management
@@ -1070,6 +1298,9 @@ flows:
         when: project_config.project__custom__billing
       7: 
         task: activate_billing_records
+        when: project_config.project__custom__billing
+      8:
+        task: deploy_post_billing
         when: project_config.project__custom__billing
 
   prepare_prm:
@@ -1166,12 +1397,67 @@ flows:
       6:
         task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents
+      7:
+        task: deploy_agents_bots
+        when: project_config.project__custom__agents
+      8:
+        task: deploy_agents_permissionsets
+        when: project_config.project__custom__agents
+      9:
+        task: assign_permission_sets
+        when: project_config.project__custom__agents
+        options:
+          api_names: *ps_aea
   
-  refresh_decision_tables:
+  refresh_all_decision_tables:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: sync_pricing_data
       2:
+        task: refresh_dt_pricing_discovery
+      3:
+        task: refresh_dt_asset
+        when: project_config.project__custom__rating
+      4:
         task: refresh_dt_rating
         when: project_config.project__custom__rating
+      5:
+        task: refresh_dt_rating_discovery
+        when: project_config.project__custom__rating
+
+  prepare_decision_tables:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: activate_decision_tables
+        when: org_config.scratch
+
+  prepare_price_adjustment_schedules:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: activate_price_adjustment_schedules
+        when: org_config.scratch
+
+  prepare_procedureplans:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_procedureplans_objects
+        when: project_config.project__custom__tso
+      2:
+        task: deploy_post_procedureplans_classes
+        when: project_config.project__custom__tso
+      3:
+        task: deploy_post_procedureplans_permissionsets
+        when: project_config.project__custom__tso
+      4:
+        task: assign_permission_sets
+        when: project_config.project__custom__tso
+        options:
+          api_names: *ps_procedureplans
+      5:
+        task: deploy_post_procedureplans
+        when: project_config.project__custom__tso
+      

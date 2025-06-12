@@ -7,7 +7,7 @@
     "AdvancedApproval",
     "AIProviderOpenAI",
     "AIProviderAWSBedrock",
-    "BillingAdvance",
+    "BillingAdvanced",
     "CallCoaching",
     "CGAnalytics",
     "Chatbot",

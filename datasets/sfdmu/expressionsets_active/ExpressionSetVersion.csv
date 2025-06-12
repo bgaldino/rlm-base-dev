@@ -6,6 +6,7 @@ RLM_QualificationProcedure,true,RLM Qualification Procedure,1,1
 Negotiable_Rating_Procedure_V1,true,Negotiable Rating Procedure,1,1
 RLM_ProductDiscoveryQualificationProcedure_V1,true,RLM Product Discovery Qualification Procedure,1,1
 RLM_DefaultRatingDiscoveryProcedure_V1,true,RLM Default Rating Discovery Procedure,1,1
+RLM_DefaultRatingProcedure_V1,true,RLM Default Rating Procedure,1,1
 
 
 

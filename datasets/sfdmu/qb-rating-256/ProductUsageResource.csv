@@ -1,0 +1,4 @@
+$$Product.StockKeepingUnit$UsageResource.Code,EffectiveEndDate,EffectiveStartDate,Product.StockKeepingUnit,Status,UsageResource.Code
+QB-DAT-THPT;UR-DATAXFR,,2023-01-01T20:00:00.000+0000,QB-DAT-THPT,Draft,UR-DATAXFR
+QB-DB;UR-DATASTORAGE,,2023-01-01T20:00:00.000+0000,QB-DB,Draft,UR-DATASTORAGE
+QB-DB;UR-CPUTIME,,2023-01-01T20:00:00.000+0000,QB-DB,Draft,UR-CPUTIME

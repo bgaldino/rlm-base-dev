@@ -1,31 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
-    <description>RLM Default MultiCurrency Pricing Discovery Procedure</description>
+    <description>RLM Default Pricing Discovery Procedure</description>
+    <executionScale>Low</executionScale>
     <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
     <label>RLM Default Pricing Discovery Procedure</label>
     <processType>PricingDiscovery</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_DefaultPricingDiscoveryProcedure_V1</fullName>
-        <description>RLM Default MultiCurrency Pricing Discovery Procedure</description>
+        <fullName>RLM_DefaultPricingDiscoveryProcedureV1</fullName>
+        <description>RLM Default Pricing Discovery Procedure</description>
         <expressionSetDefinition>RLM_DefaultPricingDiscoveryProcedure</expressionSetDefinition>
-        <label>RLM Default Pricing Discovery Procedure</label>
+        <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
+        <label>RLM Default Pricing Discovery Procedure V1</label>
         <processType>PricingDiscovery</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2020-01-01T08:00:00.000Z</startDate>
-        <status>Draft</status>
+        <status>Inactive</status>
         <steps>
             <actionType>AssetDiscovery</actionType>
             <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>StartDate</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>EffectiveFrom</value>
-                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>AccountId</name>
@@ -49,10 +44,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>CurrencyIsoCode</name>
+                    <name>StartDate</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>CurrencyIsoCode</value>
+                    <value>EffectiveFrom</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -60,6 +55,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>EffectiveFrom</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -119,13 +121,6 @@
             <customElement>
                 <parameters>
                     <input>true</input>
-                    <name>IsDerived</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>DerivedPricingAttribute</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>PricebookEntryId</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -154,10 +149,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LineItemId</name>
+                    <name>EffectiveTo</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>LineItem</value>
+                    <value>EffectiveFrom</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -168,10 +163,17 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>EffectiveTo</name>
+                    <name>LineItemId</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>EffectiveFrom</value>
+                    <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsDerived</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>DerivedPricingAttribute</value>
                 </parameters>
                 <parameters>
                     <input>true</input>

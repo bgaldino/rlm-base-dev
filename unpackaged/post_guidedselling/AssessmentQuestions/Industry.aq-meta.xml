@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Industry</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>Industry</questionText>
+        <responseValues>Financial Services
+Healthcare
+Tech
+Communications
+Media
+Public Sector</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Radio</dataType>
+    <developerName>Industry</developerName>
+    <name>Industry</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

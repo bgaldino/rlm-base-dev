@@ -1,0 +1,78 @@
+{
+  "apiVersion": "64.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT ActiveVersionId, CurrencyIsoCode, DataType, Description, DeveloperName, DisclosureDefinitionVer, DisclosureDefinitionVerRefId, FormulaResponseDataType, Name, Namespace, QuestionCategory, QuestionText, RelatedQuestionId, ShouldExcludeFromMetadata, ShouldHideInDesigner, SourceSystemName, UniqueIndex FROM AssessmentQuestion",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssessmentQuestionId, AssessmentQuestionSetId, CurrencyIsoCode, Name FROM AssessmentQuestionAssignment",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DeveloperName, Language, MasterLabel, NamespacePrefix FROM AssessmentQuestionConfig",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, DeveloperName, Name, Namespace, UniqueIndex FROM AssessmentQuestionSet",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DeveloperName, Language, MasterLabel, NamespacePrefix FROM AssessmentQuestionSetConfig",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ActivationDateTime, AdditionalInformation, AssessmentQuestionId, CurrencyIsoCode, DataType, DeactivationDateTime, Description, ExternalAsmtContentVersion, GuidanceInformation, HelpText, IsActive, IsOptionSourceResponseValue, Name, QuestionText, ResponseValues, Status, VersionNumber FROM AssessmentQuestionVersion",
+          "operation": "Upsert",
+          "externalId": "AssessmentQuestion.DeveloperName;VersionNumber",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, CustomHtmlTemplates, CustomJavaScript, Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, ElementTypeComponentMapping, IntegrationProcedureInput, IntegrationProcedureOutput, IsActive, IsIntegProcdSignatureAvl, IsIntegrationProcedure, IsManagedUsingStdDesigner, IsMetadataCacheDisabled, IsOmniScriptEmbeddable, IsTestProcedure, IsWebCompEnabled, Language, Name, Namespace, OmniProcessKey, OmniProcessType, OverrideKey, PropertySetConfig, RequiredPermission, ResponseCacheType, SubType, Type, UniqueName, VersionNumber, WebComponentKey FROM OmniProcess",
+          "operation": "Upsert",
+          "externalId": "UniqueName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssessmentQuestionVersionId, CurrencyIsoCode, IsPrefill, Name, OmniProcessElementId, OmniProcessId FROM OmniProcessAsmtQuestionVer",
+          "operation": "Upsert",
+          "externalId": "AssessmentQuestionVersion.Name;OmniProcessElement.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Content, CurrencyIsoCode, Name, OmniProcessId, Sequence FROM OmniProcessCompilation",
+          "operation": "Upsert",
+          "externalId": "OmniProcess.UniqueName;Sequence",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcessId, OmniProcessVersionNumber, ParentElementId, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
+          "operation": "Upsert",
+          "externalId": "OmniProcess.UniqueName;Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DeveloperName, Language, MasterLabel FROM OmniScriptConfig",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

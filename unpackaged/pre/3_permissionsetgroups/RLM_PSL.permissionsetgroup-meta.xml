@@ -2,6 +2,9 @@
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_PSL</label>
+    <permissionSets>force__CorePricingAdmin</permissionSets>
+    <permissionSets>force__DocumentBuilderUser</permissionSets>
+    <permissionSets>force__PlaceSupplementalOrders</permissionSets>
     <permissionSets>force__RevLifecycleManagementCalculatePricesApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementCalculateTaxesApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementCoreCPQAssetization</permissionSets>
@@ -16,5 +19,4 @@
     <permissionSets>force__RevLifecycleManagementQuotePricesTaxes</permissionSets>
     <permissionSets>force__RevLifecycleManagementTaxConfiguration</permissionSets>
     <permissionSets>force__RevLifecycleManagementUsageDesignUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

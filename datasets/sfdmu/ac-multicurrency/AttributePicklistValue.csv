@@ -1,0 +1,186 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,100,100 KW,true,100,gc_KW,100,Active,100
+,100_A,100 A,false,100_A,gc_cbSize,13,Active,100
+,100_LSI_ELEC,100% LSI Electronic RH,false,100_LSI_ELEC,gc_cbType,4,Active,100_LSI_ELEC
+,1080p Built-in Display,1080p Built-in Display,true,1080p Built-in Display,Display Picklist,1,Active,1080p Built-in Display
+,12_IN_134_GAL,"12"" 134 Gal Basetank, UL/ULC",false,12_IN_134_GAL,Capacity,,Active,12_IN_134_GAL
+,12_IN_90_GAL,"12"" 90 Gal Basetank, UL/ULC",false,12_IN_90_GAL,Capacity,,Active,12_IN_90_GAL
+,120/208_3PH,120/208 3 phase,false,120/208_3PH,gc_voltage,,Active,120/208_3PH
+,120/240_1PH,120/240 1 phase,false,120/240_1PH,gc_voltage,,Active,120/240_1PH
+,120/240_3PH,120/240 3 phase,false,120/240_3PH,gc_voltage,,Active,120/240_3PH
+,1200,1200,false,1200,Power,1200,Active,1200
+,125_A,125 A,false,125_A,gc_cbSize,14,Active,125
+,130,130 KW,false,130,gc_KW,130,Active,130
+,13IN,13 Inch,false,13 Inch,Display Size Picklist,1,Active,13 Inch
+,15_A,15 A,false,15_A,gc_cbSize,1,Active,15
+,150,150 KW,false,150,gc_KW,150,Active,150
+,150_A,150 A,false,150_A,gc_cbSize,15,Active,150
+,150_WIND,150 MPH Wind Load Certified,false,150_WIND,Enclosure Certifications,,Active,150_WIND
+,1500,1500,false,1500,Power,1500,Active,1500
+,15IN,15 Inch,false,15 Inch,Display Size Picklist,2,Active,15 Inch
+,175,175 KW,false,175,gc_KW,175,Active,175
+,175_A,175 A,false,175_A,gc_cbSize,16,Active,175
+,1750,1750,false,1750,Power,1750,Active,1750
+,20_A,20 A,false,20_A,gc_cbSize,2,Active,20
+,200,200 KW,false,200,gc_KW,200,Active,200
+,200_A,200 A,false,200_A,gc_cbSize,17,Active,200
+220/380,220/380,220/380,false,220/380,Voltage,10,Active,220/380
+,225_A,225 A,false,225_A,gc_cbSize,18,Active,225
+,24_IN_220_GAL,"24"" 220 Gal Basetank, UL/ULC",false,24_IN_220_GAL,Capacity,,Active,24_IN_220_GAL
+,24_IN_322_GAL,"24"" 322 Gal Basetank, UL/ULC",false,24_IN_322_GAL,Capacity,,Active,24_IN_322_GAL
+,24_IN_440_GAL,"24"" 440 Gal BT ext fill/vent",false,24_IN_440_GAL,Capacity,,Active,24_IN_440_GAL
+,240/416,240/416,false,240/416,Voltage,20,Active,240/416
+,2400/4160,2400/4160,false,2400/4160,Voltage,60,Active,2400/4160
+,24IN,24 Inch,false,24 Inch,Display Size Picklist,3,Active,24 Inch
+,25_A,25 A,false,25_A,gc_cbSize,3,Active,25
+,250,250 KW,false,250,gc_KW,250,Active,250
+,250_A,250 A,false,250_A,gc_cbSize,19,Active,250
+,2500,2500,false,2500,Power,2500,Active,2500
+,255/440,255/440,false,255/440,Voltage,30,Active,255/440
+,277/480,277/480,false,277/480,Voltage,40,Active,277/480
+,277/480_3PH,277/480 3 phase,false,277/480_3PH,gc_voltage,,Active,277/480_3PH
+,27IN,27 Inch,false,27 Inch,Display Size Picklist,4,Active,27 Inch
+,2k Built-in Display,2k Built-in Display,false,2k Built-in Display,Display Picklist,2,Active,2k Built-in Display
+,2N,2N,false,2N,gc_redundancy,,Active,2N
+,30_A,30 A,false,30_A,gc_cbSize,4,Active,30
+,300,300 KW,false,300,gc_KW,300,Active,300
+,300_A,300 A,false,300_A,gc_cbSize,20,Active,300
+,346/600_3PH,346/600 3 phase,false,346/600_3PH,gc_voltage,,Active,346/600_3PH
+,347/600,347/600,false,347/600,Voltage,50,Active,347/600
+,35_A,35 A,false,35_A,gc_cbSize,5,Active,35
+,350_A,350 A,false,350_A,gc_cbSize,21,Active,350
+,36_IN_1325_GAL,"39"" 1325 Gal Basetank, UL/ULC",false,36_IN_1325_GAL,Capacity,,Active,36_IN_1325_GAL
+,36_IN_350_GAL,"36"" 350 Gal Basetank, UL/ULC",false,36_IN_350_GAL,Capacity,,Active,36_IN_350_GAL
+,36_IN_460_GAL,"36"" 460 Gal BT ext fill/vent",false,36_IN_460_GAL,Capacity,,Active,36_IN_460_GAL
+,36_IN_510_GAL,"36"" 510 Gal Basetank, UL/ULC",false,36_IN_510_GAL,Capacity,,Active,36_IN_510_GAL
+,36_IN_589_GAL,"36"" 589 Gal Basetank, UL/ULC",false,36_IN_589_GAL,Capacity,,Active,36_IN_589_GAL
+,36_IN_693_GAL,"36"" 693 Gal Basetank, UL/ULC",false,36_IN_693_GAL,Capacity,,Active,36_IN_693_GAL
+,36_IN_705_GAL,"36"" 705 Gal BT ext fill/vent",false,36_IN_705_GAL,Capacity,,Active,36_IN_705_GAL
+,390,390,false,390,gc_alternatorType,390,Active,390
+,390_UP,390_UP,false,390_UP,gc_alternatorType,400,Active,390_UP
+,40_A,40 A,false,40_A,gc_cbSize,6,Active,40
+,400_A,400 A,false,400_A,gc_cbSize,22,Active,400
+,45_A,45 A,false,45_A,gc_cbSize,7,Active,45
+,450_A,450 A,false,450_A,gc_cbSize,23,Active,450
+,4k Built-in Display,4k Built-in Display,false,4k Built-in Display,Display Picklist,3,Active,4k Built-in Display
+,50_A,50 A,false,50_A,gc_cbSize,8,Active,50
+,500_A,500 A,false,500_A,gc_cbSize,24,Active,500
+,50dB - 53dB,50dB - 53dB,false,50dB - 53dB,Actual Noise Volume,,Active,50dB - 53dB
+,520,520,false,520,gc_alternatorType,520,Active,520
+,55dB - 58dB,55dB - 58dB,false,55dB - 58dB,Actual Noise Volume,,Active,55dB - 58dB
+,6_IN_946_GAL,"36"" 946 Gal Basetank, UL/ULC",false,6_IN_946_GAL,Capacity,,Active,6_IN_946_GAL
+,60_A,60 A,false,60_A,gc_cbSize,9,Active,60
+,60_HZ,60 Hz,false,60_HZ,frequency,,Active,60_HZ
+,600_A,600 A,false,600_A,gc_cbSize,25,Active,600
+,60dB - 63dB,60dB - 63dB,false,60dB - 63dB,Actual Noise Volume,,Active,60dB - 63dB
+,65dB - 68dB,65dB - 68dB,false,65dB - 68dB,Actual Noise Volume,,Active,65dB - 68dB
+,70_A,70 A,false,70_A,gc_cbSize,10,Active,70
+,700_A,700 A,false,700_A,gc_cbSize,26,Active,700
+,70dB - 80dB,70dB - 80dB,false,70dB - 80dB,Actual Noise Volume,,Active,70dB - 80dB
+,7200/12470,7200/12470,false,7200/12470,Voltage,70,Active,7200/12470
+,7621/13200,7621/13200,false,7621/13200,Voltage,80,Active,7621/13200
+,7976/13800,7976/13800,false,7976/13800,Voltage,90,Active,7976/13800
+,80_A,80 A,false,80_A,gc_cbSize,11,Active,80
+,80_LSI_ELEC,80% LSI Electronic RH,false,80_LSI_ELEC,gc_cbType,3,Active,80_LSI_ELEC
+,80_THERM_MAG,80% Thermal Magnetic RH,false,80_THERM_MAG,gc_cbType,2,Active,80_THERM_MAG
+,800_A,800 A,false,800_A,gc_cbSize,27,Active,800
+,90_A,90 A,false,90_A,gc_cbSize,12,Active,90
+,900,900,false,900,Power,900,Active,900
+,900_A,900 A,false,900_A,gc_cbSize,28,Active,900
+,A4,A4,false,A4,Paper Size Picklist,2,Active,A4
+,AL,Aluminum,false,AL,enclosureMaterial,,Active,AL
+,ATT,ATT,false,ATT,gc_oem,,Active,ATT
+,BIFUEL,Bi-Fuel,false,BIFUEL,gc_fuel,,Active,BIFUEL
+,BRUSHLESS,Brushless Excitation,false,BRUSHLESS,gc_excitation,,Active,BRUSHLESS
+,BUS001,Business,false,Business,Subscription Type,2,Active,Business
+,BUSSBAR_ONLY,Bussbar only RH,false,BUSSBAR_ONLY,gc_cbType,1,Active,BUSSBAR_ONLY
+,C_GRP,C_GRP,false,C_GRP,Enclosure Type,,Active,C_GRP
+,Certification-CSA,Certification-CSA,false,Certification-CSA,standardsAndCompliance,10,Active,Certification-CSA
+COP,Continuous Power (COP),Continuous Power (COP),false,Continuous Power (COP),DutyRating,30,Active,Continuous Power (COP)
+,CSA_C22.2,UL2200 & CSA C22.2,false,CSA_C22.2,gc_certificate,,Active,CSA_C22.2
+,CSE - 6TB,Cloud Storage Enterprise - 6 TB,false,Cloud Storage Enterprise - 6 TB,Storage Picklist,6,Active,Cloud Storage Enterprise - 6 TB
+,CSE-TB,Cloud Storage Enterprise - 2 TB,false,Cloud Storage Enterprise - 2 TB,Storage Picklist,5,Active,Cloud Storage Enterprise - 2 TB
+,D_GRP,D_GRP,false,D_GRP,Enclosure Type,,Active,D_GRP
+DCC,Data Center Continuous (DCC),Data Center Continuous (DCC),false,Data Center Continuous (DCC),DutyRating,40,Active,Data Center Continuous (DCC)
+,DIESEL,Diesel,false,DIESEL,gc_fuel,,Active,DIESEL
+,DUAL_MLCB_BB,Dual MLCB's and/or Busbar only,false,DUAL_MLCB_BB,gc_circuitBreakerType,3,Active,DUAL_MLCB_BB
+ESP,Emergency Standby Power (ESP),Emergency Standby Power (ESP),false,Emergency Standby Power (ESP),DutyRating,10,Active,Emergency Standby Power (ESP)
+,EN,ENGLISH,false,EN,gc_language,,Active,EN
+,ENT001,Enterprise,false,Enterprise,Subscription Type,1,Active,Enterprise
+Bottom,Entrance_Bottom,Bottom,false,Bottom,Entrance Types,5,Active,Bottom
+Left,Entrance_Left,Left,false,Left,Entrance Types,2,Active,Left
+None,Entrance_None,None,false,None,Entrance Types,1,Active,None
+Right,Entrance_Right,Right,false,Right,Entrance Types,3,Active,Right
+Top,Entrance_Top,Top,false,Top,Entrance Types,4,Active,Top
+,GAS,Gas,false,GAS,gc_fuel,,Active,GAS
+,gc_50dB - 53dB,50dB - 53dB,false,50dB - 53dB,gc_noiseVolume,,Active,50dB - 53dB
+,gc_55dB - 58dB,55dB - 58dB,false,55dB - 58dB,gc_noiseVolume,,Active,55dB - 58dB
+,gc_60dB - 63dB,60dB - 63dB,false,60dB - 63dB,gc_noiseVolume,,Active,60dB - 63dB
+,gc_65dB - 68dB,65dB - 68dB,false,65dB - 68dB,gc_noiseVolume,,Active,65dB - 68dB
+,gc_70dB - 80dB,70dB - 80dB,false,70dB - 80dB,gc_noiseVolume,,Active,70dB - 80dB
+,gc_NONE,Non UL2200/CSA C22.2 certified,false,NONE,gc_certificate,,Active,NONE
+,GEN,Generac,false,GEN,gc_oem,,Active,GEN
+,GLOBE,Generac (Global),false,GLOBE,gc_shipToRegion,,Active,GLOBE
+,GLOBE_GEN,Generac (Global),false,GLOBE_GEN,gc_shipToCountry,,Active,GLOBE_GEN
+,i5-CPU 4.4GHz,i5-CPU 4.4GHz,true,i5-CPU 4.4GHz,Processor Picklist,1,Active,i5-CPU 4.4GHz
+,i7-CPU 4.7GHz,i7-CPU 4.7GHz,false,i7-CPU 4.7GHz,Processor Picklist,2,Active,i7-CPU 4.7GHz
+,IBC Seismic Certification,IBC Seismic Certification,false,IBC Seismic Certification,seismicCertification,10,Active,IBC Seismic Certification
+,IBC_SEISMIC,IBC Seismic Certified,false,IBC_SEISMIC,Enclosure Certifications,,Active,IBC_SEISMIC
+,IC5.2,Intel Core i9 5.2 GHz,false,Intel Core i9 5.2 GHz,Processor Picklist,3,Active,Intel Core i9 5.2 GHz
+,IN001,Inkjet,false,Inkjet,Printer Picklist,2,Active,Inkjet
+,Install-OutsideUS,Install-OutsideUS,false,Install-OutsideUS,applicationEmissionCertification,20,Active,Install-OutsideUS
+,Install-US-Stat,Install-US-Stat,false,Install-US-Stat,applicationEmissionCertification,10,Active,Install-US-Stat
+,Intel Iris Xe Graphics,Intel Iris Xe Graphics,false,Intel Iris Xe Graphics,Graphics Picklist,1,Active,Intel Iris Xe Graphics
+,L001,Letter,false,Letter,Paper Size Picklist,1,Active,Letter
+,L1A,L1A,false,L1A,Protection Level,,Active,L1A
+,L2A,L2A,false,L2A,Protection Level,,Active,L2A
+,Language_Chinese(Mandarin),Chinese (Mandarin),false,Chinese (Mandarin),Languages,1,Active,Chinese (Mandarin)
+,Language_Danish,Danish,false,Danish,Languages,2,Active,Danish
+,Language_Dutch,Dutch,false,Dutch,Languages,3,Active,Dutch
+,Language_English,English,true,English,Languages,4,Active,English
+,Language_Finnish,Finnish,false,Finnish,Languages,5,Active,Finnish
+,Language_French,French,false,French,Languages,6,Active,French
+,Language_German,German,false,German,Languages,7,Active,German
+,Language_Greek,Greek,false,Greek,Languages,8,Active,Greek
+,Language_Italian,Italian,false,Italian,Languages,9,Active,Italian
+,Language_Norwegian,Norwegian,false,Norwegian,Languages,10,Active,Norwegian
+,Language_Portuguese,Portuguese,false,Portuguese,Languages,11,Active,Portuguese
+,Language_Russian,Russian,false,Russian,Languages,12,Active,Russian
+,Language_Spanish,Spanish,false,Spanish,Languages,13,Active,Spanish
+,Listing-UL 2200,Listing-UL 2200,false,Listing-UL 2200,standardsAndCompliance,20,Active,Listing-UL 2200
+,LS001,Laser,false,Laser,Printer Picklist,1,Active,Laser
+,MAG_TRIP,Magnetic Trip RH,false,MAG_TRIP,gc_cbType,5,Active,MAG_TRIP
+,Motor Starting,Motor Starting,false,Motor Starting,SpecialApplication,20,Active,Motor Starting
+,MSI Gaming GeForce RTX 3060,MSI Gaming GeForce RTX 3060,false,MSI Gaming GeForce RTX 3060,Graphics Picklist,2,Active,MSI Gaming GeForce RTX 3060
+,N+1,N+1,false,N+1,gc_redundancy,,Active,N+1
+,NA,North America,false,NA,gc_shipToRegion,,Active,NA
+,NA_49,US 49 States,false,NA_49,gc_shipToCountry,,Active,NA_49
+,NA_CA,California Only,false,NA_CA,gc_shipToCountry,,Active,NA_CA
+,NA_CANADA,Canada Only,false,NA_CANADA,gc_shipToCountry,,Active,NA_CANADA
+,NONE,No Enclosure Accessory,false,NONE,Enclosure Certifications,,Active,NONE
+,None - Standard,None - Standard,true,None - Standard,SpecialApplication,10,Active,None - Standard
+,OSHPD Seismic Certification,OSHPD Seismic Certification,false,OSHPD Seismic Certification,seismicCertification,20,Active,OSHPD Seismic Certification
+,OSHPD_SEISMIC,OSHPD Seismic Certified,false,OSHPD_SEISMIC,Enclosure Certifications,,Active,OSHPD_SEISMIC
+,parallel,MPS - Parallel Unit,false,parallel,gc_spMode,,Active,parallel
+,PME,Permanent Magnet Excitation,false,PME,gc_excitation,,Active,PME
+,Premium Plus Support,Premium Plus Support,false,Premium Plus Support,Support Level Picklist,2,Draft,Premium Plus Support
+,Premium Support,Premium Support,true,Premium Support,Support Level Picklist,1,Active,Premium Support
+PRP,Prime Power (PRP),Prime Power (PRP),false,Prime Power (PRP),DutyRating,20,Active,Prime Power (PRP)
+,RAM 16GB,RAM 16GB,false,RAM 16GB,Memory Picklist,2,Active,RAM 16GB
+,RAM 32GB,RAM 32GB,true,RAM 32GB,Memory Picklist,3,Active,RAM 32GB
+,RAM 64GB,RAM 64GB,false,RAM 64GB,Memory Picklist,4,Active,RAM 64GB
+,RAM 8GB,RAM 8GB,false,RAM 8GB,Memory Picklist,1,Active,RAM 8GB
+,Security Training,Security Training,false,Security Training,Training Type Picklist,2,Active,Security Training
+,SING_MLCB_BB,Opt size sngl MLCB/Busbar only,false,SING_MLCB_BB,gc_circuitBreakerType,2,Active,SING_MLCB_BB
+,single,Single Unit,false,single,gc_spMode,,Active,single
+,Software Training,Software Training,false,Software Training,Training Type Picklist,1,Active,Software Training
+,SSD Hard Drive 1TB,SSD Hard Drive 1TB,false,SSD Hard Drive 1TB,Storage Picklist,3,Active,SSD Hard Drive 1TB
+,SSD Hard Drive 256GB,SSD Hard Drive 256GB,false,SSD Hard Drive 256GB,Storage Picklist,1,Active,SSD Hard Drive 256GB
+,SSD Hard Drive 2TB,SSD Hard Drive 2TB,false,SSD Hard Drive 2TB,Storage Picklist,4,Active,SSD Hard Drive 2TB
+,SSD Hard Drive 512GB,SSD Hard Drive 512GB,false,SSD Hard Drive 512GB,Storage Picklist,2,Active,SSD Hard Drive 512GB
+,ST,Steel,false,ST,enclosureMaterial,,Active,ST
+,STANDBY,Standby,false,STANDBY,gc_duty,,Active,STANDBY
+,STD,STD,false,STD,Protection Level,,Active,STD
+,STD_MLCB,Std MLCB,false,STD_MLCB,gc_circuitBreakerType,1,Active,STD_MLCB
+,UL2200,UL2200,false,UL2200,gc_certificate,,Active,UL2200
+,Y23,Protector Plus,false,Y23,gc_oem,,Active,Y23

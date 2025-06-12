@@ -1,0 +1,24 @@
+{
+  "apiVersion": "64.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT Name from ProductRelatedComponent",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObjectId$ProductRelatedComponent FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent' ORDER BY  ReferenceObject.Name ASC",
+          "operation": "Upsert",
+          "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

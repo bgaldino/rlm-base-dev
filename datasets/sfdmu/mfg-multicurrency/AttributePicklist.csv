@@ -1,0 +1,10 @@
+Code,CurrencyIsoCode,DataType,Description,Name,Status
+applicationEmissionCertification,USD,Text,,applicationEmissionCertification,Draft
+DutyRating,USD,Text,,DutyRating,Draft
+Entrance Types,USD,Text,,Entrance Types,Draft
+Languages,USD,Text,,Languages,Draft
+Power,USD,Number,,Power,Draft
+seismicCertification,USD,Text,,seismicCertification,Draft
+SpecialApplication,USD,Text,,SpecialApplication,Draft
+standardsAndCompliance,USD,Text,,standardsAndCompliance,Draft
+Voltage,USD,Text,,Voltage,Draft

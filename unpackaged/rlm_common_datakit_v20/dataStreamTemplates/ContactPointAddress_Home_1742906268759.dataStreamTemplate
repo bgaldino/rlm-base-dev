@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataStreamTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataSourceBundleDefinition>rlm_bundle5</dataSourceBundleDefinition>
+    <dataSourceObject>ContactPointAddress_Home7</dataSourceObject>
+    <masterLabel>ContactPointAddress_Home</masterLabel>
+    <objectCategory>Salesforce_SFDCReferenceModel_0_93.Related</objectCategory>
+    <refreshFrequency>STREAMING</refreshFrequency>
+    <refreshMode>UPSERT</refreshMode>
+    <sourceObjectName>ContactPointAddress_Home</sourceObjectName>
+    <streamType>INGEST</streamType>
+    <templateVersion>1</templateVersion>
+</DataStreamTemplate>

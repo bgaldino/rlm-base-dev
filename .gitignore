@@ -90,5 +90,13 @@ temp
 datasets/sfdmu/test*/**
 tasks/sfdmuload.py
 experience-bundle-package*/**
-agents256/**
-unpackaged/post_agents_bak/**
+
+# Added by Illuminated Cloud
+/.idea/
+/IlluminatedCloud/
+/out/
+/.illuminatedCloud/
+**/tsconfig*.json
+**/*.tsbuildinfo
+agents256*/**
+unpackaged/*bak/**

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DataSrcDataModelFieldMap xmlns="http://soap.sforce.com/2006/04/metadata">
+    <filterApplied>false</filterApplied>
+    <filterOperationType>Equal</filterOperationType>
+    <masterLabel>rlm_common_datakit_v15Salesforce_HomeIdProductCategoryProductIdzXiBvQANyoUkfYh</masterLabel>
+    <sourceField>ProductCategoryProduct_Home9.Id__c</sourceField>
+    <targetField>ssot__ProductCategoryProduct__dlm.ssot__Id__c</targetField>
+    <templateVersion>1</templateVersion>
+    <versionNumber>1.0</versionNumber>
+</DataSrcDataModelFieldMap>

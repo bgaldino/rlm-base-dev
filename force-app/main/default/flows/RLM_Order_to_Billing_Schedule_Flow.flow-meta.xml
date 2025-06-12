@@ -18,7 +18,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>63.0</apiVersion>
+    <apiVersion>64.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <description>Check if Order has a AppUsageType of RevenueLifecycleManagement before calling Order To Billing Schedule, otherwise do nothing</description>
@@ -44,8 +44,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM - Order to Billing Schedule Flow {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM - Order to Billing Schedule Flow</label>
+    <interviewLabel>RLM Order to Billing Schedule Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Order to Billing Schedule Flow</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

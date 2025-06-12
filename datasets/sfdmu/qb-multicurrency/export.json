@@ -1,5 +1,5 @@
 {
-  "apiVersion": "63.0",
+  "apiVersion": "64.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
@@ -11,7 +11,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
@@ -24,6 +24,12 @@
         },
         {
           "query": "SELECT Name, CatalogType, Code, Description FROM ProductCatalog ORDER BY Code ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ArePartialPeriodsAllowed, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -52,7 +58,7 @@
           "externalId": "Name"
         },
         {
-          "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, DisplayValue  FROM AttributePicklistValue ORDER BY Code ASC",
+          "query": "SELECT Name, Code, IsDefault, DisplayValue, PicklistId, Sequence, Value, Abbreviation, Status  FROM AttributePicklistValue ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code"
         },
@@ -147,7 +153,7 @@
         },
         {
           "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
-          "operation": "Readonly",
+          "operation": "Update",
           "externalId": "Name;CurrencyIsoCode;Pricebook2.Name",
           "excluded": false
         },
@@ -158,19 +164,19 @@
           "excluded": false
         },
         {
-          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition",
+          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
           "operation": "Upsert",
           "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment",
+          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment ORDER BY AttributeBasedAdjRule.Name ASC, PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
           "operation": "Upsert",
           "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType, CurrencyIsoCode FROM BundleBasedAdjustment",
+          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType, CurrencyIsoCode FROM BundleBasedAdjustment ORDER BY PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
           "operation": "Upsert",
           "externalId": "PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
@@ -197,6 +203,12 @@
           "query": "SELECT CurrencyIsoCode, DurationType, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
+          "operation": "Insert",
+          "externalId": "DeveloperName",
           "excluded": false
         }
       ]

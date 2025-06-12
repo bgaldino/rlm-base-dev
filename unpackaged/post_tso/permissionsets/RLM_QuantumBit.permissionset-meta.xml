@@ -13,6 +13,11 @@
         <externalCredentialPrincipal>SalesforceContractsExtCredentials-SalesforceContracts</externalCredentialPrincipal>
     </externalCredentialPrincipalAccesses>
     <fieldPermissions>
+        <editable>true</editable>
+        <field>AssetActionSource.RLM_ConstraintEngineNodeStatus__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>Contract.ActivatedById</field>
         <readable>true</readable>
@@ -303,6 +308,11 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>true</editable>
+        <field>OrderItem.RLM_ConstraintEngineNodeStatus__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>OrderItem.RLM_ProductName__c</field>
         <readable>true</readable>
@@ -440,6 +450,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>QuoteLineItem.RC_Approval__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.RLM_ConstraintEngineNodeStatus__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

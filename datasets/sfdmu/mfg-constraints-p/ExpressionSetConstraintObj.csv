@@ -1,0 +1,232 @@
+$$ConstraintModelTag$ExpressionSet.ApiName,ConstraintModelTag,ConstraintModelTagType,CurrencyIsoCode,ExpressionSet.Name,ReferenceObject.Name
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0155-2696-07
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0300-5929-01
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0300-5929-02
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0416-0439
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0416-0527
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0541-1204
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A030S169
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A035K427
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A046D218
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A048N280
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A051H785
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A051K118
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A052X578
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A052X580
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A052X582
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A052X584
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0155-2342-10
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,A052X586
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0402-0750-01
+Enclosure_None;GeneratorSet,Enclosure_None,Type,USD,GeneratorSet,No Enclosure
+Enclosure_SA1;GeneratorSet,Enclosure_SA1,Type,USD,GeneratorSet,Level 1 Sound Attenuated Enclosure
+Enclosure_SA2;GeneratorSet,Enclosure_SA2,Type,USD,GeneratorSet,Level 2 Sound Attenuated Enclosure
+Enclosure_SA3;GeneratorSet,Enclosure_SA3,Type,USD,GeneratorSet,Level 3 Sound Attenuated Enclosure
+engineer;GeneratorSet,engineer,Type,USD,GeneratorSet,Electrical Engineer
+engineer;GeneratorSet,engineer,Type,USD,GeneratorSet,Mechanical Engineer
+engineer;GeneratorSet,engineer,Type,USD,GeneratorSet,Civil Engineer
+install;GeneratorSet,install,Type,USD,GeneratorSet,Installation Fee
+misc;GeneratorSet,misc,Type,USD,GeneratorSet,Mounting Hardware
+misc;GeneratorSet,misc,Type,USD,GeneratorSet,Wiring & Cables
+misc;GeneratorSet,misc,Type,USD,GeneratorSet,Conduits and Fittings
+Enclosure_Weather;GeneratorSet,Enclosure_Weather,Type,USD,GeneratorSet,Weather Protected Enclosure
+GeneralModel900;GeneratorSet,GeneralModel900,Type,USD,GeneratorSet,FESBA 900kW
+GeneralModel1200;GeneratorSet,GeneralModel1200,Type,USD,GeneratorSet,FESBA 1200kW
+GeneralModel1750;GeneratorSet,GeneralModel1750,Type,USD,GeneratorSet,FESBA 1750kW
+GeneralModel2500;GeneratorSet,GeneralModel2500,Type,USD,GeneratorSet,FESBA 2500kW
+GeneralModel1500;GeneratorSet,GeneralModel1500,Type,USD,GeneratorSet,FESBA 1500kW
+VoltageConnection_277_480;GeneratorSet,VoltageConnection_277_480,Type,USD,GeneratorSet,"277/480,3 Phase,Wye,4 Wire"
+VoltageConnection_347_600;GeneratorSet,VoltageConnection_347_600,Type,USD,GeneratorSet,"347/600,3 Phase,Wye,4 Wire"
+VoltageConnection_2400_4160;GeneratorSet,VoltageConnection_2400_4160,Type,USD,GeneratorSet,"2400/4160,3 Phase,Wye,4Wire"
+VoltageConnection_7976_13800;GeneratorSet,VoltageConnection_7976_13800,Type,USD,GeneratorSet,"7976/13800,3 Ph,Wye,4 Wire"
+VoltageConnection_7621_13200;GeneratorSet,VoltageConnection_7621_13200,Type,USD,GeneratorSet,"7621/13200,3 Ph,Wye,4 Wire"
+VoltageConnection_7200_12470;GeneratorSet,VoltageConnection_7200_12470,Type,USD,GeneratorSet,"7200/12470,3 Ph,Wye,4 Wire"
+VoltageConnection_220_380;GeneratorSet,VoltageConnection_220_380,Type,USD,GeneratorSet,"220/380,3 Phase,Wye,4 Wire"
+VoltageConnection_240_416;GeneratorSet,VoltageConnection_240_416,Type,USD,GeneratorSet,"240/416,3 Phase,Wye,4 Wire"
+EntranceBox_Left_LV;GeneratorSet,EntranceBox_Left_LV,Type,USD,GeneratorSet,"Entrance Box-Low Voltage,Left"
+PMG;GeneratorSet,PMG,Type,USD,GeneratorSet,PMG
+OutputTerminals2HoleLugNEMA;GeneratorSet,OutputTerminals2HoleLugNEMA,Type,USD,GeneratorSet,"Output Terminals-2-Hole Lug, NEMA"
+EngineModel;GeneratorSet,EngineModel,Type,USD,GeneratorSet,Engine - QSK60-G6
+AirCleanerDutyRating;GeneratorSet,AirCleanerDutyRating,Type,USD,GeneratorSet,Normal Duty Air Cleaner
+AirCleanerDutyRating;GeneratorSet,AirCleanerDutyRating,Type,USD,GeneratorSet,Heavy Duty Air Cleaner
+StarterMotor;GeneratorSet,StarterMotor,Type,USD,GeneratorSet,Electric Starter Motor - 24V DC
+BatteryChargingAlternator;GeneratorSet,BatteryChargingAlternator,Type,USD,GeneratorSet,Battery Charging Alternator
+OilSystemOption;GeneratorSet,OilSystemOption,Type,USD,GeneratorSet,Oil Pan-High Capacity
+OilSystemOption;GeneratorSet,OilSystemOption,Type,USD,GeneratorSet,Oil Sampling Valve
+OilSystemOption;GeneratorSet,OilSystemOption,Type,USD,GeneratorSet,"Filters-Eng Oil,Full Flow/Bypass"
+FuelFilter;GeneratorSet,FuelFilter,Type,USD,GeneratorSet,"Fuel Filters-Engine, Standard"
+FuelSystemOption;GeneratorSet,FuelSystemOption,Type,USD,GeneratorSet,Separator-Fuel/Water
+FuelFilter;GeneratorSet,FuelFilter,Type,USD,GeneratorSet,"Fuel Filters-Engine, Duplex"
+EngineCoolingEnhancedHighAmbientAirTemperature;GeneratorSet,EngineCoolingEnhancedHighAmbientAirTemperature,Type,USD,GeneratorSet,Engine Cooling-Enhanced High Ambient Air Temperature
+EngCoolingHighAmbientAirTempShipLoose;GeneratorSet,EngCoolingHighAmbientAirTempShipLoose,Type,USD,GeneratorSet,"Eng Cooling-High Ambient Air Temp, Ship Loose"
+CoolantHeater;GeneratorSet,CoolantHeater,Type,USD,GeneratorSet,"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp"
+NoneSuppliedRemoteCooling;GeneratorSet,NoneSuppliedRemoteCooling,Type,USD,GeneratorSet,None Supplied (Remote Cooling)
+CoolantHeater;GeneratorSet,CoolantHeater,Type,USD,GeneratorSet,"Coolant Heater-208/240/480V, Below 40F Ambient Temp"
+EngineCoolingHighAmbientAirTemperature;GeneratorSet,EngineCoolingHighAmbientAirTemperature,Type,USD,GeneratorSet,Engine Cooling-High Ambient Air Temperature
+CoolingSystemConnection;GeneratorSet,CoolingSystemConnection,Type,USD,GeneratorSet,(Remote Cooling) Flanged Connectors ASA
+CoolingSystemProtection;GeneratorSet,CoolingSystemProtection,Type,USD,GeneratorSet,Warning-Low Coolant Level
+CoolingSystemProtection;GeneratorSet,CoolingSystemProtection,Type,USD,GeneratorSet,Shutdown-Low Coolant Level
+VoltageConnection_255_440;GeneratorSet,VoltageConnection_255_440,Type,USD,GeneratorSet,"255/440,3 Phase,Wye,4 Wire"
+BearingTemperatureSensor;GeneratorSet,BearingTemperatureSensor,Type,USD,GeneratorSet,"Bearing,1 RTD NDE"
+StatorTemperatureSensor;GeneratorSet,StatorTemperatureSensor,Type,USD,GeneratorSet,"Temp Sens-Stator, 2 RTD/Ph"
+Heater_110_220;GeneratorSet,Heater_110_220,Type,USD,GeneratorSet,"Heater-Alternator, 110/220 (120/240) Volt AC"
+Heater_120;GeneratorSet,Heater_120,Type,USD,GeneratorSet,"Heater-Alternator, 120 Volt AC"
+Heater_240;GeneratorSet,Heater_240,Type,USD,GeneratorSet,"Heater-Alternator, 240 Volt AC"
+FESBA_B448_2;GeneratorSet,FESBA_B448_2,Type,USD,GeneratorSet,"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C)"
+FESBA_B602_2;GeneratorSet,FESBA_B602_2,Type,USD,GeneratorSet,"Alt-60Hz,347/600V,125/105/80C-SPC"
+FESBA_B313_2;GeneratorSet,FESBA_B313_2,Type,USD,GeneratorSet,"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm"
+FESBA_B467_2;GeneratorSet,FESBA_B467_2,Type,USD,GeneratorSet,"ALT-60Hz,2400/4160V,125/105/80C (S/P/C)"
+FESBA_B601_2;GeneratorSet,FESBA_B601_2,Type,USD,GeneratorSet,"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby"
+FESBA_B567_2;GeneratorSet,FESBA_B567_2,Type,USD,GeneratorSet,"ALT-60Hz,Wye,12.47kV,105/80C (S/P)"
+FESBA_B595_2;GeneratorSet,FESBA_B595_2,Type,USD,GeneratorSet,"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb"
+FESBA_B599_2;GeneratorSet,FESBA_B599_2,Type,USD,GeneratorSet,"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm"
+FESBA_B600_2;GeneratorSet,FESBA_B600_2,Type,USD,GeneratorSet,"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm"
+FESBA_B598_2;GeneratorSet,FESBA_B598_2,Type,USD,GeneratorSet,"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont"
+FESBA_B612_2;GeneratorSet,FESBA_B612_2,Type,USD,GeneratorSet,"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm"
+FESBA_B628_2;GeneratorSet,FESBA_B628_2,Type,USD,GeneratorSet,"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby"
+FESBA_B607_2;GeneratorSet,FESBA_B607_2,Type,USD,GeneratorSet,"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby"
+FESBA_B603_2;GeneratorSet,FESBA_B603_2,Type,USD,GeneratorSet,"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm"
+FESBA_B664_2;GeneratorSet,FESBA_B664_2,Type,USD,GeneratorSet,"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm"
+FESBA_B660_2;GeneratorSet,FESBA_B660_2,Type,USD,GeneratorSet,"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby"
+FESBA_B663_2;GeneratorSet,FESBA_B663_2,Type,USD,GeneratorSet,"Alt-60Hz,Wye,440V,125-80C-SPC"
+FESBA_B604_2;GeneratorSet,FESBA_B604_2,Type,USD,GeneratorSet,"Alternator-60Hz, 347/600Volt, 80C-Stby"
+FESBA_B688_2;GeneratorSet,FESBA_B688_2,Type,USD,GeneratorSet,"Alternator-60Hz, Wye, 440 Volt,80C-Stby"
+FESBA_B691_2;GeneratorSet,FESBA_B691_2,Type,USD,GeneratorSet,"Alt-60Hz,Wye,440V,150/125SP,40C amb"
+FESBA_B715_2;GeneratorSet,FESBA_B715_2,Type,USD,GeneratorSet,"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm"
+FESBA_B816_2;GeneratorSet,FESBA_B816_2,Type,USD,GeneratorSet,"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb"
+FESBA_B801_2;GeneratorSet,FESBA_B801_2,Type,USD,GeneratorSet,"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont"
+FESBA_B817_2;GeneratorSet,FESBA_B817_2,Type,USD,GeneratorSet,"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb"
+FESBA_B903_2;GeneratorSet,FESBA_B903_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart"
+FESBA_B904_2;GeneratorSet,FESBA_B904_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart"
+FESBA_B907_2;GeneratorSet,FESBA_B907_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart"
+FESBA_B905_2;GeneratorSet,FESBA_B905_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart"
+FESBA_BB08_2;GeneratorSet,FESBA_BB08_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb"
+FESBA_B906_2;GeneratorSet,FESBA_B906_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart"
+FESBA_BB14_2;GeneratorSet,FESBA_BB14_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb"
+FESBA_BB12_2;GeneratorSet,FESBA_BB12_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb"
+FESBA_BB15_2;GeneratorSet,FESBA_BB15_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb"
+FESBA_BB10_2;GeneratorSet,FESBA_BB10_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb"
+FESBA_BB17_2;GeneratorSet,FESBA_BB17_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb"
+FESBA_BB18_2;GeneratorSet,FESBA_BB18_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb"
+FESBA_BC05_2;GeneratorSet,FESBA_BC05_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb"
+FESBA_BC03_2;GeneratorSet,FESBA_BC03_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb"
+FESBA_BB26_2;GeneratorSet,FESBA_BB26_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb"
+FESBA_BB23_2;GeneratorSet,FESBA_BB23_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb"
+FESBA_BC04_2;GeneratorSet,FESBA_BC04_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb"
+FESBA_BB29_2;GeneratorSet,FESBA_BB29_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb"
+FESBA_BB20_2;GeneratorSet,FESBA_BB20_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb"
+BearingHardenedCartridge;GeneratorSet,BearingHardenedCartridge,Type,USD,GeneratorSet,Hardened Bearing Cartridge
+DifferentialCT_P7;GeneratorSet,DifferentialCT_P7,Type,USD,GeneratorSet,Differential CT's P7
+DifferentialCT_P80;GeneratorSet,DifferentialCT_P80,Type,USD,GeneratorSet,Differential CT's P80
+FESBA_B909_2;GeneratorSet,FESBA_B909_2,Type,USD,GeneratorSet,"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart"
+HousingArrangement_Right;GeneratorSet,HousingArrangement_Right,Type,USD,GeneratorSet,Housing Arrangement - Right Entry
+TerminalHousing_Top_LV;GeneratorSet,TerminalHousing_Top_LV,Type,USD,GeneratorSet,"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn"
+HousingArrangement_Left;GeneratorSet,HousingArrangement_Left,Type,USD,GeneratorSet,Housing Arrangement - Left Entry
+BoxArrangement_None;GeneratorSet,BoxArrangement_None,Type,USD,GeneratorSet,Circuit Breaker or Entrance Box-None
+TerminalHousing_Top_MV_HV;GeneratorSet,TerminalHousing_Top_MV_HV,Type,USD,GeneratorSet,"Terminal Housing-Top Entrance,Medium/High Volts"
+HousingArrangement_LeftRight;GeneratorSet,HousingArrangement_LeftRight,Type,USD,GeneratorSet,Housing Arrangement - Left & Right Entry
+TerminalHousing_Bottom_MV_HV;GeneratorSet,TerminalHousing_Bottom_MV_HV,Type,USD,GeneratorSet,"Terminal Housing-Bottom Entrance,Medium/High Volts"
+TerminalHousing_Bottom_LV;GeneratorSet,TerminalHousing_Bottom_LV,Type,USD,GeneratorSet,"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn"
+EntranceBox_Right;GeneratorSet,EntranceBox_Right,Type,USD,GeneratorSet,Entrance Box-Right
+EntranceBox_Right_LV;GeneratorSet,EntranceBox_Right_LV,Type,USD,GeneratorSet,"Entrance Box-Low Voltage,Right"
+TerminalBox_Left_LV;GeneratorSet,TerminalBox_Left_LV,Type,USD,GeneratorSet,"Terminal Box-Low Voltage,Left"
+TerminalBox_Right_LV;GeneratorSet,TerminalBox_Right_LV,Type,USD,GeneratorSet,"Terminal Box-Low Voltage,Right"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Left;GeneratorSet,CircuitBreaker_Left,Type,USD,GeneratorSet,"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+LoadConnectionChute_Left;GeneratorSet,LoadConnectionChute_Left,Type,USD,GeneratorSet,"Bottom Entry Chute, Left"
+LoadConnectionBasic_Left;GeneratorSet,LoadConnectionBasic_Left,Type,USD,GeneratorSet,"Bottom Entry, Left"
+LoadConnectionBasic_Left;GeneratorSet,LoadConnectionBasic_Left,Type,USD,GeneratorSet,"Top Entry, Left"
+CircuitBreaker_Right;GeneratorSet,CircuitBreaker_Right,Type,USD,GeneratorSet,"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%"
+LoadConnectionBasic_Right;GeneratorSet,LoadConnectionBasic_Right,Type,USD,GeneratorSet,"Top Entry, Right"
+LoadConnectionBasic_Right;GeneratorSet,LoadConnectionBasic_Right,Type,USD,GeneratorSet,"Bottom Entry, Right"
+LoadConnectionChute_Right;GeneratorSet,LoadConnectionChute_Right,Type,USD,GeneratorSet,"Bottom Entry Chute, Right"
+GroundFault_Basic;GeneratorSet,GroundFault_Basic,Type,USD,GeneratorSet,"Indication-Ground Fault,3-PoleXfrSw"
+GroundFault_Left;GeneratorSet,GroundFault_Left,Type,USD,GeneratorSet,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left"
+GroundFault_Right;GeneratorSet,GroundFault_Right,Type,USD,GeneratorSet,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right"
+CircuitBreakerAccess_Right;GeneratorSet,CircuitBreakerAccess_Right,Type,USD,GeneratorSet,Ckt Brkr Access-Right Side
+CircuitBreakerAccess_Left;GeneratorSet,CircuitBreakerAccess_Left,Type,USD,GeneratorSet,Ckt Brkr Access-Left Side
+CircuitBreakerLug_Left;GeneratorSet,CircuitBreakerLug_Left,Type,USD,GeneratorSet,"Ckt Brkr Lugs-Mechanical, Left Side"
+CircuitBreakerLug_Right;GeneratorSet,CircuitBreakerLug_Right,Type,USD,GeneratorSet,"Ckt Brkr Lugs-Mechanical, Right Side"
+GroundFault_None;GeneratorSet,GroundFault_None,Type,USD,GeneratorSet,Ground Fault Indication Relay - None
+Control;GeneratorSet,Control,Type,USD,GeneratorSet,PowerCommand 3.3
+Control;GeneratorSet,Control,Type,USD,GeneratorSet,PowerCommand 3.3 with MLD
+ControlCabinetHeater;GeneratorSet,ControlCabinetHeater,Type,USD,GeneratorSet,120/240VAC compatible
+ControlOption;GeneratorSet,ControlOption,Type,USD,GeneratorSet,"Meters-AC Output,Analog"
+ControlOption;GeneratorSet,ControlOption,Type,USD,GeneratorSet,Display - Control LCD
+ControlOption;GeneratorSet,ControlOption,Type,USD,GeneratorSet,AmpSentryTM Protective Relay
+ControlOption;GeneratorSet,ControlOption,Type,USD,GeneratorSet,"Display, Running Time"
+ControlOption;GeneratorSet,ControlOption,Type,USD,GeneratorSet,"Alarm-Audible, Engine Shutdown"
+ControlOption;GeneratorSet,ControlOption,Type,USD,GeneratorSet,RELAYS-USER CONFIGURED
+ControlOptionAux;GeneratorSet,ControlOptionAux,Type,USD,GeneratorSet,"Signals - Auxiliary, 8 Inputs/8 Outputs"
+ControlOptionAuxAddon;GeneratorSet,ControlOptionAuxAddon,Type,USD,GeneratorSet,"Signals - Auxiliary 2, 8 Inputs/8 Outputs"
+ControlOptionAuxAddon;GeneratorSet,ControlOptionAuxAddon,Type,USD,GeneratorSet,Gauge-Exhaust Gas Temperature
+StandardFactoryTest;GeneratorSet,StandardFactoryTest,Type,USD,GeneratorSet,Test - Standard Factory
+TestRecord;GeneratorSet,TestRecord,Type,USD,GeneratorSet,Test Record-Certified
+WitnessTest;GeneratorSet,WitnessTest,Type,USD,GeneratorSet,Test - Witness
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extended, Prime Load, 1Hr"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extnd, Prime Ld,2Hr"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extnd, Prime Ld,4Hr"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extended, Prime Load, 8Hr"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extended, Standby Load, 1"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extended, Standby Load, 2"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extended, Standby Load, 4"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Extnd,Stndby Ld,8Hr"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Varied Load,1 Hour,2 Step"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Varied Load,2Hr,2 Step"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Varied Load, 4Hr, 2Step"
+WitnessTestService;GeneratorSet,WitnessTestService,Type,USD,GeneratorSet,"Test-Varied Ld,6Hr,3 Step"
+IndependentLaboratoryTest;GeneratorSet,IndependentLaboratoryTest,Type,USD,GeneratorSet,Test-Independent Laboratory
+TestRecord;GeneratorSet,TestRecord,Type,USD,GeneratorSet,Test Record-Strip Chart
+TestRecord;GeneratorSet,TestRecord,Type,USD,GeneratorSet,Test Record-Safety Shutdowns
+TestRecord;GeneratorSet,TestRecord,Type,USD,GeneratorSet,Test Record-Amb Temp/Pres
+TestRecord;GeneratorSet,TestRecord,Type,USD,GeneratorSet,Test Record-Exhaust Temp
+WarrantyCommon;GeneratorSet,WarrantyCommon,Type,USD,GeneratorSet,Genset Warranty Base
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 3YR 1500HR PARTS
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 5YR 2500HR PARTS
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 10YR 5000HR PARTS
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 3YR 1500HR Parts + Labor
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 5YR 2500HR Parts + Labor
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 10YR 5000HR Parts + Labor
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 3YR 1500HR Parts + Labor + Travel
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 5YR 2500HR Parts + Labor + Travel
+Warranty_ESP;GeneratorSet,Warranty_ESP,Type,USD,GeneratorSet,ST 10YR 5000HR Parts + Labor + Travel
+Warranty_PRP;GeneratorSet,Warranty_PRP,Type,USD,GeneratorSet,PR 2YR 4000HR P + L + T
+Warranty_PRP;GeneratorSet,Warranty_PRP,Type,USD,GeneratorSet,PR 3YR 6000HR P + L + T
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 3YR UNLIMITED HR PARTS
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 5YR UNLIMITED HR PARTS
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 10YR UNLIMITED HR PARTS
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 3YR UNLIMITED HR P + L
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 5YR UNLIMITED HR P + L
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 10YR UNLIMITED HR P + L
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 3YR UNLIMITED HR P + L + T
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 5YR UNLIMITED HR P + L + T
+Warranty_DCC;GeneratorSet,Warranty_DCC,Type,USD,GeneratorSet,DCC 10YR UNLIMITED HR P + L + T
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Chinese
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Danish
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Dutch
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-English
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Finnish
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-French
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-German
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Greek
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Italian
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Norwegian
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Portuguese
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Brazilian Portuguese
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Russian
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Spanish
+Literature;GeneratorSet,Literature,Type,USD,GeneratorSet,Literature-Swedish
+PackagingForShipment;GeneratorSet,PackagingForShipment,Type,USD,GeneratorSet,Packing-None
+Accessory;GeneratorSet,Accessory,Type,USD,GeneratorSet,0155-2341-10
+GeneratorSet;GeneratorSet,GeneratorSet,Type,USD,GeneratorSet,FESBA Generator Set

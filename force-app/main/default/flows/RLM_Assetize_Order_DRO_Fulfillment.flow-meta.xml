@@ -99,7 +99,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
         <versionSegment>1</versionSegment>
     </actionCalls>
-    <apiVersion>63.0</apiVersion>
+    <apiVersion>64.0</apiVersion>
     <assignments>
         <name>Add_Order_Id_from_Current_FOP</name>
         <label>Add Order Id from Current FOP</label>
@@ -338,8 +338,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM - Assetize Order - DRO Fulfillment {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM - Assetize Order - DRO Fulfillment</label>
+    <interviewLabel>RLM Assetize Order - DRO Fulfillment {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Assetize Order - DRO Fulfillment</label>
     <loops>
         <name>Loop_2</name>
         <label>Loop 2</label>

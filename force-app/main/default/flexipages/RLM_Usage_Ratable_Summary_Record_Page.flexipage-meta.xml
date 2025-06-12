@@ -140,28 +140,18 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
+                <fieldItem>Record.AccountId</fieldItem>
+                <identifier>RecordAccountIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
                 <fieldItem>Record.StartDateTime</fieldItem>
                 <identifier>RecordStartDateTimeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.OverageQuantity</fieldItem>
-                <identifier>RecordOverageQuantityField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.OverageQuantityUomId</fieldItem>
-                <identifier>RecordOverageQuantityUomIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -180,82 +170,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.AccountId</fieldItem>
-                <identifier>RecordAccountIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.Status</fieldItem>
-                <identifier>RecordStatusField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RatingRequestId</fieldItem>
-                <identifier>RecordRatingRequestIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RatingExecutionIdentifier</fieldItem>
-                <identifier>RecordRatingExecutionIdentifierField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.UsageEntitlementAccountId</fieldItem>
-                <identifier>RecordUsageEntitlementAccountIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-62c7fd7b-4333-47c9-943e-6ce555b5e3e6</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.UsageEntitlementBucketId</fieldItem>
-                <identifier>RecordUsageEntitlementBucketIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.EndDateTime</fieldItem>
-                <identifier>RecordEndDateTimeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.TierQuantity</fieldItem>
-                <identifier>RecordTierQuantityField</identifier>
+                <fieldItem>Record.OverageQuantityUomId</fieldItem>
+                <identifier>RecordOverageQuantityUomIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -274,8 +190,32 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RatingDecisionDateTime</fieldItem>
-                <identifier>RecordRatingDecisionDateTimeField</identifier>
+                <fieldItem>Record.UsageEntitlementBucketId</fieldItem>
+                <identifier>RecordUsageEntitlementBucketIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Status</fieldItem>
+                <identifier>RecordStatusField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-62c7fd7b-4333-47c9-943e-6ce555b5e3e6</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.AssetId</fieldItem>
+                <identifier>RecordAssetIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -284,18 +224,18 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.ErrorCode</fieldItem>
-                <identifier>RecordErrorCodeField</identifier>
+                <fieldItem>Record.UsageEntitlementAccountId</fieldItem>
+                <identifier>RecordUsageEntitlementAccountIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.ErrorDescription</fieldItem>
-                <identifier>RecordErrorDescriptionField</identifier>
+                <fieldItem>Record.EndDateTime</fieldItem>
+                <identifier>RecordEndDateTimeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -312,10 +252,30 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.OverageQuantity</fieldItem>
+                <identifier>RecordOverageQuantityField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TierQuantity</fieldItem>
+                <identifier>RecordTierQuantityField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.AssetId</fieldItem>
-                <identifier>RecordAssetIdField</identifier>
+                <fieldItem>Record.GrantBindingTargetId</fieldItem>
+                <identifier>RecordGrantBindingTargetIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -353,6 +313,88 @@
             </componentInstance>
         </itemInstances>
         <name>Facet-c5f127fa-584c-40c3-a4ab-d1d6c52864b2</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RatingDecisionDateTime</fieldItem>
+                <identifier>RecordRatingDecisionDateTimeField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RatingRequestId</fieldItem>
+                <identifier>RecordRatingRequestIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.ErrorDescription</fieldItem>
+                <identifier>RecordErrorDescriptionField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-c9e51a3c-cc8e-4e3d-bd4e-0452ab23fe87</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RatingExecutionIdentifier</fieldItem>
+                <identifier>RecordRatingExecutionIdentifierField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.ErrorCode</fieldItem>
+                <identifier>RecordErrorCodeField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-af9d9c68-fa75-439f-a7b5-9bd8ac1c9eb2</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-c9e51a3c-cc8e-4e3d-bd4e-0452ab23fe87</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:column</componentName>
+                <identifier>flexipage_column5</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-af9d9c68-fa75-439f-a7b5-9bd8ac1c9eb2</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:column</componentName>
+                <identifier>flexipage_column6</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-d37711d2-4249-471b-b840-36af187207df</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -444,6 +486,24 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
                 <identifier>flexipage_fieldSection</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>columns</name>
+                    <value>Facet-d37711d2-4249-471b-b840-36af187207df</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>horizontalAlignment</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>Rating Information</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:fieldSection</componentName>
+                <identifier>flexipage_fieldSection3</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>

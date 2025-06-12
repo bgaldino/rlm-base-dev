@@ -1,0 +1,53 @@
+$$AttributeCategory.Name$AttributeDefinition.Code,AttributeCategory.Code,AttributeDefinition.Code
+01. Customer Needs,CN001,
+01. Customer Needs,CN001,
+01. Customer Needs,CN001,
+01. Customer Needs,CN001,
+01. Customer Needs;gc_fuel,CN001,gc_fuel
+01. Customer Needs;gc_kw,CN001,gc_kw
+01. Customer Needs;gc_noiseVolume,CN001,gc_noiseVolume
+01. Customer Needs;gc_oem,CN001,gc_oem
+01. Customer Needs;gc_voltage,CN001,gc_voltage
+02. Specification Attributes;frequency,CA001,frequency
+02. Specification Attributes;gc_actualNoiseVolume,CA001,gc_actualNoiseVolume
+02. Specification Attributes;gc_alternatorUpsize,CA001,gc_alternatorUpsize
+02. Specification Attributes;gc_certificate,CA001,gc_certificate
+02. Specification Attributes;gc_circuitBreakerType,CA001,gc_circuitBreakerType
+02. Specification Attributes;gc_duty,CA001,gc_duty
+02. Specification Attributes;gc_excitation,CA001,gc_excitation
+02. Specification Attributes;gc_roofBased,CA001,gc_roofBased
+03. SEQ,SEQ,
+03. SEQ;gc_alternatorUpsize,SEQ,gc_alternatorUpsize
+Application,Application,
+Application,Application,
+Application,Application,
+Application,Application,
+Application,Application,
+Application,Application,
+Connection Type,CT001,
+Display,DIS,
+Display,DIS,
+Environment,Environment,
+Environment,Environment,
+Environment,Environment,
+Environment,Environment,
+Graphics,GRA,
+Memory,MEM,
+MPS Attributes,MPS_Attributes,
+MPS Attributes,MPS_Attributes,
+MPS Attributes,MPS_Attributes,
+MPS Attributes,MPS_Attributes,
+MPS Attributes,MPS_Attributes,
+MPS Attributes,MPS_Attributes,
+MPS Attributes;gc_fuel,MPS_Attributes,gc_fuel
+MPS Attributes;gc_oem,MPS_Attributes,gc_oem
+MPS Attributes;gc_roofBased,MPS_Attributes,gc_roofBased
+MPS Attributes;gc_voltage,MPS_Attributes,gc_voltage
+Paper,PP001,
+Printer,P001,
+Processor,PRO,
+Shipping;gc_shipToCountry,SH001,gc_shipToCountry
+Shipping;gc_shipToRegion,SH001,gc_shipToRegion
+Storage,STO,
+Support,SP001,
+Training,T001,

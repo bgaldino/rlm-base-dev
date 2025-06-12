@@ -1,5 +1,5 @@
 {
-  "apiVersion": "63.0",
+  "apiVersion": "64.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
@@ -197,6 +197,12 @@
           "query": "SELECT CurrencyIsoCode, DurationType, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
+          "operation": "Insert",
+          "externalId": "DeveloperName",
           "excluded": false
         }
       ]

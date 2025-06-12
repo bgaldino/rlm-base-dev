@@ -1,5 +1,5 @@
 {
-  "apiVersion": "63.0",
+  "apiVersion": "64.0",
   "excludeIdsFromCSVFiles": "false",
   "objectSets": [
     {
@@ -30,7 +30,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT DrawdownOrder, EffectiveEndDate, EffectiveStartDate, Label, OverageChargeable, ProductOfferId, UsageDefinitionProductId, Quantity, Status, UnitOfMeasureClassId, UnitOfMeasureId, RenewalPolicyId, RolloverPolicyId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY ProductOffer.StockKeepingUnit ASC, UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC, UsageResource.Code ASC",
+          "query": "SELECT DrawdownOrder, Label, OverageChargeable, ProductOfferId, ProductUsageGrantNum, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY ProductOffer.StockKeepingUnit ASC, UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC, UsageResource.Code ASC",
           "operation": "Upsert",
           "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;UsageResource.Code",
           "excluded": false
@@ -61,6 +61,12 @@
         },
         {
           "query": "SELECT ProductId, RatingDelayDuration, RatingPeriod, UsageResourceId FROM RatingFrequencyPolicy",
+          "operation": "Upsert",
+          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, ProductId, ProductUsageResourceNum, Status, UsageResourceId FROM ProductUsageResource",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
           "excluded": false

@@ -16,6 +16,14 @@ for (UsageResource ur : urs) {
 }
 update urs;
 
+List<ProductUsageResource> purs = [SELECT Id, Status FROM ProductUsageResource WHERE Status != 'Active'];
+
+// Step 6: Update ProductUsageResource records to Active
+for (ProductUsageResource pur : purs) {
+    pur.Status = 'Active';
+}
+update purs;
+
 // Step 5: Query ProductUsageGrant records that need to be updated
 List<ProductUsageGrant> prgs = [SELECT Id, Status FROM ProductUsageGrant WHERE Status != 'Active'];
 

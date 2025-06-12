@@ -11,6 +11,17 @@ package.xml
 # LWC Jest
 **/__tests__/**
 
+**/tsconfig.json
+
+**/*.ts
+
+# Added by Illuminated Cloud
+/.idea/
+/.illuminatedCloud/
+**/tsconfig*.json
+**/*.tsbuildinfo
+**/eslint.config.mjs
+
 # rlm-base specific entries
 
 # default expressionSetDefinitions
@@ -19,9 +30,10 @@ force-app/main/default/expressionSetDefinition/Default_Rating_Procedure.expressi
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Qualification_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/Salesforce_Default_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 # custom expressionSetDefinitions
-force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultRatingDiscoveryProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
@@ -29,39 +41,29 @@ force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProced
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
 
-#unpackaged/post_agents/flows/Identify_QuoteLineItem_from_Product.flow-meta.xml
-#unpackaged/post_agents/genAiFunctions/Identify_QuoteLineItem_from_Product
-
-## Pilot Agent Components
-unpackaged/post_agents/flows/Get_Amend_Opportunities.flow-meta.xml
-unpackaged/post_agents/flows/Query_Quote_Line_Items_on_Quote.flow-meta.xml
-unpackaged/post_agents/flows/Query_Quotes_on_Account.flow-meta.xml
-
 # contextDefinitions
 force-app/main/default/contextDefinitions
 
 # connectedApps
-force-app/main/default/connectedApps/RLM_Postman.connectedApp-meta.xml
 
 # unpackaged/pre
 # PSGs
 #unpackaged/pre/3_permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
 
 # unpackaged/post_sharing
-unpackaged/post_sharing/force-app/main/default/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
-#unpackaged/post_sharing/force-app/main/default/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
-unpackaged/post_sharing/force-app/main/default/objects/PriceAdjustmentSchedule/PriceAdjustmentSchedule.object-meta.xml
-unpackaged/post_sharing/force-app/main/default/objects/PriceBookEntryDerivedPrice/PriceBookEntryDerivedPrice.object-meta.xml
-#unpackaged/post_sharing/force-app/main/default/objects/ProductComponentGrpOverride/ProductComponentGrpOverride.object-meta.xml
-unpackaged/post_sharing/force-app/main/default/objects/ProductConfigurationRule/ProductConfigurationRule.object-meta.xml
-unpackaged/post_sharing/force-app/main/default/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
-unpackaged/post_sharing/force-app/main/default/objects
+unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
+#unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
+unpackaged/post_sharing/objects/PriceAdjustmentSchedule/PriceAdjustmentSchedule.object-meta.xml
+unpackaged/post_sharing/objects/PriceBookEntryDerivedPrice/PriceBookEntryDerivedPrice.object-meta.xml
+#unpackaged/post_sharing/objects/ProductComponentGrpOverride/ProductComponentGrpOverride.object-meta.xml
+unpackaged/post_sharing/objects/ProductConfigurationRule/ProductConfigurationRule.object-meta.xml
+unpackaged/post_sharing/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
+unpackaged/post_sharing/objects
 
 #unpackaged/pre/5_decisiontables
 
 ## pricingActionParameters
-unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
-
+unpackaged/post_quantumbit/pricingActionParameters
 
 ## ADVANCED APPROVALS
 # classes
@@ -84,15 +86,29 @@ unpackaged/post_quantumbit/force-app/main/default/pricingActionParameters
 
 ## DOCGEN
 # When docgen is successfully set up, experience bundles need these files.  If not, they must be uncommented.
-#unpackaged/post_prm/force-app/main/default/experiences/rlm1/routes/serviceDocument.json
-#unpackaged/post_prm/force-app/main/default/experiences/rlm1/views/serviceDocument.json
+#unpackaged/post_prm/experiences/rlm1/routes/serviceDocument.json
+#unpackaged/post_prm/experiences/rlm1/views/serviceDocument.json
 
 ## MISC - TO ORGANIZE
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 
 #unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
 force-app/main/default/settings/UserInterface.settings-meta.xml
+#unpackaged/pre/3_permissionsetgroups
+#force-app/main/default/permissionsetgroups
 
-**/tsconfig.json
-
-**/*.ts
+unpackaged/post_agents/bots/Agentforce_for_Analytics.bot-meta.xml
+unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
+unpackaged/post_utils/flows/RCA_Event_Trigger.flow-meta.xml
+force-app/main/default/classes/RLM_PatchOrderConvertedFromQuote.cls
+force-app/main/default/classes/RLM_PatchOrderConvertedFromQuote.cls-meta.xml
+force-app/main/default/classes/RLM_PatchOrderTenantUtility.cls
+force-app/main/default/classes/RLM_PatchOrderTenantUtility.cls-meta.xml
+force-app/main/default/classes/RLM_PatchQuoteDateHeader.cls
+force-app/main/default/classes/RLM_PatchQuoteDateHeader.cls-meta.xml
+force-app/main/default/classes/RLM_UpdateQuotePricesAndSave.cls
+force-app/main/default/classes/RLM_UpdateQuotePricesAndSave.cls-meta.xml
+force-app/main/default/pages/RLM_UpdateQuotePrices.page
+force-app/main/default/pages/RLM_UpdateQuotePrices.page-meta.xml
+unpackaged/post_tso/appMenus/AppSwitcher.appMenu-meta.xml
+force-app/main/default/flows/RLM_Create_and_Update_Renewal_Opportunities.flow-meta.xml

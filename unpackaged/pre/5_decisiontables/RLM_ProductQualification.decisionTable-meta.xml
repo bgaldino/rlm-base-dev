@@ -4,6 +4,7 @@
     <conditionType>All</conditionType>
     <dataSourceType>SingleSobject</dataSourceType>
     <decisionTableParameters>
+        <dataType>String</dataType>
         <fieldName>ParentProductId</fieldName>
         <fieldPath>ParentProductId</fieldPath>
         <isGroupByField>false</isGroupByField>
@@ -13,6 +14,7 @@
         <usage>INPUT</usage>
     </decisionTableParameters>
     <decisionTableParameters>
+        <dataType>String</dataType>
         <fieldName>IsQualified</fieldName>
         <fieldPath>IsQualified</fieldPath>
         <isGroupByField>false</isGroupByField>
@@ -20,6 +22,7 @@
         <usage>OUTPUT</usage>
     </decisionTableParameters>
     <decisionTableParameters>
+        <dataType>String</dataType>
         <fieldName>RootProductId</fieldName>
         <fieldPath>RootProductId</fieldPath>
         <isGroupByField>false</isGroupByField>
@@ -29,6 +32,7 @@
         <usage>INPUT</usage>
     </decisionTableParameters>
     <decisionTableParameters>
+        <dataType>String</dataType>
         <fieldName>ProductId</fieldName>
         <fieldPath>ProductId</fieldPath>
         <isGroupByField>false</isGroupByField>
@@ -40,6 +44,8 @@
     <description>RLM Default Product Qualification Decision Table</description>
     <doesConsiderNullValue>false</doesConsiderNullValue>
     <filterResultBy>OutputOrder</filterResultBy>
+    <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
+    <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
     <setupName>RLM_ProductQualification</setupName>
     <sourceObject>ProductQualification</sourceObject>
     <status>Active</status>

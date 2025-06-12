@@ -23,7 +23,6 @@
     </decisionTableParameters>
     <description>Creates a decision table that’s used to identify qualified categories.</description>
     <doesConsiderNullValue>true</doesConsiderNullValue>
-    <executionType>Hbpo</executionType>
     <filterResultBy>OutputOrder</filterResultBy>
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
