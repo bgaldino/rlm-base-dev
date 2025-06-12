@@ -1,0 +1,5 @@
+ActiveVersion.$$AssessmentQuestion.DeveloperName$VersionNumber,CurrencyIsoCode,DataType,Description,DeveloperName,DisclosureDefinitionVer,DisclosureDefinitionVerRef.DeveloperName,FormulaResponseDataType,Name,Namespace,QuestionCategory,QuestionText,RelatedQuestion.DeveloperName,ShouldExcludeFromMetadata,ShouldHideInDesigner,SourceSystemName,UniqueIndex
+solution_type_looking_for;5,USD,Radio,,solution_type_looking_for,,,,What type of Solution are you looking for?,,Demographic,What type of Solution are you looking for?,,false,false,,solution_type_looking_for
+Security_Monitoring;1,USD,Radio,,Security_Monitoring,,,,Security Monitoring,,Demographic,Is Security Monitoring required as part of the solution?,,false,false,,Security_Monitoring
+Implementation_Options;1,USD,Radio,,Implementation_Options,,,,Implementation Options,,Demographic,Implementation Options,,false,false,,Implementation_Options
+Industry;1,USD,Radio,,Industry,,,,Industry,,Demographic,Industry,,false,false,,Industry
