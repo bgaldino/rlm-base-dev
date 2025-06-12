@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Security Monitoring</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>Is Security Monitoring required as part of the solution?</questionText>
+        <responseValues>Yes
+No</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Radio</dataType>
+    <developerName>Security_Monitoring</developerName>
+    <name>Security Monitoring</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

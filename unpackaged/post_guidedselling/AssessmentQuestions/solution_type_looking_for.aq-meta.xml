@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>What type of Solution are you looking for?</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What type of Solution are you looking for?</questionText>
+        <responseValues>Complete Data Solution
+IT Operations
+Risk Mitigation
+Software Suites
+Professional Services
+QuantumBit Complete Solution</responseValues>
+        <status>Active</status>
+        <versionNumber>5</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Radio</dataType>
+    <developerName>solution_type_looking_for</developerName>
+    <name>What type of Solution are you looking for?</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Implementation Options</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>Implementation Options</questionText>
+        <responseValues>Include Professional Services
+Self-Implement</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Radio</dataType>
+    <developerName>Implementation_Options</developerName>
+    <name>Implementation Options</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>
