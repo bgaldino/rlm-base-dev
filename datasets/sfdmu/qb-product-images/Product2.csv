@@ -1,0 +1,106 @@
+DisplayUrl,Name,StockKeepingUnit
+/resource/add_api,Additional API,QB-API
+/resource/api_flex,Additional API Flex (100M),QB-API-FLEX
+/resource/api_govt,Additional API Gov,QB-API-GOVT
+/resource/api_preprod,Additional API Pre-Prod,QB-API-PREP
+/resource/api_prod,Additional API Prod,QB-API-PROD
+/resource/api_access,API Access Requests (AEH),QB-API-REQT
+/resource/add_auto_credit,Additional Automation QB Credits,QB-AUT-CRED
+/resource/RLM_quantumBit_logo_sq,QuantumBit Business Critical,QB-BDL-CRTL
+/resource/RLM_quantumBit_logo_sq,QuantumBit Enterprise,QB-BDL-ENTR
+/resource/powerswerve,PowerSwerve R750 Rack Server,QB-BDL-R750
+/resource/ps_qb_project,QuantumBit Services Project,QB-BDL-SRVC
+/resource/starter,QuantumBit Starter,QB-BDL-STND
+/resource/intel_x710_sfp,Intel X710 Dual Port 10Gb SFP,QB-BET X710SFP
+/resource/RLM_quantumBit_logo_sq,QuantumShell 8U 600mmx1070mm,QB-BMX-1050
+/resource/RLM_quantumBit_logo_sq,QuantumShell 6U 600mmx870mm,QB-BMX-1051
+/resource/RLM_quantumBit_logo_sq,QuantumShell 10U 600mmx1200mm,QB-BMX-1053
+/resource/RLM_quantumBit_logo_sq,Cable Management Rings (Qty 10),QB-CMPC-5881
+/resource/power_cable,Configured Power Cable,QB-CMPC-5882
+/resource/RLM_quantumBit_logo_sq,"Vertical Cable Organizer, 8 Cable Rings",QB-CMPC-5883
+/resource/RLM_quantumBit_logo_sq,Cable Containment Brackets,QB-CMPC-5884
+/resource/power_cable,C13 to C14 Power Cable 3',QB-CMPC-5887
+/resource/power_cable,C13 to C14 Power Cable 5',QB-CMPC-5888
+/resource/power_cable,C19 to C20 Power Cable 3',QB-CMPC-5889
+/resource/power_cable,C19 to C20 Power Cable 5',QB-CMPC-5890
+/resource/RLM_quantumBit_logo_sq,L5-20 Input Power Cable 12',QB-CMPC-5891
+/resource/RLM_quantumBit_logo_sq,L5-20 Input Power Cable 8',QB-CMPC-5892
+/resource/complete_solution,QuantumBit Complete Solution,QB-COMPLETE
+/resource/collab_suite,QuantumBit Collaboration Suite,QB-CS
+/resource/add_data_graph,Additional QB DataGraph (500M),QB-DAT-GRPH
+/resource/database,QuantumBit Database,QB-DB
+/resource/genAI,QuantumBit Generative AI License,QB-GEN-AI-LIC
+/resource/hd_1tb_72k,1TB 7.2k RPM NLSAS,QB-HD 1TB
+/resource/hd_4tb_72k,4TB 7.2k RPM NLSAS,QB-HD 4TB
+/resource/hd_8tb_72k,8TB 7.2k RPM NLSAS,QB-HD 8TB
+/resource/hd_8tb_72k_se,8TB 7.2k RPM Self-Encrypting NLSAS,QB-HD 8TBSE
+/resource/intel_e52609,Intel Xeon E5-2609 v4 1.7GHz,QB-INTEL E5-2609
+/resource/intel_e52660,Intel Xeon E5-2660 v4 2.0GHz,QB-INTEL E5-2660
+/resource/intel_e52667,Intel Xeon E5-2667 v4 3.2GHz,QB-INTEL E5-2667
+/resource/intel_e52683,Intel Xeon E5-2683 v4 2.1GHz,QB-INTEL E5-2683
+/resource/ram_16GB_RDIMM2,16GB RDIMM,QB-MEM 16GB
+/resource/ram_32GB_RDIMM,32GB RDIMM,QB-MEM 32GB
+/resource/ram_8GB_RDIMM,8GB RDIMM,QB-MEM 8GB
+/resource/intel_x710_dp,Intel X710 Dual Port 10Gb Direct Attach,QB-NET X710
+/resource/ps_daily_rate,Professional Services Daily Rate,QB-SRV-OG-PSH
+/resource/ps_scope,Professional Services Scope of Work,QB-SRV-SOW
+/resource/silv_maint,Silver Hardware Maintenance,QB-SUPP-1000
+/resource/gold_maint,Gold Hardware Maintenance,QB-SUPP-1005
+/resource/soft_maint2,Software Maintenance,QB-SUPP-2000
+/resource/essential_train,QuantumBit Essentials Training,QB-TRN-ESSNTLS
+/resource/fund_training,QuantumBit Fundamentals Training,QB-TRN-FUND
+/resource/subscription,QuantumBit Subscription,TEST-SUB
+/resource/ps_dn_expert,Data Normalization Expert,QB-SRV-DNE
+/resource/ps_imp_engineer,Implementation Engineer,QB-SRV-IMP
+/resource/ps_int_specialist,Integration Specialist Engineer,QB-SRV-ISE
+/resource/ps_mod_ext_eng,Module Extension Engineer,QB-SRV-MEE
+/resource/ps_prog_dir,Program Director,QB-SRV-PD
+/resource/ps_proj_mgr,Project Manager,QB-SRV-PMN
+/resource/ps_qa_engineer,Quality Assurance Engineer,QB-SRV-QAE
+/resource/ps_sol_arch,Solutions Architect,QB-SRV-SAT
+/resource/RLM_quantumBit_logo_sq,QB API Management Solution,QB-API-MGMT
+/resource/RLM_quantumBit_logo_sq,Additional Flows - QB Starter,QB-FLO-STRT
+/resource/RLM_quantumBit_logo_sq,Additional Messages - QB Starter,QB-MSG-STRT
+/resource/RLM_quantumBit_logo_sq,Additional Data Throughput,QB-DAT-THPT
+/resource/RLM_quantumBit_logo_sq,Cloud License (Monthly),QB-LIC-CLOUD
+/resource/RLM_quantumBit_logo_sq,Provisioning and Activation Service,QB-AEH-CPU
+/resource/RLM_quantumBit_logo_sq,Finance Service,QB-AEH-BILL
+/resource/RLM_quantumBit_logo_sq,Order Processing,QB-AEH-OR
+/resource/RLM_quantumBit_logo_sq,Compute Time,QB-CPU-BLNG
+/resource/RLM_quantumBit_logo_sq,Data Storage,QB-DATA-STORAGE-BLNG
+/resource/RLM_quantumBit_logo_sq,Data Throughput,QB-DATA-THPT-BLNG
+/resource/RLM_quantumBit_logo_sq,Shipping Charge Product,9999999
+/resource/RLM_quantumBit_logo_sq,vSphere Standard,QB-VMW-S
+/resource/RLM_quantumBit_logo_sq,vSphere Enterprise,QB-VMW-E
+/resource/RLM_quantumBit_logo_sq,vSphere Desktop,QB-VMW-D
+/resource/RLM_quantumBit_logo_sq,Quick Start Enablement,QB-SRV-QSE
+/resource/RLM_quantumBit_logo_sq,Standard Success Plan,QB-STD-SP
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 5.7W, 208V, C13 output",QB-PDU-2029
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 14.4kW, 208V, C13 output",QB-PDU-2028
+/resource/ps_adv_serv,"QuantumBit Advisory Services, CSM Premium",QB-SRV-AS
+/resource/RLM_quantumBit_logo_sq,Red Hat Enterprise Linux,QB-REDHAT
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 20A, 230V C20 input C1",QB-PDU-2025
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 15A, 120V L5-20",QB-PDU-2024
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 16A, 230V, C13 output",QB-PDU-2027
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 10A, 230V C20 input C19",QB-PDU-2026
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 30A, 120V L5-20",QB-PDU-2023
+/resource/RLM_quantumBit_logo_sq,AEH Object Store - Restricted Use,QB-AEH-OBJ
+/resource/RLM_quantumBit_logo_sq,AEH Environment Runtime,QB-AEH-ENV
+/resource/RLM_quantumBit_logo_sq,API Calls,QB-API-CALLS
+/resource/RLM_quantumBit_logo_sq,Additional Messages - QB Enterprise,QB-MSG-ENTR
+/resource/RLM_quantumBit_logo_sq,No Operating System,QB-NO-OSYS
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 20A, 120V L5-20",QB-PDU-2022
+/resource/RLM_quantumBit_logo_sq,Installation and Assembly,QB-INST-1000
+/resource/RLM_quantumBit_logo_sq,Premium Success Plan,QB-SRV-PRM-SP
+/resource/RLM_quantumBit_logo_sq,Professional Services - Project Management Daily Rate,QB-SRV-OG-PM-PSH
+/resource/RLM_quantumBit_logo_sq,Professional Services - Associate Consultant Daily Rate,QB-SRV-OG-AC-PSH
+/resource/RLM_quantumBit_logo_sq,Professional Service Hours (Consumption),QB-SRV-OG-PSHC
+/resource/RLM_quantumBit_logo_sq,Roof Fan Tray 750mm - 208V,QB-BSSA-4308
+/resource/RLM_quantumBit_logo_sq,Roof Fan Tray 750mm - 120V,QB-BSSA-4306
+/resource/RLM_quantumBit_logo_sq,TX Bolt-Down Kit,QB-BSSA-4304
+/resource/RLM_quantumBit_logo_sq,Sliding Shelf 200lbs,QB-BSSA-4300
+/resource/RLM_quantumBit_logo_sq,Blanking Panel,QB-BSSA-4298
+/resource/RLM_quantumBit_logo_sq,TX 600mm/750mm Stabilizer Plate,QB-BSSA-4303
+/resource/RLM_quantumBit_logo_sq,Fixed Shelf 250lbs,QB-BSSA-4302
+/resource/RLM_quantumBit_logo_sq,Additional Flows - QB Enterprise,QB-FLO-ENTR
+/resource/RLM_quantumBit_logo_sq,QuantumBit Rack Enclosure,QB-BDL-RAXS

@@ -1,0 +1,17 @@
+{
+  "apiVersion": "64.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT DisplayUrl, Name, StockKeepingUnit FROM Product2",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}
