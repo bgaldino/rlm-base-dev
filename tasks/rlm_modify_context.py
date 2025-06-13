@@ -6,8 +6,8 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.sfdx import SFDXBaseTask
 
 
-# ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
-class ExtendStandardContext(SFDXBaseTask):
+# ModifyContextDefinition is a custom task that extends the SFDXBaseTask provided by CumulusCI.
+class ModifyContextDefinition(SFDXBaseTask):
 
     # Task options are used to set up configuration settings for this particular task.
     task_options = {
@@ -41,10 +41,6 @@ class ExtendStandardContext(SFDXBaseTask):
         "defaultMapping": {
             "description": "The default mapping of the context definition",
             "required": True,
-        },
-        "activate": {
-            "description": "Whether the context definition should be activated",
-            "required": True,
         }
     }
 
@@ -77,10 +73,10 @@ class ExtendStandardContext(SFDXBaseTask):
     # Execute the task after preparation, where the core functionality will be implemented
     def _run_task(self):
         self._prep_runtime()
-        self._extend_context_definition()
+        self._modify_context_definition()
 
-    # Core logic to extend an existing context definition
-    def _extend_context_definition(self):
+    # Core logic to modify an existing context definition
+    def _modify_context_definition(self):
         url, headers = self._build_url_and_headers("connect/context-definitions")
         payload = {
             "name": self.options.get("name"),
