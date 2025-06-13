@@ -1023,13 +1023,13 @@ flows:
       6:
         task: deploy_full
       7:
-        flow: prepare_product_data
-      8:
         flow: prepare_price_adjustment_schedules
-      9:
+      8:
         flow: prepare_scratch
-      10:
+      9:
         flow: prepare_quantumbit
+      10:
+        flow: prepare_product_data
       11:
         flow: prepare_dro
       12:
