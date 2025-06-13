@@ -235,7 +235,7 @@ project:
       - RLM_CALM_SObject_Access
 
     ps_aea: &ps_aea
-      - RLM_Agentforce_Employee_Agent
+      - RLM_Revenue_Cloud_Agent
 
     ps_procedureplans: &ps_procedureplans
       - RLM_ProcedurePlans
