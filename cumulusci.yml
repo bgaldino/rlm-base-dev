@@ -642,6 +642,11 @@ tasks:
     options:
       path: unpackaged/post_billing
 
+  deploy_post_guidedselling:
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_guidedselling
+
   deploy_expression_sets:
     description: Expression Sets need to be deployed and activated before other metadata -- this prioritizes this deployment first
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1489,8 +1494,8 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_guidedselling
-      2:
         task: insert_qb_guidedselling_data
         when: project_config.project__custom__qb
+      2:
+        task: deploy_post_guidedselling
       
