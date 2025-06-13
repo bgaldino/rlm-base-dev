@@ -7,7 +7,7 @@
     <isActive>true</isActive>
     <isSectionProcessed>false</isSectionProcessed>
     <mapperOmniDataTransformName>BillingDocumentGenerationTransformInvoiceDetails</mapperOmniDataTransformName>
-    <name>DefaultInvoiceTemplate</name>
+    <name>RLM_InvoiceTemplate</name>
     <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
     <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
     <status>Active</status>
@@ -17,5 +17,5 @@
     <type>MicrosoftWord</type>
     <uniqueName>RLM_InvoiceTemplate_1</uniqueName>
     <usageType>Invoice</usageType>
-    <versionNumber>2</versionNumber>
+    <versionNumber>1</versionNumber>
 </DocumentTemplate>

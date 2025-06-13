@@ -12,7 +12,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObject.Name FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent'",
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObjectId$ProductRelatedComponent FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent' ORDER BY  ReferenceObject.Name ASC",
           "operation": "Upsert",
           "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
           "excluded": false

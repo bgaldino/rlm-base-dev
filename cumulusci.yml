@@ -337,7 +337,9 @@ project:
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb-tax"
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating-256"
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"
-    quantumbit_constraints_dataset: &quantumbit_constraints_dataset "datasets/sfdmu/qb-constraints"
+    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb-constraints-product"
+    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb-constraints-component"
+    quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb-guidedselling"
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3-multicurrency"
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3-billing"
@@ -862,10 +864,20 @@ tasks:
     options:
       pathtoexportjson: "datasets/sfdmu/scratch_data"
 
-  insert_qb_constraints_data:
+  insert_qb_constraints_product_data:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: *quantumbit_constraints_dataset
+      pathtoexportjson: *quantumbit_constraints_product_dataset
+
+  insert_qb_constraints_component_data:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_constraints_component_dataset
+
+  insert_qb_guidedselling_data:
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_guidedselling_dataset
   
   activate_decision_tables:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -1460,4 +1472,25 @@ flows:
       5:
         task: deploy_post_procedureplans
         when: project_config.project__custom__tso
+      
+  prepare_constraints:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_constraints
+      2:
+        task: insert_qb_constraints_product_data
+        when: project_config.project__custom__qb
+      3:
+        task: insert_qb_constraints_component_data
+        when: project_config.project__custom__qb
+
+  prepare_guidedselling:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_guidedselling
+      2:
+        task: insert_qb_guidedselling_data
+        when: project_config.project__custom__qb
       
