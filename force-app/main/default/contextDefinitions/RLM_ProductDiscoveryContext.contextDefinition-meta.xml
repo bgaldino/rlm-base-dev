@@ -233,6 +233,41 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CatalogId/CatalogId</inheritedFrom>
+                    <title>CatalogId</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CatalogId</inheritedFrom>
+                <key>false</key>
+                <title>CatalogId</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CurrentDate/CurrentDate</inheritedFrom>
+                    <title>CurrentDate</title>
+                </contextTags>
+                <dataType>date</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CurrentDate</inheritedFrom>
+                <key>false</key>
+                <title>CurrentDate</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Catalog</inheritedFrom>
+                <title>Catalog</title>
+            </contextTags>
+            <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog</inheritedFrom>
+            <title>Catalog</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/id/id</inheritedFrom>
                     <title>id</title>
                 </contextTags>
@@ -289,41 +324,6 @@
             </contextTags>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account</inheritedFrom>
             <title>Account</title>
-            <transposable>false</transposable>
-        </contextNodes>
-        <contextNodes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CatalogId/CatalogId</inheritedFrom>
-                    <title>CatalogId</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CatalogId</inheritedFrom>
-                <key>false</key>
-                <title>CatalogId</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CurrentDate/CurrentDate</inheritedFrom>
-                    <title>CurrentDate</title>
-                </contextTags>
-                <dataType>date</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CurrentDate</inheritedFrom>
-                <key>false</key>
-                <title>CurrentDate</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextTags>
-                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Catalog</inheritedFrom>
-                <title>Catalog</title>
-            </contextTags>
-            <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog</inheritedFrom>
-            <title>Catalog</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
