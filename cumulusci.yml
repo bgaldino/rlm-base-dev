@@ -1504,8 +1504,10 @@ flows:
     steps:
       1:
         task: create_docgen_library
+        when: project_config.project__custom__docgen
       2:
         task: deploy_post_docgen
+        when: project_config.project__custom__docgen
 
   prepare_billing:
     group: Revenue Lifecycle Management
@@ -1617,9 +1619,12 @@ flows:
         options:
           api_names: *rlm_ai_psg_api_names
       2:
-        task: deploy_agents
+        task: deploy_agents_settings
         when: project_config.project__custom__agents
       3:
+        task: deploy_agents
+        when: project_config.project__custom__agents
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:
