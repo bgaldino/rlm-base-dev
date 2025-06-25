@@ -1,39 +1,15 @@
-$$AssessmentQuestion.DeveloperName$VersionNumber,ActivationDateTime,AdditionalInformation,AssessmentQuestion.DeveloperName,CurrencyIsoCode,DataType,DeactivationDateTime,Description,ExternalAsmtContentVersion,GuidanceInformation,HelpText,IsActive,IsOptionSourceResponseValue,Name,QuestionText,ResponseValues,Status,VersionNumber
-solution_type_looking_for;5,2025-06-12T20:21:07.000+0000,,solution_type_looking_for,USD,Radio,,,,,,true,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
+$$AssessmentQuestion.UniqueIndex$VersionNumber,AdditionalInformation,AssessmentQuestion.UniqueIndex,CurrencyIsoCode,DataType,DeactivationDateTime,Description,ExternalAsmtContentVersion,GuidanceInformation,HelpText,IsActive,IsOptionSourceResponseValue,Name,QuestionText,ResponseValues,Status,VersionNumber
+solution_type_looking_for;1,,solution_type_looking_for,USD,Radio,,,,,,true,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
 IT Operations
 Risk Mitigation
 Software Suites
 Professional Services
-QuantumBit Complete Solution",Active,5
-solution_type_looking_for;4,2025-06-12T20:20:44.000+0000,,solution_type_looking_for,USD,Radio,2025-06-12T20:20:54.000+0000,,,,,false,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
-IT Operations
-Risk Mitigation
-Software Suites
-Professional Services
-Complete Data Solution
-IT Operations
-Risk Mitigation
-Software Suites
-Professional Services
-QuantumBit Complete Solution",Archived,4
-solution_type_looking_for;3,2025-06-12T16:57:48.000+0000,,solution_type_looking_for,USD,Radio,2025-06-12T20:20:31.000+0000,,,,,false,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
-IT Operations
-Risk Mitigation
-Software Suites
-Professional Services",Archived,3
-solution_type_looking_for;2,2025-06-12T16:56:25.000+0000,,solution_type_looking_for,USD,Radio,2025-06-12T16:56:59.000+0000,,,,,false,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
-IT Operations
-Risk Mitigation
-Software Suites
-Professional Services",Archived,2
-solution_type_looking_for;1,2025-06-11T19:16:58.000+0000,,solution_type_looking_for,USD,Radio,2025-06-12T16:46:16.000+0000,,,,,false,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"It System
-Services Engagement
-Security Software",Archived,1
-Security_Monitoring;1,2025-06-12T17:04:21.000+0000,,Security_Monitoring,USD,Radio,,,,,,true,false,Security Monitoring,Is Security Monitoring required as part of the solution?,"Yes
+QuantumBit Complete Solution",Active,1
+Security_Monitoring;1,,Security_Monitoring,USD,Radio,,,,,,true,false,Security Monitoring,Is Security Monitoring required as part of the solution?,"Yes
 No",Active,1
-Implementation_Options;1,2025-06-12T17:06:07.000+0000,,Implementation_Options,USD,Radio,,,,,,true,false,Implementation Options,Implementation Options,"Include Professional Services
+Implementation_Options;1,,Implementation_Options,USD,Radio,,,,,,true,false,Implementation Options,Implementation Options,"Include Professional Services
 Self-Implement",Active,1
-Industry;1,2025-06-12T17:07:21.000+0000,,Industry,USD,Radio,,,,,,true,false,Industry,Industry,"Financial Services
+Industry;1,,Industry,USD,Radio,,,,,,true,false,Industry,Industry,"Financial Services
 Healthcare
 Tech
 Communications

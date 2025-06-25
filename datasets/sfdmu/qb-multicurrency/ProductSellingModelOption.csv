@@ -22,8 +22,8 @@ QB-BET X710SFP;One-Time,true,QB-BET X710SFP,One-Time;OneTime,
 QB-CMPC-5882;One-Time,true,QB-CMPC-5882,One-Time;OneTime,
 QB-CMPC-5887;One-Time,true,QB-CMPC-5887,One-Time;OneTime,
 QB-COMPLETE;Evergreen Monthly,false,QB-COMPLETE,Evergreen Monthly;Evergreen,Default Proration Policy
-QB-COMPLETE;One-Time,false,QB-COMPLETE,One-Time;OneTime,
-QB-COMPLETE;Term Annual,true,QB-COMPLETE,Term Annual;TermDefined,Default Proration Policy
+QB-COMPLETE;One-Time,true,QB-COMPLETE,One-Time;OneTime,
+QB-COMPLETE;Term Annual,false,QB-COMPLETE,Term Annual;TermDefined,Default Proration Policy
 QB-COMPLETE;Term Monthly,false,QB-COMPLETE,Term Monthly;TermDefined,Default Proration Policy
 QB-CS;Term Annual,true,QB-CS,Term Annual;TermDefined,Default Proration Policy
 QB-CS;Term Monthly,false,QB-CS,Term Monthly;TermDefined,Default Proration Policy

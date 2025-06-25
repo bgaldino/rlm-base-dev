@@ -16,13 +16,7 @@
         <members>guided_selling_English_1</members>
         <members>ProductGuidedSelection_Integration_English_1</members>
         <members>QuantumBit_GuidedSelling_English_1</members>
-        <members>QuantumBit_GuidedSelling_English_2</members>
         <name>OmniScript</name>
-    </types>
-    <types>
-        <members>Industries</members>
-        <members>ProductDiscovery</members>
-        <name>Settings</name>
     </types>
     <version>64.0</version>
 </Package>

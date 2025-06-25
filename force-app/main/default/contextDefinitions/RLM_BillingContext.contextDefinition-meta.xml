@@ -207,6 +207,11 @@
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/LegalEntity</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/SavedPaymentMethod/hydrationInfo-1</inheritedFrom>
+                        <objectName>Order</objectName>
+                        <queryAttribute>SavedPaymentMethodId</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>SavedPaymentMethod</contextAttribute>
                     <contextInputAttributeName>SavedPaymentMethod</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/SavedPaymentMethod</inheritedFrom>
@@ -555,6 +560,26 @@
                     <contextAttribute>UnitPrice</contextAttribute>
                     <contextInputAttributeName>UnitPrice</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/UnitPrice</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/BindingInstanceTarget__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItem</objectName>
+                        <queryAttribute>BindingInstanceTargetId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>BindingInstanceTarget__std</contextAttribute>
+                    <contextInputAttributeName>BindingInstanceTarget__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/BindingInstanceTarget__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/NetUnitPrice__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItem</objectName>
+                        <queryAttribute>NetUnitPrice</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>NetUnitPrice__std</contextAttribute>
+                    <contextInputAttributeName>NetUnitPrice__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem/NetUnitPrice__std</inheritedFrom>
                 </contextAttributeMappings>
                 <contextNode>BillingTransactionItem</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItem</inheritedFrom>
@@ -1021,6 +1046,56 @@
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromCity__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>ShipFromCity</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ShipFromCity__std</contextAttribute>
+                    <contextInputAttributeName>ShipFromCity__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromCity__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromCountry__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>ShipFromCountry</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ShipFromCountry__std</contextAttribute>
+                    <contextInputAttributeName>ShipFromCountry__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromCountry__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromPostalCode__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>ShipFromPostalCode</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ShipFromPostalCode__std</contextAttribute>
+                    <contextInputAttributeName>ShipFromPostalCode__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromPostalCode__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromState__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>ShipFromState</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ShipFromState__std</contextAttribute>
+                    <contextInputAttributeName>ShipFromState__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromState__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromStreet__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>ShipFromStreet</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ShipFromStreet__std</contextAttribute>
+                    <contextInputAttributeName>ShipFromStreet__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ShipFromStreet__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
                         <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/StartDate/hydrationInfo-1</inheritedFrom>
                         <objectName>BillingScheduleGroup</objectName>
                         <queryAttribute>StartDate</queryAttribute>
@@ -1080,6 +1155,11 @@
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/BindingInstance</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/SavedPaymentMethod/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>SavedPaymentMethodId</queryAttribute>
+                    </contextAttrHydrationDetails>
                     <contextAttribute>SavedPaymentMethod</contextAttribute>
                     <contextInputAttributeName>SavedPaymentMethod</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/SavedPaymentMethod</inheritedFrom>
@@ -1178,26 +1258,6 @@
                     <contextAttribute>BillingTermUnit</contextAttribute>
                     <contextInputAttributeName>BillingTermUnit</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingTermUnit</inheritedFrom>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttrHydrationDetails>
-                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingTransactionItemSource/hydrationInfo-1</inheritedFrom>
-                        <objectName>BillingSchedule</objectName>
-                        <queryAttribute>ReferenceItem</queryAttribute>
-                    </contextAttrHydrationDetails>
-                    <contextAttribute>BillingTransactionItemSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionItemSource</contextInputAttributeName>
-                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingTransactionItemSource</inheritedFrom>
-                </contextAttributeMappings>
-                <contextAttributeMappings>
-                    <contextAttrHydrationDetails>
-                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingTransactionSource/hydrationInfo-1</inheritedFrom>
-                        <objectName>BillingSchedule</objectName>
-                        <queryAttribute>Reference</queryAttribute>
-                    </contextAttrHydrationDetails>
-                    <contextAttribute>BillingTransactionSource</contextAttribute>
-                    <contextInputAttributeName>BillingTransactionSource</contextInputAttributeName>
-                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingTransactionSource</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
@@ -1418,6 +1478,16 @@
                     <contextAttribute>UnitPrice</contextAttribute>
                     <contextInputAttributeName>UnitPrice</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/UnitPrice</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/NetUnitPrice__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingSchedule</objectName>
+                        <queryAttribute>NetUnitPrice</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>NetUnitPrice__std</contextAttribute>
+                    <contextInputAttributeName>NetUnitPrice__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/NetUnitPrice__std</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
@@ -1771,6 +1841,19 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/SavedPaymentMethod</inheritedFrom>
                 <key>false</key>
                 <title>SavedPaymentMethod</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingProfile__std/BillingTransactionBillingProfile__std</inheritedFrom>
+                    <title>BillingTransactionBillingProfile__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingProfile__std</inheritedFrom>
+                <key>false</key>
+                <title>BillingProfile__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
@@ -2157,6 +2240,71 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShippingStreet</inheritedFrom>
                 <key>false</key>
                 <title>ShippingStreet</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromCity__std/BillingScheduleGroupShipFromCity__std</inheritedFrom>
+                    <title>BillingScheduleGroupShipFromCity__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromCity__std</inheritedFrom>
+                <key>false</key>
+                <title>ShipFromCity__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromCountry__std/BillingScheduleGroupShipFromCountry__std</inheritedFrom>
+                    <title>BillingScheduleGroupShipFromCountry__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromCountry__std</inheritedFrom>
+                <key>false</key>
+                <title>ShipFromCountry__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromPostalCode__std/BillingScheduleGroupShipFromPostalCode__std</inheritedFrom>
+                    <title>BillingScheduleGroupShipFromPostalCode__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromPostalCode__std</inheritedFrom>
+                <key>false</key>
+                <title>ShipFromPostalCode__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromState__std/BillingScheduleGroupShipFromState__std</inheritedFrom>
+                    <title>BillingScheduleGroupShipFromState__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromState__std</inheritedFrom>
+                <key>false</key>
+                <title>ShipFromState__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromStreet__std/BillingScheduleGroupShipFromStreet__std</inheritedFrom>
+                    <title>BillingScheduleGroupShipFromStreet__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/ShipFromStreet__std</inheritedFrom>
+                <key>false</key>
+                <title>ShipFromStreet__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
@@ -2651,6 +2799,32 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BindingInstanceTarget__std/BillingTransactionItemBindingInstanceTarget__std</inheritedFrom>
+                    <title>BillingTransactionItemBindingInstanceTarget__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BindingInstanceTarget__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingInstanceTarget__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/NetUnitPrice__std/BillingTransactionItemNetUnitPrice__std</inheritedFrom>
+                    <title>BillingTransactionItemNetUnitPrice__std</title>
+                </contextTags>
+                <dataType>currency</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/NetUnitPrice__std</inheritedFrom>
+                <key>false</key>
+                <title>NetUnitPrice__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
                 <dataType>reference</dataType>
                 <domainSet>BillingTransaction</domainSet>
                 <fieldType>input</fieldType>
@@ -3100,6 +3274,19 @@
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/NetUnitPrice__std/BillingScheduleNetUnitPrice__std</inheritedFrom>
+                    <title>BillingScheduleNetUnitPrice__std</title>
+                </contextTags>
+                <dataType>currency</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/NetUnitPrice__std</inheritedFrom>
+                <key>false</key>
+                <title>NetUnitPrice__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/UsageResource/BillingScheduleUsageResource</inheritedFrom>
                     <title>BillingScheduleUsageResource</title>
                 </contextTags>
@@ -3463,11 +3650,11 @@
         <startDate>2020-01-01 00:00:00</startDate>
         <versionNumber>3</versionNumber>
     </contextDefinitionVersions>
-    <contextTtl>20</contextTtl>
+    <contextTtl>30</contextTtl>
     <description>Extension of Standard Billing Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>BillingContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>62.16</inheritedFromVersion>
+    <inheritedFromVersion>62.22</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_BillingContext</masterLabel>
     <title>RLM_BillingContext</title>

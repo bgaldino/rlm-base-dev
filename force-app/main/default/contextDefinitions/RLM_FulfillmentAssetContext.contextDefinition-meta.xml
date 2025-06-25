@@ -286,7 +286,7 @@
         <startDate>2020-01-01 00:00:00</startDate>
         <versionNumber>3</versionNumber>
     </contextDefinitionVersions>
-    <contextTtl>20</contextTtl>
+    <contextTtl>30</contextTtl>
     <description>Extension of Standard Fulfillment Asset Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>FulfillmentAssetContext__stdctx</inheritedFrom>

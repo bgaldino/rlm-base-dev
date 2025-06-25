@@ -4319,6 +4319,14 @@
                     <contextInputAttributeName>HideItemInDisplay__std</contextInputAttributeName>
                     <inheritedFrom>SalesTransactionContext__stdctx/version/QuoteEntitiesMapping/SalesTransactionItem/HideItemInDisplay__std</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>QuoteLineItem</objectName>
+                        <queryAttribute>RLM_ConstraintEngineNodeStatus__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ConstraintEngineNodeStatus__c</contextAttribute>
+                    <contextInputAttributeName>ConstraintEngineNodeStatus__c</contextInputAttributeName>
+                </contextAttributeMappings>
                 <contextNode>SalesTransactionItem</contextNode>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/QuoteEntitiesMapping/SalesTransactionItem</inheritedFrom>
                 <object>QuoteLineItem</object>
@@ -7890,6 +7898,14 @@
                     <contextInputAttributeName>SalesTransactionRecipientScaledQuantity__std</contextInputAttributeName>
                     <inheritedFrom>SalesTransactionContext__stdctx/version/OrderEntitiesMapping/SalesTransactionItem/SalesTransactionRecipientScaledQuantity__std</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>OrderItem</objectName>
+                        <queryAttribute>RLM_ConstraintEngineNodeStatus__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ConstraintEngineNodeStatus__c</contextAttribute>
+                    <contextInputAttributeName>ConstraintEngineNodeStatus__c</contextInputAttributeName>
+                </contextAttributeMappings>
                 <contextNode>SalesTransactionItem</contextNode>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/OrderEntitiesMapping/SalesTransactionItem</inheritedFrom>
                 <object>OrderItem</object>
@@ -10826,6 +10842,14 @@
                     <contextAttribute>AASOriginalLineNumber__std</contextAttribute>
                     <contextInputAttributeName>AASOriginalLineNumber__std</contextInputAttributeName>
                     <inheritedFrom>SalesTransactionContext__stdctx/version/AssetEntitiesMapping/AssetActionSource/AASOriginalLineNumber__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>AssetActionSource</objectName>
+                        <queryAttribute>RLM_ConstraintEngineNodeStatus__c</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetConstraintEngineNode__c</contextAttribute>
+                    <contextInputAttributeName>AssetConstraintEngineNode__c</contextInputAttributeName>
                 </contextAttributeMappings>
                 <contextNode>AssetActionSource</contextNode>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/AssetEntitiesMapping/AssetActionSource</inheritedFrom>
@@ -15234,6 +15258,17 @@
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>ConstraintEngineNodeStatus__c</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>ConstraintEngineNodeStatus__c</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
             <contextTags>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/SalesTransactionItem</inheritedFrom>
                 <title>SalesTransactionItem</title>
@@ -16412,6 +16447,17 @@
                 <inheritedFrom>SalesTransactionContext__stdctx/version/Asset/AssetAction/AssetActionSource/ParentReference</inheritedFrom>
                 <key>false</key>
                 <title>ParentReference</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <title>AssetConstraintEngineNodeStatus__c</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <key>false</key>
+                <title>AssetConstraintEngineNode__c</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
@@ -18378,9 +18424,9 @@
             <title>LineItemDecomposition</title>
             <transposable>false</transposable>
         </contextNodes>
-        <isActive>true</isActive>
+        <isActive>false</isActive>
         <startDate>2020-01-01 00:00:00</startDate>
-        <versionNumber>3</versionNumber>
+        <versionNumber>4</versionNumber>
     </contextDefinitionVersions>
     <contextTtl>30</contextTtl>
     <description>Extension of Standard Sales Transaction Context Definition</description>
