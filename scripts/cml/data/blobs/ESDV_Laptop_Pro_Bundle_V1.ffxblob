@@ -1,0 +1,66 @@
+type LineItem;
+
+type LaptopProBundle : LineItem {
+    relation mouse : Mouse;
+
+    relation printerbundle : PrinterBundle;
+
+    relation warranty : Warranty;
+
+    relation software : Software;
+
+    relation laptop : Laptop[1..9999];
+
+}
+
+type Mouse : LineItem {
+    @(defaultValue = "false", attributeSource = "PCM")
+    boolean Wireless;
+
+}
+
+type PrinterBundle : LineItem {
+    relation printerpaper : PrinterPaper[1..9999];
+
+    relation printer : Printer[1..9999];
+
+}
+
+type PrinterPaper : LineItem {
+    @(defaultValue = "A4", attributeSource = "PCM")
+    string Printer_Paper = ["A4", "Letter"];
+
+}
+
+type Printer : LineItem {
+    @(defaultValue = "Laser", attributeSource = "PCM")
+    string Printer = ["Inkjet", "Laser"];
+
+}
+
+type Warranty : LineItem;
+
+type Software : LineItem;
+
+type Laptop : LineItem {
+    @(defaultValue = "RAM 8GB", attributeSource = "PCM")
+    string Memory = ["RAM 64GB", "RAM 32GB", "RAM 8GB", "RAM 16GB"];
+
+    @(defaultValue = "i5-CPU 4.4GHz", attributeSource = "PCM")
+    string Windows_Processor = ["i5-CPU 4.4GHz", "i7-CPU 4.7GHz", "Intel Core i9 5.2 GHz"];
+
+    @(defaultValue = "SSD Hard Drive 256GB", attributeSource = "PCM")
+    string Storage = ["SSD Hard Drive 2TB", "SSD Hard Drive 512GB", "SSD Hard Drive 1TB", "SSD Hard Drive 256GB", "Cloud Storage Enterprise - 6 TB", "Cloud Storage Enterprise - 2 TB"];
+
+    @(defaultValue = "13 Inch", attributeSource = "PCM")
+    string Display_Size = ["24 Inch", "13 Inch", "15 Inch", "27 Inch"];
+
+    @(defaultValue = "1080p Built-in Display", attributeSource = "PCM")
+    string Display = ["1080p Built-in Display", "4k Built-in Display", "2k Built-in Display"];
+
+    @(defaultValue = "Intel Iris Xe Graphics", attributeSource = "PCM")
+    string Graphics = ["Intel Iris Xe Graphics", "MSI Gaming GeForce RTX 3060"];
+
+    message(Display_Size == "24 Inch", "Its 24!", "Info");
+
+}
