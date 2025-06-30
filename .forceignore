@@ -42,7 +42,7 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
 
 # contextDefinitions
-#force-app/main/default/contextDefinitions
+force-app/main/default/contextDefinitions
 
 # connectedApps
 
@@ -104,7 +104,9 @@ unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
 unpackaged/post_utils/flows/RCA_Event_Trigger.flow-meta.xml
 
 unpackaged/post_tso/appMenus/AppSwitcher.appMenu-meta.xml
+
 unpackaged/post_constraints/lwc/renderDraw3DConfigurationPrototype
+unpackaged/post_constraints/contextdefinitions/
 unpackaged/post_constraints/classes
 unpackaged/post_constraints/pages
 unpackaged/post_constraints/flows
