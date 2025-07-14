@@ -3,4 +3,9 @@
     <fullName>All</fullName>
     <filterScope>Everything</filterScope>
     <label>All</label>
+    <columns>
+        <field>Name</field>
+        <field>CreatedDate</field>
+        <field>LastModifiedDate</field>
+    </columns>
 </ListView>
