@@ -140,13 +140,6 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>objectList</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <stringValue>Quote</stringValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>quoteCounter</assignToReference>
             <operator>Assign</operator>
             <value>
