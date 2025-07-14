@@ -2498,14 +2498,19 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1</conditionLogic>
+                <conditionLogic>1 AND 2</conditionLogic>
                 <criteria>
-                    <operator>Equals</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>InclusivePrice</sourceFieldName>
-                    <value>true</value>
-                    <valueType>Literal</valueType>
-                </criteria>
+                     <operator>Equals</operator>
+                     <sequenceNumber>1</sequenceNumber>
+                     <sourceFieldName>InclusivePrice</sourceFieldName>
+                     <value>true</value>
+                     <valueType>Literal</valueType>
+                 </criteria>
+                 <criteria>
+                     <operator>IsNotNull</operator>
+                     <sequenceNumber>2</sequenceNumber>
+                     <sourceFieldName>InclusivePrice</sourceFieldName>
+                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
             <name>ListOperation71</name>
