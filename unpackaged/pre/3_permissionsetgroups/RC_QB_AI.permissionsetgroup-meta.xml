@@ -24,7 +24,6 @@
     <permissionSets>force__EinsteinSearchAnswers</permissionSets>
     <permissionSets>force__EinsteinSendMeetingRequestCopilot</permissionSets>
     <permissionSets>force__EinsteinServiceInnovations</permissionSets>
-    <permissionSets>force__GPTRecordResearch</permissionSets>
     <permissionSets>force__HighVelocitySalesCadenceCreatorIncluded</permissionSets>
     <permissionSets>force__HighVelocitySalesQuickCadenceCreatorIncluded</permissionSets>
     <permissionSets>force__HighVelocitySalesUserIncluded</permissionSets>
