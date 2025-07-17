@@ -58,7 +58,7 @@ unpackaged/post_sharing/objects/PriceBookEntryDerivedPrice/PriceBookEntryDerived
 #unpackaged/post_sharing/objects/ProductComponentGrpOverride/ProductComponentGrpOverride.object-meta.xml
 unpackaged/post_sharing/objects/ProductConfigurationRule/ProductConfigurationRule.object-meta.xml
 unpackaged/post_sharing/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
-unpackaged/post_sharing/objects
+#unpackaged/post_sharing/objects
 
 #unpackaged/pre/5_decisiontables
 
