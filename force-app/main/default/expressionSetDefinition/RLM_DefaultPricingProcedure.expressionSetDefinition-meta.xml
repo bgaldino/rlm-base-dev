@@ -2100,7 +2100,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>(1 OR 2) AND 3</conditionLogic>
+                <conditionLogic>(1 OR 2) AND (3 AND 4)</conditionLogic>
                 <criteria>
                     <operator>IsNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -2119,6 +2119,11 @@
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
                     <value>&apos;LastTransaction&apos;</value>
                     <valueType>Literal</valueType>
+                </criteria>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>4</sequenceNumber>
+                    <sourceFieldName>ItemPricingSource</sourceFieldName>
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>

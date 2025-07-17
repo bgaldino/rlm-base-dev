@@ -176,7 +176,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>required</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.ReferenceEntityItemId</fieldItem>
                 <identifier>RecordReferenceEntityItemIdField</identifier>
@@ -230,7 +230,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>required</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.ReferenceEntityId</fieldItem>
                 <identifier>RecordReferenceEntityIdField</identifier>
@@ -414,7 +414,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>required</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Quantity</fieldItem>
                 <identifier>RecordQuantityField</identifier>
@@ -424,7 +424,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>required</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.UnitPrice</fieldItem>
                 <identifier>RecordUnitPriceField</identifier>
