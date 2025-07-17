@@ -34,6 +34,9 @@ orgs:
     tfid-dev:
       config_file: orgs/tfid-dev.json
       days: 30
+    tfid-enable:
+      config_file: orgs/tfid-enable.json
+      days: 30
     dev_preview:
       config_file: orgs/dev_preview.json
       days: 30
