@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>61.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="slotsText" type="String" label="Input: Slots Text (DEPRECATED)" description="This property is deprecated."/>
+            <property name="salesTransactionItems" type="apex://ProductConfig.SalesTransactionItem[]" label="Input: Sales Transaction Items"/>
+            
+            <property name="productClassification" type="String" label="Debug: Product Classification"/>
+            <property name="qualificationContext" type="String" label="Debug: Qualification Context"/>
+            <property name="transactionRecord" type="String" label="Debug: Transaction Record"/>
+            <property name="summary" type="String" label="Debug: Summary"/>
+
+            <property name="selectedStartTime" type="String" label="Output: Selected Start Time" />
+            <property name="selectedFinishTime" type="String" label="Output: Selected Finish Time" />
+            <property name="selectedGrade" type="Integer" label="Output: Selected Grade" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

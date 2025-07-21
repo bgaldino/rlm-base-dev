@@ -1,0 +1,14 @@
+<template>
+    <template if:true={chartData}>
+        <lightning-card title="Monthly Average Pricing">
+            <!-- Example display -->
+            <p>Data from Apex (console log for now):</p>
+            <pre>{chartData}</pre>
+        </lightning-card>
+    </template>
+    <template if:true={error}>
+        <lightning-card title="Error">
+            <p>{error}</p>
+        </lightning-card>
+    </template>
+</template>
