@@ -176,6 +176,13 @@
             <actionType>GroupingAndAggregatePricing</actionType>
             <customElement>
                 <parameters>
+                    <input>false</input>
+                    <name>section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemGroupSummarySubtotal</value>
+                </parameters>
+                <parameters>
                     <input>true</input>
                     <name>section-count</name>
                     <output>false</output>
@@ -322,18 +329,11 @@
                     <type>Literal</type>
                     <value>false</value>
                 </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>section-0-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemGroupSummarySubtotal</value>
-                </parameters>
             </customElement>
             <description>Aggregate Price</description>
             <label>Aggregate Price</label>
             <name>AggregatePrice75</name>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>28</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -343,6 +343,13 @@
         <steps>
             <actionType>ManualDiscount</actionType>
             <customElement>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>AdjustmentType</name>
@@ -406,13 +413,6 @@
                     <type>Parameter</type>
                     <value>NetUnitPrice</value>
                 </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemNetTotalPrice</value>
-                </parameters>
             </customElement>
             <description>Manual Discount</description>
             <label>Amount-Based (Line-Level)</label>
@@ -428,6 +428,20 @@
         <steps>
             <actionType>AssignmentElement</actionType>
             <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EffectiveFrom&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingDate&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>PricingDate</value>
+                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>section-0-input1</name>
@@ -448,20 +462,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>{&quot;whereConditions&quot;:[]}</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionJsonString2</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EffectiveFrom&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingDate&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>section-0-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>PricingDate</value>
                 </parameters>
             </customElement>
             <description>Assignment</description>
@@ -984,6 +984,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>AttributeName</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -1106,7 +1113,7 @@
             <label>Attribute-Based Price</label>
             <name>AttributeBasedPrice</name>
             <parentStep>ListContainer24</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -1150,6 +1157,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>EffectiveDate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1268,7 +1282,7 @@
             <label>Attribute Discount Entries</label>
             <name>AttributeDiscountEntries</name>
             <parentStep>ListContainer27</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -1278,6 +1292,13 @@
         <steps>
             <actionType>BundleDiscount</actionType>
             <customElement>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>PriceAdjustmentScheduleId</name>
@@ -1340,6 +1361,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>RootProductSellingModel</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1432,19 +1460,12 @@
                     <type>Parameter</type>
                     <value>NetUnitPrice</value>
                 </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemNetTotalPrice</value>
-                </parameters>
             </customElement>
             <description>Bundle-Based Price</description>
             <label>Bundle Based Adjustment Entries</label>
             <name>BundleBasedAdjustmentEntries</name>
             <parentStep>ListContainer30</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -1570,8 +1591,8 @@
             <description>Derived Price</description>
             <label>Derived Price</label>
             <name>DerivedPrice</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -2100,7 +2121,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>(1 OR 2) AND (3 AND 4)</conditionLogic>
+                <conditionLogic>(1 OR 2) AND (3)</conditionLogic>
                 <criteria>
                     <operator>IsNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -2119,11 +2140,6 @@
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
                     <value>&apos;LastTransaction&apos;</value>
                     <valueType>Literal</valueType>
-                </criteria>
-                <criteria>
-                    <operator>IsNotNull</operator>
-                    <sequenceNumber>4</sequenceNumber>
-                    <sourceFieldName>ItemPricingSource</sourceFieldName>
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
@@ -2505,17 +2521,17 @@
             <advancedCondition>
                 <conditionLogic>1 AND 2</conditionLogic>
                 <criteria>
-                     <operator>Equals</operator>
-                     <sequenceNumber>1</sequenceNumber>
-                     <sourceFieldName>InclusivePrice</sourceFieldName>
-                     <value>true</value>
-                     <valueType>Literal</valueType>
-                 </criteria>
-                 <criteria>
-                     <operator>IsNotNull</operator>
-                     <sequenceNumber>2</sequenceNumber>
-                     <sourceFieldName>InclusivePrice</sourceFieldName>
-                 </criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>InclusivePrice</sourceFieldName>
+                    <value>true</value>
+                    <valueType>Literal</valueType>
+                </criteria>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>2</sequenceNumber>
+                    <sourceFieldName>InclusivePrice</sourceFieldName>
+                </criteria>
             </advancedCondition>
             <label>List Operation</label>
             <name>ListOperation71</name>
@@ -2556,6 +2572,27 @@
         <steps>
             <actionType>ListPrice</actionType>
             <customElement>
+                <parameters>
+                    <input>false</input>
+                    <name>IsContracted</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>IsContracted</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>ListPrice</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemContractPrice</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>ContractId</name>
@@ -2688,27 +2725,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemContractDiscountValue</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>ListPrice</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemContractPrice</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemSubtotal</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>IsContracted</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>IsContracted</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
@@ -3019,14 +3035,14 @@
                     <name>Subtotal</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>ItemSubtotal</value>
+                    <value>ItemNetTotalPrice</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
             <label>Price Book Entries</label>
             <name>PriceBookEntries</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
+            <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3425,13 +3441,6 @@
             <customElement>
                 <parameters>
                     <input>true</input>
-                    <name>Quantity</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>LineItemQuantity</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>ProrationMultiplier</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -3464,6 +3473,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Get</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>Quantity</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItemQuantity</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3580,18 +3596,18 @@
             <actionType>SubscriptionPricing</actionType>
             <customElement>
                 <parameters>
-                    <input>true</input>
-                    <name>Quantity</name>
-                    <output>false</output>
+                    <input>false</input>
+                    <name>TotalSubscriptionPrice</name>
+                    <output>true</output>
                     <type>Parameter</type>
-                    <value>LineItemQuantity</value>
+                    <value>TotalLineAmount</value>
                 </parameters>
                 <parameters>
-                    <input>true</input>
-                    <name>ProrationMultiplier</name>
-                    <output>false</output>
+                    <input>false</input>
+                    <name>SubscriptionNetUnitPrice</name>
+                    <output>true</output>
                     <type>Parameter</type>
-                    <value>PricingTermCount</value>
+                    <value>InputUnitPrice</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3629,18 +3645,18 @@
                     <value>false</value>
                 </parameters>
                 <parameters>
-                    <input>false</input>
-                    <name>TotalSubscriptionPrice</name>
-                    <output>true</output>
+                    <input>true</input>
+                    <name>Quantity</name>
+                    <output>false</output>
                     <type>Parameter</type>
-                    <value>TotalLineAmount</value>
+                    <value>LineItemQuantity</value>
                 </parameters>
                 <parameters>
-                    <input>false</input>
-                    <name>SubscriptionNetUnitPrice</name>
-                    <output>true</output>
+                    <input>true</input>
+                    <name>ProrationMultiplier</name>
+                    <output>false</output>
                     <type>Parameter</type>
-                    <value>InputUnitPrice</value>
+                    <value>PricingTermCount</value>
                 </parameters>
             </customElement>
             <description>Subscription Pricing</description>
@@ -3811,7 +3827,7 @@
             <description>Aggregate Price</description>
             <label>Total Amount</label>
             <name>TotalAmount</name>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>26</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -3868,7 +3884,7 @@
             <label>Uplift</label>
             <name>Uplift</name>
             <parentStep>ListContainer46</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
