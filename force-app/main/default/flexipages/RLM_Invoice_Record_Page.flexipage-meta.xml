@@ -100,6 +100,14 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>actionNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>CreateAndApplyCreditMemo</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
                     <name>adminFilters</name>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
@@ -1063,6 +1071,20 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>enableSidepanel</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>runtime_revenue_foundation:invoiceLineViewer</componentName>
+                <identifier>runtime_revenue_foundation_invoiceLineViewer</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-397f0790-3891-42be-a7d3-1b857bf8e598</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
                     <name>body</name>
                     <value>relatedTabContent</value>
                 </componentInstanceProperties>
@@ -1090,6 +1112,20 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>detailTab</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-397f0790-3891-42be-a7d3-1b857bf8e598</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Invoice Lines</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab</identifier>
             </componentInstance>
         </itemInstances>
         <mode>Replace</mode>
