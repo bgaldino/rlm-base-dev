@@ -1,0 +1,25 @@
+.badge-gold {
+    --sds-c-badge-color-background: #FFB74D;
+    --sds-c-badge-color-border: #D18700;
+    --sds-c-badge-text-color: #080707;
+}
+.slot-item {
+    cursor: pointer;
+    border-top: 1px solid #dddbda;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+}
+.slds-box > .slot-item:first-child {
+    border-top: none;
+}
+.slot-item:hover,
+.slot-item:focus {
+    background-color: #f3f2f2;
+    outline: none;
+}
+.slds-is-selected {
+    background-color: #e5f3ff;
+    border-left: 3px solid #0070d2;
+}

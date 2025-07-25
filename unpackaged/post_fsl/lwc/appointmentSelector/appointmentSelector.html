@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="Available Appointment Slots" icon-name="standard:event">
+        <!-- <div class="slds-box slds-theme_shade slds-m-around_medium">
+            <h3 class="slds-text-heading_small slds-m-bottom_small">Debug Information</h3>
+            <template for:each={debugData} for:item="debugItem">
+                <div key={debugItem.label} class="slds-m-bottom_small">
+                    <strong>{debugItem.label}:</strong>
+                    <pre style="background-color: #f3f3f3; border: 1px solid #ddd; padding: 5px; white-space: pre-wrap; word-wrap: break-word;">{debugItem.value}</pre>
+                </div>
+            </template>
+        </div> -->
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <template if:true={hasSlots} for:each={groupedSlots} for:item="dateGroup">
+                <div key={dateGroup.date} class="slds-m-bottom_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_small">{dateGroup.formattedDate}</h2>
+                    <div class="slds-box slds-box_small slds-p-around_none">
+                        <template for:each={dateGroup.slots} for:item="slot">
+                            <div key={slot.id} class={slot.itemClass} data-slot-id={slot.id} onclick={handleSlotSelection} tabindex="0">
+                                <div class="slds-col slds-grid slds-grid_vertical-align-center">
+                                    <lightning-icon if:true={slot.isSelected} icon-name="utility:check" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                    <p class="slds-text-heading_small">{slot.timeRange}</p>
+                                </div>
+                                <div class="slds-col slds-shrink-none">
+                                    <span class={slot.badgeClass}>Grade: {slot.grade}</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <template if:false={hasSlots}>
+                <p>No appointment slots available to display.</p>
+            </template>
+        </div>
+        <div slot="footer" class="slds-text-align_right">
+            <lightning-button label="Next" variant="brand" onclick={handleNextClick} disabled={isNextDisabled}></lightning-button>
+        </div>
+    </lightning-card>
+</template>
