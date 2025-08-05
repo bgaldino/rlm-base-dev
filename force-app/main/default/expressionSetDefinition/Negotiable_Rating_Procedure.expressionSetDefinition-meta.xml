@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <contextDefinitions>RateManagementContext__stdctx</contextDefinitions>
-    <description>Use expression sets to determine negotiable rates for your products.</description>
+    <description>Calculate the consumption charges for usage resources based on the standard or negotiated rates.</description>
     <interfaceSourceType>RatingProcedure</interfaceSourceType>
     <label>Negotiable Rating Procedure</label>
     <processType>DefaultRating</processType>
     <template>false</template>
     <versions>
         <fullName>Negotiable_Rating_Procedure_V1</fullName>
-        <description>Use expression sets to determine negotiable rates for your products.</description>
+        <decimalScale>2</decimalScale>
+        <description>Calculate the consumption charges for usage resources based on the standard or negotiated rates.</description>
         <expressionSetDefinition>Negotiable_Rating_Procedure</expressionSetDefinition>
         <interfaceSourceType>RatingProcedure</interfaceSourceType>
         <label>Negotiable Rating Procedure</label>
@@ -18,14 +19,144 @@
         <startDate>2024-11-07T09:08:39.000Z</startDate>
         <status>Draft</status>
         <steps>
+            <actionType>CommitmentAdjustment</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>AssetId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Asset</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>StartDate</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RatingDecisionDateTime</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>EndDate</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RatingDecisionDateTime</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>InputUnitPrice</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>NetUnitRate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>UsageResourceInput</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>UsageResource</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>UsageCategory</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>UsageResourceCategory__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Commitment-based Rate Adjustment</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpApiName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Commitment_based_Rate_Adjustment</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>NetUnitPrice</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>CommitRate__std</value>
+                </parameters>
+            </customElement>
+            <description>Commitment Rate Adjustment</description>
+            <label>Commitment Rate Adjustment</label>
+            <name>CommitmentRateAdjustment</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>6</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
             <label>List Container</label>
             <name>ListContainer</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>5</sequenceNumber>
+            <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
             <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <label>List Container</label>
+            <name>ListContainer12</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>4</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <label>List Container</label>
+            <name>ListContainer7</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>3</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <advancedCondition>
+                <conditionLogic>1</conditionLogic>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>Asset</sourceFieldName>
+                </criteria>
+            </advancedCondition>
+            <label>List Operation</label>
+            <name>ListOperation</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
         </steps>
         <steps>
             <advancedCondition>
@@ -44,8 +175,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation</name>
-            <parentStep>ListContainer</parentStep>
+            <name>ListOperation13</name>
+            <parentStep>ListContainer12</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -54,14 +185,157 @@
             <stepType>AdvancedListFilter</stepType>
         </steps>
         <steps>
+            <advancedCondition>
+                <conditionLogic>1 AND 2</conditionLogic>
+                <criteria>
+                    <operator>IsNull</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>Asset</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>2</sequenceNumber>
+                    <sourceFieldName>BindingObject__std</sourceFieldName>
+                </criteria>
+            </advancedCondition>
+            <label>List Operation</label>
+            <name>ListOperation8</name>
+            <parentStep>ListContainer7</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
+        </steps>
+        <steps>
+            <actionType>RatingBreakdownLineMapping</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Asset</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-1-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>UsageRatableSummaryId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-2-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CommitRate__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-3-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RatingDecisionDateTime</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>URSCARCommitmentAsset__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-1-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>URSCARId__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-2-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>URSCARNetUnitRate__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-3-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>URSCARRatingDecisionDateTime__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>MapLineItemNodeInput</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>UsageRatableSummary</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>4</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString1</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;Asset&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;URSCARCommitmentAsset__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-1-input1&quot;,&quot;value&quot;:&quot;UsageRatableSummaryId&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-1-output&quot;,&quot;value&quot;:&quot;URSCARId__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString3</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Numeric&quot;,&quot;name&quot;:&quot;section-2-input1&quot;,&quot;value&quot;:&quot;CommitRate__std&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Numeric&quot;,&quot;name&quot;:&quot;section-2-output&quot;,&quot;value&quot;:&quot;URSCARNetUnitRate__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString4</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-3-input1&quot;,&quot;value&quot;:&quot;RatingDecisionDateTime&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-3-output&quot;,&quot;value&quot;:&quot;URSCARRatingDecisionDateTime__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>MapLineItemNodeOutput</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>UsageRatableSummaryCommitmentAssetRate__std</value>
+                </parameters>
+            </customElement>
+            <description>Map Line Item</description>
+            <label>Map Line Item</label>
+            <name>MapLineItem</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>5</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
             <actionType>NegotiatedBaseRate</actionType>
             <customElement>
                 <parameters>
                     <input>true</input>
-                    <name>StartDate</name>
+                    <name>IsRealTime</name>
                     <output>false</output>
-                    <type>Parameter</type>
-                    <value>RatingDecisionDateTime</value>
+                    <type>Literal</type>
+                    <value>true</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -75,14 +349,42 @@
                     <name>ListPriceField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_UnitRate_Asset_Rate_Decision_Table_BR</value>
+                    <value>Constant_UnitRate_Asset_Rate_Decision_Table_V2_BR</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Asset Rate 2</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>Quantity</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>OverageQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>Id</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>BindingObjectBaseRateCardEntry__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>NegotiatedRateField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_NegotiatedRate_Asset_Rate_Decision_Table_V2_BR</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Asset_Rate_Decision_Table</value>
+                    <value>Asset_Rate_Decision_Table_V2</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -98,19 +400,48 @@
                     <type>Parameter</type>
                     <value>NetUnitRate</value>
                 </parameters>
+            </customElement>
+            <description>Negotiated Base Rate</description>
+            <label>Negotiated Base Rate</label>
+            <name>NegotiatedBaseRate</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>3</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>NegotiatedBaseRate</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>ListPriceField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_UnitRate_Binding_Object_Rate_Decision_Table_V2_BR</value>
+                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Asset Rate</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>UsageResourceId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>UsageResource</value>
+                    <value>Binding Object Rate 2</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -121,36 +452,44 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>RateUnitOfMeasureId</name>
+                    <name>Id</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>NetUnitRateUom</value>
+                    <value>BindingObjectBaseRateCardEntry__std</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>NegotiatedRateField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_NegotiatedRate_Asset_Rate_Decision_Table_BR</value>
+                    <value>Constant_NegotiatedRate_Binding_Object_Rate_Decision_Table_V2_BR</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>AssetId</name>
+                    <name>LookUpApiName</name>
                     <output>false</output>
-                    <type>Parameter</type>
-                    <value>Asset</value>
+                    <type>Literal</type>
+                    <value>Binding_Object_Rate_Decision_Table_V2</value>
                 </parameters>
                 <parameters>
-                    <input>true</input>
-                    <name>EndDate</name>
-                    <output>false</output>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
                     <type>Parameter</type>
-                    <value>RatingDecisionDateTime</value>
+                    <value>TotalAmount</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>ListPrice</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>NetUnitRate</value>
                 </parameters>
             </customElement>
             <description>Negotiated Base Rate</description>
             <label>Negotiated Base Rate</label>
-            <name>NegotiatedBaseRate</name>
+            <name>NegotiatedBaseRate10</name>
+            <parentStep>ListContainer7</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -163,7 +502,7 @@
             <customElement>
                 <parameters>
                     <input>true</input>
-                    <name>AssetId</name>
+                    <name>BindingObjectFormula</name>
                     <output>false</output>
                     <type>Parameter</type>
                     <value>Asset</value>
@@ -174,13 +513,6 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>UsageResource</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>RateUnitOfMeasureId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>NetUnitRateUom</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -201,14 +533,14 @@
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Asset Rate Card Entry</value>
+                    <value>Asset Rate Card Entry 2</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Asset_Rate_Card_Entry_Resolution</value>
+                    <value>Asset_Rate_Card_Entry_Resolution_V2</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -218,16 +550,130 @@
                     <value>0</value>
                 </parameters>
                 <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
+                </parameters>
+                <parameters>
                     <input>false</input>
                     <name>TierRateCardEntryId</name>
                     <output>true</output>
                     <type>Parameter</type>
                     <value>TierRateCardEntry</value>
                 </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>BindingObjectBaseRateCardEntryId</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>BindingObjectBaseRateCardEntry__std</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>BindingObjectTierRateCardEntryId</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>BindingObjectTierRateCardEntry__std</value>
+                </parameters>
             </customElement>
             <description>Negotiated Rate Card Entries</description>
             <label>Negotiated Rate Card Entries</label>
             <name>NegotiatedRateCardEntries</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>NegotiatedRateCardEntryResolution</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>BindingObjectId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>BindingObject__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>UsageResourceId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>UsageResource</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>EffectiveFrom</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RatingDecisionDateTime</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>EffectiveTo</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RatingDecisionDateTime</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Binding Object Rate Card Entry 2</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpApiName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Binding_Object_Rate_Card_Entry_Resolution_V2</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>TierRateCardEntryId</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>TierRateCardEntry</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>BindingObjectBaseRateCardEntryId</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>BindingObjectBaseRateCardEntry__std</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>BindingObjectTierRateCardEntryId</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>BindingObjectTierRateCardEntry__std</value>
+                </parameters>
+            </customElement>
+            <description>Negotiated Rate Card Entries</description>
+            <label>Negotiated Rate Card Entries</label>
+            <name>NegotiatedRateCardEntries9</name>
+            <parentStep>ListContainer7</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -240,17 +686,10 @@
             <customElement>
                 <parameters>
                     <input>true</input>
-                    <name>StartDate</name>
+                    <name>AssetRateCardEntryId</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>RatingDecisionDateTime</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>EndDate</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>RatingDecisionDateTime</value>
+                    <value>BindingObjectTierRateCardEntry__std</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -285,14 +724,14 @@
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Asset Volume-based Rate Adjustment</value>
+                    <value>Asset Volume-based Rate Adjustment 2</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Asset_Volume_based_Rate_Adjustment</value>
+                    <value>Asset_Volume_based_Rate_Adjustment_V2</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -300,6 +739,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -322,24 +768,110 @@
                     <type>Parameter</type>
                     <value>IsTierNegotiated</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>AssetId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>Asset</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>RateCardEntryId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>TierRateCardEntry</value>
-                </parameters>
             </customElement>
             <description>Negotiated Volume-Based Rate Adjustment</description>
             <label>Negotiated Volume-Based Rate Adjustment</label>
             <name>NegotiatedVolumeBasedRateAdjustment</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>4</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>NegotiatedVolumeAdjustment</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>BindingObjectRateCardEntryId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>BindingObjectTierRateCardEntry__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LowerBound</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>OverageQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>UpperBound</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>OverageQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>Quantity</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>OverageQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>InputUnitPrice</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>NetUnitRate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Binding Object Volume-based Rate Adjustment 2</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpApiName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Binding_Object_Volume_based_Rate_Adjustment_V2</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>true</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>NetUnitPrice</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>NetUnitRate</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>TotalAmount</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>IsTierNegotiated</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>IsTierNegotiated</value>
+                </parameters>
+            </customElement>
+            <description>Negotiated Volume-Based Rate Adjustment</description>
+            <label>Negotiated Volume-Based Rate Adjustment</label>
+            <name>NegotiatedVolumeBasedRateAdjustment11</name>
+            <parentStep>ListContainer7</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>4</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -350,6 +882,41 @@
         <steps>
             <actionType>RatingSetting</actionType>
             <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>LineItemId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>UsageRatableSummaryId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>PriceWaterfall</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>RatingWaterfall</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>NetUnitPrice</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>NetUnitRate</value>
+                </parameters>
                 <parameters>
                     <input>false</input>
                     <name>Subtotal</name>
@@ -366,31 +933,24 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>NetUnitPrice</name>
+                    <name>RatingErrorCode</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>NetUnitRate</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LineItemId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>UsageRatableSummaryId</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
+                    <value>ErrorCode</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>PriceWaterfall</name>
+                    <name>RatingErrorDescription</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>RatingWaterfall</value>
+                    <value>ErrorDescription</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>RatingStatus</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>Status</value>
                 </parameters>
             </customElement>
             <description>Rating Setting</description>
@@ -406,13 +966,6 @@
         <steps>
             <actionType>RatingVolumeDiscount</actionType>
             <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpName</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Volume-based Rate Adjustment by Rate Card Entry ID</value>
-                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>RateCardEntryId</name>
@@ -450,6 +1003,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Volume-based Rate Adjustment by Rate Card Entry ID</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -461,6 +1021,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -480,7 +1047,7 @@
             <description>Volume-Based Rate Discount</description>
             <label>Volume-Based Rate Discount</label>
             <name>VolumeBasedRateDiscount</name>
-            <parentStep>ListContainer</parentStep>
+            <parentStep>ListContainer12</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -495,6 +1062,39 @@
             <description>Constant_NegotiatedRate_Asset_Rate_Decision_Table_BR</description>
             <input>false</input>
             <name>Constant_NegotiatedRate_Asset_Rate_Decision_Table_BR</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>NegotiatedRate</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_NegotiatedRate_Asset_Rate_Decision_Table_V2_BR</description>
+            <input>false</input>
+            <name>Constant_NegotiatedRate_Asset_Rate_Decision_Table_V2_BR</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>NegotiatedRate</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_NegotiatedRate_Binding_Object_Rate_Decision_Table_BR</description>
+            <input>false</input>
+            <name>Constant_NegotiatedRate_Binding_Object_Rate_Decision_Table_BR</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>NegotiatedRate</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_NegotiatedRate_Binding_Object_Rate_Decision_Table_V2_BR</description>
+            <input>false</input>
+            <name>Constant_NegotiatedRate_Binding_Object_Rate_Decision_Table_V2_BR</name>
             <output>false</output>
             <type>Constant</type>
             <value>NegotiatedRate</value>
@@ -528,6 +1128,39 @@
             <description>Constant_UnitRate_Asset_Rate_Decision_Table_BR</description>
             <input>false</input>
             <name>Constant_UnitRate_Asset_Rate_Decision_Table_BR</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>Rate</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_UnitRate_Asset_Rate_Decision_Table_V2_BR</description>
+            <input>false</input>
+            <name>Constant_UnitRate_Asset_Rate_Decision_Table_V2_BR</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>Rate</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_UnitRate_Binding_Object_Rate_Decision_Table_BR</description>
+            <input>false</input>
+            <name>Constant_UnitRate_Binding_Object_Rate_Decision_Table_BR</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>Rate</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_UnitRate_Binding_Object_Rate_Decision_Table_V2_BR</description>
+            <input>false</input>
+            <name>Constant_UnitRate_Binding_Object_Rate_Decision_Table_V2_BR</name>
             <output>false</output>
             <type>Constant</type>
             <value>Rate</value>

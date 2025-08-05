@@ -194,6 +194,7 @@
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAsset</inheritedFrom>
                 <title>FulfillmentAsset</title>
             </contextTags>
+            <displayName>FulfillmentAsset</displayName>
             <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset</inheritedFrom>
             <title>FulfillmentAsset</title>
             <transposable>false</transposable>
@@ -278,6 +279,7 @@
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttribute</inheritedFrom>
                 <title>FulfillmentAssetAttribute</title>
             </contextTags>
+            <displayName>FulfillmentAssetAttribute</displayName>
             <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute</inheritedFrom>
             <title>FulfillmentAssetAttribute</title>
             <transposable>true</transposable>

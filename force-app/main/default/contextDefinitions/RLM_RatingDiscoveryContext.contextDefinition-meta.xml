@@ -52,6 +52,11 @@
                     <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/UsageProduct/RateUnitOfMeasure</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttribute>ProductSellingModel__std</contextAttribute>
+                    <contextInputAttributeName>ProductSellingModel__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/UsageProduct/ProductSellingModel__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
                     <contextAttribute>EffectiveFrom</contextAttribute>
                     <contextInputAttributeName>EffectiveFrom</contextInputAttributeName>
                     <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/UsageProduct/EffectiveFrom</inheritedFrom>
@@ -291,6 +296,16 @@
                     <contextInputAttributeName>RateCardEntryStatus</contextInputAttributeName>
                     <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/RateCardEntry/RateCardEntryStatus</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/RateCardEntry/RateCardEntryRateCardType__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>RateCardEntry</objectName>
+                        <queryAttribute>RateCardType</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>RateCardEntryRateCardType__std</contextAttribute>
+                    <contextInputAttributeName>RateCardEntryRateCardType__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/RateCardEntry/RateCardEntryRateCardType__std</inheritedFrom>
+                </contextAttributeMappings>
                 <contextNode>RateCardEntry</contextNode>
                 <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/RateCardEntry</inheritedFrom>
                 <object>RateCardEntry</object>
@@ -359,6 +374,176 @@
                 <contextNode>RateAdjustmentByTier</contextNode>
                 <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/RateAdjustmentByTier</inheritedFrom>
                 <object>RateAdjustmentByTier</object>
+            </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryAssetId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>AssetId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryAssetId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryAssetId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryAssetId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>Id</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryParentRateCardEntryId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>RateCardEntryId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryParentRateCardEntryId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryParentRateCardEntryId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryParentRateCardEntryId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryNegotiatedRate__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>NegotiatedRate</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryNegotiatedRate__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryNegotiatedRate__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryNegotiatedRate__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryStartDate__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>StartDate</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryStartDate__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryStartDate__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryStartDate__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryEndDate__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>EndDate</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryEndDate__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryEndDate__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryEndDate__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryRateCardId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>RateCardId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryRateCardId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryRateCardId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryRateCardId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryUsageResourceId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>UsageResourceId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryUsageResourceId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryUsageResourceId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryUsageResourceId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryRateUnitOfMeasureId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateCardEntry</objectName>
+                        <queryAttribute>RateUnitOfMeasureId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateCardEntryRateUnitOfMeasureId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateCardEntryRateUnitOfMeasureId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std/AssetRateCardEntryRateUnitOfMeasureId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>AssetRateCardEntry__std</contextNode>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateCardEntry__std</inheritedFrom>
+                <object>AssetRateCardEntry</object>
+            </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentAssetRateCardEntryId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>AssetRateCardEntryId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentAssetRateCardEntryId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentAssetRateCardEntryId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentAssetRateCardEntryId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>Id</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentId__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentId__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentName__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>Name</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentName__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentName__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentName__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentType__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>AdjustmentType</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentType__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentType__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentType__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentValue__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>AdjustmentValue</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentValue__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentValue__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentValue__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentLowerBound__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>LowerBound</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentLowerBound__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentLowerBound__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentLowerBound__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentUpperBound__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>AssetRateAdjustment</objectName>
+                        <queryAttribute>UpperBound</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>AssetRateAdjustmentUpperBound__std</contextAttribute>
+                    <contextInputAttributeName>AssetRateAdjustmentUpperBound__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std/AssetRateAdjustmentUpperBound__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>AssetRateAdjustment__std</contextNode>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/AssetRateAdjustment__std</inheritedFrom>
+                <object>AssetRateAdjustment</object>
             </contextNodeMappings>
             <contextNodeMappings>
                 <contextAttributeMappings>
@@ -488,6 +673,16 @@
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
+                        <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentName__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BindingObjectRateAdjustment</objectName>
+                        <queryAttribute>Name</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>BindingObjectRateAdjustmentName__std</contextAttribute>
+                    <contextInputAttributeName>BindingObjectRateAdjustmentName__std</contextInputAttributeName>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentName__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
                         <inheritedFrom>RatingDiscoveryContext__stdctx/version/CatalogMapping/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentType__std/hydrationInfo-1</inheritedFrom>
                         <objectName>BindingObjectRateAdjustment</objectName>
                         <queryAttribute>AdjustmentType</queryAttribute>
@@ -538,123 +733,24 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeBindingObjectId__std/FilterNodeBindingObjectId__std</inheritedFrom>
-                    <title>FilterNodeBindingObjectId__std</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeBindingObjectId__std</inheritedFrom>
-                <key>false</key>
-                <title>FilterNodeBindingObjectId__std</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeUsageResourceId__std/FilterNodeUsageResourceId__std</inheritedFrom>
-                    <title>FilterNodeUsageResourceId__std</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeUsageResourceId__std</inheritedFrom>
-                <key>false</key>
-                <title>FilterNodeUsageResourceId__std</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeRateUnitofMeasureId__std/FilterNodeRateUnitofMeasureId__std</inheritedFrom>
-                    <title>FilterNodeRateUnitofMeasureId__std</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeRateUnitofMeasureId__std</inheritedFrom>
-                <key>false</key>
-                <title>FilterNodeRateUnitofMeasureId__std</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeEffectiveFrom__std/FilterNodeEffectiveFrom__std</inheritedFrom>
-                    <title>FilterNodeEffectiveFrom__std</title>
-                </contextTags>
-                <dataType>datetime</dataType>
-                <fieldType>input</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeEffectiveFrom__std</inheritedFrom>
-                <key>false</key>
-                <title>FilterNodeEffectiveFrom__std</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextTags>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNode__std</inheritedFrom>
-                <title>FilterNode__std</title>
-            </contextTags>
-            <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std</inheritedFrom>
-            <title>FilterNode__std</title>
-            <transposable>false</transposable>
-        </contextNodes>
-        <contextNodes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/Type/RCType</inheritedFrom>
-                    <title>RCType</title>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id/PricebookId</inheritedFrom>
+                    <title>PricebookId</title>
                 </contextTags>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/Type</inheritedFrom>
-                <key>false</key>
-                <title>Type</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/id/RateCardId</inheritedFrom>
-                    <title>RateCardId</title>
-                </contextTags>
-                <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/id</inheritedFrom>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id</inheritedFrom>
                 <key>false</key>
                 <title>id</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveFrom/RCEffectiveFrom</inheritedFrom>
-                    <title>RCEffectiveFrom</title>
-                </contextTags>
-                <dataType>datetime</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveFrom</inheritedFrom>
-                <key>false</key>
-                <title>EffectiveFrom</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveTo/RCEffectiveTo</inheritedFrom>
-                    <title>RCEffectiveTo</title>
-                </contextTags>
-                <dataType>datetime</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveTo</inheritedFrom>
-                <key>false</key>
-                <title>EffectiveTo</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
             <contextTags>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/RateCard</inheritedFrom>
-                <title>RateCard</title>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/Pricebook</inheritedFrom>
+                <title>Pricebook</title>
             </contextTags>
-            <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard</inheritedFrom>
-            <title>RateCard</title>
+            <displayName>Pricebook</displayName>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook</inheritedFrom>
+            <title>Pricebook</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
@@ -792,6 +888,7 @@
                 <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateCardEntry__std/BindingObjectRateCardEntry__std</inheritedFrom>
                 <title>BindingObjectRateCardEntry__std</title>
             </contextTags>
+            <displayName>BindingObjectRateCardEntry__std</displayName>
             <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateCardEntry__std</inheritedFrom>
             <title>BindingObjectRateCardEntry__std</title>
             <transposable>false</transposable>
@@ -799,88 +896,63 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentBindingRateCardEntryId__std/BindingObjectRateAdjustmentBindingRateCardEntryId__std</inheritedFrom>
-                    <title>BindingObjectRateAdjustmentBindingRateCardEntryId__std</title>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeBindingObjectId__std/FilterNodeBindingObjectId__std</inheritedFrom>
+                    <title>FilterNodeBindingObjectId__std</title>
                 </contextTags>
                 <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentBindingRateCardEntryId__std</inheritedFrom>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeBindingObjectId__std</inheritedFrom>
                 <key>false</key>
-                <title>BindingObjectRateAdjustmentBindingRateCardEntryId__std</title>
+                <title>FilterNodeBindingObjectId__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentId__std/BindingObjectRateAdjustmentId__std</inheritedFrom>
-                    <title>BindingObjectRateAdjustmentId__std</title>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeUsageResourceId__std/FilterNodeUsageResourceId__std</inheritedFrom>
+                    <title>FilterNodeUsageResourceId__std</title>
                 </contextTags>
                 <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentId__std</inheritedFrom>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeUsageResourceId__std</inheritedFrom>
                 <key>false</key>
-                <title>BindingObjectRateAdjustmentId__std</title>
+                <title>FilterNodeUsageResourceId__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentType__std/BindingObjectRateAdjustmentType__std</inheritedFrom>
-                    <title>BindingObjectRateAdjustmentType__std</title>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeRateUnitofMeasureId__std/FilterNodeRateUnitofMeasureId__std</inheritedFrom>
+                    <title>FilterNodeRateUnitofMeasureId__std</title>
                 </contextTags>
                 <dataType>string</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentType__std</inheritedFrom>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeRateUnitofMeasureId__std</inheritedFrom>
                 <key>false</key>
-                <title>BindingObjectRateAdjustmentType__std</title>
+                <title>FilterNodeRateUnitofMeasureId__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentValue__std/BindingObjectRateAdjustmentValue__std</inheritedFrom>
-                    <title>BindingObjectRateAdjustmentValue__std</title>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeEffectiveFrom__std/FilterNodeEffectiveFrom__std</inheritedFrom>
+                    <title>FilterNodeEffectiveFrom__std</title>
                 </contextTags>
-                <dataType>number</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentValue__std</inheritedFrom>
+                <dataType>datetime</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNodeEffectiveFrom__std</inheritedFrom>
                 <key>false</key>
-                <title>BindingObjectRateAdjustmentValue__std</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentLowerBound__std/BindingObjectRateAdjustmentLowerBound__std</inheritedFrom>
-                    <title>BindingObjectRateAdjustmentLowerBound__std</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentLowerBound__std</inheritedFrom>
-                <key>false</key>
-                <title>BindingObjectRateAdjustmentLowerBound__std</title>
-                <transient>false</transient>
-                <value>false</value>
-            </contextAttributes>
-            <contextAttributes>
-                <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentUpperBound__std/BindingObjectRateAdjustmentUpperBound__std</inheritedFrom>
-                    <title>BindingObjectRateAdjustmentUpperBound__std</title>
-                </contextTags>
-                <dataType>number</dataType>
-                <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentUpperBound__std</inheritedFrom>
-                <key>false</key>
-                <title>BindingObjectRateAdjustmentUpperBound__std</title>
+                <title>FilterNodeEffectiveFrom__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
             <contextTags>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustment__std</inheritedFrom>
-                <title>BindingObjectRateAdjustment__std</title>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std/FilterNode__std</inheritedFrom>
+                <title>FilterNode__std</title>
             </contextTags>
-            <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std</inheritedFrom>
-            <title>BindingObjectRateAdjustment__std</title>
+            <displayName>FilterNode__std</displayName>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/FilterNode__std</inheritedFrom>
+            <title>FilterNode__std</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
@@ -966,6 +1038,7 @@
                 <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateAdjustmentByTier/RateAdjustmentByTier</inheritedFrom>
                 <title>RateAdjustmentByTier</title>
             </contextTags>
+            <displayName>RateAdjustmentByTier</displayName>
             <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateAdjustmentByTier</inheritedFrom>
             <title>RateAdjustmentByTier</title>
             <transposable>false</transposable>
@@ -973,23 +1046,164 @@
         <contextNodes>
             <contextAttributes>
                 <contextTags>
-                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id/PricebookId</inheritedFrom>
-                    <title>PricebookId</title>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentBindingRateCardEntryId__std/BindingObjectRateAdjustmentBindingRateCardEntryId__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentBindingRateCardEntryId__std</title>
                 </contextTags>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/id</inheritedFrom>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentBindingRateCardEntryId__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentBindingRateCardEntryId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentId__std/BindingObjectRateAdjustmentId__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentId__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentName__std/BindingObjectRateAdjustmentName__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentName__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentName__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentName__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentType__std/BindingObjectRateAdjustmentType__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentType__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentType__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentType__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentValue__std/BindingObjectRateAdjustmentValue__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentValue__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentValue__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentValue__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentLowerBound__std/BindingObjectRateAdjustmentLowerBound__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentLowerBound__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentLowerBound__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentLowerBound__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentUpperBound__std/BindingObjectRateAdjustmentUpperBound__std</inheritedFrom>
+                    <title>BindingObjectRateAdjustmentUpperBound__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustmentUpperBound__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectRateAdjustmentUpperBound__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std/BindingObjectRateAdjustment__std</inheritedFrom>
+                <title>BindingObjectRateAdjustment__std</title>
+            </contextTags>
+            <displayName>BindingObjectRateAdjustment__std</displayName>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/BindingObjectRateAdjustment__std</inheritedFrom>
+            <title>BindingObjectRateAdjustment__std</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/Type/RCType</inheritedFrom>
+                    <title>RCType</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/Type</inheritedFrom>
+                <key>false</key>
+                <title>Type</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/id/RateCardId</inheritedFrom>
+                    <title>RateCardId</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/id</inheritedFrom>
                 <key>false</key>
                 <title>id</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveFrom/RCEffectiveFrom</inheritedFrom>
+                    <title>RCEffectiveFrom</title>
+                </contextTags>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveFrom</inheritedFrom>
+                <key>false</key>
+                <title>EffectiveFrom</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveTo/RCEffectiveTo</inheritedFrom>
+                    <title>RCEffectiveTo</title>
+                </contextTags>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/EffectiveTo</inheritedFrom>
+                <key>false</key>
+                <title>EffectiveTo</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
             <contextTags>
-                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/Pricebook</inheritedFrom>
-                <title>Pricebook</title>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard/RateCard</inheritedFrom>
+                <title>RateCard</title>
             </contextTags>
-            <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook</inheritedFrom>
-            <title>Pricebook</title>
+            <displayName>RateCard</displayName>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCard</inheritedFrom>
+            <title>RateCard</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
@@ -1201,12 +1415,254 @@
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCardEntry/RateCardEntryRateCardType__std/RateCardEntryRateCardType__std</inheritedFrom>
+                    <title>RateCardEntryRateCardType__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCardEntry/RateCardEntryRateCardType__std</inheritedFrom>
+                <key>false</key>
+                <title>RateCardEntryRateCardType__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
             <contextTags>
                 <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCardEntry/RateCardEntry</inheritedFrom>
                 <title>RateCardEntry</title>
             </contextTags>
+            <displayName>RateCardEntry</displayName>
             <inheritedFrom>RatingDiscoveryContext__stdctx/version/RateCardEntry</inheritedFrom>
             <title>RateCardEntry</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryAssetId__std/AssetRateCardEntryAssetId__std</inheritedFrom>
+                    <title>AssetRateCardEntryAssetId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryAssetId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryAssetId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryId__std/AssetRateCardEntryId__std</inheritedFrom>
+                    <title>AssetRateCardEntryId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryParentRateCardEntryId__std/AssetRateCardEntryParentRateCardEntryId__std</inheritedFrom>
+                    <title>AssetRateCardEntryParentRateCardEntryId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryParentRateCardEntryId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryParentRateCardEntryId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryNegotiatedRate__std/AssetRateCardEntryNegotiatedRate__std</inheritedFrom>
+                    <title>AssetRateCardEntryNegotiatedRate__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryNegotiatedRate__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryNegotiatedRate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryStartDate__std/AssetRateCardEntryStartDate__std</inheritedFrom>
+                    <title>AssetRateCardEntryStartDate__std</title>
+                </contextTags>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryStartDate__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryStartDate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryEndDate__std/AssetRateCardEntryEndDate__std</inheritedFrom>
+                    <title>AssetRateCardEntryEndDate__std</title>
+                </contextTags>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryEndDate__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryEndDate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryRateCardId__std/AssetRateCardEntryRateCardId__std</inheritedFrom>
+                    <title>AssetRateCardEntryRateCardId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryRateCardId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryRateCardId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryUsageResourceId__std/AssetRateCardEntryUsageResourceId__std</inheritedFrom>
+                    <title>AssetRateCardEntryUsageResourceId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryUsageResourceId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryUsageResourceId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryRateUnitOfMeasureId__std/AssetRateCardEntryRateUnitOfMeasureId__std</inheritedFrom>
+                    <title>AssetRateCardEntryRateUnitOfMeasureId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntryRateUnitOfMeasureId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateCardEntryRateUnitOfMeasureId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std/AssetRateCardEntry__std</inheritedFrom>
+                <title>AssetRateCardEntry__std</title>
+            </contextTags>
+            <displayName>AssetRateCardEntry__std</displayName>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateCardEntry__std</inheritedFrom>
+            <title>AssetRateCardEntry__std</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentAssetRateCardEntryId__std/AssetRateAdjustmentAssetRateCardEntryId__std</inheritedFrom>
+                    <title>AssetRateAdjustmentAssetRateCardEntryId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentAssetRateCardEntryId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentAssetRateCardEntryId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentId__std/AssetRateAdjustmentId__std</inheritedFrom>
+                    <title>AssetRateAdjustmentId__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentId__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentName__std/AssetRateAdjustmentName__std</inheritedFrom>
+                    <title>AssetRateAdjustmentName__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentName__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentName__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentType__std/AssetRateAdjustmentType__std</inheritedFrom>
+                    <title>AssetRateAdjustmentType__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentType__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentType__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentValue__std/AssetRateAdjustmentValue__std</inheritedFrom>
+                    <title>AssetRateAdjustmentValue__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentValue__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentValue__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentLowerBound__std/AssetRateAdjustmentLowerBound__std</inheritedFrom>
+                    <title>AssetRateAdjustmentLowerBound__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentLowerBound__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentLowerBound__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentUpperBound__std/AssetRateAdjustmentUpperBound__std</inheritedFrom>
+                    <title>AssetRateAdjustmentUpperBound__std</title>
+                </contextTags>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustmentUpperBound__std</inheritedFrom>
+                <key>false</key>
+                <title>AssetRateAdjustmentUpperBound__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std/AssetRateAdjustment__std</inheritedFrom>
+                <title>AssetRateAdjustment__std</title>
+            </contextTags>
+            <displayName>AssetRateAdjustment__std</displayName>
+            <inheritedFrom>RatingDiscoveryContext__stdctx/version/AssetRateAdjustment__std</inheritedFrom>
+            <title>AssetRateAdjustment__std</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
@@ -1265,6 +1721,19 @@
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/UsageProduct/ProductSellingModel__std/FilterProductSellingModel__std</inheritedFrom>
+                    <title>FilterProductSellingModel__std</title>
+                </contextTags>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/UsageProduct/ProductSellingModel__std</inheritedFrom>
+                <key>false</key>
+                <title>ProductSellingModel__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/UsageProduct/EffectiveFrom/FilterEffectiveFrom</inheritedFrom>
                     <title>FilterEffectiveFrom</title>
                 </contextTags>
@@ -1280,6 +1749,7 @@
                 <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/UsageProduct/FilterUsageProduct</inheritedFrom>
                 <title>FilterUsageProduct</title>
             </contextTags>
+            <displayName>UsageProduct</displayName>
             <inheritedFrom>RatingDiscoveryContext__stdctx/version/Pricebook/UsageProduct</inheritedFrom>
             <title>UsageProduct</title>
             <transposable>false</transposable>
@@ -1292,7 +1762,7 @@
     <description>Extension of Standard Rating Discovery Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>RatingDiscoveryContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>64.02</inheritedFromVersion>
+    <inheritedFromVersion>65.04</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_RatingDiscoveryContext</masterLabel>
     <title>RLM_RatingDiscoveryContext</title>

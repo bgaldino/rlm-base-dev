@@ -192,6 +192,7 @@
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Collection</inheritedFrom>
                 <title>Collection</title>
             </contextTags>
+            <displayName>Collection</displayName>
             <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection</inheritedFrom>
             <title>Collection</title>
             <transposable>false</transposable>
