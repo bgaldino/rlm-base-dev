@@ -279,26 +279,33 @@ project:
 
     dt_rating_decision_tables: &dt_rating_decision_tables
       # Core rating decision tables for asset and binding object rate calculations
-      - Asset_Rate_Card_Entry_Resolution
-      - Asset_Rate_Decision_Table
-      - Asset_Tier_based_Rate_Adjustment
-      - Asset_Volume_based_Rate_Adjustment
+      - Asset_Action_Source_Entries_Decision_Table_V2
+      - Asset_Rate_Card_Entry_Resolution_V2
+      - Asset_Rate_Card_Entry_Resolution_Entries
+      - Asset_Rate_Decision_Table_V2
+      - Asset_Rate_Adjustment_Resolution_Entries
+      - Asset_Tier_based_Rate_Adjustmen_V2
+      - Asset_Volume_based_Rate_Adjustment_V2
       - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
-      - Binding_Object_Rate_Card_Entry_Resolution
-      - Binding_Object_Rate_Decision_Table
-      - Binding_Object_Tier_based_Rate_Adjustment
-      - Binding_Object_Volume_based_Rate_Adjustment
+      - Binding_Object_Rate_Card_Entry_Resolution_V2
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries_v2
+      - Binding_Object_Rate_Decision_Table_V2
+      - Binding_Object_Rate_Adjustment_Resolution_Entries
+      - Binding_Object_Tier_based_Rate_Adjustment_V2
+      - Binding_Object_Volume_based_Rate_Adjustment_V2
+      - Commitment_based_Rate_Adjustment
       - Rate_Adjustment_by_Attribute_Entries_2
       - Rate_Adjustment_by_Tier_Entries_2
       - Rate_Adjustment_by_Volume_Entries_2
       - Rate_Card_Entries_2
       - Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID
       - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+      - Index_Rate_Decision_Table
 
     dt_rating_discovery_decision_tables: &dt_rating_discovery_decision_tables
       # Decision tables used for rating discovery and resolution
       - Binding_Object_Rate_Adjustment_Resolution_Entries
-      - Binding_Object_Rate_Card_Entry_Resolution_Entries
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries_V2
       - Pricebook_Rate_Card_Decision_Table
       - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
       - Rate_Adjustment_by_Tier_Resolution_Decision_Table
@@ -314,19 +321,26 @@ project:
       - Price_Adjustment_Tier_Decision_Table
       - Price_Book_Entry_Decision_Table_v2
       - Tiered_Adjustment_Tier_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table_v2
 
     dt_asset_decision_tables: &dt_asset_decision_tables
       # Asset-specific decision tables for rate calculations and adjustments
       - Asset_Action_Source_Entries_Decision_Table_V2
-      - Asset_Rate_Card_Entry_Resolution
-      - Asset_Rate_Decision_Table
-      - Asset_Tier_based_Rate_Adjustment
-      - Asset_Volume_based_Rate_Adjustment
+      - Asset_Rate_Card_Entry_Resolution_V2
+      - Asset_Rate_Decision_Table_V2
+      - Asset_Tier_based_Rate_Adjustment_V2
+      - Asset_Volume_based_Rate_Adjustment_V2
+      - Asset_Rate_Adjustment_Resolution_Entries
+      - Asset_Rate_Card_Entry_Resolution_Entries
+      - Commitment_based_Rate_Adjustment
 
     dt_pricing_discovery_decision_tables: &dt_pricing_discovery_decision_tables
       # Decision tables used for pricing discovery and derived pricing
       - Asset_Action_Source_Entries_Decision_Table_V2
       - Derived_Pricing_Entries_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table_v2
 
 #-----------------------------#
 # CONTEXT DEFINITION SETTINGS #
