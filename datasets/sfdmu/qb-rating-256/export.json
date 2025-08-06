@@ -30,9 +30,9 @@
           "excluded": false
         },
         {
-          "query": "SELECT DrawdownOrder, Label, OverageChargeable, ProductOfferId, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit, EffectiveStartDate, EffectiveEndDate FROM ProductUsageGrant ORDER BY ProductOffer.StockKeepingUnit ASC, UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC, UsageResource.Code ASC",
+          "query": "SELECT DrawdownOrder, Label, OverageChargeable, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, ValidityPeriodTerm, ValidityPeriodUnit, EffectiveStartDate, EffectiveEndDate FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
           "operation": "Upsert",
-          "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;UsageResource.Code",
+          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
           "excluded": false
         },
         {
