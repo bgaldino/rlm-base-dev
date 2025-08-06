@@ -64,7 +64,7 @@ unpackaged/post_sharing/objects/SalesTransactionType/SalesTransactionType.object
 
 ## pricingActionParameters
 unpackaged/post_quantumbit/pricingActionParameters
-
+unpackaged/pre/5_decisiontables/RLM_Cost_Book_Entries.decisionTable-meta.xml
 ## ADVANCED APPROVALS
 # classes
 #force-app/main/default/classes/RC_QuoteApprovalController.cls
