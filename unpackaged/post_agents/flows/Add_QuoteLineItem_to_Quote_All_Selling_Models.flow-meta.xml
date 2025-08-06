@@ -700,7 +700,7 @@
     <formulas>
         <name>CalculatedEndDateString</name>
         <dataType>String</dataType>
-        <expression>TEXT(YEAR( ADDMONTHS(DATEVALUE({!startDate}),12) -1)) &amp;&quot;-&quot;&amp; TEXT(MONTH( ADDMONTHS(DATEVALUE({!startDate}),12) -1)) &amp;&quot;-&quot;&amp; TEXT(DAY( ADDMONTHS(DATEVALUE({!startDate}),12) -1))</expression>
+        <expression>TEXT(YEAR(ADDMONTHS(DATEVALUE({!startDate}),12) - 1)) &amp;&quot;-&quot;&amp; TEXT(MONTH(ADDMONTHS(DATEVALUE({!startDate}),12) - 1)) &amp;&quot;-&quot;&amp; TEXT(DAY(ADDMONTHS(DATEVALUE({!startDate}),12) - 1))</expression>
     </formulas>
     <formulas>
         <description>Calculate current date, the format is yyyy-mm-dd. If no StartDate input, the CurrentStartDate will be used in QuoteLineItem.</description>
