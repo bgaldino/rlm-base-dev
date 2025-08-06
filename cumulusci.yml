@@ -768,6 +768,12 @@ tasks:
     options:
       path: unpackaged/post_guidedselling
 
+  deploy_post_payments:
+    description: Deploy Payments Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_payments
+
   deploy_expression_sets:
     description: Deploy Expression Sets
     class_path: cumulusci.tasks.salesforce.Deploy
