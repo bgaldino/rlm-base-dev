@@ -256,20 +256,6 @@
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
-        <fields>Label</fields>
-        <fields>UsageResource</fields>
-        <fields>Quantity</fields>
-        <fields>UnitOfMeasureClass</fields>
-        <fields>UnitOfMeasure</fields>
-        <fields>ValidityPeriodTerm</fields>
-        <fields>ValidityPeriodUnit</fields>
-        <fields>Status</fields>
-        <fields>EffectiveStartDate</fields>
-        <fields>EffectiveEndDate</fields>
-        <relatedList>ProductUsageGrants</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>Name</fields>
         <fields>UsageResource</fields>
         <fields>ProductSellingModel</fields>
         <fields>EffectiveFrom</fields>

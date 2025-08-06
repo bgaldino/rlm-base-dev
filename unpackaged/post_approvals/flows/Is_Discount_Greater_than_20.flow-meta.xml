@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <assignments>
         <name>Get_Count_of_Quote_Lines</name>
         <label>Get Count of Quote Lines</label>

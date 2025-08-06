@@ -16,7 +16,7 @@
         </inputParameters>
         <nameSegment>RLM_AssetInfoUtility</nameSegment>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
     <interviewLabel>Platform Event - {!$Flow.CurrentDateTime}</interviewLabel>

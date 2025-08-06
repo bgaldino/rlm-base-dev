@@ -218,7 +218,7 @@
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <description>Adds the asset price and asset quantity  in the loop to the TotalAssetPriceAmount and TotalAssetQuantity variables, respectively.</description>

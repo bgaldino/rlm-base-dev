@@ -134,7 +134,7 @@
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <description>Adds the Account ID of the current record to the AccountsWithExpiringAssetsIds collection variable.</description>
