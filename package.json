@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",
-    "prettier": "^3.5.3",
+    "prettier": "^3.6.2",
     "prettier-plugin-apex": "^2.2.6"
   }
 }
