@@ -92,6 +92,7 @@ project:
     constraints: true        # Use Constraint Builder
     guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
+    sharingsettings: false     # Use Sharing Settings
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -1575,7 +1576,7 @@ flows:
           name: rlm
       3:
         task: deploy_sharing_rules
-        when: project_config.project__custom__prm
+        when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
 
   prepare_tax:
     group: Revenue Lifecycle Management

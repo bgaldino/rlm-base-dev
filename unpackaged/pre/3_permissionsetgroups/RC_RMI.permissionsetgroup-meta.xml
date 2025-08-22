@@ -10,7 +10,6 @@
     <permissionSets>force__EinsteinAnalyticsAdmin</permissionSets>
     <permissionSets>force__EinsteinAnalyticsPlusAdmin</permissionSets>
     <permissionSets>force__GenieAdmin</permissionSets>
-    <permissionSets>force__PriceMonitoringRuntimeUser</permissionSets>
     <permissionSets>force__PulseRuntimeUser</permissionSets>
     <permissionSets>force__QueryForDataPipelines</permissionSets>
     <permissionSets>force__TableauEinsteinAdmin</permissionSets>

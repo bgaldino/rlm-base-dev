@@ -4,7 +4,6 @@
     <enableHighAvailability>true</enableHighAvailability>
     <enableHighestPriceCompliance>true</enableHighestPriceCompliance>
     <enableLowestPriceCompliance>true</enableLowestPriceCompliance>
-    <enablePriceGuidanceAccess>false</enablePriceGuidanceAccess>
     <enablePricingProcParallelization>true</enablePricingProcParallelization>
     <enablePricingWaterfall>true</enablePricingWaterfall>
     <enablePricingWaterfallPersistence>true</enablePricingWaterfallPersistence>
