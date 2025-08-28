@@ -16,6 +16,5 @@
     <permissionSets>force__TableauEinsteinAnalyst</permissionSets>
     <permissionSets>force__TableauEinsteinIncludedAppBusinessUser</permissionSets>
     <permissionSets>force__TableauIncludedAppManager</permissionSets>
-    <permissionSets>force__TableauNextLimitedViewer</permissionSets>
     <permissionSets>force__TableauUser</permissionSets>
 </PermissionSetGroup>
