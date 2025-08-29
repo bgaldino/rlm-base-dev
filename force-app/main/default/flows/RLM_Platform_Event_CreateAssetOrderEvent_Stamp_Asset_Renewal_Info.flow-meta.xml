@@ -3,8 +3,8 @@
     <actionCalls>
         <name>Calculate_Asset_Info</name>
         <label>Calculate Asset Info</label>
-        <locationX>176</locationX>
-        <locationY>170</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>RLM_AssetInfoUtility</actionName>
         <actionType>apex</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -41,7 +41,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Calculate_Asset_Info</targetReference>
@@ -50,7 +50,7 @@
         <object>CreateAssetOrderEvent</object>
         <triggerType>PlatformEvent</triggerType>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>AssetDetails</name>
         <dataType>SObject</dataType>

@@ -81,7 +81,7 @@ project:
     einstein: true           # Use Einstein AI
     product_dataset: qb      # Default product dataset to use
     qbrix: true              # Use xDO base
-    agents: true             # Deploy Agentforce Agent Configurations
+    agents: false             # Deploy Agentforce Agent Configurations
     refresh: false           # Data refresh flag
     commerce: false          # Use Commerce
     quantumbit: true         # Use QuantumBit
@@ -89,7 +89,7 @@ project:
     docgen: true             # Use Document Generation
     psg_debug: false         # Debug Permission Set Groups
     pas_debug: false         # Debug Price Adjustment Schedules
-    constraints: true        # Use Constraint Builder
+    constraints: false        # Use Constraint Builder
     guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false     # Use Sharing Settings

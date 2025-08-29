@@ -3,8 +3,8 @@
     <actionCalls>
         <name>Refresh</name>
         <label>Refresh</label>
-        <locationX>264</locationX>
-        <locationY>566</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
@@ -39,8 +39,8 @@
     <loops>
         <name>Loop_1</name>
         <label>Loop 1</label>
-        <locationX>176</locationX>
-        <locationY>458</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <collectionReference>Decision_Tables.selectedRows</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
@@ -72,8 +72,8 @@
     <recordLookups>
         <name>GetDecisionTables</name>
         <label>GetDecisionTables</label>
-        <locationX>176</locationX>
-        <locationY>242</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Decision_Tables_List</targetReference>
@@ -95,8 +95,8 @@
     <screens>
         <name>Decision_Tables_List</name>
         <label>Decision Tables</label>
-        <locationX>176</locationX>
-        <locationY>350</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -171,8 +171,8 @@
     <screens>
         <name>Finish</name>
         <label>Finish</label>
-        <locationX>176</locationX>
-        <locationY>998</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -208,8 +208,8 @@
     <screens>
         <name>Refresh_decision_tables</name>
         <label>Refresh decision tables</label>
-        <locationX>176</locationX>
-        <locationY>134</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -218,7 +218,7 @@
         </connector>
         <fields>
             <name>Text</name>
-            <fieldText>&lt;p&gt;Ready to update decision tables?&lt;/p&gt;&lt;p&gt;Please note that there is a default of 40 DT refreshes per hour.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 11px;&quot;&gt;Ready to update ALL decision tables?&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;This should only be done the first time you log into the org.  You can select which DTs you want to refresh, but on an initial spin you should refresh all of them.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;After the initial sync of ALL decision tables, you should selectively refresh using the targeted actions below, as needed, as there is limit of 100 refreshes per hour.&lt;/span&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -235,8 +235,8 @@
     <screens>
         <name>Something_went_wrong_here</name>
         <label>Something went wrong here..</label>
-        <locationX>528</locationX>
-        <locationY>674</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -257,7 +257,7 @@
         <showHeader>true</showHeader>
     </screens>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Refresh_decision_tables</targetReference>

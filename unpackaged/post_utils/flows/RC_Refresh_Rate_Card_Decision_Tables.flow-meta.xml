@@ -8,7 +8,7 @@
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Binding_Object_Volume_based_Rate_Adjustment</targetReference>
+            <targetReference>Binding_Object_Volume_based_Rate_Adjustment_V2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -29,7 +29,7 @@
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Binding_Object_Rate_Card_Entry_Resolution</targetReference>
+            <targetReference>Binding_Object_Rate_Card_Entry_Resolution_V2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -43,20 +43,20 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Binding_Object_Rate_Card_Entry_Resolution</name>
-        <label>Binding_Object_Rate_Card_Entry_Resolution</label>
+        <name>Binding_Object_Rate_Card_Entry_Resolution_Entries_V2</name>
+        <label>Binding_Object_Rate_Card_Entry_Resolution_Entries_V2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Binding_Object_Rate_Card_Entry_Resolution_Entries</targetReference>
+            <targetReference>Binding_Object_Tier_based_Rate_Adjustment_V2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Binding_Object_Rate_Card_Entry_Resolution</stringValue>
+                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_Entries_V2</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -64,20 +64,20 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Binding_Object_Rate_Card_Entry_Resolution_Entries</name>
-        <label>Binding_Object_Rate_Card_Entry_Resolution_Entries</label>
+        <name>Binding_Object_Rate_Card_Entry_Resolution_V2</name>
+        <label>Binding_Object_Rate_Card_Entry_Resolution_V2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Binding_Object_Tier_based_Rate_Adjustment</targetReference>
+            <targetReference>Binding_Object_Rate_Card_Entry_Resolution_Entries_V2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_Entries</stringValue>
+                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_V2</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -85,8 +85,8 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Binding_Object_Rate_Decision_Table</name>
-        <label>Binding_Object_Rate_Decision_Table</label>
+        <name>Binding_Object_Rate_Decision_Table_V2</name>
+        <label>Binding_Object_Rate_Decision_Table_V2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
@@ -98,7 +98,7 @@
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Binding_Object_Rate_Decision_Table</stringValue>
+                <stringValue>Binding_Object_Rate_Decision_Table_V2</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -106,8 +106,8 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Binding_Object_Tier_based_Rate_Adjustment</name>
-        <label>Binding_Object_Tier_based_Rate_Adjustment</label>
+        <name>Binding_Object_Tier_based_Rate_Adjustment_V2</name>
+        <label>Binding_Object_Tier_based_Rate_Adjustment_V2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
@@ -116,7 +116,7 @@
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Binding_Object_Tier_based_Rate_Adjustment</stringValue>
+                <stringValue>Binding_Object_Tier_based_Rate_Adjustment_V2</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -124,20 +124,20 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Binding_Object_Volume_based_Rate_Adjustment</name>
-        <label>Binding_Object_Volume_based_Rate_Adjustment</label>
+        <name>Binding_Object_Volume_based_Rate_Adjustment_V2</name>
+        <label>Binding_Object_Volume_based_Rate_Adjustment_V2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Binding_Object_Rate_Decision_Table</targetReference>
+            <targetReference>Binding_Object_Rate_Decision_Table_V2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Binding_Object_Volume_based_Rate_Adjustment</stringValue>
+                <stringValue>Binding_Object_Volume_based_Rate_Adjustment_V2</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -145,20 +145,20 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Pricebook_Rate_Card_Decision_Table</name>
-        <label>Pricebook Rate Card Decision_Table</label>
+        <name>Refresh_Commitment_based_Rate_Adjustment</name>
+        <label>Refresh Commitment_based_Rate_Adjustment</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>RateCardEntries2</targetReference>
+            <targetReference>Refresh_Rate_Card_Entries_2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Pricebook_Rate_Card_Decision_Table</stringValue>
+                <stringValue>Commitment_based_Rate_Adjustment</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -166,35 +166,14 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>PriceboPricebook_Rate_Card_Decision_Tableok_Rate_Card_Decision_Table</name>
-        <label>Pricebook Rate Card Decision Table</label>
+        <name>Refresh_Price_Book_Entry_Decision_Table_v2</name>
+        <label>Refresh Price Book Entry Decision Table v2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Refresh_Rate_Adjustment_by_Attribute_Entries_2</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Pricebook_Rate_Card_Decision_Table</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>PricePrice_Book_Entry_Decision_Table_v2_Book_Entry_Decision_Table_v2</name>
-        <label>Price Book Entry Decision Table v2</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>PriceboPricebook_Rate_Card_Decision_Tableok_Rate_Card_Decision_Table</targetReference>
+            <targetReference>Refresh_Pricebook_Rate_Card_Decision_Table</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -208,62 +187,20 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Rate_Adjustment_by_Volume_Entries_2</name>
-        <label>Rate Adjustment by Volume Entries_2</label>
+        <name>Refresh_Pricebook_Rate_Card_Decision_Table</name>
+        <label>Refresh Pricebook Rate Card Decision Table</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID</targetReference>
+            <targetReference>Refresh_Rate_Adjustment_by_Attribute_Entries_2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Rate_Adjustment_by_Volume_Entries_2</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Rate_Card_Entry_Resolution_Entries_2</name>
-        <label>Rate Card Entry Resolution Entries 2</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Pricebook_Rate_Card_Decision_Table</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Rate_Card_Entry_Resolution_Entries_2</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>RateCardEntries2</name>
-        <label>Rate_Card_Entries_2</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>PricePrice_Book_Entry_Decision_Table_v2_Book_Entry_Decision_Table_v2</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Rate_Card_Entries_2</stringValue>
+                <stringValue>Pricebook_Rate_Card_Decision_Table</stringValue>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -314,7 +251,7 @@
     </actionCalls>
     <actionCalls>
         <name>Refresh_Rate_Adjustment_by_Tier_Entries_2</name>
-        <label>Rate Adjustment by Tier Entries 2</label>
+        <label>Refresh Rate Adjustment by Tier Entries 2</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
@@ -335,13 +272,13 @@
     </actionCalls>
     <actionCalls>
         <name>Refresh_Rate_Adjustment_by_Tier_Resolution_Decision_Table</name>
-        <label>Rate Adjustment by Tier Resolution Decision Table</label>
+        <label>Refresh Rate Adjustment by Tier Resolution Decision Table</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Rate_Adjustment_by_Volume_Entries_2</targetReference>
+            <targetReference>Refresh_Rate_Adjustment_by_Volume_Entries_2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -355,8 +292,71 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID</name>
-        <label>Tier based Rate Adjustment by Rate Card Entry ID</label>
+        <name>Refresh_Rate_Adjustment_by_Volume_Entries_2</name>
+        <label>Refresh Rate Adjustment by Volume Entries_2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Rate_Adjustment_by_Volume_Entries_2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Rate_Card_Entries_2</name>
+        <label>Refresh Rate Card Entries 2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Price_Book_Entry_Decision_Table_v2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Rate_Card_Entries_2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Rate_Card_Entry_Resolution_Entries_2</name>
+        <label>Refresh Rate Card Entry Resolution Entries 2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Commitment_based_Rate_Adjustment</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Rate_Card_Entry_Resolution_Entries_2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID</name>
+        <label>Refresh Tier based Rate Adjustment by Rate Card Entry ID</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
@@ -376,14 +376,14 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <name>Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID</name>
-        <label>Volume based Rate Adjustment by Rate Card Entry ID</label>
+        <name>Refresh_Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID</name>
+        <label>Refresh Volume based Rate Adjustment by Rate Card Entry ID</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Rate_Card_Entry_Resolution_Entries_2</targetReference>
+            <targetReference>Refresh_Rate_Card_Entry_Resolution_Entries_2</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -435,7 +435,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID</targetReference>
+            <targetReference>Refresh_Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID</targetReference>
         </connector>
         <fields>
             <name>Refresh_Rating_Decision_Tables_Header</name>
@@ -452,7 +452,7 @@
         </fields>
         <fields>
             <name>txtDecisionTables</name>
-            <fieldText>&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Rate_Adjustment_by_Tier_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Rate_Adjustment_by_Tier_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Rate_Adjustment_by_Volume_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Rate_Card_Entry_Resolution_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Pricebook_Rate_Card_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Rate_Card_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;﻿Pricebook_Rate_Card_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Rate_Adjustment_by_Attribute_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;﻿Rate_Adjustment_by_Attribute_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Binding_Object_Rate_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Binding_Object_Rate_Adjustment_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Binding_Object_Tier_based_Rate_Adjustment&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Binding_Object_Volume_based_Rate_Adjustment&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
+            <fieldText>&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Tier_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Tier_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Volume_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Card_Entry_Resolution_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Pricebook_Rate_Card_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Card_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;﻿Commitment_based_Rate_Adjustment&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Attribute_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;﻿Rate_Adjustment_by_Attribute_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Adjustment_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_Entries_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Tier_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Volume_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
