@@ -7,6 +7,9 @@
         <locationY>0</locationY>
         <actionName>RC_RebuildSearchIndex</actionName>
         <actionType>apex</actionType>
+        <connector>
+            <targetReference>Org_Setup_Status</targetReference>
+        </connector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <nameSegment>RC_RebuildSearchIndex</nameSegment>
         <offset>0</offset>
@@ -61,6 +64,7 @@
         </value>
     </processMetadataValues>
     <processType>Flow</processType>
+    <runInMode>DefaultMode</runInMode>
     <screens>
         <name>Build_Search_Index</name>
         <label>Build Search Index</label>
@@ -74,7 +78,31 @@
         </connector>
         <fields>
             <name>Rebuild_Search_Index_Display_Text</name>
-            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Rebuild Search Index&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 10px;&quot;&gt;This must be done once after logging in for the first time and again after any product catalog changes.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 11px; color: rgb(0, 0, 0);&quot;&gt;Rebuild Search Index&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;This must be done once after logging in for the first time and again after any product catalog changes.&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Org_Setup_Status</name>
+        <label>Org Setup Status</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>Message</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 12px;&quot;&gt;Finishing your Org Setup&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;strong style=&quot;font-size: 11px;&quot;&gt;Product Catalog Management Index build status&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;Message: {!IndexDeployErrorMessage}&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;Please wait for 15 mins for your org to be ready.&lt;/span&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
