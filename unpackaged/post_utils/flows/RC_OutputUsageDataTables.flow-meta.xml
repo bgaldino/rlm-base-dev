@@ -383,6 +383,12 @@
             </value>
         </filters>
         <inputAssignments>
+            <field>RC_AssetIdName__c</field>
+            <value>
+                <elementReference>Loop_Current_US.Asset.Name</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
             <field>RC_AssetId__c</field>
             <value>
                 <elementReference>Loop_Current_US.AssetId</elementReference>
@@ -436,12 +442,6 @@
                 <elementReference>Loop_Current_US.UsageResourceId</elementReference>
             </value>
         </inputAssignments>
-        <inputAssignments>
-            <field>null__NotFound</field>
-            <value>
-                <elementReference>Loop_Current_US.Asset.Name</elementReference>
-            </value>
-        </inputAssignments>
         <object>UsageSummary</object>
     </recordUpdates>
     <screens>
@@ -449,9 +449,9 @@
         <label>Screen1</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <allowBack>true</allowBack>
+        <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
-        <allowPause>true</allowPause>
+        <allowPause>false</allowPause>
         <fields>
             <name>DT_TJ</name>
             <dataTypeMappings>
@@ -638,6 +638,7 @@
                 </width>
             </styleProperties>
         </fields>
+        <nextOrFinishButtonLabel>Refresh</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
@@ -648,7 +649,7 @@
             <targetReference>Get_TJs</targetReference>
         </connector>
     </start>
-    <status>InvalidDraft</status>
+    <status>Active</status>
     <variables>
         <name>recordId</name>
         <dataType>String</dataType>
