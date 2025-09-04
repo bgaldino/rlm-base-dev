@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>64.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <customProperties>
+        <name>ScreenProgressIndicator</name>
+        <value>
+            <stringValue>{&quot;location&quot;:&quot;top&quot;,&quot;type&quot;:&quot;simple&quot;}</stringValue>
+        </value>
+    </customProperties>
+    <decisions>
+        <description>Determines whether the usage ratable summary was generated or not by checking if the status of the usageRatableSummaryFlowStatus is Success.</description>
+        <name>Is_Usage_Ratable_Summary_Generated</name>
+        <label>Is Usage Ratable Summary Generated?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No (Default)</defaultConnectorLabel>
+        <rules>
+            <name>IsGeneratedUsageRatableSummary</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>usageRatableSummaryFlowStatus</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Success</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Create_Liable_Summary</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Determines whether the usage summary was generated or not by checking if the value of the usageSummaryFlowStatus is Success.</description>
+        <name>Is_Usage_Summary_Generated</name>
+        <label>Is Usage Summary Generated?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>IsGeneratedUsageSummary</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>usageSummaryFlowStatus</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Success</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CreateUsageRatableSummary</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <interviewLabel>RC_OrchestrateUsage {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>One Click Orchestrate Usage Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>Flow</processType>
+    <screens>
+        <name>Screen_Steps</name>
+        <label>Screen Steps</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Create_Usage_Summary</targetReference>
+        </connector>
+        <fields>
+            <name>Display_Text</name>
+            <fieldText>&lt;p&gt;TJ (Summarize button)&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;--&amp;gt; Usage Summaries (Calculate Rate)&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;--&amp;gt; Liable Summaries (Create Liable Summaries (Flow))&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;--&amp;gt; Completed Liable Summaries (Ready to Invoice)&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;Each step takes 5 or so minutes. In total, the scheduled flow should take 15 minutes.&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;Scheduled Flow: RLM Orchestrate Usage&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <nextOrFinishButtonLabel>Run the Scheduled Flow</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Screen_Steps</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <subflows>
+        <description>Calls a flow that creates a liable summary for consumption overages determined by using the usage summaries and ratable summaries.</description>
+        <name>Create_Liable_Summary</name>
+        <label>Create Liable Summary</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <flowName>runtime_industries_usage__LiabSum</flowName>
+    </subflows>
+    <subflows>
+        <description>Calls a flow that creates usage summary by aggregating usage details and calculating overages by processing the consumption overages.</description>
+        <name>Create_Usage_Summary</name>
+        <label>Create Usage Summary</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Is_Usage_Summary_Generated</targetReference>
+        </connector>
+        <flowName>runtime_industries_usage__CreaUseSum</flowName>
+        <outputAssignments>
+            <assignToReference>usageSummaryFlowStatus</assignToReference>
+            <name>usageSummaryFlowStatus</name>
+        </outputAssignments>
+    </subflows>
+    <subflows>
+        <description>Calls a flow that creates usage ratable summary by rating the usage summaries using the rating batch job.</description>
+        <name>CreateUsageRatableSummary</name>
+        <label>Create Usage Ratable Summary</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Is_Usage_Ratable_Summary_Generated</targetReference>
+        </connector>
+        <flowName>runtime_industries_usage__UseRateSum</flowName>
+        <outputAssignments>
+            <assignToReference>usageRatableSummaryFlowStatus</assignToReference>
+            <name>usageRatableSummaryFlowStatus</name>
+        </outputAssignments>
+    </subflows>
+    <variables>
+        <name>usageRatableSummaryFlowStatus</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Stores the status of UsageSummary flow.</description>
+        <name>usageSummaryFlowStatus</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+</Flow>
