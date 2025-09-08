@@ -218,7 +218,7 @@
         </connector>
         <fields>
             <name>Text</name>
-            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 11px;&quot;&gt;Ready to update ALL decision tables?&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;This should only be done the first time you log into the org.  You can select which DTs you want to refresh, but on an initial spin you should refresh all of them.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;After the initial sync of ALL decision tables, you should selectively refresh using the targeted actions below, as needed, as there is limit of 100 refreshes per hour.&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 11px;&quot;&gt;Ready to update ALL decision tables?&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;This should only be done the first time you log into the org.  You can select which DTs you want to refresh, but on an initial spin you should refresh all of them.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;After the initial sync of ALL decision tables, you should selectively refresh as needed, as there is a limit of 100 refreshes per hour.&lt;/span&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
