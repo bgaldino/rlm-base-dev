@@ -13,6 +13,9 @@
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>PreviewInvoices</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>BillNow</value>
                         </valueListItems>
                         <valueListItems>

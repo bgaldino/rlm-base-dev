@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <contextDefinitions>SalesTransactionContext__stdctx</contextDefinitions>
-    <description>Revenue Management Default Pricing Procedure</description>
+    <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
+    <description>Revenue Cloud Default Pricing Procedure</description>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>Revenue Management Default Pricing Procedure</label>
+    <label>RC Revenue Cloud Default Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>Rev_Mgmt_Default_Pricing_Procedure_V1</fullName>
+        <fullName>RC_DefaultPricingProcedure_V1</fullName>
         <decimalScale>2</decimalScale>
-        <description>Revenue Management Default Pricing Procedure</description>
-        <expressionSetDefinition>Rev_Mgmt_Default_Pricing_Procedure</expressionSetDefinition>
+        <description>Revenue Cloud Default Pricing Procedure</description>
+        <expressionSetDefinition>RC_DefaultPricingProcedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>Revenue Management Default Pricing Procedure</label>
+        <label>RC Revenue Cloud Default Pricing Procedure</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2023-10-24T19:56:40.000Z</startDate>
+        <startDate>2020-01-01T08:00:00.000Z</startDate>
         <status>Draft</status>
         <steps>
             <actionType>GroupingAndAggregatePricing</actionType>
@@ -1101,13 +1101,6 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Cavl2AC</value>
-                </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
             <label>Attribute-Based Price</label>
@@ -1269,13 +1262,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Cavl2AC</value>
                 </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
@@ -1452,13 +1438,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Cayz2AC</value>
                 </parameters>
             </customElement>
             <description>Bundle-Based Price</description>
@@ -2822,13 +2801,6 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Cb5R2AS</value>
-                </parameters>
             </customElement>
             <description>List Price</description>
             <label>List Price</label>
@@ -3112,13 +3084,6 @@
                     <type>Parameter</type>
                     <value>ListPrice</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Cam52AC</value>
-                </parameters>
             </customElement>
             <description>List Price</description>
             <label>Price Book Entries</label>
@@ -3212,6 +3177,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>HideWaterfall</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>sectionCount</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -3251,13 +3223,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>Subtotal</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Cani2AC</value>
                 </parameters>
             </customElement>
             <description>Price Revision</description>
@@ -4292,13 +4257,6 @@
                     <type>Parameter</type>
                     <value>IsContracted</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000CbNB2A0</value>
-                </parameters>
             </customElement>
             <description>Volume Discount</description>
             <label>Volume Discount</label>
@@ -4454,13 +4412,6 @@
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDSB000000Canh2AC</value>
-                </parameters>
             </customElement>
             <description>Volume Discount</description>
             <label>Volume Discount Entries</label>
@@ -4493,7 +4444,7 @@
             <name>AttributePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>&apos;&apos;</value>
+            <value>__ATTRIBUTEPasID__</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4504,7 +4455,7 @@
             <name>BundlePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>&apos;&apos;</value>
+            <value>__BUNDLEPasID__</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4680,7 +4631,7 @@
             <name>VolumePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>&apos;&apos;</value>
+            <value>__VOLUMEPasID__</value>
         </variables>
         <versionNumber>1</versionNumber>
     </versions>

@@ -436,6 +436,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Quote.RC_Start_Sync__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>QuoteLineItem.RC_Approval_Level_Calc__c</field>
         <readable>true</readable>
     </fieldPermissions>

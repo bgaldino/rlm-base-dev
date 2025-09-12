@@ -434,6 +434,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Quote.RC_Start_Sync__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Quote.RLM_EndDate__c</field>
         <readable>true</readable>
     </fieldPermissions>

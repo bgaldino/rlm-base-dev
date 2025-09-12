@@ -888,7 +888,7 @@ tasks:
     description: Insert QuantumBit Product Image Data to Production
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: *quantumbit_product_imagedataset
+      pathtoexportjson: *quantumbit_product_image_dataset
 
   insert_q3_data:
     group: Revenue Lifecycle Management

@@ -92,10 +92,21 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>adjustmentTypeFields</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>QuoteLineItem.DiscountAmount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.Discount</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
                     <name>displayFields</name>
                     <valueList>
                         <valueListItems>
-                            <value>QuoteLineItem.Product2.Name[Product2]</value>
+                            <value>QuoteLineItem.RLM_ProductName__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Quantity</value>
@@ -131,6 +142,10 @@
                             <value>QuoteLineItem.TotalPrice</value>
                         </valueListItems>
                     </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>enableQuickAdd</name>
+                    <value>true</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>enableSidepanel</name>
@@ -180,8 +195,55 @@
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
-                <componentName>runtime_revenue_foundation:transactionLineTable</componentName>
-                <identifier>runtime_revenue_foundation_transactionLineTable</identifier>
+                <componentInstanceProperties>
+                    <name>viewRampDetailFields</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>QuoteLineItem.SegmentIdentifier</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.SegmentName</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.SegmentType</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RampIdentifier</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.IsPrimarySegment</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.Quantity</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.StartDate</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.EndDate</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.Discount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.DiscountAmount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.UnitPriceUplift</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.NetUnitPrice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.NetTotalPrice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.TotalPrice</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentName>runtime_rca:salesTxnLineTable</componentName>
+                <identifier>runtime_rca_salesTxnLineTable</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
@@ -193,20 +255,6 @@
                 <componentInstanceProperties>
                     <name>displayTotalPriceBreakdown</name>
                     <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>footerFields</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>Quote.Subtotal</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Quote.TotalPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Quote.GrandTotal</value>
-                        </valueListItems>
-                    </valueList>
                 </componentInstanceProperties>
                 <componentName>runtime_revenue_foundation:transactionSummary</componentName>
                 <identifier>runtime_revenue_foundation_transactionSummary</identifier>
@@ -284,6 +332,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.StartDate</fieldItem>
                 <identifier>RecordStartDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RC_Start_Sync__c</fieldItem>
+                <identifier>RecordRC_Start_Sync__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
