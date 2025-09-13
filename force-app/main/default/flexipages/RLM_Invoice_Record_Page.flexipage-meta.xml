@@ -7,6 +7,12 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
+                            <value>InvoiceDraftToPosted</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Invoice.RC_Apply_Payment</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>FeedItem.TextPost</value>
                         </valueListItems>
                         <valueListItems>
@@ -62,9 +68,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>InvoiceDraftToPosted</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -1152,6 +1155,31 @@
         <type>Region</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>accountIdField</name>
+                    <value>Invoice.BillingAccountId</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>headerText</name>
+                    <value>Merchant-Submitted Payment</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showSaveForFutureUsageCheckbox</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>stipeACHConsentMandate</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>useManualCapture</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentName>runtime_payments:merchantPayment</componentName>
+                <identifier>runtime_payments_merchantPayment</identifier>
+            </componentInstance>
+        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>

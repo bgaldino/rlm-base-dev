@@ -166,7 +166,7 @@
             <label>Aggregate Price</label>
             <name>AggregatePrice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>28</sequenceNumber>
+            <sequenceNumber>29</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -332,9 +332,9 @@
             </customElement>
             <description>Aggregate Price</description>
             <label>Aggregate Price</label>
-            <name>AggregatePrice78</name>
+            <name>AggregatePrice79</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>29</sequenceNumber>
+            <sequenceNumber>30</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -417,7 +417,7 @@
             <description>Manual Discount</description>
             <label>Amount-Based (Line-Level)</label>
             <name>AmountBasedLineLevel</name>
-            <parentStep>ListContainer42</parentStep>
+            <parentStep>ListContainer43</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -468,7 +468,7 @@
             <label>Assignment</label>
             <name>Assignment</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>4</sequenceNumber>
+            <sequenceNumber>5</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -515,8 +515,8 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment10</name>
-            <parentStep>ListContainer8</parentStep>
+            <name>Assignment11</name>
+            <parentStep>ListContainer9</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -565,8 +565,8 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment16</name>
-            <parentStep>ListContainer14</parentStep>
+            <name>Assignment17</name>
+            <parentStep>ListContainer15</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -615,8 +615,8 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment19</name>
-            <parentStep>ListContainer17</parentStep>
+            <name>Assignment20</name>
+            <parentStep>ListContainer18</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -665,8 +665,8 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment22</name>
-            <parentStep>ListContainer20</parentStep>
+            <name>Assignment23</name>
+            <parentStep>ListContainer21</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -715,8 +715,8 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment65</name>
-            <parentStep>ListContainer63</parentStep>
+            <name>Assignment66</name>
+            <parentStep>ListContainer64</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -765,58 +765,8 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment69</name>
-            <parentStep>ListContainer67</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <actionType>AssignmentElement</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>section-0-input1</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>EffectiveDate</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>1</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionJsonString1</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionJsonString2</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EffectiveDate&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingDate&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>section-0-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>PricingDate</value>
-                </parameters>
-            </customElement>
-            <description>Assignment</description>
-            <label>Assignment</label>
-            <name>Assignment7</name>
-            <parentStep>ListContainer</parentStep>
+            <name>Assignment70</name>
+            <parentStep>ListContainer68</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -865,8 +815,58 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment75</name>
-            <parentStep>ListContainer73</parentStep>
+            <name>Assignment76</name>
+            <parentStep>ListContainer74</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>AssignmentElement</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveDate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>1</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString1</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EffectiveDate&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingDate&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>PricingDate</value>
+                </parameters>
+            </customElement>
+            <description>Assignment</description>
+            <label>Assignment</label>
+            <name>Assignment8</name>
+            <parentStep>ListContainer</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -936,9 +936,9 @@
             </customElement>
             <description>Assignment</description>
             <label>Assignment</label>
-            <name>Assignment79</name>
+            <name>Assignment80</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>30</sequenceNumber>
+            <sequenceNumber>31</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1105,7 +1105,7 @@
             <description>Attribute-Based Price</description>
             <label>Attribute-Based Price</label>
             <name>AttributeBasedPrice</name>
-            <parentStep>ListContainer24</parentStep>
+            <parentStep>ListContainer25</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1267,7 +1267,7 @@
             <description>Attribute-Based Price</description>
             <label>Attribute Discount Entries</label>
             <name>AttributeDiscountEntries</name>
-            <parentStep>ListContainer27</parentStep>
+            <parentStep>ListContainer28</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1443,7 +1443,7 @@
             <description>Bundle-Based Price</description>
             <label>Bundle Based Adjustment Entries</label>
             <name>BundleBasedAdjustmentEntries</name>
-            <parentStep>ListContainer30</parentStep>
+            <parentStep>ListContainer31</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1571,7 +1571,7 @@
             <label>Derived Price</label>
             <name>DerivedPrice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
+            <sequenceNumber>4</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1581,7 +1581,7 @@
             <label>Evergreen anytime proration filter (Line level)</label>
             <name>EvergreenanytimeprorationfilterLinelevel</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>22</sequenceNumber>
+            <sequenceNumber>23</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1657,7 +1657,7 @@
             <description>Formula Based Pricing</description>
             <label>Formula Based Pricing</label>
             <name>FormulaBasedPricing</name>
-            <parentStep>ListContainer20</parentStep>
+            <parentStep>ListContainer21</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1734,8 +1734,8 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <label>Formula Based Pricing</label>
-            <name>FormulaBasedPricing54</name>
-            <parentStep>ListContainer52</parentStep>
+            <name>FormulaBasedPricing55</name>
+            <parentStep>ListContainer53</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1747,7 +1747,7 @@
             <label>List Container</label>
             <name>ListContainer</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>5</sequenceNumber>
+            <sequenceNumber>6</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1755,17 +1755,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer11</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>7</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>ListGroup</stepType>
-        </steps>
-        <steps>
-            <label>List Container</label>
-            <name>ListContainer14</name>
+            <name>ListContainer12</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>8</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1775,7 +1765,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer17</name>
+            <name>ListContainer15</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>9</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1785,7 +1775,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer20</name>
+            <name>ListContainer18</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>10</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1795,7 +1785,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer24</name>
+            <name>ListContainer21</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>11</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1805,7 +1795,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer27</name>
+            <name>ListContainer25</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>12</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1815,7 +1805,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer30</name>
+            <name>ListContainer28</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>13</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1825,7 +1815,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer33</name>
+            <name>ListContainer31</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>14</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1835,7 +1825,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer36</name>
+            <name>ListContainer34</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>15</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1845,7 +1835,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer39</name>
+            <name>ListContainer37</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>16</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1855,7 +1845,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer42</name>
+            <name>ListContainer40</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>17</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1865,7 +1855,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer46</name>
+            <name>ListContainer43</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>18</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1875,7 +1865,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer49</name>
+            <name>ListContainer47</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>19</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1885,7 +1875,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer52</name>
+            <name>ListContainer50</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>20</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1895,9 +1885,9 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer63</name>
+            <name>ListContainer53</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>23</sequenceNumber>
+            <sequenceNumber>21</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1905,7 +1895,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer67</name>
+            <name>ListContainer64</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>24</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1915,7 +1905,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer70</name>
+            <name>ListContainer68</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>25</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1925,7 +1915,7 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer73</name>
+            <name>ListContainer71</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>26</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -1935,9 +1925,19 @@
         </steps>
         <steps>
             <label>List Container</label>
-            <name>ListContainer8</name>
+            <name>ListContainer74</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>6</sequenceNumber>
+            <sequenceNumber>27</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <label>List Container</label>
+            <name>ListContainer9</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>7</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1976,6 +1976,32 @@
         </steps>
         <steps>
             <advancedCondition>
+                <conditionLogic>1 AND 2</conditionLogic>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>2</sequenceNumber>
+                    <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
+                    <value>true</value>
+                    <valueType>Literal</valueType>
+                </criteria>
+            </advancedCondition>
+            <label>List Operation</label>
+            <name>ListOperation10</name>
+            <parentStep>ListContainer9</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
+        </steps>
+        <steps>
+            <advancedCondition>
                 <conditionLogic>1 AND 2 AND 3</conditionLogic>
                 <criteria>
                     <operator>IsNull</operator>
@@ -1996,8 +2022,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation12</name>
-            <parentStep>ListContainer11</parentStep>
+            <name>ListOperation13</name>
+            <parentStep>ListContainer12</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2032,8 +2058,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation15</name>
-            <parentStep>ListContainer14</parentStep>
+            <name>ListOperation16</name>
+            <parentStep>ListContainer15</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2070,8 +2096,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation18</name>
-            <parentStep>ListContainer17</parentStep>
+            <name>ListOperation19</name>
+            <parentStep>ListContainer18</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2103,8 +2129,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation21</name>
-            <parentStep>ListContainer20</parentStep>
+            <name>ListOperation22</name>
+            <parentStep>ListContainer21</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2141,8 +2167,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation25</name>
-            <parentStep>ListContainer24</parentStep>
+            <name>ListOperation26</name>
+            <parentStep>ListContainer25</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2174,8 +2200,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation28</name>
-            <parentStep>ListContainer27</parentStep>
+            <name>ListOperation29</name>
+            <parentStep>ListContainer28</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2195,8 +2221,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation31</name>
-            <parentStep>ListContainer30</parentStep>
+            <name>ListOperation32</name>
+            <parentStep>ListContainer31</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2240,8 +2266,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation34</name>
-            <parentStep>ListContainer33</parentStep>
+            <name>ListOperation35</name>
+            <parentStep>ListContainer34</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2273,8 +2299,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation37</name>
-            <parentStep>ListContainer36</parentStep>
+            <name>ListOperation38</name>
+            <parentStep>ListContainer37</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2304,8 +2330,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation40</name>
-            <parentStep>ListContainer39</parentStep>
+            <name>ListOperation41</name>
+            <parentStep>ListContainer40</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2325,8 +2351,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation43</name>
-            <parentStep>ListContainer42</parentStep>
+            <name>ListOperation44</name>
+            <parentStep>ListContainer43</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2380,8 +2406,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation47</name>
-            <parentStep>ListContainer46</parentStep>
+            <name>ListOperation48</name>
+            <parentStep>ListContainer47</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2433,8 +2459,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation50</name>
-            <parentStep>ListContainer49</parentStep>
+            <name>ListOperation51</name>
+            <parentStep>ListContainer50</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2454,8 +2480,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation53</name>
-            <parentStep>ListContainer52</parentStep>
+            <name>ListOperation54</name>
+            <parentStep>ListContainer53</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2475,7 +2501,7 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation56</name>
+            <name>ListOperation57</name>
             <parentStep>TermDefinedSubscriptionFilterontheSellingModelTypeLineLevel</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
@@ -2508,7 +2534,7 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation60</name>
+            <name>ListOperation61</name>
             <parentStep>EvergreenanytimeprorationfilterLinelevel</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
@@ -2536,8 +2562,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation64</name>
-            <parentStep>ListContainer63</parentStep>
+            <name>ListOperation65</name>
+            <parentStep>ListContainer64</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2569,8 +2595,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation68</name>
-            <parentStep>ListContainer67</parentStep>
+            <name>ListOperation69</name>
+            <parentStep>ListContainer68</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2597,8 +2623,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation71</name>
-            <parentStep>ListContainer70</parentStep>
+            <name>ListOperation72</name>
+            <parentStep>ListContainer71</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2623,34 +2649,8 @@
                 </criteria>
             </advancedCondition>
             <label>List Operation</label>
-            <name>ListOperation74</name>
-            <parentStep>ListContainer73</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>AdvancedListFilter</stepType>
-        </steps>
-        <steps>
-            <advancedCondition>
-                <conditionLogic>1 AND 2</conditionLogic>
-                <criteria>
-                    <operator>IsNotNull</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
-                </criteria>
-                <criteria>
-                    <operator>Equals</operator>
-                    <sequenceNumber>2</sequenceNumber>
-                    <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
-                    <value>true</value>
-                    <valueType>Literal</valueType>
-                </criteria>
-            </advancedCondition>
-            <label>List Operation</label>
-            <name>ListOperation9</name>
-            <parentStep>ListContainer8</parentStep>
+            <name>ListOperation75</name>
+            <parentStep>ListContainer74</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2805,7 +2805,7 @@
             <description>List Price</description>
             <label>List Price</label>
             <name>ListPrice</name>
-            <parentStep>ListContainer11</parentStep>
+            <parentStep>ListContainer12</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2890,7 +2890,420 @@
             <description>Manual Discount</description>
             <label>Manual Discount</label>
             <name>ManualDiscount</name>
-            <parentStep>ListContainer39</parentStep>
+            <parentStep>ListContainer40</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>BreakdownLineMapping</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-1-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItemQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-2-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>NetUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-3-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>price_water_fall</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-4-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>InputUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-5-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemBillingReference</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-6-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-7-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>TotalLineAmount</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-8-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveFrom</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-9-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveTo</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-10-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>PricingTermCount</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-11-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>itemTransientEndDate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-12-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemPricingSource</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-13-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>DerivedPricingAttribute</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-14-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemGroupSummarySubtotal</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-15-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ListPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-16-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>IsContracted</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-17-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemContractPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>SalesTrxnItemDetailSource</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-1-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-2-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailNetUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-3-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>DetailPriceWaterfallIdentifier</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-4-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailUnitPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-5-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailBillingReference</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-6-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-7-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailTotalLineAmount</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-8-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailEffectiveFrom__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-9-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailEffectiveTo__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-10-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailPricingTermCount__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-11-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailTransientEndDate__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-12-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailPricingSource__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-13-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailDerivedPricingAttribute__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-14-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailGroupSummaryTotal__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-15-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailListPrice__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-16-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailIsContracted__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-17-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailContractPrice__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>MapLineItemNodeInput</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>SalesTransactionItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>18</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString1</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;LineItem&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;SalesTrxnItemDetailSource&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Numeric&quot;,&quot;name&quot;:&quot;section-1-input1&quot;,&quot;value&quot;:&quot;LineItemQuantity&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Numeric&quot;,&quot;name&quot;:&quot;section-1-output&quot;,&quot;value&quot;:&quot;ItemDetailQuantity&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString3</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-2-input1&quot;,&quot;value&quot;:&quot;NetUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-2-output&quot;,&quot;value&quot;:&quot;ItemDetailNetUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString4</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-3-input1&quot;,&quot;value&quot;:&quot;price_water_fall&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-3-output&quot;,&quot;value&quot;:&quot;DetailPriceWaterfallIdentifier&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString5</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-4-input1&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-4-output&quot;,&quot;value&quot;:&quot;ItemDetailUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString6</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-5-input1&quot;,&quot;value&quot;:&quot;ItemBillingReference&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-5-output&quot;,&quot;value&quot;:&quot;ItemDetailBillingReference&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString7</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-6-input1&quot;,&quot;value&quot;:&quot;ItemNetTotalPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-6-output&quot;,&quot;value&quot;:&quot;ItemDetailTotalPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString8</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-7-input1&quot;,&quot;value&quot;:&quot;TotalLineAmount&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-7-output&quot;,&quot;value&quot;:&quot;ItemDetailTotalLineAmount&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString9</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-8-input1&quot;,&quot;value&quot;:&quot;EffectiveFrom&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-8-output&quot;,&quot;value&quot;:&quot;ItemDetailEffectiveFrom__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString10</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-9-input1&quot;,&quot;value&quot;:&quot;EffectiveTo&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-9-output&quot;,&quot;value&quot;:&quot;ItemDetailEffectiveTo__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString11</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Numeric&quot;,&quot;name&quot;:&quot;section-10-input1&quot;,&quot;value&quot;:&quot;PricingTermCount&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Numeric&quot;,&quot;name&quot;:&quot;section-10-output&quot;,&quot;value&quot;:&quot;ItemDetailPricingTermCount__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString12</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-11-input1&quot;,&quot;value&quot;:&quot;itemTransientEndDate&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-11-output&quot;,&quot;value&quot;:&quot;ItemDetailTransientEndDate__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString13</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-12-input1&quot;,&quot;value&quot;:&quot;ItemPricingSource&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-12-output&quot;,&quot;value&quot;:&quot;ItemDetailPricingSource__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString14</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Boolean&quot;,&quot;name&quot;:&quot;section-13-input1&quot;,&quot;value&quot;:&quot;DerivedPricingAttribute&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Boolean&quot;,&quot;name&quot;:&quot;section-13-output&quot;,&quot;value&quot;:&quot;ItemDetailDerivedPricingAttribute__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString15</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-14-input1&quot;,&quot;value&quot;:&quot;ItemGroupSummarySubtotal&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-14-output&quot;,&quot;value&quot;:&quot;ItemDetailGroupSummaryTotal__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString16</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-15-input1&quot;,&quot;value&quot;:&quot;ListPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-15-output&quot;,&quot;value&quot;:&quot;ItemDetailListPrice__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString17</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Boolean&quot;,&quot;name&quot;:&quot;section-16-input1&quot;,&quot;value&quot;:&quot;IsContracted&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Boolean&quot;,&quot;name&quot;:&quot;section-16-output&quot;,&quot;value&quot;:&quot;ItemDetailIsContracted__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString18</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-17-input1&quot;,&quot;value&quot;:&quot;ItemContractPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-17-output&quot;,&quot;value&quot;:&quot;ItemDetailContractPrice__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>MapLineItemNodeOutput</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>SalesTransactionItemDetail</value>
+                </parameters>
+            </customElement>
+            <description>Map Line Item</description>
+            <label>Map Line Item</label>
+            <name>MapLineItem</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -2975,7 +3388,7 @@
             <description>Manual Discount</description>
             <label>Percentage-Based (Line-Level)</label>
             <name>PercentageBasedLineLevel</name>
-            <parentStep>ListContainer42</parentStep>
+            <parentStep>ListContainer43</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3089,7 +3502,7 @@
             <label>Price Book Entries</label>
             <name>PriceBookEntries</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
+            <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3228,7 +3641,7 @@
             <description>Price Revision</description>
             <label>Price Revision</label>
             <name>PriceRevision</name>
-            <parentStep>ListContainer46</parentStep>
+            <parentStep>ListContainer47</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3245,6 +3658,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3537,7 +3957,7 @@
             </customElement>
             <description>Proration</description>
             <label>Proration</label>
-            <name>Proration61</name>
+            <name>Proration62</name>
             <parentStep>EvergreenanytimeprorationfilterLinelevel</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
@@ -3693,7 +4113,7 @@
             </customElement>
             <description>Subscription Pricing</description>
             <label>Subscription Pricing</label>
-            <name>SubscriptionPricing62</name>
+            <name>SubscriptionPricing63</name>
             <parentStep>EvergreenanytimeprorationfilterLinelevel</parentStep>
             <resultIncluded>true</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
@@ -3771,8 +4191,8 @@
             </customElement>
             <description>Subscription Pricing</description>
             <label>Subscription Pricing</label>
-            <name>SubscriptionPricing66</name>
-            <parentStep>ListContainer63</parentStep>
+            <name>SubscriptionPricing67</name>
+            <parentStep>ListContainer64</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3849,8 +4269,8 @@
             </customElement>
             <description>Subscription Pricing</description>
             <label>Subscription Pricing</label>
-            <name>SubscriptionPricing72</name>
-            <parentStep>ListContainer70</parentStep>
+            <name>SubscriptionPricing73</name>
+            <parentStep>ListContainer71</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3862,7 +4282,7 @@
             <label>Term-Defined Subscription Filter on the Selling Model Type (Line-Level)</label>
             <name>TermDefinedSubscriptionFilterontheSellingModelTypeLineLevel</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>21</sequenceNumber>
+            <sequenceNumber>22</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4016,7 +4436,7 @@
             <label>Total Amount</label>
             <name>TotalAmount</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>27</sequenceNumber>
+            <sequenceNumber>28</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4099,7 +4519,7 @@
             <description>Formula Based Pricing</description>
             <label>Uplift</label>
             <name>Uplift</name>
-            <parentStep>ListContainer49</parentStep>
+            <parentStep>ListContainer50</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4261,7 +4681,7 @@
             <description>Volume Discount</description>
             <label>Volume Discount</label>
             <name>VolumeDiscount</name>
-            <parentStep>ListContainer33</parentStep>
+            <parentStep>ListContainer34</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4416,7 +4836,7 @@
             <description>Volume Discount</description>
             <label>Volume Discount Entries</label>
             <name>VolumeDiscountEntries</name>
-            <parentStep>ListContainer36</parentStep>
+            <parentStep>ListContainer37</parentStep>
             <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>

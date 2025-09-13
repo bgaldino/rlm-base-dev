@@ -103,7 +103,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000Cbbh2AC</value>
+                    <value>0lDWs000000LjoaMAC</value>
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Adjustments</description>
@@ -208,7 +208,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000CbDX2A0</value>
+                    <value>0lDWs000000LjmwMAC</value>
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Card Entries</description>
@@ -306,7 +306,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000CbIM2A0</value>
+                    <value>0lDWs000000LjwcMAC</value>
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Adjustments</description>
@@ -411,7 +411,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000Cba52AC</value>
+                    <value>0lDWs000000Lk1SMAS</value>
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Card Entries</description>
@@ -551,7 +551,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000Cb8f2AC</value>
+                    <value>0lDWs000000LjoXMAS</value>
                 </parameters>
             </customElement>
             <description>Get Rate Card Entries</description>
@@ -628,7 +628,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000Cb732AC</value>
+                    <value>0lDWs000000LjmvMAC</value>
                 </parameters>
             </customElement>
             <description>Get Rate Cards</description>
@@ -726,7 +726,7 @@
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>0lDSB000000CbAH2A0</value>
+                    <value>0lDWs000000LjjjMAC</value>
                 </parameters>
             </customElement>
             <description>Get Tier-Based Rate Adjustments</description>

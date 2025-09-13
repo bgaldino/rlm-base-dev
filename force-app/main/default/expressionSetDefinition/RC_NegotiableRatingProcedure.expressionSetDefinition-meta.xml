@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <contextDefinitions>RateManagementContext__stdctx</contextDefinitions>
+    <contextDefinitions>RLM_RateManagementContext</contextDefinitions>
     <executionScale>Low</executionScale>
     <interfaceSourceType>RatingProcedure</interfaceSourceType>
     <label>RC Negotiable Rating Procedure</label>
