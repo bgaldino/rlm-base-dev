@@ -135,7 +135,7 @@
         <inputAssignments>
             <field>DocumentTemplateId</field>
             <value>
-                <elementReference>defaultInvoiceTemplate</elementReference>
+                <elementReference>Get_Default_Template.Id</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -180,7 +180,7 @@
             <field>Name</field>
             <operator>EqualTo</operator>
             <value>
-                <stringValue>DefaultInvoiceTemplate</stringValue>
+                <stringValue>RLM_InvoiceTemplate</stringValue>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
