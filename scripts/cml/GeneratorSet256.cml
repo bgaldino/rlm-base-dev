@@ -1,0 +1,1274 @@
+define VOLTAGES ["220/380","240/416","255/440","277/480","347/600","2400/4160","7200/12470","7621/13200","7976/13800"]
+
+define DUTY_RATINGS ["Prime Power (PRP)", "Continuous Power (COP)", "Data Center Continuous (DCC)", "Emergency Standby Power (ESP)"]
+
+define ENTRANCE_TYPES ["None", "Left", "Right", "Top", "Bottom"]
+
+define VOLTAGE_TYPES ["Low", "Medium", "High"]
+
+define LANGUAGES ["Chinese (Mandarin)", "Danish", "Dutch", "English", "Finnish", "French", "German", "Greek", "Italian", "Norwegian", "Portuguese", "Russian", "Spanish"]
+
+define APPLICATION_EMISSION_CERTIFICATION_TYPES ["Install-US-Stat", "Install-OutsideUS"]
+
+define STANDARDS_AND_COMPLIANCE_TYPES ["Certification-CSA", "Listing-UL 2200"]
+
+define SEISMIC_CERTIFICATION_TYPES ["IBC Seismic Certification", "OSHPD Seismic Certification"]
+
+define SPECIAL_APPLICATION_TYPES ["None - Standard", "Motor Starting"]
+
+define VOLTAGE_REGEX "^([0-9]+)/([0-9]+)$"
+
+type GeneratorSet {
+    @(configurable = false)
+    int requiredKW = [101..10000];
+
+    string Voltage = VOLTAGES;
+
+    string DutyRating = DUTY_RATINGS;
+
+    @(configurable = false)
+    int dBMax = [0..140];
+
+    string applicationEmissionCertification = APPLICATION_EMISSION_CERTIFICATION_TYPES;
+
+    string standardsAndCompliance = STANDARDS_AND_COMPLIANCE_TYPES;
+
+    string seismicCertification = SEISMIC_CERTIFICATION_TYPES;
+
+    string specialApplication = SPECIAL_APPLICATION_TYPES;
+
+    decimal(2) surgeLoadKW = requiredKW * 1.25;
+
+    decimal(2) reserveCapacityKW = surgeLoadKW - requiredKW;
+
+    int Voltage3 = strtoint(regexpreplace(Voltage, VOLTAGE_REGEX, "$2"), 0);
+
+    @(domainComputation = "Model", filterExpression = "powerKW>=parent.requiredKW")
+    relation GeneralModels : GeneralModel[1] order(GeneralModel2500, GeneralModel1750, GeneralModel1500, GeneralModel1200, GeneralModel900);
+
+    @(filterExpression = "Voltage==parent.Voltage")
+    relation VoltageConnections : VoltageConnection[1];
+
+    @(filterExpression = "Voltage==parent.Voltage&&((parent.DutyRating=='Prime Power (PRP)')?PRP==true:(parent.DutyRating=='Continuous Power (COP)')?COP==true:(parent.DutyRating=='Data Center Continuous (DCC)')?DCC==true:ESP==true)")
+    relation MainAlternators : MainAlternator[1];
+
+    @(domainComputation = "After")
+    relation TemperatureSensors : TemperatureSensor[0..5];
+
+    relation Heaters : Heater[1];
+
+    relation PMGs : PMG[1];
+
+    relation BearingHardenedCartridges : BearingHardenedCartridge[0..1];
+
+    relation OutputTerminals : OutputTerminal[0..99];
+
+    relation DifferentialCTs : DifferentialCT[0..99];
+
+    @(domainComputation = "Model")
+    relation BoxArrangements : BoxArrangement[1];
+
+    @(domainComputation = "After")
+    relation CircuitBreakersOrTerminalBoxes : CircuitBreakerOrTerminalBox[0..1];
+
+    @(domainComputation = "After")
+    relation LoadConnections : LoadConnection[0..2];
+
+    @(domainComputation = "After")
+    relation PrimaryElectricalIsolationDeviceOptions : ElectricalIsolationDeviceOption[0..99];
+
+    @(domainComputation = "Model")
+    relation EngineModels : EngineModel[1];
+
+    @(domainComputation = "Model")
+    relation AirCleanerDutyRatings : AirCleanerDutyRating[1];
+
+    @(domainComputation = "Model")
+    relation StarterMotors : StarterMotor[1];
+
+    @(domainComputation = "Model")
+    relation BatteryChargingAlternators : BatteryChargingAlternator[1];
+
+    relation OilSystemOptions : OilSystemOption[0..99];
+
+    relation FuelSystemOptions : FuelSystemOption[0..99];
+
+    @(domainComputation = "Model")
+    relation FuelFilters : FuelFilter[1];
+
+    relation CoolantHeaters : CoolantHeater[0..1];
+
+    @(domainComputation = "Model")
+    relation CoolingSystems : CoolingSystem[1];
+
+    relation CoolingSystemConnections : CoolingSystemConnection[0..1];
+
+    @(domainComputation = "Model")
+    relation CoolingSystemProtections : CoolingSystemProtection[1];
+
+    relation Controls : Control[1];
+
+    relation ControlCabinetHeaters : ControlCabinetHeater[0..1];
+
+    @(domainComputation = "After")
+    relation ControlOptions : ControlOption[0..99];
+
+    @(domainComputation = "After")
+    relation Testing : Test[1..99];
+
+    @(domainComputation = "After")
+    relation Warranties : Warranty[1];
+
+    relation Literatures : Literature[1..99];
+
+    relation PackagingsForShipments : PackagingForShipment[1];
+
+    relation Enclosures : Enclosure[1] order(Enclosure_SA3, Enclosure_SA2, Enclosure_SA1, Enclosure_Weather, Enclosure_None);
+
+    relation Accessories : Accessory[1..99];
+
+    relation installation : install[0..1];
+
+    relation mischardware : misc[0..3];
+
+    relation engineers : engineer[0..99];
+
+    boolean hasNoStator = TemperatureSensors[StatorTemperatureSensor]==0;
+
+    boolean notRightArrangement = BoxArrangements[HousingArrangement_Right]==0&&BoxArrangements[HousingArrangement_LeftRight]==0;
+
+    boolean notLeftArrangement = BoxArrangements[HousingArrangement_Left]==0&&BoxArrangements[HousingArrangement_LeftRight]==0;
+
+    boolean noLeftBasicConnection = LoadConnections[LoadConnectionBasic_Left]==0;
+
+    boolean noRightBasicConnection = LoadConnections[LoadConnectionBasic_Right]==0;
+
+    boolean noGroundFault = PrimaryElectricalIsolationDeviceOptions[GroundFault_None] > 0;
+
+    boolean hasGroundFault = PrimaryElectricalIsolationDeviceOptions[GroundFault_Basic] > 0 || PrimaryElectricalIsolationDeviceOptions[GroundFault_Left] > 0 || PrimaryElectricalIsolationDeviceOptions[GroundFault_Right] > 0;
+
+    boolean hasNoAux = ControlOptions[ControlOptionAux] == 0;
+
+    boolean hasNoWitnessTest = Testing[WitnessTest]==0;
+
+    preference(dBMax==90);
+
+    preference(requiredKW==500);
+
+    message(requiredKW>2500, "The required kW is above what options can support. Please adjust to 2500 kW or select a new generator set that meets your requirements.");
+
+    constraint(standardsAndCompliance=="Listing-UL 2200"->Voltage3<=600, "The UL 2200 standard covers stationary engine generator assemblies rated at 600 volts or less. Please select a lower voltage.");
+
+    constraint(standardsAndCompliance=="Listing-UL 2200"->DifferentialCTs[DifferentialCT_P7]==0);
+
+    constraint(GeneralModels[GeneralModel].powerKW>=requiredKW, "Selected Generator Model is insufficient for the required power.");
+
+    constraint(VoltageConnections[VoltageConnection].Voltage==Voltage, "Unable to resolve Voltage Connection.");
+
+    constraint(MainAlternators[MainAlternator].Voltage==Voltage, "Unable to resolve the Main Alternator");
+
+    constraint(DutyRating=="Prime Power (PRP)"->MainAlternators[MainAlternator].PRP==true);
+
+    constraint(DutyRating=="Continuous Power (COP)"->MainAlternators[MainAlternator].COP==true);
+
+    constraint(DutyRating=="Data Center Continuous (DCC)"->MainAlternators[MainAlternator].DCC==true);
+
+    constraint(DutyRating=="Emergency Standby Power (ESP)"->MainAlternators[MainAlternator].ESP==true);
+
+    exclude(hasNoStator, TemperatureSensors[BearingTemperatureSensor]);
+
+    exclude(Voltage3>=4160, Heaters[Heater_120]);
+
+    exclude(Voltage3>=4160, Heaters[Heater_240]);
+
+    exclude(Voltage3<4160, Heaters[Heater_110_220]);
+
+    exclude(Voltage3<400||Voltage3>600, OutputTerminals[OutputTerminals2HoleLugNEMA]);
+
+    exclude(Voltage3>600, DifferentialCTs[DifferentialCT_P7]);
+
+    exclude(Voltage3<=600, DifferentialCTs[DifferentialCT_P80]);
+
+    exclude(notRightArrangement, CircuitBreakersOrTerminalBoxes[EntranceBox_Right]);
+
+    exclude(notRightArrangement, CircuitBreakersOrTerminalBoxes[EntranceBox_Right_LV]);
+
+    exclude(notRightArrangement, CircuitBreakersOrTerminalBoxes[TerminalBox_Right_LV]);
+
+    constraint(notRightArrangement->CircuitBreakersOrTerminalBoxes[CircuitBreaker_Right]==0);
+
+    exclude(notLeftArrangement, CircuitBreakersOrTerminalBoxes[EntranceBox_Left_LV]);
+
+    exclude(notLeftArrangement, CircuitBreakersOrTerminalBoxes[TerminalBox_Left_LV]);
+
+    constraint(notLeftArrangement->CircuitBreakersOrTerminalBoxes[CircuitBreaker_Left]==0);
+
+    exclude(notLeftArrangement, LoadConnections[LoadConnectionBasic_Left]);
+
+    exclude(notRightArrangement, LoadConnections[LoadConnectionBasic_Right]);
+
+    exclude(noLeftBasicConnection, LoadConnections[LoadConnectionChute_Left]);
+
+    exclude(noRightBasicConnection, LoadConnections[LoadConnectionChute_Right]);
+
+    exclude(notRightArrangement, PrimaryElectricalIsolationDeviceOptions[GroundFault_Right]);
+
+    exclude(notRightArrangement, PrimaryElectricalIsolationDeviceOptions[CircuitBreakerAccess_Right]);
+
+    exclude(notRightArrangement, PrimaryElectricalIsolationDeviceOptions[CircuitBreakerLug_Right]);
+
+    exclude(notLeftArrangement, PrimaryElectricalIsolationDeviceOptions[GroundFault_Left]);
+
+    exclude(notLeftArrangement, PrimaryElectricalIsolationDeviceOptions[CircuitBreakerAccess_Left]);
+
+    exclude(notLeftArrangement, PrimaryElectricalIsolationDeviceOptions[CircuitBreakerLug_Left]);
+
+    exclude(noGroundFault, PrimaryElectricalIsolationDeviceOptions[GroundFault_Basic]);
+
+    exclude(noGroundFault, PrimaryElectricalIsolationDeviceOptions[GroundFault_Left]);
+
+    exclude(noGroundFault, PrimaryElectricalIsolationDeviceOptions[GroundFault_Right]);
+
+    exclude(hasGroundFault, PrimaryElectricalIsolationDeviceOptions[GroundFault_None]);
+
+    constraint(BoxArrangements[BoxArrangement].entranceType==Controls[Control].controlPlacement);
+
+    constraint(hasNoAux -> ControlOptions[ControlOptionAuxAddon]==0);
+
+    constraint(hasNoWitnessTest -> Testing[WitnessTestService]==0);
+
+    constraint(DutyRating!="Prime Power (PRP)" -> Warranties[Warranty_PRP]==0);
+
+    constraint(DutyRating!="Data Center Continuous (DCC)" -> Warranties[Warranty_DCC]==0);
+
+    constraint(DutyRating!="Emergency Standby Power (ESP)" -> Warranties[Warranty_ESP]==0);
+
+    preference(GeneralModels[GeneralModel].dB - Enclosures[Enclosure].dBReduction <= dBMax);
+
+    constraint(Enclosures[Enclosure].dBReduction <= 9);
+
+    preference(GeneralModels[GeneralModel].dB - dBMax > 9 -> Enclosures[Enclosure_SA3]==1);
+
+    message(GeneralModels[GeneralModel].dB - Enclosures[Enclosure].dBReduction > dBMax, "Insufficient amount of insulation for enclosure. Choose a quieter generator, or increase the maximum allowable noise level (dBMax).");
+
+    require(engineers[engineer]>0, installation[install]);
+
+    exclude(engineers[engineer]==0, installation[install]);
+
+}
+
+type GeneralModel {
+    int powerKW = [900, 1200, 1500, 1750, 2500];
+
+    int dB = [78, 80, 83, 90, 94];
+
+}
+
+type GeneralModel900 : GeneralModel {
+    int powerKW = 900;
+
+    int dB = 78;
+
+}
+
+type GeneralModel1200 : GeneralModel {
+    int powerKW = 1200;
+
+    int dB = 80;
+
+}
+
+type GeneralModel1500 : GeneralModel {
+    int powerKW = 1500;
+
+    int dB = 83;
+
+}
+
+type GeneralModel1750 : GeneralModel {
+    int powerKW = 1750;
+
+    int dB = 90;
+
+}
+
+type GeneralModel2500 : GeneralModel {
+    int powerKW = 2500;
+
+    int dB = 94;
+
+}
+
+type VoltageConnection {
+    string Voltage = VOLTAGES;
+
+}
+
+type VoltageConnection_220_380 : VoltageConnection {
+    string Voltage = "220/380";
+
+}
+
+type VoltageConnection_240_416 : VoltageConnection {
+    string Voltage = "240/416";
+
+}
+
+type VoltageConnection_255_440 : VoltageConnection {
+    string Voltage = "255/440";
+
+}
+
+type VoltageConnection_277_480 : VoltageConnection {
+    string Voltage = "277/480";
+
+}
+
+type VoltageConnection_347_600 : VoltageConnection {
+    string Voltage = "347/600";
+
+}
+
+type VoltageConnection_2400_4160 : VoltageConnection {
+    string Voltage = "2400/4160";
+
+}
+
+type VoltageConnection_7200_12470 : VoltageConnection {
+    string Voltage = "7200/12470";
+
+}
+
+type VoltageConnection_7621_13200 : VoltageConnection {
+    string Voltage = "7621/13200";
+
+}
+
+type VoltageConnection_7976_13800 : VoltageConnection {
+    string Voltage = "7976/13800";
+
+}
+
+type MainAlternator {
+    string Voltage = VOLTAGES;
+
+    boolean PRP;
+
+    boolean COP;
+
+    boolean DCC;
+
+    boolean ESP;
+
+}
+
+type FESBA_B313_2 : MainAlternator {
+    string Voltage = "2400/4160";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B448_2 : MainAlternator {
+    string Voltage = "7976/13800";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B467_2 : MainAlternator {
+    string Voltage = "2400/4160";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B567_2 : MainAlternator {
+    string Voltage = "7200/12470";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B595_2 : MainAlternator {
+    string Voltage = "220/380";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_B598_2 : MainAlternator {
+    string Voltage = "220/380";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B599_2 : MainAlternator {
+    string Voltage = "220/380";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B600_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B601_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B602_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B603_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B604_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B607_2 : MainAlternator {
+    string Voltage = "7200/12470";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B612_2 : MainAlternator {
+    string Voltage = "7621/13200";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B628_2 : MainAlternator {
+    string Voltage = "7621/13200";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B660_2 : MainAlternator {
+    string Voltage = "220/380";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B663_2 : MainAlternator {
+    string Voltage = "255/440";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B664_2 : MainAlternator {
+    string Voltage = "255/440";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B688_2 : MainAlternator {
+    string Voltage = "255/440";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B691_2 : MainAlternator {
+    string Voltage = "255/440";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B715_2 : MainAlternator {
+    string Voltage = "240/416";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B801_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = true;
+
+    boolean COP = true;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B816_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B817_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B903_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B904_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B905_2 : MainAlternator {
+    string Voltage = "2400/4160";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B906_2 : MainAlternator {
+    string Voltage = "7200/12470";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B907_2 : MainAlternator {
+    string Voltage = "7621/13200";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_B909_2 : MainAlternator {
+    string Voltage = "7976/13800";
+
+    boolean PRP = true;
+
+    boolean COP = false;
+
+    boolean DCC = false;
+
+    boolean ESP = true;
+
+}
+
+type FESBA_BB08_2 : MainAlternator {
+    string Voltage = "220/380";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB10_2 : MainAlternator {
+    string Voltage = "240/416";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB12_2 : MainAlternator {
+    string Voltage = "255/440";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB14_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB15_2 : MainAlternator {
+    string Voltage = "277/480";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB17_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB18_2 : MainAlternator {
+    string Voltage = "347/600";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB20_2 : MainAlternator {
+    string Voltage = "2400/4160";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB23_2 : MainAlternator {
+    string Voltage = "7200/12470";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB26_2 : MainAlternator {
+    string Voltage = "7621/13200";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BB29_2 : MainAlternator {
+    string Voltage = "7621/13200";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BC03_2 : MainAlternator {
+    string Voltage = "255/440";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BC04_2 : MainAlternator {
+    string Voltage = "220/380";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type FESBA_BC05_2 : MainAlternator {
+    string Voltage = "240/416";
+
+    boolean PRP = false;
+
+    boolean COP = false;
+
+    boolean DCC = true;
+
+    boolean ESP = false;
+
+}
+
+type TemperatureSensor;
+
+type StatorTemperatureSensor : TemperatureSensor;
+
+type BearingTemperatureSensor : TemperatureSensor;
+
+type Heater {
+    string voltage = ["120", "240", "110/220"];
+
+}
+
+type Heater_120 : Heater {
+    string voltage = "120";
+
+}
+
+type Heater_240 : Heater {
+    string voltage = "240";
+
+}
+
+type Heater_110_220 : Heater {
+    string voltage = "110/220";
+
+}
+
+type PMG;
+
+type BearingHardenedCartridge;
+
+type OutputTerminal;
+
+type OutputTerminals2HoleLugNEMA : OutputTerminal;
+
+type DifferentialCT;
+
+type DifferentialCT_P7 : DifferentialCT;
+
+type DifferentialCT_P80 : DifferentialCT;
+
+type BoxArrangement {
+    string entranceType = ENTRANCE_TYPES;
+
+    string voltageType = VOLTAGE_TYPES;
+
+}
+
+type BoxArrangement_None : BoxArrangement {
+    string entranceType = "None";
+
+}
+
+type HousingArrangement : BoxArrangement;
+
+type HousingArrangement_Left : HousingArrangement {
+    string entranceType = "Left";
+
+}
+
+type HousingArrangement_Right : HousingArrangement {
+    string entranceType = "Left";
+
+}
+
+type HousingArrangement_LeftRight : HousingArrangement {
+    string entranceType = ["Left", "Right"];
+
+}
+
+type TerminalHousing : BoxArrangement;
+
+type TerminalHousing_Bottom_LV : TerminalHousing {
+    string entranceType = "Bottom";
+
+    string voltageType = "Low";
+
+}
+
+type TerminalHousing_Top_LV : TerminalHousing {
+    string entranceType = "Top";
+
+    string voltageType = "Low";
+
+}
+
+type TerminalHousing_Bottom_MV_HV : TerminalHousing {
+    string entranceType = "Bottom";
+
+    string voltageType = ["Medium", "High"];
+
+}
+
+type TerminalHousing_Top_MV_HV : TerminalHousing {
+    string entranceType = "Top";
+
+    string voltageType = ["Medium", "High"];
+
+}
+
+type CircuitBreakerOrTerminalBox {
+    string entranceType = ENTRANCE_TYPES;
+
+    string voltageType = VOLTAGE_TYPES;
+
+}
+
+type EntranceBox : CircuitBreakerOrTerminalBox;
+
+type EntranceBox_Left_LV : EntranceBox {
+    string entranceType = "Left";
+
+    string voltageType = "Low";
+
+}
+
+type EntranceBox_Right : EntranceBox {
+    string entranceType = "Right";
+
+}
+
+type EntranceBox_Right_LV : EntranceBox {
+    string entranceType = "Right";
+
+    string voltageType = "Low";
+
+}
+
+type TerminalBox : CircuitBreakerOrTerminalBox;
+
+type TerminalBox_Left_LV : TerminalBox {
+    string entranceType = "Left";
+
+    string voltageType = "Low";
+
+}
+
+type TerminalBox_Right_LV : TerminalBox {
+    string entranceType = "Right";
+
+    string voltageType = "Low";
+
+}
+
+type CircuitBreaker : CircuitBreakerOrTerminalBox;
+
+type CircuitBreaker_Left : CircuitBreaker {
+    string entranceType = "Left";
+
+}
+
+type CircuitBreaker_Right : CircuitBreaker {
+    string entranceType = "Right";
+
+}
+
+type LoadConnection {
+    string entranceType = ENTRANCE_TYPES;
+
+}
+
+type LoadConnectionBasic : LoadConnection;
+
+type LoadConnectionBasic_Left : LoadConnectionBasic {
+    string entranceType = "Left";
+
+}
+
+type LoadConnectionBasic_Right : LoadConnectionBasic {
+    string entranceType = "Right";
+
+}
+
+type LoadConnectionChute : LoadConnection;
+
+type LoadConnectionChute_Left : LoadConnectionChute {
+    string entranceType = "Left";
+
+}
+
+type LoadConnectionChute_Right : LoadConnectionChute {
+    string entranceType = "Right";
+
+}
+
+type ElectricalIsolationDeviceOption {
+    string entranceType = ENTRANCE_TYPES;
+
+}
+
+type Indication : ElectricalIsolationDeviceOption;
+
+type GroundFault_None : Indication;
+
+type GroundFault_Basic : Indication;
+
+type GroundFault_Left : Indication {
+    string entranceType = "Left";
+
+}
+
+type GroundFault_Right : Indication {
+    string entranceType = "Right";
+
+}
+
+type CircuitBreakerAccess : ElectricalIsolationDeviceOption;
+
+type CircuitBreakerAccess_Left : CircuitBreakerAccess {
+    string entranceType = "Left";
+
+}
+
+type CircuitBreakerAccess_Right : CircuitBreakerAccess {
+    string entranceType = "Right";
+
+}
+
+type CircuitBreakerLug : ElectricalIsolationDeviceOption;
+
+type CircuitBreakerLug_Left : CircuitBreakerLug {
+    string entranceType = "Left";
+
+}
+
+type CircuitBreakerLug_Right : CircuitBreakerLug {
+    string entranceType = "Right";
+
+}
+
+type EngineModel;
+
+type AirCleanerDutyRating;
+
+type StarterMotor;
+
+type BatteryChargingAlternator;
+
+type OilSystemOption;
+
+type FuelSystemOption;
+
+type FuelFilter;
+
+type CoolantHeater;
+
+type CoolingSystem;
+
+type NoneSuppliedRemoteCooling : CoolingSystem;
+
+type EngineCoolingHighAmbientAirTemperature : CoolingSystem;
+
+type EngineCoolingEnhancedHighAmbientAirTemperature : CoolingSystem;
+
+type EngCoolingHighAmbientAirTempShipLoose : CoolingSystem;
+
+type CoolingSystemConnection;
+
+type CoolingSystemProtection;
+
+type Control {
+    string controlPlacement = ENTRANCE_TYPES;
+
+    @(defaultValue = "English")
+    string controlLanguage = LANGUAGES;
+
+}
+
+type ControlCabinetHeater;
+
+type ControlOption;
+
+type ControlOptionAux : ControlOption;
+
+type ControlOptionAuxAddon : ControlOption;
+
+type Test;
+
+type TestRecord : Test;
+
+type StandardFactoryTest : Test;
+
+type IndependentLaboratoryTest : Test;
+
+type WitnessTest : Test;
+
+type WitnessTestService : Test;
+
+type Warranty;
+
+type WarrantyCommon : Warranty;
+
+type Warranty_PRP : Warranty;
+
+type Warranty_DCC : Warranty;
+
+type Warranty_ESP : Warranty;
+
+type Literature;
+
+type PackagingForShipment;
+
+type Enclosure {
+    int dBReduction = [0, 1, 3, 6, 9];
+
+}
+
+type Enclosure_None : Enclosure {
+    int dBReduction = 0;
+
+}
+
+type Enclosure_Weather : Enclosure {
+    int dBReduction = 1;
+
+}
+
+type Enclosure_SA1 : Enclosure {
+    int dBReduction = 3;
+
+}
+
+type Enclosure_SA2 : Enclosure {
+    int dBReduction = 6;
+
+}
+
+type Enclosure_SA3 : Enclosure {
+    int dBReduction = 9;
+
+}
+
+type Accessory;
+
+type install;
+
+type misc;
+
+type engineer;

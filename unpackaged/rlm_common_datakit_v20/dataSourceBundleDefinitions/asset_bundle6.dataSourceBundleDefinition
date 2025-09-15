@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DataSourceBundleDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <dataPlatform>Salesforce_Sales_and_Service_Cloud</dataPlatform>
-    <isMultiDeploymentSupported>false</isMultiDeploymentSupported>
-    <masterLabel>asset_bundle</masterLabel>
-</DataSourceBundleDefinition>

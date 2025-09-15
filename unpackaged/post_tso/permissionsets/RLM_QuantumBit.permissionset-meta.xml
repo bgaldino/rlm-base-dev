@@ -104,6 +104,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Order.RLM_FulfillmentPlanIdText__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>OrderItem.AdjustedLineAmount</field>
         <readable>true</readable>
     </fieldPermissions>
