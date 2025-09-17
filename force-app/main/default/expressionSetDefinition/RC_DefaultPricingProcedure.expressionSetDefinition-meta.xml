@@ -3642,7 +3642,7 @@
             <label>Price Revision</label>
             <name>PriceRevision</name>
             <parentStep>ListContainer47</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>

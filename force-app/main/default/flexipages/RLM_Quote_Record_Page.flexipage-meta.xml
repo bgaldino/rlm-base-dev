@@ -121,7 +121,10 @@
                     <name>displayFields</name>
                     <valueList>
                         <valueListItems>
-                            <value>QuoteLineItem.RLM_ProductName__c</value>
+                            <value>QuoteLineItem.Product2.Name[Product2]</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.QuoteLineGroup.Name[QuoteLineGroup]</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Quantity</value>
@@ -142,12 +145,6 @@
                             <value>QuoteLineItem.DiscountAmount</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.UnitPriceUplift</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.RC_Approval__c</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>QuoteLineItem.NetUnitPrice</value>
                         </valueListItems>
                         <valueListItems>
@@ -155,6 +152,18 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.TotalPrice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RC_Approval__c</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.SegmentType</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.QuoteLineGroup.SegmentType[QuoteLineGroup]</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.QuoteLineGroup.IsRamped[QuoteLineGroup]</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -170,7 +179,16 @@
                     <name>sidepanelDetailFields</name>
                     <valueList>
                         <valueListItems>
+                            <value>QuoteLineItem.Description</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.Quantity</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>QuoteLineItem.BillingFrequency</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.ProductSellingModel.Name[ProductSellingModel]</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.StartDate</value>
@@ -182,6 +200,12 @@
                             <value>QuoteLineItem.ListPrice</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>QuoteLineItem.Discount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.DiscountAmount</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>QuoteLineItem.NetUnitPrice</value>
                         </valueListItems>
                         <valueListItems>
@@ -189,24 +213,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.TotalPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.Discount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.DiscountAmount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.UnitPriceUplift</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.Quantity</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.RC_Approval__c</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.RC_Approval_Level_Calc__c</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -419,8 +425,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
-                <identifier>RecordRC_Approval_Level_cField</identifier>
+                <fieldItem>Record.RLM_TermMonths__c</fieldItem>
+                <identifier>RecordRLM_TermMonths_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -429,8 +435,18 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RLM_TermMonths__c</fieldItem>
-                <identifier>RecordRLM_TermMonths_cField</identifier>
+                <fieldItem>Record.AppliedDiscount</fieldItem>
+                <identifier>RecordAppliedDiscountField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.AppliedDiscountAmount</fieldItem>
+                <identifier>RecordAppliedDiscountAmountField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-c9141212-f773-4904-af60-53cb9861f9e0</name>
@@ -755,6 +771,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.ValidationResult</fieldItem>
                 <identifier>RecordValidationResultField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
+                <identifier>RecordRC_Approval_Level_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-852b10dd-72a2-463a-bd87-90ceaf3fa84a</name>
@@ -1099,6 +1125,32 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>Quote.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>QuoteLineGroups</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListComponentOverride</name>
+                    <value>NONE</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>rowsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>force:relatedListSingleContainer</componentName>
+                <identifier>force_relatedListSingleContainer4</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
@@ -1266,6 +1318,32 @@
                 </componentInstanceProperties>
                 <componentName>lst:dynamicRelatedList</componentName>
                 <identifier>lst_dynamicRelatedList5</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>Quote.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>ReferenceEntityAsyncOperationTrackers</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListComponentOverride</name>
+                    <value>NONE</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>rowsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>force:relatedListSingleContainer</componentName>
+                <identifier>force_relatedListSingleContainer5</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
