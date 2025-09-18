@@ -1455,21 +1455,17 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>runtime_industries_usage:grantsListView</componentName>
+                <identifier>runtime_industries_usage_grantsListView2</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentName>runtime_revenue_foundation:usageBasedPricingResources</componentName>
                 <identifier>runtime_revenue_foundation_usageBasedPricingResources2</identifier>
             </componentInstance>
         </itemInstances>
         <name>Facet-6b5af307-42de-4969-8a20-7c303e02ea5b</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentName>runtime_industries_usage:grantsListView</componentName>
-                <identifier>runtime_industries_usage_grantsListView2</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-ihr8wn1otz</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -1492,66 +1488,6 @@
             </componentInstance>
         </itemInstances>
         <name>Facet-j73ebqrdv3</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-1fae57a0-6690-43fe-9956-ad9c25559adb</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Wallets</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab6</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-6b5af307-42de-4969-8a20-7c303e02ea5b</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Rates</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab9</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-ihr8wn1otz</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Grants</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab10</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-j73ebqrdv3</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Policies</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab11</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-b6e1b7dc-8d41-4f78-9daf-82e6d2a73892</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -1739,12 +1675,76 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>tabs</name>
-                    <value>Facet-b6e1b7dc-8d41-4f78-9daf-82e6d2a73892</value>
+                    <value>Facet-bdb0b551-6a9f-45fb-bc61-c56e46737fd1</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tabset</componentName>
-                <identifier>flexipage_tabset3</identifier>
+                <identifier>flexipage_tabset4</identifier>
             </componentInstance>
         </itemInstances>
+        <name>Facet-76337227-a895-4263-8ab3-adb5a209009d</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-1fae57a0-6690-43fe-9956-ad9c25559adb</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Wallets</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab6</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-6b5af307-42de-4969-8a20-7c303e02ea5b</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Rates &amp; Grants</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab9</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-j73ebqrdv3</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Policies</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab11</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-76337227-a895-4263-8ab3-adb5a209009d</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Utilities</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab4</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-b6e1b7dc-8d41-4f78-9daf-82e6d2a73892</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
@@ -1753,10 +1753,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>tabs</name>
-                    <value>Facet-bdb0b551-6a9f-45fb-bc61-c56e46737fd1</value>
+                    <value>Facet-b6e1b7dc-8d41-4f78-9daf-82e6d2a73892</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tabset</componentName>
-                <identifier>flexipage_tabset4</identifier>
+                <identifier>flexipage_tabset3</identifier>
             </componentInstance>
         </itemInstances>
         <name>Facet-f1357937-6517-458d-aef6-4b7026da4f10</name>
