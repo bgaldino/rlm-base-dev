@@ -173,6 +173,12 @@
                 <elementReference>Opportunity_Associated_to_the_Quote.Account.ShippingStreet</elementReference>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <field>StartDate</field>
+            <value>
+                <elementReference>Start_Date</elementReference>
+            </value>
+        </inputAssignments>
         <object>Quote</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>
