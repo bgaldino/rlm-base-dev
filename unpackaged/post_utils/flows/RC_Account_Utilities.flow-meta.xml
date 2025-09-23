@@ -7,6 +7,9 @@
         <locationY>0</locationY>
         <actionName>RC_AccountUtilities</actionName>
         <actionType>apex</actionType>
+        <connector>
+            <targetReference>isResetSuccessful</targetReference>
+        </connector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>accountId</name>
@@ -43,6 +46,28 @@
             <stringValue>{&quot;location&quot;:&quot;top&quot;,&quot;type&quot;:&quot;simple&quot;}</stringValue>
         </value>
     </customProperties>
+    <decisions>
+        <name>isResetSuccessful</name>
+        <label>isResetSuccessful</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Refresh_Pricing_Discovery_Decision_Tables</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>False</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Reset_Account</leftValueReference>
+                <operator>HasError</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>False</label>
+        </rules>
+    </decisions>
     <environments>Default</environments>
     <interviewLabel>RC Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RC Account Utilities</label>
@@ -144,6 +169,20 @@
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <name>Refresh_Pricing_Discovery_Decision_Tables</name>
+        <label>Refresh Pricing Discovery Decision Tables</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <flowName>RC_Refresh_Decision_Tables_By_Usage_Type</flowName>
+        <inputAssignments>
+            <name>decisionTableUsageType</name>
+            <value>
+                <stringValue>PricingDiscovery</stringValue>
+            </value>
+        </inputAssignments>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </subflows>
     <variables>
         <name>recordId</name>
         <dataType>SObject</dataType>
