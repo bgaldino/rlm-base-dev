@@ -165,7 +165,7 @@
             <description>Aggregate Price</description>
             <label>Aggregate Price</label>
             <name>AggregatePrice</name>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>29</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -333,7 +333,7 @@
             <description>Aggregate Price</description>
             <label>Aggregate Price</label>
             <name>AggregatePrice79</name>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>30</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -984,6 +984,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>AttributeName</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -1153,6 +1160,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>AttributeName</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -1268,7 +1282,7 @@
             <label>Attribute Discount Entries</label>
             <name>AttributeDiscountEntries</name>
             <parentStep>ListContainer28</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -1340,6 +1354,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>RootProductSellingModel</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1444,7 +1465,7 @@
             <label>Bundle Based Adjustment Entries</label>
             <name>BundleBasedAdjustmentEntries</name>
             <parentStep>ListContainer31</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -2705,6 +2726,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -3422,6 +3450,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -3433,6 +3468,20 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>Constant_UnitPrice_Price_Book_Entry_Decision_Table_v2_LP</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>ResolutionStrategy</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ResolutionStrategyMinPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>UseAsList</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Pricebook2Id</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3467,7 +3516,7 @@
                     <name>IsOutputResolutionEnabled</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>false</value>
+                    <value>true</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3497,11 +3546,18 @@
                     <type>Parameter</type>
                     <value>ListPrice</value>
                 </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Subtotal</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemNetTotalPrice</value>
+                </parameters>
             </customElement>
             <description>List Price</description>
             <label>Price Book Entries</label>
             <name>PriceBookEntries</name>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -3514,13 +3570,6 @@
                 <parameters>
                     <input>true</input>
                     <name>ValidStartDate</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>ItemConsumerPriceIndexDate__std</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>ValidEndDate</name>
                     <output>false</output>
                     <type>Parameter</type>
                     <value>ItemConsumerPriceIndexDate__std</value>
@@ -4435,7 +4484,7 @@
             <description>Aggregate Price</description>
             <label>Total Amount</label>
             <name>TotalAmount</name>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>28</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -4682,7 +4731,7 @@
             <label>Volume Discount</label>
             <name>VolumeDiscount</name>
             <parentStep>ListContainer34</parentStep>
-            <resultIncluded>false</resultIncluded>
+            <resultIncluded>true</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
@@ -4740,6 +4789,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>EffectiveDate</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5041,6 +5097,17 @@
             <output>false</output>
             <type>Constant</type>
             <value>1</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>ResolutionStrategyMinPrice</description>
+            <input>false</input>
+            <name>ResolutionStrategyMinPrice</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>BestPrice</value>
         </variables>
         <variables>
             <collection>false</collection>
