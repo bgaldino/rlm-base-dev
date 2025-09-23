@@ -139,6 +139,9 @@
                             <value>QuoteLineItem.ListPrice</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>QuoteLineItem.UnitPrice</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>QuoteLineItem.Discount</value>
                         </valueListItems>
                         <valueListItems>
@@ -157,9 +160,6 @@
                             <value>QuoteLineItem.RC_Approval__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.SegmentType</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>QuoteLineItem.QuoteLineGroup.SegmentType[QuoteLineGroup]</value>
                         </valueListItems>
                         <valueListItems>
@@ -174,6 +174,9 @@
                 <componentInstanceProperties>
                     <name>enableSidepanel</name>
                     <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>groupRampFields</name>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>sidepanelDetailFields</name>
@@ -220,19 +223,10 @@
                     <name>viewRampDetailFields</name>
                     <valueList>
                         <valueListItems>
-                            <value>QuoteLineItem.SegmentIdentifier</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>QuoteLineItem.SegmentName</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.SegmentType</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.RampIdentifier</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.IsPrimarySegment</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Quantity</value>

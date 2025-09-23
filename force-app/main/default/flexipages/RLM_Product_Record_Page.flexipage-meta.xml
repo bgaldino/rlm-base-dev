@@ -276,6 +276,16 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
+                <fieldItem>Record.CustomDecompositionScope</fieldItem>
+                <identifier>RecordCustomDecompositionScopeField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
                 <fieldItem>Record.FulfillmentQtyCalcMethod</fieldItem>
                 <identifier>RecordFulfillmentQtyCalcMethodField</identifier>
             </fieldInstance>
