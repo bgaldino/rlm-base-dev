@@ -1,0 +1,2 @@
+CreditGeneralLedgerAccount.AccountingCode,CurrencyIsoCode,DebitGeneralLedgerAccount.AccountingCode,FilterCriteria,FilterLogic,LegalEntity.Name,Name,Priority,Status,TransactionAmountField,TransactionType
+,USD,,,,Default Legal Entity - US,USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),1,Inactive,,InvoiceLine

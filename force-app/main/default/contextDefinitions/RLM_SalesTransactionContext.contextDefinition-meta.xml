@@ -15141,6 +15141,18 @@
             <contextMappingIntents>
                 <mappingIntent>association</mappingIntent>
             </contextMappingIntents>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>AssetConstraintEngineNodeStatus__c</contextAttribute>
+                    <contextInputAttributeName>AssetConstraintEngineNodeStatus__c</contextInputAttributeName>
+                    <ctxAttrHydrationCtxs>
+                        <contextQueryAttribute>SalesTransactionItem_QA_DE_ConstraintEngineNodeStatus__c</contextQueryAttribute>
+                    </ctxAttrHydrationCtxs>
+                </contextAttributeMappings>
+                <contextNode>AssetActionSource</contextNode>
+                <mappedContextDefinition>RLM_SalesTransactionContext</mappedContextDefinition>
+                <object>SalesTransactionItem</object>
+            </contextNodeMappings>
             <default>false</default>
             <description>Mapping to map Asset Context Node To Sales Transaction Context Node in SalesTransactionContext</description>
             <inheritedFrom>SalesTransactionContext__stdctx/version/AssetToSalesTransactionMapping</inheritedFrom>
@@ -25364,9 +25376,9 @@
             <title>LineItemDecomposition</title>
             <transposable>false</transposable>
         </contextNodes>
-        <isActive>false</isActive>
+        <isActive>true</isActive>
         <startDate>2020-01-01 00:00:00</startDate>
-        <versionNumber>4</versionNumber>
+        <versionNumber>5</versionNumber>
     </contextDefinitionVersions>
     <contextTtl>30</contextTtl>
     <description>Extension of Standard Sales Transaction Context Definition</description>

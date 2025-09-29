@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <excludeButtons>OpenSlackRecordChannel</excludeButtons>
     <layoutSections>
         <customLabel>false</customLabel>
         <detailHeading>false</detailHeading>
@@ -109,6 +110,14 @@
                 <behavior>Edit</behavior>
                 <field>BillingReference</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>PriceRevisionPolicyId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>UnitPriceUplift</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
@@ -154,6 +163,14 @@
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>LegalEntityId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>DoesAutomaticallyRenew</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BindingInstanceTargetId</field>
             </layoutItems>
         </layoutColumns>
         <style>TwoColumnsLeftToRight</style>
@@ -238,8 +255,29 @@
                 <behavior>Edit</behavior>
                 <field>ValidationResult</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>AggregatedQuantity</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>SortOrder</field>
+            </layoutItems>
         </layoutColumns>
         <style>TwoColumnsLeftToRight</style>
+    </layoutSections>
+    <layoutSections>
+        <customLabel>true</customLabel>
+        <detailHeading>true</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Constraints Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>RLM_ConstraintEngineNodeStatus__c</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>OneColumn</style>
     </layoutSections>
     <layoutSections>
         <customLabel>false</customLabel>
@@ -299,11 +337,37 @@
         <fields>TotalPrice</fields>
         <relatedList>RelatedOrderItemList</relatedList>
     </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>UsageResource</fields>
+        <fields>ProductUsageResourcePolicy</fields>
+        <relatedList>QuotLineItmUsageRsrcPolicies</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>RateCardEntry</fields>
+        <fields>NegotiatedRate</fields>
+        <fields>RateUnitOfMeasure</fields>
+        <relatedList>QuoteLineRateCardEntry</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>UsageResource</fields>
+        <fields>GrantQuantity</fields>
+        <fields>GrantType</fields>
+        <relatedList>QuotLineItmUseRsrcGrants</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>RTEL.NAME</fields>
+        <fields>RTEL.ERROR_MESSAGE</fields>
+        <fields>RTEL.RELATED_RECORD</fields>
+        <relatedList>RevenueTransactionErrorLogs</relatedList>
+    </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>
     <showRunAssignmentRulesCheckbox>false</showRunAssignmentRulesCheckbox>
     <showSubmitAndAttachButton>false</showSubmitAndAttachButton>
     <summaryLayout>
-        <masterLabel>00hMN0000007s3w</masterLabel>
+        <masterLabel>00hWt000002qESu</masterLabel>
         <sizeX>4</sizeX>
         <sizeY>0</sizeY>
         <summaryLayoutStyle>Default</summaryLayoutStyle>

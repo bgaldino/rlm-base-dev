@@ -137,6 +137,29 @@
         </rules>
     </decisions>
     <decisions>
+        <description>Determines whether the group for which products are selected is a group ramp segment.</description>
+        <name>IsRampedGroup</name>
+        <label>Is Ramped Group?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>IsRamped</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>discoverProductsContext.groupIsRamped</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>ScreenSelectRampSegmentsAddProducts</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
         <description>Determines if a single catalog was found by checking if the CatalogQuantity value is 1.</description>
         <name>IsSingleCatalog</name>
         <label>Is Single Catalog?</label>
@@ -163,8 +186,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RLM Discover Products {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM Discover Products</label>
+    <interviewLabel>RC Discover Products {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RC Discover Products</label>
     <loops>
         <description>Runs an action for the catalog record in the record in Catalogs from getProductCatalogs record collection.</description>
         <name>RunActionForCatalog</name>
@@ -318,6 +341,14 @@
                 <assignToReference>selectedCatalog</assignToReference>
                 <name>firstSelectedRow</name>
             </outputParameters>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
@@ -335,11 +366,27 @@
             <name>noCatalogErrorMessage</name>
             <fieldText>&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;strong style=&quot;font-size: 16px;background-color: rgb(255, 255, 255);&quot;&gt;Unable to browse catalogs&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <fields>
             <name>noCatalogErrorDescription</name>
             <fieldText>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;To use Browse Catalogs, choose or create a catalog to store the categories.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <nextOrFinishButtonLabel>Close</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
@@ -354,6 +401,9 @@
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
+        <connector>
+            <targetReference>IsRampedGroup</targetReference>
+        </connector>
         <fields>
             <name>plpContainer</name>
             <extensionName>runtime_revenue_products:prdLstContainer</extensionName>
@@ -394,9 +444,71 @@
                     <elementReference>discoverProductsContext.groupName</elementReference>
                 </value>
             </inputParameters>
+            <inputParameters>
+                <name>discoverProductsContext</name>
+                <value>
+                    <elementReference>discoverProductsContext</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>discoverProductsContext</assignToReference>
+                <name>discoverProductsContext</name>
+            </outputParameters>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>false</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <description>Allows the flow user to select whether to add products to the current group ramp segment or to the current and subsequent segments. The component then adds the products to the selected segments.</description>
+        <name>ScreenSelectRampSegmentsAddProducts</name>
+        <label>Select Ramp Segments and Add Products</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>SelectRampSegmentsAddProducts</name>
+            <extensionName>runtime_revenue_products:prdRampCont</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>discoverProductsContext</name>
+                <value>
+                    <elementReference>discoverProductsContext</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>objectApiName</name>
+                <value>
+                    <elementReference>objectApiName</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>recordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
             <inputsOnNextNavToAssocScrn>ResetValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <storeOutputAutomatically>true</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <showFooter>false</showFooter>
         <showHeader>false</showHeader>

@@ -76,6 +76,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/CurrentDueAmount/CurrentDueAmount</inheritedFrom>
                     <title>CurrentDueAmount</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>currency</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/CurrentDueAmount</inheritedFrom>
@@ -89,6 +90,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/InitialDueAmount/InitialDueAmount</inheritedFrom>
                     <title>InitialDueAmount</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>currency</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/InitialDueAmount</inheritedFrom>
@@ -102,6 +104,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Status/Status</inheritedFrom>
                     <title>Status</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>picklist</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Status</inheritedFrom>
@@ -115,6 +118,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/DaysPastDue/DaysPastDue</inheritedFrom>
                     <title>DaysPastDue</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/DaysPastDue</inheritedFrom>
@@ -128,6 +132,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/CreatedDate/CreatedDate</inheritedFrom>
                     <title>CreatedDate</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>datetime</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/CreatedDate</inheritedFrom>
@@ -141,6 +146,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/LastModifiedDate/LastModifiedDate</inheritedFrom>
                     <title>LastModifiedDate</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>datetime</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/LastModifiedDate</inheritedFrom>
@@ -154,6 +160,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Id/Id</inheritedFrom>
                     <title>Id</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Id</inheritedFrom>
@@ -167,6 +174,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Name/Name</inheritedFrom>
                     <title>Name</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Name</inheritedFrom>
@@ -180,6 +188,7 @@
                     <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/CollectionPlanSegment/CollectionPlanSegment</inheritedFrom>
                     <title>CollectionPlanSegment</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/CollectionPlanSegment</inheritedFrom>
@@ -192,6 +201,7 @@
                 <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection/Collection</inheritedFrom>
                 <title>Collection</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
             <displayName>Collection</displayName>
             <inheritedFrom>CollectionPlanSegmentContext__stdctx/version/Collection</inheritedFrom>
             <title>Collection</title>

@@ -7,49 +7,10 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
-                            <value>FeedItem.TextPost</value>
+                            <value>AddGLAcctAsgntRuleCriteria</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>FeedItem.ContentPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewEvent</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewTask</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewContact</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.LogACall</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewOpportunity</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewCase</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.NewLead</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.ContentNote</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.RypplePost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.LinkPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.PollPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.QuestionPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Edit</value>
+                            <value>EditGLAcctAsgntRule</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Delete</value>
@@ -65,9 +26,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Share</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -103,6 +61,200 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>adminFilters</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecordsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>GeneralLedgerAcctAsgntRule.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>GeneralLedgerJrnlEntryRules</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListDisplayType</name>
+                    <value>ADVGRID</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListFieldAliases</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Name</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>DebitGeneralLedgerAccount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>CreditGeneralLedgerAccount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>TransactionAmountField</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Percentage</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListLabel</name>
+                    <value>General Ledger Journal Entry Rules</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldAlias</name>
+                    <value>__DEFAULT__</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldOrder</name>
+                    <value>Default</value>
+                </componentInstanceProperties>
+                <componentName>lst:dynamicRelatedList</componentName>
+                <identifier>lst_dynamicRelatedList</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>actionNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>New</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>adminFilters</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecordsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>GeneralLedgerAcctAsgntRule.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>TransactionJournals</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListDisplayType</name>
+                    <value>ADVGRID</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListFieldAliases</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Name</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>TransactionType</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>DebitGeneralLedgerAccount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>CreditGeneralLedgerAccount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Debit</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Credit</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListLabel</name>
+                    <value>Transaction Journals</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldAlias</name>
+                    <value>__DEFAULT__</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldOrder</name>
+                    <value>Default</value>
+                </componentInstanceProperties>
+                <componentName>lst:dynamicRelatedList</componentName>
+                <identifier>lst_dynamicRelatedList2</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>maxRecordsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>GeneralLedgerAcctAsgntRule.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>BillingBatchFilterCriteriaItems</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListDisplayType</name>
+                    <value>ADVGRID</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListFieldAliases</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Name</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>BatchCriteria</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ObjectName</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ColumnEnum</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Value</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Operation</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListLabel</name>
+                    <value>Billing Batch Filter Criterias</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldAlias</name>
+                    <value>__DEFAULT__</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldOrder</name>
+                    <value>Default</value>
+                </componentInstanceProperties>
+                <componentName>lst:dynamicRelatedList</componentName>
+                <identifier>lst_dynamicRelatedList3</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
                     <name>relatedListComponentOverride</name>
                     <value>NONE</value>
                 </componentInstanceProperties>
@@ -127,7 +279,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>required</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Name</fieldItem>
                 <identifier>RecordNameField</identifier>
@@ -139,8 +291,18 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.ValidStartDate</fieldItem>
-                <identifier>RecordValidStartDateField</identifier>
+                <fieldItem>Record.DebitGeneralLedgerAccountId</fieldItem>
+                <identifier>RecordDebitGeneralLedgerAccountIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TransactionType</fieldItem>
+                <identifier>RecordTransactionTypeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -149,31 +311,11 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.IsActive</fieldItem>
-                <identifier>RecordIsActiveField</identifier>
+                <fieldItem>Record.Priority</fieldItem>
+                <identifier>RecordPriorityField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.OwnerId</fieldItem>
-                <identifier>RecordOwnerIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.CurrencyIsoCode</fieldItem>
-                <identifier>RecordCurrencyIsoCodeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-2e032a29-ba90-4410-b78b-7496e80fc31f</name>
+        <name>Facet-6ffee0b6-6e71-4c5d-a220-0ca020e44041</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -183,8 +325,8 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Rate</fieldItem>
-                <identifier>RecordRateField</identifier>
+                <fieldItem>Record.LegalEntityId</fieldItem>
+                <identifier>RecordLegalEntityIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -193,31 +335,21 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.ValidEndDate</fieldItem>
-                <identifier>RecordValidEndDateField</identifier>
+                <fieldItem>Record.CreditGeneralLedgerAccountId</fieldItem>
+                <identifier>RecordCreditGeneralLedgerAccountIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Region</fieldItem>
-                <identifier>RecordRegionField</identifier>
+                <fieldItem>Record.Status</fieldItem>
+                <identifier>RecordStatusField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.UsageType</fieldItem>
-                <identifier>RecordUsageTypeField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-485216e4-f061-4cd8-a649-e41802183b14</name>
+        <name>Facet-ce9f5769-bc39-42ee-b59e-893d36d463d6</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -225,7 +357,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-2e032a29-ba90-4410-b78b-7496e80fc31f</value>
+                    <value>Facet-6ffee0b6-6e71-4c5d-a220-0ca020e44041</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column</identifier>
@@ -235,13 +367,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-485216e4-f061-4cd8-a649-e41802183b14</value>
+                    <value>Facet-ce9f5769-bc39-42ee-b59e-893d36d463d6</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column2</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-38af1cc6-1934-4f46-952a-ef7f64bd2c75</name>
+        <name>Facet-68823940-0a73-47ff-b705-7c93438d0054</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -255,10 +387,6 @@
                 <identifier>RecordCreatedByIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-e13d4cdb-3c3a-4281-8ad2-c16f332d5e4b</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
@@ -269,7 +397,31 @@
                 <identifier>RecordLastModifiedByIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-dc4f4b48-e602-4359-94d8-35375c8e1f33</name>
+        <name>Facet-e37e17c8-4fa9-42da-8d10-fe1d6e3f44ea</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.CreatedDate</fieldItem>
+                <identifier>RecordCreatedDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.LastModifiedDate</fieldItem>
+                <identifier>RecordLastModifiedDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-a5d47643-b60b-4107-9fc3-1baf0ba446ca</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -277,7 +429,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-e13d4cdb-3c3a-4281-8ad2-c16f332d5e4b</value>
+                    <value>Facet-e37e17c8-4fa9-42da-8d10-fe1d6e3f44ea</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column3</identifier>
@@ -287,13 +439,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-dc4f4b48-e602-4359-94d8-35375c8e1f33</value>
+                    <value>Facet-a5d47643-b60b-4107-9fc3-1baf0ba446ca</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column4</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-ef0c47ee-bdc8-477d-8cfb-c8882f7d1174</name>
+        <name>Facet-3c784f57-efa7-4322-bbfe-bf2b2f6fe643</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -301,7 +453,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-38af1cc6-1934-4f46-952a-ef7f64bd2c75</value>
+                    <value>Facet-68823940-0a73-47ff-b705-7c93438d0054</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
@@ -309,7 +461,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>@@@SFDCInformationSFDC@@@</value>
+                    <value>@@@SFDCDetailsSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
                 <identifier>flexipage_fieldSection</identifier>
@@ -319,7 +471,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-ef0c47ee-bdc8-477d-8cfb-c8882f7d1174</value>
+                    <value>Facet-3c784f57-efa7-4322-bbfe-bf2b2f6fe643</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
@@ -450,9 +602,9 @@
         <name>sidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Index Rate Record Page</masterLabel>
+    <masterLabel>RC General Ledger Account Assignment Rule Record Page</masterLabel>
     <parentFlexiPage>flexipage__default_rec_L</parentFlexiPage>
-    <sobjectType>IndexRate</sobjectType>
+    <sobjectType>GeneralLedgerAcctAsgntRule</sobjectType>
     <template>
         <name>flexipage:recordHomeTemplateDesktop</name>
     </template>

@@ -7,12 +7,6 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
-                            <value>InvoiceDraftToPosted</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Invoice.RC_Apply_Payment</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>FeedItem.TextPost</value>
                         </valueListItems>
                         <valueListItems>
@@ -58,12 +52,6 @@
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Delete</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>ChangeOwnerOne</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>ChangeRecordType</value>
                         </valueListItems>
                         <valueListItems>
@@ -95,7 +83,6 @@
                 <identifier>force_highlightsPanel</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>header</name>
         <type>Region</type>
     </flexiPageRegions>
@@ -103,27 +90,16 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>actionNames</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>CreateAndApplyCreditMemo</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>adminFilters</name>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
                     <name>maxRecordsToDisplay</name>
                     <value>10</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
+                    <value>InvoiceLine.Id</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListApiName</name>
-                    <value>InvoiceLines</value>
+                    <value>AssociatedInvoiceLineRelationships</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListDisplayType</name>
@@ -136,91 +112,16 @@
                             <value>Name</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>LineAmount</value>
+                            <value>AssociatedInvoiceLineRole</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quantity</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>UnitPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>InvoiceLineStartDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>InvoiceLineEndDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Type</value>
+                            <value>AssociatedInvoiceLinePricing</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListLabel</name>
-                    <value>Invoice Lines</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showActionBar</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldAlias</name>
-                    <value>__DEFAULT__</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldOrder</name>
-                    <value>Default</value>
-                </componentInstanceProperties>
-                <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_dynamicRelatedList2</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>actionNames</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>New</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>adminFilters</name>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>maxRecordsToDisplay</name>
-                    <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>InvoiceDocuments</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListDisplayType</name>
-                    <value>ADVGRID</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListFieldAliases</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>Name</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>ContentDocument</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>DateGenerated</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListLabel</name>
-                    <value>Invoice Documents</value>
+                    <value>Associated Invoice Lines</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>showActionBar</name>
@@ -249,11 +150,11 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
+                    <value>InvoiceLine.Id</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListApiName</name>
-                    <value>InvoiceLineRelationships</value>
+                    <value>InvoiceLineToBillingPeriodItems</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListDisplayType</name>
@@ -266,19 +167,22 @@
                             <value>Name</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>MainInvoiceLine</value>
+                            <value>BillingPeriodStartDate</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>AssociatedInvoiceLine</value>
+                            <value>BillingPeriodEndDate</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>AssociatedInvoiceLinePricing</value>
+                            <value>Amount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>InvoiceStatus</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListLabel</name>
-                    <value>Invoice Line Relationships</value>
+                    <value>Billing Period Items</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>showActionBar</name>
@@ -293,7 +197,7 @@
                     <value>Default</value>
                 </componentInstanceProperties>
                 <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_dynamicRelatedList7</identifier>
+                <identifier>lst_dynamicRelatedList2</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
@@ -307,11 +211,11 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
+                    <value>InvoiceLine.Id</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListApiName</name>
-                    <value>CreditMemos</value>
+                    <value>CreditMemoLinesInvoiceLines</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListDisplayType</name>
@@ -324,19 +228,19 @@
                             <value>Name</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>CreditDate</value>
+                            <value>CreditMemoLine</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>TotalAmountWithTax</value>
+                            <value>Amount</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Status</value>
+                            <value>Type</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListLabel</name>
-                    <value>Credit Memos</value>
+                    <value>Credit Memo Line Invoice Lines</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>showActionBar</name>
@@ -373,71 +277,11 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
+                    <value>InvoiceLine.Id</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListApiName</name>
-                    <value>InvoiceAddressGroups</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListDisplayType</name>
-                    <value>ADVGRID</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListFieldAliases</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>Name</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>GroupingKey</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListLabel</name>
-                    <value>Invoice Address Groups</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showActionBar</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldAlias</name>
-                    <value>__DEFAULT__</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldOrder</name>
-                    <value>Default</value>
-                </componentInstanceProperties>
-                <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_dynamicRelatedList4</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>actionNames</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>New</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>adminFilters</name>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>maxRecordsToDisplay</name>
-                    <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>PaymentLinesInvoice</value>
+                    <value>PaymentLinesInvoiceLines</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListDisplayType</name>
@@ -458,14 +302,11 @@
                         <valueListItems>
                             <value>Type</value>
                         </valueListItems>
-                        <valueListItems>
-                            <value>Date</value>
-                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>relatedListLabel</name>
-                    <value>Payment Line Invoices</value>
+                    <value>Payment Line Invoice Lines</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>showActionBar</name>
@@ -480,68 +321,9 @@
                     <value>Default</value>
                 </componentInstanceProperties>
                 <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_dynamicRelatedList6</identifier>
+                <identifier>lst_dynamicRelatedList4</identifier>
             </componentInstance>
         </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>adminFilters</name>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>maxRecordsToDisplay</name>
-                    <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>PrimaryRevenueTransactionErrorLogs</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListDisplayType</name>
-                    <value>ADVGRID</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListFieldAliases</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>RTEL.NAME</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>RTEL.ERROR_MESSAGE</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>RTEL.RELATED_RECORD</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>RTEL.RELATED_RECORD_2</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListLabel</name>
-                    <value>Revenue Transaction Error Logs</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showActionBar</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldAlias</name>
-                    <value>__DEFAULT__</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldOrder</name>
-                    <value>Default</value>
-                </componentInstanceProperties>
-                <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_dynamicRelatedList5</identifier>
-            </componentInstance>
-        </itemInstances>
-        <mode>Replace</mode>
         <name>relatedTabContent</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -552,8 +334,18 @@
                     <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.DocumentNumber</fieldItem>
-                <identifier>RecordDocumentNumberField</identifier>
+                <fieldItem>Record.Name</fieldItem>
+                <identifier>RecordNameField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.InvoiceLineStartDate</fieldItem>
+                <identifier>RecordInvoiceLineStartDateField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -562,18 +354,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.InvoiceNumber</fieldItem>
-                <identifier>RecordInvoiceNumberField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.BillingAccountId</fieldItem>
-                <identifier>RecordBillingAccountIdField</identifier>
+                <fieldItem>Record.ReferenceEntityItemId</fieldItem>
+                <identifier>RecordReferenceEntityItemIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -582,8 +364,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.ReferenceEntityId</fieldItem>
-                <identifier>RecordReferenceEntityIdField</identifier>
+                <fieldItem>Record.ReferenceEntityItemType</fieldItem>
+                <identifier>RecordReferenceEntityItemTypeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -592,42 +374,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.BillToContactId</fieldItem>
-                <identifier>RecordBillToContactIdField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>Facet-c931c32f-6755-4c8e-8e24-3e2134f11614</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.InvoiceDate</fieldItem>
-                <identifier>RecordInvoiceDateField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.DueDate</fieldItem>
-                <identifier>RecordDueDateField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>required</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.Status</fieldItem>
-                <identifier>RecordStatusField</identifier>
+                <fieldItem>Record.RelatedLineId</fieldItem>
+                <identifier>RecordRelatedLineIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -650,6 +398,60 @@
                 <identifier>RecordCurrencyIsoCodeField</identifier>
             </fieldInstance>
         </itemInstances>
+        <name>Facet-81df5fd1-1826-4596-bbfa-79fa56b2df33</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.InvoiceId</fieldItem>
+                <identifier>RecordInvoiceIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.InvoiceLineEndDate</fieldItem>
+                <identifier>RecordInvoiceLineEndDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.BillingScheduleId</fieldItem>
+                <identifier>RecordBillingScheduleIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.ReferenceEntityItemTypeCode</fieldItem>
+                <identifier>RecordReferenceEntityItemTypeCodeField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>required</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Type</fieldItem>
+                <identifier>RecordTypeField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
@@ -660,7 +462,7 @@
                 <identifier>RecordLegalEntityIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-e91ee5d0-5baf-46e8-be67-2a2fa660460b</name>
+        <name>Facet-42eb9d54-77f4-4780-9eed-9dcea5148fd6</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -668,7 +470,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-c931c32f-6755-4c8e-8e24-3e2134f11614</value>
+                    <value>Facet-81df5fd1-1826-4596-bbfa-79fa56b2df33</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column</identifier>
@@ -678,13 +480,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-e91ee5d0-5baf-46e8-be67-2a2fa660460b</value>
+                    <value>Facet-42eb9d54-77f4-4780-9eed-9dcea5148fd6</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column2</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-aa25fbd8-1caf-446f-b1e5-460feee2062f</name>
+        <name>Facet-82e4716b-8a0c-42e1-8792-ddf95e9063ab</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -692,33 +494,33 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TotalChargeAmount</fieldItem>
-                <identifier>RecordTotalChargeAmountField</identifier>
+                <fieldItem>Record.Product2Id</fieldItem>
+                <identifier>RecordProduct2IdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TotalAdjustmentAmount</fieldItem>
-                <identifier>RecordTotalAdjustmentAmountField</identifier>
+                <fieldItem>Record.Quantity</fieldItem>
+                <identifier>RecordQuantityField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TotalTaxAmount</fieldItem>
-                <identifier>RecordTotalTaxAmountField</identifier>
+                <fieldItem>Record.UnitPrice</fieldItem>
+                <identifier>RecordUnitPriceField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-99286696-86a9-4993-8bd2-adff34ed4696</name>
+        <name>Facet-009b066d-1148-493d-8723-691402ae3f8b</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -726,10 +528,20 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TotalAmount</fieldItem>
-                <identifier>RecordTotalAmountField</identifier>
+                <fieldItem>Record.ChargeAmount</fieldItem>
+                <identifier>RecordChargeAmountField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.AdjustmentAmount</fieldItem>
+                <identifier>RecordAdjustmentAmountField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -738,11 +550,21 @@
                     <name>uiBehavior</name>
                     <value>readonly</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.TotalAmountWithTax</fieldItem>
-                <identifier>RecordTotalAmountWithTaxField</identifier>
+                <fieldItem>Record.LineAmount</fieldItem>
+                <identifier>RecordLineAmountField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-9eabba7d-c607-477f-bbab-0fc85aa2a0a1</name>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TaxAmount</fieldItem>
+                <identifier>RecordTaxAmountField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-b3f5f17f-dd53-4732-a6a7-de443e808bbc</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -750,7 +572,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-99286696-86a9-4993-8bd2-adff34ed4696</value>
+                    <value>Facet-009b066d-1148-493d-8723-691402ae3f8b</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column3</identifier>
@@ -760,13 +582,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-9eabba7d-c607-477f-bbab-0fc85aa2a0a1</value>
+                    <value>Facet-b3f5f17f-dd53-4732-a6a7-de443e808bbc</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column4</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-a79ea7ed-3948-4263-913f-5f4d55019efb</name>
+        <name>Facet-5b04460e-355e-4bb2-9575-3fefc61c67c6</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -776,15 +598,25 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.PaymentTermId</fieldItem>
-                <identifier>RecordPaymentTermIdField</identifier>
+                <fieldItem>Record.ShippingAddressId</fieldItem>
+                <identifier>RecordShippingAddressIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-5abc44aa-6b25-417d-9beb-fa087685c694</name>
+        <name>Facet-fd11be00-67dc-4ddc-ad58-de075d8aa591</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
-        <name>Facet-513a6095-33dc-4540-9f83-9c26b1925fdc</name>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.BillingAddressId</fieldItem>
+                <identifier>RecordBillingAddressIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-f5d06325-da9e-45b2-a6c9-fd1e62c9064a</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -792,7 +624,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-5abc44aa-6b25-417d-9beb-fa087685c694</value>
+                    <value>Facet-fd11be00-67dc-4ddc-ad58-de075d8aa591</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column5</identifier>
@@ -802,13 +634,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-513a6095-33dc-4540-9f83-9c26b1925fdc</value>
+                    <value>Facet-f5d06325-da9e-45b2-a6c9-fd1e62c9064a</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column6</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-68a8ac38-1f95-4a2f-a17e-e05aeb466a1b</name>
+        <name>Facet-ebc24662-7bc9-4c06-8dbe-14a30b416b57</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -818,28 +650,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Balance</fieldItem>
-                <identifier>RecordBalanceField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>readonly</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.NetPaymentsApplied</fieldItem>
-                <identifier>RecordNetPaymentsAppliedField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>readonly</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.DaysInvoiceOpen</fieldItem>
-                <identifier>RecordDaysInvoiceOpenField</identifier>
+                <fieldItem>Record.TaxTreatmentId</fieldItem>
+                <identifier>RecordTaxTreatmentIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -848,11 +660,31 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.FullSettlementDate</fieldItem>
-                <identifier>RecordFullSettlementDateField</identifier>
+                <fieldItem>Record.TaxName</fieldItem>
+                <identifier>RecordTaxNameField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-a3966576-cfb8-4fa0-a71f-8f0ce001a6ca</name>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TaxTransactionNumber</fieldItem>
+                <identifier>RecordTaxTransactionNumberField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TaxEffectiveDate</fieldItem>
+                <identifier>RecordTaxEffectiveDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-a477bb55-9ff5-44f8-941e-da2a7949f639</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -862,31 +694,31 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.SettlementStatus</fieldItem>
-                <identifier>RecordSettlementStatusField</identifier>
+                <fieldItem>Record.TaxRate</fieldItem>
+                <identifier>RecordTaxRateField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.NetCreditsApplied</fieldItem>
-                <identifier>RecordNetCreditsAppliedField</identifier>
+                <fieldItem>Record.TaxCode</fieldItem>
+                <identifier>RecordTaxCodeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.DaysInvoiceOverdue</fieldItem>
-                <identifier>RecordDaysInvoiceOverdueField</identifier>
+                <fieldItem>Record.TaxDocumentNumber</fieldItem>
+                <identifier>RecordTaxDocumentNumberField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-e713a8c8-e620-4410-a8e4-ff7e83cba75e</name>
+        <name>Facet-52b9de7d-397e-4db8-809a-30b9a7708192</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -894,7 +726,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-a3966576-cfb8-4fa0-a71f-8f0ce001a6ca</value>
+                    <value>Facet-a477bb55-9ff5-44f8-941e-da2a7949f639</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column7</identifier>
@@ -904,13 +736,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-e713a8c8-e620-4410-a8e4-ff7e83cba75e</value>
+                    <value>Facet-52b9de7d-397e-4db8-809a-30b9a7708192</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column8</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-6cde5c86-a617-4fcb-83b0-4f60d521b3a9</name>
+        <name>Facet-1ea75011-efb2-4c29-9fae-07356e3ad030</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -934,7 +766,7 @@
                 <identifier>RecordCreatedDateField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-11004593-ce48-40eb-a7c8-20100fa4439f</name>
+        <name>Facet-5805fde1-207f-490a-acb0-771d963871b8</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -958,7 +790,7 @@
                 <identifier>RecordLastModifiedDateField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-65d12d96-e269-435e-8bea-ec8feeed8899</name>
+        <name>Facet-1b24544d-396a-4ab5-9ecd-10de1e6aec3a</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -966,7 +798,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-11004593-ce48-40eb-a7c8-20100fa4439f</value>
+                    <value>Facet-5805fde1-207f-490a-acb0-771d963871b8</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column9</identifier>
@@ -976,13 +808,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-65d12d96-e269-435e-8bea-ec8feeed8899</value>
+                    <value>Facet-1b24544d-396a-4ab5-9ecd-10de1e6aec3a</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
                 <identifier>flexipage_column10</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-8ce47e0a-21ac-4336-98ec-f8beb0a56467</name>
+        <name>Facet-7f95b7ac-dfd3-465e-9862-4b6ac4e5de7c</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -990,11 +822,11 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-aa25fbd8-1caf-446f-b1e5-460feee2062f</value>
+                    <value>Facet-82e4716b-8a0c-42e1-8792-ddf95e9063ab</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
@@ -1008,15 +840,15 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-a79ea7ed-3948-4263-913f-5f4d55019efb</value>
+                    <value>Facet-5b04460e-355e-4bb2-9575-3fefc61c67c6</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>@@@SFDCInvoiceAmountInformationSFDC@@@</value>
+                    <value>@@@SFDCInvoiceLineAmountInformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
                 <identifier>flexipage_fieldSection2</identifier>
@@ -1026,15 +858,15 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-68a8ac38-1f95-4a2f-a17e-e05aeb466a1b</value>
+                    <value>Facet-ebc24662-7bc9-4c06-8dbe-14a30b416b57</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>@@@SFDCPaymentInformationSFDC@@@</value>
+                    <value>@@@SFDCInvoiceLineAddressInformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
                 <identifier>flexipage_fieldSection3</identifier>
@@ -1044,15 +876,15 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-6cde5c86-a617-4fcb-83b0-4f60d521b3a9</value>
+                    <value>Facet-1ea75011-efb2-4c29-9fae-07356e3ad030</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>@@@SFDCInvoiceSettlementInformationSFDC@@@</value>
+                    <value>@@@SFDCTaxInformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
                 <identifier>flexipage_fieldSection4</identifier>
@@ -1062,11 +894,11 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-8ce47e0a-21ac-4336-98ec-f8beb0a56467</value>
+                    <value>Facet-7f95b7ac-dfd3-465e-9862-4b6ac4e5de7c</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
@@ -1076,22 +908,7 @@
                 <identifier>flexipage_fieldSection5</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>detailTabContent</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>enableSidepanel</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentName>runtime_revenue_foundation:invoiceLineViewer</componentName>
-                <identifier>runtime_revenue_foundation_invoiceLineViewer</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-397f0790-3891-42be-a7d3-1b857bf8e598</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -1127,21 +944,6 @@
                 <identifier>detailTab</identifier>
             </componentInstance>
         </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-397f0790-3891-42be-a7d3-1b857bf8e598</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Invoice Lines</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab</identifier>
-            </componentInstance>
-        </itemInstances>
-        <mode>Replace</mode>
         <name>maintabs</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1160,123 +962,13 @@
                 <identifier>flexipage_tabset</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>accountIdField</name>
-                    <value>Invoice.BillingAccountId</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>headerText</name>
-                    <value>Merchant-Submitted Payment</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showSaveForFutureUsageCheckbox</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>stipeACHConsentMandate</name>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>useManualCapture</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentName>runtime_payments:merchantPayment</componentName>
-                <identifier>runtime_payments_merchantPayment</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>Invoice.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>AttachedContentDocuments</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListComponentOverride</name>
-                    <value>NONE</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>rowsToDisplay</name>
-                    <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showActionBar</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentName>force:relatedListSingleContainer</componentName>
-                <identifier>force_relatedListSingleContainer</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>showLegacyActivityComposer</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentName>runtime_sales_activities:activityPanel</componentName>
-                <identifier>runtime_sales_activities_activityPanel</identifier>
-            </componentInstance>
-        </itemInstances>
-        <mode>Replace</mode>
-        <name>activityTabContent</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>active</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>activityTabContent</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Standard.Tab.activity</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>activityTab</identifier>
-            </componentInstance>
-        </itemInstances>
-        <mode>Replace</mode>
-        <name>sidebartabs</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>label</name>
-                    <value>Tabs</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>tabs</name>
-                    <value>sidebartabs</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tabset</componentName>
-                <identifier>flexipage_tabset2</identifier>
-            </componentInstance>
-        </itemInstances>
-        <mode>Replace</mode>
-        <name>sidebar</name>
-        <type>Region</type>
-    </flexiPageRegions>
-    <masterLabel>RLM Invoice Record Page</masterLabel>
-    <parentFlexiPage>flexipage__default_rec_L</parentFlexiPage>
-    <sobjectType>Invoice</sobjectType>
+    <masterLabel>RC Invoice Line Record Page</masterLabel>
+    <sobjectType>InvoiceLine</sobjectType>
     <template>
-        <name>flexipage:recordHomeTemplateDesktop</name>
+        <name>flexipage:recordHomeSimpleViewTemplate</name>
     </template>
     <type>RecordPage</type>
 </FlexiPage>
