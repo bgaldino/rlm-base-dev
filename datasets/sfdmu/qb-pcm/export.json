@@ -108,12 +108,12 @@
         {
             "query": "SELECT CatalogId, Code, Description, Id, IsNavigational, Name, ParentCategoryId, SortOrder FROM ProductCategory ORDER BY Catalog.Code ASC, ParentCategory.Code ASC, Name ASC",
             "operation": "Upsert",
-            "externalId": "Code;Catalog.Code;ParentCategory.Code"
+            "externalId": "Code"
         },
         {
             "query": "SELECT CatalogId, Id, IsPrimaryCategory, ProductCategoryId, ProductId FROM ProductCategoryProduct",
             "operation": "Upsert",
-            "externalId": "ProductToCategory"
+            "externalId": "ProductCategory.Code;Product.StockKeepingUnit"
         },
         {
             "query": "SELECT EffectiveFromDate, EffectiveToDate, Id, IsQualified, Name, ParentProductId, ProductId, RootProductId FROM ProductQualification",
