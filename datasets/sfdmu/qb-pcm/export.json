@@ -111,7 +111,7 @@
             "externalId": "Code"
         },
         {
-            "query": "SELECT CatalogId, Id, IsPrimaryCategory, ProductCategoryId, ProductId FROM ProductCategoryProduct",
+            "query": "SELECT CatalogId, Id, IsPrimaryCategory, ProductCategoryId, ProductId FROM ProductCategoryProduct ORDER BY ProductCategory.Code ASC, Product.StockKeepingUnit ASC, Catalog.Code ASC",
             "operation": "Upsert",
             "externalId": "ProductCategory.Code;Product.StockKeepingUnit"
         },

@@ -1,11 +1,15 @@
 Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
 CAT-QB-HW,PC-QB-HW-ACCESSORIES,,true,Accessories,,
+CAT-QB-HW,GPU,,true,GPU,,
 CAT-QB-HW,PC-QB-HW-HDD,,true,Hard Drive,,
 CAT-QB-HW,PC-QB-HW-HWMAINT,,true,Hardware Maintenance,,
 CAT-QB-HW,PC-QB-HW-MEMORY,,true,Memory,,
-CAT-QB-HW,PC-QB-HW-NIC,,true,Network Adapter,,
+CAT-QB-HW,PCIe,,true,PCIe,,
+CAT-QB-HW,Power Supplies,,true,Power Supplies,,
 CAT-QB-HW,PC-QB-HW-CPU,,true,Processor,,
 CAT-QB-HW,PC-QB-HW-SERVER,,true,Server,,
+CAT-QB-HW,Solid State Drive,,true,Solid State Drive,,
+CAT-QB-HW,PC-QB-HW-NIC,,true,Network Adapter,PCIe,
 CAT-QB-SFT,PC-QB-SW-API,,true,API,,20
 CAT-QB-SFT,PC-QB-SW-BUNDLE,,true,Bundle,,10
 CAT-QB-SFT,PC-QB-SW-LICENSES,,true,Licenses,,30

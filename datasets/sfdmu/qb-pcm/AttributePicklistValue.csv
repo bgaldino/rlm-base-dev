@@ -2,16 +2,28 @@ Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Code,Sequence,Status,Valu
 ,0,0,true,0,AP-006,0,Active,0
 ,1.7GHz,1.7GHz,false,1.7GHz,AP-010,2,Active,1.7GHz
 ,12ft,12',false,TwelveFeet,AP-003,,Active,12
+,12x3.5 inch Drives,12x3.5 inch Drives,true,12x3.5 inch Drives,Front Storage,1,Active,12x3.5 inch Drives
 ,16GB,16GB,false,16GB,AP-012,2,Active,16GB
+,16TB,16TB,false,16TB,AP-005,,Active,16TB
+,16x2.5 inch Drives,16x2.5 inch Drives,false,16x2.5 inch Drives,Front Storage,3,Active,16x2.5 inch Drives
 ,1TB,1TB,true,1TB,AP-005,1,Active,1TB
 ,2,2,false,Two,AP-002,1,Active,2
 ,2.0GHz,2.0GHz,false,2.0GHz,AP-010,3,Active,2.0GHz
 ,2.1GHz,2.1GHz,false,2.1GHz,AP-010,4,Active,2.1GHz
+,20TB,20TB,false,20TB,AP-005,,Active,20TB
+,24x2.5 inch Drives,24x2.5 inch Drives,false,24x2.5 inch Drives,Front Storage,2,Active,24x2.5 inch Drives
+,2TB,2TB,false,2TB,AP-005,,Active,2TB
+,2x2.5 inch Drives,2x2.5 inch Drives,false,2x2.5 inch Drives,Rear Storage,2,Active,2x2.5 inch Drives
 ,3.2GHz,3.2GHz,true,3.2GHz,AP-010,1,Active,3.2GHz
+,30TB,30TB,false,30TB,AP-005,,Active,30TB
+,3200MT/s LRDIMMs,3200MT/s LRDIMMs,false,3200MT/s LRDIMMs,DIMM Type,2,Active,3200MT/s LRDIMMs
+,3200MT/s RDIMMs,3200MT/s RDIMMs,true,3200MT/s RDIMMs,DIMM Type,1,Active,3200MT/s RDIMMs
 ,32GB,32GB,false,32GB,AP-012,3,Active,32GB
 ,3ft,3',true,ThreeFeet,AP-003,,Active,3
+,3TB,3TB,false,3TB,AP-005,,Active,3TB
 ,4,4,true,Four,AP-002,2,Active,4
 ,4TB,4TB,false,4TB,AP-005,2,Active,4TB
+,4x2.5 inch Drives,4x2.5 inch Drives,false,4x2.5 inch Drives,Rear Storage,3,Active,4x2.5 inch Drives
 ,5ft,5',false,FiveFeet,AP-003,,Active,5
 ,6,6,false,Six,AP-002,3,Active,6
 ,8,8,false,Eight,AP-002,4,Active,8
@@ -19,6 +31,8 @@ Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Code,Sequence,Status,Valu
 ,8GB,8GB,true,8GB,AP-012,1,Active,8GB
 ,8TB,8TB,false,8TB,AP-005,3,Active,8TB
 ,8TB_Self_Encrypting,8TB_Self_Encrypting,false,8TB_Self_Encrypting,AP-005,4,Active,8TB_Self_Encrypting
+,Accelerated,Accelerated,false,Accelerated,Performance Tier,5,Active,Accelerated
+,AI,AI,false,AI,Workload,2,Draft,AI
 ,AL2,Amazon Linux 2,true,Amazon Linux 2,AP-009,1,Active,Amazon Linux 2
 ,APV-10,10,false,10,AP-006,10,Active,10
 ,APV-20,20,false,20,AP-006,20,Active,20
@@ -26,27 +40,49 @@ Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Code,Sequence,Status,Valu
 ,APV-40,40,false,40,AP-006,40,Active,40
 ,APV-5,5,false,5,AP-006,5,Active,5
 ,APV-50,50,false,50,AP-006,50,Active,50
+,Balanced,Balanced,false,Balanced,Storage Profile,4,Active,Balanced
 ,Basic,Basic,false,Basic,AP-007,2,Active,Basic
+,Basic Uptime,Basic Uptime,false,Basic Uptime,Redundancy,1,Active,Basic Uptime
 ,C13toC14,C13 to C14,true,C13 to C14,AP-004,,Active,C13 to C14
 ,C19toC20,C19 to C20,false,C19 to C20,AP-004,,Active,C19 to C20
+,Capacity,Capacity,false,Capacity,Storage Profile,2,Active,Capacity
 ,Custom,Custom,false,Custom,AP-014,4,Active,Custom
 ,Direct_Attach,Direct_Attach,true,Direct_Attach,AP-008,1,Active,Direct_Attach
+,Dual,Dual,false,Dual,Socket Configuration,2,Active,Dual
+,Entry,Entry,false,Entry,Performance Tier,2,Active,Entry
 ,Evergreen,Evergreen,true,Evergreen,AP-015,1,Active,Evergreen
 ,Extended_Care,Extended_Care,true,Extended_Care,AP-007,1,Active,Extended_Care
 ,Flex,Flex,true,Flex,AP-001,1,Active,Flex
+,General,General,true,General,Workload,1,Active,General
 ,Gov,Gov,false,Gov,AP-001,2,Active,Gov
+,High Availability,High Availability,false,High Availability,Redundancy,2,Active,High Availability
+,High Performance Computing,High Performance Computing,false,High Performance Computing,Workload,3,Active,High Performance Computing
 ,L5-20,L5-20,false,L5-20,AP-004,,Active,L5-20
 ,Memory_Mirroring,Memory_Mirroring,false,Memory_Mirroring,AP-011,3,Active,Memory_Mirroring
+,N/A,N/A,true,N/A,Rear Storage,1,Active,N/A
+,N/A Performance Tier,N/A,true,N/A,Performance Tier,1,Active,N/A
+,N/A RAID,N/A,true,N/A,RAID,1,Active,N/A
+,N/A Storage Profile,N/A,true,N/A,Storage Profile,1,Active,N/A
 ,Offshore,Offshore,false,Offshore,AP-013,3,Active,Offshore
 ,Onsite,Onsite,true,Onsite,AP-013,1,Active,Onsite
 ,Performance,Performance,false,Performance,AP-014,2,Active,Performance
+,Performance Storage,Performance,false,Performance,Storage Profile,3,Active,Performance
+,Performance Tier,Performance,false,Performance,Performance Tier,4,Active,Performance
 ,Performance_Optimized,Performance_Optimized,true,Performance_Optimized,AP-011,1,Active,Performance_Optimized
 ,Performance_Optimized_with_Sparing,Performance_Optimized_with_Sparing,false,Performance_Optimized_with_Sparing,AP-011,2,Active,Performance_Optimized_with_Sparing
 ,Pre-Prod,Pre-Prod,false,Pre-Prod,AP-001,3,Active,Pre-Prod
 ,Prod,Prod,false,Prod,AP-001,4,Active,Prod
+,RAID 0,RAID 0,false,RAID 0,RAID,2,Active,RAID 0
+,RAID 1,RAID 1,false,RAID 1,RAID,3,Active,RAID 1
+,RAID 5,RAID 5,false,RAID 5,RAID,4,Active,RAID 5
 ,REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,AP-009,2,Active,Redhat Enterprise Linux
 ,Remote,Remote,false,Remote,AP-013,2,Active,Remote
 ,Security,Security,true,Security,AP-014,1,Active,Security
 ,SFP,SFP,false,SFP,AP-008,2,Active,SFP
+,Single,Single,true,Single,Socket Configuration,1,Active,Single
+,Standard,Standard,false,Standard,Performance Tier,3,Active,Standard
 ,TermBased,TermBased,false,TermBased,AP-015,2,Active,TermBased
+,Unconfigured RAID,Unconfigured RAID,false,Unconfigured RAID,RAID,5,Active,Unconfigured RAID
 ,Value,Value,false,Value,AP-014,3,Active,Value
+,x16,x16,false,x16,PCIe Lane Type,2,Active,x16
+,x8,x8,false,x8,PCIe Lane Type,1,Active,x8

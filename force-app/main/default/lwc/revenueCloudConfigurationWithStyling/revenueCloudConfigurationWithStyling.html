@@ -1,0 +1,21 @@
+<template>
+    <div class={containerClass}>
+        <lightning-button-icon
+            icon-name={pinIconName}
+            alternative-text="Pin component"
+            title="Pin component"
+            variant="border-filled"
+            class={pinButtonClass}
+            onclick={togglePin}>
+        </lightning-button-icon>
+         
+        <RDrawConfig-revenue-cloud-configuration
+            configurator-context={configuratorContext}
+            render-context={renderContext}
+            sales-transaction-items={salesTransactionItems}
+            override-record-id={overrideRecordId}
+            size={size}
+            option-groups={optionGroups}>
+        </RDrawConfig-revenue-cloud-configuration>
+    </div>
+</template>

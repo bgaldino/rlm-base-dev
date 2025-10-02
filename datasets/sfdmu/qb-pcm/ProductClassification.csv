@@ -1,4 +1,5 @@
 Code,Name,ParentProductClassification.Code,Status
+HDD PC,HDD PC,,Active
 PC-QB-API,API Type,,Active
 PC-QB-CABLES,Cables,,Active
 PC-QB-COMPLETE,QuantumBit Complete,,Active
@@ -12,3 +13,5 @@ PC-QB-SOFTWARE,Software,,Draft
 PC-QB-STARTER,QuantumBit,,Active
 PC-QB-STORAGE,Hard Drive,,Active
 PC-QB-SUB,Subscription,,Active
+PCIe PC,PCIe PC,,Active
+Q-Rack PC,Q-Rack PC,,Active
