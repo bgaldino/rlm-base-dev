@@ -1,0 +1,15 @@
+$$Code$Catalog.Code$ParentCategory.Code,Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.$$Code$Catalog.Code$ParentCategory.Code,SortOrder
+CAT-QB-HW,CAT-QB-HW,,,true,Accessories,,
+CAT-QB-HW,CAT-QB-HW,,,true,Hard Drive,,
+CAT-QB-HW,CAT-QB-HW,,,true,Hardware Maintenance,,
+CAT-QB-HW,CAT-QB-HW,,,true,Memory,,
+CAT-QB-HW,CAT-QB-HW,,,true,Network Adapter,,
+CAT-QB-HW,CAT-QB-HW,,,true,Processor,,
+CAT-QB-HW,CAT-QB-HW,,,true,Server,,
+CAT-QB-SFT,CAT-QB-SFT,,,true,API,,20
+CAT-QB-SFT,CAT-QB-SFT,,,true,Bundle,,10
+CAT-QB-SFT,CAT-QB-SFT,,,true,Licenses,,30
+CAT-QB-SFT,CAT-QB-SFT,,,true,Maintenance,,50
+CAT-QB-SFT,CAT-QB-SFT,,,true,Subscription,,100
+CAT-QB-SFT,CAT-QB-SFT,,,true,Training,,40
+CAT-QB-SRV,CAT-QB-SRV,,,true,Services,,

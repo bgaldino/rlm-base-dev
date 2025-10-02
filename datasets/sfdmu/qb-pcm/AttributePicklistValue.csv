@@ -1,0 +1,52 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Code,Sequence,Status,Value
+,0,0,true,0,AP-006,0,Active,0
+,1.7GHz,1.7GHz,false,1.7GHz,AP-010,2,Active,1.7GHz
+,12ft,12',false,TwelveFeet,AP-003,,Active,12
+,16GB,16GB,false,16GB,AP-012,2,Active,16GB
+,1TB,1TB,true,1TB,AP-005,1,Active,1TB
+,2,2,false,Two,AP-002,1,Active,2
+,2.0GHz,2.0GHz,false,2.0GHz,AP-010,3,Active,2.0GHz
+,2.1GHz,2.1GHz,false,2.1GHz,AP-010,4,Active,2.1GHz
+,3.2GHz,3.2GHz,true,3.2GHz,AP-010,1,Active,3.2GHz
+,32GB,32GB,false,32GB,AP-012,3,Active,32GB
+,3ft,3',true,ThreeFeet,AP-003,,Active,3
+,4,4,true,Four,AP-002,2,Active,4
+,4TB,4TB,false,4TB,AP-005,2,Active,4TB
+,5ft,5',false,FiveFeet,AP-003,,Active,5
+,6,6,false,Six,AP-002,3,Active,6
+,8,8,false,Eight,AP-002,4,Active,8
+,8ft,8',false,EightFeet,AP-003,,Active,8
+,8GB,8GB,true,8GB,AP-012,1,Active,8GB
+,8TB,8TB,false,8TB,AP-005,3,Active,8TB
+,8TB_Self_Encrypting,8TB_Self_Encrypting,false,8TB_Self_Encrypting,AP-005,4,Active,8TB_Self_Encrypting
+,AL2,Amazon Linux 2,true,Amazon Linux 2,AP-009,1,Active,Amazon Linux 2
+,APV-10,10,false,10,AP-006,10,Active,10
+,APV-20,20,false,20,AP-006,20,Active,20
+,APV-30,30,false,30,AP-006,30,Active,30
+,APV-40,40,false,40,AP-006,40,Active,40
+,APV-5,5,false,5,AP-006,5,Active,5
+,APV-50,50,false,50,AP-006,50,Active,50
+,Basic,Basic,false,Basic,AP-007,2,Active,Basic
+,C13toC14,C13 to C14,true,C13 to C14,AP-004,,Active,C13 to C14
+,C19toC20,C19 to C20,false,C19 to C20,AP-004,,Active,C19 to C20
+,Custom,Custom,false,Custom,AP-014,4,Active,Custom
+,Direct_Attach,Direct_Attach,true,Direct_Attach,AP-008,1,Active,Direct_Attach
+,Evergreen,Evergreen,true,Evergreen,AP-015,1,Active,Evergreen
+,Extended_Care,Extended_Care,true,Extended_Care,AP-007,1,Active,Extended_Care
+,Flex,Flex,true,Flex,AP-001,1,Active,Flex
+,Gov,Gov,false,Gov,AP-001,2,Active,Gov
+,L5-20,L5-20,false,L5-20,AP-004,,Active,L5-20
+,Memory_Mirroring,Memory_Mirroring,false,Memory_Mirroring,AP-011,3,Active,Memory_Mirroring
+,Offshore,Offshore,false,Offshore,AP-013,3,Active,Offshore
+,Onsite,Onsite,true,Onsite,AP-013,1,Active,Onsite
+,Performance,Performance,false,Performance,AP-014,2,Active,Performance
+,Performance_Optimized,Performance_Optimized,true,Performance_Optimized,AP-011,1,Active,Performance_Optimized
+,Performance_Optimized_with_Sparing,Performance_Optimized_with_Sparing,false,Performance_Optimized_with_Sparing,AP-011,2,Active,Performance_Optimized_with_Sparing
+,Pre-Prod,Pre-Prod,false,Pre-Prod,AP-001,3,Active,Pre-Prod
+,Prod,Prod,false,Prod,AP-001,4,Active,Prod
+,REL,Redhat Enterprise Linux,false,Redhat Enterprise Linux,AP-009,2,Active,Redhat Enterprise Linux
+,Remote,Remote,false,Remote,AP-013,2,Active,Remote
+,Security,Security,true,Security,AP-014,1,Active,Security
+,SFP,SFP,false,SFP,AP-008,2,Active,SFP
+,TermBased,TermBased,false,TermBased,AP-015,2,Active,TermBased
+,Value,Value,false,Value,AP-014,3,Active,Value
