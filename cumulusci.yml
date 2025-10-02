@@ -404,7 +404,8 @@ project:
 # Each dataset is referenced in the data load tasks to insert or update data in the org
 # The datasets are organized by feature (QuantumBit, Q3, etc.) and data type (product, billing, etc.)
 
-    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-multicurrency"               # QuantumBit product data
+    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-pcm"               # QuantumBit product data
+    quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb-pricing"               # QuantumBit product data
     quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb-product-images"  # QuantumBit product image data
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"                     # QuantumBit billing data
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"                                 # QuantumBit DRO data
@@ -869,19 +870,33 @@ tasks:
     description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
 
-  insert_quantumbit_data:
+  insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_product_dataset
 
-  insert_quantumbit_data_prod:
+  insert_quantumbit_pricing_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+
+  insert_quantumbit_pcmdata_prod:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data to Production
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_product_dataset
+
+  insert_quantumbit_pricing_data_prod:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
 
   insert_quantumbit_product_image_data:
     group: Revenue Lifecycle Management
@@ -1291,32 +1306,34 @@ flows:
       10:
         flow: prepare_product_data
       11:
-        flow: prepare_dro
+        flow: prepare_pricing_data
       12:
-        flow: prepare_tax
+        flow: prepare_dro
       13:
-        flow: prepare_billing
+        flow: prepare_tax
       14:
-        flow: prepare_clm
+        flow: prepare_billing
       15:
-        flow: prepare_rating
+        flow: prepare_clm
       16:
-        task: activate_and_deploy_expression_sets
+        flow: prepare_rating
       17:
-        flow: prepare_tso
+        task: activate_and_deploy_expression_sets
       18:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       19:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       20:
-        flow: prepare_agents
+        flow: prepare_prm
       21:
-        flow: prepare_docgen
+        flow: prepare_agents
       22:
-        flow: prepare_constraints
+        flow: prepare_docgen
       23:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       24:
+        flow: prepare_guidedselling
+      25:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -1441,10 +1458,10 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_quantumbit_data
+        task: insert_quantumbit_pcm_data
         when: org_config.scratch and project_config.project__custom__qb
       2:
-        task: insert_quantumbit_data_prod
+        task: insert_quantumbit_pcm_data_prod
         when: not org_config.scratch and project_config.project__custom__qb
       3:
         task: insert_q3_data
@@ -1454,6 +1471,13 @@ flows:
         when: not org_config.scratch and project_config.project__custom__q3
       5:
         task: insert_quantumbit_product_image_data
+        when: org_config.scratch and project_config.project__custom__qb
+
+  prepare_pricing_data:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_quantumbit_pricing_data
         when: org_config.scratch and project_config.project__custom__qb
 
   prepare_scratch:
