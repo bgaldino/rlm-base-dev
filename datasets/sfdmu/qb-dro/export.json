@@ -5,63 +5,87 @@
     {
       "objects": [
         {
-          "query": "SELECT CurrencyIsoCode, Description, Id, Name FROM FulfillmentWorkspace",
-          "operation": "Upsert",
-          "externalId": "Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
-          "operation": "Upsert",
-          "externalId": "Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, ErrorCode, FlowDefinitionName, Id, IntegrationDefinition.DeveloperName, Name, RetriesAllowed, RetryIntervals, RetryPolicy, StepType FROM FulfillmentFalloutRule",
-          "operation": "Upsert",
-          "externalId": "Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, EstimatedDuration, EstimatedDurationUnit, FlowDefinition, Id, StepType, JeopardyThreshold, JeopardyThresholdUnit, Name, IntegrationDefinition.DeveloperName FROM FulfillmentStepJeopardyRule",
-          "operation": "Upsert",
-          "externalId": "Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, AssignedToId, ExecuteOnRuleId, FlowDefinitionName, Id, IntegrationDefinitionNameId, Name, OmniscriptName, ResumeOnRuleId, RunAsUserId, Scope, StepDefinitionGroupId, StepType, UsageType FROM FulfillmentStepDefinition",
-          "operation": "Upsert",
-          "externalId": "Name;StepDefinitionGroup.Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, DependencyScope, DependsOnStepDefinitionId, FulfillmentStepDefinitionId, Id, Name FROM FulfillmentStepDependencyDef",
-          "operation": "Upsert",
-          "externalId": "Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, ShowOrder FROM FulfillmentWorkspaceItem",
-          "operation": "Upsert",
-          "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, DestinationProductId, Id, Name, Priority, SourceProductId FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
-          "operation": "Upsert",
-          "externalId": "Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, Action, FulfillmentStepDefnGroupId, Id, Name, ProductId  FROM ProductFulfillmentScenario",
-          "operation": "Upsert",
-          "externalId": "Name;Product.StockKeepingUnit;CurrencyIsoCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT DecompositionScope, FulfillmentQtyCalcMethod, Name, StockKeepingUnit FROM Product2 ORDER BY Product2.StockKeepingUnit ASC",
+          "query": "SELECT CustomDecompositionScope, DecompositionScope, FulfillmentQtyCalcMethod, Name, StockKeepingUnit FROM Product2 ORDER BY Product2.StockKeepingUnit ASC",
           "operation": "Update",
-          "externalId": "Name;StockKeepingUnit",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceClassIdentifier, SourceIdentifier FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
+          "operation": "Upsert",
+          "externalId": "Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DestinationPrimitiveType, IsDestinationEnumerated, IsSourceEnumerated, Name, SourcePrimitiveType, UsageType, Id FROM ValTfrmGrp",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT InputPicklistValueId, OutputPicklistValueId, IsInputBoolean, InputDate, InputDatetime, InputNumber, InputString, Name, IsOutputBoolean, OutputDate, OutputDatetime, OutputNumber, OutputString, ValueTransformGroupId, Id FROM ValTfrm",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT SourceAttributeDefinitionId, DestinationAttributeDefinitionId, CalculationMethod, DecompositionRuleId, DestinationApiName, DestinationAttributeIdentifier, DestinationContextTag, DestinationType, ListMappingGroupId, Name, Id, RuleEnforcement, SourceApiName, SourceAttributeIdentifier, SourceContextTag, SourceType FROM ProductDecompEnrichmentRule",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssignedToId, CustomBaseExecutionDate, CustomFulfillmentScope, DelayUnit, DelayOf, ExecuteOn, FlowDefinitionName, ForcePlanFreezeDuringExecution, StepDefinitionGroupId, AmendGroupId, CancelledGroupId, IntegrationDefinitionNameId, Id, Name, OmniscriptName, PointOfNoReturn, ResumeOnRuleId, Scope, IsSkipBranch, TaskAllocationType, StepType, UsageType FROM FulfillmentStepDefinition",
+          "operation": "Upsert",
+          "externalId": "Name;StepDefinitionGroup.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DependencyScope, IsCompensateInReverse, FulfillmentStepDefinitionId, DependsOnStepDefinitionId, Id, Name, PropagateStateToDependentStep FROM FulfillmentStepDependencyDef",
+          "operation": "Upsert",
+          "externalId": "Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name",
+          "excluded": false
+        },        
+        {
+          "query": "SELECT Action, FulfillmentProcessId, FulfillmentStepDefnGroupId, ProductClassificationId, Name, Id, ProductId, SourceClassIdentifier, SourceIdentifier, Type FROM ProductFulfillmentScenario",
+          "operation": "Upsert",
+          "externalId": "Name;Product.StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, Id, Name FROM FulfillmentWorkspace",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, Name, ShowOrder FROM FulfillmentWorkspaceItem",
+          "operation": "Upsert",
+          "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ErrorCode, FlowDefinitionName, Id, StepType, FalloutQueueId, IntegrationDefinitionId, Name, RetriesAllowed, RetryIntervals, RetryPolicy FROM FulfillmentFalloutRule",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT EstimatedDuration, EstimatedDurationUnit, FlowDefinition, Id, StepType, JeopardyThreshold, JeopardyThresholdUnit, Name, IntegrationDefinition.DeveloperName FROM FulfillmentStepJeopardyRule",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConditionId, DestinationId, Id, Name, Priority, SourceId, TaskAllocationType FROM FulfillmentTaskAssignmentRule",
+          "operation": "Upsert",
+          "externalId": "Name",
           "excluded": false
         }
       ]

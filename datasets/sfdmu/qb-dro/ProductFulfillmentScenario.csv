@@ -1,11 +1,11 @@
-$$Name$Product.StockKeepingUnit$CurrencyIsoCode,Action,CurrencyIsoCode,FulfillmentStepDefnGroup.$$Name$CurrencyIsoCode,Name,Product.$$Name$StockKeepingUnit
-Convert All Lines to Assets;QB-API;USD,Add;Amend;Renew;No Change;Cancel,USD,Asset Conversion;USD,Convert All Lines to Assets,Additional API;QB-API
-AEH API Access Requests - Provision Tenant for Net New;QB-API-REQT;USD,Add,USD,Tenant Provisioning + Activation;USD,AEH API Access Requests - Provision Tenant for Net New,API Access Requests (AEH);QB-API-REQT
-AEH API Access Requests - Validate Tenant for Net New;QB-API-REQT;USD,Add,USD,Order Processing;USD,AEH API Access Requests - Validate Tenant for Net New,API Access Requests (AEH);QB-API-REQT
-AEH API Access Requests - Convert Assets;QB-API-REQT;USD,Add;Amend;Renew;No Change,USD,Asset Conversion;USD,AEH API Access Requests - Convert Assets,API Access Requests (AEH);QB-API-REQT
-Provision Tenant - New Sale - Additional API;QB-API;USD,Add,USD,Tenant Provisioning + Activation;USD,Provision Tenant - New Sale - Additional API,Additional API;QB-API
-Additional API;QB-API;USD,Add,USD,Order Processing;USD,Additional API,Additional API;QB-API
-Bill;QB-API-REQT;USD,Add;Amend;Renew;No Change;Cancel,USD,Finance;USD,Bill,API Access Requests (AEH);QB-API-REQT
-Finance Flow;QB-AEH-BILL;USD,Add;Amend;Renew;No Change;Cancel,USD,Finance;USD,Finance Flow,Finance Service;QB-AEH-BILL
-Order Review;QB-AEH-OR;USD,Add;Amend;Renew;No Change;Cancel,USD,Order Processing;USD,Order Review,Order Processing;QB-AEH-OR
-Provisioning and Activation;QB-AEH-CPU;USD,Add;Amend;Renew;No Change;Cancel,USD,Tenant Provisioning + Activation;USD,Provisioning and Activation,Provisioning and Activation Service;QB-AEH-CPU
+$$Name$Product.StockKeepingUnit,Action,FulfillmentProcess.Name,FulfillmentStepDefnGroup.Name,Name,Product.StockKeepingUnit,ProductClassification.Name,SourceClassIdentifier,SourceIdentifier,Type
+AEH API to Provisioning;QB-DRO-AEH,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,AEH API to Provisioning,QB-DRO-AEH,,,,
+API Platform to Provisioning;QB-DRO-APIPLAT,Add;Amend;Renew;No Change;Cancel,,Platform,API Platform to Provisioning,QB-DRO-APIPLAT,,,,
+Additional Messages to Provisioning;QB-DRO-AM,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,Additional Messages to Provisioning,QB-DRO-AM,,,,
+API to Provisioning;QB-DRO-AAPI,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,API to Provisioning,QB-DRO-AAPI,,,,
+Finance Service;QB-DRO-BILL,Add;Amend;Renew;No Change;Cancel,,Finance,Finance Service,QB-DRO-BILL,,,,
+Project Service;QB-DRO-PROJ,Add;Amend;Renew;No Change;Cancel,,Services,Project Service,QB-DRO-PROJ,,,,
+API Platform License to Provisioning;QB-DRO-PERMS,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,API Platform License to Provisioning,QB-DRO-PERMS,,,,
+QB Database to Provisioning;QB-DRO-QBD,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,QB Database to Provisioning,QB-DRO-QBD,,,,
+Additional Flows to Provisioning;QB-DRO-AACR,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,Additional Flows to Provisioning,QB-DRO-AACR,,,,
+Additional Credits to Provisioning;QB-DRO-AAQBC,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,Additional Credits to Provisioning,QB-DRO-AAQBC,,,,

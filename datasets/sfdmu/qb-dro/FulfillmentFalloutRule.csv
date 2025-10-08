@@ -1,2 +1,4 @@
-$$Name$CurrencyIsoCode,CurrencyIsoCode,ErrorCode,FlowDefinitionName,IntegrationDefinition.DeveloperName,Name,RetriesAllowed,RetryIntervals,RetryPolicy,StepType
-000000001;USD,USD,,,RLM_DFOTenantProvisioningCallout,000000001,1,,Immediate,Callout
+ErrorCode,FalloutQueue.Name,FlowDefinitionName,IntegrationDefinition.DeveloperName,Name,RetriesAllowed,RetryIntervals,RetryPolicy,StepType
+,,,,000000001,1,,Immediate,Callout
+,Order Fulfillment Queue,,RLM_DFOTenantProvisioningCallout,000000002,3,,Immediate,Callout
+,Order Fulfillment Queue,,,000000003,3,,Immediate,AutoTask
