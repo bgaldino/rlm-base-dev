@@ -1,13 +1,15 @@
 ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
-1,,ACCTS,,,2,Active,Count,ACCTS,COUNT
-1,,CALLS,,,4,Active,Count,CALLS,COUNT
-1,,Count,,,1,Active,Count,Count,SMS01
-1,,Each,,,1,Active,Count,Each,CAS01
-0.001,Unit of measure for Data,GB,,,2,Active,Memory,GB,DAT01
-1,,LOGS,,,3,Active,Count,LOGS,COUNT
-1,,MB,,,1,Active,Memory,MB,DAT01
-1,,Minutes,,,1,Active,Time,MIN,CALLUNITS01
-1,,SESH,,,5,Active,Count,SESH,COUNT
-1,,TPS,,,6,Active,Count,TPS,COUNT
+1000000000,,Byte,,,1,Active,Data,B,DATAVOL
+1,Support Cases,Each,,,1,Active,Count,EACH,CAS01
+,,Emails,,,,Active,Custom,EMAIL,EMAIL
+1,,Gigabyte,,,4,Active,Data,GB,DATAVOL
+60,,Hour,,,3,Active,Time,h,TIME
+1000000,,Kilobyte,,,2,Active,Data,KB,DATAVOL
+1,,Minutes,,,2,Active,Time,m,TIME
+1000,,Megabyte,,,3,Active,Data,MB,DATAVOL
+0.000001,,Petabyte,,,6,Active,Data,PB,DATAVOL
+0.016667,,Seconds,,,1,Active,Time,s,TIME
+,,SMS,,,,Active,Custom,SMS,MESSAG
+0.001,,Terabyte,,,5,Active,Data,TB,DATAVOL
+,Token UOM,Tokens,,,,Active,Custom,TOKEN-UOM,Token_UoM_Class
 1,,USD,,,1,Active,Cost,USD,CURRENCY
-1,,XFER,,,1,Active,Count,XFER,COUNT

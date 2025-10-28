@@ -1,15 +1,19 @@
 $$Name$Catalog.Code$ParentCategory.Name,Catalog.Name,Code,Description,Name,ParentCategory.$$Name$Catalog.Code$ParentCategory.Name,SortOrder
-Accessories;CAT-QB-HW,QuantumBit Hardware,,,Accessories,,
-Hard Drive;CAT-QB-HW,QuantumBit Hardware,,,Hard Drive,,
-Hardware Maintenance;CAT-QB-HW,QuantumBit Hardware,,,Hardware Maintenance,,
-Memory;CAT-QB-HW,QuantumBit Hardware,,,Memory,,
-Network Adapter;CAT-QB-HW,QuantumBit Hardware,,,Network Adapter,,
-Processor;CAT-QB-HW,QuantumBit Hardware,,,Processor,,
-Server;CAT-QB-HW,QuantumBit Hardware,,,Server,,
-API;CAT-QB-SFT,QuantumBit Software,,,API,,20
-Bundle;CAT-QB-SFT,QuantumBit Software,,,Bundle,,10
-Licenses;CAT-QB-SFT,QuantumBit Software,,,Licenses,,30
-Maintenance;CAT-QB-SFT,QuantumBit Software,,,Maintenance,,50
-Subscription;CAT-QB-SFT,QuantumBit Software,,,Subscription,,100
-Training;CAT-QB-SFT,QuantumBit Software,,,Training,,40
-Services;CAT-QB-SRV,QuantumBit Services,,,Services,,
+Accessories;CAT-QB-HW,Hardware,PC-QB-HW-ACCESSORIES,,Accessories,,
+GPU;CAT-QB-HW,Hardware,GPU,,GPU,,
+Hard Drive;CAT-QB-HW,Hardware,PC-QB-HW-HDD,,Hard Drive,,
+Hardware Maintenance;CAT-QB-HW,Hardware,PC-QB-HW-HWMAINT,,Hardware Maintenance,,
+Memory;CAT-QB-HW,Hardware,PC-QB-HW-MEMORY,,Memory,,
+PCIe;CAT-QB-HW,Hardware,PCIe,,PCIe,,
+Power Supplies;CAT-QB-HW,Hardware,Power Supplies,,Power Supplies,,
+Processor;CAT-QB-HW,Hardware,PC-QB-HW-CPU,,Processor,,
+Server;CAT-QB-HW,Hardware,PC-QB-HW-SERVER,,Server,,
+Solid State Drive;CAT-QB-HW,Hardware,Solid State Drive,,Solid State Drive,,
+Network Adapter;CAT-QB-HW;PCIe,Hardware,PC-QB-HW-NIC,,Network Adapter,PCIe;CAT-QB-HW,
+API;CAT-QB-SFT,Software,PC-QB-SW-API,,API,,20
+Bundle;CAT-QB-SFT,Software,PC-QB-SW-BUNDLE,,Bundle,,10
+Licenses;CAT-QB-SFT,Software,PC-QB-SW-LICENSES,,Licenses,,30
+Maintenance;CAT-QB-SFT,Software,PC-QB-SW-MAINT,,Maintenance,,50
+Subscription;CAT-QB-SFT,Software,PC-QB-SW-SUB,,Subscription,,100
+Training;CAT-QB-SFT,Software,PC-QB-SW-TRAINING,,Training,,40
+Services;CAT-QB-SRV,Services,PC-QB-SRVC-SERVICES,,Services,,

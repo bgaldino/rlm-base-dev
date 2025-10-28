@@ -1,0 +1,6 @@
+$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,DurationType,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
+QB-API;TermDefined;Yearly,,QB-API,Term Annual;TermDefined,Yearly,
+QB-API;TermDefined;Custom,,QB-API,Term Annual;TermDefined,Custom,
+QB-GEN-AI-LIC;TermDefined;Yearly,,QB-GEN-AI-LIC,Term Annual;TermDefined,Yearly,
+QB-GEN-AI-LIC;TermDefined;Custom,,QB-GEN-AI-LIC,Term Annual;TermDefined,Custom,
+QB-SUPP-2000;TermDefined;Yearly,,QB-SUPP-2000,Term Annual;TermDefined,Yearly,

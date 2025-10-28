@@ -1,4 +1,6 @@
 AdjustmentMethod,EffectiveFrom,EffectiveTo,IsActive,Name,Pricebook2.$$Name$IsStandard,ScheduleType
-Range,2023-01-01T00:00:00.000+0000,,false,Standard Price Adjustment Tier,Standard Price Book;true,Volume
+Slab,2023-01-01T00:00:00.000+0000,,false,Standard Volume Based Adjustment,Standard Price Book;true,Volume
 Range,2023-01-01T00:00:00.000+0000,,true,Standard Attribute Based Adjustment,Standard Price Book;true,Attribute
 Range,2023-01-01T00:00:00.000+0000,,true,Standard Bundle Based Adjustment,Standard Price Book;true,Bundle
+Slab,2023-01-01T00:00:00.000+0000,,true,Standard Volume Based Adjustment,Standard Price Book;true,Volume
+Range,2025-10-01T11:13:07.000+0000,,false,Standard Price Adjustment Tier,Standard Price Book;true,Volume

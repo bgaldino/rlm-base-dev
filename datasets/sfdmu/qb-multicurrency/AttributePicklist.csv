@@ -1,16 +1,27 @@
-CurrencyIsoCode,DataType,Code,Description,Name,Status
-USD,Text,AP-001,,API Type Picklist,Active
-USD,Number,AP-002,,Base Core Count Picklist,Active
-USD,Text,AP-003,,Cable Length Picklist,Active
-USD,Text,AP-004,,Connector Type Picklist,Active
-USD,Text,AP-005,,Data Storage Picklist,Active
-USD,Number,AP-006,,Data Utilization,Active
-USD,Text,AP-007,,Engineering Options Picklist,Active
-USD,Text,AP-008,,Network Adapter Type Picklist,Active
-USD,Text,AP-009,,Operating System Picklist,Active
-USD,Text,AP-010,,Processor Frequency Picklist,Active
-USD,Text,AP-011,,RAM Config Picklist,Active
-USD,Text,AP-012,,RAM Picklist,Active
-USD,Text,AP-013,,Resource Location Picklist,Active
-USD,Text,AP-014,,Server Configuration Picklist,Active
-USD,Text,AP-015,,Subscription Type Picklist,Active
+Code,CurrencyIsoCode,DataType,Description,Name,Status
+AIHD-001,USD,Text,,AI Help Desk Type,Active
+AP-001,USD,Text,,API Type Picklist,Active
+AP-002,USD,Number,,Base Core Count Picklist,Active
+AP-003,USD,Text,,Cable Length Picklist,Active
+AP-004,USD,Text,,Connector Type Picklist,Active
+AP-005,USD,Text,,Data Storage Picklist,Active
+AP-006,USD,Number,,Data Utilization,Active
+DIMM Type,USD,Text,,DIMM Type,Active
+AP-007,USD,Text,,Engineering Options Picklist,Active
+Front Storage,USD,Text,,Front Storage,Active
+AP-008,USD,Text,,Network Adapter Type Picklist,Active
+AP-009,USD,Text,,Operating System Picklist,Active
+PCIe Lane Type,USD,Text,,PCIe Lane Type,Active
+Performance Tier,USD,Text,,Performance Tier,Active
+AP-010,USD,Text,,Processor Frequency Picklist,Active
+RAID,USD,Text,,RAID,Active
+AP-011,USD,Text,,RAM Config Picklist,Active
+AP-012,USD,Text,,RAM Picklist,Active
+Rear Storage,USD,Text,,Rear Storage,Active
+Redundancy,USD,Text,,Redundancy,Active
+AP-013,USD,Text,,Resource Location Picklist,Active
+AP-014,USD,Text,,Server Configuration Picklist,Active
+Socket Configuration,USD,Boolean,,Socket Configuration,Active
+Storage Profile,USD,Text,,Storage Profile,Active
+AP-015,USD,Text,,Subscription Type Picklist,Active
+Workload,USD,Text,,Workload,Active

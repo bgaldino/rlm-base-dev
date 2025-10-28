@@ -1,92 +1,40 @@
 $$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentProduct.StockKeepingUnit,Sequence
-,,,,,Circuit Breaker Accessories,,2
-,,,,,Parts,,4
-,,,,,Base Tank Accessory,,
-,,,,,Base Tank Fuel Hose,,
-,,,,,Base Tank Fuel Extension,,
-,,,,,General,,1
-,,,1,1,Model,,1
-,,,1,1,Voltage Connection,,2
-,,,,,Laptop,,1
-,,,,,Computer Protection,,2
-,,,,,Laptop,,1
-,,,,,Accessories,,2
-,,,,,Printer,,1
-,,,,,Printer Accessories,,2
-,,,,,Installation & Site Assessment,,1
-,,,,,Installation,,7
-,,,,,Install & Misc,,7
-,,,,,Misc,,2
-,,,,,Generator,,
-,,,,,Emergency Vent,,
-,,,,,Circuit Breaker Contacts,,3
-,,,,,Primary Circuit Breaker Frame Size,,1
-Accessories,Accessories,,,,Accessories,,6
-Accessories Main,Accessories Main,,99,1,Accessories Main,,50
-Air Cleaner Duty Rating,Air Cleaner Duty Rating,,1,1,Air Cleaner Duty Rating,,18
-Alternator,Alternator,,,,Alternator,,2
-Battery Charging Alternator,Battery Charging Alternator,,1,1,Battery Charging Alternator,,20
-Bearing Hardened Cartridge,Bearing Hardened Cartridge,,1,0,Bearing Hardened Cartridge,,31
-Circuit Breaker or Box Arrangement,Circuit Breaker or Box Arrangement,,1,1,Circuit Breaker or Box Arrangement,,34
-Circuit Breaker or Terminal Box,Circuit Breaker or Terminal Box,,2,0,Circuit Breaker or Terminal Box,,35
-Control,Control,,,,Control,,4
-Control Cabinet Heater,Control Cabinet Heater,,1,0,Control Cabinet Heater,,43
-Control Main,Control Main,,1,1,Control Main,,40
-Control Options,Control Options,,99,0,Control Options,,44
-Coolant Heater,Coolant Heater,,1,0,Coolant Heater,,24
-Cooling System,Cooling System,,1,1,Cooling System,,25
-Cooling System Connection,Cooling System Connection,,1,0,Cooling System Connection,,26
-Cooling System Protection,Cooling System Protection,,1,1,Cooling System Protection,,27
-Differential CT's,Differential CT's,,99,0,Differential CT's,,33
-Enclosure,Enclosure,,1,1,Enclosure,,49
-Engine,Engine,,,,Engine,,3
-Engine Model,Engine Model,,1,1,Engine Model,,17
-Fuel Filter,Fuel Filter,,1,1,Fuel Filter,,23
-Fuel System Options,Fuel System Options,,99,0,Fuel System Options,,22
-General,General,,,,General,,1
-Heater,Heater,,1,0,Heater,,28
-Literature Language,Literature Language,,99,1,Literature Language,,47
-Load Connections,Load Connections,,4,0,Load Connections,,36
-Main Alternator,Main Alternator,,1,1,Main Alternator,,16
-Model,Model,,1,1,Model,,7
-Oil System Options,Oil System Options,,99,0,Oil System Options,,21
-Output Terminals,Output Terminals,,1,0,Output Terminals,,31
-Packing for Shipment,Packing for Shipment,,1,1,Packing for Shipment,,48
-PMG,PMG,,1,1,PMG,,30
-Primary Electrical Isolation Device Options,Primary Electrical Isolation Device Options,,99,0,Primary Electrical Isolation Device Options,,39
-Services,Services,,,,Services,,5
-SFT001,SFT001,,,,Software,,
-Starter Motor,Starter Motor,,1,1,Starter Motor,,19
-Temperature Sensors,Temperature Sensors,,2,0,Temperature Sensors,,29
-Testing,Testing,,99,1,Testing,,46
-Voltage Connection,Voltage Connection,,1,1,Voltage Connection,,15
-Warranty,Warranty,,1,1,Warranty,,45
-MPS Solution Bundle,,,,,Generators,MPS Solution Bundle,
-SD100-175,,,,,Enclosure,SD100-175,20
-SD100-175,,,,,Enclosure,SD100-175,1
-SD100-175,,,,,Enclosure Paint Color,SD100-175,2
-SD100-175,,,,,Enclosure Opt Accessories,SD100-175,3
-SD100-175,,,,,Enclosure Heater,SD100-175,4
-SD100-175,,,,,Engine Accessories,SD100-175,40
-SD100-175,,,,,Battery,SD100-175,30
-SD100-175,,,,,Battery Charger,SD100-175,2
-SD100-175,,,,,Battery Accessories,SD100-175,3
-SD100-175,,,,,Circuit Breakers,SD100-175,60
-SD100-175,,,,,Warranty,SD100-175,75
-SD100-175,,,,,Base Tank,SD100-175,70
-SD100-175,,,,,Supplementary,SD100-175,150
-SD100-175,,,,,Isolators,SD100-175,1
-SD100-175,,,,,Regulatory,SD100-175,90
-SD100-175,,,,,Testing,SD100-175,100
-SD100-175,,,,,Special Options,SD100-175,10
-SD100-175,,,,,Accessories,SD100-175,250
-SD100-175,,,,,Annunciator,SD100-175,10
-SD100-175,,,,,Alarm Relay,SD100-175,20
-SD100-175,,,,,Emergency Stop,SD100-175,30
-SD100-175,,,,,Miscellaneous,SD100-175,40
-SD100-175,,,,,Battery,SD100-175,1
-SD100-175,,,,,System Units & Testing,SD100-175,100
-SD100-175,,,,,Control Panel,SD100-175,50
-SD100-175,,,,,Alternator,SD100-175,10
-SD100-175,,,,,Alternator,SD100-175,1
-SD100-175,,,,,Alternator Accessories,SD100-175,2
+AI Help Desk,,,,1,Seats,AI Help Desk,
+IC-50,,,,,Channels,IC-50,20
+IC-50,,,,,AI Bot,IC-50,10
+IC-50,,,,,SMS,IC-50,20
+IC-50,,,,,Add-Ons,IC-50,5
+IC-50,,,,1,AI Help Desk,IC-50,2
+IC-50,,,,,Email,IC-50,10
+IC-50,,,,,Proactive Support,IC-50,20
+IC-50,,,,,WhatsApp Integrations,IC-50,30
+IC-50,,,,1,Intercom,IC-50,10
+IC-50,,,,,Premier Services,IC-50,50
+IC-50,,,,,Professional Services,IC-50,20
+IC-50,,,,,Premier Support,IC-50,10
+PCG-QB-SRV-CPU;QB-BDL-R750,PCG-QB-SRV-CPU,,1,1,Processor,QB-BDL-R750,1
+PCG-QB-SRV-HDD;QB-BDL-R750,PCG-QB-SRV-HDD,,1,1,Hard Drive,QB-BDL-R750,3
+PCG-QB-SRV-NIC;QB-BDL-R750,PCG-QB-SRV-NIC,,1,1,Network Adapter,QB-BDL-R750,4
+PCG-QB-SRV-RAM;QB-BDL-R750,PCG-QB-SRV-RAM,,1,1,Memory Capacity,QB-BDL-R750,2
+PCG-QB-PS-ENGRESOURCES;QB-BDL-SRVC,PCG-QB-PS-ENGRESOURCES,,,,Engineering Resources,QB-BDL-SRVC,1
+PCG-QB-PS-PM;QB-BDL-SRVC,PCG-QB-PS-PM,,,,Project Management,QB-BDL-SRVC,2
+PCG-QB-PS-SA;QB-BDL-SRVC,PCG-QB-PS-SA,,,,Solution Architecture,QB-BDL-SRVC,3
+PCG-QBSTARTER-MAINT;QB-BDL-STND,PCG-QBSTARTER-MAINT,,1,1,Maintenance,QB-BDL-STND,20
+PCG-QBSTARTER-TRAINING;QB-BDL-STND,PCG-QBSTARTER-TRAINING,,1,1,Training,QB-BDL-STND,10
+PCG-QB-MAINT;QB-COMPLETE,PCG-QB-MAINT,,,,Maintenance & Support,QB-COMPLETE,40
+PCG-QB-SERVICES;QB-COMPLETE,PCG-QB-SERVICES,,,,Services,QB-COMPLETE,30
+PCG-QB-SOFTWARE;QB-COMPLETE,PCG-QB-SOFTWARE,,,,Software,QB-COMPLETE,10
+PCG-QB-TRAINING;QB-COMPLETE,PCG-QB-TRAINING,,,,Training,QB-COMPLETE,20
+QB-PCG-USAGE;QB-COMPLETE,QB-PCG-USAGE,,,,Consumption,QB-COMPLETE,15
+Computing;QB-QRack-750,Computing,,,,Computing,QB-QRack-750,1
+Cooling;QB-QRack-750,Cooling,,2,1,Cooling,QB-QRack-750,2
+GPUs;QB-QRack-750,GPUs,,,,GPUs,QB-QRack-750,1
+Hard Drives;QB-QRack-750,Hard Drives,,,,Hard Drives,QB-QRack-750,1
+I/O;QB-QRack-750,I/O,,,,I/O,QB-QRack-750,2
+Memory;QB-QRack-750,Memory,,,,Memory,QB-QRack-750,2
+Networking;QB-QRack-750,Networking,,,,Networking,QB-QRack-750,3
+PCIe;QB-QRack-750,PCIe,,,,PCIe,QB-QRack-750,4
+Power Supply;QB-QRack-750,Power Supply,,,,Power Supply,QB-QRack-750,5
+Processor;QB-QRack-750,Processor,,2,1,Processor,QB-QRack-750,1
+Solid State Drives;QB-QRack-750,Solid State Drives,,4,0,Solid State Drives,QB-QRack-750,2
+Storage;QB-QRack-750,Storage,,,,Storage,QB-QRack-750,3

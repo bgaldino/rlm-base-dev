@@ -1,2 +1,2 @@
 ArePartialPeriodsAllowed,Name,ProrationPolicyType,RemainderStrategy
-false,Default Proration Policy,StandardTimePeriods,AddToLast
+true,Default Proration Policy,StandardTimePeriods,AddToLast

@@ -1,46 +1,27 @@
-DataType,Description,Name,Status
-Text,,Actual Noise Volume,Active
-Text,,applicationEmissionCertification,Active
-Text,,Capacity,Active
-Text,,Display Picklist,Active
-Text,,Display Size Picklist,Active
-Text,,DutyRating,Active
-Text,,Enclosure Certifications,Active
-Text,,Enclosure Type,Active
-Text,,enclosureMaterial,Active
-Text,,Entrance Types,Active
-Text,,frequency,Active
-Text,,gc_alternatorType,Active
-Text,,gc_cbSize,Draft
-Text,,gc_cbType,Active
-Text,,gc_certificate,Active
-Text,,gc_circuitBreakerType,Active
-Text,,gc_duty,Active
-Text,,gc_excitation,Active
-Text,,gc_fuel,Active
-Number,,gc_KW,Active
-Text,,gc_language,Active
-Text,,gc_noiseVolume,Active
-Text,,gc_oem,Draft
-Text,,gc_redundancy,Active
-Text,,gc_shipToCountry,Active
-Text,,gc_shipToRegion,Active
-Text,,gc_spMode,Active
-Text,,gc_spUnit,Draft
-Text,,gc_voltage,Active
-Text,,Graphics Picklist,Active
-Text,,Languages,Active
-Text,,Memory Picklist,Active
-Text,,Paper Size Picklist,Active
-Number,,Power,Active
-Text,,Printer Picklist,Active
-Text,,Processor Picklist,Active
-Text,,Protection Level,Active
-Text,,seismicCertification,Active
-Text,,SpecialApplication,Active
-Text,,standardsAndCompliance,Active
-Text,,Storage Picklist,Active
-Text,Subscription Type,Subscription Type,Active
-Text,,Support Level Picklist,Active
-Text,,Training Type Picklist,Active
-Text,,Voltage,Active
+Code,DataType,Description,Name,Status
+AIHD-001,Text,,AI Help Desk Type,Active
+AP-001,Text,,API Type Picklist,Active
+AP-002,Number,,Base Core Count Picklist,Active
+AP-003,Text,,Cable Length Picklist,Active
+AP-004,Text,,Connector Type Picklist,Active
+AP-005,Text,,Data Storage Picklist,Active
+AP-006,Number,,Data Utilization,Active
+DIMM Type,Text,,DIMM Type,Active
+AP-007,Text,,Engineering Options Picklist,Active
+Front Storage,Text,,Front Storage,Active
+AP-008,Text,,Network Adapter Type Picklist,Active
+AP-009,Text,,Operating System Picklist,Active
+PCIe Lane Type,Text,,PCIe Lane Type,Active
+Performance Tier,Text,,Performance Tier,Active
+AP-010,Text,,Processor Frequency Picklist,Active
+RAID,Text,,RAID,Active
+AP-011,Text,,RAM Config Picklist,Active
+AP-012,Text,,RAM Picklist,Active
+Rear Storage,Text,,Rear Storage,Active
+Redundancy,Text,,Redundancy,Active
+AP-013,Text,,Resource Location Picklist,Active
+AP-014,Text,,Server Configuration Picklist,Active
+Socket Configuration,Boolean,,Socket Configuration,Active
+Storage Profile,Text,,Storage Profile,Active
+AP-015,Text,,Subscription Type Picklist,Active
+Workload,Text,,Workload,Active

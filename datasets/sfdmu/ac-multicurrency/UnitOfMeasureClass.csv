@@ -1,8 +1,8 @@
 BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,Type
-MIN,CALLUNITS01,MIN,Call Units in Minutes,Call Units,Active,Usage
-Each,CAS01,Each,Support Cases,Case,Active,Usage
-XFER,COUNT,XFER,,Count,Active,Usage
+EACH,CAS01,EACH,Support Cases,Case,Active,Usage
 USD,CURRENCY,USD,,Currency,Active,Currency
-MB,DAT01,MB,The unit refers to the amount of data,Data,Active,Usage
-Count,SMS01,Count,Class for SMS,SMS,Active,Usage
-Each,Unit,Each,,Unit,Inactive,
+GB,DATAVOL,GB,,Data Volume,Active,Usage
+,EMAIL,EMAIL,,Emails,Active,Usage
+,MESSAG,SMS,,Messaging,Active,Usage
+m,TIME,m,,Time,Active,Usage
+,Token_UoM_Class,TOKEN-UOM,Tokens UoM Class,Tokens UoM Class,Active,Token

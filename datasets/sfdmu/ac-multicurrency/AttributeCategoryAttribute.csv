@@ -1,53 +1,35 @@
 $$AttributeCategory.Name$AttributeDefinition.Code,AttributeCategory.Code,AttributeDefinition.Code
-01. Customer Needs,CN001,
-01. Customer Needs,CN001,
-01. Customer Needs,CN001,
-01. Customer Needs,CN001,
-01. Customer Needs;gc_fuel,CN001,gc_fuel
-01. Customer Needs;gc_kw,CN001,gc_kw
-01. Customer Needs;gc_noiseVolume,CN001,gc_noiseVolume
-01. Customer Needs;gc_oem,CN001,gc_oem
-01. Customer Needs;gc_voltage,CN001,gc_voltage
-02. Specification Attributes;frequency,CA001,frequency
-02. Specification Attributes;gc_actualNoiseVolume,CA001,gc_actualNoiseVolume
-02. Specification Attributes;gc_alternatorUpsize,CA001,gc_alternatorUpsize
-02. Specification Attributes;gc_certificate,CA001,gc_certificate
-02. Specification Attributes;gc_circuitBreakerType,CA001,gc_circuitBreakerType
-02. Specification Attributes;gc_duty,CA001,gc_duty
-02. Specification Attributes;gc_excitation,CA001,gc_excitation
-02. Specification Attributes;gc_roofBased,CA001,gc_roofBased
-03. SEQ,SEQ,
-03. SEQ;gc_alternatorUpsize,SEQ,gc_alternatorUpsize
-Application,Application,
-Application,Application,
-Application,Application,
-Application,Application,
-Application,Application,
-Application,Application,
-Connection Type,CT001,
-Display,DIS,
-Display,DIS,
-Environment,Environment,
-Environment,Environment,
-Environment,Environment,
-Environment,Environment,
-Graphics,GRA,
-Memory,MEM,
-MPS Attributes,MPS_Attributes,
-MPS Attributes,MPS_Attributes,
-MPS Attributes,MPS_Attributes,
-MPS Attributes,MPS_Attributes,
-MPS Attributes,MPS_Attributes,
-MPS Attributes,MPS_Attributes,
-MPS Attributes;gc_fuel,MPS_Attributes,gc_fuel
-MPS Attributes;gc_oem,MPS_Attributes,gc_oem
-MPS Attributes;gc_roofBased,MPS_Attributes,gc_roofBased
-MPS Attributes;gc_voltage,MPS_Attributes,gc_voltage
-Paper,PP001,
-Printer,P001,
-Processor,PRO,
-Shipping;gc_shipToCountry,SH001,gc_shipToCountry
-Shipping;gc_shipToRegion,SH001,gc_shipToRegion
-Storage,STO,
-Support,SP001,
-Training,T001,
+A. General;DIMM Type,A. General,DIMM Type
+A. General;Dual,A. General,Dual
+A. General;Performance Tier,A. General,Performance Tier
+A. General;Workload,A. General,Workload
+API Specification;ATTR-QB-API,AC-QB-API,ATTR-QB-API
+B. Storage;Front Storage,B. Storage,Front Storage
+B. Storage;RAID,B. Storage,RAID
+B. Storage;Rear Storage,B. Storage,Rear Storage
+B. Storage;Storage (TB),B. Storage,Storage (TB)
+B. Storage;Storage Profile,B. Storage,Storage Profile
+C. PCIe & Power;Available PCIe Slots,C. PCIe & Power,Available PCIe Slots
+C. PCIe & Power;Power Draw (watts),C. PCIe & Power,Power Draw (watts)
+C. PCIe & Power;Redundancy,C. PCIe & Power,Redundancy
+C. PCIe & Power;x16 Lanes,C. PCIe & Power,x16 Lanes
+C. PCIe & Power;x8 Lanes,C. PCIe & Power,x8 Lanes
+Cables;ATTR-QB-CONNECTOR,AC-QB-CABLES,ATTR-QB-CONNECTOR
+Cables;ATTR-QB-LENGTH,AC-QB-CABLES,ATTR-QB-LENGTH
+Engineering Resources;ATTR-QB-PS-ENGOPTIONS,AC-QB-PS-ENGRESOURCES,ATTR-QB-PS-ENGOPTIONS
+Engineering Resources;ATTR-QB-PSRESOURCELOCATION,AC-QB-PS-ENGRESOURCES,ATTR-QB-PSRESOURCELOCATION
+Hard Drive;ATTR-QB-DATASTORAGE,AC-QB-STORAGE,ATTR-QB-DATASTORAGE
+Network Adapter;ATTR-QB-NIC,AC-QB-NIC,ATTR-QB-NIC
+Operating System;ATTR-QB-OS,AC-QB-OS,ATTR-QB-OS
+PCIe Lane;PCIe Lane Type,PCIe Lane,PCIe Lane Type
+Processor;ATTR-QB-CPUFRQ,AC-QB-CPU,ATTR-QB-CPUFRQ
+Professional Services Bundle;ATTR-QB-PS-NOTES,AC-QB-PSBUNDLE,ATTR-QB-PS-NOTES
+QuantumBit;ATTR-QB-DATATHROUGHPUTTB,AC-QB,ATTR-QB-DATATHROUGHPUTTB
+QuantumBit;ATTR-QB-FLOWS,AC-QB,ATTR-QB-FLOWS
+QuantumBit;ATTR-QB-MESSAGES,AC-QB,ATTR-QB-MESSAGES
+RAM;ATTR-QB-RAM,AC-QB-RAM,ATTR-QB-RAM
+RAM;ATTR-QB-RAMMAX,AC-QB-RAM,ATTR-QB-RAMMAX
+Server;ATTR-QB-SRVCONFIG,AC-QB-SERVER,ATTR-QB-SRVCONFIG
+Subscription Type;ATTR-QB-SUBTYPE,AC-QB-PS-SUBTYPE,ATTR-QB-SUBTYPE
+Tech Specs;ATTR-QB-BASECORECNT,AC-QB-SPEC,ATTR-QB-BASECORECNT
+Utilization;ATTR-QB-DATAUTIL,AC-QB-UTILIZATION,ATTR-QB-DATAUTIL

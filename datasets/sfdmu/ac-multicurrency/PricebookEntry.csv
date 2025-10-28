@@ -1,430 +1,138 @@
 $$Name$Pricebook2.Name$Product2.StockKeepingUnit$ProductSellingModel.Name,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
-Antivirus;Nonprofit;Evergreen - Yearly,true,false,Antivirus,Nonprofit,,Evergreen - Yearly;Evergreen,49.99
-Cloud Storage;Nonprofit;Evergreen - Monthly,true,false,Cloud Storage,Nonprofit,,Evergreen - Monthly;Evergreen,7.99
-Laptop;Nonprofit;One Time,true,false,Laptop,Nonprofit,,One Time;OneTime,699
-Laptop Pro Bundle;Nonprofit;One Time,true,false,Laptop Pro Bundle,Nonprofit,,One Time;OneTime,799
-Monitor;Nonprofit;One Time,true,false,Monitor,Nonprofit,,One Time;OneTime,129.99
-(Remote Cooling) Flanged Connectors ASA;Standard Price Book;One Time,true,false,(Remote Cooling) Flanged Connectors ASA,Standard Price Book;true,,One Time;OneTime,2460
-0155-2341-10;Standard Price Book;One Time,true,false,0155-2341-10,Standard Price Book;true,,One Time;OneTime,2350
-0155-2342-10;Standard Price Book;One Time,true,false,0155-2342-10,Standard Price Book;true,,One Time;OneTime,1260
-0155-2696-07;Standard Price Book;One Time,true,false,0155-2696-07,Standard Price Book;true,,One Time;OneTime,2130
-0300-5929-01;Standard Price Book;One Time,true,false,0300-5929-01,Standard Price Book;true,,One Time;OneTime,410
-0300-5929-02;Standard Price Book;One Time,true,false,0300-5929-02,Standard Price Book;true,,One Time;OneTime,750
-0402-0750-01;Standard Price Book;One Time,true,false,0402-0750-01,Standard Price Book;true,,One Time;OneTime,500
-0416-0439;Standard Price Book;One Time,true,false,0416-0439,Standard Price Book;true,,One Time;OneTime,360
-0416-0527;Standard Price Book;One Time,true,false,0416-0527,Standard Price Book;true,,One Time;OneTime,300
-0541-1204;Standard Price Book;One Time,true,false,0541-1204,Standard Price Book;true,,One Time;OneTime,2160
-10 Amp Battery Charger;Standard Price Book;One Time,true,false,10 Amp Battery Charger,Standard Price Book;true,,One Time;OneTime,711
-1000KW MPS - G25.8L 2 X 500KW;Standard Price Book;1000kwMPS_2X500;One Time,true,false,1000KW MPS - G25.8L 2 X 500KW,Standard Price Book;true,1000kwMPS_2X500,One Time;OneTime,0
-1000KW MPS - G25.8L 5 X 200KW;Standard Price Book;1000kwMPS_5X200;One Time,true,false,1000KW MPS - G25.8L 5 X 200KW,Standard Price Book;true,1000kwMPS_5X200,One Time;OneTime,0
-100DB Alarm Horn;Standard Price Book;One Time,true,false,100DB Alarm Horn,Standard Price Book;true,,One Time;OneTime,0
-"110AH, 925CCA, Inst, Dual;Standard Price Book;One Time",true,false,"110AH, 925CCA, Inst, Dual",Standard Price Book;true,,One Time;OneTime,376
-12' Vent Extension;Standard Price Book;One Time,true,false,12' Vent Extension,Standard Price Book;true,,One Time;OneTime,2000
-120/240VAC compatible;Standard Price Book;One Time,true,false,120/240VAC compatible,Standard Price Book;true,,One Time;OneTime,1700
-120V GFCI and 240V Outlet;Standard Price Book;One Time,true,false,120V GFCI and 240V Outlet,Standard Price Book;true,,One Time;OneTime,0
-"13"" Fuel Extension;Standard Price Book;One Time",true,false,"13"" Fuel Extension",Standard Price Book;true,,One Time;OneTime,2500
-1500KW MPS - G25.8L 3 X 500KW;Standard Price Book;1000kwMPS_3X500;One Time,true,false,1500KW MPS - G25.8L 3 X 500KW,Standard Price Book;true,1000kwMPS_3X500,One Time;OneTime,120000
-200AMP SG350;Standard Price Book;One Time,true,false,200AMP SG350,Standard Price Book;true,,One Time;OneTime,1500
-200AMP TX Switch - NEMA1;Standard Price Book;One Time,true,false,200AMP TX Switch - NEMA1,Standard Price Book;true,,One Time;OneTime,899
-200AMP TX Switch - NEMA3R;Standard Price Book;One Time,true,false,200AMP TX Switch - NEMA3R,Standard Price Book;true,,One Time;OneTime,1299
-21 Light Annunciator - Surface;Standard Price Book;One Time,true,false,21 Light Annunciator - Surface,Standard Price Book;true,,One Time;OneTime,1026
-21 Light Annunciator - Surface with 8-Function Relay;Standard Price Book;One Time,true,false,21 Light Annunciator - Surface with 8-Function Relay,Standard Price Book;true,,One Time;OneTime,1026
-"220/380,3 Phase,Wye,4 Wire;Standard Price Book;One Time",true,false,"220/380,3 Phase,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,1110
-"240/416,3 Phase,Wye,4 Wire;Standard Price Book;One Time",true,false,"240/416,3 Phase,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,1770
-"2400/4160,3 Phase,Wye,4Wire;Standard Price Book;One Time",true,false,"2400/4160,3 Phase,Wye,4Wire",Standard Price Book;true,,One Time;OneTime,2280
-"255/440,3 Phase,Wye,4 Wire;Standard Price Book;One Time",true,false,"255/440,3 Phase,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,2340
-"277/480,3 Phase,Wye,4 Wire;Standard Price Book;One Time",true,false,"277/480,3 Phase,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,540
-"347/600,3 Phase,Wye,4 Wire;Standard Price Book;One Time",true,false,"347/600,3 Phase,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,1160
-5 Amp Battery Charger;Standard Price Book;One Time,true,false,5 Amp Battery Charger,Standard Price Book;true,,One Time;OneTime,0
-500W Enclosure Heater;Standard Price Book;One Time,true,false,500W Enclosure Heater,Standard Price Book;true,,One Time;OneTime,1460
-"7200/12470,3 Ph,Wye,4 Wire;Standard Price Book;One Time",true,false,"7200/12470,3 Ph,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,1180
-"7621/13200,3 Ph,Wye,4 Wire;Standard Price Book;One Time",true,false,"7621/13200,3 Ph,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,800
-"7976/13800,3 Ph,Wye,4 Wire;Standard Price Book;One Time",true,false,"7976/13800,3 Ph,Wye,4 Wire",Standard Price Book;true,,One Time;OneTime,1330
-8 Function Alarm Relay Panel;Standard Price Book;One Time,true,false,8 Function Alarm Relay Panel,Standard Price Book;true,,One Time;OneTime,255.99
-8 Position Load Center;Standard Price Book;One Time,true,false,8 Position Load Center,Standard Price Book;true,,One Time;OneTime,0
-"8"" Fuel Extension;Standard Price Book;One Time",true,false,"8"" Fuel Extension",Standard Price Book;true,,One Time;OneTime,1500
-A030S169;Standard Price Book;One Time,true,false,A030S169,Standard Price Book;true,,One Time;OneTime,100
-A035K427;Standard Price Book;One Time,true,false,A035K427,Standard Price Book;true,,One Time;OneTime,940
-A046D218;Standard Price Book;One Time,true,false,A046D218,Standard Price Book;true,,One Time;OneTime,1170
-A048N280;Standard Price Book;One Time,true,false,A048N280,Standard Price Book;true,,One Time;OneTime,760
-A051H785;Standard Price Book;One Time,true,false,A051H785,Standard Price Book;true,,One Time;OneTime,540
-A051K118;Standard Price Book;One Time,true,false,A051K118,Standard Price Book;true,,One Time;OneTime,1150
-A052X578;Standard Price Book;One Time,true,false,A052X578,Standard Price Book;true,,One Time;OneTime,2010
-A052X580;Standard Price Book;One Time,true,false,A052X580,Standard Price Book;true,,One Time;OneTime,2210
-A052X582;Standard Price Book;One Time,true,false,A052X582,Standard Price Book;true,,One Time;OneTime,1880
-A052X584;Standard Price Book;One Time,true,false,A052X584,Standard Price Book;true,,One Time;OneTime,2310
-A052X586;Standard Price Book;One Time,true,false,A052X586,Standard Price Book;true,,One Time;OneTime,450
-AC / DC Led Light Kit;Standard Price Book;One Time,true,false,AC / DC Led Light Kit,Standard Price Book;true,,One Time;OneTime,800
-Ad Hoc;Standard Price Book;ADHOC;One Time,true,false,Ad Hoc,Standard Price Book;true,ADHOC,One Time;OneTime,0
-Air Filter Restriction Ind;Standard Price Book;One Time,true,false,Air Filter Restriction Ind,Standard Price Book;true,,One Time;OneTime,190
-Alarm Contacts;Standard Price Book,true,false,Alarm Contacts,Standard Price Book;true,,,30
-"Alarm-Audible, Engine Shutdown;Standard Price Book;One Time",true,false,"Alarm-Audible, Engine Shutdown",Standard Price Book;true,,One Time;OneTime,2060
-"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont;Standard Price Book;One Time",true,false,"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont",Standard Price Book;true,,One Time;OneTime,2340
-"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm;Standard Price Book;One Time",true,false,"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm",Standard Price Book;true,,One Time;OneTime,620
-"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C);Standard Price Book;One Time",true,false,"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C)",Standard Price Book;true,,One Time;OneTime,1450
-"ALT-60Hz,2400/4160V,125/105/80C (S/P/C);Standard Price Book;One Time",true,false,"ALT-60Hz,2400/4160V,125/105/80C (S/P/C)",Standard Price Book;true,,One Time;OneTime,1230
-"Alt-60Hz,347/600V,125/105/80C-SPC;Standard Price Book;One Time",true,false,"Alt-60Hz,347/600V,125/105/80C-SPC",Standard Price Book;true,,One Time;OneTime,470
-"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,,One Time;OneTime,1630
-"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,,One Time;OneTime,510
-"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,,One Time;OneTime,2200
-"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,,One Time;OneTime,2350
-"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,,One Time;OneTime,1050
-"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,,One Time;OneTime,800
-"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,1790
-"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,1300
-"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,2340
-"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,2310
-"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,1450
-"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,480
-"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,570
-"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,690
-"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,780
-"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,830
-"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,1450
-"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,1290
-"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,2410
-"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb;Standard Price Book;One Time",true,false,"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb",Standard Price Book;true,,One Time;OneTime,610
-"ALT-60Hz,Wye,12.47kV,105/80C (S/P);Standard Price Book;One Time",true,false,"ALT-60Hz,Wye,12.47kV,105/80C (S/P)",Standard Price Book;true,,One Time;OneTime,1860
-"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm;Standard Price Book;One Time",true,false,"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm",Standard Price Book;true,,One Time;OneTime,1370
-"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont;Standard Price Book;One Time",true,false,"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont",Standard Price Book;true,,One Time;OneTime,600
-"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb;Standard Price Book;One Time",true,false,"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb",Standard Price Book;true,,One Time;OneTime,1240
-"Alt-60Hz,Wye,440V,125-80C-SPC;Standard Price Book;One Time",true,false,"Alt-60Hz,Wye,440V,125-80C-SPC",Standard Price Book;true,,One Time;OneTime,600
-"Alt-60Hz,Wye,440V,150/125SP,40C amb;Standard Price Book;One Time",true,false,"Alt-60Hz,Wye,440V,150/125SP,40C amb",Standard Price Book;true,,One Time;OneTime,870
-Alternator - 100 KW;Standard Price Book;One Time,true,false,Alternator - 100 KW,Standard Price Book;true,,One Time;OneTime,45290
-Alternator - 130 KW;Standard Price Book;One Time,true,false,Alternator - 130 KW,Standard Price Book;true,,One Time;OneTime,54463
-Alternator - 150 KW;Standard Price Book;One Time,true,false,Alternator - 150 KW,Standard Price Book;true,,One Time;OneTime,59900
-Alternator - 175 KW;Standard Price Book;One Time,true,false,Alternator - 175 KW,Standard Price Book;true,,One Time;OneTime,65500
-Alternator - 200 KW;Standard Price Book;One Time,true,false,Alternator - 200 KW,Standard Price Book;true,,One Time;OneTime,72050
-Alternator - 250 KW;Standard Price Book;One Time,true,false,Alternator - 250 KW,Standard Price Book;true,,One Time;OneTime,76500
-Alternator - 300 KW;Standard Price Book;One Time,true,false,Alternator - 300 KW,Standard Price Book;true,,One Time;OneTime,80000
-"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm;Standard Price Book;One Time",true,false,"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm",Standard Price Book;true,,One Time;OneTime,940
-Alternator Strip Heater;Standard Price Book;One Time,true,false,Alternator Strip Heater,Standard Price Book;true,,One Time;OneTime,1095
-Alternator Tropical Coating;Standard Price Book;One Time,true,false,Alternator Tropical Coating,Standard Price Book;true,,One Time;OneTime,1595
-"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby;Standard Price Book;One Time",true,false,"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby",Standard Price Book;true,,One Time;OneTime,2370
-"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm;Standard Price Book;One Time",true,false,"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm",Standard Price Book;true,,One Time;OneTime,1780
-"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm;Standard Price Book;One Time",true,false,"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm",Standard Price Book;true,,One Time;OneTime,1500
-"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm;Standard Price Book;One Time",true,false,"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm",Standard Price Book;true,,One Time;OneTime,1270
-"Alternator-60Hz, 347/600Volt, 80C-Stby;Standard Price Book;One Time",true,false,"Alternator-60Hz, 347/600Volt, 80C-Stby",Standard Price Book;true,,One Time;OneTime,960
-"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm;Standard Price Book;One Time",true,false,"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm",Standard Price Book;true,,One Time;OneTime,1170
-"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby;Standard Price Book;One Time",true,false,"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby",Standard Price Book;true,,One Time;OneTime,2310
-"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby;Standard Price Book;One Time",true,false,"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby",Standard Price Book;true,,One Time;OneTime,1990
-"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby;Standard Price Book;One Time",true,false,"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby",Standard Price Book;true,,One Time;OneTime,120
-"Alternator-60Hz, Wye, 440 Volt,80C-Stby;Standard Price Book;One Time",true,false,"Alternator-60Hz, Wye, 440 Volt,80C-Stby",Standard Price Book;true,,One Time;OneTime,2100
-"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb;Standard Price Book;One Time",true,false,"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb",Standard Price Book;true,,One Time;OneTime,2010
-"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb;Standard Price Book;One Time",true,false,"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb",Standard Price Book;true,,One Time;OneTime,2350
-AMEL Generator Set;Standard Price Book;AMEL-FRD;One Time,true,false,AMEL Generator Set,Standard Price Book;true,AMEL-FRD,One Time;OneTime,23699
-AmpSentryTM Protective Relay;Standard Price Book;One Time,true,false,AmpSentryTM Protective Relay,Standard Price Book;true,,One Time;OneTime,1900
-Antivirus;Standard Price Book;Evergreen - Yearly,true,false,Antivirus,Standard Price Book;true,,Evergreen - Yearly;Evergreen,99.99
-API Access Premium;Standard Price Book;Term Based - Monthly,true,false,API Access Premium,Standard Price Book;true,,Term Based - Monthly;TermDefined,75
-Arc Chute;Standard Price Book,true,false,Arc Chute,Standard Price Book;true,,,0
-AT&T Mobile Plan;Standard Price Book;Term Based - Monthly,true,false,AT&T Mobile Plan,Standard Price Book;true,,Term Based - Monthly;TermDefined,60
-Base Tank;Standard Price Book;One Time,true,false,Base Tank,Standard Price Book;true,,One Time;OneTime,0
-Base Tank Emergency Vent;Standard Price Book;One Time,true,false,Base Tank Emergency Vent,Standard Price Book;true,,One Time;OneTime,353
-Basic Training;Standard Price Book;Term Based - Monthly,true,false,Basic Training,Standard Price Book;true,,Term Based - Monthly;TermDefined,29.99
-Battery Charging Alternator;Standard Price Book;One Time,true,false,Battery Charging Alternator,Standard Price Book;true,,One Time;OneTime,1210
-Battery Heating Pad;Standard Price Book;One Time,true,false,Battery Heating Pad,Standard Price Book;true,,One Time;OneTime,0
-Battery Heating Pad - Optima;Standard Price Book;One Time,true,false,Battery Heating Pad - Optima,Standard Price Book;true,,One Time;OneTime,0
-Bearing Set;Standard Price Book,true,false,Bearing Set,Standard Price Book;true,,,0
-"Bearing,1 RTD NDE;Standard Price Book;One Time",true,false,"Bearing,1 RTD NDE",Standard Price Book;true,,One Time;OneTime,550
-Block heater STD 1500W;Standard Price Book;One Time,true,false,Block heater STD 1500W,Standard Price Book;true,,One Time;OneTime,260
-"Bottom Entry Chute, Left;Standard Price Book;One Time",true,false,"Bottom Entry Chute, Left",Standard Price Book;true,,One Time;OneTime,1670
-"Bottom Entry Chute, Right;Standard Price Book;One Time",true,false,"Bottom Entry Chute, Right",Standard Price Book;true,,One Time;OneTime,1270
-"Bottom Entry, Left;Standard Price Book;One Time",true,false,"Bottom Entry, Left",Standard Price Book;true,,One Time;OneTime,980
-"Bottom Entry, Right;Standard Price Book;One Time",true,false,"Bottom Entry, Right",Standard Price Book;true,,One Time;OneTime,1440
-Breaker Contacts;Standard Price Book,true,false,Breaker Contacts,Standard Price Book;true,,,0
-"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1460
-"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,740
-"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1700
-"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,540
-"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,2000
-"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1850
-"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1100
-"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,660
-"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1800
-"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,2320
-"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1140
-"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,820
-"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,830
-"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%;Standard Price Book;One Time",true,false,"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,,One Time;OneTime,1530
-CB1_CAX1;Standard Price Book;One Time,true,false,CB1_CAX1,Standard Price Book;true,,One Time;OneTime,20
-CB1_CAX2;Standard Price Book;One Time,true,false,CB1_CAX2,Standard Price Book;true,,One Time;OneTime,30
-CB1_CAX3;Standard Price Book;One Time,true,false,CB1_CAX3,Standard Price Book;true,,One Time;OneTime,40
-Certified Test Report;Standard Price Book;One Time,true,false,Certified Test Report,Standard Price Book;true,,One Time;OneTime,0
-Circuit Breaker;Standard Price Book;One Time,true,false,Circuit Breaker,Standard Price Book;true,,One Time;OneTime,0
-Circuit Breaker or Entrance Box-None;Standard Price Book;One Time,true,false,Circuit Breaker or Entrance Box-None,Standard Price Book;true,,One Time;OneTime,1030
-Civil Engineer;Standard Price Book;One Time,true,false,Civil Engineer,Standard Price Book;true,,One Time;OneTime,520
-Ckt Brkr Access-Left Side;Standard Price Book;One Time,true,false,Ckt Brkr Access-Left Side,Standard Price Book;true,,One Time;OneTime,1970
-Ckt Brkr Access-Right Side;Standard Price Book;One Time,true,false,Ckt Brkr Access-Right Side,Standard Price Book;true,,One Time;OneTime,1490
-"Ckt Brkr Lugs-Mechanical, Left Side;Standard Price Book;One Time",true,false,"Ckt Brkr Lugs-Mechanical, Left Side",Standard Price Book;true,,One Time;OneTime,1170
-"Ckt Brkr Lugs-Mechanical, Right Side;Standard Price Book;One Time",true,false,"Ckt Brkr Lugs-Mechanical, Right Side",Standard Price Book;true,,One Time;OneTime,1170
-Cloud Storage;Standard Price Book;Evergreen - Monthly,true,false,Cloud Storage,Standard Price Book;true,,Evergreen - Monthly;Evergreen,9.99
-Cloud Storage Pro;Standard Price Book;Term Based - Monthly,true,false,Cloud Storage Pro,Standard Price Book;true,,Term Based - Monthly;TermDefined,50
-Conduits and Fittings;Standard Price Book;One Time,true,false,Conduits and Fittings,Standard Price Book;true,,One Time;OneTime,300
-CONTROL MTG-FRONT FACING;Standard Price Book;One Time,true,false,CONTROL MTG-FRONT FACING,Standard Price Book;true,,One Time;OneTime,430
-CONTROL MTG-LEFT FACING;Standard Price Book;One Time,true,false,CONTROL MTG-LEFT FACING,Standard Price Book;true,,One Time;OneTime,770
-CONTROL MTG-RIGHT FACING;Standard Price Book;One Time,true,false,CONTROL MTG-RIGHT FACING,Standard Price Book;true,,One Time;OneTime,1350
-"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp;Standard Price Book;One Time",true,false,"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp",Standard Price Book;true,,One Time;OneTime,380
-"Coolant Heater-208/240/480V, Below 40F Ambient Temp;Standard Price Book;One Time",true,false,"Coolant Heater-208/240/480V, Below 40F Ambient Temp",Standard Price Book;true,,One Time;OneTime,900
-Crankcase Oil Heater;Standard Price Book;One Time,true,false,Crankcase Oil Heater,Standard Price Book;true,,One Time;OneTime,235
-CUGR Generator Set;Standard Price Book;CUGR-FRD,true,false,CUGR Generator Set,Standard Price Book;true,CUGR-FRD,,32999
-Damper Alarm Contacts;Standard Price Book;One Time,true,false,Damper Alarm Contacts,Standard Price Book;true,,One Time;OneTime,725
-Data Access Basic;Standard Price Book;Term Based - Monthly,true,false,Data Access Basic,Standard Price Book;true,,Term Based - Monthly;TermDefined,25
-DCC 10YR UNLIMITED HR P + L;Standard Price Book;One Time,true,false,DCC 10YR UNLIMITED HR P + L,Standard Price Book;true,,One Time;OneTime,600
-DCC 10YR UNLIMITED HR P + L + T;Standard Price Book;One Time,true,false,DCC 10YR UNLIMITED HR P + L + T,Standard Price Book;true,,One Time;OneTime,680
-DCC 10YR UNLIMITED HR PARTS;Standard Price Book;One Time,true,false,DCC 10YR UNLIMITED HR PARTS,Standard Price Book;true,,One Time;OneTime,1260
-DCC 3YR UNLIMITED HR P + L;Standard Price Book;One Time,true,false,DCC 3YR UNLIMITED HR P + L,Standard Price Book;true,,One Time;OneTime,920
-DCC 3YR UNLIMITED HR P + L + T;Standard Price Book;One Time,true,false,DCC 3YR UNLIMITED HR P + L + T,Standard Price Book;true,,One Time;OneTime,1270
-DCC 3YR UNLIMITED HR PARTS;Standard Price Book;One Time,true,false,DCC 3YR UNLIMITED HR PARTS,Standard Price Book;true,,One Time;OneTime,1920
-DCC 5YR UNLIMITED HR P + L;Standard Price Book;One Time,true,false,DCC 5YR UNLIMITED HR P + L,Standard Price Book;true,,One Time;OneTime,2450
-DCC 5YR UNLIMITED HR P + L + T;Standard Price Book;One Time,true,false,DCC 5YR UNLIMITED HR P + L + T,Standard Price Book;true,,One Time;OneTime,1130
-DCC 5YR UNLIMITED HR PARTS;Standard Price Book;One Time,true,false,DCC 5YR UNLIMITED HR PARTS,Standard Price Book;true,,One Time;OneTime,2120
-Deep Sea G8601 Control Panel;Standard Price Book;One Time,true,false,Deep Sea G8601 Control Panel,Standard Price Book;true,,One Time;OneTime,0
-Differential CT's P7;Standard Price Book;One Time,true,false,Differential CT's P7,Standard Price Book;true,,One Time;OneTime,2310
-Differential CT's P80;Standard Price Book;One Time,true,false,Differential CT's P80,Standard Price Book;true,,One Time;OneTime,610
-Display - Control LCD;Standard Price Book;One Time,true,false,Display - Control LCD,Standard Price Book;true,,One Time;OneTime,880
-Display Language-Chinese (Mandarin);Standard Price Book;One Time,true,false,Display Language-Chinese (Mandarin),Standard Price Book;true,,One Time;OneTime,1250
-Display Language-Danish;Standard Price Book;One Time,true,false,Display Language-Danish,Standard Price Book;true,,One Time;OneTime,1210
-Display Language-Dutch;Standard Price Book;One Time,true,false,Display Language-Dutch,Standard Price Book;true,,One Time;OneTime,490
-Display Language-English;Standard Price Book;One Time,true,false,Display Language-English,Standard Price Book;true,,One Time;OneTime,1330
-Display Language-Finnish;Standard Price Book;One Time,true,false,Display Language-Finnish,Standard Price Book;true,,One Time;OneTime,1230
-Display Language-French;Standard Price Book;One Time,true,false,Display Language-French,Standard Price Book;true,,One Time;OneTime,1310
-Display Language-German;Standard Price Book;One Time,true,false,Display Language-German,Standard Price Book;true,,One Time;OneTime,910
-Display Language-Greek;Standard Price Book;One Time,true,false,Display Language-Greek,Standard Price Book;true,,One Time;OneTime,310
-Display Language-Italian;Standard Price Book;One Time,true,false,Display Language-Italian,Standard Price Book;true,,One Time;OneTime,2380
-Display Language-Norwegian;Standard Price Book;One Time,true,false,Display Language-Norwegian,Standard Price Book;true,,One Time;OneTime,110
-Display Language-Portuguese;Standard Price Book;One Time,true,false,Display Language-Portuguese,Standard Price Book;true,,One Time;OneTime,2110
-Display Language-Russian;Standard Price Book;One Time,true,false,Display Language-Russian,Standard Price Book;true,,One Time;OneTime,1720
-Display Language-Spanish;Standard Price Book;One Time,true,false,Display Language-Spanish,Standard Price Book;true,,One Time;OneTime,1380
-"Display, Running Time;Standard Price Book;One Time",true,false,"Display, Running Time",Standard Price Book;true,,One Time;OneTime,2470
-Dual 500W Enclosure Heater;Standard Price Book;One Time,true,false,Dual 500W Enclosure Heater,Standard Price Book;true,,One Time;OneTime,1628
-Dual 8 Function Alarm Relay Panel;Standard Price Book;One Time,true,false,Dual 8 Function Alarm Relay Panel,Standard Price Book;true,,One Time;OneTime,599.53
-Electric Starter Motor - 24V DC;Standard Price Book;One Time,true,false,Electric Starter Motor - 24V DC,Standard Price Book;true,,One Time;OneTime,1540
-Electrical Engineer;Standard Price Book;One Time,true,false,Electrical Engineer,Standard Price Book;true,,One Time;OneTime,550
-"Eng Cooling-High Ambient Air Temp, Ship Loose;Standard Price Book;One Time",true,false,"Eng Cooling-High Ambient Air Temp, Ship Loose",Standard Price Book;true,,One Time;OneTime,1770
-Engine - QSK60-G6;Standard Price Book;One Time,true,false,Engine - QSK60-G6,Standard Price Book;true,,One Time;OneTime,1060
-Engine Cooling-Enhanced High Ambient Air Temperature;Standard Price Book;One Time,true,false,Engine Cooling-Enhanced High Ambient Air Temperature,Standard Price Book;true,,One Time;OneTime,290
-Engine Cooling-High Ambient Air Temperature;Standard Price Book;One Time,true,false,Engine Cooling-High Ambient Air Temperature,Standard Price Book;true,,One Time;OneTime,690
-Engine Run Relay;Standard Price Book;One Time,true,false,Engine Run Relay,Standard Price Book;true,,One Time;OneTime,214
-"Entrance Box-Low Voltage,Left;Standard Price Book;One Time",true,false,"Entrance Box-Low Voltage,Left",Standard Price Book;true,,One Time;OneTime,2400
-"Entrance Box-Low Voltage,Right;Standard Price Book;One Time",true,false,"Entrance Box-Low Voltage,Right",Standard Price Book;true,,One Time;OneTime,1340
-Entrance Box-Right;Standard Price Book;One Time,true,false,Entrance Box-Right,Standard Price Book;true,,One Time;OneTime,1840
-EPA Certified;Standard Price Book;One Time,true,false,EPA Certified,Standard Price Book;true,,One Time;OneTime,0
-Exciter;Standard Price Book,true,false,Exciter,Standard Price Book;true,,,0
-Extend Exhaust 2”;Standard Price Book;One Time,true,false,Extend Exhaust 2”,Standard Price Book;true,,One Time;OneTime,0
-EXTENDED - 10 YR P/L/T PREMIUM;Standard Price Book;One Time,true,true,EXTENDED - 10 YR P/L/T PREMIUM,Standard Price Book;true,,One Time;OneTime,0
-EXTENDED - 5 YR P/L/T PREMIUM;Standard Price Book;One Time,true,true,EXTENDED - 5 YR P/L/T PREMIUM,Standard Price Book;true,,One Time;OneTime,0
-EXTENDED - 7 YR P/L/T PREMIUM;Standard Price Book;One Time,true,true,EXTENDED - 7 YR P/L/T PREMIUM,Standard Price Book;true,,One Time;OneTime,0
-External Hard Drive;Standard Price Book;One Time,true,false,External Hard Drive,Standard Price Book;true,,One Time;OneTime,179.99
-FESBA 1200kW;Standard Price Book;One Time,true,false,FESBA 1200kW,Standard Price Book;true,,One Time;OneTime,2100
-FESBA 1500kW;Standard Price Book;One Time,true,false,FESBA 1500kW,Standard Price Book;true,,One Time;OneTime,2500
-FESBA 1750kW;Standard Price Book;One Time,true,false,FESBA 1750kW,Standard Price Book;true,,One Time;OneTime,3100
-FESBA 2500kW;Standard Price Book;One Time,true,false,FESBA 2500kW,Standard Price Book;true,,One Time;OneTime,4200
-FESBA 900kW;Standard Price Book;One Time,true,false,FESBA 900kW,Standard Price Book;true,,One Time;OneTime,1100
-FESBA Generator Set;Standard Price Book;One Time,true,false,FESBA Generator Set,Standard Price Book;true,,One Time;OneTime,49450
-"Filters-Eng Oil,Full Flow/Bypass;Standard Price Book;One Time",true,false,"Filters-Eng Oil,Full Flow/Bypass",Standard Price Book;true,,One Time;OneTime,1590
-Fire-Rated Steel Fuel Hose;Standard Price Book;One Time,true,false,Fire-Rated Steel Fuel Hose,Standard Price Book;true,,One Time;OneTime,1200
-Flex Fuel Line;Standard Price Book;One Time,true,false,Flex Fuel Line,Standard Price Book;true,,One Time;OneTime,0
-Florida DEP-DERM;Standard Price Book;One Time,true,false,Florida DEP-DERM,Standard Price Book;true,,One Time;OneTime,1500
-Flush Mount Annunciator Kit;Standard Price Book;One Time,true,false,Flush Mount Annunciator Kit,Standard Price Book;true,,One Time;OneTime,0
-"Fuel Filters-Engine, Duplex;Standard Price Book;One Time",true,false,"Fuel Filters-Engine, Duplex",Standard Price Book;true,,One Time;OneTime,810
-"Fuel Filters-Engine, Standard;Standard Price Book;One Time",true,false,"Fuel Filters-Engine, Standard",Standard Price Book;true,,One Time;OneTime,1190
-Fuel Hose;Standard Price Book;One Time,true,false,Fuel Hose,Standard Price Book;true,,One Time;OneTime,500
-GAMD Generator Set;Standard Price Book;GAMD-FRD;One Time,true,false,GAMD Generator Set,Standard Price Book;true,GAMD-FRD,One Time;OneTime,17599
-Gateway Device;Standard Price Book;One Time,true,false,Gateway Device,Standard Price Book;true,,One Time;OneTime,0
-Gauge-Exhaust Gas Temperature;Standard Price Book;One Time,true,false,Gauge-Exhaust Gas Temperature,Standard Price Book;true,,One Time;OneTime,850
-Generac Solution;Standard Price Book;One Time,true,false,Generac Solution,Standard Price Book;true,,One Time;OneTime,0
-Generator Labor & Installation;Standard Price Book;One Time,true,false,Generator Labor & Installation,Standard Price Book;true,,One Time;OneTime,0
-Generator Set Dev;Standard Price Book;One Time,true,false,Generator Set Dev,Standard Price Book;true,,One Time;OneTime,20000
-Genset Warranty Base;Standard Price Book;One Time,true,false,Genset Warranty Base,Standard Price Book;true,,One Time;OneTime,360
-Google Workspace;Standard Price Book;GW001;Term Based - Monthly,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,25
-GPT for workspace;Standard Price Book;GPTW001;Term Based - Monthly,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
-Ground Fault Annunciator;Standard Price Book;One Time,true,false,Ground Fault Annunciator,Standard Price Book;true,,One Time;OneTime,0
-Ground Fault Indication Relay - None;Standard Price Book;One Time,true,false,Ground Fault Indication Relay - None,Standard Price Book;true,,One Time;OneTime,270
-Hardened Bearing Cartridge;Standard Price Book;One Time,true,false,Hardened Bearing Cartridge,Standard Price Book;true,,One Time;OneTime,1450
-Hardware Maintenance;Standard Price Book;Term Based - Monthly,true,true,Hardware Maintenance,Standard Price Book;true,,Term Based - Monthly;TermDefined,0
-Headset;Standard Price Book;One Time,true,false,Headset,Standard Price Book;true,,One Time;OneTime,49.99
-"Heater-Alternator, 110/220 (120/240) Volt AC;Standard Price Book;One Time",true,false,"Heater-Alternator, 110/220 (120/240) Volt AC",Standard Price Book;true,,One Time;OneTime,1020
-"Heater-Alternator, 120 Volt AC;Standard Price Book;One Time",true,false,"Heater-Alternator, 120 Volt AC",Standard Price Book;true,,One Time;OneTime,1240
-"Heater-Alternator, 240 Volt AC;Standard Price Book;One Time",true,false,"Heater-Alternator, 240 Volt AC",Standard Price Book;true,,One Time;OneTime,1910
-Heavy Duty Air Cleaner;Standard Price Book;One Time,true,false,Heavy Duty Air Cleaner,Standard Price Book;true,,One Time;OneTime,1650
-Housing Arrangement - Left & Right Entry;Standard Price Book;One Time,true,false,Housing Arrangement - Left & Right Entry,Standard Price Book;true,,One Time;OneTime,2420
-Housing Arrangement - Left Entry;Standard Price Book;One Time,true,false,Housing Arrangement - Left Entry,Standard Price Book;true,,One Time;OneTime,1170
-Housing Arrangement - Right Entry;Standard Price Book;One Time,true,false,Housing Arrangement - Right Entry,Standard Price Book;true,,One Time;OneTime,2230
-"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left;Standard Price Book;One Time",true,false,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left",Standard Price Book;true,,One Time;OneTime,2070
-"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right;Standard Price Book;One Time",true,false,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right",Standard Price Book;true,,One Time;OneTime,930
-"Indication-Ground Fault,3-PoleXfrSw;Standard Price Book;One Time",true,false,"Indication-Ground Fault,3-PoleXfrSw",Standard Price Book;true,,One Time;OneTime,2390
-Industrial Grey;Standard Price Book;One Time,true,false,Industrial Grey,Standard Price Book;true,,One Time;OneTime,0
-Installation Fee;Standard Price Book;One Time,true,true,Installation Fee,Standard Price Book;true,,One Time;OneTime,0
-IO Expansion;Standard Price Book;One Time,true,false,IO Expansion,Standard Price Book;true,,One Time;OneTime,0
-Keyboard;Standard Price Book;One Time,true,false,Keyboard,Standard Price Book;true,,One Time;OneTime,14.99
-L1A Enclosure - Aluminum - 60dB;Standard Price Book;One Time,true,false,L1A Enclosure - Aluminum - 60dB,Standard Price Book;true,,One Time;OneTime,9795
-L1A Enclosure - Steel- 60dB;Standard Price Book;One Time,true,false,L1A Enclosure - Steel- 60dB,Standard Price Book;true,,One Time;OneTime,10881
-L2A Encl w/ Mtr Dampers Alum - 40dB;Standard Price Book;One Time,true,false,L2A Encl w/ Mtr Dampers Alum - 40dB,Standard Price Book;true,,One Time;OneTime,24275
-L2A Encl w/ Mtr Dampers Steel - 40dB;Standard Price Book;One Time,true,false,L2A Encl w/ Mtr Dampers Steel - 40dB,Standard Price Book;true,,One Time;OneTime,21620
-L2A Enclosure - Aluminum - 50dB;Standard Price Book;One Time,true,false,L2A Enclosure - Aluminum - 50dB,Standard Price Book;true,,One Time;OneTime,14800
-L2A Enclosure - Steel - 50dB;Standard Price Book;One Time,true,false,L2A Enclosure - Steel - 50dB,Standard Price Book;true,,One Time;OneTime,16280
-Laptop;Standard Price Book;One Time,true,false,Laptop,Standard Price Book;true,,One Time;OneTime,1049
-Laptop Basic Bundle;Standard Price Book;One Time,true,false,Laptop Basic Bundle,Standard Price Book;true,,One Time;OneTime,1100
-Laptop Pro Bundle;Standard Price Book;One Time,true,false,Laptop Pro Bundle,Standard Price Book;true,,One Time;OneTime,1150
-Level 1 Sound Attenuated Enclosure;Standard Price Book;One Time,true,false,Level 1 Sound Attenuated Enclosure,Standard Price Book;true,,One Time;OneTime,4599
-Level 2 Sound Attenuated Enclosure;Standard Price Book;One Time,true,false,Level 2 Sound Attenuated Enclosure,Standard Price Book;true,,One Time;OneTime,6799
-Level 3 Sound Attenuated Enclosure;Standard Price Book;One Time,true,false,Level 3 Sound Attenuated Enclosure,Standard Price Book;true,,One Time;OneTime,8999
-Literature-Brazilian Portuguese;Standard Price Book;One Time,true,false,Literature-Brazilian Portuguese,Standard Price Book;true,,One Time;OneTime,700
-Literature-Chinese;Standard Price Book;One Time,true,false,Literature-Chinese,Standard Price Book;true,,One Time;OneTime,1460
-Literature-Danish;Standard Price Book;One Time,true,false,Literature-Danish,Standard Price Book;true,,One Time;OneTime,1670
-Literature-Dutch;Standard Price Book;One Time,true,false,Literature-Dutch,Standard Price Book;true,,One Time;OneTime,2060
-Literature-English;Standard Price Book;One Time,true,false,Literature-English,Standard Price Book;true,,One Time;OneTime,1190
-Literature-Finnish;Standard Price Book;One Time,true,false,Literature-Finnish,Standard Price Book;true,,One Time;OneTime,170
-Literature-French;Standard Price Book;One Time,true,false,Literature-French,Standard Price Book;true,,One Time;OneTime,200
-Literature-German;Standard Price Book;One Time,true,false,Literature-German,Standard Price Book;true,,One Time;OneTime,1130
-Literature-Greek;Standard Price Book;One Time,true,false,Literature-Greek,Standard Price Book;true,,One Time;OneTime,2010
-Literature-Italian;Standard Price Book;One Time,true,false,Literature-Italian,Standard Price Book;true,,One Time;OneTime,940
-Literature-Norwegian;Standard Price Book;One Time,true,false,Literature-Norwegian,Standard Price Book;true,,One Time;OneTime,1440
-Literature-Portuguese;Standard Price Book;One Time,true,false,Literature-Portuguese,Standard Price Book;true,,One Time;OneTime,2340
-Literature-Russian;Standard Price Book;One Time,true,false,Literature-Russian,Standard Price Book;true,,One Time;OneTime,490
-Literature-Spanish;Standard Price Book;One Time,true,false,Literature-Spanish,Standard Price Book;true,,One Time;OneTime,420
-Literature-Swedish;Standard Price Book;One Time,true,false,Literature-Swedish,Standard Price Book;true,,One Time;OneTime,830
-Lucidchart;Standard Price Book;LCD001;Term Based - Monthly,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
-Mechanical Engineer;Standard Price Book;One Time,true,false,Mechanical Engineer,Standard Price Book;true,,One Time;OneTime,500
-"Meters-AC Output,Analog;Standard Price Book;One Time",true,false,"Meters-AC Output,Analog",Standard Price Book;true,,One Time;OneTime,1630
-Monitor;Standard Price Book;One Time,true,false,Monitor,Standard Price Book;true,,One Time;OneTime,144.99
-Mounting Hardware;Standard Price Book;One Time,true,false,Mounting Hardware,Standard Price Book;true,,One Time;OneTime,200
-Mouse;Standard Price Book;One Time,true,false,Mouse,Standard Price Book;true,,One Time;OneTime,7.99
-MPS Solution Bundle;Standard Price Book;MPS Solution Bundle;One Time,true,false,MPS Solution Bundle,Standard Price Book;true,MPS Solution Bundle,One Time;OneTime,0
-No Enclosure;Standard Price Book;One Time,true,false,No Enclosure,Standard Price Book;true,,One Time;OneTime,0
-None Supplied (Remote Cooling);Standard Price Book;One Time,true,false,None Supplied (Remote Cooling),Standard Price Book;true,,One Time;OneTime,130
-Normal Duty Air Cleaner;Standard Price Book;One Time,true,false,Normal Duty Air Cleaner,Standard Price Book;true,,One Time;OneTime,1820
-Office 365;Standard Price Book;OF001;Term Based - Monthly,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,9.99
-Oil Pan-High Capacity;Standard Price Book;One Time,true,false,Oil Pan-High Capacity,Standard Price Book;true,,One Time;OneTime,1910
-Oil Sampling Valve;Standard Price Book;One Time,true,false,Oil Sampling Valve,Standard Price Book;true,,One Time;OneTime,1240
-Optima Battery with Charger;Standard Price Book;One Time,true,false,Optima Battery with Charger,Standard Price Book;true,,One Time;OneTime,413
-Optional Fan and Belt Guards;Standard Price Book;One Time,true,false,Optional Fan and Belt Guards,Standard Price Book;true,,One Time;OneTime,0
-"Output Terminals-2-Hole Lug, NEMA;Standard Price Book;One Time",true,false,"Output Terminals-2-Hole Lug, NEMA",Standard Price Book;true,,One Time;OneTime,270
-Overfill Prevention Valve;Standard Price Book;One Time,true,false,Overfill Prevention Valve,Standard Price Book;true,,One Time;OneTime,750
-Overload Relay;Standard Price Book,true,false,Overload Relay,Standard Price Book;true,,,0
-Packing-None;Standard Price Book;One Time,true,false,Packing-None,Standard Price Book;true,,One Time;OneTime,2440
-Pad Vibration Isolators;Standard Price Book;One Time,true,false,Pad Vibration Isolators,Standard Price Book;true,,One Time;OneTime,1520
-PD2;Standard Price Book;One Time,true,false,PD2,Standard Price Book;true,,One Time;OneTime,500
-PD3;Standard Price Book;One Time,true,false,PD3,Standard Price Book;true,,One Time;OneTime,1000
-PD4;Standard Price Book;One Time,true,false,PD4,Standard Price Book;true,,One Time;OneTime,2000
-PD5;Standard Price Book;One Time,true,false,PD5,Standard Price Book;true,,One Time;OneTime,3500
-PMG;Standard Price Book;One Time,true,false,PMG,Standard Price Book;true,,One Time;OneTime,600
-Podcast Subscription;Standard Price Book;Term Based - Quarterly,true,false,Podcast Subscription,Standard Price Book;true,,Term Based - Quarterly;TermDefined,40
-PowerCommand 3.3;Standard Price Book;One Time,true,false,PowerCommand 3.3,Standard Price Book;true,,One Time;OneTime,2050
-PowerCommand 3.3 with MLD;Standard Price Book;One Time,true,false,PowerCommand 3.3 with MLD,Standard Price Book;true,,One Time;OneTime,1770
-PowerZone 410 Control Panel;Standard Price Book;One Time,true,false,PowerZone 410 Control Panel,Standard Price Book;true,,One Time;OneTime,0
-PR 2YR 4000HR P + L + T;Standard Price Book;One Time,true,false,PR 2YR 4000HR P + L + T,Standard Price Book;true,,One Time;OneTime,2160
-PR 3YR 6000HR P + L + T;Standard Price Book;One Time,true,false,PR 3YR 6000HR P + L + T,Standard Price Book;true,,One Time;OneTime,590
-Preventative Maintenance;Standard Price Book;Maintenance;Term Based - Yearly,true,false,Preventative Maintenance,Standard Price Book;true,Maintenance,Term Based - Yearly;TermDefined,50000
-Printer;Standard Price Book;One Time,true,false,Printer,Standard Price Book;true,,One Time;OneTime,199
-Printer Bundle;Standard Price Book;One Time,true,false,Printer Bundle,Standard Price Book;true,,One Time;OneTime,205
-Printer Paper;Standard Price Book;One Time,true,false,Printer Paper,Standard Price Book;true,,One Time;OneTime,8.99
-PSTS | 100-1200Amp | Standard Entrance;Standard Price Book;PSTS_1200_SE;One Time,true,false,PSTS | 100-1200Amp | Standard Entrance,Standard Price Book;true,PSTS_1200_SE,One Time;OneTime,400
-Quip;Standard Price Book;QP001;Term Based - Monthly,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,25
-Radiator Stone Guard;Standard Price Book;Radiator Stone Guard;One Time,true,false,Radiator Stone Guard,Standard Price Book;true,Radiator Stone Guard,One Time;OneTime,0
-Reactive Power Factor;Standard Price Book;One Time,true,false,Reactive Power Factor,Standard Price Book;true,,One Time;OneTime,0
-RELAYS-USER CONFIGURED;Standard Price Book;One Time,true,false,RELAYS-USER CONFIGURED,Standard Price Book;true,,One Time;OneTime,2090
-Remote E-Stop - Break Glass;Standard Price Book;One Time,true,false,Remote E-Stop - Break Glass,Standard Price Book;true,,One Time;OneTime,570
-Remote E-Stop - Flush;Standard Price Book;One Time,true,false,Remote E-Stop - Flush,Standard Price Book;true,,One Time;OneTime,570
-Remote E-Stop - Surface;Standard Price Book;One Time,true,false,Remote E-Stop - Surface,Standard Price Book;true,,One Time;OneTime,570
-Return Hose;Standard Price Book;One Time,true,false,Return Hose,Standard Price Book;true,,One Time;OneTime,400
-Rotor Assembly;Standard Price Book,true,false,Rotor Assembly,Standard Price Book;true,,,0
-SCAQMD;Standard Price Book;One Time,true,false,SCAQMD,Standard Price Book;true,,One Time;OneTime,0
-Separator-Fuel/Water;Standard Price Book;One Time,true,false,Separator-Fuel/Water,Standard Price Book;true,,One Time;OneTime,1070
-Ship Tank Loose;Standard Price Book;One Time,true,false,Ship Tank Loose,Standard Price Book;true,,One Time;OneTime,0
-Shunt Trips;Standard Price Book,true,false,Shunt Trips,Standard Price Book;true,,,50
-Shutdown Inhibit;Standard Price Book;One Time,true,false,Shutdown Inhibit,Standard Price Book;true,,One Time;OneTime,0
-Shutdown-Low Coolant Level;Standard Price Book;One Time,true,false,Shutdown-Low Coolant Level,Standard Price Book;true,,One Time;OneTime,150
-"Signals - Auxiliary 2, 8 Inputs/8 Outputs;Standard Price Book;One Time",true,false,"Signals - Auxiliary 2, 8 Inputs/8 Outputs",Standard Price Book;true,,One Time;OneTime,860
-"Signals - Auxiliary, 8 Inputs/8 Outputs;Standard Price Book;One Time",true,false,"Signals - Auxiliary, 8 Inputs/8 Outputs",Standard Price Book;true,,One Time;OneTime,1660
-Slack;Standard Price Book;Term Based - Monthly,true,false,Slack,Standard Price Book;true,,Term Based - Monthly;TermDefined,99.99
-Slack Sandbox;Standard Price Book;Term Based - Monthly,true,true,Slack Sandbox,Standard Price Book;true,,Term Based - Monthly;TermDefined,0
-Slack Support;Standard Price Book;Term Based - Monthly,true,true,Slack Support,Standard Price Book;true,,Term Based - Monthly;TermDefined,0
-Slack Training;Standard Price Book,true,true,Slack Training,Standard Price Book;true,,,0
-Special Alternator;Standard Price Book;One Time,true,false,Special Alternator,Standard Price Book;true,,One Time;OneTime,0
-Special CB Options;Standard Price Book;One Time,true,false,Special CB Options,Standard Price Book;true,,One Time;OneTime,0
-Special Codes Requirements;Standard Price Book;One Time,true,false,Special Codes Requirements,Standard Price Book;true,,One Time;OneTime,0
-Special Control Panels Changes;Standard Price Book;One Time,true,false,Special Control Panels Changes,Standard Price Book;true,,One Time;OneTime,0
-Special Dark;Standard Price Book;One Time,true,false,Special Dark,Standard Price Book;true,,One Time;OneTime,0
-Special Enclosure;Standard Price Book;One Time,true,false,Special Enclosure,Standard Price Book;true,,One Time;OneTime,0
-Special Enclosure Accessories;Standard Price Book;One Time,true,false,Special Enclosure Accessories,Standard Price Book;true,,One Time;OneTime,0
-Special Light;Standard Price Book;One Time,true,false,Special Light,Standard Price Book;true,,One Time;OneTime,0
-Special Other Options;Standard Price Book;One Time,true,false,Special Other Options,Standard Price Book;true,,One Time;OneTime,0
-Special Paint;Standard Price Book;One Time,true,false,Special Paint,Standard Price Book;true,,One Time;OneTime,0
-Special Tank Accessories;Standard Price Book;One Time,true,false,Special Tank Accessories,Standard Price Book;true,,One Time;OneTime,0
-Special Tank Size;Standard Price Book;One Time,true,false,Special Tank Size,Standard Price Book;true,,One Time;OneTime,0
-Special Test Options;Standard Price Book;One Time,true,false,Special Test Options,Standard Price Book;true,,One Time;OneTime,0
-Special Transfer Switch Option;Standard Price Book;One Time,true,false,Special Transfer Switch Option,Standard Price Book;true,,One Time;OneTime,0
-Spring Vibration Isolators;Standard Price Book;One Time,true,false,Spring Vibration Isolators,Standard Price Book;true,,One Time;OneTime,1520
-ST 10YR 5000HR PARTS;Standard Price Book;One Time,true,false,ST 10YR 5000HR PARTS,Standard Price Book;true,,One Time;OneTime,1270
-ST 10YR 5000HR Parts + Labor;Standard Price Book;One Time,true,false,ST 10YR 5000HR Parts + Labor,Standard Price Book;true,,One Time;OneTime,510
-ST 10YR 5000HR Parts + Labor + Travel;Standard Price Book;One Time,true,false,ST 10YR 5000HR Parts + Labor + Travel,Standard Price Book;true,,One Time;OneTime,1770
-ST 3YR 1500HR PARTS;Standard Price Book;One Time,true,false,ST 3YR 1500HR PARTS,Standard Price Book;true,,One Time;OneTime,880
-ST 3YR 1500HR Parts + Labor;Standard Price Book;One Time,true,false,ST 3YR 1500HR Parts + Labor,Standard Price Book;true,,One Time;OneTime,2490
-ST 3YR 1500HR Parts + Labor + Travel;Standard Price Book;One Time,true,false,ST 3YR 1500HR Parts + Labor + Travel,Standard Price Book;true,,One Time;OneTime,2310
-ST 5YR 2500HR PARTS;Standard Price Book;One Time,true,false,ST 5YR 2500HR PARTS,Standard Price Book;true,,One Time;OneTime,1050
-ST 5YR 2500HR Parts + Labor;Standard Price Book;One Time,true,false,ST 5YR 2500HR Parts + Labor,Standard Price Book;true,,One Time;OneTime,620
-ST 5YR 2500HR Parts + Labor + Travel;Standard Price Book;One Time,true,false,ST 5YR 2500HR Parts + Labor + Travel,Standard Price Book;true,,One Time;OneTime,1790
-"STANDARD - 1YR P/L/T, 2 YR P;Standard Price Book;One Time",true,true,"STANDARD - 1YR P/L/T, 2 YR P",Standard Price Book;true,,One Time;OneTime,0
-Stationary Generator | 10-30KW | Diesel | 2.2L;Standard Price Book;SD10-30;One Time,true,false,Stationary Generator | 10-30KW | Diesel | 2.2L,Standard Price Book;true,SD10-30,One Time;OneTime,45000
-Stationary Generator | 100-175KW | Diesel | 6.7L;Standard Price Book;SD100-175;One Time,true,false,Stationary Generator | 100-175KW | Diesel | 6.7L,Standard Price Book;true,SD100-175,One Time;OneTime,0
-Stationary Generator | 1000KW | Gaseous | 49.0L;Standard Price Book;SG1000;One Time,true,false,Stationary Generator | 1000KW | Gaseous | 49.0L,Standard Price Book;true,SG1000,One Time;OneTime,125000
-Stationary Generator | 1250KW | Diesel | 49.0L;Standard Price Book;SD1250;One Time,true,false,Stationary Generator | 1250KW | Diesel | 49.0L,Standard Price Book;true,SD1250,One Time;OneTime,90000
-Stationary Generator | 150-300KW | Gaseous | 14.2L;Standard Price Book;SG150-300;One Time,true,false,Stationary Generator | 150-300KW | Gaseous | 14.2L,Standard Price Book;true,SG150-300,One Time;OneTime,65000
-Stationary Generator | 1500-2000KW | Diesel | 65.4L;Standard Price Book;SD1500-2000;One Time,true,false,Stationary Generator | 1500-2000KW | Diesel | 65.4L,Standard Price Book;true,SD1500-2000,One Time;OneTime,95000
-Stationary Generator | 200-250KW | Diesel | 8.7L;Standard Price Book;SD200-250;One Time,true,false,Stationary Generator | 200-250KW | Diesel | 8.7L,Standard Price Book;true,SD200-250,One Time;OneTime,60000
-Stationary Generator | 275-300KW | Iveco Diesel | 10.3L;Standard Price Book;SD275-300;One Time,true,false,Stationary Generator | 275-300KW | Iveco Diesel | 10.3L,Standard Price Book;true,SD275-300,One Time;OneTime,60000
-Stationary Generator | 35-50KW | MHI Diesel | 3.3L;Standard Price Book;SD35-50;One Time,true,false,Stationary Generator | 35-50KW | MHI Diesel | 3.3L,Standard Price Book;true,SD35-50,One Time;OneTime,45000
-Stationary Generator | 35-80KW | Gaseous | 4.5L;Standard Price Book;SG35-80;One Time,true,false,Stationary Generator | 35-80KW | Gaseous | 4.5L,Standard Price Book;true,SG35-80,One Time;OneTime,50000
-Stationary Generator | 350-450KW | Gaseous | 21.9L;Standard Price Book;SG350-450;One Time,true,false,Stationary Generator | 350-450KW | Gaseous | 21.9L,Standard Price Book;true,SG350-450,One Time;OneTime,60000
-Stationary Generator | 350KW | Iveco Diesel | 12.9L;Standard Price Book;SD350;One Time,true,false,Stationary Generator | 350KW | Iveco Diesel | 12.9L,Standard Price Book;true,SD350,One Time;OneTime,65000
-Stationary Generator | 400KW | Perkins Diesel | 12.5L;Standard Price Book;SD400;One Time,true,false,Stationary Generator | 400KW | Perkins Diesel | 12.5L,Standard Price Book;true,SD400,One Time;OneTime,65000
-Stationary Generator | 500-750KW | Diesel & Natural Gas | 18.1L;Standard Price Book;SD500-750;One Time,true,false,Stationary Generator | 500-750KW | Diesel & Natural Gas | 18.1L,Standard Price Book;true,SD500-750,One Time;OneTime,100000
-Stationary Generator | 500KW | Diesel & Natural Gas | 15.2L;Standard Price Book;SD500;One Time,true,false,Stationary Generator | 500KW | Diesel & Natural Gas | 15.2L,Standard Price Book;true,SD500,One Time;OneTime,90000
-Stationary Generator | 500KW | Gaseous | 25.8L;Standard Price Book;SG500;One Time,true,false,Stationary Generator | 500KW | Gaseous | 25.8L,Standard Price Book;true,SG500,One Time;OneTime,70000
-Stationary Generator | 60-80KW | Diesel | 4.5L;Standard Price Book;SD60-80;One Time,true,false,Stationary Generator | 60-80KW | Diesel | 4.5L,Standard Price Book;true,SD60-80,One Time;OneTime,50000
-Stationary Generator | 625-750KW | Gaseous | 33.9.2L;Standard Price Book;SG625-750;One Time,true,false,Stationary Generator | 625-750KW | Gaseous | 33.9.2L,Standard Price Book;true,SG625-750,One Time;OneTime,120000
-Stationary Generator | 750-800KW | Diesel | 33.9.2L;Standard Price Book;SD750-800;One Time,true,false,Stationary Generator | 750-800KW | Diesel | 33.9.2L,Standard Price Book;true,SD750-800,One Time;OneTime,80000
-Stationary Generator | 80-150KW | Gaseous | 9.0L;Standard Price Book;SG80-150;One Time,true,false,Stationary Generator | 80-150KW | Gaseous | 9.0L,Standard Price Book;true,SG80-150,One Time;OneTime,55000
-Stationary Generator | 900-1000KW | Diesel | 30.6L;Standard Price Book;SD900-1000;One Time,true,false,Stationary Generator | 900-1000KW | Diesel | 30.6L,Standard Price Book;true,SD900-1000,One Time;OneTime,98000
-Stator Coil;Standard Price Book,true,false,Stator Coil,Standard Price Book;true,,,0
-STD Enclosure - Aluminum - 70dB;Standard Price Book;One Time,true,false,STD Enclosure - Aluminum - 70dB,Standard Price Book;true,,One Time;OneTime,7385
-STD Enclosure - Steel - 70dB;Standard Price Book;One Time,true,false,STD Enclosure - Steel - 70dB,Standard Price Book;true,,One Time;OneTime,8205
-Support;Standard Price Book;Term Based - Monthly,true,false,Support,Standard Price Book;true,,Term Based - Monthly;TermDefined,9.99
-Tank Risers;Standard Price Book;One Time,true,false,Tank Risers,Standard Price Book;true,,One Time;OneTime,1000
-"Temp Sens-Stator, 2 RTD/Ph;Standard Price Book;One Time",true,false,"Temp Sens-Stator, 2 RTD/Ph",Standard Price Book;true,,One Time;OneTime,800
-"Terminal Box-Low Voltage,Left;Standard Price Book;One Time",true,false,"Terminal Box-Low Voltage,Left",Standard Price Book;true,,One Time;OneTime,1650
-"Terminal Box-Low Voltage,Right;Standard Price Book;One Time",true,false,"Terminal Box-Low Voltage,Right",Standard Price Book;true,,One Time;OneTime,620
-"Terminal Housing-Bottom Entrance,Medium/High Volts;Standard Price Book;One Time",true,false,"Terminal Housing-Bottom Entrance,Medium/High Volts",Standard Price Book;true,,One Time;OneTime,1570
-"Terminal Housing-Top Entrance,Medium/High Volts;Standard Price Book;One Time",true,false,"Terminal Housing-Top Entrance,Medium/High Volts",Standard Price Book;true,,One Time;OneTime,1870
-"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn;Standard Price Book;One Time",true,false,"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn",Standard Price Book;true,,One Time;OneTime,1940
-"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn;Standard Price Book;One Time",true,false,"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn",Standard Price Book;true,,One Time;OneTime,710
-Test - Standard Factory;Standard Price Book;One Time,true,false,Test - Standard Factory,Standard Price Book;true,,One Time;OneTime,2090
-Test - Witness;Standard Price Book;One Time,true,false,Test - Witness,Standard Price Book;true,,One Time;OneTime,710
-Test Record-Amb Temp/Pres;Standard Price Book;One Time,true,false,Test Record-Amb Temp/Pres,Standard Price Book;true,,One Time;OneTime,2280
-Test Record-Certified;Standard Price Book;One Time,true,false,Test Record-Certified,Standard Price Book;true,,One Time;OneTime,660
-Test Record-Exhaust Temp;Standard Price Book;One Time,true,false,Test Record-Exhaust Temp,Standard Price Book;true,,One Time;OneTime,1990
-Test Record-Safety Shutdowns;Standard Price Book;One Time,true,false,Test Record-Safety Shutdowns,Standard Price Book;true,,One Time;OneTime,1530
-Test Record-Strip Chart;Standard Price Book;One Time,true,false,Test Record-Strip Chart,Standard Price Book;true,,One Time;OneTime,770
-"Test-Extended, Prime Load, 1Hr;Standard Price Book;One Time",true,false,"Test-Extended, Prime Load, 1Hr",Standard Price Book;true,,One Time;OneTime,2480
-"Test-Extended, Prime Load, 8Hr;Standard Price Book;One Time",true,false,"Test-Extended, Prime Load, 8Hr",Standard Price Book;true,,One Time;OneTime,2420
-"Test-Extended, Standby Load, 1;Standard Price Book;One Time",true,false,"Test-Extended, Standby Load, 1",Standard Price Book;true,,One Time;OneTime,1650
-"Test-Extended, Standby Load, 2;Standard Price Book;One Time",true,false,"Test-Extended, Standby Load, 2",Standard Price Book;true,,One Time;OneTime,1190
-"Test-Extended, Standby Load, 4;Standard Price Book;One Time",true,false,"Test-Extended, Standby Load, 4",Standard Price Book;true,,One Time;OneTime,2470
-"Test-Extnd, Prime Ld,2Hr;Standard Price Book;One Time",true,false,"Test-Extnd, Prime Ld,2Hr",Standard Price Book;true,,One Time;OneTime,1400
-"Test-Extnd, Prime Ld,4Hr;Standard Price Book;One Time",true,false,"Test-Extnd, Prime Ld,4Hr",Standard Price Book;true,,One Time;OneTime,930
-"Test-Extnd,Stndby Ld,8Hr;Standard Price Book;One Time",true,false,"Test-Extnd,Stndby Ld,8Hr",Standard Price Book;true,,One Time;OneTime,1980
-Test-Independent Laboratory;Standard Price Book;One Time,true,false,Test-Independent Laboratory,Standard Price Book;true,,One Time;OneTime,370
-"Test-Varied Ld,6Hr,3 Step;Standard Price Book;One Time",true,false,"Test-Varied Ld,6Hr,3 Step",Standard Price Book;true,,One Time;OneTime,1310
-"Test-Varied Load, 4Hr, 2Step;Standard Price Book;One Time",true,false,"Test-Varied Load, 4Hr, 2Step",Standard Price Book;true,,One Time;OneTime,2390
-"Test-Varied Load,1 Hour,2 Step;Standard Price Book;One Time",true,false,"Test-Varied Load,1 Hour,2 Step",Standard Price Book;true,,One Time;OneTime,290
-"Test-Varied Load,2Hr,2 Step;Standard Price Book;One Time",true,false,"Test-Varied Load,2Hr,2 Step",Standard Price Book;true,,One Time;OneTime,2300
-"Top Entry, Left;Standard Price Book;One Time",true,false,"Top Entry, Left",Standard Price Book;true,,One Time;OneTime,170
-"Top Entry, Right;Standard Price Book;One Time",true,false,"Top Entry, Right",Standard Price Book;true,,One Time;OneTime,500
-Trip Mechanism;Standard Price Book;One Time,true,false,Trip Mechanism,Standard Price Book;true,,One Time;OneTime,0
-Unity Power Factor;Standard Price Book;One Time,true,false,Unity Power Factor,Standard Price Book;true,,One Time;OneTime,0
-Warning-Low Coolant Level;Standard Price Book;One Time,true,false,Warning-Low Coolant Level,Standard Price Book;true,,One Time;OneTime,1920
-Warranty;Standard Price Book;Term Based - Yearly,true,false,Warranty,Standard Price Book;true,,Term Based - Yearly;TermDefined,49.99
-Weather Protected Enclosure;Standard Price Book;One Time,true,false,Weather Protected Enclosure,Standard Price Book;true,,One Time;OneTime,2399
-White;Standard Price Book;One Time,true,false,White,Standard Price Book;true,,One Time;OneTime,0
-Wiring & Cables;Standard Price Book;One Time,true,false,Wiring & Cables,Standard Price Book;true,,One Time;OneTime,450
+128GB LRDIMM;Standard Price Book;QB-MEM 128GB;One-Time,true,false,128GB LRDIMM,Standard Price Book;true,QB-MEM 128GB,One-Time;OneTime,1989
+16GB RDIMM;Standard Price Book;QB-MEM 16GB;One-Time,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,One-Time;OneTime,599
+1TB 10k RPM (2.5in);Standard Price Book;QB-HD 1.2TB;One-Time,true,false,1TB 10k RPM (2.5in),Standard Price Book;true,QB-HD 1.2TB,One-Time;OneTime,250
+1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;One-Time,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,One-Time;OneTime,499
+20TB 7.2k RPM NLSAS (3.5in);Standard Price Book;QB-HD 20TB;One-Time,true,false,20TB 7.2k RPM NLSAS (3.5in),Standard Price Book;true,QB-HD 20TB,One-Time;OneTime,1848
+32GB RDIMM;Standard Price Book;QB-MEM 32GB;One-Time,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,One-Time;OneTime,889
+3TB 10k RPM (2.5in);Standard Price Book;QB-HD 3TB;One-Time,true,false,3TB 10k RPM (2.5in),Standard Price Book;true,QB-HD 3TB,One-Time;OneTime,450
+4TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 4TB;One-Time,true,false,4TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 4TB,One-Time;OneTime,799
+64GB RDIMM;Standard Price Book;QB-MEM 64GB;One-Time,true,false,64GB RDIMM,Standard Price Book;true,QB-MEM 64GB,One-Time;OneTime,999
+8GB RDIMM;Standard Price Book;QB-MEM 8GB;One-Time,true,false,8GB RDIMM,Standard Price Book;true,QB-MEM 8GB,One-Time;OneTime,399
+8TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 8TB;One-Time,true,false,8TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 8TB,One-Time;OneTime,999
+8TB 7.2k RPM Self-Encrypting NLSAS;Standard Price Book;QB-HD 8TBSE;One-Time,true,false,8TB 7.2k RPM Self-Encrypting NLSAS,Standard Price Book;true,QB-HD 8TBSE,One-Time;OneTime,1199
+Additional API;Standard Price Book;QB-API;Evergreen Monthly,true,false,Additional API,Standard Price Book;true,QB-API,Evergreen Monthly;Evergreen,2000
+Additional API;Standard Price Book;QB-API;Term Annual,true,false,Additional API,Standard Price Book;true,QB-API,Term Annual;TermDefined,15000
+Additional API;Standard Price Book;QB-API;Term Monthly,true,false,Additional API,Standard Price Book;true,QB-API,Term Monthly;TermDefined,1500
+Additional API Flex (100M);Standard Price Book;QB-API-FLEX;Term Annual,true,false,Additional API Flex (100M),Standard Price Book;true,QB-API-FLEX,Term Annual;TermDefined,450
+Additional API Gov;Standard Price Book;QB-API-GOVT;Term Annual,true,false,Additional API Gov,Standard Price Book;true,QB-API-GOVT,Term Annual;TermDefined,1450
+Additional API Pre-Prod;Standard Price Book;QB-API-PREP;Term Annual,true,false,Additional API Pre-Prod,Standard Price Book;true,QB-API-PREP,Term Annual;TermDefined,3240
+Additional API Prod;Standard Price Book;QB-API-PROD;Term Annual,true,false,Additional API Prod,Standard Price Book;true,QB-API-PROD,Term Annual;TermDefined,3240
+Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Evergreen Monthly,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Evergreen Monthly;Evergreen,2.5
+Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Annual,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Annual;TermDefined,25
+Additional Automation QB Credits;Standard Price Book;QB-AUT-CRED;Term Monthly,true,false,Additional Automation QB Credits,Standard Price Book;true,QB-AUT-CRED,Term Monthly;TermDefined,2
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Evergreen Monthly,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Evergreen Monthly;Evergreen,0
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Annual,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Annual;TermDefined,0
+Additional Data Throughput;Standard Price Book;QB-DAT-THPT;Term Monthly,true,false,Additional Data Throughput,Standard Price Book;true,QB-DAT-THPT,Term Monthly;TermDefined,0
+Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Evergreen Monthly,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Evergreen Monthly;Evergreen,2000
+Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Annual,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Annual;TermDefined,24000
+Additional Flows - QB Starter;Standard Price Book;QB-FLO-STRT;Term Monthly,true,false,Additional Flows - QB Starter,Standard Price Book;true,QB-FLO-STRT,Term Monthly;TermDefined,1500
+Additional Messages - QB Starter;Standard Price Book;QB-MSG-STRT;Evergreen Monthly,true,false,Additional Messages - QB Starter,Standard Price Book;true,QB-MSG-STRT,Evergreen Monthly;Evergreen,3500
+Additional Messages - QB Starter;Standard Price Book;QB-MSG-STRT;Term Annual,true,false,Additional Messages - QB Starter,Standard Price Book;true,QB-MSG-STRT,Term Annual;TermDefined,30000
+Additional Messages - QB Starter;Standard Price Book;QB-MSG-STRT;Term Monthly,true,false,Additional Messages - QB Starter,Standard Price Book;true,QB-MSG-STRT,Term Monthly;TermDefined,3000
+Additional QB DataGraph (500M);Standard Price Book;QB-DAT-GRPH;Term Annual,true,false,Additional QB DataGraph (500M),Standard Price Book;true,QB-DAT-GRPH,Term Annual;TermDefined,25000
+AI Help Desk;Standard Price Book;AI Help Desk;Term Annual,true,false,AI Help Desk,Standard Price Book;true,AI Help Desk,Term Annual;TermDefined,0
+API Access Requests (AEH);Standard Price Book;QB-API-REQT;Evergreen Monthly,true,false,API Access Requests (AEH),Standard Price Book;true,QB-API-REQT,Evergreen Monthly;Evergreen,5
+API Access Requests (AEH);Standard Price Book;QB-API-REQT;Term Annual,true,false,API Access Requests (AEH),Standard Price Book;true,QB-API-REQT,Term Annual;TermDefined,45
+API Access Requests (AEH);Standard Price Book;QB-API-REQT;Term Monthly,true,false,API Access Requests (AEH),Standard Price Book;true,QB-API-REQT,Term Monthly;TermDefined,5
+Bulk Emails Sent;Standard Price Book;BES;Term Annual,true,false,Bulk Emails Sent,Standard Price Book;true,BES,Term Annual;TermDefined,24
+Bulk Emails Sent;Standard Price Book;BES;Term Monthly,true,false,Bulk Emails Sent,Standard Price Book;true,BES,Term Monthly;TermDefined,2
+Bulk WhatsApp Sent;Standard Price Book;BWS;Term Annual,true,false,Bulk WhatsApp Sent,Standard Price Book;true,BWS,Term Annual;TermDefined,0
+Bulk WhatsApp Sent;Standard Price Book;BWS;Term Monthly,true,false,Bulk WhatsApp Sent,Standard Price Book;true,BWS,Term Monthly;TermDefined,0
+C13 to C14 Power Cable 3';Standard Price Book;QB-CMPC-5887;One-Time,true,false,C13 to C14 Power Cable 3',Standard Price Book;true,QB-CMPC-5887,One-Time;OneTime,250
+Cloud License (Monthly);Standard Price Book;QB-LIC-CLOUD;Term Annual,true,false,Cloud License (Monthly),Standard Price Book;true,QB-LIC-CLOUD,Term Annual;TermDefined,550
+Configured Power Cable;Standard Price Book;QB-CMPC-5882;One-Time,true,false,Configured Power Cable,Standard Price Book;true,QB-CMPC-5882,One-Time;OneTime,249
+Data Normalization Expert;Standard Price Book;QB-SRV-DNE;One-Time,true,false,Data Normalization Expert,Standard Price Book;true,QB-SRV-DNE,One-Time;OneTime,300
+Full Seats;Standard Price Book;FS-5;Term Annual,true,false,Full Seats,Standard Price Book;true,FS-5,Term Annual;TermDefined,1000
+Full Seats;Standard Price Book;FS-5;Term Monthly,true,false,Full Seats,Standard Price Book;true,FS-5,Term Monthly;TermDefined,99
+Gold Hardware Maintenance;Standard Price Book;QB-SUPP-1005;Term Annual,true,false,Gold Hardware Maintenance,Standard Price Book;true,QB-SUPP-1005,Term Annual;TermDefined,30000
+Implementation Engineer;Standard Price Book;QB-SRV-IMP;One-Time,true,false,Implementation Engineer,Standard Price Book;true,QB-SRV-IMP,One-Time;OneTime,300
+Integration Specialist Engineer;Standard Price Book;QB-SRV-ISE;One-Time,true,false,Integration Specialist Engineer,Standard Price Book;true,QB-SRV-ISE,One-Time;OneTime,350
+Intel X710 Dual Port 10Gb Direct Attach;Standard Price Book;QB-NET X710;One-Time,true,false,Intel X710 Dual Port 10Gb Direct Attach,Standard Price Book;true,QB-NET X710,One-Time;OneTime,1599
+Intel X710 Dual Port 10Gb SFP;Standard Price Book;QB-BET X710SFP;One-Time,true,false,Intel X710 Dual Port 10Gb SFP,Standard Price Book;true,QB-BET X710SFP,One-Time;OneTime,1599
+Intel Xeon E5-2609 v4 1.7GHz;Standard Price Book;QB-INTEL E5-2609;One-Time,true,false,Intel Xeon E5-2609 v4 1.7GHz,Standard Price Book;true,QB-INTEL E5-2609,One-Time;OneTime,1499
+Intel Xeon E5-2660 v4 2.0GHz;Standard Price Book;QB-INTEL E5-2660;One-Time,true,false,Intel Xeon E5-2660 v4 2.0GHz,Standard Price Book;true,QB-INTEL E5-2660,One-Time;OneTime,1699
+Intel Xeon E5-2667 v4 3.2GHz;Standard Price Book;QB-INTEL E5-2667;One-Time,true,false,Intel Xeon E5-2667 v4 3.2GHz,Standard Price Book;true,QB-INTEL E5-2667,One-Time;OneTime,2499
+Intel Xeon E5-2683 v4 2.1GHz;Standard Price Book;QB-INTEL E5-2683;One-Time,true,false,Intel Xeon E5-2683 v4 2.1GHz,Standard Price Book;true,QB-INTEL E5-2683,One-Time;OneTime,1399
+"Intel Xeon Gold 5318N 2.1GHz, 24C/48T;Standard Price Book;QB-INTEL-GOLD-5318N;One-Time",true,false,"Intel Xeon Gold 5318N 2.1GHz, 24C/48T",Standard Price Book;true,QB-INTEL-GOLD-5318N,One-Time;OneTime,1999
+"Intel Xeon Gold 6330N 2.2GHz, 28C/56T;Standard Price Book;QB-INTEL-GOLD-6330N;One-Time",true,false,"Intel Xeon Gold 6330N 2.2GHz, 28C/56T",Standard Price Book;true,QB-INTEL-GOLD-6330N,One-Time;OneTime,2149
+"Intel Xeon Gold 6354 3GHz, 18C/36T;Standard Price Book;QB-INTEL-GOLD-6354;One-Time",true,false,"Intel Xeon Gold 6354 3GHz, 18C/36T",Standard Price Book;true,QB-INTEL-GOLD-6354,One-Time;OneTime,3300
+"Intel Xeon Platinum 8352M 2.3GHz, 32C/64T;Standard Price Book;QB-INTEL-PLAT-8352M;One-Time",true,false,"Intel Xeon Platinum 8352M 2.3GHz, 32C/64T",Standard Price Book;true,QB-INTEL-PLAT-8352M,One-Time;OneTime,2000
+"Intel Xeon Platinum 8352Y 2.2GHz, 32C/64T;Standard Price Book;QB-INTEL-PLAT-8352Y;One-Time",true,false,"Intel Xeon Platinum 8352Y 2.2GHz, 32C/64T",Standard Price Book;true,QB-INTEL-PLAT-8352Y,One-Time;OneTime,2500
+"Intel Xeon Platinum 8360Y 2.4GHz, 36C/72T;Standard Price Book;QB-INTEL-PLAT-8360Y;One-Time",true,false,"Intel Xeon Platinum 8360Y 2.4GHz, 36C/72T",Standard Price Book;true,QB-INTEL-PLAT-8360Y,One-Time;OneTime,2800
+"Intel Xeon Platinum 8368 2.4GHz, 38C/76T;Standard Price Book;QB-INTEL-PLAT-8368;One-Time",true,false,"Intel Xeon Platinum 8368 2.4GHz, 38C/76T",Standard Price Book;true,QB-INTEL-PLAT-8368,One-Time;OneTime,2950
+Intercom Phone;Standard Price Book;IP-123;Term Annual,true,false,Intercom Phone,Standard Price Book;true,IP-123,Term Annual;TermDefined,0
+Intercom Phone;Standard Price Book;IP-123;Term Monthly,true,false,Intercom Phone,Standard Price Book;true,IP-123,Term Monthly;TermDefined,0
+Intercom Pricing 5.0;Standard Price Book;IC-50;Term Annual,true,false,Intercom Pricing 5.0,Standard Price Book;true,IC-50,Term Annual;TermDefined,0
+Lite Seats;Standard Price Book;LS-5;Term Annual,true,false,Lite Seats,Standard Price Book;true,LS-5,Term Annual;TermDefined,0
+Lite Seats;Standard Price Book;LS-5;Term Monthly,true,false,Lite Seats,Standard Price Book;true,LS-5,Term Monthly;TermDefined,0
+Module Extension Engineer;Standard Price Book;QB-SRV-MEE;One-Time,true,false,Module Extension Engineer,Standard Price Book;true,QB-SRV-MEE,One-Time;OneTime,300
+PowerSwerve R750 Rack Server;Standard Price Book;QB-BDL-R750;One-Time,true,false,PowerSwerve R750 Rack Server,Standard Price Book;true,QB-BDL-R750,One-Time;OneTime,3899
+Proactive Support Plus;Standard Price Book;PSP;Term Annual,true,false,Proactive Support Plus,Standard Price Book;true,PSP,Term Annual;TermDefined,0
+Professional Services Daily Rate;Standard Price Book;QB-SRV-OG-PSH;One-Time,true,false,Professional Services Daily Rate,Standard Price Book;true,QB-SRV-OG-PSH,One-Time;OneTime,250
+Professional Services Scope of Work;Standard Price Book;QB-SRV-SOW;One-Time,true,false,Professional Services Scope of Work,Standard Price Book;true,QB-SRV-SOW,One-Time;OneTime,25000
+Program Director;Standard Price Book;QB-SRV-PD;One-Time,true,false,Program Director,Standard Price Book;true,QB-SRV-PD,One-Time;OneTime,350
+Project Manager;Standard Price Book;QB-SRV-PMN;One-Time,true,false,Project Manager,Standard Price Book;true,QB-SRV-PMN,One-Time;OneTime,300
+Q-Drive NVX 16TB;Standard Price Book;QB-SSD 16TB;One-Time,true,false,Q-Drive NVX 16TB,Standard Price Book;true,QB-SSD 16TB,One-Time;OneTime,1200
+Q-Drive NVX 2TB;Standard Price Book;QB-SSD 2TB;One-Time,true,false,Q-Drive NVX 2TB,Standard Price Book;true,QB-SSD 2TB,One-Time;OneTime,150
+Q-Drive NVX 4TB;Standard Price Book;QB-SSD 4TB;One-Time,true,false,Q-Drive NVX 4TB,Standard Price Book;true,QB-SSD 4TB,One-Time;OneTime,225
+Q-Drive NVX 8TB;Standard Price Book;QB-SSD 8TB;One-Time,true,false,Q-Drive NVX 8TB,Standard Price Book;true,QB-SSD 8TB,One-Time;OneTime,580
+Q-Drive NVX Ultra 30TB;Standard Price Book;QB-SSD 30TB;One-Time,true,false,Q-Drive NVX Ultra 30TB,Standard Price Book;true,QB-SSD 30TB,One-Time;OneTime,2500
+QB API Management Solution;Standard Price Book;QB-API-MGMT;Evergreen Monthly,true,false,QB API Management Solution,Standard Price Book;true,QB-API-MGMT,Evergreen Monthly;Evergreen,1000
+QB API Management Solution;Standard Price Book;QB-API-MGMT;Term Annual,true,false,QB API Management Solution,Standard Price Book;true,QB-API-MGMT,Term Annual;TermDefined,12000
+QB API Management Solution;Standard Price Book;QB-API-MGMT;Term Monthly,true,false,QB API Management Solution,Standard Price Book;true,QB-API-MGMT,Term Monthly;TermDefined,1000
+QB CPU Heat Sink;Standard Price Book;QB-CPU-HEATSINK;One-Time,true,false,QB CPU Heat Sink,Standard Price Book;true,QB-CPU-HEATSINK,One-Time;OneTime,35
+QB Liquid Cooler;Standard Price Book;QB-LIQUIDCOOL;One-Time,true,false,QB Liquid Cooler,Standard Price Book;true,QB-LIQUIDCOOL,One-Time;OneTime,250
+QB-Accel NovaX150;Standard Price Book;QB-NovaX150;One-Time,true,false,QB-Accel NovaX150,Standard Price Book;true,QB-NovaX150,One-Time;OneTime,9800
+QB-Accel VegaX200;Standard Price Book;QB-VegaX200;One-Time,true,false,QB-Accel VegaX200,Standard Price Book;true,QB-VegaX200,One-Time;OneTime,15000
+QB-CacheBoost 150;Standard Price Book;QB-CBOOST-150;One-Time,true,false,QB-CacheBoost 150,Standard Price Book;true,QB-CBOOST-150,One-Time;OneTime,389
+QB-NetLink 100G Ultra;Standard Price Book;QB-NET-100G-ULTRA;One-Time,true,false,QB-NetLink 100G Ultra,Standard Price Book;true,QB-NET-100G-ULTRA,One-Time;OneTime,700
+QB-NetLink 10G;Standard Price Book;QB-NET-10G;One-Time,true,false,QB-NetLink 10G,Standard Price Book;true,QB-NET-10G,One-Time;OneTime,220
+QB-NetLink 25G;Standard Price Book;QB-NET-25G;One-Time,true,false,QB-NetLink 25G,Standard Price Book;true,QB-NET-25G,One-Time;OneTime,450
+QB-NetSecure 10G;Standard Price Book;QB-NETSECURE-10G;One-Time,true,false,QB-NetSecure 10G,Standard Price Book;true,QB-NETSECURE-10G,One-Time;OneTime,500
+QB-NVExpand 200;Standard Price Book;QB-NVExpand-200;One-Time,true,false,QB-NVExpand 200,Standard Price Book;true,QB-NVExpand-200,One-Time;OneTime,475
+QB-PowerCore 1600S;Standard Price Book;QB-PWRCORE-1600S;One-Time,true,false,QB-PowerCore 1600S,Standard Price Book;true,QB-PWRCORE-1600S,One-Time;OneTime,599
+QB-PowerCore 500S;Standard Price Book;QB-PWRCORE-500S;One-Time,true,false,QB-PowerCore 500S,Standard Price Book;true,QB-PWRCORE-500S,One-Time;OneTime,299
+QB-PowerCore 800S;Standard Price Book;QB-PWRCORE-800S;One-Time,true,false,QB-PowerCore 800S,Standard Price Book;true,QB-PWRCORE-800S,One-Time;OneTime,489
+QB-PowerSafe 1000D;Standard Price Book;QB-PWRSAFE-1000D;One-Time,true,false,QB-PowerSafe 1000D,Standard Price Book;true,QB-PWRSAFE-1000D,One-Time;OneTime,700
+QB-PowerSafe 2000D;Standard Price Book;QB-PWRSAFE-2000D;One-Time,true,false,QB-PowerSafe 2000D,Standard Price Book;true,QB-PWRSAFE-2000D,One-Time;OneTime,1850
+QB-PowerSafe 600D;Standard Price Book;QB-PWRSAFE-600D;One-Time,true,false,QB-PowerSafe 600D,Standard Price Book;true,QB-PWRSAFE-600D,One-Time;OneTime,450
+QB-RAIDForce 500;Standard Price Book;QB-RAID-500;One-Time,true,false,QB-RAIDForce 500,Standard Price Book;true,QB-RAID-500,One-Time;OneTime,620
+Quality Assurance Engineer;Standard Price Book;QB-SRV-QAE;One-Time,true,false,Quality Assurance Engineer,Standard Price Book;true,QB-SRV-QAE,One-Time;OneTime,300
+QuantumBit Collaboration Suite;Standard Price Book;QB-CS;Term Annual,true,false,QuantumBit Collaboration Suite,Standard Price Book;true,QB-CS,Term Annual;TermDefined,0
+QuantumBit Collaboration Suite;Standard Price Book;QB-CS;Term Monthly,true,false,QuantumBit Collaboration Suite,Standard Price Book;true,QB-CS,Term Monthly;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Evergreen Monthly,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Evergreen Monthly;Evergreen,0
+QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;One-Time,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,One-Time;OneTime,0
+QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Term Annual,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Term Annual;TermDefined,0
+QuantumBit Complete Solution;Standard Price Book;QB-COMPLETE;Term Monthly,true,false,QuantumBit Complete Solution,Standard Price Book;true,QB-COMPLETE,Term Monthly;TermDefined,0
+QuantumBit Database;Standard Price Book;QB-DB;Term Annual,true,false,QuantumBit Database,Standard Price Book;true,QB-DB,Term Annual;TermDefined,12000
+QuantumBit Database (Monetary Commit);Standard Price Book;QB-MTY-CMT;Term Annual,true,false,QuantumBit Database (Monetary Commit),Standard Price Book;true,QB-MTY-CMT,Term Annual;TermDefined,8000
+QuantumBit Database (Quantity Commit);Standard Price Book;QB-QTY-CMT;Term Annual,true,false,QuantumBit Database (Quantity Commit),Standard Price Book;true,QB-QTY-CMT,Term Annual;TermDefined,500
+QuantumBit Database (Token Based);Standard Price Book;QB-DB-TOKEN;Term Annual,true,false,QuantumBit Database (Token Based),Standard Price Book;true,QB-DB-TOKEN,Term Annual;TermDefined,12000
+QuantumBit Database (Token Commit - Each);Standard Price Book;QB-CMT-TKN-EACH;Term Annual,true,false,QuantumBit Database (Token Commit - Each),Standard Price Book;true,QB-CMT-TKN-EACH,Term Annual;TermDefined,1000
+QuantumBit Database (Token Commit - Flat);Standard Price Book;QB-CMT-TKN-FLAT;Term Annual,true,false,QuantumBit Database (Token Commit - Flat),Standard Price Book;true,QB-CMT-TKN-FLAT,Term Annual;TermDefined,1000
+QuantumBit Database (Token Commit - Tier);Standard Price Book;QB-CMT-TKN-TIER;Term Annual,true,false,QuantumBit Database (Token Commit - Tier),Standard Price Book;true,QB-CMT-TKN-TIER,Term Annual;TermDefined,1000
+QuantumBit Essentials Training;Standard Price Book;QB-TRN-ESSNTLS;One-Time,true,false,QuantumBit Essentials Training,Standard Price Book;true,QB-TRN-ESSNTLS,One-Time;OneTime,8500
+QuantumBit Fundamentals Training;Standard Price Book;QB-TRN-FUND;One-Time,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,6500
+QuantumBit Generative AI License;Standard Price Book;QB-GEN-AI-LIC;Term Annual,true,false,QuantumBit Generative AI License,Standard Price Book;true,QB-GEN-AI-LIC,Term Annual;TermDefined,149.99
+QuantumBit Q-Rack 750;Standard Price Book;QB-QRack-750;One-Time,true,false,QuantumBit Q-Rack 750,Standard Price Book;true,QB-QRack-750,One-Time;OneTime,3980
+QuantumBit Starter;Standard Price Book;QB-BDL-STND;One-Time,true,false,QuantumBit Starter,Standard Price Book;true,QB-BDL-STND,One-Time;OneTime,0
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Annual,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Annual;Evergreen,420
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Evergreen Monthly,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,35
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Annual,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,360
+QuantumBit Subscription;Standard Price Book;TEST-SUB;Term Monthly,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
+QuantumBit Tokens Pack;Standard Price Book;QB-TOKENS-PACK;One-Time,true,false,QuantumBit Tokens Pack,Standard Price Book;true,QB-TOKENS-PACK,One-Time;OneTime,100
+Resolutions;Standard Price Book;RESO;Term Annual,true,false,Resolutions,Standard Price Book;true,RESO,Term Annual;TermDefined,360
+Resolutions;Standard Price Book;RESO;Term Monthly,true,false,Resolutions,Standard Price Book;true,RESO,Term Monthly;TermDefined,30
+Services Project;Standard Price Book;QB-BDL-SRVC;One-Time,true,false,Services Project,Standard Price Book;true,QB-BDL-SRVC,One-Time;OneTime,0
+Silver Hardware Maintenance;Standard Price Book;QB-SUPP-1000;Term Annual,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,25000
+SMS Sent/Received AU;Standard Price Book;SMSAU;Term Annual,true,false,SMS Sent/Received AU,Standard Price Book;true,SMSAU,Term Annual;TermDefined,0
+SMS Sent/Received AU;Standard Price Book;SMSAU;Term Monthly,true,false,SMS Sent/Received AU,Standard Price Book;true,SMSAU,Term Monthly;TermDefined,0
+SMS Sent/Received CA;Standard Price Book;SMSCA;Term Annual,true,false,SMS Sent/Received CA,Standard Price Book;true,SMSCA,Term Annual;TermDefined,0
+SMS Sent/Received CA;Standard Price Book;SMSCA;Term Monthly,true,false,SMS Sent/Received CA,Standard Price Book;true,SMSCA,Term Monthly;TermDefined,0
+SMS Sent/Received UK;Standard Price Book;SMSUK;Term Annual,true,false,SMS Sent/Received UK,Standard Price Book;true,SMSUK,Term Annual;TermDefined,0
+SMS Sent/Received UK;Standard Price Book;SMSUK;Term Monthly,true,false,SMS Sent/Received UK,Standard Price Book;true,SMSUK,Term Monthly;TermDefined,0
+SMS Sent/Received US;Standard Price Book;SMSUS;Term Annual,true,false,SMS Sent/Received US,Standard Price Book;true,SMSUS,Term Annual;TermDefined,0
+SMS Sent/Received US;Standard Price Book;SMSUS;Term Monthly,true,false,SMS Sent/Received US,Standard Price Book;true,SMSUS,Term Monthly;TermDefined,0
+Software Maintenance;Standard Price Book;QB-SUPP-2000;Term Annual,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
+Solutions Architect;Standard Price Book;QB-SRV-SAT;One-Time,true,false,Solutions Architect,Standard Price Book;true,QB-SRV-SAT,One-Time;OneTime,500
