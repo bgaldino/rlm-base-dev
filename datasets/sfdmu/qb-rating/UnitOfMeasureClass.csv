@@ -2,4 +2,7 @@ BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,S
 EACH,CAS01,EACH,Support Cases,Case,Active
 USD,CURRENCY,USD,,Currency,Active
 GB,DATAVOL,GB,,Data Volume,Active
+,EMAIL,EMAIL,,Emails,Active
+,MESSAG,SMS,,Messaging,Active
 m,TIME,m,,Time,Active
+,Token_UoM_Class,TOKEN-UOM,Tokens UoM Class,Tokens UoM Class,Active
