@@ -254,6 +254,7 @@
         <fields>Sequence</fields>
         <relatedList>ProductComponentGroups</relatedList>
     </relatedLists>
+    <!--
     <relatedLists>
         <fields>Name</fields>
         <fields>Label</fields>
@@ -266,8 +267,9 @@
         <fields>Status</fields>
         <fields>EffectiveStartDate</fields>
         <fields>EffectiveEndDate</fields>
-        <relatedList>ProductUsageGrants</relatedList>
+       <relatedList>ProductUsageGrants</relatedList> 
     </relatedLists>
+-->
     <relatedLists>
         <fields>Name</fields>
         <fields>UsageResource</fields>

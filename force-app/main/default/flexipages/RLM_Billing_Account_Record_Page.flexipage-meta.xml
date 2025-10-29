@@ -50,74 +50,6 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>actionNames</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>New</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>maxRecordsToDisplay</name>
-                    <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>Account.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>Account_AccountBillingAccounts</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListDisplayType</name>
-                    <value>ADVGRID</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListFieldAliases</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>BillingAccount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>IsDefaultBillingAccount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>CreatedDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>CreatedBy</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListLabel</name>
-                    <value>Billing Profile</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showActionBar</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldAlias</name>
-                    <value>CreatedDate</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sortFieldOrder</name>
-                    <value>Descending</value>
-                </componentInstanceProperties>
-                <componentName>lst:dynamicRelatedList</componentName>
-                <identifier>lst_accountBillingAccounts</identifier>
-            </componentInstance>
-        </itemInstances>
-        <mode>Replace</mode>
-        <name>billingProfileTabContent</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
                 <componentName>force:detailPanel</componentName>
                 <identifier>force_detailPanel</identifier>
             </componentInstance>
@@ -402,20 +334,6 @@
         <type>Region</type>
     </flexiPageRegions>
     <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>maxEARContainerHeight</name>
-                    <value>500</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>shouldDisplayFiltersOnRight</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentName>forceKnowledge:articleSearchDesktop</componentName>
-                <identifier>forceKnowledge_articleSearchDesktop</identifier>
-            </componentInstance>
-        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>

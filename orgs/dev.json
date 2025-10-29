@@ -6,6 +6,7 @@
     "AdvancedApproval",
     "AIProviderOpenAI",
     "AIProviderAWSBedrock",
+    "B2BCommerce",
     "BillingAdvanced",
     "CallCoaching",
     "CGAnalytics",
@@ -35,6 +36,9 @@
     "UsageManagement"
     ],
   "settings": {
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
+    },
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
     },

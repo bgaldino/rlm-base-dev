@@ -3,6 +3,7 @@
     <description>RC Revenue Management Intelligence with Data Cloud and Tableau Next</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC_RMI</label>
+    <!--
     <permissionSets>force__AnalyticsStoreUser</permissionSets>
     <permissionSets>force__AnalyticsQueryService</permissionSets>
     <permissionSets>force__CDPAdmin</permissionSets>
@@ -19,4 +20,5 @@
     <permissionSets>force__TableauIncludedAppManager</permissionSets>
     <permissionSets>force__TableauNextLimitedViewer</permissionSets>
     <permissionSets>force__TableauUser</permissionSets>
+-->
 </PermissionSetGroup>

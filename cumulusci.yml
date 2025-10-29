@@ -66,8 +66,8 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    prm: true                # Use Partner Relationship Management
-    tso: true                # Is Trialforce Source Org?
+    prm: false                # Use Partner Relationship Management
+    tso: false                # Is Trialforce Source Org?
     qb: true                 # Is QuantumBit?
     q3: false                # Include Q3 data
     calmdelete: true         # Use CALM Delete
@@ -81,7 +81,7 @@ project:
     einstein: true           # Use Einstein AI
     product_dataset: qb      # Default product dataset to use
     qbrix: true              # Use xDO base
-    agents: true             # Deploy Agentforce Agent Configurations
+    agents: false             # Deploy Agentforce Agent Configurations
     refresh: false           # Data refresh flag
     commerce: false          # Use Commerce
     quantumbit: true         # Use QuantumBit

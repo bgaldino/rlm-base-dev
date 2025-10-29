@@ -3,8 +3,9 @@
     <description>Generative AI permission sets for QuantumBit NextGen</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC QuantumBit AI</label>
+    <!--
     <permissionSets>force__AIAcceleratorPsl</permissionSets>
-    <permissionSets>force__CallCoachingIncluded</permissionSets>
+    <permissionSets>force__CallCoachingIncluded</permissionSets> 
     <permissionSets>force__CallCoachingUserPsl</permissionSets>
     <permissionSets>force__EinsteinARForConversations</permissionSets>
     <permissionSets>force__EinsteinActivityCaptureIncluded</permissionSets>
@@ -23,7 +24,7 @@
     <permissionSets>force__EinsteinReplyRecommendations</permissionSets>
     <permissionSets>force__EinsteinSearchAnswers</permissionSets>
     <permissionSets>force__EinsteinSendMeetingRequestCopilot</permissionSets>
-    <permissionSets>force__EinsteinServiceInnovations</permissionSets>
+    <permissionSets>force__EinsteinServiceInnovations</permissionSets>   
     <permissionSets>force__HighVelocitySalesCadenceCreatorIncluded</permissionSets>
     <permissionSets>force__HighVelocitySalesQuickCadenceCreatorIncluded</permissionSets>
     <permissionSets>force__HighVelocitySalesUserIncluded</permissionSets>
@@ -36,4 +37,5 @@
     <permissionSets>force__SalesCloudEinsteinIncluded</permissionSets>
     <permissionSets>force__SalesCloudUnlimitedIncluded</permissionSets>
     <permissionSets>force__SalesMeetingsIncluded</permissionSets>
+    -->
 </PermissionSetGroup>

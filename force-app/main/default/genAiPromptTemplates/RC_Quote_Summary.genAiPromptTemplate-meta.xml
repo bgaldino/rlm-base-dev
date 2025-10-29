@@ -80,7 +80,7 @@ List all dates in the format &quot;Month Date, Year&quot; without the time stamp
             <referenceName>Input:Quote</referenceName>
             <required>true</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultOpenAIGPT35Turbo</primaryModel>
+        <primaryModel>sfdc_ai__DefaultOpenAIGPT4OmniMini</primaryModel>
         <status>Published</status>
         <templateDataProviders>
             <definition>invocable://getRelatedList</definition>
