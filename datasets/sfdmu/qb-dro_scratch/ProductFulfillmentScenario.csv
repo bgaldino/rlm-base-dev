@@ -6,6 +6,19 @@ AEH API Access Requests - Convert Assets;QB-API-REQT;USD,Add;Amend;Renew;No Chan
 Provision Tenant - New Sale - Additional API;QB-API;USD,Add,USD,Tenant Provisioning + Activation;USD,Provision Tenant - New Sale - Additional API,Additional API;QB-API
 Additional API;QB-API;USD,Add,USD,Order Processing;USD,Additional API,Additional API;QB-API
 Bill;QB-API-REQT;USD,Add;Amend;Renew;No Change;Cancel,USD,Finance;USD,Bill,API Access Requests (AEH);QB-API-REQT
-Finance Flow;QB-AEH-BILL;USD,Add;Amend;Renew;No Change;Cancel,USD,Finance;USD,Finance Flow,Finance Service;QB-AEH-BILL
+Finance Flow;QB-AEH-BILL;USD,Add;Amend;Renew;No Change;Cancel,USD,Finance;USD,Finance Flow,Finance Service Delete;QB-AEH-BILL
 Order Review;QB-AEH-OR;USD,Add;Amend;Renew;No Change;Cancel,USD,Order Processing;USD,Order Review,Order Processing;QB-AEH-OR
 Provisioning and Activation;QB-AEH-CPU;USD,Add;Amend;Renew;No Change;Cancel,USD,Tenant Provisioning + Activation;USD,Provisioning and Activation,Provisioning and Activation Service;QB-AEH-CPU
+QuantumBit Database (Token Based)- Billing;QB-DB-TOKEN;USD,Add,USD,Billing and Invoicing;USD,QuantumBit Database (Token Based)- Billing,QuantumBit Database (Token Based);QB-DB-TOKEN
+QuantumBit Database (Token Based)- Activation;QB-DB-TOKEN;USD,Add,USD,License Activation;USD,QuantumBit Database (Token Based)- Activation,QuantumBit Database (Token Based);QB-DB-TOKEN
+QuantumBit Database (Token Based)-Platform Prov;QB-DB-TOKEN;USD,Add,USD,Platform Provisioning;USD,QuantumBit Database (Token Based)-Platform Prov,QuantumBit Database (Token Based);QB-DB-TOKEN
+AEH API to Provisioning;QB-DRO-AEH;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,AEH API to Provisioning,AEH API - Provisioning & Activation Service;QB-DRO-AEH
+API Platform to Provisioning;QB-DRO-APIPLAT;USD,Add;Amend;Renew;No Change;Cancel,USD,Platform;USD,API Platform to Provisioning,AI Help Desk Platform - Provisioning & Activation Service;QB-DRO-APIPLAT
+Additional Messages to Provisioning;QB-DRO-AM;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,Additional Messages to Provisioning,Additional Messages QB Starter - Provisioning & Activation Service;QB-DRO-AM
+API to Provisioning;QB-DRO-AAPI;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,API to Provisioning,AI Help Desk Lite Seats  - Provision & Activation Service;QB-DRO-AAPI
+Finance Service;QB-DRO-BILL;USD,Add;Amend;Renew;No Change;Cancel,USD,Finance;USD,Finance Service,Finance Service;QB-DRO-BILL
+Project Service;QB-DRO-PROJ;USD,Add;Amend;Renew;No Change;Cancel,USD,Services;USD,Project Service,Project Service;QB-DRO-PROJ
+API Platform License to Provisioning;QB-DRO-PERMS;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,API Platform License to Provisioning,AI Help Desk Full License - Provisioning & Activation Service;QB-DRO-PERMS
+QB Database to Provisioning;QB-DRO-QBD;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,QB Database to Provisioning,QuantumBit Database - Provisioning & Activation Service;QB-DRO-QBD
+Additional Flows to Provisioning;QB-DRO-AACR;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,Additional Flows to Provisioning,Additional Flows - Provisioning & Activation Service;QB-DRO-AACR
+Additional Credits to Provisioning;QB-DRO-AAQBC;USD,Add;Amend;Renew;No Change;Cancel,USD,Feature/License Provisioning + Activation;USD,Additional Credits to Provisioning,Resolutions - Provisioning & Activation Service;QB-DRO-AAQBC

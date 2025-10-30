@@ -15,9 +15,50 @@ APIAccessRequestsAEH;QuantumBitComplete,APIAccessRequestsAEH,Type,USD,QuantumBit
 QuantumBitFundamentalsTraining;QuantumBitComplete,QuantumBitFundamentalsTraining,Type,USD,QuantumBitComplete,QuantumBit Fundamentals Training
 SolutionsArchitect;QuantumBitComplete,SolutionsArchitect,Type,USD,QuantumBitComplete,Solutions Architect
 ProfessionalServicesScopeofWork;QuantumBitComplete,ProfessionalServicesScopeofWork,Type,USD,QuantumBitComplete,Professional Services Scope of Work
-QuantumBitServicesProject;QuantumBitComplete,QuantumBitServicesProject,Type,USD,QuantumBitComplete,QuantumBit Services Project
+QuantumBitServicesProject;QuantumBitComplete,QuantumBitServicesProject,Type,USD,QuantumBitComplete,Services Project
 IntegrationSpecialistEngineer;QuantumBitComplete,IntegrationSpecialistEngineer,Type,USD,QuantumBitComplete,Integration Specialist Engineer
 QualityAssuranceEngineer;QuantumBitComplete,QualityAssuranceEngineer,Type,USD,QuantumBitComplete,Quality Assurance Engineer
 ImplementationEngineer;QuantumBitComplete,ImplementationEngineer,Type,USD,QuantumBitComplete,Implementation Engineer
 ModuleExtensionEngineer;QuantumBitComplete,ModuleExtensionEngineer,Type,USD,QuantumBitComplete,Module Extension Engineer
 ProfessionalServicesDailyRate;QuantumBitComplete,ProfessionalServicesDailyRate,Type,USD,QuantumBitComplete,Professional Services Daily Rate
+Server;Server2,Server,Type,USD,Server2,QuantumBit Q-Rack 750
+Gold_22Ghz_28C56T;Server2,Gold_22Ghz_28C56T,Type,USD,Server2,"Intel Xeon Gold 6330N 2.2GHz, 28C/56T"
+Gold_3Ghz_18C36T;Server2,Gold_3Ghz_18C36T,Type,USD,Server2,"Intel Xeon Gold 6354 3GHz, 18C/36T"
+Gold_21Ghz_24C48T;Server2,Gold_21Ghz_24C48T,Type,USD,Server2,"Intel Xeon Gold 5318N 2.1GHz, 24C/48T"
+Plat_22Ghz_32C64T;Server2,Plat_22Ghz_32C64T,Type,USD,Server2,"Intel Xeon Platinum 8352Y 2.2GHz, 32C/64T"
+QBPowerCore800S;Server2,QBPowerCore800S,Type,USD,Server2,QB-PowerCore 800S
+Plat_24Ghz_36C72T;Server2,Plat_24Ghz_36C72T,Type,USD,Server2,"Intel Xeon Platinum 8360Y 2.4GHz, 36C/72T"
+Plat_24Ghz_38C76T;Server2,Plat_24Ghz_38C76T,Type,USD,Server2,"Intel Xeon Platinum 8368 2.4GHz, 38C/76T"
+HDD3_Small;Server2,HDD3_Small,Type,USD,Server2,3TB 10k RPM (2.5in)
+Plat_23Ghz_32C64T;Server2,Plat_23Ghz_32C64T,Type,USD,Server2,"Intel Xeon Platinum 8352M 2.3GHz, 32C/64T"
+AirCooler;Server2,AirCooler,Type,USD,Server2,QB CPU Heat Sink
+LiquidCooler;Server2,LiquidCooler,Type,USD,Server2,QB Liquid Cooler
+SSD4;Server2,SSD4,Type,USD,Server2,Q-Drive NVX 4TB
+SSD16;Server2,SSD16,Type,USD,Server2,Q-Drive NVX 16TB
+RAM16;Server2,RAM16,Type,USD,Server2,16GB RDIMM
+RAM8;Server2,RAM8,Type,USD,Server2,8GB RDIMM
+RAM32;Server2,RAM32,Type,USD,Server2,32GB RDIMM
+RAM64;Server2,RAM64,Type,USD,Server2,64GB RDIMM
+RAM128;Server2,RAM128,Type,USD,Server2,128GB LRDIMM
+CacheBoost;Server2,CacheBoost,Type,USD,Server2,QB-CacheBoost 150
+HDD20_Big;Server2,HDD20_Big,Type,USD,Server2,20TB 7.2k RPM NLSAS (3.5in)
+HDD1_Small;Server2,HDD1_Small,Type,USD,Server2,1TB 10k RPM (2.5in)
+HDD4_Big;Server2,HDD4_Big,Type,USD,Server2,4TB 7.2k RPM NLSAS
+HDD8_Big;Server2,HDD8_Big,Type,USD,Server2,8TB 7.2k RPM NLSAS
+HDD1_Big;Server2,HDD1_Big,Type,USD,Server2,1TB 7.2k RPM NLSAS
+Link25G;Server2,Link25G,Type,USD,Server2,QB-NetLink 25G
+SSD8;Server2,SSD8,Type,USD,Server2,Q-Drive NVX 8TB
+SSD30;Server2,SSD30,Type,USD,Server2,Q-Drive NVX Ultra 30TB
+Link10G;Server2,Link10G,Type,USD,Server2,QB-NetLink 10G
+Secure10G;Server2,Secure10G,Type,USD,Server2,QB-NetSecure 10G
+Accel;Server2,Accel,Type,USD,Server2,QB-Accel VegaX200
+SSD2;Server2,SSD2,Type,USD,Server2,Q-Drive NVX 2TB
+Link100G;Server2,Link100G,Type,USD,Server2,QB-NetLink 100G Ultra
+RAID500;Server2,RAID500,Type,USD,Server2,QB-RAIDForce 500
+NVExpand;Server2,NVExpand,Type,USD,Server2,QB-NVExpand 200
+Nova;Server2,Nova,Type,USD,Server2,QB-Accel NovaX150
+QBPowerSafe600D;Server2,QBPowerSafe600D,Type,USD,Server2,QB-PowerSafe 600D
+QBPowerSafe2000D;Server2,QBPowerSafe2000D,Type,USD,Server2,QB-PowerSafe 2000D
+QBPowerSafe1000D;Server2,QBPowerSafe1000D,Type,USD,Server2,QB-PowerSafe 1000D
+QBPowerCore500S;Server2,QBPowerCore500S,Type,USD,Server2,QB-PowerCore 500S
+QBPowerCore1600S;Server2,QBPowerCore1600S,Type,USD,Server2,QB-PowerCore 1600S

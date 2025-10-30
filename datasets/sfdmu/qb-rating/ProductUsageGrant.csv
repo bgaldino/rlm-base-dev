@@ -1,5 +1,5 @@
 $$ProductOffer.StockKeepingUnit$UsageDefinitionProduct.StockKeepingUnit$UnitOfMeasureClass.Code$UnitOfMeasure.UnitCode$UsageResource.Code,DrawdownOrder,Label,OverageChargeable,ProductOffer.StockKeepingUnit,ProductUsageGrantNum,ProductUsageResource.$$Product.StockKeepingUnit$UsageResource.Code,Quantity,RenewalPolicy.Code,RolloverPolicy.Code,Status,Type,UnitOfMeasure.UnitCode,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResource.Code,ValidityPeriodTerm,ValidityPeriodUnit
-BES-BILL;EMAIL;EMAIL,ExpiringFirst,Bulk Emails Sent,Yes,,GRANT-000000025,BES;EM-USG,1000,QB-DB-REFRESH,QB-DB-ROLLOVER,Active,Commit,EMAIL,EMAIL,BES-BILL,,1,Month
+BES-BILL;EMAIL;EMAIL,ExpiringFirst,Bulk Emails Sent,Yes,,GRANT-000000025,BES;EM-USG,1000,QB-DB-REFRESH,QB-DB-ROLLOVER,Active,Grant,EMAIL,EMAIL,BES-BILL,,1,Month
 QB-CPU-BLNG;TIME;m,ExpiringFirst,QB-CT-COMMIT-PUG,Yes,,GRANT-000000014,QB-CMT-TKN-EACH;UR-CPUTIME,10,QB-DB-REFRESH,QB-DB-ROLLOVER,Active,Grant,m,TIME,QB-CPU-BLNG,,1,Month
 QB-CPU-BLNG;TIME;m,ExpiringFirst,QB-CT-COMMIT-PUG,Yes,,GRANT-000000011,QB-CMT-TKN-FLAT;UR-CPUTIME,0,QB-DB-REFRESH,QB-DB-ROLLOVER,Active,Grant,m,TIME,QB-CPU-BLNG,,1,Month
 QB-CPU-BLNG;TIME;m,ExpiringFirst,,,,GRANT-000000017,QB-QTY-CMT;UR-CPUTIME,1000,QB-DB-REFRESH,QB-DB-ROLLOVER,Active,Commit,m,TIME,QB-CPU-BLNG,,1,Month

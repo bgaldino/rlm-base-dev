@@ -1,5 +1,11 @@
 $$Name$CurrencyIsoCode,CurrencyIsoCode,Name,UsageType
-Asset Conversion;USD,USD,Asset Conversion,
 Order Processing;USD,USD,Order Processing,
-Tenant Provisioning + Activation;USD,USD,Tenant Provisioning + Activation,
 Finance;USD,USD,Finance,
+Billing and Invoicing;USD,USD,Billing and Invoicing,
+License Activation;USD,USD,License Activation,
+Tenant Provisioning + Activation;USD,USD,Tenant Provisioning + Activation,
+Platform Provisioning;USD,USD,Platform Provisioning,
+Asset Conversion;USD,USD,Asset Conversion,
+Feature/License Provisioning + Activation;USD,USD,Feature/License Provisioning + Activation,
+Services;USD,USD,Services,
+Platform;USD,USD,Platform,

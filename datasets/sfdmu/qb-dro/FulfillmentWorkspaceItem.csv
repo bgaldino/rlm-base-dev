@@ -2,3 +2,10 @@ $$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name$CurrencyIsoCode,
 Software Bundle Fulfillment;Order Processing;USD,USD,Order Processing;USD,Software Bundle Fulfillment;USD,1
 Software Bundle Fulfillment;Tenant Provisioning + Activation;USD,USD,Tenant Provisioning + Activation;USD,Software Bundle Fulfillment;USD,2
 Software Bundle Fulfillment;Finance;USD,USD,Finance;USD,Software Bundle Fulfillment;USD,4
+Ramp Deal Orchestration;Platform Provisioning;USD,USD,Platform Provisioning;USD,Ramp Deal Orchestration;USD,1
+Ramp Deal Orchestration;Billing and Invoicing;USD,USD,Billing and Invoicing;USD,Ramp Deal Orchestration;USD,3
+Ramp Deal Orchestration;License Activation;USD,USD,License Activation;USD,Ramp Deal Orchestration;USD,2
+QB Complete Solution Bundle;Feature/License Provisioning + Activation;USD,USD,Feature/License Provisioning + Activation;USD,QB Complete Solution Bundle;USD,4
+QB Complete Solution Bundle;Finance;USD,USD,Finance;USD,QB Complete Solution Bundle;USD,5
+QB Complete Solution Bundle;Services;USD,USD,Services;USD,QB Complete Solution Bundle;USD,2
+QB Complete Solution Bundle;Platform;USD,USD,Platform;USD,QB Complete Solution Bundle;USD,3

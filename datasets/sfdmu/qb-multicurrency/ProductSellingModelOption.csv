@@ -12,7 +12,8 @@ IP-123;Term Annual,false,IP-123,Term Annual;TermDefined,Default Proration Policy
 IP-123;Term Monthly,true,IP-123,Term Monthly;TermDefined,Default Proration Policy
 LS-5;Term Annual,false,LS-5,Term Annual;TermDefined,Default Proration Policy
 LS-5;Term Monthly,true,LS-5,Term Monthly;TermDefined,Default Proration Policy
-PSP;Term Annual,true,PSP,Term Annual;TermDefined,Default Proration Policy
+PSP;Term Annual,false,PSP,Term Annual;TermDefined,Default Proration Policy
+PSP;Term Monthly,true,PSP,Term Monthly;TermDefined,Default Proration Policy
 QB-API;Evergreen Monthly,false,QB-API,Evergreen Monthly;Evergreen,Default Proration Policy
 QB-API;Term Annual,true,QB-API,Term Annual;TermDefined,Default Proration Policy
 QB-API;Term Monthly,false,QB-API,Term Monthly;TermDefined,Default Proration Policy

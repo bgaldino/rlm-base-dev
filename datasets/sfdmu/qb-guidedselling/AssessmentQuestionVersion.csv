@@ -1,12 +1,4 @@
 $$AssessmentQuestion.UniqueIndex$VersionNumber,AdditionalInformation,AssessmentQuestion.UniqueIndex,CurrencyIsoCode,DataType,DeactivationDateTime,Description,ExternalAsmtContentVersion,GuidanceInformation,HelpText,IsActive,IsOptionSourceResponseValue,Name,QuestionText,ResponseValues,Status,VersionNumber
-solution_type_looking_for;1,,solution_type_looking_for,USD,Radio,,,,,,true,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
-IT Operations
-Risk Mitigation
-Software Suites
-Professional Services
-QuantumBit Complete Solution",Active,1
-Security_Monitoring;1,,Security_Monitoring,USD,Radio,,,,,,true,false,Security Monitoring,Is Security Monitoring required as part of the solution?,"Yes
-No",Active,1
 Implementation_Options;1,,Implementation_Options,USD,Radio,,,,,,true,false,Implementation Options,Implementation Options,"Include Professional Services
 Self-Implement",Active,1
 Industry;1,,Industry,USD,Radio,,,,,,true,false,Industry,Industry,"Financial Services
@@ -15,3 +7,11 @@ Tech
 Communications
 Media
 Public Sector",Active,1
+Security_Monitoring;1,,Security_Monitoring,USD,Radio,,,,,,true,false,Security Monitoring,Is Security Monitoring required as part of the solution?,"Yes
+No",Active,1
+solution_type_looking_for;1,,solution_type_looking_for,USD,Radio,,,,,,true,false,What type of Solution are you looking for?,What type of Solution are you looking for?,"Complete Data Solution
+IT Operations
+Risk Mitigation
+Software Suites
+Professional Services
+QuantumBit Complete Solution",Active,1

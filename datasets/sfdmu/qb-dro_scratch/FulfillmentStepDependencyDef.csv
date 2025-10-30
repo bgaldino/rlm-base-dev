@@ -1,6 +1,14 @@
 $$Name$DependsOnStepDefinition.Name$FulfillmentStepDefinition.Name$CurrencyIsoCode,CurrencyIsoCode,DependencyScope,DependsOnStepDefinition.$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,FulfillmentStepDefinition.$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,Name
+Asset Conversion then Bill;Convert Order to Asset;Initiate Billing;USD,USD,Plan,Convert Order to Asset;Tenant Provisioning + Activation;USD,Initiate Billing;Finance;USD,Asset Conversion then Bill
 Wait on Provision Before Converting;Validate Order Info;Convert Order to Asset;USD,USD,Plan,Validate Order Info;Order Processing;USD,Convert Order to Asset;Tenant Provisioning + Activation;USD,Wait on Provision Before Converting
 Require Validation Before Provisioning;Validate Order Info;Stage New Tenant for Provisioning;USD,USD,Plan,Validate Order Info;Order Processing;USD,Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,Require Validation Before Provisioning
-Asset Conversion then Bill;Convert Order to Asset;Initiate Billing;USD,USD,Plan,Convert Order to Asset;Tenant Provisioning + Activation;USD,Initiate Billing;Finance;USD,Asset Conversion then Bill
 Receive Payment;Initiate Billing;Post Invoice;USD,USD,Plan,Initiate Billing;Finance;USD,Post Invoice;Finance;USD,Receive Payment
 Post to Pay;Post Invoice;Receive Payment;USD,USD,Plan,Post Invoice;Finance;USD,Receive Payment;Finance;USD,Post to Pay
+License Activation DEPENDS ON Provision Platform;Provision Platform;Activate Tokens;USD,USD,Plan,Provision Platform;Platform Provisioning;USD,Activate Tokens;License Activation;USD,License Activation DEPENDS ON Provision Platform
+Update Billing DEPENDS ON Provision Platform;Provision Platform;Update Billing;USD,USD,Plan,Provision Platform;Platform Provisioning;USD,Update Billing;Billing and Invoicing;USD,Update Billing DEPENDS ON Provision Platform
+Create Project to Assign Resources;Create Project;Assign Resources;USD,USD,Plan,Create Project;Services;USD,Assign Resources;Services;USD,Create Project to Assign Resources
+Project Kick Off;Assign Resources;Start Project;USD,USD,Plan,Assign Resources;Services;USD,Start Project;Services;USD,Project Kick Off
+Project Kick-Off To Create Bill;Start Project;Initiate Billing;USD,USD,Plan,Start Project;Services;USD,Initiate Billing;Finance;USD,Project Kick-Off To Create Bill
+Provision Tennent to Provision Features;Stage New Tenant for Provisioning;Provision Licensing/Features;USD,USD,Plan,Stage New Tenant for Provisioning;Platform;USD,Provision Licensing/Features;Feature/License Provisioning + Activation;USD,Provision Tennent to Provision Features
+Provision to Bill;Provision Licensing/Features;Initiate Billing;USD,USD,Plan,Provision Licensing/Features;Feature/License Provisioning + Activation;USD,Initiate Billing;Finance;USD,Provision to Bill
+Tenant to Receive Key;Stage New Tenant for Provisioning;Receive Key + Assign to Asset;USD,USD,Plan,Stage New Tenant for Provisioning;Platform;USD,Receive Key + Assign to Asset;Platform;USD,Tenant to Receive Key

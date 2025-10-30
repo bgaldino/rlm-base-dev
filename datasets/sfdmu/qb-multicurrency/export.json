@@ -104,7 +104,7 @@
           "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name"
         },
         {
-          "query": "SELECT Name, Code, ParentProductId, Sequence, MinBundleComponents, MaxBundleComponents, Description, CurrencyIsoCode FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
+          "query": "SELECT Name, Code, ParentProductId, Sequence, MinBundleComponents, MaxBundleComponents, Description,ParentGroupId, CurrencyIsoCode FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
           "operation": "Upsert",
           "externalId": "Code;ParentProduct.StockKeepingUnit",
           "excluded": false

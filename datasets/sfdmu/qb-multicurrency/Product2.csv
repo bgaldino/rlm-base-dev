@@ -1,6 +1,6 @@
 BasedOn.Code,CanRamp,ConfigureDuringSale,CurrencyIsoCode,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
 ,false,,USD,Default shipping product to calculate standard shipping charges.,/resource/RLM_quantumBit_logo_sq,,true,true,false,Shipping Charge Product,,,,9999999,,
-AIHD,false,Allowed,USD,,,Bundle,true,true,false,AI Help Desk,AI Help Desk,,,AI Help Desk,Bundle,
+AIHDESK,false,Allowed,USD,,,Bundle,true,true,false,AI Help Desk,AI Help Desk,,,AI Help Desk,Bundle,
 ,false,Allowed,USD,,,Software,true,true,false,AI Bot,AIBOT,,,AIBOT,,
 ,false,Allowed,USD,,,Software,true,true,false,Bulk Emails Sent,BES,,,BES,,
 ,false,Allowed,USD,,,Software,true,true,false,Bulk Emails Sent - Billing,BES-BILL,,,BES-BILL,,

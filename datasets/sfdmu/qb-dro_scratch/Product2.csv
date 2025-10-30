@@ -1,88 +1,128 @@
 $$Name$StockKeepingUnit,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
-Additional API Pre-Prod;QB-API-PREP,OrderLineItem,,Additional API Pre-Prod,QB-API-PREP
-Additional API Gov;QB-API-GOVT,OrderLineItem,,Additional API Gov,QB-API-GOVT
-Additional API Flex (100M);QB-API-FLEX,OrderLineItem,,Additional API Flex (100M),QB-API-FLEX
-Additional QB DataGraph (500M);QB-DAT-GRPH,OrderLineItem,,Additional QB DataGraph (500M),QB-DAT-GRPH
-"Vertical Cable Organizer, 8 Cable Rings;QB-CMPC-5883",OrderLineItem,,"Vertical Cable Organizer, 8 Cable Rings",QB-CMPC-5883
-API Access Requests (AEH);QB-API-REQT,OrderLineItem,,API Access Requests (AEH),QB-API-REQT
-Cable Management Rings (Qty 10);QB-CMPC-5881,OrderLineItem,,Cable Management Rings (Qty 10),QB-CMPC-5881
-Cable Containment Brackets;QB-CMPC-5884,OrderLineItem,,Cable Containment Brackets,QB-CMPC-5884
-QuantumShell 6U 600mmx870mm;QB-BMX-1051,OrderLineItem,,QuantumShell 6U 600mmx870mm,QB-BMX-1051
-QuantumShell 8U 600mmx1070mm;QB-BMX-1050,OrderLineItem,,QuantumShell 8U 600mmx1070mm,QB-BMX-1050
-QuantumShell 10U 600mmx1200mm;QB-BMX-1053,OrderLineItem,,QuantumShell 10U 600mmx1200mm,QB-BMX-1053
-QuantumBit Starter;QB-BDL-STND,OrderLineItem,,QuantumBit Starter,QB-BDL-STND
-Intel Xeon E5-2660 v4 2.0GHz;QB-INTEL E5-2660,OrderLineItem,,Intel Xeon E5-2660 v4 2.0GHz,QB-INTEL E5-2660
-Intel Xeon E5-2667 v4 3.2GHz;QB-INTEL E5-2667,OrderLineItem,,Intel Xeon E5-2667 v4 3.2GHz,QB-INTEL E5-2667
-Intel Xeon E5-2683 v4 2.1GHz;QB-INTEL E5-2683,OrderLineItem,,Intel Xeon E5-2683 v4 2.1GHz,QB-INTEL E5-2683
-32GB RDIMM;QB-MEM 32GB,OrderLineItem,,32GB RDIMM,QB-MEM 32GB
-1TB 7.2k RPM NLSAS;QB-HD 1TB,OrderLineItem,,1TB 7.2k RPM NLSAS,QB-HD 1TB
+Shipping Charge Product;9999999,,,Shipping Charge Product,9999999
+AI Help Desk;AI Help Desk,OrderLineItem,,AI Help Desk,AI Help Desk
+AI Bot;AIBOT,OrderLineItem,,AI Bot,AIBOT
+Bulk Emails Sent;BES,OrderLineItem,,Bulk Emails Sent,BES
+Bulk Emails Sent - Billing;BES-BILL,OrderLineItem,,Bulk Emails Sent - Billing,BES-BILL
+Bulk WhatsApp Sent;BWS,OrderLineItem,,Bulk WhatsApp Sent,BWS
+Fin AI Copilot;FIA-CO,OrderLineItem,,Fin AI Copilot,FIA-CO
+Full Seats;FS-5,OrderLineItem,,Full Seats,FS-5
+Fin Voice Resolutions;FVR,OrderLineItem,,Fin Voice Resolutions,FVR
+Intercom Pricing 5.0;IC-50,OrderLineItem,,Intercom Pricing 5.0,IC-50
+Intercom Phone;IP-123,OrderLineItem,,Intercom Phone,IP-123
+Lite Seats;LS-5,OrderLineItem,,Lite Seats,LS-5
+Proactive Support Plus;PSP,OrderLineItem,,Proactive Support Plus,PSP
+Finance Service Delete;QB-AEH-BILL,Bundle,,Finance Service Delete,QB-AEH-BILL
+Provisioning and Activation Service;QB-AEH-CPU,Bundle,,Provisioning and Activation Service,QB-AEH-CPU
+AEH Environment Runtime;QB-AEH-ENV,OrderLineItem,,AEH Environment Runtime,QB-AEH-ENV
+AEH Object Store - Restricted Use;QB-AEH-OBJ,OrderLineItem,,AEH Object Store - Restricted Use,QB-AEH-OBJ
+Order Processing;QB-AEH-OR,Bundle,,Order Processing,QB-AEH-OR
 Additional API;QB-API,OrderLineItem,,Additional API,QB-API
-QuantumBit Complete Solution;QB-COMPLETE,OrderLineItem,,QuantumBit Complete Solution,QB-COMPLETE
-4TB 7.2k RPM NLSAS;QB-HD 4TB,OrderLineItem,,4TB 7.2k RPM NLSAS,QB-HD 4TB
-8GB RDIMM;QB-MEM 8GB,OrderLineItem,,8GB RDIMM,QB-MEM 8GB
-Intel X710 Dual Port 10Gb Direct Attach;QB-NET X710,OrderLineItem,,Intel X710 Dual Port 10Gb Direct Attach,QB-NET X710
+API Calls;QB-API-CALLS,,,API Calls,QB-API-CALLS
+Additional API Flex (100M);QB-API-FLEX,OrderLineItem,,Additional API Flex (100M),QB-API-FLEX
+Additional API Gov;QB-API-GOVT,OrderLineItem,,Additional API Gov,QB-API-GOVT
+QB API Management Solution;QB-API-MGMT,OrderLineItem,,QB API Management Solution,QB-API-MGMT
+Additional API Pre-Prod;QB-API-PREP,OrderLineItem,,Additional API Pre-Prod,QB-API-PREP
+Additional API Prod;QB-API-PROD,OrderLineItem,,Additional API Prod,QB-API-PROD
+API Access Requests (AEH);QB-API-REQT,OrderLineItem,,API Access Requests (AEH),QB-API-REQT
+Additional Automation QB Credits;QB-AUT-CRED,OrderLineItem,,Additional Automation QB Credits,QB-AUT-CRED
+QuantumBit Business Critical;QB-BDL-CRTL,OrderLineItem,,QuantumBit Business Critical,QB-BDL-CRTL
+QuantumBit Enterprise;QB-BDL-ENTR,OrderLineItem,,QuantumBit Enterprise,QB-BDL-ENTR
+PowerSwerve R750 Rack Server;QB-BDL-R750,OrderLineItem,,PowerSwerve R750 Rack Server,QB-BDL-R750
+QuantumBit Rack Enclosure;QB-BDL-RAXS,OrderLineItem,,QuantumBit Rack Enclosure,QB-BDL-RAXS
+Services Project;QB-BDL-SRVC,OrderLineItem,,Services Project,QB-BDL-SRVC
+QuantumBit Starter;QB-BDL-STND,OrderLineItem,,QuantumBit Starter,QB-BDL-STND
+Intel X710 Dual Port 10Gb SFP;QB-BET X710SFP,OrderLineItem,,Intel X710 Dual Port 10Gb SFP,QB-BET X710SFP
+QuantumShell 8U 600mmx1070mm;QB-BMX-1050,OrderLineItem,,QuantumShell 8U 600mmx1070mm,QB-BMX-1050
+QuantumShell 6U 600mmx870mm;QB-BMX-1051,OrderLineItem,,QuantumShell 6U 600mmx870mm,QB-BMX-1051
+QuantumShell 10U 600mmx1200mm;QB-BMX-1053,OrderLineItem,,QuantumShell 10U 600mmx1200mm,QB-BMX-1053
+Blanking Panel;QB-BSSA-4298,OrderLineItem,,Blanking Panel,QB-BSSA-4298
+Sliding Shelf 200lbs;QB-BSSA-4300,OrderLineItem,,Sliding Shelf 200lbs,QB-BSSA-4300
+Fixed Shelf 250lbs;QB-BSSA-4302,OrderLineItem,,Fixed Shelf 250lbs,QB-BSSA-4302
+TX 600mm/750mm Stabilizer Plate;QB-BSSA-4303,OrderLineItem,,TX 600mm/750mm Stabilizer Plate,QB-BSSA-4303
+TX Bolt-Down Kit;QB-BSSA-4304,OrderLineItem,,TX Bolt-Down Kit,QB-BSSA-4304
+Roof Fan Tray 750mm - 120V;QB-BSSA-4306,OrderLineItem,,Roof Fan Tray 750mm - 120V,QB-BSSA-4306
+Roof Fan Tray 750mm - 208V;QB-BSSA-4308,OrderLineItem,,Roof Fan Tray 750mm - 208V,QB-BSSA-4308
+QB-CacheBoost 150;QB-CBOOST-150,,,QB-CacheBoost 150,QB-CBOOST-150
+Cable Management Rings (Qty 10);QB-CMPC-5881,OrderLineItem,,Cable Management Rings (Qty 10),QB-CMPC-5881
+Configured Power Cable;QB-CMPC-5882,OrderLineItem,,Configured Power Cable,QB-CMPC-5882
+"Vertical Cable Organizer, 8 Cable Rings;QB-CMPC-5883",OrderLineItem,,"Vertical Cable Organizer, 8 Cable Rings",QB-CMPC-5883
+Cable Containment Brackets;QB-CMPC-5884,OrderLineItem,,Cable Containment Brackets,QB-CMPC-5884
 C13 to C14 Power Cable 3';QB-CMPC-5887,OrderLineItem,,C13 to C14 Power Cable 3',QB-CMPC-5887
 C13 to C14 Power Cable 5';QB-CMPC-5888,OrderLineItem,,C13 to C14 Power Cable 5',QB-CMPC-5888
 C19 to C20 Power Cable 3';QB-CMPC-5889,OrderLineItem,,C19 to C20 Power Cable 3',QB-CMPC-5889
 C19 to C20 Power Cable 5';QB-CMPC-5890,OrderLineItem,,C19 to C20 Power Cable 5',QB-CMPC-5890
 L5-20 Input Power Cable 12';QB-CMPC-5891,OrderLineItem,,L5-20 Input Power Cable 12',QB-CMPC-5891
 L5-20 Input Power Cable 8';QB-CMPC-5892,OrderLineItem,,L5-20 Input Power Cable 8',QB-CMPC-5892
-Gold Hardware Maintenance;QB-SUPP-1005,OrderLineItem,,Gold Hardware Maintenance,QB-SUPP-1005
-Silver Hardware Maintenance;QB-SUPP-1000,OrderLineItem,,Silver Hardware Maintenance,QB-SUPP-1000
-Additional Automation QB Credits;QB-AUT-CRED,OrderLineItem,,Additional Automation QB Credits,QB-AUT-CRED
-Additional API Prod;QB-API-PROD,OrderLineItem,,Additional API Prod,QB-API-PROD
-QuantumBit Enterprise;QB-BDL-ENTR,OrderLineItem,,QuantumBit Enterprise,QB-BDL-ENTR
-QuantumBit Business Critical;QB-BDL-CRTL,OrderLineItem,,QuantumBit Business Critical,QB-BDL-CRTL
-QuantumBit Fundamentals Training;QB-TRN-FUND,OrderLineItem,,QuantumBit Fundamentals Training,QB-TRN-FUND
-QuantumBit Essentials Training;QB-TRN-ESSNTLS,OrderLineItem,,QuantumBit Essentials Training,QB-TRN-ESSNTLS
-Professional Services Daily Rate;QB-SRV-OG-PSH,OrderLineItem,,Professional Services Daily Rate,QB-SRV-OG-PSH
-Professional Services Scope of Work;QB-SRV-SOW,OrderLineItem,,Professional Services Scope of Work,QB-SRV-SOW
-Intel Xeon E5-2609 v4 1.7GHz;QB-INTEL E5-2609,OrderLineItem,,Intel Xeon E5-2609 v4 1.7GHz,QB-INTEL E5-2609
-PowerSwerve R750 Rack Server;QB-BDL-R750,OrderLineItem,,PowerSwerve R750 Rack Server,QB-BDL-R750
-QuantumBit Subscription;TEST-SUB,OrderLineItem,,QuantumBit Subscription,TEST-SUB
-16GB RDIMM;QB-MEM 16GB,OrderLineItem,,16GB RDIMM,QB-MEM 16GB
+QuantumBit Database (Token Commit - Each);QB-CMT-TKN-EACH,,,QuantumBit Database (Token Commit - Each),QB-CMT-TKN-EACH
+QuantumBit Database (Token Commit - Flat);QB-CMT-TKN-FLAT,,,QuantumBit Database (Token Commit - Flat),QB-CMT-TKN-FLAT
+QuantumBit Database (Token Commit - Tier);QB-CMT-TKN-TIER,,,QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER
+QuantumBit Complete Solution;QB-COMPLETE,OrderLineItem,,QuantumBit Complete Solution,QB-COMPLETE
+Compute Time;QB-CPU-BLNG,,,Compute Time,QB-CPU-BLNG
+QB CPU Heat Sink;QB-CPU-HEATSINK,,,QB CPU Heat Sink,QB-CPU-HEATSINK
+QuantumBit Collaboration Suite;QB-CS,Order,,QuantumBit Collaboration Suite,QB-CS
+Additional QB DataGraph (500M);QB-DAT-GRPH,OrderLineItem,,Additional QB DataGraph (500M),QB-DAT-GRPH
+Additional Data Throughput;QB-DAT-THPT,OrderLineItem,,Additional Data Throughput,QB-DAT-THPT
+Data Storage;QB-DATA-STORAGE-BLNG,,,Data Storage,QB-DATA-STORAGE-BLNG
+Data Throughput;QB-DATA-THPT-BLNG,,,Data Throughput,QB-DATA-THPT-BLNG
+QuantumBit Database;QB-DB,,,QuantumBit Database,QB-DB
+QuantumBit Database (Token Based);QB-DB-TOKEN,,,QuantumBit Database (Token Based),QB-DB-TOKEN
+Additional Flows - Provisioning & Activation Service;QB-DRO-AACR,Custom,Aggregate,Additional Flows - Provisioning & Activation Service,QB-DRO-AACR
+AI Help Desk Lite Seats  - Provision & Activation Service;QB-DRO-AAPI,Custom,Aggregate,AI Help Desk Lite Seats  - Provision & Activation Service,QB-DRO-AAPI
+Resolutions - Provisioning & Activation Service;QB-DRO-AAQBC,Custom,AlwaysOne,Resolutions - Provisioning & Activation Service,QB-DRO-AAQBC
+AEH API - Provisioning & Activation Service;QB-DRO-AEH,Custom,,AEH API - Provisioning & Activation Service,QB-DRO-AEH
+Additional Flows - QB Starter - Provisioning & Activation Service;QB-DRO-AFBQ,Custom,,Additional Flows - QB Starter - Provisioning & Activation Service,QB-DRO-AFBQ
+Additional Messages QB Starter - Provisioning & Activation Service;QB-DRO-AM,Custom,,Additional Messages QB Starter - Provisioning & Activation Service,QB-DRO-AM
+AI Help Desk Platform - Provisioning & Activation Service;QB-DRO-APIPLAT,Custom,AlwaysOne,AI Help Desk Platform - Provisioning & Activation Service,QB-DRO-APIPLAT
+Finance Service;QB-DRO-BILL,Account,AlwaysOne,Finance Service,QB-DRO-BILL
+Billing;QB-DRO-BILLING,Account,Aggregate,Billing,QB-DRO-BILLING
+License Activation;QB-DRO-LICACT,Custom,AlwaysOne,License Activation,QB-DRO-LICACT
+Order Processing;QB-DRO-OR,Custom,AlwaysOne,Order Processing,QB-DRO-OR
+AI Help Desk Full License - Provisioning & Activation Service;QB-DRO-PERMS,Custom,Aggregate,AI Help Desk Full License - Provisioning & Activation Service,QB-DRO-PERMS
+Project Service;QB-DRO-PROJ,Account,,Project Service,QB-DRO-PROJ
+Provision DB;QB-DRO-PROVISION,Custom,AlwaysOne,Provision DB,QB-DRO-PROVISION
+QuantumBit Database - Provisioning & Activation Service;QB-DRO-QBD,Custom,,QuantumBit Database - Provisioning & Activation Service,QB-DRO-QBD
+Additional Flows - QB Enterprise;QB-FLO-ENTR,OrderLineItem,,Additional Flows - QB Enterprise,QB-FLO-ENTR
+Additional Flows - QB Starter;QB-FLO-STRT,OrderLineItem,,Additional Flows - QB Starter,QB-FLO-STRT
+QuantumBit Generative AI License;QB-GEN-AI-LIC,,,QuantumBit Generative AI License,QB-GEN-AI-LIC
+1TB 10k RPM (2.5in);QB-HD 1.2TB,,,1TB 10k RPM (2.5in),QB-HD 1.2TB
+1TB 7.2k RPM NLSAS;QB-HD 1TB,OrderLineItem,,1TB 7.2k RPM NLSAS,QB-HD 1TB
+20TB 7.2k RPM NLSAS (3.5in);QB-HD 20TB,,,20TB 7.2k RPM NLSAS (3.5in),QB-HD 20TB
+3TB 10k RPM (2.5in);QB-HD 3TB,,,3TB 10k RPM (2.5in),QB-HD 3TB
+4TB 7.2k RPM NLSAS;QB-HD 4TB,OrderLineItem,,4TB 7.2k RPM NLSAS,QB-HD 4TB
 8TB 7.2k RPM NLSAS;QB-HD 8TB,OrderLineItem,,8TB 7.2k RPM NLSAS,QB-HD 8TB
 8TB 7.2k RPM Self-Encrypting NLSAS;QB-HD 8TBSE,OrderLineItem,,8TB 7.2k RPM Self-Encrypting NLSAS,QB-HD 8TBSE
-Intel X710 Dual Port 10Gb SFP;QB-BET X710SFP,OrderLineItem,,Intel X710 Dual Port 10Gb SFP,QB-BET X710SFP
-QuantumBit Services Project;QB-BDL-SRVC,OrderLineItem,,QuantumBit Services Project,QB-BDL-SRVC
-Configured Power Cable;QB-CMPC-5882,OrderLineItem,,Configured Power Cable,QB-CMPC-5882
-Software Maintenance;QB-SUPP-2000,OrderLineItem,,Software Maintenance,QB-SUPP-2000
-QB API Management Solution;QB-API-MGMT,OrderLineItem,,QB API Management Solution,QB-API-MGMT
-Additional Flows - QB Starter;QB-FLO-STRT,OrderLineItem,,Additional Flows - QB Starter,QB-FLO-STRT
-Additional Messages - QB Starter;QB-MSG-STRT,OrderLineItem,,Additional Messages - QB Starter,QB-MSG-STRT
-Additional Data Throughput;QB-DAT-THPT,OrderLineItem,,Additional Data Throughput,QB-DAT-THPT
-Program Director;QB-SRV-PD,OrderLineItem,,Program Director,QB-SRV-PD
-Solutions Architect;QB-SRV-SAT,OrderLineItem,,Solutions Architect,QB-SRV-SAT
-Project Manager;QB-SRV-PMN,OrderLineItem,,Project Manager,QB-SRV-PMN
-Implementation Engineer;QB-SRV-IMP,OrderLineItem,,Implementation Engineer,QB-SRV-IMP
-Integration Specialist Engineer;QB-SRV-ISE,OrderLineItem,,Integration Specialist Engineer,QB-SRV-ISE
-Module Extension Engineer;QB-SRV-MEE,OrderLineItem,,Module Extension Engineer,QB-SRV-MEE
-Quality Assurance Engineer;QB-SRV-QAE,OrderLineItem,,Quality Assurance Engineer,QB-SRV-QAE
-Data Normalization Expert;QB-SRV-DNE,OrderLineItem,,Data Normalization Expert,QB-SRV-DNE
-AEH Object Store - Restricted Use;QB-AEH-OBJ,OrderLineItem,,AEH Object Store - Restricted Use,QB-AEH-OBJ
-AEH Environment Runtime;QB-AEH-ENV,OrderLineItem,,AEH Environment Runtime,QB-AEH-ENV
-Provisioning and Activation Service;QB-AEH-CPU,Bundle,,Provisioning and Activation Service,QB-AEH-CPU
 Installation and Assembly;QB-INST-1000,OrderLineItem,,Installation and Assembly,QB-INST-1000
-Professional Service Hours (Consumption);QB-SRV-OG-PSHC,OrderLineItem,,Professional Service Hours (Consumption),QB-SRV-OG-PSHC
-Red Hat Enterprise Linux;QB-REDHAT,OrderLineItem,,Red Hat Enterprise Linux,QB-REDHAT
-vSphere Desktop;QB-VMW-D,OrderLineItem,,vSphere Desktop,QB-VMW-D
-Additional Flows - QB Enterprise;QB-FLO-ENTR,OrderLineItem,,Additional Flows - QB Enterprise,QB-FLO-ENTR
+Intel Xeon E5-2609 v4 1.7GHz;QB-INTEL E5-2609,OrderLineItem,,Intel Xeon E5-2609 v4 1.7GHz,QB-INTEL E5-2609
+Intel Xeon E5-2660 v4 2.0GHz;QB-INTEL E5-2660,OrderLineItem,,Intel Xeon E5-2660 v4 2.0GHz,QB-INTEL E5-2660
+Intel Xeon E5-2667 v4 3.2GHz;QB-INTEL E5-2667,OrderLineItem,,Intel Xeon E5-2667 v4 3.2GHz,QB-INTEL E5-2667
+Intel Xeon E5-2683 v4 2.1GHz;QB-INTEL E5-2683,OrderLineItem,,Intel Xeon E5-2683 v4 2.1GHz,QB-INTEL E5-2683
+"Intel Xeon Gold 5318N 2.1GHz, 24C/48T;QB-INTEL-GOLD-5318N",,,"Intel Xeon Gold 5318N 2.1GHz, 24C/48T",QB-INTEL-GOLD-5318N
+"Intel Xeon Gold 6330N 2.2GHz, 28C/56T;QB-INTEL-GOLD-6330N",,,"Intel Xeon Gold 6330N 2.2GHz, 28C/56T",QB-INTEL-GOLD-6330N
+"Intel Xeon Gold 6354 3GHz, 18C/36T;QB-INTEL-GOLD-6354",,,"Intel Xeon Gold 6354 3GHz, 18C/36T",QB-INTEL-GOLD-6354
+"Intel Xeon Platinum 8352M 2.3GHz, 32C/64T;QB-INTEL-PLAT-8352M",,,"Intel Xeon Platinum 8352M 2.3GHz, 32C/64T",QB-INTEL-PLAT-8352M
+"Intel Xeon Platinum 8352Y 2.2GHz, 32C/64T;QB-INTEL-PLAT-8352Y",,,"Intel Xeon Platinum 8352Y 2.2GHz, 32C/64T",QB-INTEL-PLAT-8352Y
+"Intel Xeon Platinum 8360Y 2.4GHz, 36C/72T;QB-INTEL-PLAT-8360Y",,,"Intel Xeon Platinum 8360Y 2.4GHz, 36C/72T",QB-INTEL-PLAT-8360Y
+"Intel Xeon Platinum 8368 2.4GHz, 38C/76T;QB-INTEL-PLAT-8368",,,"Intel Xeon Platinum 8368 2.4GHz, 38C/76T",QB-INTEL-PLAT-8368
+Cloud License (Monthly);QB-LIC-CLOUD,Order,,Cloud License (Monthly),QB-LIC-CLOUD
+QB Liquid Cooler;QB-LIQUIDCOOL,,,QB Liquid Cooler,QB-LIQUIDCOOL
+128GB LRDIMM;QB-MEM 128GB,,,128GB LRDIMM,QB-MEM 128GB
+16GB RDIMM;QB-MEM 16GB,OrderLineItem,,16GB RDIMM,QB-MEM 16GB
+32GB RDIMM;QB-MEM 32GB,OrderLineItem,,32GB RDIMM,QB-MEM 32GB
+64GB RDIMM;QB-MEM 64GB,,,64GB RDIMM,QB-MEM 64GB
+8GB RDIMM;QB-MEM 8GB,OrderLineItem,,8GB RDIMM,QB-MEM 8GB
 Additional Messages - QB Enterprise;QB-MSG-ENTR,OrderLineItem,,Additional Messages - QB Enterprise,QB-MSG-ENTR
+Additional Messages - QB Starter;QB-MSG-STRT,OrderLineItem,,Additional Messages - QB Starter,QB-MSG-STRT
+QuantumBit Database (Monetary Commit);QB-MTY-CMT,,,QuantumBit Database (Monetary Commit),QB-MTY-CMT
+Intel X710 Dual Port 10Gb Direct Attach;QB-NET X710,OrderLineItem,,Intel X710 Dual Port 10Gb Direct Attach,QB-NET X710
+QB-NetLink 100G Ultra;QB-NET-100G-ULTRA,,,QB-NetLink 100G Ultra,QB-NET-100G-ULTRA
+QB-NetLink 10G;QB-NET-10G,,,QB-NetLink 10G,QB-NET-10G
+QB-NetLink 25G;QB-NET-25G,,,QB-NetLink 25G,QB-NET-25G
+QB-NetSecure 10G;QB-NETSECURE-10G,,,QB-NetSecure 10G,QB-NETSECURE-10G
+No Operating System;QB-NO-OSYS,OrderLineItem,,No Operating System,QB-NO-OSYS
+QB-Accel NovaX150;QB-NovaX150,,,QB-Accel NovaX150,QB-NovaX150
+QB-NVExpand 200;QB-NVExpand-200,,,QB-NVExpand 200,QB-NVExpand-200
 "Rack PDU 20A, 120V L5-20;QB-PDU-2022",OrderLineItem,,"Rack PDU 20A, 120V L5-20",QB-PDU-2022
-Blanking Panel;QB-BSSA-4298,OrderLineItem,,Blanking Panel,QB-BSSA-4298
-Sliding Shelf 200lbs;QB-BSSA-4300,OrderLineItem,,Sliding Shelf 200lbs,QB-BSSA-4300
-Fixed Shelf 250lbs;QB-BSSA-4302,OrderLineItem,,Fixed Shelf 250lbs,QB-BSSA-4302
-Roof Fan Tray 750mm - 120V;QB-BSSA-4306,OrderLineItem,,Roof Fan Tray 750mm - 120V,QB-BSSA-4306
-Roof Fan Tray 750mm - 208V;QB-BSSA-4308,OrderLineItem,,Roof Fan Tray 750mm - 208V,QB-BSSA-4308
-QuantumBit Rack Enclosure;QB-BDL-RAXS,OrderLineItem,,QuantumBit Rack Enclosure,QB-BDL-RAXS
-Quick Start Enablement;QB-SRV-QSE,OrderLineItem,,Quick Start Enablement,QB-SRV-QSE
-Professional Services - Associate Consultant Daily Rate;QB-SRV-OG-AC-PSH,OrderLineItem,,Professional Services - Associate Consultant Daily Rate,QB-SRV-OG-AC-PSH
-"QuantumBit Advisory Services, CSM Premium;QB-SRV-AS",OrderLineItem,,"QuantumBit Advisory Services, CSM Premium",QB-SRV-AS
-Standard Success Plan;QB-STD-SP,OrderLineItem,,Standard Success Plan,QB-STD-SP
-Professional Services - Project Management Daily Rate;QB-SRV-OG-PM-PSH,OrderLineItem,,Professional Services - Project Management Daily Rate,QB-SRV-OG-PM-PSH
-Premium Success Plan;QB-SRV-PRM-SP,OrderLineItem,,Premium Success Plan,QB-SRV-PRM-SP
-TX 600mm/750mm Stabilizer Plate;QB-BSSA-4303,OrderLineItem,,TX 600mm/750mm Stabilizer Plate,QB-BSSA-4303
-TX Bolt-Down Kit;QB-BSSA-4304,OrderLineItem,,TX Bolt-Down Kit,QB-BSSA-4304
 "Rack PDU 30A, 120V L5-20;QB-PDU-2023",OrderLineItem,,"Rack PDU 30A, 120V L5-20",QB-PDU-2023
 "Rack PDU 15A, 120V L5-20;QB-PDU-2024",OrderLineItem,,"Rack PDU 15A, 120V L5-20",QB-PDU-2024
 "Rack PDU 20A, 230V C20 input C1;QB-PDU-2025",OrderLineItem,,"Rack PDU 20A, 230V C20 input C1",QB-PDU-2025
@@ -90,10 +130,54 @@ TX Bolt-Down Kit;QB-BSSA-4304,OrderLineItem,,TX Bolt-Down Kit,QB-BSSA-4304
 "Rack PDU 16A, 230V, C13 output;QB-PDU-2027",OrderLineItem,,"Rack PDU 16A, 230V, C13 output",QB-PDU-2027
 "Rack PDU 14.4kW, 208V, C13 output;QB-PDU-2028",OrderLineItem,,"Rack PDU 14.4kW, 208V, C13 output",QB-PDU-2028
 "Rack PDU 5.7W, 208V, C13 output;QB-PDU-2029",OrderLineItem,,"Rack PDU 5.7W, 208V, C13 output",QB-PDU-2029
-No Operating System;QB-NO-OSYS,OrderLineItem,,No Operating System,QB-NO-OSYS
-vSphere Standard;QB-VMW-S,OrderLineItem,,vSphere Standard,QB-VMW-S
+QB-PowerCore 1600S;QB-PWRCORE-1600S,,,QB-PowerCore 1600S,QB-PWRCORE-1600S
+QB-PowerCore 500S;QB-PWRCORE-500S,,,QB-PowerCore 500S,QB-PWRCORE-500S
+QB-PowerCore 800S;QB-PWRCORE-800S,,,QB-PowerCore 800S,QB-PWRCORE-800S
+QB-PowerSafe 1000D;QB-PWRSAFE-1000D,,,QB-PowerSafe 1000D,QB-PWRSAFE-1000D
+QB-PowerSafe 2000D;QB-PWRSAFE-2000D,,,QB-PowerSafe 2000D,QB-PWRSAFE-2000D
+QB-PowerSafe 600D;QB-PWRSAFE-600D,,,QB-PowerSafe 600D,QB-PWRSAFE-600D
+QuantumBit Q-Rack 750;QB-QRack-750,,,QuantumBit Q-Rack 750,QB-QRack-750
+QuantumBit Database (Quantity Commit);QB-QTY-CMT,,,QuantumBit Database (Quantity Commit),QB-QTY-CMT
+QB-RAIDForce 500;QB-RAID-500,,,QB-RAIDForce 500,QB-RAID-500
+Red Hat Enterprise Linux;QB-REDHAT,OrderLineItem,,Red Hat Enterprise Linux,QB-REDHAT
+"QuantumBit Advisory Services, CSM Premium;QB-SRV-AS",OrderLineItem,,"QuantumBit Advisory Services, CSM Premium",QB-SRV-AS
+Data Normalization Expert;QB-SRV-DNE,OrderLineItem,,Data Normalization Expert,QB-SRV-DNE
+Implementation Engineer;QB-SRV-IMP,OrderLineItem,,Implementation Engineer,QB-SRV-IMP
+Integration Specialist Engineer;QB-SRV-ISE,OrderLineItem,,Integration Specialist Engineer,QB-SRV-ISE
+Module Extension Engineer;QB-SRV-MEE,OrderLineItem,,Module Extension Engineer,QB-SRV-MEE
+Professional Services - Associate Consultant Daily Rate;QB-SRV-OG-AC-PSH,OrderLineItem,,Professional Services - Associate Consultant Daily Rate,QB-SRV-OG-AC-PSH
+Professional Services - Project Management Daily Rate;QB-SRV-OG-PM-PSH,OrderLineItem,,Professional Services - Project Management Daily Rate,QB-SRV-OG-PM-PSH
+Professional Services Daily Rate;QB-SRV-OG-PSH,OrderLineItem,,Professional Services Daily Rate,QB-SRV-OG-PSH
+Professional Service Hours (Consumption);QB-SRV-OG-PSHC,OrderLineItem,,Professional Service Hours (Consumption),QB-SRV-OG-PSHC
+Program Director;QB-SRV-PD,OrderLineItem,,Program Director,QB-SRV-PD
+Project Manager;QB-SRV-PMN,OrderLineItem,,Project Manager,QB-SRV-PMN
+Premium Support;QB-SRV-PRM-SP,OrderLineItem,,Premium Support,QB-SRV-PRM-SP
+Quality Assurance Engineer;QB-SRV-QAE,OrderLineItem,,Quality Assurance Engineer,QB-SRV-QAE
+Quick Start Enablement;QB-SRV-QSE,OrderLineItem,,Quick Start Enablement,QB-SRV-QSE
+Solutions Architect;QB-SRV-SAT,OrderLineItem,,Solutions Architect,QB-SRV-SAT
+Professional Services Scope of Work;QB-SRV-SOW,OrderLineItem,,Professional Services Scope of Work,QB-SRV-SOW
+Q-Drive NVX 16TB;QB-SSD 16TB,,,Q-Drive NVX 16TB,QB-SSD 16TB
+Q-Drive NVX 2TB;QB-SSD 2TB,,,Q-Drive NVX 2TB,QB-SSD 2TB
+Q-Drive NVX Ultra 30TB;QB-SSD 30TB,,,Q-Drive NVX Ultra 30TB,QB-SSD 30TB
+Q-Drive NVX 4TB;QB-SSD 4TB,,,Q-Drive NVX 4TB,QB-SSD 4TB
+Q-Drive NVX 8TB;QB-SSD 8TB,,,Q-Drive NVX 8TB,QB-SSD 8TB
+Standard Success Plan;QB-STD-SP,OrderLineItem,,Standard Success Plan,QB-STD-SP
+Silver Hardware Maintenance;QB-SUPP-1000,OrderLineItem,,Silver Hardware Maintenance,QB-SUPP-1000
+Gold Hardware Maintenance;QB-SUPP-1005,OrderLineItem,,Gold Hardware Maintenance,QB-SUPP-1005
+Software Maintenance;QB-SUPP-2000,OrderLineItem,,Software Maintenance,QB-SUPP-2000
+Quantum Tokens Definition;QB-TOKEN-DEF,,,Quantum Tokens Definition,QB-TOKEN-DEF
+QuantumBit Tokens Pack;QB-TOKENS-PACK,,,QuantumBit Tokens Pack,QB-TOKENS-PACK
+QuantumBit Essentials Training;QB-TRN-ESSNTLS,OrderLineItem,,QuantumBit Essentials Training,QB-TRN-ESSNTLS
+QuantumBit Fundamentals Training;QB-TRN-FUND,OrderLineItem,,QuantumBit Fundamentals Training,QB-TRN-FUND
+QB-Accel VegaX200;QB-VegaX200,,,QB-Accel VegaX200,QB-VegaX200
+vSphere Desktop;QB-VMW-D,OrderLineItem,,vSphere Desktop,QB-VMW-D
 vSphere Enterprise;QB-VMW-E,OrderLineItem,,vSphere Enterprise,QB-VMW-E
-Finance Service;QB-AEH-BILL,Bundle,,Finance Service,QB-AEH-BILL
-Order Processing;QB-AEH-OR,Bundle,,Order Processing,QB-AEH-OR
-QuantumBit Collaboration Suite;QB-CS,Order,,QuantumBit Collaboration Suite,QB-CS
-Cloud License (Monthly);QB-LIC-CLOUD,Order,,Cloud License (Monthly),QB-LIC-CLOUD
+vSphere Standard;QB-VMW-S,OrderLineItem,,vSphere Standard,QB-VMW-S
+USD Resource Definition Product;RES-USD-DEF,,,USD Resource Definition Product,RES-USD-DEF
+Resolutions;RESO,OrderLineItem,,Resolutions,RESO
+SMS Messages;SMS-MESS,,,SMS Messages,SMS-MESS
+SMS Sent/Received AU;SMSAU,OrderLineItem,,SMS Sent/Received AU,SMSAU
+SMS Sent/Received CA;SMSCA,OrderLineItem,,SMS Sent/Received CA,SMSCA
+SMS Sent/Received UK;SMSUK,OrderLineItem,,SMS Sent/Received UK,SMSUK
+SMS Sent/Received US;SMSUS,OrderLineItem,,SMS Sent/Received US,SMSUS
+QuantumBit Subscription;TEST-SUB,OrderLineItem,,QuantumBit Subscription,TEST-SUB

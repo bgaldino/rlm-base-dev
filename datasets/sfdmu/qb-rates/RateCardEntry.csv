@@ -1,6 +1,11 @@
 $$Product.StockKeepingUnit$RateCard.Name$UsageResource.Name,DefaultUnitOfMeasure.Name,DefaultUnitOfMeasureClass.Name,EffectiveFrom,EffectiveTo,Product.StockKeepingUnit,ProductSellingModel.Name,Rate,RateCard.Name,RateNegotiation,RateUnitOfMeasure.Name,RateUnitOfMeasureClass.Name,Status,UsageResource.Name
+BES;Base Rate Card;Emails,Emails,Emails,2025-02-01T20:00:00.000+0000,,BES,Term Annual,2,Base Rate Card,Negotiable,USD,Currency,Inactive,Emails
+BES;Base Rate Card;Emails,Emails,Emails,2025-02-01T20:00:00.000+0000,,BES,Term Monthly,2,Base Rate Card,Negotiable,USD,Currency,Active,Emails
+BES;Tier Rate Card;Emails,Emails,Emails,2025-01-28T20:00:00.000+0000,,BES,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Inactive,Emails
+BES;Tier Rate Card;Emails,Emails,Emails,2025-01-28T20:00:00.000+0000,,BES,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Inactive,Emails
 BES;Tier Rate Card;Emails,Emails,Emails,2025-01-28T20:00:00.000+0000,,BES,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Inactive,Emails
 BES;Tier Rate Card;Emails,Emails,Emails,2025-01-28T20:00:00.000+0000,,BES,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Active,Emails
+BES;Tier Rate Card;Emails,Emails,Emails,2025-01-28T20:00:00.000+0000,,BES,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Draft,Emails
 QB-CMT-TKN-EACH;Tier Rate Card;Compute Time,Minutes,Time,2025-01-01T20:00:00.000+0000,,QB-CMT-TKN-EACH,Term Annual,,Tier Rate Card,Negotiable,Tokens,Tokens UoM Class,Active,Compute Time
 QB-CMT-TKN-EACH;Tier Rate Card;Data Storage,Terabyte,Data Volume,2025-01-01T20:00:00.000+0000,,QB-CMT-TKN-EACH,Term Annual,,Tier Rate Card,Negotiable,Tokens,Tokens UoM Class,Active,Data Storage
 QB-CMT-TKN-EACH;Tier Rate Card;Quantum Tokens,Tokens,Tokens UoM Class,2025-01-01T20:00:00.000+0000,,QB-CMT-TKN-EACH,Term Annual,,Tier Rate Card,Negotiable,Tokens,Tokens UoM Class,Active,Quantum Tokens
@@ -22,7 +27,9 @@ QB-QTY-CMT;Tier Rate Card;Data Storage,Terabyte,Data Volume,2025-01-01T20:00:00.
 QB-TOKENS-PACK;Base Rate Card;Quantum Tokens,Tokens,Tokens UoM Class,2025-01-01T20:00:00.000+0000,,QB-TOKENS-PACK,One-Time,0.33,Base Rate Card,Negotiable,USD,Currency,Active,Quantum Tokens
 SMSAU;Base Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSAU,Term Monthly,0.05,Base Rate Card,Negotiable,USD,Currency,Active,SMS Messages
 SMSAU;Tier Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSAU,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Active,SMS Messages
+SMSAU;Tier Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSAU,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Inactive,SMS Messages
 SMSCA;Base Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSCA,Term Monthly,0.03,Base Rate Card,Negotiable,USD,Currency,Active,SMS Messages
 SMSUK;Base Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSUK,Term Monthly,0.05,Base Rate Card,Negotiable,USD,Currency,Active,SMS Messages
 SMSUS;Base Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSUS,Term Monthly,0.03,Base Rate Card,Negotiable,USD,Currency,Active,SMS Messages
+SMSUS;Tier Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSUS,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Inactive,SMS Messages
 SMSUS;Tier Rate Card;SMS Messages,SMS,Messaging,2024-10-01T19:00:00.000+0000,,SMSUS,Term Monthly,,Tier Rate Card,Negotiable,USD,Currency,Active,SMS Messages

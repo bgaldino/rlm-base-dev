@@ -1,106 +1,183 @@
 StockKeepingUnit,TaxPolicy.Name
-QB-INTEL E5-2609,Default Tax Policy
-QB-BDL-R750,Default Tax Policy
-TEST-SUB,Default Tax Policy
-QB-MEM 16GB,Default Tax Policy
-QB-HD 8TB,Default Tax Policy
-QB-HD 8TBSE,Default Tax Policy
-QB-BET X710SFP,Default Tax Policy
-QB-BDL-SRVC,Default Tax Policy
-QB-CMPC-5882,Default Tax Policy
-QB-CS,Default Tax Policy
-QB-DB,Default Tax Policy
-QB-SUPP-2000,Default Tax Policy
-QB-API-MGMT,Default Tax Policy
-QB-FLO-STRT,Default Tax Policy
-QB-MSG-STRT,Default Tax Policy
-QB-DAT-THPT,Default Tax Policy
-QB-SRV-PD,Default Tax Policy
-QB-SRV-SAT,Default Tax Policy
-QB-SRV-PMN,Default Tax Policy
-QB-SRV-IMP,Default Tax Policy
-QB-SRV-ISE,Default Tax Policy
-QB-SRV-MEE,Default Tax Policy
-QB-SRV-QAE,Default Tax Policy
-QB-SRV-DNE,Default Tax Policy
-QB-AEH-CPU,Default Tax Policy
-QB-AEH-OR,Default Tax Policy
-QB-AEH-BILL,Default Tax Policy
-QB-AEH-OBJ,Default Tax Policy
-QB-AEH-ENV,Default Tax Policy
-QB-LIC-CLOUD,Default Tax Policy
-QB-DRO-BDL-SRVC,Default Tax Policy
-QB-DRO-BDL-RAXS,Default Tax Policy
-QB-BDL-RAXS,Default Tax Policy
-QB-FLO-ENTR,Default Tax Policy
-QB-MSG-ENTR,Default Tax Policy
-QB-INST-1000,Default Tax Policy
-QB-SRV-OG-PSHC,Default Tax Policy
-QB-REDHAT,Default Tax Policy
-QB-VMW-D,Default Tax Policy
-QB-PDU-2022,Default Tax Policy
-QB-BSSA-4298,Default Tax Policy
-QB-BSSA-4300,Default Tax Policy
-QB-BSSA-4302,Default Tax Policy
-QB-BSSA-4306,Default Tax Policy
-QB-BSSA-4308,Default Tax Policy
-QB-SRV-QSE,Default Tax Policy
-QB-SRV-OG-AC-PSH,Default Tax Policy
-QB-SRV-AS,Default Tax Policy
-QB-STD-SP,Default Tax Policy
-QB-SRV-OG-PM-PSH,Default Tax Policy
-QB-SRV-PRM-SP,Default Tax Policy
-QB-BSSA-4303,Default Tax Policy
-QB-BSSA-4304,Default Tax Policy
-QB-PDU-2023,Default Tax Policy
-QB-PDU-2024,Default Tax Policy
-QB-PDU-2025,Default Tax Policy
-QB-PDU-2026,Default Tax Policy
-QB-PDU-2027,Default Tax Policy
-QB-PDU-2028,Default Tax Policy
-QB-PDU-2029,Default Tax Policy
-QB-NO-OSYS,Default Tax Policy
-QB-VMW-S,Default Tax Policy
-QB-VMW-E,Default Tax Policy
-QB-DRO-API-MGMT,
-QB-API-PREP,Default Tax Policy
-QB-API-GOVT,Default Tax Policy
-QB-API-FLEX,Default Tax Policy
-QB-DAT-GRPH,Default Tax Policy
-QB-CMPC-5883,Default Tax Policy
-QB-API-REQT,Default Tax Policy
-QB-CMPC-5881,Default Tax Policy
-QB-CMPC-5884,Default Tax Policy
-QB-BMX-1051,Default Tax Policy
-QB-BMX-1050,Default Tax Policy
-QB-BMX-1053,Default Tax Policy
-QB-BDL-STND,Default Tax Policy
-QB-INTEL E5-2660,Default Tax Policy
-QB-INTEL E5-2667,Default Tax Policy
-QB-INTEL E5-2683,Default Tax Policy
-QB-MEM 32GB,Default Tax Policy
-QB-HD 1TB,Default Tax Policy
+IC-50,Default Tax Policy
+RESO,Default Tax Policy
+FVR,Default Tax Policy
+FIA-CO,Default Tax Policy
+SMSUK,Default Tax Policy
+AIBOT,Default Tax Policy
+BES-BILL,Default Tax Policy
+QB-INTEL-GOLD-5318N,
+QB-INTEL-GOLD-6330N,
+QB-INTEL-GOLD-6354,
+QB-INTEL-PLAT-8352M,
+QB-INTEL-PLAT-8352Y,
+QB-INTEL-PLAT-8360Y,
+QB-INTEL-PLAT-8368,
+QB-LIQUIDCOOL,
+QB-MEM 128GB,
+QB-MEM 64GB,
+QB-NET-100G-ULTRA,
+QB-NET-10G,
+QB-NET-25G,
+QB-NETSECURE-10G,
+QB-NovaX150,
+QB-NVExpand-200,
+QB-PWRCORE-1600S,
+QB-PWRCORE-500S,
+QB-PWRCORE-800S,
+QB-PWRSAFE-1000D,
+QB-PWRSAFE-2000D,
+QB-PWRSAFE-600D,
+QB-QRack-750,
+QB-RAID-500,
+QB-SSD 16TB,
+QB-SSD 2TB,
+QB-SSD 30TB,
+QB-SSD 4TB,
+QB-SSD 8TB,
+QB-VegaX200,
+QB-DRO-AACR,
+QB-DRO-AAPI,
+QB-DRO-AAQBC,
+QB-DRO-AEH,
+QB-DRO-AFBQ,
+QB-DRO-AM,
+QB-DRO-APIPLAT,
+QB-DRO-BILL,
+QB-DRO-OR,
+QB-DRO-PERMS,
+QB-DRO-PROJ,
+QB-DRO-QBD,
 QB-API,Default Tax Policy
-QB-COMPLETE,Default Tax Policy
-QB-HD 4TB,Default Tax Policy
-QB-MEM 8GB,Default Tax Policy
-QB-NET X710,Default Tax Policy
+QB-API-FLEX,Default Tax Policy
+QB-API-GOVT,Default Tax Policy
+QB-API-PREP,Default Tax Policy
+QB-API-PROD,Default Tax Policy
+QB-API-REQT,Default Tax Policy
+QB-AUT-CRED,Default Tax Policy
+QB-BDL-CRTL,Default Tax Policy
+QB-BDL-ENTR,Default Tax Policy
+QB-BDL-R750,Default Tax Policy
+QB-BDL-SRVC,Default Tax Policy
+QB-BDL-STND,Default Tax Policy
+QB-BET X710SFP,Default Tax Policy
+QB-BMX-1050,Default Tax Policy
+QB-BMX-1051,Default Tax Policy
+QB-BMX-1053,Default Tax Policy
+QB-CMPC-5881,Default Tax Policy
+QB-CMPC-5882,Default Tax Policy
+QB-CMPC-5883,Default Tax Policy
+QB-CMPC-5884,Default Tax Policy
 QB-CMPC-5887,Default Tax Policy
 QB-CMPC-5888,Default Tax Policy
 QB-CMPC-5889,Default Tax Policy
 QB-CMPC-5890,Default Tax Policy
 QB-CMPC-5891,Default Tax Policy
 QB-CMPC-5892,Default Tax Policy
-QB-SUPP-1005,Default Tax Policy
-QB-SUPP-1000,Default Tax Policy
-QB-AUT-CRED,Default Tax Policy
-QB-API-PROD,Default Tax Policy
-QB-BDL-ENTR,Default Tax Policy
-QB-BDL-CRTL,Default Tax Policy
-QB-TRN-FUND,Default Tax Policy
-QB-TRN-ESSNTLS,Default Tax Policy
+QB-COMPLETE,Default Tax Policy
+QB-CS,Default Tax Policy
+QB-DAT-GRPH,Default Tax Policy
+QB-DB,Default Tax Policy
+QB-GEN-AI-LIC,
+QB-HD 1TB,Default Tax Policy
+QB-HD 4TB,Default Tax Policy
+QB-HD 8TB,Default Tax Policy
+QB-HD 8TBSE,Default Tax Policy
+QB-INTEL E5-2609,Default Tax Policy
+QB-INTEL E5-2660,Default Tax Policy
+QB-INTEL E5-2667,Default Tax Policy
+QB-INTEL E5-2683,Default Tax Policy
+QB-MEM 16GB,Default Tax Policy
+QB-MEM 32GB,Default Tax Policy
+QB-MEM 8GB,Default Tax Policy
+QB-NET X710,Default Tax Policy
 QB-SRV-OG-PSH,Default Tax Policy
 QB-SRV-SOW,Default Tax Policy
+QB-SUPP-1000,Default Tax Policy
+QB-SUPP-1005,Default Tax Policy
+QB-SUPP-2000,Default Tax Policy
+QB-TRN-ESSNTLS,Default Tax Policy
+QB-TRN-FUND,Default Tax Policy
+TEST-SUB,Default Tax Policy
+QB-CMT-TKN-EACH,Default Tax Policy
+QB-DB-TOKEN,Default Tax Policy
+QB-CMT-TKN-FLAT,Default Tax Policy
+QB-CMT-TKN-TIER,Default Tax Policy
+QB-QTY-CMT,Default Tax Policy
+QB-MTY-CMT,Default Tax Policy
+QB-SRV-DNE,Default Tax Policy
+QB-SRV-IMP,Default Tax Policy
+QB-SRV-ISE,Default Tax Policy
+QB-SRV-MEE,Default Tax Policy
+QB-SRV-PD,Default Tax Policy
+QB-SRV-PMN,Default Tax Policy
+QB-SRV-QAE,Default Tax Policy
+QB-SRV-SAT,Default Tax Policy
+QB-API-MGMT,Default Tax Policy
+QB-FLO-STRT,Default Tax Policy
+QB-MSG-STRT,Default Tax Policy
+QB-AEH-CPU,Default Tax Policy
+QB-AEH-BILL,Default Tax Policy
+QB-DAT-THPT,Default Tax Policy
+QB-AEH-OR,Default Tax Policy
+QB-DRO-BILLING,
+QB-DRO-PROVISION,
+QB-DRO-LICACT,
+QB-TOKEN-DEF,
+RES-USD-DEF,
+QB-TOKENS-PACK,
+QB-LIC-CLOUD,Default Tax Policy
+QB-CPU-BLNG,Default Tax Policy
 QB-DATA-STORAGE-BLNG,Default Tax Policy
 QB-DATA-THPT-BLNG,Default Tax Policy
-QB-CPU-BLNG,Default Tax Policy
+9999999,
+QB-VMW-D,Default Tax Policy
+QB-VMW-E,Default Tax Policy
+QB-VMW-S,Default Tax Policy
+QB-BSSA-4308,Default Tax Policy
+QB-API-CALLS,
+QB-AEH-ENV,Default Tax Policy
+QB-AEH-OBJ,Default Tax Policy
+QB-FLO-ENTR,Default Tax Policy
+QB-BSSA-4304,Default Tax Policy
+QB-BSSA-4298,Default Tax Policy
+QB-BSSA-4300,Default Tax Policy
+QB-BSSA-4302,Default Tax Policy
+QB-BSSA-4303,Default Tax Policy
+QB-BSSA-4306,Default Tax Policy
+QB-NO-OSYS,Default Tax Policy
+QB-PDU-2022,Default Tax Policy
+QB-MSG-ENTR,Default Tax Policy
+QB-INST-1000,Default Tax Policy
+QB-SRV-QSE,Default Tax Policy
+QB-STD-SP,Default Tax Policy
+QB-SRV-PRM-SP,Default Tax Policy
+QB-SRV-OG-AC-PSH,Default Tax Policy
+QB-SRV-OG-PM-PSH,Default Tax Policy
+QB-SRV-OG-PSHC,Default Tax Policy
+QB-PDU-2023,Default Tax Policy
+QB-PDU-2028,Default Tax Policy
+QB-PDU-2029,Default Tax Policy
+QB-REDHAT,Default Tax Policy
+QB-SRV-AS,Default Tax Policy
+QB-PDU-2024,Default Tax Policy
+QB-PDU-2025,Default Tax Policy
+QB-PDU-2026,Default Tax Policy
+QB-PDU-2027,Default Tax Policy
+QB-BDL-RAXS,Default Tax Policy
+QB-CBOOST-150,
+QB-CPU-HEATSINK,
+QB-HD 1.2TB,
+QB-HD 20TB,
+QB-HD 3TB,
+SMS-MESS,
+BES,Default Tax Policy
+SMSAU,Default Tax Policy
+LS-5,Default Tax Policy
+PSP,Default Tax Policy
+SMSCA,Default Tax Policy
+SMSUS,Default Tax Policy
+BWS,Default Tax Policy
+IP-123,Default Tax Policy
+FS-5,Default Tax Policy
+AI Help Desk,Default Tax Policy

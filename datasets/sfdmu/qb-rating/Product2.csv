@@ -2,7 +2,7 @@ Name,ProductCode,StockKeepingUnit,UsageModelType
 Shipping Charge Product,,9999999,
 AI Help Desk,AI Help Desk,AI Help Desk,
 AI Bot,AIBOT,AIBOT,
-Bulk Emails Sent,BES,BES,CommitmentQuantity
+Bulk Emails Sent,BES,BES,Anchor
 Bulk Emails Sent - Billing,BES-BILL,BES-BILL,CommitmentQuantity
 Bulk WhatsApp Sent,BWS,BWS,
 Fin AI Copilot,FIA-CO,FIA-CO,

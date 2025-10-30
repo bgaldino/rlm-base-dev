@@ -1,5 +1,5 @@
 $$ProductClassification.Code$AttributeDefinition.Code$AttributeCategory.Code,AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,CurrencyIsoCode,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
-AIHD,,,AI Help Desk Type,USD,Advanced,,,,false,false,false,false,,,,,AI Help Desk Type,AIHD,,Active,,,
+AIHDESK;ai-help-desk-type,,ai-help-desk-type,AI Help Desk Type,USD,Advanced,,,,false,false,false,false,,,,,AI Help Desk Type,AIHDESK,,Active,,,
 PC-QB-API;ATTR-QB-API;AC-QB-API,AC-QB-API,ATTR-QB-API,Type,USD,Flex,,,,false,true,false,false,,,,,Type,PC-QB-API,,Active,,,
 PC-QB-CABLES;ATTR-QB-CONNECTOR,,ATTR-QB-CONNECTOR,Connector Type,USD,C13 to C14,,,,false,false,false,false,,,,,Connector Type,PC-QB-CABLES,,Inactive,,,
 PC-QB-CABLES;ATTR-QB-LENGTH,,ATTR-QB-LENGTH,Cable Length,USD,3,,,,false,false,false,false,,,,,Length,PC-QB-CABLES,,Active,,,

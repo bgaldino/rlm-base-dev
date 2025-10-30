@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
     <externalCredentialPrincipalAccesses>
         <enabled>true</enabled>
         <externalCredentialPrincipal>SalesforceRLM-Named Principal</externalCredentialPrincipal>
@@ -12,6 +13,7 @@
         <enabled>true</enabled>
         <externalCredentialPrincipal>SalesforceContractsExtCredentials-SalesforceContracts</externalCredentialPrincipal>
     </externalCredentialPrincipalAccesses>
+-->
     <fieldPermissions>
         <editable>false</editable>
         <field>Contract.ActivatedById</field>

@@ -1,40 +1,40 @@
-$$Code$ParentProduct.StockKeepingUnit,Code,CurrencyIsoCode,Description,MaxBundleComponents,MinBundleComponents,Name,ParentProduct.StockKeepingUnit,Sequence
-AI Help Desk,,USD,,,1,Seats,AI Help Desk,
-IC-50,,USD,,,,Channels,IC-50,20
-IC-50,,USD,,,,AI Bot,IC-50,10
-IC-50,,USD,,,,SMS,IC-50,20
-IC-50,,USD,,,,Add-Ons,IC-50,5
-IC-50,,USD,,,1,AI Help Desk,IC-50,2
-IC-50,,USD,,,,Email,IC-50,10
-IC-50,,USD,,,,Proactive Support,IC-50,20
-IC-50,,USD,,,,WhatsApp Integrations,IC-50,30
-IC-50,,USD,,,1,Intercom,IC-50,10
-IC-50,,USD,,,,Premier Services,IC-50,50
-IC-50,,USD,,,,Professional Services,IC-50,20
-IC-50,,USD,,,,Premier Support,IC-50,10
-PCG-QB-SRV-CPU;QB-BDL-R750,PCG-QB-SRV-CPU,USD,,1,1,Processor,QB-BDL-R750,1
-PCG-QB-SRV-HDD;QB-BDL-R750,PCG-QB-SRV-HDD,USD,,1,1,Hard Drive,QB-BDL-R750,3
-PCG-QB-SRV-NIC;QB-BDL-R750,PCG-QB-SRV-NIC,USD,,1,1,Network Adapter,QB-BDL-R750,4
-PCG-QB-SRV-RAM;QB-BDL-R750,PCG-QB-SRV-RAM,USD,,1,1,Memory Capacity,QB-BDL-R750,2
-PCG-QB-PS-ENGRESOURCES;QB-BDL-SRVC,PCG-QB-PS-ENGRESOURCES,USD,,,,Engineering Resources,QB-BDL-SRVC,1
-PCG-QB-PS-PM;QB-BDL-SRVC,PCG-QB-PS-PM,USD,,,,Project Management,QB-BDL-SRVC,2
-PCG-QB-PS-SA;QB-BDL-SRVC,PCG-QB-PS-SA,USD,,,,Solution Architecture,QB-BDL-SRVC,3
-PCG-QBSTARTER-MAINT;QB-BDL-STND,PCG-QBSTARTER-MAINT,USD,,1,1,Maintenance,QB-BDL-STND,20
-PCG-QBSTARTER-TRAINING;QB-BDL-STND,PCG-QBSTARTER-TRAINING,USD,,1,1,Training,QB-BDL-STND,10
-PCG-QB-MAINT;QB-COMPLETE,PCG-QB-MAINT,USD,,,,Maintenance & Support,QB-COMPLETE,40
-PCG-QB-SERVICES;QB-COMPLETE,PCG-QB-SERVICES,USD,,,,Services,QB-COMPLETE,30
-PCG-QB-SOFTWARE;QB-COMPLETE,PCG-QB-SOFTWARE,USD,,,,Software,QB-COMPLETE,10
-PCG-QB-TRAINING;QB-COMPLETE,PCG-QB-TRAINING,USD,,,,Training,QB-COMPLETE,20
-QB-PCG-USAGE;QB-COMPLETE,QB-PCG-USAGE,USD,,,,Consumption,QB-COMPLETE,15
-Computing;QB-QRack-750,Computing,USD,,,,Computing,QB-QRack-750,1
-Cooling;QB-QRack-750,Cooling,USD,,2,1,Cooling,QB-QRack-750,2
-GPUs;QB-QRack-750,GPUs,USD,,,,GPUs,QB-QRack-750,1
-Hard Drives;QB-QRack-750,Hard Drives,USD,,,,Hard Drives,QB-QRack-750,1
-I/O;QB-QRack-750,I/O,USD,,,,I/O,QB-QRack-750,2
-Memory;QB-QRack-750,Memory,USD,,,,Memory,QB-QRack-750,2
-Networking;QB-QRack-750,Networking,USD,,,,Networking,QB-QRack-750,3
-PCIe;QB-QRack-750,PCIe,USD,,,,PCIe,QB-QRack-750,4
-Power Supply;QB-QRack-750,Power Supply,USD,,,,Power Supply,QB-QRack-750,5
-Processor;QB-QRack-750,Processor,USD,,2,1,Processor,QB-QRack-750,1
-Solid State Drives;QB-QRack-750,Solid State Drives,USD,,4,0,Solid State Drives,QB-QRack-750,2
-Storage;QB-QRack-750,Storage,USD,,,,Storage,QB-QRack-750,3
+$$Code$ParentProduct.StockKeepingUnit,Code,CurrencyIsoCode,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+AI Help Desk,,USD,,,1,Seats,,AI Help Desk,
+IC-50,,USD,,,,Premier Services,,IC-50,50
+ADD;IC-50,ADD,USD,,,,Add-Ons,INTER;IC-50,IC-50,5
+AIBOT;IC-50,AIBOT,USD,,,,AI Bot,INTER;IC-50,IC-50,10
+AIH;IC-50,AIH,USD,,,1,AI Help Desk,INTER;IC-50,IC-50,2
+CHANN;IC-50,CHANN,USD,,,,Channels,,IC-50,20
+EMAIL;IC-50,EMAIL,USD,,,,Email,CHANN;IC-50,IC-50,10
+INTER;IC-50,INTER,USD,,,1,Intercom,,IC-50,10
+PREM;IC-50,PREM,USD,,,,Premier Support,IC-50,IC-50,10
+PRO SERV;IC-50,PRO SERV,USD,,,,Professional Services,IC-50,IC-50,20
+PROACT;IC-50,PROACT,USD,,,,Proactive Support,INTER;IC-50,IC-50,20
+SMS;IC-50,SMS,USD,,,,SMS,CHANN;IC-50,IC-50,20
+WHATSAPP;IC-50,WHATSAPP,USD,,,,WhatsApp Integrations,CHANN;IC-50,IC-50,30
+PCG-QB-SRV-CPU;QB-BDL-R750,PCG-QB-SRV-CPU,USD,,1,1,Processor,,QB-BDL-R750,1
+PCG-QB-SRV-HDD;QB-BDL-R750,PCG-QB-SRV-HDD,USD,,1,1,Hard Drive,,QB-BDL-R750,3
+PCG-QB-SRV-NIC;QB-BDL-R750,PCG-QB-SRV-NIC,USD,,1,1,Network Adapter,,QB-BDL-R750,4
+PCG-QB-SRV-RAM;QB-BDL-R750,PCG-QB-SRV-RAM,USD,,1,1,Memory Capacity,,QB-BDL-R750,2
+PCG-QB-PS-ENGRESOURCES;QB-BDL-SRVC,PCG-QB-PS-ENGRESOURCES,USD,,,,Engineering Resources,,QB-BDL-SRVC,1
+PCG-QB-PS-PM;QB-BDL-SRVC,PCG-QB-PS-PM,USD,,,,Project Management,,QB-BDL-SRVC,2
+PCG-QB-PS-SA;QB-BDL-SRVC,PCG-QB-PS-SA,USD,,,,Solution Architecture,,QB-BDL-SRVC,3
+PCG-QBSTARTER-MAINT;QB-BDL-STND,PCG-QBSTARTER-MAINT,USD,,1,1,Maintenance,,QB-BDL-STND,20
+PCG-QBSTARTER-TRAINING;QB-BDL-STND,PCG-QBSTARTER-TRAINING,USD,,1,1,Training,,QB-BDL-STND,10
+PCG-QB-MAINT;QB-COMPLETE,PCG-QB-MAINT,USD,,,,Maintenance & Support,,QB-COMPLETE,40
+PCG-QB-SERVICES;QB-COMPLETE,PCG-QB-SERVICES,USD,,,,Services,,QB-COMPLETE,30
+PCG-QB-SOFTWARE;QB-COMPLETE,PCG-QB-SOFTWARE,USD,,,,Software,,QB-COMPLETE,10
+PCG-QB-TRAINING;QB-COMPLETE,PCG-QB-TRAINING,USD,,,,Training,,QB-COMPLETE,20
+QB-PCG-USAGE;QB-COMPLETE,QB-PCG-USAGE,USD,,,,Consumption,,QB-COMPLETE,15
+Computing;QB-QRack-750,Computing,USD,,,,Computing,,QB-QRack-750,1
+Cooling;QB-QRack-750,Cooling,USD,,2,1,Cooling,Computing;QB-QRack-750,QB-QRack-750,2
+GPUs;QB-QRack-750,GPUs,USD,,,,GPUs,PCIe;QB-QRack-750,QB-QRack-750,1
+Hard Drives;QB-QRack-750,Hard Drives,USD,,,,Hard Drives,Storage;QB-QRack-750,QB-QRack-750,1
+I/O;QB-QRack-750,I/O,USD,,,,I/O,PCIe;QB-QRack-750,QB-QRack-750,2
+Memory;QB-QRack-750,Memory,USD,,,,Memory,,QB-QRack-750,2
+Networking;QB-QRack-750,Networking,USD,,,,Networking,PCIe;QB-QRack-750,QB-QRack-750,3
+PCIe;QB-QRack-750,PCIe,USD,,,,PCIe,,QB-QRack-750,4
+Power Supply;QB-QRack-750,Power Supply,USD,,,,Power Supply,,QB-QRack-750,5
+Processor;QB-QRack-750,Processor,USD,,2,1,Processor,Computing;QB-QRack-750,QB-QRack-750,1
+Solid State Drives;QB-QRack-750,Solid State Drives,USD,,4,0,Solid State Drives,Storage;QB-QRack-750,QB-QRack-750,2
+Storage;QB-QRack-750,Storage,USD,,,,Storage,,QB-QRack-750,3

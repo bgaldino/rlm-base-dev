@@ -68,7 +68,8 @@ Lite Seats;Standard Price Book;LS-5;Term Annual;USD,USD,true,false,Lite Seats,St
 Lite Seats;Standard Price Book;LS-5;Term Monthly;USD,USD,true,false,Lite Seats,Standard Price Book;true,LS-5,Term Monthly;TermDefined,0
 Module Extension Engineer;Standard Price Book;QB-SRV-MEE;One-Time;USD,USD,true,false,Module Extension Engineer,Standard Price Book;true,QB-SRV-MEE,One-Time;OneTime,300
 PowerSwerve R750 Rack Server;Standard Price Book;QB-BDL-R750;One-Time;USD,USD,true,false,PowerSwerve R750 Rack Server,Standard Price Book;true,QB-BDL-R750,One-Time;OneTime,3899
-Proactive Support Plus;Standard Price Book;PSP;Term Annual;USD,USD,true,false,Proactive Support Plus,Standard Price Book;true,PSP,Term Annual;TermDefined,0
+Proactive Support Plus;Standard Price Book;PSP;Term Annual;USD,USD,false,false,Proactive Support Plus,Standard Price Book;true,PSP,Term Annual;TermDefined,0
+Proactive Support Plus;Standard Price Book;PSP;Term Monthly;USD,USD,true,true,Proactive Support Plus,Standard Price Book;true,PSP,Term Monthly;TermDefined,0
 Professional Services Daily Rate;Standard Price Book;QB-SRV-OG-PSH;One-Time;USD,USD,true,false,Professional Services Daily Rate,Standard Price Book;true,QB-SRV-OG-PSH,One-Time;OneTime,250
 Professional Services Scope of Work;Standard Price Book;QB-SRV-SOW;One-Time;USD,USD,true,false,Professional Services Scope of Work,Standard Price Book;true,QB-SRV-SOW,One-Time;OneTime,25000
 Program Director;Standard Price Book;QB-SRV-PD;One-Time;USD,USD,true,false,Program Director,Standard Price Book;true,QB-SRV-PD,One-Time;OneTime,350
