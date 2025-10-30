@@ -1,9 +1,14 @@
 ApiName,IsActive,Name,Rank,VersionNumber
-RLM_DefaultPricingDiscoveryProcedure_V1,false,RLM Default Pricing Discovery Procedure,1,1
+RLM_QualificationProcedure,true,RLM Qualification Procedure,1,1
+RLM_ProductDiscoveryPricingProcedure_V1,true,RLM Product Discovery Pricing Procedure,1,1
+RC_DefaultPricingProcedure_V1,true,RC Revenue Cloud Default Pricing Procedure,1,1
+Negotiable_Rating_Procedure_V1,true,Negotiable Rating Procedure,1,1
+RLM_DefaultRatingDiscoveryProcedure_V1,true,RLM Default Rating Discovery Procedure,1,1
+RLM_DefaultRatingProcedure_V1,true,RLM Default Rating Procedure,1,1
+RLM_ProductDiscoveryQualificationProcedure_V1,true,RLM Product Discovery Qualification Procedure,1,1
+GeneratorSet_V1,false,GeneratorSet V1,,1
+QuantumBitComplete_V1,true,QuantumBitComplete V1,,1
+Salesforce_Default_Pricing_Discovery_ProcedureV1,true,Salesforce Default Pricing Discovery Procedure V1,1,1
+RC_NegotiableRatingProcedure_V1,false,RC Negotiable Rating Procedure,1,1
 RLM_DefaultPricingProcedure_V1,false,RLM Default Pricing Procedure,1,1
-RLM_ProductDiscoveryPricingProcedure_V1,false,RLM Product Discovery Pricing Procedure,1,1
-RLM_QualificationProcedure,false,RLM Qualification Procedure,1,1
-Negotiable_Rating_Procedure_V1,false,Negotiable Rating Procedure,1,1
-RLM_ProductDiscoveryQualificationProcedure_V1,false,RLM Product Discovery Qualification Procedure,1,1
-RLM_DefaultRatingDiscoveryProcedure_V1,false,RLM Default Rating Discovery Procedure,1,1
-RLM_DefaultRatingProcedure_V1,false,RLM Default Rating Procedure,1,1
+Server2_V1,true,Server2 V1,,1
