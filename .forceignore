@@ -40,6 +40,7 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/RC_DefaultPricingProcedure.expressionSetDefinition-meta.xml
 
 # contextDefinitions
 force-app/main/default/contextDefinitions

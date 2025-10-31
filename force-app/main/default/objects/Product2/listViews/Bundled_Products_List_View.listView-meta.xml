@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Bundled_Products_List_View</fullName>
+    <columns>PRODUCT2.NAME</columns>
+    <columns>PRODUCT2.DESCRIPTION</columns>
+    <columns>PRODUCT2.CUSTOMER_PRODUCT_ID</columns>
+    <columns>PRODUCT2.PRODUCT_TYPE</columns>
+    <columns>PRODUCT2.CONFIGURE_DURING_SALE</columns>
+    <filterScope>Everything</filterScope>
+    <label>Bundled Products</label>
+</ListView>

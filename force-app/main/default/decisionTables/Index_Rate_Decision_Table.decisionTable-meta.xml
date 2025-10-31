@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DecisionTable xmlns="http://soap.sforce.com/2006/04/metadata">
+    <conditionCriteria>1 AND 2 AND 3 AND 4</conditionCriteria>
+    <conditionType>All</conditionType>
+    <dataSourceType>SingleSobject</dataSourceType>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>ValidEndDate</fieldName>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <operator>LessOrEqual</operator>
+        <sequence>2</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>ValidStartDate</fieldName>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>GreaterOrEqual</operator>
+        <sequence>1</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>Rate</fieldName>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <usage>OUTPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>Region</fieldName>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>Equals</operator>
+        <sequence>3</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>CurrencyIsoCode</fieldName>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>Equals</operator>
+        <sequence>4</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableSourceCriterias>
+        <operator>Equals</operator>
+        <sequenceNumber>1</sequenceNumber>
+        <sourceFieldName>UsageType</sourceFieldName>
+        <value>Pricing</value>
+        <valueType>Literal</valueType>
+    </decisionTableSourceCriterias>
+    <description>A table that stores changes in the cost of products or services based on factors like the Consumer Price Index (CPI), with effective dates and magnitude of change.</description>
+    <doesConsiderNullValue>true</doesConsiderNullValue>
+    <executionType>Hbase</executionType>
+    <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
+    <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
+    <setupName>Index Rate</setupName>
+    <sourceConditionLogic>1</sourceConditionLogic>
+    <sourceObject>IndexRate</sourceObject>
+    <status>Active</status>
+    <type>MediumVolume</type>
+    <usageType>DefaultPricing</usageType>
+</DecisionTable>
