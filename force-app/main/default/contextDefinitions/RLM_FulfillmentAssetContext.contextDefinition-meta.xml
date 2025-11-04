@@ -130,6 +130,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetName/FulfillmentAssetName</inheritedFrom>
                     <title>FulfillmentAssetName</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetName</inheritedFrom>
@@ -143,6 +144,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetProduct/FulfillmentAssetProduct</inheritedFrom>
                     <title>FulfillmentAssetProduct</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetProduct</inheritedFrom>
@@ -156,6 +158,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetStatus/FulfillmentAssetStatus</inheritedFrom>
                     <title>FulfillmentAssetStatus</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetStatus</inheritedFrom>
@@ -169,6 +172,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAccount/FulfillmentAssetAccount</inheritedFrom>
                     <title>FulfillmentAssetAccount</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAccount</inheritedFrom>
@@ -182,6 +186,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetQuantity/FulfillmentAssetQuantity</inheritedFrom>
                     <title>FulfillmentAssetQuantity</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetQuantity</inheritedFrom>
@@ -194,6 +199,8 @@
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAsset</inheritedFrom>
                 <title>FulfillmentAsset</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>FulfillmentAsset</displayName>
             <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset</inheritedFrom>
             <title>FulfillmentAsset</title>
             <transposable>false</transposable>
@@ -204,6 +211,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeName/AttributeName</inheritedFrom>
                     <title>AttributeName</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeName</inheritedFrom>
@@ -217,6 +225,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeValue/AttributeValue</inheritedFrom>
                     <title>AttributeValue</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeValue</inheritedFrom>
@@ -230,6 +239,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeDefinition/AttributeDefinition</inheritedFrom>
                     <title>AttributeDefinition</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeDefinition</inheritedFrom>
@@ -243,6 +253,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeRelatedFulfillmentAsset/AttributeRelatedFulfillmentAsset</inheritedFrom>
                     <title>AttributeRelatedFulfillmentAsset</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributeRelatedFulfillmentAsset</inheritedFrom>
@@ -256,6 +267,7 @@
                     <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributePicklistValue/AttributePicklistValue</inheritedFrom>
                     <title>AttributePicklistValue</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttributePicklistValue</inheritedFrom>
@@ -265,6 +277,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>reference</dataType>
                 <domainSet>FulfillmentAsset</domainSet>
                 <fieldType>input</fieldType>
@@ -278,6 +291,8 @@
                 <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute/FulfillmentAssetAttribute</inheritedFrom>
                 <title>FulfillmentAssetAttribute</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>FulfillmentAssetAttribute</displayName>
             <inheritedFrom>FulfillmentAssetContext__stdctx/version/FulfillmentAsset/FulfillmentAssetAttribute</inheritedFrom>
             <title>FulfillmentAssetAttribute</title>
             <transposable>true</transposable>

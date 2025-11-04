@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>63.0</apiVersion>
+	<isExposed>true</isExposed>
+	<targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="configuratorContext" type="apex://ProductConfig.ConfiguratorContext" 
+                label="Configurator Context" 
+                description="The configurator context object" />
+            <property name="renderContext" type="String" 
+                label="Render Context"
+                description="Choose whether to render in 2D or 3D" 
+                default="3D" 
+                required="true" />
+            <property name="salesTransactionItems" type="apex://ProductConfig.SalesTransactionItem[]" 
+                label="Sales Transaction Items"
+                description="Array of sales transaction items" />
+            <property name="overrideRecordId" type="String" 
+                label="Override Record Id"
+                description="Override the record id for the configuration" />
+            <property name="size" type="String" 
+                label="Component Size" 
+                description="Can be one of the following values: Small, SmallPlus, Medium, MediumPlus, Large, LargePlus, Jumbo" 
+                default="Medium" />
+            <property name="optionGroups" type="String[]" 
+                label="Option Groups"
+                description="Array of option groups" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

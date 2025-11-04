@@ -3,7 +3,7 @@
     <enableAIProviderAWSBedrock>false</enableAIProviderAWSBedrock>
     <enableAIProviderAzureOpenAI>false</enableAIProviderAzureOpenAI>
     <enableAIProviderGoogleVertex>false</enableAIProviderGoogleVertex>
-    <enableAIProviderOpenAI>false</enableAIProviderOpenAI>
+    <enableAIProviderOpenAI>true</enableAIProviderOpenAI>
     <enableEinsteinGPTDeployPromptTemplatesAsActive>false</enableEinsteinGPTDeployPromptTemplatesAsActive>
     <enableEinsteinGptGlobalLangSupport>false</enableEinsteinGptGlobalLangSupport>
     <enableEinsteinGptPlatform>true</enableEinsteinGptPlatform>

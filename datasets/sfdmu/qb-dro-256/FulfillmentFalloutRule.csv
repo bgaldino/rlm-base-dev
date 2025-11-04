@@ -1,0 +1,2 @@
+$$Name$CurrencyIsoCode,CurrencyIsoCode,ErrorCode,FlowDefinitionName,IntegrationDefinition.DeveloperName,Name,RetriesAllowed,RetryIntervals,RetryPolicy,StepType
+000000001;USD,USD,,,RLM_DFOTenantProvisioningCallout,000000001,1,,Immediate,Callout

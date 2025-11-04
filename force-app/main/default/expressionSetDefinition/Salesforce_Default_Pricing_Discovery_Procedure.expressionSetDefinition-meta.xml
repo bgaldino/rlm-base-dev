@@ -8,6 +8,7 @@
     <template>false</template>
     <versions>
         <fullName>Salesforce_Default_Pricing_Discovery_ProcedureV1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Salesforce Default Pricing Discovery Procedure</description>
         <expressionSetDefinition>Salesforce_Default_Pricing_Discovery_Procedure</expressionSetDefinition>
         <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
@@ -15,7 +16,7 @@
         <processType>PricingDiscovery</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2024-04-03T05:29:53.000Z</startDate>
+        <startDate>2020-01-01T08:00:00.000Z</startDate>
         <status>Active</status>
         <steps>
             <actionType>AssetDiscovery</actionType>
@@ -109,7 +110,42 @@
             <label>Asset Discovery</label>
             <name>AssetDiscovery</name>
             <resultIncluded>true</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
+            <sequenceNumber>5</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>DiscoverySettings</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>LineItemId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+            </customElement>
+            <description>Discovery Settings</description>
+            <label>Discovery Settings</label>
+            <name>DiscoverySettings</name>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -241,8 +277,127 @@
             <description>Fetch Pricing Rules</description>
             <label>Fetch Pricing Rules</label>
             <name>FetchPricingRules</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>3</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>BreakdownLineMapping</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-1-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveFrom</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-2-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>EffectiveTo</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-3-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>DerivedPricingAttribute</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>SalesTrxnItemDetailSource</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-1-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailEffectiveFrom__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-2-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailEffectiveTo__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>section-3-output</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemDetailDerivedPricingAttribute__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>MapLineItemNodeInput</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>SalesTransactionItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>4</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString1</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;LineItem&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Text&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;SalesTrxnItemDetailSource&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-1-input1&quot;,&quot;value&quot;:&quot;EffectiveFrom&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-1-output&quot;,&quot;value&quot;:&quot;ItemDetailEffectiveFrom__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString3</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-2-input1&quot;,&quot;value&quot;:&quot;EffectiveTo&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-2-output&quot;,&quot;value&quot;:&quot;ItemDetailEffectiveTo__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString4</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Boolean&quot;,&quot;name&quot;:&quot;section-3-input1&quot;,&quot;value&quot;:&quot;DerivedPricingAttribute&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Boolean&quot;,&quot;name&quot;:&quot;section-3-output&quot;,&quot;value&quot;:&quot;ItemDetailDerivedPricingAttribute__std&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>MapLineItemNodeOutput</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>SalesTransactionItemDetail</value>
+                </parameters>
+            </customElement>
+            <description>Map Line Item</description>
+            <label>Map Line Item</label>
+            <name>MapLineItem</name>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -262,8 +417,8 @@
             <description>Map Product</description>
             <label>Map Product</label>
             <name>MapProduct</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
+            <resultIncluded>true</resultIncluded>
+            <sequenceNumber>4</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>

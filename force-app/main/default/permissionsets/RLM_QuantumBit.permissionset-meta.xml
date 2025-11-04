@@ -416,6 +416,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Product2.X3D_Scene_Settings__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Quote.RC_Approval_Level__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -432,6 +437,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.RLM_TermMonths__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Quote.RC_Start_Sync__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

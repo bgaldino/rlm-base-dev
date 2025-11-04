@@ -157,7 +157,7 @@ def upload_blob_via_patch(record_id, blob_path, access_token, instance_url, api_
 def main():
     global access_token, instance_url, api_version, headers
     access_token, instance_url = get_auth()
-    api_version = get_latest_api_version(instance_url) # e.g., '64.0'
+    api_version = get_latest_api_version(instance_url) # e.g., '65.0'
     print(f"API Version is: {api_version}")
     headers = {
         "Authorization": f"Bearer {access_token}",

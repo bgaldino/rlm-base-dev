@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DataKitObjectDependency xmlns="http://soap.sforce.com/2006/04/metadata">
-    <dataPackageKitDef>rlm_common_datakit_v15</dataPackageKitDef>
-    <developerName>SalesforceDotCom_Home344</developerName>
-    <masterLabel>Salesforce Connector Trial OrgFarm For U Home</masterLabel>
-    <sourceObject>InvoiceLine_Home_1745225741087</sourceObject>
-    <sourceObjectType>DataStreamTemplate</sourceObjectType>
-    <targetObject>SalesforceDotCom_Home</targetObject>
-</DataKitObjectDependency>

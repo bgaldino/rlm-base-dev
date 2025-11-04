@@ -1,0 +1,12 @@
+BatchCriteria.Name,BillingBatchFilterCriteriaNumber,ColumnEnum,CriteriaFieldType,CriteriaSequence,CustomCriteriaFieldName,InvoiceRunMatchingValue,ObjectName,Operation,PaymentRunMatchingValue,StandardCriteriaField,Value
+IBRC-000000005,BBFC-000000008,Currency_Iso_code,,1,,,BillingSchedule,InList,,,USD
+USD Intercompany Revenue Rule,BBFC-000000010,TransactionJournalingCustomField,Text,1,Account__c,,InvoiceLine,Equals,,,QuantumBit Canada
+USD Intercompany Revenue Rule,BBFC-000000011,TransactionJournalingCustomField,Text,2,Product_Type__c,,InvoiceLine,NotEquals,,,Subscription
+IBRC-000000002,BBFC-000000005,Currency_Iso_code,,1,,,BillingSchedule,InList,,,USD
+USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),BBFC-000000001,TransactionJournalingStandardField,Lookup,1,,,InvoiceLine,Equals,,Product2Id,01tKj00000RyXeoIAF
+USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),BBFC-000000002,TransactionJournalingStandardField,Lookup,2,,,InvoiceLine,Equals,,Product2Id,01tKj00000RyXf9IAF
+IBRC-000000001,BBFC-000000003,Currency_Iso_code,,1,,,BillingSchedule,InList,,,USD
+USD Invoice Line Hardware,BBFC-000000004,TransactionJournalingStandardField,Lookup,1,,,InvoiceLine,Equals,,Product2Id,01tKj00000RyXecIAF
+IBRC-000000006,BBFC-000000009,Currency_Iso_code,,1,,,BillingSchedule,InList,,,USD
+IBRC-000000007,BBFC-000000012,Currency_Iso_code,,1,,,BillingSchedule,InList,,,USD
+IBRC-000000004,BBFC-000000007,Currency_Iso_code,,1,,,BillingSchedule,InList,,,USD

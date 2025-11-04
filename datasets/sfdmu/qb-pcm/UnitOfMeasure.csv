@@ -1,0 +1,13 @@
+ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
+1000000000,,Byte,,,1,Active,Data,B,DATAVOL
+1,Support Cases,Each,,,1,Active,Count,EACH,CAS01
+1,,Gigabyte,,,4,Active,Data,GB,DATAVOL
+60,,Hour,,,3,Active,Time,h,TIME
+1000000,,Kilobyte,,,2,Active,Data,KB,DATAVOL
+1,,Minutes,,,2,Active,Time,m,TIME
+1000,,Megabyte,,,3,Active,Data,MB,DATAVOL
+0.000001,,Petabyte,,,6,Active,Data,PB,DATAVOL
+0.016667,,Seconds,,,1,Active,Time,s,TIME
+0.001,,Terabyte,,,5,Active,Data,TB,DATAVOL
+,Token UOM,Tokens,,,,Active,Custom,TOKEN-UOM,Token_UoM_Class
+1,,USD,,,1,Active,Cost,USD,CURRENCY

@@ -1,6 +1,7 @@
-$$Name$DependsOnStepDefinition.Name$FulfillmentStepDefinition.Name$CurrencyIsoCode,CurrencyIsoCode,DependencyScope,DependsOnStepDefinition.$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,FulfillmentStepDefinition.$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,Name
-Wait on Provision Before Converting;Validate Order Info;Convert Order to Asset;USD,USD,Plan,Validate Order Info;Order Processing;USD,Convert Order to Asset;Tenant Provisioning + Activation;USD,Wait on Provision Before Converting
-Require Validation Before Provisioning;Validate Order Info;Stage New Tenant for Provisioning;USD,USD,Plan,Validate Order Info;Order Processing;USD,Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,Require Validation Before Provisioning
-Asset Conversion then Bill;Convert Order to Asset;Initiate Billing;USD,USD,Plan,Convert Order to Asset;Tenant Provisioning + Activation;USD,Initiate Billing;Finance;USD,Asset Conversion then Bill
-Receive Payment;Initiate Billing;Post Invoice;USD,USD,Plan,Initiate Billing;Finance;USD,Post Invoice;Finance;USD,Receive Payment
-Post to Pay;Post Invoice;Receive Payment;USD,USD,Plan,Post Invoice;Finance;USD,Receive Payment;Finance;USD,Post to Pay
+$$Name$DependsOnStepDefinition.Name$FulfillmentStepDefinition.Name,DependencyScope,DependsOnStepDefinition.$$Name$StepDefinitionGroup.Name,FulfillmentStepDefinition.$$Name$StepDefinitionGroup.Name,IsCompensateInReverse,Name,PropagateStateToDependentStep
+Create Project to Assign Resources;Create Project;Assign Resources,Plan,Create Project;Services,Assign Resources;Services,false,Create Project to Assign Resources,
+Project Kick Off;Assign Resources;Start Project,Plan,Assign Resources;Services,Start Project;Services,false,Project Kick Off,
+Project Kick-Off To Create Bill;Start Project;Initiate Billing,Plan,Start Project;Services,Initiate Billing;Finance,false,Project Kick-Off To Create Bill,
+Provision Tennent to Provision Features;Stage New Tenant for Provisioning;Provision Licensing/Features,Plan,Stage New Tenant for Provisioning;Platform,Provision Licensing/Features;Feature/License Provisioning + Activation,false,Provision Tennent to Provision Features,
+Provision to Bill;Provision Licensing/Features;Initiate Billing,Plan,Provision Licensing/Features;Feature/License Provisioning + Activation,Initiate Billing;Finance,false,Provision to Bill,
+Tenant to Receive Key;Stage New Tenant for Provisioning;Receive Key + Assign to Asset,Plan,Stage New Tenant for Provisioning;Platform,Receive Key + Assign to Asset;Platform,false,Tenant to Receive Key,

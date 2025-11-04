@@ -3,7 +3,8 @@
     <enableDFOFallout>false</enableDFOFallout>
     <enableDFOJeopardy>false</enableDFOJeopardy>
     <enableDFOPref>true</enableDFOPref>
-    <enableDROFutureDatedTasks>false</enableDROFutureDatedTasks>
-    <enableDROInflightRequest>false</enableDROInflightRequest>
-    <enableDROTaskSource>false</enableDROTaskSource>
+    <enableDROBulkDequeUsingMQ>false</enableDROBulkDequeUsingMQ>
+    <enableDROFutureDatedTasks>true</enableDROFutureDatedTasks>
+    <enableDROInflightRequest>true</enableDROInflightRequest>
+    <enableDROTaskSource>true</enableDROTaskSource>
 </DynamicFulfillmentOrchestratorSettings>

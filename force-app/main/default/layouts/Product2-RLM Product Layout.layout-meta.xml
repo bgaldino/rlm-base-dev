@@ -40,6 +40,10 @@
                 <behavior>Edit</behavior>
                 <field>BillingPolicyId</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>UnitOfMeasureId</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
@@ -73,6 +77,10 @@
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>UsageModelType</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>TransferRecordMode</field>
             </layoutItems>
         </layoutColumns>
         <style>TwoColumnsTopToBottom</style>
@@ -111,6 +119,10 @@
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>DecompositionScope</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>CustomDecompositionScope</field>
             </layoutItems>
         </layoutColumns>
         <layoutColumns>
@@ -256,20 +268,6 @@
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
-        <fields>Label</fields>
-        <fields>UsageResource</fields>
-        <fields>Quantity</fields>
-        <fields>UnitOfMeasureClass</fields>
-        <fields>UnitOfMeasure</fields>
-        <fields>ValidityPeriodTerm</fields>
-        <fields>ValidityPeriodUnit</fields>
-        <fields>Status</fields>
-        <fields>EffectiveStartDate</fields>
-        <fields>EffectiveEndDate</fields>
-        <relatedList>ProductUsageGrants</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>Name</fields>
         <fields>UsageResource</fields>
         <fields>ProductSellingModel</fields>
         <fields>EffectiveFrom</fields>
@@ -297,4 +295,10 @@
     <showInteractionLogPanel>false</showInteractionLogPanel>
     <showRunAssignmentRulesCheckbox>false</showRunAssignmentRulesCheckbox>
     <showSubmitAndAttachButton>false</showSubmitAndAttachButton>
+    <summaryLayout>
+        <masterLabel>00hWs000007XXB1</masterLabel>
+        <sizeX>4</sizeX>
+        <sizeY>0</sizeY>
+        <summaryLayoutStyle>Default</summaryLayoutStyle>
+    </summaryLayout>
 </Layout>

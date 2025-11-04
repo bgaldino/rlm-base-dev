@@ -8,8 +8,8 @@
     "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\""
   },
   "devDependencies": {
-    "@babel/core": "^7.27.4",
-    "prettier": "^3.5.3",
+    "@babel/core": "^7.28.4",
+    "prettier": "^3.6.2",
     "prettier-plugin-apex": "^2.2.6"
   }
 }

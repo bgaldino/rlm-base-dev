@@ -1,0 +1,6 @@
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,Type
+EACH,CAS01,EACH,Support Cases,Case,Active,Usage
+USD,CURRENCY,USD,,Currency,Active,Currency
+GB,DATAVOL,GB,,Data Volume,Active,Usage
+m,TIME,m,,Time,Active,Usage
+,Token_UoM_Class,TOKEN-UOM,Tokens UoM Class,Tokens UoM Class,Active,Token

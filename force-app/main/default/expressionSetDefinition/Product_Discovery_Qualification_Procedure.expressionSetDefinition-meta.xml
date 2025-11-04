@@ -5,14 +5,17 @@
     <interfaceSourceType>QualificationProcedure</interfaceSourceType>
     <label>Product Discovery Qualification Procedure</label>
     <processType>ProductQualification</processType>
+    <resourceInitializationType>Default</resourceInitializationType>
     <template>false</template>
     <versions>
         <fullName>Product_Discovery_Qualification_Procedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Creates qualification procedures that determine product eligibility for Product Discovery.</description>
         <expressionSetDefinition>Product_Discovery_Qualification_Procedure</expressionSetDefinition>
         <interfaceSourceType>QualificationProcedure</interfaceSourceType>
         <label>Product Discovery Qualification Procedure</label>
         <processType>ProductQualification</processType>
+        <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2024-03-01T03:38:00.000Z</startDate>
         <status>Draft</status>

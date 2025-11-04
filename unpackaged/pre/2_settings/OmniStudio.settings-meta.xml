@@ -5,4 +5,5 @@
     <enableOaForCore>true</enableOaForCore>
     <enableOmniStudioDrVersion>false</enableOmniStudioDrVersion>
     <enableOmniStudioMetadata>true</enableOmniStudioMetadata>
+    <enableStandardOmniStudioRuntime>true</enableStandardOmniStudioRuntime>
 </OmniStudioSettings>

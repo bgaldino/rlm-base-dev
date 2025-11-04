@@ -192,6 +192,16 @@
                 <identifier>RecordDisplayUrlField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.TransferRecordMode</fieldItem>
+                <identifier>RecordTransferRecordModeField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-7237c18c-0677-4591-a71c-3ee3ffd93f93</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -258,6 +268,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.DecompositionScope</fieldItem>
                 <identifier>RecordDecompositionScopeField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.CustomDecompositionScope</fieldItem>
+                <identifier>RecordCustomDecompositionScopeField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -410,6 +430,16 @@
                 <identifier>RecordExternalDataSourceIdField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RDraw__Rendering_Resources__c</fieldItem>
+                <identifier>RecordRDraw_Rendering_Resources_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-5be0d440-f9e3-4efb-ac83-942a29cafc91</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -432,6 +462,26 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.EndOfLifeDate</fieldItem>
                 <identifier>RecordEndOfLifeDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.X3D_Scene_Settings__c</fieldItem>
+                <identifier>RecordX3D_Scene_Settings_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RDraw__Resource_Path__c</fieldItem>
+                <identifier>RecordRDraw_Resource_Path_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-cf84a789-2607-448c-a72d-4aa63ae399e3</name>
@@ -908,6 +958,75 @@
                 <identifier>lst_dynamicRelatedList9</identifier>
             </componentInstance>
         </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>actionNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>New</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>adminFilters</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecordsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>Product2.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>ProductUsageResources</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListDisplayType</name>
+                    <value>ADVGRID</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListFieldAliases</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Name</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>UsageResource</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Status</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>EffectiveStartDate</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>EffectiveEndDate</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListLabel</name>
+                    <value>Product Usage Resources</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldAlias</name>
+                    <value>__DEFAULT__</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldOrder</name>
+                    <value>Default</value>
+                </componentInstanceProperties>
+                <componentName>lst:dynamicRelatedList</componentName>
+                <identifier>lst_dynamicRelatedList10</identifier>
+            </componentInstance>
+        </itemInstances>
         <name>Facet-934f6335-8130-4d3c-8ba3-3557dfe2fc97</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1245,32 +1364,6 @@
                 <identifier>lst_dynamicRelatedList7</identifier>
             </componentInstance>
         </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>parentFieldApiName</name>
-                    <value>Product2.Id</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListApiName</name>
-                    <value>ProductUsageGrants</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>relatedListComponentOverride</name>
-                    <value>ADVGRID</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>rowsToDisplay</name>
-                    <value>10</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>showActionBar</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentName>force:relatedListSingleContainer</componentName>
-                <identifier>force_relatedListSingleContainer</identifier>
-            </componentInstance>
-        </itemInstances>
         <name>Facet-1b09fc37-14f2-4f5c-a592-847057f7dffb</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1485,6 +1578,30 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>runtime_industries_cfg:productConstraintModelsWrapper</componentName>
+                <identifier>runtime_industries_cfg_productConstraintModelsWrapper</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-a9bff4db-55f8-4935-b88d-7a89c8ee9da5</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>selectedTabId</name>
+                    <value>Visualization</value>
+                </componentInstanceProperties>
+                <componentName>RDraw:SceneSetup</componentName>
+                <identifier>RDraw_SceneSetup</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-e2f7e1c5-01eb-4604-b0cc-f549934f4b2d</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
                 <componentInstanceProperties>
                     <name>active</name>
                     <value>true</value>
@@ -1563,6 +1680,34 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-a9bff4db-55f8-4935-b88d-7a89c8ee9da5</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Standard.Tab.constraints</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab6</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-e2f7e1c5-01eb-4604-b0cc-f549934f4b2d</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Visual Setup</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab7</identifier>
             </componentInstance>
         </itemInstances>
         <name>maintabs</name>

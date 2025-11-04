@@ -1,0 +1,27 @@
+$$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+PCG-QB-SRV-CPU;QB-BDL-R750,PCG-QB-SRV-CPU,,1,1,Processor,,QB-BDL-R750,1
+PCG-QB-SRV-HDD;QB-BDL-R750,PCG-QB-SRV-HDD,,1,1,Hard Drive,,QB-BDL-R750,3
+PCG-QB-SRV-NIC;QB-BDL-R750,PCG-QB-SRV-NIC,,1,1,Network Adapter,,QB-BDL-R750,4
+PCG-QB-SRV-RAM;QB-BDL-R750,PCG-QB-SRV-RAM,,1,1,Memory Capacity,,QB-BDL-R750,2
+PCG-QB-PS-ENGRESOURCES;QB-BDL-SRVC,PCG-QB-PS-ENGRESOURCES,,,,Engineering Resources,,QB-BDL-SRVC,1
+PCG-QB-PS-PM;QB-BDL-SRVC,PCG-QB-PS-PM,,,,Project Management,,QB-BDL-SRVC,2
+PCG-QB-PS-SA;QB-BDL-SRVC,PCG-QB-PS-SA,,,,Solution Architecture,,QB-BDL-SRVC,3
+PCG-QBSTARTER-MAINT;QB-BDL-STND,PCG-QBSTARTER-MAINT,,1,1,Maintenance,,QB-BDL-STND,20
+PCG-QBSTARTER-TRAINING;QB-BDL-STND,PCG-QBSTARTER-TRAINING,,1,1,Training,,QB-BDL-STND,10
+PCG-QB-MAINT;QB-COMPLETE,PCG-QB-MAINT,,,,Maintenance & Support,,QB-COMPLETE,40
+PCG-QB-SERVICES;QB-COMPLETE,PCG-QB-SERVICES,,,,Services,,QB-COMPLETE,30
+PCG-QB-SOFTWARE;QB-COMPLETE,PCG-QB-SOFTWARE,,,,Software,,QB-COMPLETE,10
+PCG-QB-TRAINING;QB-COMPLETE,PCG-QB-TRAINING,,,,Training,,QB-COMPLETE,20
+QB-PCG-USAGE;QB-COMPLETE,QB-PCG-USAGE,,,,Consumption,,QB-COMPLETE,15
+Computing;QB-QRack-750,Computing,,,,Computing,,QB-QRack-750,1
+Cooling;QB-QRack-750,Cooling,,2,1,Cooling,Computing;QB-QRack-750,QB-QRack-750,2
+GPUs;QB-QRack-750,GPUs,,,,GPUs,PCIe;QB-QRack-750,QB-QRack-750,1
+Hard Drives;QB-QRack-750,Hard Drives,,,,Hard Drives,Storage;QB-QRack-750,QB-QRack-750,1
+I/O;QB-QRack-750,I/O,,,,I/O,PCIe;QB-QRack-750,QB-QRack-750,2
+Memory;QB-QRack-750,Memory,,,,Memory,,QB-QRack-750,2
+Networking;QB-QRack-750,Networking,,,,Networking,PCIe;QB-QRack-750,QB-QRack-750,3
+PCIe;QB-QRack-750,PCIe,,,,PCIe,,QB-QRack-750,4
+Power Supply;QB-QRack-750,Power Supply,,,,Power Supply,,QB-QRack-750,5
+Processor;QB-QRack-750,Processor,,2,1,Processor,Computing;QB-QRack-750,QB-QRack-750,1
+Solid State Drives;QB-QRack-750,Solid State Drives,,4,0,Solid State Drives,Storage;QB-QRack-750,QB-QRack-750,2
+Storage;QB-QRack-750,Storage,,,,Storage,,QB-QRack-750,3

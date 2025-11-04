@@ -1,0 +1,38 @@
+{
+  "apiVersion": "65.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name, Type FROM GeneralLedgerAccount",
+          "operation": "Upsert",
+          "externalId": "AccountingCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CreditGeneralLedgerAccountId, CurrencyIsoCode, DebitGeneralLedgerAccountId, FilterCriteria, FilterLogic, LegalEntityId, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CreditGeneralLedgerAccountId, CurrencyIsoCode, DebitGeneralLedgerAccountId, GeneralLedgerAcctAsgntRuleId, JournalEntryRuleName, Percentage, TransactionAmountField FROM GeneralLedgerJrnlEntryRule",
+          "operation": "Upsert",
+          "externalId": "JournalEntryRuleName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BatchCriteriaId, Id, ColumnEnum, BillingBatchFilterCriteriaNumber, CriteriaFieldType, CriteriaSequence, CustomCriteriaFieldName, InvoiceRunMatchingValue, ObjectName, Operation, PaymentRunMatchingValue, StandardCriteriaField, Value FROM BillingBatchFilterCriteria",
+          "operation": "Upsert",
+          "externalId": "JournalEntryRuleName",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}
+
+

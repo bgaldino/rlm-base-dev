@@ -69,6 +69,21 @@
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
                         <contextAttrHydrationDetails>
+                            <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageResourceCategory__std/hydrationInfo-2</inheritedFrom>
+                            <objectName>UsageResource</objectName>
+                            <queryAttribute>Category</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageResourceCategory__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSummary</objectName>
+                        <queryAttribute>UsageResource</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UsageResourceCategory__std</contextAttribute>
+                    <contextInputAttributeName>UsageResourceCategory__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageResourceCategory__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
                             <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/UsageProduct/hydrationInfo-2</inheritedFrom>
                             <objectName>UsageResource</objectName>
                             <queryAttribute>UsageDefinitionProductId</queryAttribute>
@@ -95,6 +110,11 @@
                     <contextAttribute>AttributeRateCard</contextAttribute>
                     <contextInputAttributeName>AttributeRateCard</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/AttributeRateCard</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>CommitRate__std</contextAttribute>
+                    <contextInputAttributeName>CommitRate__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/CommitRate__std</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
@@ -252,6 +272,16 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/TierRateCardEntry</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
+                    <contextAttribute>BindingObjectTierRateCardEntry__std</contextAttribute>
+                    <contextInputAttributeName>BindingObjectTierRateCardEntry__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/BindingObjectTierRateCardEntry__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>BindingObjectBaseRateCardEntry__std</contextAttribute>
+                    <contextInputAttributeName>BindingObjectBaseRateCardEntry__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/BindingObjectBaseRateCardEntry__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
                     <contextAttribute>AttributeRateCardEntry</contextAttribute>
                     <contextInputAttributeName>AttributeRateCardEntry</contextInputAttributeName>
                     <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummary/AttributeRateCardEntry</inheritedFrom>
@@ -305,6 +335,96 @@
                 <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryAttribute</inheritedFrom>
                 <object>usageRatableSummaryAttribute</object>
             </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummaryCommitmentAssetRateId__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>Id</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UsageRatableSummaryCommitmentAssetRateId__std</contextAttribute>
+                    <contextInputAttributeName>UsageRatableSummaryCommitmentAssetRateId__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummaryCommitmentAssetRateId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummary__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>UsageRatableSummaryId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UsageRatableSummary__std</contextAttribute>
+                    <contextInputAttributeName>UsageRatableSummary__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummary__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/CommitmentAsset__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>CommitmentAssetId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>CommitmentAsset__std</contextAttribute>
+                    <contextInputAttributeName>CommitmentAsset__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/CommitmentAsset__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/NetUnitRate__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>NetUnitRate</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>NetUnitRate__std</contextAttribute>
+                    <contextInputAttributeName>NetUnitRate__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/NetUnitRate__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/ErrorCode__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>ErrorCode</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ErrorCode__std</contextAttribute>
+                    <contextInputAttributeName>ErrorCode__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/ErrorCode__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/ErrorDescription__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>ErrorDescription</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>ErrorDescription__std</contextAttribute>
+                    <contextInputAttributeName>ErrorDescription__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/ErrorDescription__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/URSCARRatingDecisionDateTime__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>RatingDecisionDateTime</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>URSCARRatingDecisionDateTime__std</contextAttribute>
+                    <contextInputAttributeName>URSCARRatingDecisionDateTime__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/URSCARRatingDecisionDateTime__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <contextAttrHydrationDetails>
+                            <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageResource__std/hydrationInfo-2</inheritedFrom>
+                            <objectName>UsageRatableSummary</objectName>
+                            <queryAttribute>UsageResourceId</queryAttribute>
+                        </contextAttrHydrationDetails>
+                        <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageResource__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>UsageRatableSumCmtAssetRt</objectName>
+                        <queryAttribute>UsageRatableSummary</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UsageResource__std</contextAttribute>
+                    <contextInputAttributeName>UsageResource__std</contextInputAttributeName>
+                    <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std/UsageResource__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>UsageRatableSummaryCommitmentAssetRate__std</contextNode>
+                <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping/UsageRatableSummaryCommitmentAssetRate__std</inheritedFrom>
+                <object>UsageRatableSumCmtAssetRt</object>
+            </contextNodeMappings>
             <default>true</default>
             <description>Mapping between Usage Ratable Summary and Rating Context</description>
             <inheritedFrom>RateManagementContext__stdctx/version/DefaultUsageMapping</inheritedFrom>
@@ -316,6 +436,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TotalAmount/TotalAmount</inheritedFrom>
                     <title>TotalAmount</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TotalAmount</inheritedFrom>
@@ -329,6 +450,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/NetUnitRate/NetUnitRate</inheritedFrom>
                     <title>NetUnitRate</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/NetUnitRate</inheritedFrom>
@@ -342,6 +464,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/Status/Status</inheritedFrom>
                     <title>Status</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>picklist</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/Status</inheritedFrom>
@@ -355,8 +478,9 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/NetUnitRateUom/NetUnitRateUom</inheritedFrom>
                     <title>NetUnitRateUom</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
-                <fieldType>input</fieldType>
+                <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/NetUnitRateUom</inheritedFrom>
                 <key>false</key>
                 <title>NetUnitRateUom</title>
@@ -368,6 +492,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingDecisionDateTime/RatingDecisionDateTime</inheritedFrom>
                     <title>RatingDecisionDateTime</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>datetime</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingDecisionDateTime</inheritedFrom>
@@ -381,6 +506,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TierQuantity/TierQuantity</inheritedFrom>
                     <title>TierQuantity</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TierQuantity</inheritedFrom>
@@ -394,6 +520,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/OverageQuantity/OverageQuantity</inheritedFrom>
                     <title>OverageQuantity</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/OverageQuantity</inheritedFrom>
@@ -407,6 +534,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/AttributeRateCard/AttributeRateCard</inheritedFrom>
                     <title>AttributeRateCard</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/AttributeRateCard</inheritedFrom>
@@ -420,6 +548,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TierRateCard/TierRateCard</inheritedFrom>
                     <title>TierRateCard</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TierRateCard</inheritedFrom>
@@ -433,6 +562,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BaseRateCard/BaseRateCard</inheritedFrom>
                     <title>BaseRateCard</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BaseRateCard</inheritedFrom>
@@ -446,6 +576,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageProduct/UsageProduct</inheritedFrom>
                     <title>UsageProduct</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageProduct</inheritedFrom>
@@ -459,6 +590,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageResource/UsageResource</inheritedFrom>
                     <title>UsageResource</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageResource</inheritedFrom>
@@ -472,6 +604,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/SellableProduct/SellableProduct</inheritedFrom>
                     <title>SellableProduct</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/SellableProduct</inheritedFrom>
@@ -485,6 +618,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryId/UsageRatableSummaryId</inheritedFrom>
                     <title>UsageRatableSummaryId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryId</inheritedFrom>
@@ -498,6 +632,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingRequest/RatingRequest</inheritedFrom>
                     <title>RatingRequest</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingRequest</inheritedFrom>
@@ -511,6 +646,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/ProductSellingModel/ProductSellingModel</inheritedFrom>
                     <title>ProductSellingModel</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/ProductSellingModel</inheritedFrom>
@@ -524,6 +660,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/ErrorCode/ErrorCode</inheritedFrom>
                     <title>ErrorCode</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>picklist</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/ErrorCode</inheritedFrom>
@@ -537,6 +674,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/ErrorDescription/ErrorDescription</inheritedFrom>
                     <title>ErrorDescription</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/ErrorDescription</inheritedFrom>
@@ -550,6 +688,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingExecutionIdentifier/RatingExecutionIdentifier</inheritedFrom>
                     <title>RatingExecutionIdentifier</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingExecutionIdentifier</inheritedFrom>
@@ -563,6 +702,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingWaterfall/RatingWaterfall</inheritedFrom>
                     <title>RatingWaterfall</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/RatingWaterfall</inheritedFrom>
@@ -576,6 +716,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/Asset/Asset</inheritedFrom>
                     <title>Asset</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/Asset</inheritedFrom>
@@ -589,6 +730,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObject__std/BindingObject__std</inheritedFrom>
                     <title>BindingObject__std</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObject__std</inheritedFrom>
@@ -602,6 +744,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BaseRateCardEntry/BaseRateCardEntry</inheritedFrom>
                     <title>BaseRateCardEntry</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BaseRateCardEntry</inheritedFrom>
@@ -615,6 +758,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TierRateCardEntry/TierRateCardEntry</inheritedFrom>
                     <title>TierRateCardEntry</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/TierRateCardEntry</inheritedFrom>
@@ -625,9 +769,38 @@
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObjectTierRateCardEntry__std/BindingObjectTierRateCardEntry__std</inheritedFrom>
+                    <title>BindingObjectTierRateCardEntry__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObjectTierRateCardEntry__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectTierRateCardEntry__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObjectBaseRateCardEntry__std/BindingObjectBaseRateCardEntry__std</inheritedFrom>
+                    <title>BindingObjectBaseRateCardEntry__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/BindingObjectBaseRateCardEntry__std</inheritedFrom>
+                <key>false</key>
+                <title>BindingObjectBaseRateCardEntry__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/IsTierNegotiated/IsTierNegotiated</inheritedFrom>
                     <title>IsTierNegotiated</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>boolean</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/IsTierNegotiated</inheritedFrom>
@@ -638,9 +811,38 @@
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageResourceCategory__std/UsageResourceCategory__std</inheritedFrom>
+                    <title>UsageResourceCategory__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>picklist</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageResourceCategory__std</inheritedFrom>
+                <key>false</key>
+                <title>UsageResourceCategory__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/CommitRate__std/CommitRate__std</inheritedFrom>
+                    <title>CommitRate__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/CommitRate__std</inheritedFrom>
+                <key>false</key>
+                <title>CommitRate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/AttributeRateCardEntry/AttributeRateCardEntry</inheritedFrom>
                     <title>AttributeRateCardEntry</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/AttributeRateCardEntry</inheritedFrom>
@@ -654,6 +856,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/PriceBook/PriceBook</inheritedFrom>
                     <title>PriceBook</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/PriceBook</inheritedFrom>
@@ -667,6 +870,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageSummaryAttributeData/UsageSummaryAttributeData</inheritedFrom>
                     <title>UsageSummaryAttributeData</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageSummaryAttributeData</inheritedFrom>
@@ -679,6 +883,8 @@
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummary</inheritedFrom>
                 <title>UsageRatableSummary</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>UsageRatableSummary</displayName>
             <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary</inheritedFrom>
             <title>UsageRatableSummary</title>
             <transposable>false</transposable>
@@ -689,6 +895,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/IsRateImpacting/IsRateImpacting</inheritedFrom>
                     <title>IsRateImpacting</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>boolean</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/IsRateImpacting</inheritedFrom>
@@ -702,6 +909,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/AttributeValue/AttributeValue</inheritedFrom>
                     <title>AttributeValue</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/AttributeValue</inheritedFrom>
@@ -715,6 +923,7 @@
                     <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/AttributeKey/AttributeKey</inheritedFrom>
                     <title>AttributeKey</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/AttributeKey</inheritedFrom>
@@ -724,6 +933,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>reference</dataType>
                 <domainSet>UsageRatableSummary</domainSet>
                 <fieldType>input</fieldType>
@@ -737,8 +947,144 @@
                 <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute/UsageRatableSummaryAttribute</inheritedFrom>
                 <title>UsageRatableSummaryAttribute</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>UsageRatableSummaryAttribute</displayName>
             <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryAttribute</inheritedFrom>
             <title>UsageRatableSummaryAttribute</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummary__std/URSCARUsageRatableSummary__std</inheritedFrom>
+                    <title>URSCARUsageRatableSummary__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummary__std</inheritedFrom>
+                <key>false</key>
+                <title>UsageRatableSummary__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/CommitmentAsset__std/URSCARCommitmentAsset__std</inheritedFrom>
+                    <title>URSCARCommitmentAsset__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/CommitmentAsset__std</inheritedFrom>
+                <key>false</key>
+                <title>CommitmentAsset__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/NetUnitRate__std/URSCARNetUnitRate__std</inheritedFrom>
+                    <title>URSCARNetUnitRate__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/NetUnitRate__std</inheritedFrom>
+                <key>false</key>
+                <title>NetUnitRate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/ErrorCode__std/URSCARErrorCode__std</inheritedFrom>
+                    <title>URSCARErrorCode__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/ErrorCode__std</inheritedFrom>
+                <key>false</key>
+                <title>ErrorCode__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/ErrorDescription__std/URSCARErrorDescription__std</inheritedFrom>
+                    <title>URSCARErrorDescription__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/ErrorDescription__std</inheritedFrom>
+                <key>false</key>
+                <title>ErrorDescription__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageResource__std/URSCARUsageResource__std</inheritedFrom>
+                    <title>URSCARUsageResource__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageResource__std</inheritedFrom>
+                <key>false</key>
+                <title>UsageResource__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummaryCommitmentAssetRateId__std/URSCARId__std</inheritedFrom>
+                    <title>URSCARId__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummaryCommitmentAssetRateId__std</inheritedFrom>
+                <key>false</key>
+                <title>UsageRatableSummaryCommitmentAssetRateId__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/URSCARRatingDecisionDateTime__std/URSCARRatingDecisionDateTime__std</inheritedFrom>
+                    <title>URSCARRatingDecisionDateTime__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/URSCARRatingDecisionDateTime__std</inheritedFrom>
+                <key>false</key>
+                <title>URSCARRatingDecisionDateTime__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>reference</dataType>
+                <domainSet>UsageRatableSummary</domainSet>
+                <fieldType>input</fieldType>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/ParentReference</inheritedFrom>
+                <key>false</key>
+                <title>ParentReference</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std/UsageRatableSummaryCommitmentAssetRate__std</inheritedFrom>
+                <title>UsageRatableSummaryCommitmentAssetRate__std</title>
+            </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>UsageRatableSummaryCommitmentAssetRate__std</displayName>
+            <inheritedFrom>RateManagementContext__stdctx/version/UsageRatableSummary/UsageRatableSummaryCommitmentAssetRate__std</inheritedFrom>
+            <title>UsageRatableSummaryCommitmentAssetRate__std</title>
             <transposable>false</transposable>
         </contextNodes>
         <isActive>true</isActive>
@@ -749,7 +1095,7 @@
     <description>Extension of Standard Rate Management Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>RateManagementContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>2.09</inheritedFromVersion>
+    <inheritedFromVersion>2.21</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_RateManagementContext</masterLabel>
     <title>RLM_RateManagementContext</title>

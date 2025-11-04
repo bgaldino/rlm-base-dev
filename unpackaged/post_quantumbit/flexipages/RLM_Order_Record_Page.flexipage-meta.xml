@@ -102,93 +102,15 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>displayFields</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>OrderItem.Product2.Name[Product2]</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.Quantity</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.BillingFrequency2</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.ServiceDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.EndDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.ListPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.Discount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.DiscountAmount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.NetUnitPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.TotalPrice</value>
-                        </valueListItems>
-                    </valueList>
+                    <name>enableQuickAdd</name>
+                    <value>true</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>enableSidepanel</name>
                     <value>true</value>
                 </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>sidepanelDetailFields</name>
-                    <valueList>
-                        <valueListItems>
-                            <value>OrderItem.Product2.Name[Product2]</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.Quantity</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.BillingFrequency2</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.ServiceDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.EndDate</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.ListPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.UnitPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.Discount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.DiscountAmount</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.NetUnitPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.NetTotalPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.TotalPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.QuoteLineItem.LineNumber[QuoteLineItem]</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>OrderItem.ProductSellingModel.Name[ProductSellingModel]</value>
-                        </valueListItems>
-                    </valueList>
-                </componentInstanceProperties>
-                <componentName>runtime_revenue_foundation:transactionLineTable</componentName>
-                <identifier>runtime_revenue_foundation_transactionLineTable</identifier>
+                <componentName>runtime_rca:salesTxnLineTable</componentName>
+                <identifier>runtime_rca_salesTxnLineTable</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>

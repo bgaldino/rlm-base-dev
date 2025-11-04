@@ -8,24 +8,19 @@
     <template>false</template>
     <versions>
         <fullName>Salesforce_Pricing_Discovery_Procedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Salesforce MultiCurrency Pricing Discovery Procedure</description>
         <expressionSetDefinition>Salesforce_Pricing_Discovery_Procedure</expressionSetDefinition>
         <interfaceSourceType>DiscoveryProcedure</interfaceSourceType>
         <label>Salesforce MultiCurrency Pricing Discovery Procedure</label>
         <processType>PricingDiscovery</processType>
+        <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2024-04-03T05:29:53.000Z</startDate>
         <status>Draft</status>
         <steps>
             <actionType>AssetDiscovery</actionType>
             <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>StartDate</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>EffectiveFrom</value>
-                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>AccountId</name>
@@ -49,10 +44,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>CurrencyIsoCode</name>
+                    <name>StartDate</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>CurrencyIsoCode</value>
+                    <value>EffectiveFrom</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -60,6 +55,13 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>EffectiveFrom</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>CurrencyIsoCode</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -103,6 +105,13 @@
                     <type>Parameter</type>
                     <value>ContributorListPrice</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDSB000000CbF72AK</value>
+                </parameters>
             </customElement>
             <description>Asset Discovery</description>
             <label>Asset Discovery</label>
@@ -117,13 +126,6 @@
         <steps>
             <actionType>RuleFetch</actionType>
             <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>IsDerived</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>DerivedPricingAttribute</value>
-                </parameters>
                 <parameters>
                     <input>true</input>
                     <name>PricebookEntryId</name>
@@ -154,10 +156,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LineItemId</name>
+                    <name>EffectiveTo</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>LineItem</value>
+                    <value>EffectiveFrom</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -168,10 +170,17 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>EffectiveTo</name>
+                    <name>LineItemId</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>EffectiveFrom</value>
+                    <value>LineItem</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsDerived</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>DerivedPricingAttribute</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -235,6 +244,13 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ContributorPriceDetail</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDSB000000Cb2D2AS</value>
                 </parameters>
             </customElement>
             <description>Fetch Pricing Rules</description>

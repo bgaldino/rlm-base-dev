@@ -1,4 +1,5 @@
-$$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name$CurrencyIsoCode,CurrencyIsoCode,FulfillmentStepDefinitionGroup.$$Name$CurrencyIsoCode,FulfillmentWorkspace.$$Name$CurrencyIsoCode,ShowOrder
-Software Bundle Fulfillment;Order Processing;USD,USD,Order Processing;USD,Software Bundle Fulfillment;USD,1
-Software Bundle Fulfillment;Tenant Provisioning + Activation;USD,USD,Tenant Provisioning + Activation;USD,Software Bundle Fulfillment;USD,2
-Software Bundle Fulfillment;Finance;USD,USD,Finance;USD,Software Bundle Fulfillment;USD,4
+$$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name,FulfillmentStepDefinitionGroup.Name,FulfillmentWorkspace.Name,Name,ShowOrder
+QB Complete Solution Bundle;Feature/License Provisioning + Activation,Feature/License Provisioning + Activation,QB Complete Solution Bundle,FWI-000000002,4
+QB Complete Solution Bundle;Finance,Finance,QB Complete Solution Bundle,FWI-000000003,5
+QB Complete Solution Bundle;Services,Services,QB Complete Solution Bundle,FWI-000000004,2
+QB Complete Solution Bundle;Platform,Platform,QB Complete Solution Bundle,FWI-000000005,3

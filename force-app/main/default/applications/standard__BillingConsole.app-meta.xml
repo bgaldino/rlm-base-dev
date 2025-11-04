@@ -2,12 +2,57 @@
 <CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionOverrides>
         <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Billing_Account_Record_Page</content>
+        <comment>Action override updated by Lightning App Builder during activation.</comment>
+        <content>RC_Billing_Account_Page</content>
         <formFactor>Large</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
         <pageOrSobjectType>Account</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>RC_Billing_Schedule_Group</content>
+        <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>BillingScheduleGroup</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>RC_Collection_Plan_Record_Page</content>
+        <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>CollectionPlan</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>RC_Billing_Schedule</content>
+        <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>BillingSchedule</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override updated by Lightning App Builder during activation.</comment>
+        <content>RC_Usage_Entitlement_Bucket</content>
+        <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>UsageEntitlementBucket</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>RCB_General_Ledger_Account_Assignment_Rule_Record_Page</content>
+        <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>GeneralLedgerAcctAsgntRule</pageOrSobjectType>
     </actionOverrides>
     <formFactors>Large</formFactors>
     <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
@@ -17,23 +62,16 @@
     <label>Billing</label>
     <navType>Console</navType>
     <tabs>standard-home</tabs>
-    <tabs>standard-BillingCentralDashboard</tabs>
-    <tabs>standard-BillingBatchScheduler</tabs>
     <tabs>standard-Account</tabs>
+    <tabs>standard-BillingAccount</tabs>
     <tabs>standard-BillingScheduleGroup</tabs>
-    <tabs>standard-BillingSchedule</tabs>
+    <tabs>standard-Asset</tabs>
     <tabs>standard-Invoice</tabs>
+    <tabs>standard-PaymentsWorkspace</tabs>
     <tabs>standard-CreditMemo</tabs>
-    <tabs>standard-Payment</tabs>
-    <tabs>standard-Refund</tabs>
-    <tabs>standard-InvoiceBatchRun</tabs>
-    <tabs>standard-BillingMilestonePlan</tabs>
-    <tabs>standard-TransactionJournal</tabs>
-    <tabs>standard-BillingPolicy</tabs>
-    <tabs>standard-TaxPolicy</tabs>
-    <tabs>standard-LegalEntity</tabs>
-    <tabs>standard-AccountingPeriod</tabs>
-    <tabs>standard-SavedPaymentMethod</tabs>
+    <tabs>standard-DebitMemo</tabs>
+    <tabs>standard-BillingBatchScheduler</tabs>
+    <tabs>standard-BillingCentralDashboard</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>BillingConsole_UtilityBar</utilityBar>
     <workspaceConfig>
@@ -41,7 +79,10 @@
             <tab>standard-Account</tab>
         </mappings>
         <mappings>
-            <tab>standard-AccountingPeriod</tab>
+            <tab>standard-Asset</tab>
+        </mappings>
+        <mappings>
+            <tab>standard-BillingAccount</tab>
         </mappings>
         <mappings>
             <tab>standard-BillingBatchScheduler</tab>
@@ -50,43 +91,19 @@
             <tab>standard-BillingCentralDashboard</tab>
         </mappings>
         <mappings>
-            <tab>standard-BillingMilestonePlan</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-BillingPolicy</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-BillingSchedule</tab>
-        </mappings>
-        <mappings>
             <tab>standard-BillingScheduleGroup</tab>
         </mappings>
         <mappings>
             <tab>standard-CreditMemo</tab>
         </mappings>
         <mappings>
+            <tab>standard-DebitMemo</tab>
+        </mappings>
+        <mappings>
             <tab>standard-Invoice</tab>
         </mappings>
         <mappings>
-            <tab>standard-InvoiceBatchRun</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-LegalEntity</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-Payment</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-Refund</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-SavedPaymentMethod</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-TaxPolicy</tab>
-        </mappings>
-        <mappings>
-            <tab>standard-TransactionJournal</tab>
+            <tab>standard-PaymentsWorkspace</tab>
         </mappings>
         <mappings>
             <tab>standard-home</tab>

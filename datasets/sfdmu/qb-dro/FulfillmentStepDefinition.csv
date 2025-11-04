@@ -1,7 +1,10 @@
-$$Name$StepDefinitionGroup.Name$CurrencyIsoCode,AssignedTo.Name,CurrencyIsoCode,ExecuteOnRule.Name,FlowDefinitionName,IntegrationDefinitionName.DeveloperName,Name,OmniscriptName,ResumeOnRule.Name,RunAsUser.Name,Scope,StepDefinitionGroup.$$Name$CurrencyIsoCode,StepType,UsageType
-Convert Order to Asset;Tenant Provisioning + Activation;USD,,USD,,RLM_Assetize_Order_DRO_Fulfillment,,Convert Order to Asset,,,Admin User,Plan,Tenant Provisioning + Activation;USD,Milestone,
-Validate Order Info;Order Processing;USD,Admin User,USD,,,,Validate Order Info,,,Admin User,Plan,Order Processing;USD,ManualTask,
-Stage New Tenant for Provisioning;Tenant Provisioning + Activation;USD,,USD,,,RLM_DFOTenantProvisioningCallout,Stage New Tenant for Provisioning,,,Admin User,Plan,Tenant Provisioning + Activation;USD,Callout,
-Initiate Billing;Finance;USD,Admin User,USD,,,,Initiate Billing,,,Admin User,Plan,Finance;USD,Milestone,
-Post Invoice;Finance;USD,Admin User,USD,,,,Post Invoice,,,Admin User,Plan,Finance;USD,ManualTask,
-Receive Payment;Finance;USD,Admin User,USD,,,,Receive Payment,,,Admin User,Plan,Finance;USD,ManualTask,
+$$Name$StepDefinitionGroup.Name,AmendGroup.Name,AssignedTo.Name,CancelledGroup.Name,CustomBaseExecutionDate,CustomFulfillmentScope,DelayOf,DelayUnit,ExecuteOn,FlowDefinitionName,ForcePlanFreezeDuringExecution,IntegrationDefinitionName.DeveloperName,IsSkipBranch,Name,OmniscriptName,PointOfNoReturn,ResumeOnRule.Name,Scope,StepDefinitionGroup.Name,StepType,TaskAllocationType,UsageType
+Convert Order to Asset;Order Processing,,,,,,,,,RLM_Assetize_Order_DRO_Fulfillment,Never,,false,Convert Order to Asset,,,,Plan,Order Processing,Milestone,,
+Stage New Tenant for Provisioning;Platform,,,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning,,,,Plan,Platform,Callout,,
+Initiate Billing;Finance,,,,,,,,,,Never,,false,Initiate Billing,,,,Plan,Finance,Milestone,,
+Create Project;Services,,Brian Galdino,,,,,,,,Never,,false,Create Project,,,,LineItem,Services,Milestone,,
+Assign Resources;Services,,Brian Galdino,,,,,,,,Never,,false,Assign Resources,,,,LineItem,Services,ManualTask,,
+Start Project;Services,,,,,,,,,,Never,,false,Start Project,,,,Plan,Services,Milestone,,
+Review Order;Order Processing,,Brian Galdino,,,,,,,,Never,,false,Review Order,,,,Plan,Order Processing,ManualTask,,
+Receive Key + Assign to Asset;Platform,,Brian Galdino,,,,,,,,Never,,false,Receive Key + Assign to Asset,,,,Plan,Platform,Milestone,,
+Provision Licensing/Features;Feature/License Provisioning + Activation,,Brian Galdino,,,,,,SourceLineStartDate,,Never,RLM_DFOTenantProvisioningCallout,false,Provision Licensing/Features,,,,LineItem,Feature/License Provisioning + Activation,ManualTask,,

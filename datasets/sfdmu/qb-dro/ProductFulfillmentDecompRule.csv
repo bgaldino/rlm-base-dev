@@ -1,31 +1,26 @@
-$$Name$SourceProduct.StockKeepingUnit$DestinationProduct.StockKeepingUnit$CurrencyIsoCode,CurrencyIsoCode,DestinationProduct.$$Name$StockKeepingUnit,Name,Priority,SourceProduct.$$Name$StockKeepingUnit
-AEH API Access Requests - Provisioning and Activation Service;QB-API-REQT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,AEH API Access Requests - Provisioning and Activation Service,,API Access Requests (AEH);QB-API-REQT
-API Access Requests to Finance;QB-API-REQT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,API Access Requests to Finance,,API Access Requests (AEH);QB-API-REQT
-QB API Management Solution to Finance;QB-API-MGMT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,QB API Management Solution to Finance,,QB API Management Solution;QB-API-MGMT
-Additional Data Throughput (TB) to Finance;QB-DAT-THPT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional Data Throughput (TB) to Finance,,Additional Data Throughput;QB-DAT-THPT
-Training to Finance;QB-TRN-ESSNTLS;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Training to Finance,,QuantumBit Essentials Training;QB-TRN-ESSNTLS
-Services Rate to Finance;QB-SRV-OG-PSH;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Services Rate to Finance,,Professional Services Daily Rate;QB-SRV-OG-PSH
-Additional API to Finance;QB-API;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional API to Finance,,Additional API;QB-API
-Training to Finance;QB-TRN-FUND;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Training to Finance,,QuantumBit Fundamentals Training;QB-TRN-FUND
-Essentials Train to Order Processing;QB-TRN-ESSNTLS;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Essentials Train to Order Processing,,QuantumBit Essentials Training;QB-TRN-ESSNTLS
-Scope of Work to Finance;QB-SRV-SOW;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Scope of Work to Finance,,Professional Services Scope of Work;QB-SRV-SOW
-Maintenance to Finance;QB-SUPP-2000;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Maintenance to Finance,,Software Maintenance;QB-SUPP-2000
-Additional Message to Finance;QB-MSG-STRT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional Message to Finance,,Additional Messages - QB Starter;QB-MSG-STRT
-Additional Flow to Finance;QB-FLO-STRT;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional Flow to Finance,,Additional Flows - QB Starter;QB-FLO-STRT
-Service Project to Finance;QB-BDL-SRVC;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Service Project to Finance,,QuantumBit Services Project;QB-BDL-SRVC
-Additional to Finance;QB-AUT-CRED;QB-AEH-BILL;USD,USD,Finance Service;QB-AEH-BILL,Additional to Finance,,Additional Automation QB Credits;QB-AUT-CRED
-QB API Management Solution to Order Process;QB-API-MGMT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,QB API Management Solution to Order Process,,QB API Management Solution;QB-API-MGMT
-QB API Management Solution to P&A;QB-API-MGMT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,QB API Management Solution to P&A,,QB API Management Solution;QB-API-MGMT
-Additional Data Throughput (TB) to Order Processing;QB-DAT-THPT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional Data Throughput (TB) to Order Processing,,Additional Data Throughput;QB-DAT-THPT
-Additional Data Throughput (TB) to P&A;QB-DAT-THPT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional Data Throughput (TB) to P&A,,Additional Data Throughput;QB-DAT-THPT
-Daily Rate to Order Processing;QB-SRV-OG-PSH;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Daily Rate to Order Processing,,Professional Services Daily Rate;QB-SRV-OG-PSH
-Additional API to Order Processing;QB-API;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional API to Order Processing,,Additional API;QB-API
-Additional API to P&A;QB-API;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional API to P&A,,Additional API;QB-API
-Training to Order Processing;QB-TRN-FUND;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Training to Order Processing,,QuantumBit Fundamentals Training;QB-TRN-FUND
-Scope of Work to Order Processing;QB-SRV-SOW;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Scope of Work to Order Processing,,Professional Services Scope of Work;QB-SRV-SOW
-Additional Message to Order Processing;QB-MSG-STRT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional Message to Order Processing,,Additional Messages - QB Starter;QB-MSG-STRT
-Additional Message to P&A;QB-MSG-STRT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional Message to P&A,,Additional Messages - QB Starter;QB-MSG-STRT
-Maintenance to Order Processing;QB-SUPP-2000;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Maintenance to Order Processing,,Software Maintenance;QB-SUPP-2000
-Additional Flow to Order Processing;QB-FLO-STRT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,Additional Flow to Order Processing,,Additional Flows - QB Starter;QB-FLO-STRT
-Additional Flow to P&A;QB-FLO-STRT;QB-AEH-CPU;USD,USD,Provisioning and Activation Service;QB-AEH-CPU,Additional Flow to P&A,,Additional Flows - QB Starter;QB-FLO-STRT
-AEH API Access Requests - Order Processing;QB-API-REQT;QB-AEH-OR;USD,USD,Order Processing;QB-AEH-OR,AEH API Access Requests - Order Processing,,API Access Requests (AEH);QB-API-REQT
+$$Name$SourceProduct.StockKeepingUnit$DestinationProduct.StockKeepingUnit,DestinationProduct.StockKeepingUnit,Name,Priority,SourceClassIdentifier,SourceIdentifier,SourceProduct.StockKeepingUnit,SourceProductClassification.Name
+Additional API to Provisioning and Activation Service;QB-API;QB-DRO-AAPI,QB-DRO-AAPI,Additional API to Provisioning and Activation Service,,,01tWt00000943i5IAA,QB-API,
+Additional API to Finance;QB-API;QB-DRO-BILL,QB-DRO-BILL,Additional API to Finance,,,01tWt00000943i5IAA,QB-API,
+QB API Management Platform to API Platform Provisioning;QB-API-MGMT;QB-DRO-APIPLAT,QB-DRO-APIPLAT,QB API Management Platform to API Platform Provisioning,,,01tWt00000943j2IAA,QB-API-MGMT,
+QB API Management Solution to Finance;QB-API-MGMT;QB-DRO-BILL,QB-DRO-BILL,QB API Management Solution to Finance,,,01tWt00000943j2IAA,QB-API-MGMT,
+QB API Management License to  Provisioning;QB-API-MGMT;QB-DRO-PERMS,QB-DRO-PERMS,QB API Management License to  Provisioning,,,01tWt00000943j2IAA,QB-API-MGMT,
+AEH API Access Requests - Provisioning and Activation Service;QB-API-REQT;QB-DRO-AEH,QB-DRO-AEH,AEH API Access Requests - Provisioning and Activation Service,,,01tWt00000943iAIAQ,QB-API-REQT,
+API Access Requests to Finance;QB-API-REQT;QB-DRO-BILL,QB-DRO-BILL,API Access Requests to Finance,,,01tWt00000943iAIAQ,QB-API-REQT,
+Additional Automation QB Credits - Provisioning and Activation Service;QB-AUT-CRED;QB-DRO-AAQBC,QB-DRO-AAQBC,Additional Automation QB Credits - Provisioning and Activation Service,,,01tWt00000943iBIAQ,QB-AUT-CRED,
+Additional Credits to Finance;QB-AUT-CRED;QB-DRO-BILL,QB-DRO-BILL,Additional Credits to Finance,,,01tWt00000943iBIAQ,QB-AUT-CRED,
+Service Project to Finance;QB-BDL-SRVC;QB-DRO-BILL,QB-DRO-BILL,Service Project to Finance,,,01tWt00000943iFIAQ,QB-BDL-SRVC,
+Service Project to Project Service;QB-BDL-SRVC;QB-DRO-PROJ,QB-DRO-PROJ,Service Project to Project Service,,,01tWt00000943iFIAQ,QB-BDL-SRVC,
+Additional Data Throughput (TB) to Finance;QB-DAT-THPT;QB-DRO-BILL,QB-DRO-BILL,Additional Data Throughput (TB) to Finance,,,01tWt00000943j7IAA,QB-DAT-THPT,
+QB Database to Finance;QB-DB;QB-DRO-BILL,QB-DRO-BILL,QB Database to Finance,,,01tWt00000943iYIAQ,QB-DB,
+QB Database to Provisioning and Activation Service;QB-DB;QB-DRO-QBD,QB-DRO-QBD,QB Database to Provisioning and Activation Service,,,01tWt00000943iYIAQ,QB-DB,
+Additional Flow to Provisioning and Activation Service;QB-FLO-STRT;QB-DRO-AACR,QB-DRO-AACR,Additional Flow to Provisioning and Activation Service,,,01tWt00000943j3IAA,QB-FLO-STRT,
+Additional Flow to Finance;QB-FLO-STRT;QB-DRO-BILL,QB-DRO-BILL,Additional Flow to Finance,,,01tWt00000943j3IAA,QB-FLO-STRT,
+Additional Message to Provisioning and Activation Service;QB-MSG-STRT;QB-DRO-AM,QB-DRO-AM,Additional Message to Provisioning and Activation Service,,,01tWt00000943j4IAA,QB-MSG-STRT,
+Additional Message to Finance;QB-MSG-STRT;QB-DRO-BILL,QB-DRO-BILL,Additional Message to Finance,,,01tWt00000943j4IAA,QB-MSG-STRT,
+Services Rate to Finance;QB-SRV-OG-PSH;QB-DRO-BILL,QB-DRO-BILL,Services Rate to Finance,,,01tWt00000943imIAA,QB-SRV-OG-PSH,
+Services Rate to Project Service;QB-SRV-OG-PSH;QB-DRO-PROJ,QB-DRO-PROJ,Services Rate to Project Service,,,01tWt00000943imIAA,QB-SRV-OG-PSH,
+Scope of Work to Finance;QB-SRV-SOW;QB-DRO-BILL,QB-DRO-BILL,Scope of Work to Finance,,,01tWt00000943inIAA,QB-SRV-SOW,
+Scope of Work to Project Service;QB-SRV-SOW;QB-DRO-PROJ,QB-DRO-PROJ,Scope of Work to Project Service,,,01tWt00000943inIAA,QB-SRV-SOW,
+Maintenance to Finance;QB-SUPP-2000;QB-DRO-BILL,QB-DRO-BILL,Maintenance to Finance,,,01tWt00000943iqIAA,QB-SUPP-2000,
+Training to Finance;QB-TRN-ESSNTLS;QB-DRO-BILL,QB-DRO-BILL,Training to Finance,,,01tWt00000943irIAA,QB-TRN-ESSNTLS,
+Training to Finance;QB-TRN-FUND;QB-DRO-BILL,QB-DRO-BILL,Training to Finance,,,01tWt00000943isIAA,QB-TRN-FUND,

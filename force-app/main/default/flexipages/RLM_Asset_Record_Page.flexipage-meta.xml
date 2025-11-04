@@ -1091,6 +1091,16 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>runtime_industries_usage:dashViewWrapper</componentName>
+                <identifier>runtime_industries_usage_dashViewWrapper</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-c97bf6b4-42eb-45a7-9332-c17db7efd09f</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
                 <componentInstanceProperties>
                     <name>active</name>
                     <value>true</value>
@@ -1147,6 +1157,20 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab2</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-c97bf6b4-42eb-45a7-9332-c17db7efd09f</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Standard.Tab.WalletTab</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab3</identifier>
             </componentInstance>
         </itemInstances>
         <name>maintabs</name>

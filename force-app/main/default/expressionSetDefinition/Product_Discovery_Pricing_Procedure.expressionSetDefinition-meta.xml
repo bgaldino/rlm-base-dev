@@ -8,11 +8,13 @@
     <template>false</template>
     <versions>
         <fullName>Product_Discovery_Pricing_Procedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Creates pricing procedures that get the list price of products for Product Discovery.</description>
         <expressionSetDefinition>Product_Discovery_Pricing_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
         <label>Product Discovery Pricing Procedure</label>
         <processType>DefaultPricing</processType>
+        <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2024-03-01T14:41:15.000Z</startDate>
         <status>Draft</status>
@@ -28,10 +30,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>ListPriceField</name>
+                    <name>Pricebook2Id</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_UnitPrice_Price_Book_Entry_Decision_Table_v2_LP</value>
+                    <value>PricebookId</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -42,10 +44,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>Pricebook2Id</name>
+                    <name>CurrencyIsoCode</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>PricebookId</value>
+                    <value>PricingCurrencyCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -56,10 +58,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>CurrencyIsoCode</name>
+                    <name>ListPriceField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>PricingCurrencyCode</value>
+                    <value>Constant_UnitPrice_Price_Book_Entry_Decision_Table_v2_LP</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -145,6 +147,13 @@
                     <type>Parameter</type>
                     <value>SubTotal</value>
                 </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDSB000000Cam52AC</value>
+                </parameters>
             </customElement>
             <description>List Price</description>
             <label>Price Book Entries</label>
@@ -190,6 +199,13 @@
                 <parameters>
                     <input>true</input>
                     <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsPropagationEnabled</name>
                     <output>false</output>
                     <type>Literal</type>
                     <value>false</value>

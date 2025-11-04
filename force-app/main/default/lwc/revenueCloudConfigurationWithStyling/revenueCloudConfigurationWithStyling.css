@@ -1,0 +1,42 @@
+.container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.pin-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+}
+
+/* .pin-button.pinned {
+    position: fixed;
+} */
+
+/* Desktop styling when pinned */
+@media (min-width: 1024px) {
+    .container.pinned {
+        position: fixed;
+        z-index: 999;
+        width: 42%;
+        margin: 0px;
+        left: 58%;
+        top: 18%;
+    }
+}
+
+/* Medium and small devices styling when pinned */
+@media (max-width: 1023px) {
+    .container.pinned {
+        position: fixed;
+        z-index: 999;
+        width: 42%;
+        margin: 0px;
+        left: 58%;
+        top: 27%;
+        height: 80vh;
+        min-height: 60vh !important;
+    }
+}

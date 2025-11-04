@@ -30,7 +30,7 @@ force-app/main/default/expressionSetDefinition/Default_Rating_Procedure.expressi
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Qualification_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure.expressionSetDefinition-meta.xml
-force-app/main/default/expressionSetDefinition/Salesforce_Default_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
+#force-app/main/default/expressionSetDefinition/Salesforce_Default_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 # custom expressionSetDefinitions
 #force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
@@ -128,3 +128,7 @@ force-app/main/default/classes/RLM_UpdateQuotePricesAndSave.cls
 force-app/main/default/classes/RLM_UpdateQuotePricesAndSave.cls-meta.xml
 force-app/main/default/pages/RLM_UpdateQuotePrices.page
 force-app/main/default/pages/RLM_UpdateQuotePrices.page-meta.xml
+
+unpackaged/pre/5_decisiontables/RLM_Cost_Book_Entries.decisionTable-meta.xml
+force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
+force-app/main/default/flows/RC_Create_Case_for_Collection.flow-meta.xml

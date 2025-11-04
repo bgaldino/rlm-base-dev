@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DataPackageKitObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <masterLabel>rlm_common_datakit_v15</masterLabel>
-    <parentDataPackageKitDefinitionName>rlm_common_datakit_v15</parentDataPackageKitDefinitionName>
-    <referenceObjectName>ssot__Account__dlm</referenceObjectName>
-    <referenceObjectType>MktDataModelObject</referenceObjectType>
-</DataPackageKitObject>

@@ -1,180 +1,115 @@
-type LineItem {
-    @(tagName = "ItemEndQuantity")
-    int ItemEndQuantity;
-}
-
+@(contextPath = 'SalesTransaction.OriginalActionType')
+extern string actionType;
+type LineItem;
 type QuantumBitCompleteSolution : LineItem {
-    relation additionalmessagesqbstarter : AdditionalMessagesQBStarter {
-        default AdditionalMessagesQBStarter(5);
-    }
-
-    relation quantumbitdatabase : QuantumBitDatabase;
-
-    relation additionalflowsqbstarter : AdditionalFlowsQBStarter {
-        default AdditionalFlowsQBStarter(5);
-    }
-
+    relation softwaremaintenance : SoftwareMaintenance;
     relation additionalautomationqbcredits : AdditionalAutomationQBCredits {
         default AdditionalAutomationQBCredits(25);
     }
-
-    relation qbapimanagementsolution : QBAPIManagementSolution[0..10]{
-        default QBAPIManagementSolution(1);
+    relation additionalmessagesqbstarter : AdditionalMessagesQBStarter {
+        default AdditionalMessagesQBStarter(5);
     }
-
-    relation additionalapi : AdditionalAPI {
-        default AdditionalAPI(10);
+    relation additionalflowsqbstarter : AdditionalFlowsQBStarter {
+        default AdditionalFlowsQBStarter(5);
     }
-
+    relation quantumbitdatabase : QuantumBitDatabase;
+    relation quantumbitessentialstraining : QuantumBitEssentialsTraining;
+    relation quantumbitfundamentalstraining : QuantumBitFundamentalsTraining;
     relation apiaccessrequestsaeh : APIAccessRequestsAEH {
         default APIAccessRequestsAEH(100);
     }
-
-    relation quantumbitessentialstraining : QuantumBitEssentialsTraining;
-
-    relation quantumbitfundamentalstraining : QuantumBitFundamentalsTraining;
-
-    relation softwaremaintenance : SoftwareMaintenance;
-
-    relation professionalservicesscopeofwork : ProfessionalServicesScopeofWork;
-
+    relation additionalapi : AdditionalAPI {
+        default AdditionalAPI(10);
+    }
+    relation qbapimanagementsolution : QBAPIManagementSolution;
     relation quantumbitservicesproject : QuantumBitServicesProject;
-
+    relation professionalservicesscopeofwork : ProfessionalServicesScopeofWork;
     relation professionalservicesdailyrate : ProfessionalServicesDailyRate {
         default ProfessionalServicesDailyRate(250);
     }
-
-    @(defaultValue = "0")
-    string Data_Utilization = ["0", "5", "10", "20", "30", "40", "50"];
-
-    @(defaultValue = "4")
-    string Base_Core_Count = ["2", "4", "6", "8"];
-
-    @(defaultValue = "Amazon Linux 2")
-    string Operating_System = ["Amazon Linux 2", "Redhat Enterprise Linux"];
-
-    int LineItemQuantity = this.quantity;
-
-    constraint(Operating_System == "Redhat Enterprise Linux" -> Base_Core_Count == "8", "When running RedHat Linux, a minimum of 8 Base Cores is required!");
-
-    require(qbapimanagementsolution[QBAPIManagementSolution].ItemEndQuantity >= 5, additionalapi[AdditionalAPI] { Type = "Pre-Prod" } == 10);
-
+    @(defaultValue = 'Amazon Linux 2')
+    string Operating_System = ['Amazon Linux 2', 'Redhat Enterprise Linux'];
+    @(defaultValue = '4')
+    string Base_Core_Count = ['2', '4', '6', '8'];
+    @(defaultValue = '0')
+    string Data_Utilization = ['0', '10', '20', '30', '40', '5', '50'];
+    //constraint(Operating_System == “Redhat Enterprise Linux” -> Base_Core_Count == “8”, “When running RedHat Linux, a minimum of 8 Base Cores is required!“);
+    constraint(Operating_System == 'Redhat Enterprise Linux' -> Base_Core_Count == '8', 'When running RedHat Linux, a minimum of 8 Base Cores is required!');
+    require(qbapimanagementsolution[QBAPIManagementSolution] >= 5 && actionType == null, additionalapi[AdditionalAPI] == 1);
 }
-
-type AdditionalMessagesQBStarter : LineItem;
-
-type QuantumBitDatabase : LineItem;
-
-type AdditionalFlowsQBStarter : LineItem;
-
-type AdditionalAutomationQBCredits : LineItem;
-
-@(split = false)
-type QBAPIManagementSolution : LineItem;
-
-type AdditionalAPI : LineItem {
-    @(defaultValue = "Flex")
-    string Type = ["Flex", "Gov", "Pre-Prod", "Prod"];
-
-}
-
-type APIAccessRequestsAEH : LineItem;
-
-type QuantumBitEssentialsTraining : LineItem;
-
-type QuantumBitFundamentalsTraining : LineItem;
-
 type SoftwareMaintenance : LineItem;
-
-type ProfessionalServicesScopeofWork : LineItem;
-
+type AdditionalAutomationQBCredits : LineItem;
+type AdditionalMessagesQBStarter : LineItem;
+type AdditionalFlowsQBStarter : LineItem;
+type QuantumBitDatabase : LineItem;
+type QuantumBitEssentialsTraining : LineItem;
+type QuantumBitFundamentalsTraining : LineItem;
+type APIAccessRequestsAEH : LineItem;
+type AdditionalAPI : LineItem {
+    @(defaultValue = 'Flex')
+    string Type = ['Gov', 'Flex', 'Pre-Prod', 'Prod'];
+}
+type QBAPIManagementSolution : LineItem;
 type QuantumBitServicesProject : LineItem {
-    relation projectmanager : ProjectManager[1..9999] {
-        default ProjectManager(8);
-    }
-
     relation programdirector : ProgramDirector {
         default ProgramDirector(8);
     }
-
-    relation solutionsarchitect : SolutionsArchitect {
-        default SolutionsArchitect(8);
+    relation projectmanager : ProjectManager[1..9999] {
+        default ProjectManager(8);
     }
-
     relation datanormalizationexpert : DataNormalizationExpert {
         default DataNormalizationExpert(8);
     }
-
     relation moduleextensionengineer : ModuleExtensionEngineer {
         default ModuleExtensionEngineer(8);
     }
-
-    relation qualityassuranceengineer : QualityAssuranceEngineer {
-        default QualityAssuranceEngineer(8);
-    }
-
     relation integrationspecialistengineer : IntegrationSpecialistEngineer {
         default IntegrationSpecialistEngineer(8);
     }
-
+    relation qualityassuranceengineer : QualityAssuranceEngineer {
+        default QualityAssuranceEngineer(8);
+    }
     relation implementationengineer : ImplementationEngineer {
         default ImplementationEngineer(8);
     }
-
-    @(defaultValue = "Insert Notes Here")
+    relation solutionsarchitect : SolutionsArchitect {
+        default SolutionsArchitect(8);
+    }
+    @(defaultValue = 'Insert Notes Here')
     string Notes_and_Assumptions;
-
 }
-
-type ProjectManager : LineItem;
-
 type ProgramDirector : LineItem;
-
-type SolutionsArchitect : LineItem;
-
+type ProjectManager : LineItem;
 type DataNormalizationExpert : LineItem {
-    @(defaultValue = "Extended_Care")
-    string Engineering_Options = ["Basic", "Extended_Care"];
-
-    @(defaultValue = "Onsite")
-    string Resource_Location = ["Offshore", "Onsite", "Remote"];
-
+    @(defaultValue = 'Extended_Care')
+    string Engineering_Options = ['Extended_Care', 'Basic'];
+    @(defaultValue = 'Onsite')
+    string Resource_Location = ['Onsite', 'Offshore', 'Remote'];
 }
-
 type ModuleExtensionEngineer : LineItem {
-    @(defaultValue = "Extended_Care")
-    string Engineering_Options = ["Basic", "Extended_Care"];
-
-    @(defaultValue = "Onsite")
-    string Resource_Location = ["Offshore", "Onsite", "Remote"];
-
+    @(defaultValue = 'Extended_Care')
+    string Engineering_Options = ['Extended_Care', 'Basic'];
+    @(defaultValue = 'Onsite')
+    string Resource_Location = ['Onsite', 'Offshore', 'Remote'];
 }
-
-type QualityAssuranceEngineer : LineItem {
-    @(defaultValue = "Extended_Care")
-    string Engineering_Options = ["Basic", "Extended_Care"];
-
-    @(defaultValue = "Onsite")
-    string Resource_Location = ["Offshore", "Onsite", "Remote"];
-
-}
-
 type IntegrationSpecialistEngineer : LineItem {
-    @(defaultValue = "Extended_Care")
-    string Engineering_Options = ["Basic", "Extended_Care"];
-
-    @(defaultValue = "Onsite")
-    string Resource_Location = ["Offshore", "Onsite", "Remote"];
-
+    @(defaultValue = 'Extended_Care')
+    string Engineering_Options = ['Extended_Care', 'Basic'];
+    @(defaultValue = 'Onsite')
+    string Resource_Location = ['Onsite', 'Offshore', 'Remote'];
 }
-
+type QualityAssuranceEngineer : LineItem {
+    @(defaultValue = 'Extended_Care')
+    string Engineering_Options = ['Extended_Care', 'Basic'];
+    @(defaultValue = 'Onsite')
+    string Resource_Location = ['Onsite', 'Offshore', 'Remote'];
+}
 type ImplementationEngineer : LineItem {
-    @(defaultValue = "Extended_Care")
-    string Engineering_Options = ["Basic", "Extended_Care"];
-
-    @(defaultValue = "Onsite")
-    string Resource_Location = ["Offshore", "Onsite", "Remote"];
-
+    @(defaultValue = 'Extended_Care')
+    string Engineering_Options = ['Extended_Care', 'Basic'];
+    @(defaultValue = 'Onsite')
+    string Resource_Location = ['Onsite', 'Offshore', 'Remote'];
 }
-
+type SolutionsArchitect : LineItem;
+type ProfessionalServicesScopeofWork : LineItem;
 type ProfessionalServicesDailyRate : LineItem;

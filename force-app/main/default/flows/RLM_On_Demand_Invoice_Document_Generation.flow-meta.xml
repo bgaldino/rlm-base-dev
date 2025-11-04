@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Assign_Data_Mapper_Input</name>
         <label>Assign Data Mapper Input</label>
-        <locationX>176</locationX>
-        <locationY>431</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <assignmentItems>
             <assignToReference>DataMapperInput</assignToReference>
             <operator>Assign</operator>
@@ -21,8 +21,8 @@
     <assignments>
         <name>Fetch_Invoice_ID</name>
         <label>Fetch Invoice ID</label>
-        <locationX>176</locationX>
-        <locationY>323</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <assignmentItems>
             <assignToReference>InvoiceID</assignToReference>
             <operator>Assign</operator>
@@ -45,7 +45,7 @@
         <name>defaultInvoiceTemplate</name>
         <dataType>String</dataType>
         <value>
-            <stringValue>2dtHn000000x0fGIAQ</stringValue>
+            <stringValue>2dtWs000000aag6IAA</stringValue>
         </value>
     </constants>
     <constants>
@@ -118,8 +118,8 @@
     <recordCreates>
         <name>Invoice_Docgen</name>
         <label>Invoice Docgen</label>
-        <locationX>176</locationX>
-        <locationY>539</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <inputAssignments>
             <field>DataRaptorInput</field>
             <value>
@@ -135,7 +135,7 @@
         <inputAssignments>
             <field>DocumentTemplateId</field>
             <value>
-                <elementReference>defaultInvoiceTemplate</elementReference>
+                <elementReference>Get_Default_Template.Id</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -188,7 +188,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Fetch_Invoice_ID</targetReference>

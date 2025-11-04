@@ -6,6 +6,73 @@
             <contextMappingIntents>
                 <mappingIntent>association</mappingIntent>
             </contextMappingIntents>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>AccountId</contextAttribute>
+                    <contextInputAttributeName>AccountId</contextInputAttributeName>
+                    <ctxAttrHydrationCtxs>
+                        <contextQueryAttribute>SalesTransactionContext__stdctx/version/SalesTransaction/Account</contextQueryAttribute>
+                    </ctxAttrHydrationCtxs>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/Account/AccountId/SalesTransactionContext__stdctx/version/SalesTransaction/Account</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>CurrencyIsoCode</contextAttribute>
+                    <contextInputAttributeName>CurrencyIsoCode</contextInputAttributeName>
+                    <ctxAttrHydrationCtxs>
+                        <contextQueryAttribute>SalesTransactionContext__stdctx/version/SalesTransaction/CurrencyIsoCode</contextQueryAttribute>
+                    </ctxAttrHydrationCtxs>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/Account/CurrencyIsoCode/SalesTransactionContext__stdctx/version/SalesTransaction/CurrencyIsoCode</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>Account</contextNode>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/Account/SalesTransactionContext__stdctx/version/SalesTransaction</inheritedFrom>
+                <mappedContextDefinition>SalesTransactionContext__stdctx</mappedContextDefinition>
+                <object>Account</object>
+            </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>ProductId</contextAttribute>
+                    <contextInputAttributeName>ProductId</contextInputAttributeName>
+                    <ctxAttrHydrationCtxs>
+                        <contextQueryAttribute>SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/Product</contextQueryAttribute>
+                    </ctxAttrHydrationCtxs>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/CategoryProduct/ProductId/SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/Product</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>CategoryId</contextAttribute>
+                    <contextInputAttributeName>CategoryId</contextInputAttributeName>
+                    <ctxAttrHydrationCtxs>
+                        <contextQueryAttribute>SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/ProductCategory</contextQueryAttribute>
+                    </ctxAttrHydrationCtxs>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/CategoryProduct/CategoryId/SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/ProductCategory</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>CategoryProduct</contextNode>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/CategoryProduct/SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem</inheritedFrom>
+                <mappedContextDefinition>SalesTransactionContext__stdctx</mappedContextDefinition>
+                <object>CategoryProduct</object>
+            </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>CategoryId</contextAttribute>
+                    <contextInputAttributeName>CategoryId</contextInputAttributeName>
+                    <ctxAttrHydrationCtxs>
+                        <contextQueryAttribute>SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/ProductCategory</contextQueryAttribute>
+                    </ctxAttrHydrationCtxs>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/Category/CategoryId/SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem/ProductCategory</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>Category</contextNode>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping/Category/SalesTransactionContext__stdctx/version/SalesTransaction/SalesTransactionItem</inheritedFrom>
+                <mappedContextDefinition>SalesTransactionContext__stdctx</mappedContextDefinition>
+                <object>Category</object>
+            </contextNodeMappings>
+            <default>false</default>
+            <description>Sales Transaction Context Mapping for Promotions</description>
+            <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryPromoMapping</inheritedFrom>
+            <title>ProductDiscoveryPromoMapping</title>
+        </contextMappings>
+        <contextMappings>
+            <contextMappingIntents>
+                <mappingIntent>association</mappingIntent>
+            </contextMappingIntents>
             <contextMappingIntents>
                 <mappingIntent>hydration</mappingIntent>
             </contextMappingIntents>
@@ -225,6 +292,81 @@
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/PricingProduct</inheritedFrom>
                 <object>PricingProduct</object>
             </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>id__std</contextAttribute>
+                    <contextInputAttributeName>id__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/id__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>Name__std</contextAttribute>
+                    <contextInputAttributeName>Name__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/Name__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>DisplayName__std</contextAttribute>
+                    <contextInputAttributeName>DisplayName__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/DisplayName__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>Description__std</contextAttribute>
+                    <contextInputAttributeName>Description__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/Description__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>TermsAndConditions__std</contextAttribute>
+                    <contextInputAttributeName>TermsAndConditions__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/TermsAndConditions__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>StartDateTime__std</contextAttribute>
+                    <contextInputAttributeName>StartDateTime__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/StartDateTime__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>EndDateTime__std</contextAttribute>
+                    <contextInputAttributeName>EndDateTime__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/EndDateTime__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>PriorityNumber__std</contextAttribute>
+                    <contextInputAttributeName>PriorityNumber__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/PriorityNumber__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>IsAutomatic__std</contextAttribute>
+                    <contextInputAttributeName>IsAutomatic__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/IsAutomatic__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>CouponCode__std</contextAttribute>
+                    <contextInputAttributeName>CouponCode__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std/CouponCode__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>Promotion__std</contextNode>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/Promotion__std</inheritedFrom>
+                <object>Promotion__std</object>
+            </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>PromotionProductId__std</contextAttribute>
+                    <contextInputAttributeName>PromotionProductId__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/PromotionProduct__std/PromotionProductId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>PromotionProduct__std</contextNode>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/PromotionProduct__std</inheritedFrom>
+                <object>PromotionProduct__std</object>
+            </contextNodeMappings>
+            <contextNodeMappings>
+                <contextAttributeMappings>
+                    <contextAttribute>PromotionCategoryId__std</contextAttribute>
+                    <contextInputAttributeName>PromotionCategoryId__std</contextInputAttributeName>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/PromotionCategory__std/PromotionCategoryId__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextNode>PromotionCategory__std</contextNode>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping/PromotionCategory__std</inheritedFrom>
+                <object>PromotionCategory__std</object>
+            </contextNodeMappings>
             <default>true</default>
             <description>Mapping for Product Discovery flow</description>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/ProductDiscoveryMapping</inheritedFrom>
@@ -236,6 +378,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CatalogId/CatalogId</inheritedFrom>
                     <title>CatalogId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CatalogId</inheritedFrom>
@@ -249,6 +392,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CurrentDate/CurrentDate</inheritedFrom>
                     <title>CurrentDate</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>date</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/CurrentDate</inheritedFrom>
@@ -261,6 +405,8 @@
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Catalog</inheritedFrom>
                 <title>Catalog</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>Catalog</displayName>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog</inheritedFrom>
             <title>Catalog</title>
             <transposable>false</transposable>
@@ -271,6 +417,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/id/id</inheritedFrom>
                     <title>id</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/id</inheritedFrom>
@@ -284,6 +431,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/AccountId/AccountId</inheritedFrom>
                     <title>AccountId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/AccountId</inheritedFrom>
@@ -297,6 +445,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/ContactId/ContactId</inheritedFrom>
                     <title>ContactId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/ContactId</inheritedFrom>
@@ -310,6 +459,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/CurrencyIsoCode/CurrencyCode</inheritedFrom>
                     <title>CurrencyCode</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/CurrencyIsoCode</inheritedFrom>
@@ -322,8 +472,161 @@
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account/Account</inheritedFrom>
                 <title>Account</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>Account</displayName>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/Account</inheritedFrom>
             <title>Account</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/id__std/id__std</inheritedFrom>
+                    <title>id__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/id__std</inheritedFrom>
+                <key>false</key>
+                <title>id__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/Name__std/Name__std</inheritedFrom>
+                    <title>Name__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/Name__std</inheritedFrom>
+                <key>false</key>
+                <title>Name__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/DisplayName__std/DisplayName__std</inheritedFrom>
+                    <title>DisplayName__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/DisplayName__std</inheritedFrom>
+                <key>false</key>
+                <title>DisplayName__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/Description__std/Description__std</inheritedFrom>
+                    <title>Description__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/Description__std</inheritedFrom>
+                <key>false</key>
+                <title>Description__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/TermsAndConditions__std/TermsAndConditions__std</inheritedFrom>
+                    <title>TermsAndConditions__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/TermsAndConditions__std</inheritedFrom>
+                <key>false</key>
+                <title>TermsAndConditions__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/StartDateTime__std/StartDateTime__std</inheritedFrom>
+                    <title>StartDateTime__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/StartDateTime__std</inheritedFrom>
+                <key>false</key>
+                <title>StartDateTime__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/EndDateTime__std/EndDateTime__std</inheritedFrom>
+                    <title>EndDateTime__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>datetime</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/EndDateTime__std</inheritedFrom>
+                <key>false</key>
+                <title>EndDateTime__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PriorityNumber__std/PriorityNumber__std</inheritedFrom>
+                    <title>PriorityNumber__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>number</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PriorityNumber__std</inheritedFrom>
+                <key>false</key>
+                <title>PriorityNumber__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/IsAutomatic__std/IsAutomatic__std</inheritedFrom>
+                    <title>IsAutomatic__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>boolean</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/IsAutomatic__std</inheritedFrom>
+                <key>false</key>
+                <title>IsAutomatic__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/CouponCode__std/CouponCode__std</inheritedFrom>
+                    <title>CouponCode__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/CouponCode__std</inheritedFrom>
+                <key>false</key>
+                <title>CouponCode__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/Promotion__std</inheritedFrom>
+                <title>Promotion__std</title>
+            </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>Promotion__std</displayName>
+            <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std</inheritedFrom>
+            <title>Promotion__std</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
@@ -332,6 +635,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryId/CategoryId</inheritedFrom>
                     <title>CategoryId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryId</inheritedFrom>
@@ -345,6 +649,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/IsCategoryQualified/IsCategoryQualified</inheritedFrom>
                     <title>IsCategoryQualified</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/IsCategoryQualified</inheritedFrom>
@@ -358,6 +663,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryDisqualifiedReason/CategoryDisqualifiedReason</inheritedFrom>
                     <title>CategoryDisqualifiedReason</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryDisqualifiedReason</inheritedFrom>
@@ -367,6 +673,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>reference</dataType>
                 <domainSet>Catalog</domainSet>
                 <fieldType>input</fieldType>
@@ -380,8 +687,82 @@
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/Category</inheritedFrom>
                 <title>Category</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>Category</displayName>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category</inheritedFrom>
             <title>Category</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionProduct__std/PromotionProductId__std/PromotionProductId__std</inheritedFrom>
+                    <title>PromotionProductId__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionProduct__std/PromotionProductId__std</inheritedFrom>
+                <key>false</key>
+                <title>PromotionProductId__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>reference</dataType>
+                <domainSet>Promotion__std</domainSet>
+                <fieldType>input</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionProduct__std/ParentReference</inheritedFrom>
+                <key>false</key>
+                <title>ParentReference</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionProduct__std/PromotionProduct__std</inheritedFrom>
+                <title>PromotionProduct__std</title>
+            </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>PromotionProduct__std</displayName>
+            <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionProduct__std</inheritedFrom>
+            <title>PromotionProduct__std</title>
+            <transposable>false</transposable>
+        </contextNodes>
+        <contextNodes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionCategory__std/PromotionCategoryId__std/PromotionCategoryId__std</inheritedFrom>
+                    <title>PromotionCategoryId__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionCategory__std/PromotionCategoryId__std</inheritedFrom>
+                <key>false</key>
+                <title>PromotionCategoryId__std</title>
+                <transient>true</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>reference</dataType>
+                <domainSet>Promotion__std</domainSet>
+                <fieldType>input</fieldType>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionCategory__std/ParentReference</inheritedFrom>
+                <key>false</key>
+                <title>ParentReference</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextTags>
+                <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionCategory__std/PromotionCategory__std</inheritedFrom>
+                <title>PromotionCategory__std</title>
+            </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>PromotionCategory__std</displayName>
+            <inheritedFrom>ProductDiscoveryContext__stdctx/version/Promotion__std/PromotionCategory__std</inheritedFrom>
+            <title>PromotionCategory__std</title>
             <transposable>false</transposable>
         </contextNodes>
         <contextNodes>
@@ -390,6 +771,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Id/Id</inheritedFrom>
                     <title>Id</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Id</inheritedFrom>
@@ -403,6 +785,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/ProductId/ProductId</inheritedFrom>
                     <title>ProductId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/ProductId</inheritedFrom>
@@ -416,6 +799,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/RootProductId/RootProductId</inheritedFrom>
                     <title>RootProductId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/RootProductId</inheritedFrom>
@@ -429,6 +813,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/ParentProductId/ParentProductId</inheritedFrom>
                     <title>ParentProductId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/ParentProductId</inheritedFrom>
@@ -438,6 +823,11 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/CategoryId/ProductCategoryId__std</inheritedFrom>
+                    <title>ProductCategoryId__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/CategoryId</inheritedFrom>
@@ -447,6 +837,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/CatalogId</inheritedFrom>
@@ -456,6 +847,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Name</inheritedFrom>
@@ -465,6 +857,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Code</inheritedFrom>
@@ -474,6 +867,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/MaxQuantity</inheritedFrom>
@@ -483,6 +877,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/MinQuantity</inheritedFrom>
@@ -492,6 +887,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Quantity</inheritedFrom>
@@ -505,6 +901,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/IsQualified/IsQualified</inheritedFrom>
                     <title>IsQualified</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/IsQualified</inheritedFrom>
@@ -518,6 +915,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Reason/Reason</inheritedFrom>
                     <title>Reason</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/Reason</inheritedFrom>
@@ -531,6 +929,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/AdditionalProductInformation/AdditionalProductInformation</inheritedFrom>
                     <title>AdditionalProductInformation</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/AdditionalProductInformation</inheritedFrom>
@@ -540,6 +939,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>reference</dataType>
                 <domainSet>Category</domainSet>
                 <fieldType>input</fieldType>
@@ -553,6 +953,8 @@
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct/CategoryProduct</inheritedFrom>
                 <title>CategoryProduct</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>CategoryProduct</displayName>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/CategoryProduct</inheritedFrom>
             <title>CategoryProduct</title>
             <transposable>false</transposable>
@@ -563,6 +965,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingId/PricingId</inheritedFrom>
                     <title>PricingId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingId</inheritedFrom>
@@ -576,6 +979,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingProductId/PricingProductId</inheritedFrom>
                     <title>PricingProductId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingProductId</inheritedFrom>
@@ -589,6 +993,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/ProductSellingModelId/ProductSellingModelId</inheritedFrom>
                     <title>ProductSellingModelId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/ProductSellingModelId</inheritedFrom>
@@ -602,6 +1007,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/ProductQuantity/ProductQuantity</inheritedFrom>
                     <title>ProductQuantity</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>number</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/ProductQuantity</inheritedFrom>
@@ -615,6 +1021,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricebookId/PricebookId</inheritedFrom>
                     <title>PricebookId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricebookId</inheritedFrom>
@@ -628,6 +1035,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingCurrencyCode/PricingCurrencyCode</inheritedFrom>
                     <title>PricingCurrencyCode</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingCurrencyCode</inheritedFrom>
@@ -641,6 +1049,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/UnitPrice/UnitPrice</inheritedFrom>
                     <title>UnitPrice</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>currency</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/UnitPrice</inheritedFrom>
@@ -654,6 +1063,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/IsDerived/IsDerived</inheritedFrom>
                     <title>IsDerived</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>boolean</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/IsDerived</inheritedFrom>
@@ -667,6 +1077,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/NetUnitPrice/NetUnitPrice</inheritedFrom>
                     <title>NetUnitPrice</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>currency</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/NetUnitPrice</inheritedFrom>
@@ -680,6 +1091,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/SubTotal/SubTotal</inheritedFrom>
                     <title>SubTotal</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>currency</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/SubTotal</inheritedFrom>
@@ -693,6 +1105,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PriceBookEntryId/PriceBookEntryId</inheritedFrom>
                     <title>PriceBookEntryId</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PriceBookEntryId</inheritedFrom>
@@ -706,6 +1119,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PriceWaterFall/price_water_fall</inheritedFrom>
                     <title>price_water_fall</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PriceWaterFall</inheritedFrom>
@@ -719,6 +1133,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingErrorMessage/PricingErrorMessage</inheritedFrom>
                     <title>PricingErrorMessage</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>output</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingErrorMessage</inheritedFrom>
@@ -732,6 +1147,7 @@
                     <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/AdditionalPricingInformation/AdditionalPricingInformation</inheritedFrom>
                     <title>AdditionalPricingInformation</title>
                 </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>inputoutput</fieldType>
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/AdditionalPricingInformation</inheritedFrom>
@@ -741,6 +1157,7 @@
                 <value>false</value>
             </contextAttributes>
             <contextAttributes>
+                <customMappingAllowed>false</customMappingAllowed>
                 <dataType>reference</dataType>
                 <domainSet>Category</domainSet>
                 <fieldType>input</fieldType>
@@ -754,6 +1171,8 @@
                 <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct/PricingProduct</inheritedFrom>
                 <title>PricingProduct</title>
             </contextTags>
+            <customMappingAllowed>false</customMappingAllowed>
+            <displayName>PricingProduct</displayName>
             <inheritedFrom>ProductDiscoveryContext__stdctx/version/Catalog/Category/PricingProduct</inheritedFrom>
             <title>PricingProduct</title>
             <transposable>false</transposable>
@@ -766,7 +1185,7 @@
     <description>Extension of Standard Product Discovery Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>ProductDiscoveryContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>0.5</inheritedFromVersion>
+    <inheritedFromVersion>0.7</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_ProductDiscoveryContext</masterLabel>
     <title>RLM_ProductDiscoveryContext</title>

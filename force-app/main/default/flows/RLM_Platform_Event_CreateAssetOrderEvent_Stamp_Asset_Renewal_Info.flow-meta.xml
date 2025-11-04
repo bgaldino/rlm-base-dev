@@ -1,22 +1,276 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <name>Calculate_Asset_Info</name>
-        <label>Calculate Asset Info</label>
-        <locationX>176</locationX>
-        <locationY>170</locationY>
-        <actionName>RLM_AssetInfoUtility</actionName>
-        <actionType>apex</actionType>
+        <name>Refresh_Asset_Action_Source_Entries_Decision_Table_V2</name>
+        <label>Refresh Asset Action Source Entries Decision Table V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Asset_Rate_Adjustment_Resolution_Entries</targetReference>
+        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
-            <name>assetOrderCreationEvents</name>
+            <name>DecisionTableApiName</name>
             <value>
-                <elementReference>$Record</elementReference>
+                <stringValue>Asset_Action_Source_Entries_Decision_Table_V2</stringValue>
             </value>
         </inputParameters>
-        <nameSegment>RLM_AssetInfoUtility</nameSegment>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <actionCalls>
+        <name>Refresh_Asset_Rate_Adjustment_Resolution_Entries</name>
+        <label>Refresh Asset Rate Adjustment Resolution Entries</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Asset_Rate_Card_Entry_Resolution_Entries</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Asset_Rate_Adjustment_Resolution_Entries</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Asset_Rate_Card_Entry_Resolution_Entries</name>
+        <label>Refresh Asset Rate Card Entry Resolution Entries</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Asset_Rate_Card_Entry_Resolution_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Asset_Rate_Card_Entry_Resolution_Entries</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Asset_Rate_Card_Entry_Resolution_V2</name>
+        <label>Refresh Asset Rate Card Entry Resolution V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Asset_Rate_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Asset_Rate_Card_Entry_Resolution_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Asset_Rate_V2</name>
+        <label>Refresh Asset Rate V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Asset_Tier_based_Rate_Adjustment_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Asset_Rate_Decision_Table_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Asset_Tier_based_Rate_Adjustment_V2</name>
+        <label>Refresh Asset Tier based Rate Adjustment V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Asset_Volume_based_Rate_Adjustment_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Asset_Tier_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Asset_Volume_based_Rate_Adjustment_V2</name>
+        <label>Refresh Asset Volume based Rate Adjustment V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Binding_Object_Rate_Adjustment_Resolution_Entries</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Asset_Volume_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Binding_Object_Rate_Adjustment_Resolution_Entries</name>
+        <label>Refresh Binding Object Rate Adjustment Resolution Entries</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Binding_Object_Rate_Card_Entry_Resolution_Entries_v2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Binding_Object_Rate_Adjustment_Resolution_Entries</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Binding_Object_Rate_Card_Entry_Resolution_Entries_v2</name>
+        <label>Refresh Binding Object Rate Card Entry Resolution Entries v2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Binding_Object_Rate_Card_Entry_Resolution_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_Entries_v2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Binding_Object_Rate_Card_Entry_Resolution_V2</name>
+        <label>Refresh Binding Object Rate Card Entry Resolution V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Binding_Object_Rate_Decision_Table_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Binding_Object_Rate_Decision_Table_V2</name>
+        <label>Refresh Binding Object Rate Decision Table V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Binding_Object_Tier_based_Rate_Adjustment_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Binding_Object_Rate_Decision_Table_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Binding_Object_Tier_based_Rate_Adjustment_V2</name>
+        <label>Refresh Binding Object Tier based Rate Adjustment V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Binding_Object_Volume_based_Rate_Adjustment_V2</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Binding_Object_Tier_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Binding_Object_Volume_based_Rate_Adjustment_V2</name>
+        <label>Refresh Binding Object Volume based Rate Adjustment V2</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Binding_Object_Volume_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
     <interviewLabel>Platform Event - {!$Flow.CurrentDateTime}</interviewLabel>
@@ -41,10 +295,10 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Calculate_Asset_Info</targetReference>
+            <targetReference>Refresh_Asset_Action_Source_Entries_Decision_Table_V2</targetReference>
         </connector>
         <flowRunAsUser>TriggeringUser</flowRunAsUser>
         <object>CreateAssetOrderEvent</object>

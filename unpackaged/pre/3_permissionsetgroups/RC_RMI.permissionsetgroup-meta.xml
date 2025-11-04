@@ -10,13 +10,11 @@
     <permissionSets>force__EinsteinAnalyticsAdmin</permissionSets>
     <permissionSets>force__EinsteinAnalyticsPlusAdmin</permissionSets>
     <permissionSets>force__GenieAdmin</permissionSets>
-    <permissionSets>force__PriceMonitoringRuntimeUser</permissionSets>
     <permissionSets>force__PulseRuntimeUser</permissionSets>
     <permissionSets>force__QueryForDataPipelines</permissionSets>
     <permissionSets>force__TableauEinsteinAdmin</permissionSets>
     <permissionSets>force__TableauEinsteinAnalyst</permissionSets>
     <permissionSets>force__TableauEinsteinIncludedAppBusinessUser</permissionSets>
     <permissionSets>force__TableauIncludedAppManager</permissionSets>
-    <permissionSets>force__TableauNextLimitedViewer</permissionSets>
     <permissionSets>force__TableauUser</permissionSets>
 </PermissionSetGroup>

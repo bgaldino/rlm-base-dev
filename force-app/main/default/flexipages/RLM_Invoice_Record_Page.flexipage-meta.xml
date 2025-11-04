@@ -7,10 +7,22 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
-                            <value>FeedItem.TextPost</value>
+                            <value>InvoiceDraftToPosted</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>FeedItem.ContentPost</value>
+                            <value>Invoice.RC_Apply_Payment</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Edit</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>PayNow</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Invoice.RC_Write_Off_Invoice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Delete</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Global.NewEvent</value>
@@ -20,9 +32,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>Global.NewContact</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Global.LogACall</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Global.NewOpportunity</value>
@@ -37,22 +46,10 @@
                             <value>FeedItem.ContentNote</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>FeedItem.RypplePost</value>
+                            <value>FeedItem.TextPost</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>FeedItem.LinkPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.PollPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.QuestionPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Edit</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>Delete</value>
+                            <value>FeedItem.ContentPost</value>
                         </valueListItems>
                         <valueListItems>
                             <value>ChangeOwnerOne</value>
@@ -62,9 +59,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>InvoiceDraftToPosted</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -647,6 +641,16 @@
                 <identifier>RecordCurrencyIsoCodeField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.LegalEntityId</fieldItem>
+                <identifier>RecordLegalEntityIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-e91ee5d0-5baf-46e8-be67-2a2fa660460b</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1152,6 +1156,31 @@
         <type>Region</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>accountIdField</name>
+                    <value>Invoice.BillingAccountId</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>headerText</name>
+                    <value>Merchant-Submitted Payment</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showSaveForFutureUsageCheckbox</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>stipeACHConsentMandate</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>useManualCapture</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentName>runtime_payments:merchantPayment</componentName>
+                <identifier>runtime_payments_merchantPayment</identifier>
+            </componentInstance>
+        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>

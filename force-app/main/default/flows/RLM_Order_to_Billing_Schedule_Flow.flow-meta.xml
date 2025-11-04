@@ -3,8 +3,8 @@
     <actionCalls>
         <name>Call_OrderToBillingSchedule</name>
         <label>Call Order To Billing Schedule</label>
-        <locationX>242</locationX>
-        <locationY>492</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>createBillingSchedulesFromBillingTransaction</actionName>
         <actionType>createBillingSchedulesFromBillingTransaction</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -18,14 +18,14 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
         <description>Check if Order has a AppUsageType of RevenueLifecycleManagement before calling Order To Billing Schedule, otherwise do nothing</description>
         <name>IsRevenueLifecycleManagement</name>
         <label>IsRevenueLifecycleManagement</label>
-        <locationX>374</locationX>
-        <locationY>384</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnectorLabel>Record is not RevenueLifecycleManagement</defaultConnectorLabel>
         <rules>
             <name>RecordIsRevenueLifecycleManagement</name>
@@ -63,8 +63,8 @@
         <description>Get ApplicationUsageAssignment from updated Order</description>
         <name>Get_ApplicationUsageAssignment</name>
         <label>Get ApplicationUsageAssignment</label>
-        <locationX>374</locationX>
-        <locationY>276</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>IsRevenueLifecycleManagement</targetReference>
@@ -90,7 +90,7 @@
     </recordLookups>
     <sourceTemplate>revenue_o2bsflows__o2bsflows</sourceTemplate>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>

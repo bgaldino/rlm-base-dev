@@ -1,0 +1,9 @@
+CreditGeneralLedgerAccount.AccountingCode,CurrencyIsoCode,DebitGeneralLedgerAccount.AccountingCode,FilterCriteria,FilterLogic,LegalEntity.Name,Name,Priority,Status,TransactionAmountField,TransactionType
+4240,USD,1240,All,,Default Legal Entity - US,USD Intercompany Revenue Rule,2,Active,ChargeAmount,InvoiceLine
+2200,USD,1100,Any,,Default Legal Entity - US,USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),1,Active,ChargeAmount,InvoiceLine
+4100,USD,1100,,,Default Legal Entity - US,USD Revenue Rule,1,Active,ChargeAmount,InvoiceLine
+1100,USD,2400,,,Default Legal Entity - US,USD CML Taxes,1,Active,TaxAmount,CreditMemoLineTax
+2400,USD,1100,,,Default Legal Entity - US,USD Invoice Line Taxes,1,Active,TaxAmount,InvoiceLineTax
+1100,USD,4100,,,Default Legal Entity - US,USD CML Charges,1,Active,ChargeAmount,CreditMemoLine
+1100,USD,1000,,,Default Legal Entity - US,USD PMT,1,Active,Amount,Payment
+4100,USD,1100,All,,Default Legal Entity - US,USD Invoice Line Hardware,1,Active,ChargeAmount,InvoiceLine

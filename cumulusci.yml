@@ -53,7 +53,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "64.0"
+    api_version: "65.0"
   git:
     default_branch: "main"
   source_format: sfdx
@@ -81,7 +81,7 @@ project:
     einstein: true           # Use Einstein AI
     product_dataset: qb      # Default product dataset to use
     qbrix: true              # Use xDO base
-    agents: true             # Deploy Agentforce Agent Configurations
+    agents: false             # Deploy Agentforce Agent Configurations
     refresh: false           # Data refresh flag
     commerce: false          # Use Commerce
     quantumbit: true         # Use QuantumBit
@@ -89,9 +89,10 @@ project:
     docgen: true             # Use Document Generation
     psg_debug: false         # Debug Permission Set Groups
     pas_debug: false         # Debug Price Adjustment Schedules
-    constraints: true        # Use Constraint Builder
+    constraints: false        # Use Constraint Builder
     guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
+    sharingsettings: false     # Use Sharing Settings
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -257,6 +258,7 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
+      - RC_Collection_Plan_Activity
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets
@@ -279,26 +281,33 @@ project:
 
     dt_rating_decision_tables: &dt_rating_decision_tables
       # Core rating decision tables for asset and binding object rate calculations
-      - Asset_Rate_Card_Entry_Resolution
-      - Asset_Rate_Decision_Table
-      - Asset_Tier_based_Rate_Adjustment
-      - Asset_Volume_based_Rate_Adjustment
+      - Asset_Action_Source_Entries_Decision_Table_V2
+      - Asset_Rate_Card_Entry_Resolution_V2
+      - Asset_Rate_Card_Entry_Resolution_Entries
+      - Asset_Rate_Decision_Table_V2
+      - Asset_Rate_Adjustment_Resolution_Entries
+      - Asset_Tier_based_Rate_Adjustmen_V2
+      - Asset_Volume_based_Rate_Adjustment_V2
       - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
-      - Binding_Object_Rate_Card_Entry_Resolution
-      - Binding_Object_Rate_Decision_Table
-      - Binding_Object_Tier_based_Rate_Adjustment
-      - Binding_Object_Volume_based_Rate_Adjustment
+      - Binding_Object_Rate_Card_Entry_Resolution_V2
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries_v2
+      - Binding_Object_Rate_Decision_Table_V2
+      - Binding_Object_Rate_Adjustment_Resolution_Entries
+      - Binding_Object_Tier_based_Rate_Adjustment_V2
+      - Binding_Object_Volume_based_Rate_Adjustment_V2
+      - Commitment_based_Rate_Adjustment
       - Rate_Adjustment_by_Attribute_Entries_2
       - Rate_Adjustment_by_Tier_Entries_2
       - Rate_Adjustment_by_Volume_Entries_2
       - Rate_Card_Entries_2
       - Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID
       - Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID
+      - Index_Rate_Decision_Table
 
     dt_rating_discovery_decision_tables: &dt_rating_discovery_decision_tables
       # Decision tables used for rating discovery and resolution
       - Binding_Object_Rate_Adjustment_Resolution_Entries
-      - Binding_Object_Rate_Card_Entry_Resolution_Entries
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries_V2
       - Pricebook_Rate_Card_Decision_Table
       - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
       - Rate_Adjustment_by_Tier_Resolution_Decision_Table
@@ -314,19 +323,26 @@ project:
       - Price_Adjustment_Tier_Decision_Table
       - Price_Book_Entry_Decision_Table_v2
       - Tiered_Adjustment_Tier_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table_v2
 
     dt_asset_decision_tables: &dt_asset_decision_tables
       # Asset-specific decision tables for rate calculations and adjustments
       - Asset_Action_Source_Entries_Decision_Table_V2
-      - Asset_Rate_Card_Entry_Resolution
-      - Asset_Rate_Decision_Table
-      - Asset_Tier_based_Rate_Adjustment
-      - Asset_Volume_based_Rate_Adjustment
+      - Asset_Rate_Card_Entry_Resolution_V2
+      - Asset_Rate_Decision_Table_V2
+      - Asset_Tier_based_Rate_Adjustment_V2
+      - Asset_Volume_based_Rate_Adjustment_V2
+      - Asset_Rate_Adjustment_Resolution_Entries
+      - Asset_Rate_Card_Entry_Resolution_Entries
+      - Commitment_based_Rate_Adjustment
 
     dt_pricing_discovery_decision_tables: &dt_pricing_discovery_decision_tables
       # Decision tables used for pricing discovery and derived pricing
       - Asset_Action_Source_Entries_Decision_Table_V2
       - Derived_Pricing_Entries_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table
+      - Product_Price_Range_Entries_Decision_Table_v2
 
 #-----------------------------#
 # CONTEXT DEFINITION SETTINGS #
@@ -389,25 +405,27 @@ project:
 # Each dataset is referenced in the data load tasks to insert or update data in the org
 # The datasets are organized by feature (QuantumBit, Q3, etc.) and data type (product, billing, etc.)
 
-    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-multicurrency"         # QuantumBit product data
-    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"               # QuantumBit billing data
-    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"                           # QuantumBit DRO data
-    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb-tax"                           # QuantumBit tax data
-    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating-256"              # QuantumBit rating data
-    quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"                     # QuantumBit rates data
+    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-pcm"               # QuantumBit product data
+    quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb-pricing"               # QuantumBit product data
+    quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb-product-images"  # QuantumBit product image data
+    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"                     # QuantumBit billing data
+    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"                                 # QuantumBit DRO data
+    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb-tax"                                 # QuantumBit tax data
+    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating-256"                    # QuantumBit rating data
+    quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"                           # QuantumBit rates data
     quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb-constraints-product"   # QuantumBit constraints product data
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb-constraints-component" # QuantumBit constraints component data
-    quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb-guidedselling" # QuantumBit guided selling data
+    quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb-guidedselling"   # QuantumBit guided selling data
 
-    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3-multicurrency"                         # Q3 product data
-    q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3-billing"                               # Q3 billing data
-    q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3-dro"                                           # Q3 DRO data
-    q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3-tax"                                           # Q3 tax data
-    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3-rating-256"                              # Q3 rating data
-    q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3-rates"                                     # Q3 rates data
-    q3_constraints_product_dataset: &q3_constraints_product_dataset "datasets/sfdmu/q3-constraints-product"   # Q3 constraints product data
+    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3-multicurrency"                               # Q3 product data
+    q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3-billing"                                     # Q3 billing data
+    q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3-dro"                                                 # Q3 DRO data
+    q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3-tax"                                                 # Q3 tax data
+    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3-rating-256"                                    # Q3 rating data
+    q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3-rates"                                           # Q3 rates data
+    q3_constraints_product_dataset: &q3_constraints_product_dataset "datasets/sfdmu/q3-constraints-product" # Q3 constraints product data
     q3_constraints_component_dataset: &q3_constraints_component_dataset "datasets/sfdmu/q3-constraints-component" # Q3 constraints component data
-    q3_guidedselling_dataset: &q3_guidedselling_dataset "datasets/sfdmu/q3-guidedselling"             # Q3 guided selling data
+    q3_guidedselling_dataset: &q3_guidedselling_dataset "datasets/sfdmu/q3-guidedselling"                   # Q3 guided selling data
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -853,19 +871,40 @@ tasks:
     description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
 
-  insert_quantumbit_data:
+  insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_product_dataset
 
-  insert_quantumbit_data_prod:
+  insert_quantumbit_pricing_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+
+  insert_quantumbit_pcmdata_prod:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data to Production
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_product_dataset
+
+  insert_quantumbit_pricing_data_prod:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+
+  insert_quantumbit_product_image_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Product Image Data to Production
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_product_image_dataset
 
   insert_q3_data:
     group: Revenue Lifecycle Management
@@ -1268,32 +1307,34 @@ flows:
       10:
         flow: prepare_product_data
       11:
-        flow: prepare_dro
+        flow: prepare_pricing_data
       12:
-        flow: prepare_tax
+        flow: prepare_dro
       13:
-        flow: prepare_billing
+        flow: prepare_tax
       14:
-        flow: prepare_clm
+        flow: prepare_billing
       15:
-        flow: prepare_rating
+        flow: prepare_clm
       16:
-        task: activate_and_deploy_expression_sets
+        flow: prepare_rating
       17:
-        flow: prepare_tso
+        task: activate_and_deploy_expression_sets
       18:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       19:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       20:
-        flow: prepare_agents
+        flow: prepare_prm
       21:
-        flow: prepare_docgen
+        flow: prepare_agents
       22:
-        flow: prepare_constraints
+        flow: prepare_docgen
       23:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       24:
+        flow: prepare_guidedselling
+      25:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -1418,10 +1459,10 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_quantumbit_data
+        task: insert_quantumbit_pcm_data
         when: org_config.scratch and project_config.project__custom__qb
       2:
-        task: insert_quantumbit_data_prod
+        task: insert_quantumbit_pcm_data_prod
         when: not org_config.scratch and project_config.project__custom__qb
       3:
         task: insert_q3_data
@@ -1429,6 +1470,16 @@ flows:
       4:
         task: insert_q3_data_prod
         when: not org_config.scratch and project_config.project__custom__q3
+      5:
+        task: insert_quantumbit_product_image_data
+        when: org_config.scratch and project_config.project__custom__qb
+
+  prepare_pricing_data:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_quantumbit_pricing_data
+        when: org_config.scratch and project_config.project__custom__qb
 
   prepare_scratch:
     group: Revenue Lifecycle Management
@@ -1561,7 +1612,7 @@ flows:
           name: rlm
       3:
         task: deploy_sharing_rules
-        when: project_config.project__custom__prm
+        when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
 
   prepare_tax:
     group: Revenue Lifecycle Management

@@ -148,6 +148,24 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
+        <name>Index_Rate_Decision_Table</name>
+        <label>Index_Rate_Decision_Table</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Index_Rate_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
         <name>Price_Adjustment_Tier_Decision_Table</name>
         <label>Price_Adjustment_Tier_Decision_Table</label>
         <locationX>0</locationX>
@@ -196,6 +214,9 @@
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Index_Rate_Decision_Table</targetReference>
+        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -270,7 +291,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>64.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <customProperties>
         <name>ScreenProgressIndicator</name>
@@ -326,7 +347,7 @@
         </fields>
         <fields>
             <name>txtDecisionTables</name>
-            <fieldText>&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Attribute_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Bundle_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Contract_Pricing_Adjustment_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Contract_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Contract_Pricing_Volume_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Price_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Tiered_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Asset_Action_Source_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Derived_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Product_Price_Range_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Product_Price_Range_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;RLM_CostBookEntries&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
+            <fieldText>&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Attribute_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Bundle_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Contract_Pricing_Adjustment_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Contract_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Contract_Pricing_Volume_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Price_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Tiered_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Asset_Action_Source_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Derived_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Product_Price_Range_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Product_Price_Range_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;RLM_CostBookEntries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Index_Rate_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
