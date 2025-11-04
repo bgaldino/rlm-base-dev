@@ -258,6 +258,7 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
+      - RC_Collection_Plan_Activity
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets

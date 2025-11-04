@@ -130,3 +130,5 @@ force-app/main/default/pages/RLM_UpdateQuotePrices.page
 force-app/main/default/pages/RLM_UpdateQuotePrices.page-meta.xml
 
 unpackaged/pre/5_decisiontables/RLM_Cost_Book_Entries.decisionTable-meta.xml
+force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
+force-app/main/default/flows/RC_Create_Case_for_Collection.flow-meta.xml

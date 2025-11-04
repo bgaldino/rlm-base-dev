@@ -165,9 +165,6 @@
                         <valueListItems>
                             <value>QuoteLineItem.QuoteLineGroup.IsRamped[QuoteLineGroup]</value>
                         </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.PriceRevisionPolicy.Name[PriceRevisionPolicy]</value>
-                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
@@ -1436,6 +1433,16 @@
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>flowApiName</name>
+                    <value>RC_Quote_Smart_Approval</value>
+                </componentInstanceProperties>
+                <componentName>runtime_approvals:approvalsWorkflowComponent</componentName>
+                <identifier>runtime_approvals_approvalsWorkflowComponent</identifier>
+            </componentInstance>
+        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentName>runtime_approvals:approvalTrace</componentName>

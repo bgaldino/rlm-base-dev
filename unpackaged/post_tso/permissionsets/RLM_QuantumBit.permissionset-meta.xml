@@ -108,6 +108,16 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>true</editable>
+        <field>InvoiceLine.RC_Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>InvoiceLine.RC_Product_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>OrderItem.AdjustedLineAmount</field>
         <readable>true</readable>
@@ -425,6 +435,16 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>OrderItem.ValidationResult</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Product2.RDraw__Rendering_Resources__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Product2.RDraw__Resource_Path__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
