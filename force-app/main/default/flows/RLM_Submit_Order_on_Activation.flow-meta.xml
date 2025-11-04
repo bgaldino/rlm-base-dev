@@ -3,8 +3,8 @@
     <actionCalls>
         <name>Assetize_Order</name>
         <label>Assetize Order</label>
-        <locationX>242</locationX>
-        <locationY>600</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>createOrUpdateAssetFromOrder</actionName>
         <actionType>createOrUpdateAssetFromOrder</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -21,8 +21,8 @@
     <actionCalls>
         <name>Submit_Order</name>
         <label>Submit Order</label>
-        <locationX>242</locationX>
-        <locationY>492</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>submitOrder</actionName>
         <actionType>submitOrder</actionType>
         <connector>
@@ -45,8 +45,8 @@
         <description>Check if the order has an AppUsageType of RevenueLifecycleManagement before calling Order-to-Asset. Otherwise do nothing.</description>
         <name>IsRevenueLifecycleManagement</name>
         <label>Is RevenueLifecycleManagement</label>
-        <locationX>374</locationX>
-        <locationY>384</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnectorLabel>Record is not RevenueLifecycleManagement</defaultConnectorLabel>
         <rules>
             <name>RecordIsRevenueLifecycleManagement</name>
@@ -85,8 +85,8 @@
         <description>Get ApplicationUsageAssignment from the updated order.</description>
         <name>Get_ApplicationUsageAssignment</name>
         <label>Get ApplicationUsageAssignment</label>
-        <locationX>374</locationX>
-        <locationY>276</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>IsRevenueLifecycleManagement</targetReference>
@@ -111,7 +111,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>

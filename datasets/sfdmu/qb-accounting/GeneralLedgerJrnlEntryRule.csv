@@ -1,2 +1,0 @@
-CreditGeneralLedgerAccount.AccountingCode,CurrencyIsoCode,DebitGeneralLedgerAccount.AccountingCode,GeneralLedgerAcctAsgntRule.Name,JournalEntryRuleName,Percentage,TransactionAmountField
-2200,USD,1100,USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),JER-0000000005,100,ChargeAmount

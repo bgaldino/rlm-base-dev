@@ -27,8 +27,8 @@
     <recordUpdates>
         <name>Update_Quote_Status</name>
         <label>Update Quote Status</label>
-        <locationX>176</locationX>
-        <locationY>134</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -46,7 +46,7 @@
         <object>Quote</object>
     </recordUpdates>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Update_Quote_Status</targetReference>

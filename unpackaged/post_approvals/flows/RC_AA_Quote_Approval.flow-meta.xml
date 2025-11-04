@@ -50,8 +50,8 @@
     <decisions>
         <name>Approve_or_Rejected_Level_2</name>
         <label>Approve or Rejected</label>
-        <locationX>490</locationX>
-        <locationY>674</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnector>
             <isGoTo>true</isGoTo>
             <targetReference>Update_Quote_to_Rejected</targetReference>
@@ -76,8 +76,8 @@
     <decisions>
         <name>Approve_or_Rejected_Level_3</name>
         <label>Approve or Rejected</label>
-        <locationX>50</locationX>
-        <locationY>782</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnector>
             <isGoTo>true</isGoTo>
             <targetReference>Update_Quote_to_Rejected</targetReference>
@@ -102,8 +102,8 @@
     <decisions>
         <name>Approved_or_Rejected</name>
         <label>Approved or Rejected</label>
-        <locationX>930</locationX>
-        <locationY>458</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnector>
             <targetReference>Update_Quote_to_Rejected</targetReference>
         </defaultConnector>
@@ -127,8 +127,8 @@
     <decisions>
         <name>Requires_Approval</name>
         <label>Requires Approval</label>
-        <locationX>941</locationX>
-        <locationY>134</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_Requires_Approval</name>
@@ -149,8 +149,8 @@
     <decisions>
         <name>Requires_Second_Level_Approval</name>
         <label>Requires Second Level Approval</label>
-        <locationX>600</locationX>
-        <locationY>350</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnector>
             <targetReference>Approved_or_Rejected</targetReference>
         </defaultConnector>
@@ -181,8 +181,8 @@
     <decisions>
         <name>Requires_Third_Level_Approval</name>
         <label>Requires Third Level Approval</label>
-        <locationX>270</locationX>
-        <locationY>566</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <defaultConnector>
             <targetReference>Approve_or_Rejected_Level_2</targetReference>
         </defaultConnector>
@@ -216,8 +216,8 @@
     <orchestratedStages>
         <name>Approval_Stage_2</name>
         <label>Approval Stage 2</label>
-        <locationX>270</locationX>
-        <locationY>458</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <connector>
             <targetReference>Requires_Third_Level_Approval</targetReference>
         </connector>
@@ -233,6 +233,7 @@
                 <assigneeType>Group</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
             <inputParameters>
@@ -254,8 +255,8 @@
     <orchestratedStages>
         <name>Approval_Stage_3</name>
         <label>Approval Stage 3</label>
-        <locationX>50</locationX>
-        <locationY>674</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <connector>
             <targetReference>Approve_or_Rejected_Level_3</targetReference>
         </connector>
@@ -271,6 +272,7 @@
                 <assigneeType>Group</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
             <inputParameters>
@@ -292,8 +294,8 @@
     <orchestratedStages>
         <name>Start_Quote_Approval</name>
         <label>Start Quote Approval</label>
-        <locationX>600</locationX>
-        <locationY>242</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <connector>
             <targetReference>Requires_Second_Level_Approval</targetReference>
         </connector>
@@ -303,6 +305,7 @@
             <actionName>RC_AA_Set_Quote_Status</actionName>
             <actionType>stepBackground</actionType>
             <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
             <inputParameters>
@@ -334,6 +337,7 @@
                 <assigneeType>Group</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
             <inputParameters>
@@ -361,14 +365,15 @@
     <orchestratedStages>
         <name>Update_Quote_Status_to_Approved</name>
         <label>Update Quote Status to Approved</label>
-        <locationX>600</locationX>
-        <locationY>1208</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <exitConditionLogic>and</exitConditionLogic>
         <stageSteps>
             <name>Set_to_Approved</name>
             <actionName>RC_AA_Set_Quote_Status</actionName>
             <actionType>stepBackground</actionType>
             <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
             <inputParameters>
@@ -393,14 +398,15 @@
     <orchestratedStages>
         <name>Update_Quote_to_Rejected</name>
         <label>Update Quote to Rejected</label>
-        <locationX>1018</locationX>
-        <locationY>566</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <exitConditionLogic>and</exitConditionLogic>
         <stageSteps>
             <name>Set_Quote_Status_to_Rejected</name>
             <actionName>RC_AA_Set_Quote_Status</actionName>
             <actionType>stepBackground</actionType>
             <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <exitConditionLogic>and</exitConditionLogic>
             <inputParameters>
@@ -443,7 +449,7 @@
     <processType>ApprovalWorkflow</processType>
     <runInMode>SystemModeWithoutSharing</runInMode>
     <start>
-        <locationX>815</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Requires_Approval</targetReference>

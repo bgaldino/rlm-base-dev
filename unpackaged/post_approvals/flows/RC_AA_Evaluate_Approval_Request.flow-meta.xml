@@ -1,29 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <actionCalls>
-        <name>Summarize_Quote</name>
-        <label>Summarize Quote</label>
-        <locationX>176</locationX>
-        <locationY>242</locationY>
-        <actionName>RC_Quote_Summary</actionName>
-        <actionType>generatePromptResponse</actionType>
-        <connector>
-            <targetReference>ScreenApprovalRequest</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>Input:Quote</name>
-            <value>
-                <elementReference>Get_Quote_Record</elementReference>
-            </value>
-        </inputParameters>
-        <nameSegment>RC_Quote_Summary</nameSegment>
-        <offset>0</offset>
-        <outputParameters>
-            <assignToReference>promptSummary</assignToReference>
-            <name>promptResponse</name>
-        </outputParameters>
-    </actionCalls>
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <choices>
@@ -69,11 +45,11 @@
     <recordLookups>
         <name>Get_Quote_Record</name>
         <label>Get Quote Record</label>
-        <locationX>176</locationX>
-        <locationY>134</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Summarize_Quote</targetReference>
+            <targetReference>ScreenApprovalRequest</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -90,8 +66,8 @@
     <screens>
         <name>ScreenApprovalRequest</name>
         <label>Evaluate Approval Request</label>
-        <locationX>176</locationX>
-        <locationY>350</locationY>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
@@ -99,11 +75,14 @@
             <name>dspSummaryTitle</name>
             <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 14px;&quot;&gt;Quote Summary&lt;/strong&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
-        </fields>
-        <fields>
-            <name>displaySummary</name>
-            <fieldText>&lt;p&gt;{!promptSummary}&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <fields>
             <name>ScreenApprovalRequest_Section1</name>
@@ -120,6 +99,14 @@
                     <fieldType>RadioButtons</fieldType>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>12</stringValue>
+                        </width>
+                    </styleProperties>
                 </fields>
                 <inputParameters>
                     <name>width</name>
@@ -139,6 +126,14 @@
                     <helpText>&lt;p&gt;Additional comments to the decision&lt;/p&gt;</helpText>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>false</isRequired>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>12</stringValue>
+                        </width>
+                    </styleProperties>
                 </fields>
                 <inputParameters>
                     <name>width</name>
@@ -150,12 +145,20 @@
             </fields>
             <isRequired>false</isRequired>
             <regionContainerType>SectionWithoutHeader</regionContainerType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
     </screens>
     <start>
-        <locationX>50</locationX>
+        <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
             <targetReference>Get_Quote_Record</targetReference>

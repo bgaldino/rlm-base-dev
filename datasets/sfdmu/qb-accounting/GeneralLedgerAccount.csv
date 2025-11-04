@@ -1,4 +1,6 @@
 AccountingCode,AccountingName,AccountingType,CurrencyIsoCode,Description,FinancialStatement,LegalEntity.Name,Name,Type
+4240,Intercompany Revenue,,USD,,,Default Legal Entity - US,4240 Intercompany Revenue,Revenue
+8200,Discounts Allowed (contra-revenue),,USD,,,Default Legal Entity - US,8200 Discounts Allowed (contra-revenue),Expense
 1100,Accounts Receivable – Trade,,USD,,,Default Legal Entity - US,1100 Accounts Receivable – Trade,Asset
 1110,Accounts Receivable – Unbilled,,USD,,,Default Legal Entity - US,1110 Accounts Receivable – Unbilled,Asset
 1120,Accounts Receivable – Retainage,,USD,,,Default Legal Entity - US,1120 Accounts Receivable – Retainage,Asset
@@ -16,7 +18,6 @@ AccountingCode,AccountingName,AccountingType,CurrencyIsoCode,Description,Financi
 4300,Subscription / Recurring Revenue (SaaS),,USD,,,Default Legal Entity - US,4300 Subscription / Recurring Revenue (SaaS),Revenue
 4400,"Other Revenue (Training, Misc.)",,USD,,,Default Legal Entity - US,"4400 Other Revenue (Training, Misc.)",Revenue
 8100,Bad Debt Expense,,USD,,,Default Legal Entity - US,8100 Bad Debt Expense,Expense
-8200,Discounts Allowed (contra-revenue),,USD,,,Default Legal Entity - US,8200 Discounts Allowed (contra-revenue),Expense
 8300,Sales Returns & Allowances,,USD,,,Default Legal Entity - US,8300 Sales Returns & Allowances,Expense
 1000,Cash & Cash Equivalents,,USD,,,Default Legal Entity - US,1000 Cash & Cash Equivalents,Asset
 5500,Travel & Entertainment,,USD,,,Default Legal Entity - US,5500 Travel & Entertainment,Expense
@@ -48,3 +49,4 @@ AccountingCode,AccountingName,AccountingType,CurrencyIsoCode,Description,Financi
 4610,Realized FX Gain,,USD,,,Default Legal Entity - US,4610 Realized FX Gain,Revenue
 8500,Unrealized FX Loss,,USD,,,Default Legal Entity - US,8500 Unrealized FX Loss,Expense
 8510,Realized FX Loss,,USD,,,Default Legal Entity - US,8510 Realized FX Loss,Expense
+1240,Accounts Receivable – Intercompany,,USD,,,Default Legal Entity - US,1240 Accounts Receivable – Intercompany,Asset
