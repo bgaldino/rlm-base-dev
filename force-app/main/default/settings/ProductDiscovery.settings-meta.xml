@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ProductDiscoverySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <discoverProductsFlowNameOrgValue>revenue_products__DiscoverProducts</discoverProductsFlowNameOrgValue>
     <prodDiscBrowseContextDefOrgValue>ProductDiscoveryContextAuto</prodDiscBrowseContextDefOrgValue>
     <prodDiscPricingEnabledOrgValue>true</prodDiscPricingEnabledOrgValue>
     <prodDiscProcedureOrgValue>Product Discovery Pricing Procedure Auto</prodDiscProcedureOrgValue>

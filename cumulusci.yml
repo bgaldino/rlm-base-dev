@@ -78,7 +78,7 @@ project:
     rating: true             # Insert Rating Design Time Data
     rates: true              # Insert Rates
     ramps: true              # Insert and configure ramps
-    einstein: true           # Use Einstein AI
+    einstein: false           # Use Einstein AI
     product_dataset: qb      # Default product dataset to use
     qbrix: true              # Use xDO base
     agents: false             # Deploy Agentforce Agent Configurations
@@ -93,6 +93,7 @@ project:
     guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false     # Use Sharing Settings
+    sfgo: true            # Salesforce Go Used for initial configuration
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -107,7 +108,6 @@ project:
       - BRERuntime
       - ClauseManagementUser
       - ContractManagementUser
-      - ContractsAIUserPsl
       - CorePricingDesignTime
       - DataProcessingEnginePsl
       - DecimalQuantityDesigntimePsl
@@ -136,6 +136,8 @@ project:
       # AI-related permission set groups
       - CopilotSalesforceUserPSG
       - CopilotSalesforceAdminPSG
+      - RC_QB_AI
+      - RC_RMI
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       # AI-related permission set licenses
@@ -243,17 +245,16 @@ project:
 
     rlm_psg_api_names: &rlm_psg_api_names
       # Core permission set groups
-      - RC_QB_AI
       - RC_RCB
-      - RC_RMI
       - RLM_CFG
-      - RLM_CLM
       - RLM_DOC
       - RLM_DRO
       - RLM_NGP
       - RLM_PCM
       - RLM_PSL
       - RLM_USG
+
+    rlm_einstein_psg_api_names: &rlm_einstein_psg_api_names
       
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
@@ -405,7 +406,7 @@ project:
 # Each dataset is referenced in the data load tasks to insert or update data in the org
 # The datasets are organized by feature (QuantumBit, Q3, etc.) and data type (product, billing, etc.)
 
-    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-pcm"               # QuantumBit product data
+    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/test-qb-pcm"               # QuantumBit product data
     quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb-pricing"               # QuantumBit product data
     quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb-product-images"  # QuantumBit product image data
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"                     # QuantumBit billing data
@@ -885,7 +886,7 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
-  insert_quantumbit_pcmdata_prod:
+  insert_quantumbit_pcm_data_prod:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data to Production
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -1413,34 +1414,37 @@ flows:
     steps:
       1:
         task: extend_context_sales_transaction
+        when: not project_config.project__custom__sfgo
       2:
         task: extend_context_product_discovery
+        when: not project_config.project__custom__sfgo
       3:
         task: extend_context_cart
-        when: project_config.project__custom__commerce
+        when: not project_config.project__custom__sfgo and project_config.project__custom__commerce
       4:
         task: extend_context_billing
-        when: project_config.project__custom__billing
+        when: not project_config.project__custom__sfgo and project_config.project__custom__billing
       5:
         task: extend_context_collection_plan_segment
-        when: project_config.project__custom__billing
+        when: not project_config.project__custom__sfgo and project_config.project__custom__billing
       6:
         task: extend_context_fulfillment_asset
-        when: project_config.project__custom__dro
+        when: not project_config.project__custom__sfgo and project_config.project__custom__dro
       7:
         task: extend_context_contracts
-        when: project_config.project__custom__clm
+        when: not project_config.project__custom__sfgo and project_config.project__custom__clm
       8:
         task: extend_context_contracts_extraction
-        when: project_config.project__custom__clm
+        when: not project_config.project__custom__sfgo and project_config.project__custom__clm
       9:
         task: extend_context_rate_management
-        when: project_config.project__custom__rating
+        when: not project_config.project__custom__sfgo and project_config.project__custom__rating
       10:
         task: extend_context_rating_discovery
-        when: project_config.project__custom__rating
+        when: not project_config.project__custom__sfgo and project_config.project__custom__rating
       11:
         task: extend_context_asset
+        when: not project_config.project__custom__sfgo 
 
   prepare_expression_sets:
     group: Revenue Lifecycle Management
