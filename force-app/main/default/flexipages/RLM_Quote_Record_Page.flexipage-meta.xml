@@ -165,9 +165,6 @@
                         <valueListItems>
                             <value>QuoteLineItem.QuoteLineGroup.IsRamped[QuoteLineGroup]</value>
                         </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.PriceRevisionPolicy.Name[PriceRevisionPolicy]</value>
-                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
@@ -738,6 +735,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.CreatedById</fieldItem>
                 <identifier>RecordCreatedByIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.LastModifiedDate</fieldItem>
+                <identifier>RecordLastModifiedDateField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1433,7 +1440,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>flowApiName</name>
-                    <value>RC_Quote_Transfer_Approval</value>
+                    <value>RC_Quote_Smart_Approval</value>
                 </componentInstanceProperties>
                 <componentName>runtime_approvals:approvalsWorkflowComponent</componentName>
                 <identifier>runtime_approvals_approvalsWorkflowComponent</identifier>

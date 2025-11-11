@@ -1,5 +1,5 @@
 $$Name$CurrencyIsoCode$Pricebook2.Name,AdjustmentMethod,CurrencyIsoCode,Description,EffectiveFrom,EffectiveTo,IsActive,Name,Pricebook2.$$Name$IsStandard,ScheduleType
 Standard Attribute Based Adjustment;USD;Standard Price Book,Range,USD,,2023-01-01T00:00:00.000+0000,,true,Standard Attribute Based Adjustment,Standard Price Book;true,Attribute
 Standard Bundle Based Adjustment;USD;Standard Price Book,Range,USD,,2023-01-01T00:00:00.000+0000,,true,Standard Bundle Based Adjustment,Standard Price Book;true,Bundle
-Standard Price Adjustment Tier;USD;Standard Price Book,Range,USD,,2025-10-01T11:13:07.000+0000,,false,Standard Price Adjustment Tier,Standard Price Book;true,Volume
+Standard Price Adjustment Tier;USD;Standard Price Book,Range,USD,,2023-01-01T00:00:00.000+0000,,false,Standard Price Adjustment Tier,Standard Price Book;true,Volume
 Standard Volume Based Adjustment;USD;Standard Price Book,Range,USD,,2023-01-01T00:00:00.000+0000,,true,Standard Volume Based Adjustment,Standard Price Book;true,Volume
