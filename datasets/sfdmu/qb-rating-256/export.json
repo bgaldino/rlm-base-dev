@@ -37,7 +37,7 @@
         },
         {
           "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
-          "operation": "Update",
+          "operation": "Upsert",
           "externalId": "StockKeepingUnit",
           "excluded": false
         },

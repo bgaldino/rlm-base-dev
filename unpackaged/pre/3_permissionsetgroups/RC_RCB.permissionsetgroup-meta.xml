@@ -3,7 +3,6 @@
     <description>All Revenue Cloud Billing Advanced Permission Sets for Super User</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC_RCB</label>
-    <permissionSets>force__AnalyticsStoreUser</permissionSets>
     <permissionSets>force__BillingAdvancedPaymentAdministrator</permissionSets>
     <permissionSets>force__BillingAdvancedPaymentOperations</permissionSets>
     <permissionSets>force__BillingCollectionsAndRecoverySpecialist</permissionSets>
