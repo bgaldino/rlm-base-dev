@@ -2,68 +2,69 @@
   "orgName": "Salesforce Revenue Lifecycle Management",
   "country": "US",
   "edition": "Enterprise",
-  "features": [
-    "AdvancedApproval",
-    "AIProviderOpenAI",
-    "AIProviderAWSBedrock",
-    "BillingAdvanced",
-    "CallCoaching",
-    "CGAnalytics",
-    "Chatbot",
-    "Communities",
-    "ContractsAIClauseDesigner",
-    "Copilot",
-    "CoreCPQ",
-    "CustomerDataPlatform",
-    "CustomerDataPlatformLite",
-    "DisclosureFramework",
-    "EinsteinAssistant",
-    "Einstein1AIPlatform",
-    "EinsteinGenerativeServices",
-    "EinsteinGPT",
-    "EinsteinHawkingC2CEnabled",
-    "EinsteinSearch",
-    "EnablePRM",
-    "EnableSetPasswordInApi",
-    "InsightsPlatform",
-    "OrderSaveLogicEnabled",
-    "PartnerCommunity",
-    "RevenueIntelligence",
-    "SalesCloudEinstein",
-    "SalesforceConfiguratorEngine",
-    "SalesforcePaymentsFeature",
-    "TableauEinstein",
-    "UsageManagement"
+    "features": [
+        "BusinessRulesEngine",
+        "EnableSetPasswordInApi",
+        "OrderSaveLogicEnabled",
+        "OrderSaveBehaviorBoth",
+        "OrderManagement",
+        "PartnerCommunity",
+        "Communities",
+        "CustomerCommunityPlus",
+        "CustomerCommunityPlusLogin",
+        "ContextService",
+        "CoreCpq",
+        "SalesforcePricing",
+        "SalesforceConfiguratorEngine",
+        "UsageManagement",
+        "BillingAdvanced",
+        "ProductCatalogManagementPCAddOn",
+        "DocGen"
     ],
-  "settings": {
-    "lightningExperienceSettings": {
-      "enableS1DesktopEnabled": true
-    },
-    "mobileSettings": {
-      "enableS1EncryptedStoragePref2": false
-    },
-    "userEngagementSettings": {
-      "enableShowSalesforceUserAssist": false
-    },
-    "userManagementSettings": {
-      "enableEnhancedProfileMgmt": true,
-      "enableEnhancedPermsetMgmt": true,
-      "enableNewProfileUI": true
-    },
-    "securitySettings": {
-      "enableAdminLoginAsAnyUser": true,
-      "sessionSettings": {
-        "forceRelogin": false
-      }
-    },
-    "languageSettings": {
-      "enableTranslationWorkbench": true
-    },
-    "currencySettings": {
-      "enableMultiCurrency": true
-    },
-    "communitiesSettings": {
-      "enableNetworksEnabled": true
+    "settings": {
+        "communitiesSettings": {
+            "enableNetworksEnabled": true
+        },
+        "customAddressFieldSettings": {
+            "enableCustomAddressField": true
+        },
+        "currencySettings": {
+            "enableMultiCurrency": true
+        },
+        "experienceBundleSettings": {
+            "enableExperienceBundleMetadata": true
+        },
+        "lightningExperienceSettings": {
+            "enableS1DesktopEnabled": true
+        },
+        "industriesContextSettings": {
+            "enableContextDefinitions": true
+        },
+        "opportunitySettings": {
+            "enableOpportunityTeam": true
+        },
+        "orderManagementSettings": {
+            "enableOrderManagement": true
+        },
+        "orderSettings": {
+            "enableOrders": true,
+            "enableEnhancedCommerceOrders": true,
+            "enableOrderEvents": true,
+            "enableOptionalPricebook": true,
+            "enableZeroQuantity": true,
+            "enableNegativeQuantity": true
+        },
+        "quoteSettings": {
+            "enableQuote": true,
+            "enableQuotesWithoutOppEnabled": true
+        },
+        "industriesPricingSettings": {
+            "enableSalesforcePricing": true
+        },
+        "industriesRatingSettings": {
+            "enableRating": true,
+            "enableRatingWaterfall": true,
+            "enableRatingWaterfallPersistence": true
+        }
     }
-  }
 }

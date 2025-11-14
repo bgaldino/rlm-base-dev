@@ -430,16 +430,6 @@
                 <identifier>RecordExternalDataSourceIdField</identifier>
             </fieldInstance>
         </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RDraw__Rendering_Resources__c</fieldItem>
-                <identifier>RecordRDraw_Rendering_Resources_cField</identifier>
-            </fieldInstance>
-        </itemInstances>
         <name>Facet-5be0d440-f9e3-4efb-ac83-942a29cafc91</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -462,26 +452,6 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.EndOfLifeDate</fieldItem>
                 <identifier>RecordEndOfLifeDateField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.X3D_Scene_Settings__c</fieldItem>
-                <identifier>RecordX3D_Scene_Settings_cField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RDraw__Resource_Path__c</fieldItem>
-                <identifier>RecordRDraw_Resource_Path_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-cf84a789-2607-448c-a72d-4aa63ae399e3</name>
@@ -1589,20 +1559,6 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>selectedTabId</name>
-                    <value>Visualization</value>
-                </componentInstanceProperties>
-                <componentName>RDraw:SceneSetup</componentName>
-                <identifier>RDraw_SceneSetup</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-e2f7e1c5-01eb-4604-b0cc-f549934f4b2d</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
                     <name>active</name>
                     <value>true</value>
                 </componentInstanceProperties>
@@ -1694,20 +1650,6 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab6</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-e2f7e1c5-01eb-4604-b0cc-f549934f4b2d</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Visual Setup</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab7</identifier>
             </componentInstance>
         </itemInstances>
         <name>maintabs</name>
