@@ -17,6 +17,7 @@
     <permissionSets>force__RevLifecycleManagementCreateOrderFromQuote</permissionSets>
     <permissionSets>force__RevLifecycleManagementPlaceOrderApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementProductAndPriceConfigurationApi</permissionSets>
+    <permissionSets>force__RevLifecycleManagementProductImportApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementQuotePricesTaxes</permissionSets>
     <permissionSets>force__RevLifecycleManagementUsageDesignUser</permissionSets>
     <status>Updated</status>
