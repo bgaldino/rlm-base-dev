@@ -1,0 +1,5 @@
+$$AttributeBasedAdjRule.Name$AttributeDefinition.Code$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Code,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.StockKeepingUnit,StringValue
+Rule_1724814105445;ATTR-QB-API;QB-API,Rule_1724814105445,ATTR-QB-API,,,,,,equals,QB-API,Flex
+Rule_1724814147720;ATTR-QB-API;QB-API,Rule_1724814147720,ATTR-QB-API,,,,,,equals,QB-API,Pre-Prod
+Rule_1724814176583;ATTR-QB-API;QB-API,Rule_1724814176583,ATTR-QB-API,,,,,,equals,QB-API,Prod
+Rule_1724814263993;ATTR-QB-API;QB-API,Rule_1724814263993,ATTR-QB-API,,,,,,equals,QB-API,Gov

@@ -1,0 +1,19 @@
+Code,Description,Name
+A. General,,A. General
+AC-QB,,QuantumBit
+AC-QB-API,,API Specification
+AC-QB-CABLES,,Cables
+AC-QB-CPU,,Server Processor
+AC-QB-NIC,,Network Adapter
+AC-QB-OS,,Operating System
+AC-QB-PS-ENGRESOURCES,,Engineering Resources
+AC-QB-PS-SUBTYPE,,Subscription Type
+AC-QB-PSBUNDLE,,Professional Services Bundle
+AC-QB-RAM,,RAM
+AC-QB-SERVER,,Server
+AC-QB-SPEC,,Tech Specs
+AC-QB-STORAGE,,Hard Drive
+AC-QB-UTILIZATION,,Utilization
+B. Storage,,B. Storage
+C. PCIe & Power,,C. PCIe & Power
+PCIe Lane,,PCIe Lane

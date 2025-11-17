@@ -1,0 +1,17 @@
+Code,Name,ParentProductClassification.Code,Status
+HDD PC,HDD PC,,Active
+PC-QB-API,API Type,,Active
+PC-QB-CABLES,Cables,,Active
+PC-QB-COMPLETE,QuantumBit Complete,,Active
+PC-QB-CPU,Processor,,Active
+PC-QB-MEMORY,Memory,,Active
+PC-QB-NIC,Network Adapter,,Active
+PC-QB-PS-RESOURCES,Engineering Resources,,Active
+PC-QB-PSBUNDLE,Professional Services Bundle,,Active
+PC-QB-SERVER,Server,,Active
+PC-QB-SOFTWARE,Software,,Draft
+PC-QB-STARTER,QuantumBit,,Active
+PC-QB-STORAGE,Hard Drive,,Active
+PC-QB-SUB,Subscription,,Active
+PCIe PC,PCIe PC,,Active
+Q-Rack PC,Q-Rack PC,,Active

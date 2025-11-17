@@ -1,0 +1,116 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+QB-API;Evergreen - Monthly,false,QB-API,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-API;Term Based - Yearly,true,QB-API,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API;Term Based - Monthly,false,QB-API,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-API-FLEX;Term Based - Yearly,true,QB-API-FLEX,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API-GOVT;Term Based - Yearly,true,QB-API-GOVT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API-MGMT;Evergreen - Monthly,false,QB-API-MGMT,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-API-MGMT;Term Based - Yearly,true,QB-API-MGMT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API-MGMT;Term Based - Monthly,false,QB-API-MGMT,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-API-PREP;Term Based - Yearly,true,QB-API-PREP,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API-PROD;Term Based - Yearly,true,QB-API-PROD,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API-REQT;Evergreen - Monthly,false,QB-API-REQT,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-API-REQT;Term Based - Yearly,true,QB-API-REQT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-API-REQT;Term Based - Monthly,false,QB-API-REQT,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-AUT-CRED;Evergreen - Monthly,false,QB-AUT-CRED,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-AUT-CRED;Term Based - Yearly,true,QB-AUT-CRED,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-AUT-CRED;Term Based - Monthly,false,QB-AUT-CRED,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-BDL-R750;One Time,true,QB-BDL-R750,One Time;OneTime,
+QB-BDL-SRVC;One Time,true,QB-BDL-SRVC,One Time;OneTime,
+QB-BDL-STND;One Time,true,QB-BDL-STND,One Time;OneTime,
+QB-BET X710SFP;One Time,true,QB-BET X710SFP,One Time;OneTime,
+QB-CBOOST-150;One Time,true,QB-CBOOST-150,One Time;OneTime,
+QB-CMPC-5882;One Time,true,QB-CMPC-5882,One Time;OneTime,
+QB-CMPC-5887;One Time,true,QB-CMPC-5887,One Time;OneTime,
+QB-CMT-TKN-EACH;Term Based - Yearly,true,QB-CMT-TKN-EACH,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-CMT-TKN-FLAT;Term Based - Yearly,true,QB-CMT-TKN-FLAT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-CMT-TKN-TIER;Term Based - Yearly,true,QB-CMT-TKN-TIER,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-COMPLETE;Evergreen - Monthly,false,QB-COMPLETE,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-COMPLETE;One Time,false,QB-COMPLETE,One Time;OneTime,
+QB-COMPLETE;Term Based - Yearly,true,QB-COMPLETE,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-COMPLETE;Term Based - Monthly,false,QB-COMPLETE,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-CPU-HEATSINK;One Time,true,QB-CPU-HEATSINK,One Time;OneTime,
+QB-CS;Term Based - Yearly,true,QB-CS,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-CS;Term Based - Monthly,false,QB-CS,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-DAT-GRPH;Term Based - Yearly,true,QB-DAT-GRPH,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-DAT-THPT;Evergreen - Monthly,false,QB-DAT-THPT,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-DAT-THPT;Term Based - Yearly,true,QB-DAT-THPT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-DAT-THPT;Term Based - Monthly,false,QB-DAT-THPT,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-DB;Term Based - Yearly,true,QB-DB,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-DB-TOKEN;Term Based - Yearly,true,QB-DB-TOKEN,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-FLO-STRT;Evergreen - Monthly,false,QB-FLO-STRT,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-FLO-STRT;Term Based - Yearly,true,QB-FLO-STRT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-FLO-STRT;Term Based - Monthly,false,QB-FLO-STRT,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-GEN-AI-LIC;Term Based - Yearly,true,QB-GEN-AI-LIC,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-HD 1.2TB;One Time,true,QB-HD 1.2TB,One Time;OneTime,
+QB-HD 1TB;One Time,true,QB-HD 1TB,One Time;OneTime,
+QB-HD 20TB;One Time,true,QB-HD 20TB,One Time;OneTime,
+QB-HD 3TB;One Time,true,QB-HD 3TB,One Time;OneTime,
+QB-HD 4TB;One Time,true,QB-HD 4TB,One Time;OneTime,
+QB-HD 8TB;One Time,true,QB-HD 8TB,One Time;OneTime,
+QB-HD 8TBSE;One Time,true,QB-HD 8TBSE,One Time;OneTime,
+QB-INTEL E5-2609;One Time,true,QB-INTEL E5-2609,One Time;OneTime,
+QB-INTEL E5-2660;One Time,true,QB-INTEL E5-2660,One Time;OneTime,
+QB-INTEL E5-2667;One Time,true,QB-INTEL E5-2667,One Time;OneTime,
+QB-INTEL E5-2683;One Time,true,QB-INTEL E5-2683,One Time;OneTime,
+QB-INTEL-GOLD-5318N;One Time,true,QB-INTEL-GOLD-5318N,One Time;OneTime,
+QB-INTEL-GOLD-6330N;One Time,true,QB-INTEL-GOLD-6330N,One Time;OneTime,
+QB-INTEL-GOLD-6354;One Time,true,QB-INTEL-GOLD-6354,One Time;OneTime,
+QB-INTEL-PLAT-8352M;One Time,true,QB-INTEL-PLAT-8352M,One Time;OneTime,
+QB-INTEL-PLAT-8352Y;One Time,true,QB-INTEL-PLAT-8352Y,One Time;OneTime,
+QB-INTEL-PLAT-8360Y;One Time,true,QB-INTEL-PLAT-8360Y,One Time;OneTime,
+QB-INTEL-PLAT-8368;One Time,true,QB-INTEL-PLAT-8368,One Time;OneTime,
+QB-LIC-CLOUD;Term Based - Yearly,true,QB-LIC-CLOUD,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-LIC-CLOUD;Term Based - Monthly,false,QB-LIC-CLOUD,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-LIQUIDCOOL;One Time,true,QB-LIQUIDCOOL,One Time;OneTime,
+QB-MEM 128GB;One Time,true,QB-MEM 128GB,One Time;OneTime,
+QB-MEM 16GB;One Time,true,QB-MEM 16GB,One Time;OneTime,
+QB-MEM 32GB;One Time,true,QB-MEM 32GB,One Time;OneTime,
+QB-MEM 64GB;One Time,true,QB-MEM 64GB,One Time;OneTime,
+QB-MEM 8GB;One Time,true,QB-MEM 8GB,One Time;OneTime,
+QB-MSG-STRT;Evergreen - Monthly,false,QB-MSG-STRT,Evergreen - Monthly;Evergreen,Default Proration Policy
+QB-MSG-STRT;Term Based - Yearly,true,QB-MSG-STRT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-MSG-STRT;Term Based - Monthly,false,QB-MSG-STRT,Term Based - Monthly;TermDefined,Default Proration Policy
+QB-MTY-CMT;Term Based - Yearly,true,QB-MTY-CMT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-NET X710;One Time,true,QB-NET X710,One Time;OneTime,
+QB-NET-100G-ULTRA;One Time,true,QB-NET-100G-ULTRA,One Time;OneTime,
+QB-NET-10G;One Time,true,QB-NET-10G,One Time;OneTime,
+QB-NET-25G;One Time,true,QB-NET-25G,One Time;OneTime,
+QB-NETSECURE-10G;One Time,true,QB-NETSECURE-10G,One Time;OneTime,
+QB-NovaX150;One Time,true,QB-NovaX150,One Time;OneTime,
+QB-NVExpand-200;One Time,true,QB-NVExpand-200,One Time;OneTime,
+QB-PWRCORE-1600S;One Time,true,QB-PWRCORE-1600S,One Time;OneTime,
+QB-PWRCORE-500S;One Time,true,QB-PWRCORE-500S,One Time;OneTime,
+QB-PWRCORE-800S;One Time,true,QB-PWRCORE-800S,One Time;OneTime,
+QB-PWRSAFE-1000D;One Time,true,QB-PWRSAFE-1000D,One Time;OneTime,
+QB-PWRSAFE-2000D;One Time,true,QB-PWRSAFE-2000D,One Time;OneTime,
+QB-PWRSAFE-600D;One Time,true,QB-PWRSAFE-600D,One Time;OneTime,
+QB-QRack-750;One Time,true,QB-QRack-750,One Time;OneTime,
+QB-QTY-CMT;Term Based - Yearly,true,QB-QTY-CMT,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-RAID-500;One Time,true,QB-RAID-500,One Time;OneTime,
+QB-SRV-DNE;One Time,true,QB-SRV-DNE,One Time;OneTime,
+QB-SRV-IMP;One Time,true,QB-SRV-IMP,One Time;OneTime,
+QB-SRV-ISE;One Time,true,QB-SRV-ISE,One Time;OneTime,
+QB-SRV-MEE;One Time,true,QB-SRV-MEE,One Time;OneTime,
+QB-SRV-OG-PSH;One Time,true,QB-SRV-OG-PSH,One Time;OneTime,
+QB-SRV-PD;One Time,true,QB-SRV-PD,One Time;OneTime,
+QB-SRV-PMN;One Time,true,QB-SRV-PMN,One Time;OneTime,
+QB-SRV-QAE;One Time,true,QB-SRV-QAE,One Time;OneTime,
+QB-SRV-SAT;One Time,true,QB-SRV-SAT,One Time;OneTime,
+QB-SRV-SOW;One Time,true,QB-SRV-SOW,One Time;OneTime,
+QB-SSD 16TB;One Time,true,QB-SSD 16TB,One Time;OneTime,
+QB-SSD 2TB;One Time,true,QB-SSD 2TB,One Time;OneTime,
+QB-SSD 30TB;One Time,true,QB-SSD 30TB,One Time;OneTime,
+QB-SSD 4TB;One Time,true,QB-SSD 4TB,One Time;OneTime,
+QB-SSD 8TB;One Time,true,QB-SSD 8TB,One Time;OneTime,
+QB-SUPP-1000;Term Based - Yearly,true,QB-SUPP-1000,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-SUPP-1005;Term Based - Yearly,true,QB-SUPP-1005,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-SUPP-2000;Term Based - Yearly,true,QB-SUPP-2000,Term Based - Yearly;TermDefined,Default Proration Policy
+QB-TOKENS-PACK;One Time,true,QB-TOKENS-PACK,One Time;OneTime,
+QB-TRN-ESSNTLS;One Time,true,QB-TRN-ESSNTLS,One Time;OneTime,
+QB-TRN-FUND;One Time,true,QB-TRN-FUND,One Time;OneTime,
+QB-VegaX200;One Time,true,QB-VegaX200,One Time;OneTime,
+TEST-SUB;Evergreen - Yearly,false,TEST-SUB,Evergreen - Yearly;Evergreen,Default Proration Policy
+TEST-SUB;Evergreen - Monthly,false,TEST-SUB,Evergreen - Monthly;Evergreen,Default Proration Policy
+TEST-SUB;Term Based - Yearly,true,TEST-SUB,Term Based - Yearly;TermDefined,Default Proration Policy
+TEST-SUB;Term Based - Monthly,false,TEST-SUB,Term Based - Monthly;TermDefined,Default Proration Policy
