@@ -9,7 +9,6 @@
     <permissionSets>force__Microsoft365WordUser</permissionSets>
     <permissionSets>force__ObligationUser</permissionSets>
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
-    <permissionSets>force__ProductDiscoveryUser</permissionSets>
     <permissionSets>force__RatingRunTimeUser</permissionSets>
     <permissionSets>force__RevLifecycleManagementCalculatePricesApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementCalculateTaxesApi</permissionSets>

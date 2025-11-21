@@ -14,8 +14,6 @@
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
     <permissionSets>force__ProductConfigurationRulesDesigner</permissionSets>
     <permissionSets>force__ProductDetailsApiCache</permissionSets>
-    <permissionSets>force__ProductDiscoveryAdmin</permissionSets>
-    <permissionSets>force__ProductDiscoveryUser</permissionSets>
     <permissionSets>force__RevLifecycleManagementCalculatePricesApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementProductAndPriceConfigurationApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementProductImportApi</permissionSets>
