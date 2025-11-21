@@ -315,6 +315,16 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
+                <fieldItem>Record.StartDate</fieldItem>
+                <identifier>RecordStartDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
                 <fieldItem>Record.ExpirationDate</fieldItem>
                 <identifier>RecordExpirationDateField</identifier>
             </fieldInstance>
@@ -335,6 +345,16 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
+                <fieldItem>Record.RC_Payment_Terms__c</fieldItem>
+                <identifier>RecordRC_Payment_Terms_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
                 <fieldItem>Record.RC_Approval_Status__c</fieldItem>
                 <identifier>RecordRC_Approval_Status_cField</identifier>
             </fieldInstance>
@@ -345,18 +365,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.StartDate</fieldItem>
-                <identifier>RecordStartDateField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RC_Start_Sync__c</fieldItem>
-                <identifier>RecordRC_Start_Sync__cField</identifier>
+                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
+                <identifier>RecordRC_Approval_Level_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
@@ -391,6 +401,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.ContractId</fieldItem>
                 <identifier>RecordContractIdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.EndDate</fieldItem>
+                <identifier>RecordEndDateField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -765,16 +785,6 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.ValidationResult</fieldItem>
                 <identifier>RecordValidationResultField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
-                <identifier>RecordRC_Approval_Level_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-852b10dd-72a2-463a-bd87-90ceaf3fa84a</name>
