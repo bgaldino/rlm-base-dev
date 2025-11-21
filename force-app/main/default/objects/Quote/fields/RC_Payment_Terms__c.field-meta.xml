@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>Payment_Terms__c</fullName>
+    <fullName>RC_Payment_Terms__c</fullName>
     <label>Payment Terms</label>
     <required>false</required>
     <trackHistory>false</trackHistory>
