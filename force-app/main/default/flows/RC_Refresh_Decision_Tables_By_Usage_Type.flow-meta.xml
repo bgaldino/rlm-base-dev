@@ -21,7 +21,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
     <interviewLabel>RC Refresh Decision Tables By Usage Type {!$Flow.CurrentDateTime}</interviewLabel>

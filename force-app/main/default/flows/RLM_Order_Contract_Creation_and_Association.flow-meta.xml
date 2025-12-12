@@ -43,7 +43,7 @@
             <name>subscriptionItemCount</name>
         </outputParameters>
     </actionCalls>
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Set_Values_of_Contract_with_Opp</name>

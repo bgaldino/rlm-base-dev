@@ -83,7 +83,7 @@
         <nameSegment>RLM_QuoteHeaderFlowController</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Add_to_Quote_Lines_to_Update</name>

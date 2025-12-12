@@ -35,7 +35,7 @@
         <nameSegment>RC_AA_Submit_Approval</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <customProperties>
         <name>ScreenProgressIndicator</name>

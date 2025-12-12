@@ -1843,7 +1843,7 @@
     <description>Extension of Standard Rating Discovery Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>RatingDiscoveryContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>65.04</inheritedFromVersion>
+    <inheritedFromVersion>66.04</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_RatingDiscoveryContext</masterLabel>
     <title>RLM_RatingDiscoveryContext</title>

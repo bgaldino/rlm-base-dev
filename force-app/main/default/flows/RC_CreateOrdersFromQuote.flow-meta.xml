@@ -64,7 +64,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
         <versionString>1.0.0</versionString>
     </actionCalls>
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Error_Message_Transfer_Quote</name>

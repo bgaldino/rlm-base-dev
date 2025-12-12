@@ -12,7 +12,7 @@ public with sharing class RC_RebuildSearchIndex {
                 HttpRequest httpReq = new HttpRequest();
                 // Get MyDomain URL of the Org
                 String myDomainUrl = URL.getOrgDomainUrl().toExternalForm();
-                String endpoint = myDomainUrl + '/services/data/v65.0/connect/pcm/index/deploy';
+                String endpoint = myDomainUrl + '/services/data/v66.0/connect/pcm/index/deploy';
                 httpReq.setEndpoint(endpoint);
                 httpReq.setMethod('POST');
                 httpReq.setHeader('Content-Type', 'application/json');
