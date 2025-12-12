@@ -1,0 +1,17 @@
+Code,Name,ParentProductClassification.Code,Status
+HDD PC,HDD PC,,Active
+PC-QB-API,APIタイプ,,Active
+PC-QB-CABLES,ケーブル,,Active
+PC-QB-COMPLETE,QuantumBit コンプリート,,Active
+PC-QB-CPU,プロセッサ,,Active
+PC-QB-MEMORY,メモリ,,Active
+PC-QB-NIC,ネットワークアダプタ,,Active
+PC-QB-PS-RESOURCES,エンジニアリングリソース,,Active
+PC-QB-PSBUNDLE,プロフェッショナルサービスバンドル,,Active
+PC-QB-SERVER,サーバー,,Active
+PC-QB-SOFTWARE,ソフトウェア,,Draft
+PC-QB-STARTER,QuantumBit,,Active
+PC-QB-STORAGE,ハードドライブ,,Active
+PC-QB-SUB,サブスクリプション,,Active
+PCIe PC,PCIe PC,,Active
+Q-Rack PC,Q-Rack PC,,Active

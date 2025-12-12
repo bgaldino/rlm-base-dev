@@ -1,0 +1,19 @@
+Code,Description,Name
+A. General,,A. 概要
+AC-QB,,QuantumBit
+AC-QB-API,,API 仕様
+AC-QB-CABLES,,ケーブル
+AC-QB-CPU,,プロセッサ
+AC-QB-NIC,,ネットワークアダプタ
+AC-QB-OS,,オペレーティングシステム
+AC-QB-PS-ENGRESOURCES,,エンジニアリングリソース
+AC-QB-PS-SUBTYPE,,サブスクリプションタイプ
+AC-QB-PSBUNDLE,,プロフェッショナルサービスバンドル
+AC-QB-RAM,,RAM
+AC-QB-SERVER,,サーバー
+AC-QB-SPEC,,技術仕様
+AC-QB-STORAGE,,ハードドライブ
+AC-QB-UTILIZATION,,利用率
+B. Storage,,B. ストレージ
+C. PCIe & Power,,C. PCIe および電源
+PCIe Lane,,PCIe レーン

@@ -93,6 +93,7 @@ project:
     guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false     # Use Sharing Settings
+    locale: "en_US"           # Default locale
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -405,27 +406,27 @@ project:
 # Each dataset is referenced in the data load tasks to insert or update data in the org
 # The datasets are organized by feature (QuantumBit, Q3, etc.) and data type (product, billing, etc.)
 
-    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb-pcm"               # QuantumBit product data
-    quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb-pricing"               # QuantumBit product data
-    quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb-product-images"  # QuantumBit product image data
-    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb-billing"                     # QuantumBit billing data
-    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb-dro"                                 # QuantumBit DRO data
-    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb-tax"                                 # QuantumBit tax data
-    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb-rating-256"                    # QuantumBit rating data
-    quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb-rates"                           # QuantumBit rates data
-    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb-constraints-product"   # QuantumBit constraints product data
-    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb-constraints-component" # QuantumBit constraints component data
-    quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb-guidedselling"   # QuantumBit guided selling data
+    quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb/en-us/qb-pcm"               # QuantumBit product data
+    quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb/en-us/qb-pricing"               # QuantumBit product data
+    quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb/en-us/qb-product-images"  # QuantumBit product image data
+    quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb/en-us/qb-billing"                     # QuantumBit billing data
+    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-us/qb-dro"                                 # QuantumBit DRO data
+    quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-us/qb-tax"                                 # QuantumBit tax data
+    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-us/qb-rating-256"                    # QuantumBit rating data
+    quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-us/qb-rates"                           # QuantumBit rates data
+    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-us/qb-constraints-product"   # QuantumBit constraints product data
+    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-us/qb-constraints-component" # QuantumBit constraints component data
+    quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-us/qb-guidedselling"   # QuantumBit guided selling data
 
-    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3-multicurrency"                               # Q3 product data
-    q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3-billing"                                     # Q3 billing data
-    q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3-dro"                                                 # Q3 DRO data
-    q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3-tax"                                                 # Q3 tax data
-    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3-rating-256"                                    # Q3 rating data
-    q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3-rates"                                           # Q3 rates data
-    q3_constraints_product_dataset: &q3_constraints_product_dataset "datasets/sfdmu/q3-constraints-product" # Q3 constraints product data
-    q3_constraints_component_dataset: &q3_constraints_component_dataset "datasets/sfdmu/q3-constraints-component" # Q3 constraints component data
-    q3_guidedselling_dataset: &q3_guidedselling_dataset "datasets/sfdmu/q3-guidedselling"                   # Q3 guided selling data
+    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/q3-multicurrency"                               # Q3 product data
+    q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/q3-billing"                                     # Q3 billing data
+    q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3/q3-dro"                                                 # Q3 DRO data
+    q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3/q3-tax"                                                 # Q3 tax data
+    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3/q3-rating-256"                                    # Q3 rating data
+    q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3/q3-rates"                                           # Q3 rates data
+    q3_constraints_product_dataset: &q3_constraints_product_dataset "datasets/sfdmu/q3/q3-constraints-product" # Q3 constraints product data
+    q3_constraints_component_dataset: &q3_constraints_component_dataset "datasets/sfdmu/q3/q3-constraints-component" # Q3 constraints component data
+    q3_guidedselling_dataset: &q3_guidedselling_dataset "datasets/sfdmu/q3/q3-guidedselling"                   # Q3 guided selling data
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#

@@ -1,0 +1,10 @@
+$$Name$SellingModelType,DoesAutoRenewAssetByDefault,Name,PricingTerm,PricingTermUnit,SellingModelType,Status
+エバーグリーン（半年）;Evergreen,false,エバーグリーン（半年）,1,Semi-Annual,Evergreen,Active
+エバーグリーン（四半期）;Evergreen,false,エバーグリーン（四半期）,1,Quarterly,Evergreen,Active
+エバーグリーン（年間）;Evergreen,false,エバーグリーン（年間）,1,Annual,Evergreen,Active
+エバーグリーン（月間）;Evergreen,false,エバーグリーン（月間）,1,Months,Evergreen,Active
+期間ベース（半年）;TermDefined,false,期間ベース（半年）,1,Semi-Annual,TermDefined,Active
+期間ベース（四半期）;TermDefined,false,期間ベース（四半期）,1,Quarterly,TermDefined,Active
+期間ベース（年間）;TermDefined,true,期間ベース（年間）,1,Annual,TermDefined,Active
+期間ベース（月間）;TermDefined,false,期間ベース（月間）,1,Months,TermDefined,Active
+１回限り;OneTime,false,１回限り,,,OneTime,Active

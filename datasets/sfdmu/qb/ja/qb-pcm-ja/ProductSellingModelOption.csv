@@ -1,0 +1,116 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+QB-API;エバーグリーン（月間）,false,QB-API,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-API;期間ベース（年間）,true,QB-API,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API;期間ベース（月間）,false,QB-API,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-API-FLEX;期間ベース（年間）,true,QB-API-FLEX,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API-GOVT;期間ベース（年間）,true,QB-API-GOVT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API-MGMT;エバーグリーン（月間）,false,QB-API-MGMT,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-API-MGMT;期間ベース（年間）,true,QB-API-MGMT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API-MGMT;期間ベース（月間）,false,QB-API-MGMT,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-API-PREP;期間ベース（年間）,true,QB-API-PREP,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API-PROD;期間ベース（年間）,true,QB-API-PROD,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API-REQT;エバーグリーン（月間）,false,QB-API-REQT,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-API-REQT;期間ベース（年間）,true,QB-API-REQT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-API-REQT;期間ベース（月間）,false,QB-API-REQT,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-AUT-CRED;エバーグリーン（月間）,false,QB-AUT-CRED,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-AUT-CRED;期間ベース（年間）,true,QB-AUT-CRED,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-AUT-CRED;期間ベース（月間）,false,QB-AUT-CRED,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-BDL-R750;１回限り,true,QB-BDL-R750,１回限り;OneTime,
+QB-BDL-SRVC;１回限り,true,QB-BDL-SRVC,１回限り;OneTime,
+QB-BDL-STND;１回限り,true,QB-BDL-STND,１回限り;OneTime,
+QB-BET X710SFP;１回限り,true,QB-BET X710SFP,１回限り;OneTime,
+QB-CBOOST-150;１回限り,true,QB-CBOOST-150,１回限り;OneTime,
+QB-CMPC-5882;１回限り,true,QB-CMPC-5882,１回限り;OneTime,
+QB-CMPC-5887;１回限り,true,QB-CMPC-5887,１回限り;OneTime,
+QB-CMT-TKN-EACH;期間ベース（年間）,true,QB-CMT-TKN-EACH,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-CMT-TKN-FLAT;期間ベース（年間）,true,QB-CMT-TKN-FLAT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-CMT-TKN-TIER;期間ベース（年間）,true,QB-CMT-TKN-TIER,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-COMPLETE;エバーグリーン（月間）,false,QB-COMPLETE,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-COMPLETE;期間ベース（年間）,true,QB-COMPLETE,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-COMPLETE;期間ベース（月間）,false,QB-COMPLETE,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-COMPLETE;１回限り,false,QB-COMPLETE,１回限り;OneTime,
+QB-CPU-HEATSINK;１回限り,true,QB-CPU-HEATSINK,１回限り;OneTime,
+QB-CS;期間ベース（年間）,true,QB-CS,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-CS;期間ベース（月間）,false,QB-CS,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-DAT-GRPH;期間ベース（年間）,true,QB-DAT-GRPH,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-DAT-THPT;エバーグリーン（月間）,false,QB-DAT-THPT,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-DAT-THPT;期間ベース（年間）,true,QB-DAT-THPT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-DAT-THPT;期間ベース（月間）,false,QB-DAT-THPT,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-DB;期間ベース（年間）,true,QB-DB,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-DB-TOKEN;期間ベース（年間）,true,QB-DB-TOKEN,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-FLO-STRT;エバーグリーン（月間）,false,QB-FLO-STRT,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-FLO-STRT;期間ベース（年間）,true,QB-FLO-STRT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-FLO-STRT;期間ベース（月間）,false,QB-FLO-STRT,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-GEN-AI-LIC;期間ベース（年間）,true,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-HD 1.2TB;１回限り,true,QB-HD 1.2TB,１回限り;OneTime,
+QB-HD 1TB;１回限り,true,QB-HD 1TB,１回限り;OneTime,
+QB-HD 20TB;１回限り,true,QB-HD 20TB,１回限り;OneTime,
+QB-HD 3TB;１回限り,true,QB-HD 3TB,１回限り;OneTime,
+QB-HD 4TB;１回限り,true,QB-HD 4TB,１回限り;OneTime,
+QB-HD 8TB;１回限り,true,QB-HD 8TB,１回限り;OneTime,
+QB-HD 8TBSE;１回限り,true,QB-HD 8TBSE,１回限り;OneTime,
+QB-INTEL E5-2609;１回限り,true,QB-INTEL E5-2609,１回限り;OneTime,
+QB-INTEL E5-2660;１回限り,true,QB-INTEL E5-2660,１回限り;OneTime,
+QB-INTEL E5-2667;１回限り,true,QB-INTEL E5-2667,１回限り;OneTime,
+QB-INTEL E5-2683;１回限り,true,QB-INTEL E5-2683,１回限り;OneTime,
+QB-INTEL-GOLD-5318N;１回限り,true,QB-INTEL-GOLD-5318N,１回限り;OneTime,
+QB-INTEL-GOLD-6330N;１回限り,true,QB-INTEL-GOLD-6330N,１回限り;OneTime,
+QB-INTEL-GOLD-6354;１回限り,true,QB-INTEL-GOLD-6354,１回限り;OneTime,
+QB-INTEL-PLAT-8352M;１回限り,true,QB-INTEL-PLAT-8352M,１回限り;OneTime,
+QB-INTEL-PLAT-8352Y;１回限り,true,QB-INTEL-PLAT-8352Y,１回限り;OneTime,
+QB-INTEL-PLAT-8360Y;１回限り,true,QB-INTEL-PLAT-8360Y,１回限り;OneTime,
+QB-INTEL-PLAT-8368;１回限り,true,QB-INTEL-PLAT-8368,１回限り;OneTime,
+QB-LIC-CLOUD;期間ベース（年間）,true,QB-LIC-CLOUD,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-LIC-CLOUD;期間ベース（月間）,false,QB-LIC-CLOUD,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-LIQUIDCOOL;１回限り,true,QB-LIQUIDCOOL,１回限り;OneTime,
+QB-MEM 128GB;１回限り,true,QB-MEM 128GB,１回限り;OneTime,
+QB-MEM 16GB;１回限り,true,QB-MEM 16GB,１回限り;OneTime,
+QB-MEM 32GB;１回限り,true,QB-MEM 32GB,１回限り;OneTime,
+QB-MEM 64GB;１回限り,true,QB-MEM 64GB,１回限り;OneTime,
+QB-MEM 8GB;１回限り,true,QB-MEM 8GB,１回限り;OneTime,
+QB-MSG-STRT;エバーグリーン（月間）,false,QB-MSG-STRT,エバーグリーン（月間）;Evergreen,Default Proration Policy
+QB-MSG-STRT;期間ベース（年間）,true,QB-MSG-STRT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-MSG-STRT;期間ベース（月間）,false,QB-MSG-STRT,期間ベース（月間）;TermDefined,Default Proration Policy
+QB-MTY-CMT;期間ベース（年間）,true,QB-MTY-CMT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-NET X710;１回限り,true,QB-NET X710,１回限り;OneTime,
+QB-NET-100G-ULTRA;１回限り,true,QB-NET-100G-ULTRA,１回限り;OneTime,
+QB-NET-10G;１回限り,true,QB-NET-10G,１回限り;OneTime,
+QB-NET-25G;１回限り,true,QB-NET-25G,１回限り;OneTime,
+QB-NETSECURE-10G;１回限り,true,QB-NETSECURE-10G,１回限り;OneTime,
+QB-NovaX150;１回限り,true,QB-NovaX150,１回限り;OneTime,
+QB-NVExpand-200;１回限り,true,QB-NVExpand-200,１回限り;OneTime,
+QB-PWRCORE-1600S;１回限り,true,QB-PWRCORE-1600S,１回限り;OneTime,
+QB-PWRCORE-500S;１回限り,true,QB-PWRCORE-500S,１回限り;OneTime,
+QB-PWRCORE-800S;１回限り,true,QB-PWRCORE-800S,１回限り;OneTime,
+QB-PWRSAFE-1000D;１回限り,true,QB-PWRSAFE-1000D,１回限り;OneTime,
+QB-PWRSAFE-2000D;１回限り,true,QB-PWRSAFE-2000D,１回限り;OneTime,
+QB-PWRSAFE-600D;１回限り,true,QB-PWRSAFE-600D,１回限り;OneTime,
+QB-QRack-750;１回限り,true,QB-QRack-750,１回限り;OneTime,
+QB-QTY-CMT;期間ベース（年間）,true,QB-QTY-CMT,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-RAID-500;１回限り,true,QB-RAID-500,１回限り;OneTime,
+QB-SRV-DNE;１回限り,true,QB-SRV-DNE,１回限り;OneTime,
+QB-SRV-IMP;１回限り,true,QB-SRV-IMP,１回限り;OneTime,
+QB-SRV-ISE;１回限り,true,QB-SRV-ISE,１回限り;OneTime,
+QB-SRV-MEE;１回限り,true,QB-SRV-MEE,１回限り;OneTime,
+QB-SRV-OG-PSH;１回限り,true,QB-SRV-OG-PSH,１回限り;OneTime,
+QB-SRV-PD;１回限り,true,QB-SRV-PD,１回限り;OneTime,
+QB-SRV-PMN;１回限り,true,QB-SRV-PMN,１回限り;OneTime,
+QB-SRV-QAE;１回限り,true,QB-SRV-QAE,１回限り;OneTime,
+QB-SRV-SAT;１回限り,true,QB-SRV-SAT,１回限り;OneTime,
+QB-SRV-SOW;１回限り,true,QB-SRV-SOW,１回限り;OneTime,
+QB-SSD 16TB;１回限り,true,QB-SSD 16TB,１回限り;OneTime,
+QB-SSD 2TB;１回限り,true,QB-SSD 2TB,１回限り;OneTime,
+QB-SSD 30TB;１回限り,true,QB-SSD 30TB,１回限り;OneTime,
+QB-SSD 4TB;１回限り,true,QB-SSD 4TB,１回限り;OneTime,
+QB-SSD 8TB;１回限り,true,QB-SSD 8TB,１回限り;OneTime,
+QB-SUPP-1000;期間ベース（年間）,true,QB-SUPP-1000,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-SUPP-1005;期間ベース（年間）,true,QB-SUPP-1005,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-SUPP-2000;期間ベース（年間）,true,QB-SUPP-2000,期間ベース（年間）;TermDefined,Default Proration Policy
+QB-TOKENS-PACK;１回限り,true,QB-TOKENS-PACK,１回限り;OneTime,
+QB-TRN-ESSNTLS;１回限り,true,QB-TRN-ESSNTLS,１回限り;OneTime,
+QB-TRN-FUND;１回限り,true,QB-TRN-FUND,１回限り;OneTime,
+QB-VegaX200;１回限り,true,QB-VegaX200,１回限り;OneTime,
+TEST-SUB;エバーグリーン（年間）,false,TEST-SUB,エバーグリーン（年間）;Evergreen,Default Proration Policy
+TEST-SUB;エバーグリーン（月間）,false,TEST-SUB,エバーグリーン（月間）;Evergreen,Default Proration Policy
+TEST-SUB;期間ベース（年間）,true,TEST-SUB,期間ベース（年間）;TermDefined,Default Proration Policy
+TEST-SUB;期間ベース（月間）,false,TEST-SUB,期間ベース（月間）;TermDefined,Default Proration Policy
