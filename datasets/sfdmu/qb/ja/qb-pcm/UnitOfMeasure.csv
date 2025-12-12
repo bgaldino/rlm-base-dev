@@ -1,0 +1,13 @@
+ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
+1000000000,,Byte,,,1,Active,Data,B,DATAVOL
+1,Support Cases,Each,,,1,Active,Count,EACH,CAS01
+1,,GB,,,4,Active,Data,GB,DATAVOL
+60,,時間,,,3,Active,Time,h,TIME
+1,,JPY,,,1,Active,Cost,JPY,CURRENCY
+1000000,,KB,,,2,Active,Data,KB,DATAVOL
+1,,分,,,2,Active,Time,m,TIME
+1000,,MB,,,3,Active,Data,MB,DATAVOL
+0.000001,,PB,,,6,Active,Data,PB,DATAVOL
+0.016667,,秒,,,1,Active,Time,s,TIME
+0.001,,TB,,,5,Active,Data,TB,DATAVOL
+,Token UOM,トークン,,,,Active,Custom,TOKEN-UOM,Token_UoM_Class

@@ -1,0 +1,4 @@
+CatalogType,Code,Description,EffectiveEndDate,EffectiveStartDate,Name
+Sales,CAT-QB-HW,,,,QuantumBit ハードウェア
+Sales,CAT-QB-SFT,,,,QuantumBit ソフトウェア
+Sales,CAT-QB-SRV,,,,QuantumBit サービス

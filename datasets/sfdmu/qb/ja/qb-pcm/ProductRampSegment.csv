@@ -1,0 +1,8 @@
+$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,DurationType,Name,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
+QB-API;TermDefined;Yearly,,PPRS-000000006,QB-API,期間ベース（年間）;TermDefined,Yearly,
+QB-API;TermDefined;Custom,,PPRS-000000007,QB-API,期間ベース（年間）;TermDefined,Custom,
+QB-API;TermDefined;FreeTrial,Months,PPRS-000000011,QB-API,期間ベース（年間）;TermDefined,FreeTrial,1
+QB-GEN-AI-LIC;TermDefined;Yearly,,PPRS-000000008,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,Yearly,
+QB-GEN-AI-LIC;TermDefined;Custom,,PPRS-000000009,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,Custom,
+QB-GEN-AI-LIC;TermDefined;FreeTrial,Days,PPRS-000000012,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,FreeTrial,30
+QB-SUPP-2000;TermDefined;Yearly,,PPRS-000000010,QB-SUPP-2000,期間ベース（年間）;TermDefined,Yearly,
