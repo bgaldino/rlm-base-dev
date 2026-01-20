@@ -1,4 +1,0 @@
-$$UsageDefinitionProduct.StockKeepingUnit$UnitOfMeasureClass.Code$UnitOfMeasure.UnitCode,DrawdownOrder,Label,OverageChargeable,ProductUsageResource.$$Product.StockKeepingUnit$UsageResource.Code,Quantity,RenewalPolicy.Code,RolloverPolicy.Code,Status,Type,UnitOfMeasure.UnitCode,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,ValidityPeriodTerm,ValidityPeriodUnit,EffectiveStartDate,EffectiveEndDate
-QB-DATA-THPT-BLNG;DATAVOL;TB,ExpiringFirst,,,QB-DAT-THPT;UR-DATAXFR,5,QB-DB-REFRESH,QB-DB-ROLLOVER,Draft,Grant,TB,DATAVOL,QB-DATA-THPT-BLNG,1,Month,2023-01-01T20:00:00.000+0000,
-QB-CPU-BLNG;TIME;m,ExpiringFirst,,Yes,QB-DB;UR-CPUTIME,0,QB-DB-REFRESH,QB-DB-ROLLOVER,Draft,Grant,m,TIME,QB-CPU-BLNG,1,Month,2023-01-01T20:00:00.000+0000,
-QB-DATA-STORAGE-BLNG;DATAVOL;TB,ExpiringFirst,,Yes,QB-DB;UR-DATASTORAGE,5,QB-DB-REFRESH,QB-DB-ROLLOVER,Draft,Grant,TB,DATAVOL,QB-DATA-STORAGE-BLNG,1,Month,2023-01-01T20:00:00.000+0000,

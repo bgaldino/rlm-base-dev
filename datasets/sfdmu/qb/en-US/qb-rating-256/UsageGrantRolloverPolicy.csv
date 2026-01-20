@@ -1,2 +1,0 @@
-Code,IsRolloverAllowed,MaximumRolloverCount,Name,ShouldAllowRolloverExpiry,Status
-QB-DB-ROLLOVER,true,,QuantumBit Database Rollover Policy,false,Active
