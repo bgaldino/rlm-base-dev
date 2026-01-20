@@ -6,9 +6,13 @@
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
     <enableCoreCPQ>true</enableCoreCPQ>
     <enableDeltaPricing>true</enableDeltaPricing>
+    <enableFullEscalationHydration>true</enableFullEscalationHydration>
+    <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
     <enableRampDeal>true</enableRampDeal>
+    <enableRevInstPricingDefaultPref>false</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
+    <enableRevenueAdjustment>true</enableRevenueAdjustment>
     <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>

@@ -1,39 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
     <description>Generative AI permission sets for QuantumBit NextGen</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC QuantumBit AI</label>
-    <permissionSets>force__AIAcceleratorPsl</permissionSets>
-    <permissionSets>force__CallCoachingIncluded</permissionSets>
-    <permissionSets>force__CallCoachingUserPsl</permissionSets>
-    <permissionSets>force__EinsteinARForConversations</permissionSets>
-    <permissionSets>force__EinsteinActivityCaptureIncluded</permissionSets>
-    <permissionSets>force__EinsteinAgentCWU</permissionSets>
-    <permissionSets>force__EinsteinAssistantPsl</permissionSets>
-    <permissionSets>force__EinsteinCopilotReviewMyDay</permissionSets>
-    <permissionSets>force__EinsteinDiscoveryInTableau</permissionSets>
-    <permissionSets>force__EinsteinGPTCallExplorerPsl</permissionSets>
-    <permissionSets>force__EinsteinGPTGetProductPricing</permissionSets>
-    <permissionSets>force__EinsteinGPTSalesCallSummaries</permissionSets>
-    <permissionSets>force__EinsteinGPTSalesEmails</permissionSets>
-    <permissionSets>force__EinsteinGPTSalesMiningPsl</permissionSets>
-    <permissionSets>force__EinsteinGPTSalesSummaries</permissionSets>
-    <permissionSets>force__EinsteinGPTSearchAnswers</permissionSets>
-    <permissionSets>force__EinsteinPredictionsManagerAdmin</permissionSets>
-    <permissionSets>force__EinsteinReplyRecommendations</permissionSets>
-    <permissionSets>force__EinsteinSearchAnswers</permissionSets>
-    <permissionSets>force__EinsteinSendMeetingRequestCopilot</permissionSets>
-    <permissionSets>force__EinsteinServiceInnovations</permissionSets>
-    <permissionSets>force__HighVelocitySalesCadenceCreatorIncluded</permissionSets>
-    <permissionSets>force__HighVelocitySalesQuickCadenceCreatorIncluded</permissionSets>
-    <permissionSets>force__HighVelocitySalesUserIncluded</permissionSets>
-    <permissionSets>force__InboxIncluded</permissionSets>
-    <permissionSets>force__MetadataStudioUser</permissionSets>
-    <permissionSets>force__PipelineInspectionIncluded</permissionSets>
-    <permissionSets>force__PrismBackofficeUser</permissionSets>
-    <permissionSets>force__PrismPlaygroundUser</permissionSets>
-    <permissionSets>force__SalesActionReviewBuyingCommittee</permissionSets>
-    <permissionSets>force__SalesCloudEinsteinIncluded</permissionSets>
-    <permissionSets>force__SalesCloudUnlimitedIncluded</permissionSets>
-    <permissionSets>force__SalesMeetingsIncluded</permissionSets>
-</PermissionSetGroup>
+    </PermissionSetGroup>

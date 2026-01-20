@@ -6,4 +6,5 @@
     <prodDiscProcedureOrgValue>RLM Product Discovery Pricing Procedure</prodDiscProcedureOrgValue>
     <prodDiscQualEnabledOrgValue>true</prodDiscQualEnabledOrgValue>
     <prodDiscQualificationOrgValue>RLM Qualification Procedure</prodDiscQualificationOrgValue>
+    <promoContextMappingNameOrgValue>ProductDiscoveryPromoMapping</promoContextMappingNameOrgValue>
 </ProductDiscoverySettings>
