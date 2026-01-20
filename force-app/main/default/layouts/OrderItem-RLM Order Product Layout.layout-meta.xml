@@ -164,10 +164,6 @@
                 <behavior>Readonly</behavior>
                 <field>TotalAmtWithTax</field>
             </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>PricingTransactionType</field>
-            </layoutItems>
         </layoutColumns>
         <style>TwoColumnsLeftToRight</style>
     </layoutSections>

@@ -228,7 +228,7 @@
                 <field>QuoteLineGroupId</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Edit</behavior>
+                <behavior>Readonly</behavior>
                 <field>QuoteLineItemRecipientId</field>
             </layoutItems>
             <layoutItems>

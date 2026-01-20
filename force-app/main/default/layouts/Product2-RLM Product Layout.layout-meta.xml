@@ -78,10 +78,6 @@
                 <behavior>Edit</behavior>
                 <field>UsageModelType</field>
             </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>TransferRecordMode</field>
-            </layoutItems>
         </layoutColumns>
         <style>TwoColumnsTopToBottom</style>
     </layoutSections>
