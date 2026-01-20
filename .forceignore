@@ -30,7 +30,7 @@ force-app/main/default/expressionSetDefinition/Default_Rating_Procedure.expressi
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Qualification_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure.expressionSetDefinition-meta.xml
-#force-app/main/default/expressionSetDefinition/Salesforce_Default_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
+force-app/main/default/expressionSetDefinition/Salesforce_Default_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 # custom expressionSetDefinitions
 #force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
@@ -39,7 +39,8 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 #force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
-#force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
+# RLM_QualificationProcedure - TODO: Fix ProductId variable name issue
+force-app/main/default/expressionSetDefinition/RLM_QualificationProcedure.expressionSetDefinition-meta.xml
 
 # contextDefinitions
 force-app/main/default/contextDefinitions
@@ -50,6 +51,8 @@ force-app/main/default/contextDefinitions
 # PSGs
 #unpackaged/pre/3_permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
 
+# RC_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
+unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
 #unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
@@ -132,3 +135,12 @@ force-app/main/default/pages/RLM_UpdateQuotePrices.page-meta.xml
 unpackaged/pre/5_decisiontables/RLM_Cost_Book_Entries.decisionTable-meta.xml
 force-app/main/default/flows/Fulfilment_Steps.flow-meta.xml
 force-app/main/default/flows/RC_Create_Case_for_Collection.flow-meta.xml
+# Active decision tables - excluded from deployment (TODO: implement proper deactivation)
+unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml
+unpackaged/pre/5_decisiontables/RLM_ProductCategoryQualification.decisionTable-meta.xml
+unpackaged/pre/5_decisiontables/RLM_ProductQualification.decisionTable-meta.xml
+force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
+force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
+unpackaged/post_approvals/flows/RC_Quote_Smart_Approval.flow-meta.xml
+unpackaged/post_approvals/flows/RC_Quote_Transfer_Approval.flow-meta.xml
+unpackaged/post_approvals/flows/RC_AA_Quote_Approval.flow-meta.xml

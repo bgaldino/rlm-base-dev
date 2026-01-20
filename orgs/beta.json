@@ -1,5 +1,5 @@
 {
-  "orgName": "Salesforce Agentforce Revenue Management",
+  "orgName": "Salesforce Agentforce Revenue Management (Enhanced)",
   "country": "US",
   "edition": "Enterprise",
   "features": [
@@ -13,7 +13,14 @@
     "UsageManagement",
     "BillingAdvanced",
     "DocGen",
-    "Einstein1AIPlatform"
+    "Einstein1AIPlatform",
+    "AIProviderOpenAI",
+    "AIProviderAWSBedrock",
+    "DisclosureFramework",
+    "CGAnalytics",
+    "InsightsPlatform",
+    "RevenueIntelligence",
+    "SalesCloudEinstein"
   ],
   "settings": {
     "billingSettings": {

@@ -46,6 +46,12 @@ orgs:
     dev_datacloud:
       config_file: orgs/dev_datacloud.json
       days: 30
+    dev:
+      config_file: orgs/dev.json
+      days: 30
+    dev_enhanced:
+      config_file: orgs/dev-enhanced.json
+      days: 30
 
 # Project configuration settings
 # Defines the project name, package details, and source format
@@ -66,13 +72,15 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    prm: true                # Use Partner Relationship Management
-    tso: true                # Is Trialforce Source Org?
+    prm: false                # Use Partner Relationship Management
+    tso: false               # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                 # Is QuantumBit?
     q3: false                # Include Q3 data
     calmdelete: true         # Use CALM Delete
     tax: true                # Use Tax engine
     billing: true            # Use Billing
+    payments: true           # Use Payments
+    approvals: true          # Use Approvals
     clm: false               # Use Contract Lifecycle Management
     dro: true                # Use Dynamic Revenue Orchestration
     rating: true             # Insert Rating Design Time Data
@@ -80,8 +88,8 @@ project:
     ramps: true              # Insert and configure ramps
     einstein: true           # Use Einstein AI
     product_dataset: qb      # Default product dataset to use
-    qbrix: true              # Use xDO base
-    agents: false             # Deploy Agentforce Agent Configurations
+    qbrix: false             # Use xDO base (false for dev scratch orgs without xDO licenses)
+    agents: false            # Deploy Agentforce Agent Configurations
     refresh: false           # Data refresh flag
     commerce: false          # Use Commerce
     quantumbit: true         # Use QuantumBit
@@ -89,11 +97,12 @@ project:
     docgen: true             # Use Document Generation
     psg_debug: false         # Debug Permission Set Groups
     pas_debug: false         # Debug Price Adjustment Schedules
-    constraints: false        # Use Constraint Builder
-    guidedselling: true      # Use Guided Selling
-    procedureplans: false     # Use Procedure Plans
-    sharingsettings: false     # Use Sharing Settings
-    locale: en_US             # Default locale
+    constraints: false       # Use Constraint Builder
+    guidedselling: false      # Use Guided Selling
+    procedureplans: false    # Use Procedure Plans
+    sharingsettings: false   # Deploy Sharing Settings
+    visualization: false     # Use Visualization components (Flow with Visuals, LWC styling)
+    locale: en_US            # Default locale
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -103,12 +112,14 @@ project:
 # Each section is defined as a YAML anchor (&) for reuse throughout the file
 
     rlm_psl_api_names: &rlm_psl_api_names
-      # Core RLM permission set licenses
+      # Core RLM permission set licenses (CLM-specific PSLs removed - see rlm_clm_psl_api_names)
       - BREDesigner
       - BRERuntime
-      - ClauseManagementUser
-      - ContractManagementUser
-      - ContractsAIUserPsl
+      # Removed CLM PSLs (assigned separately when clm: true):
+      # - ClauseManagementUser (moved to rlm_clm_psl_api_names)
+      # - ContractManagementUser (moved to rlm_clm_psl_api_names)
+      # - ContractsAIUserPsl (moved to rlm_clm_psl_api_names)
+      # - ObligationManagementUser (moved to rlm_clm_psl_api_names)
       - CorePricingDesignTime
       - DataProcessingEnginePsl
       - DecimalQuantityDesigntimePsl
@@ -118,7 +129,6 @@ project:
       - DynamicRevenueOrchestratorUserPsl
       - IndustriesConfiguratorPsl
       - Microsoft365WordPsl
-      - ObligationManagementUser
       - OmniStudioDesigner
       - ProductCatalogManagementAdministratorPsl
       - ProductDiscoveryUserPsl
@@ -140,15 +150,16 @@ project:
 
     rlm_ai_psl_api_names: &rlm_ai_psl_api_names
       # AI-related permission set licenses
+      # Note: Some PSLs removed for dev scratch org compatibility
       - AgentforceServiceAgentBuilderPsl
-      - AIAcceleratorPsl
-      - EinsteinAnalyticsPlusPsl
-      - EinsteinDisclsAndCmplHubUserPsl
+      # - AIAcceleratorPsl  # Not available in Enterprise dev scratch orgs
+      # - EinsteinAnalyticsPlusPsl  # Not available in Enterprise dev scratch orgs
+      # - EinsteinDisclsAndCmplHubUserPsl  # Not available in Enterprise dev scratch orgs
       - EinsteinGPTCopilotPsl
       - EinsteinGPTPromptTemplatesPsl
-      - MySearchPsl
-      - RevenueIntelligencePsl
-      - ScoringFrameworkPsl
+      # - MySearchPsl  # Not available in Enterprise dev scratch orgs
+      # - RevenueIntelligencePsl  # Not available in Enterprise dev scratch orgs
+      # - ScoringFrameworkPsl  # Not available in Enterprise dev scratch orgs (moved to core list if needed)
 
     rlm_tableaunext_psl_api_names: &rlm_tableaunext_psl_api_names
       # Tableau-related permission set licenses
@@ -259,7 +270,7 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
-      - RC_Collection_Plan_Activity
+      #- RC_Collection_Plan_Activity
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets
@@ -411,8 +422,9 @@ project:
     quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb/en-US/qb-product-images"  # QuantumBit product image data
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb/en-US/qb-billing"                     # QuantumBit billing data
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data
+    quantumbit_dro_scratch_dataset: &quantumbit_dro_scratch_dataset "datasets/sfdmu/qb/en-US/qb-dro_scratch"                                 # QuantumBit DRO data
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
-    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating-256"                    # QuantumBit rating data
+    quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
     quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # QuantumBit constraints product data
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # QuantumBit constraints component data
@@ -422,7 +434,7 @@ project:
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
     q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3/en-US/q3-dro"                                                 # Q3 DRO data
     q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3/en-US/q3-tax"                                                 # Q3 tax data
-    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3/en-US/q3-rating-256"                                    # Q3 rating data
+    q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3/en-US/q3-rating"                                    # Q3 rating data
     q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3/en-US/q3-rates"                                           # Q3 rates data
     q3_constraints_product_dataset: &q3_constraints_product_dataset "datasets/sfdmu/q3/en-US/q3-constraints-product" # Q3 constraints product data
     q3_constraints_component_dataset: &q3_constraints_component_dataset "datasets/sfdmu/q3/en-US/q3-constraints-component"
@@ -611,6 +623,35 @@ tasks:
 # All deploy tasks are managed here and can be called in any order
 # TODO: Organize pre/post deploy tasks into their own sections
 
+  cleanup_settings_for_dev:
+    description: Clean up settings files for dev scratch orgs (removes unsupported fields)
+    class_path: tasks.rlm_cleanup_settings.CleanupSettingsForDev
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/pre
+      remove_for_scratch: true
+
+  deploy_pre:
+    description: Deploy Pre-deployment Metadata
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/pre
+
+  restore_rc_tso:
+    description: Move RC_TSO from storage directory for deployment (only when tso flag is true)
+    class_path: tasks.rlm_restore_rc_tso.RestoreRCTSO
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/pre
+
+  deploy_rc_tso:
+    description: Deploy RC_TSO Permission Set Group (only when tso flag is true)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
+
   deploy_context_definitions:
     description: Deploy Context Definitions
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -718,6 +759,12 @@ tasks:
     options:
       path: unpackaged/post_prm
 
+  deploy_post_approvals:
+    description: Deploy Advanced Approvals Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_approvals
+  
   deploy_post_docgen:
     description: Deploy Document Generation Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -771,6 +818,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  deploy_post_visualization:
+    description: Deploy Visualization Metadata (Flow with Visuals, LWC styling)
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post_visualization
+      collision_check: False
 
   deploy_post_payments:
     description: Deploy Payments Metadata
@@ -857,6 +911,16 @@ tasks:
       template: "Build Your Own"
       skip_existing: true
 
+  create_payments_webhook:
+    description: Create Salesforce Payments Webhook
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    options:
+      name: "Payments Webhook"
+      description: "RLM Salesforce Payments Webhook"
+      template: "Build Your Own (LWR)"
+      url_path_prefix: "sfpwebhook"
+      skip_existing: true
+
 
 #------------------#
 # SFDMU DATA TASKS #
@@ -885,20 +949,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
-  insert_quantumbit_pcmdata_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_product_dataset
-
-  insert_quantumbit_pricing_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_pricing_dataset
-
   insert_quantumbit_product_image_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Product Image Data to Production
@@ -909,13 +959,6 @@ tasks:
   insert_q3_data:
     group: Revenue Lifecycle Management
     description: Insert Q3 Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *q3_product_dataset
-
-  insert_q3_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert Q3 Data to Production
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_product_dataset
@@ -939,7 +982,7 @@ tasks:
     description: Insert QuantumBit DRO Data to Scratch
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/qb-dro_scratch"
+      pathtoexportjson: *quantumbit_dro_scratch_dataset
 
   insert_qb_dro_data_prod:
     group: Revenue Lifecycle Management
@@ -1102,6 +1145,32 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
   
+  deactivate_decision_tables:
+    group: Revenue Lifecycle Management
+    description: Deactivate Decision Tables (required before updating active decision tables)
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deactivateDecisionTables.apex
+
+  exclude_active_decision_tables:
+    group: Revenue Lifecycle Management
+    description: "Exclude active decision tables from deployment (TODO: implement proper deactivation)"
+    class_path: tasks.rlm_exclude_active_decision_tables.ExcludeActiveDecisionTables
+    options:
+      path: unpackaged/pre/5_decisiontables
+
+  assign_permission_set_groups_tolerant:
+    group: Revenue Lifecycle Management
+    description: "Assign Permission Set Groups with tolerance for permission warnings"
+    class_path: tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant
+    options:
+      api_names:
+        description: "API Developer Names of desired Permission Set Groups"
+        required: True
+      user_alias:
+        description: "Alias of target user (if not the current running user)"
+        required: False
+
   activate_decision_tables:
     group: Revenue Lifecycle Management
     description: Activate Decision Tables
@@ -1275,6 +1344,41 @@ tasks:
     options:
       developerNames: *dt_asset_decision_tables
 
+  manage_decision_tables:
+    group: Revenue Lifecycle Management
+    description: Comprehensive Decision Table management (list, query, refresh)
+    class_path: tasks.rlm_manage_decision_tables.ManageDecisionTables
+    options:
+      operation: list  # Options: 'list', 'query', 'refresh'
+      status: Active   # Filter by status
+      is_incremental: false  # For refresh: true for incremental, false for full
+      sort_by: LastSyncDate
+      sort_order: Desc
+
+  manage_flows:
+    group: Revenue Lifecycle Management
+    description: Comprehensive Flow management (list, query, activate, deactivate)
+    class_path: tasks.rlm_manage_flows.ManageFlows
+    options:
+      operation: list  # Options: 'list', 'query', 'activate', 'deactivate'
+      status: null     # Filter by status (Active, Inactive, Draft, or null for all)
+      process_type: null  # Filter by ProcessType (AutoLaunchedFlow, ScreenFlow, etc.)
+      sort_by: LastModifiedDate
+      sort_order: Desc
+
+  manage_expression_sets:
+    group: Revenue Lifecycle Management
+    description: Comprehensive Expression Set management (list, query, manage versions)
+    class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
+    options:
+      operation: list  # Options: 'list', 'query', 'list_versions', 'activate_version', 'deactivate_version'
+      status: null     # Filter by status (Active, Inactive, Draft, or null for all)
+      interface_source_type: null  # Filter by InterfaceSourceType (PricingProcedure, RatingProcedure, etc.)
+      process_type: null  # Filter by ProcessType (DefaultPricing, DefaultRating, etc.)
+      version_full_name: null  # For version operations: Full name of the version
+      sort_by: LastModifiedDate
+      sort_order: Desc
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -1297,44 +1401,49 @@ flows:
         task: create_partner_central
         when: project_config.project__custom__prm
       6:
-        task: deploy_full
+        task: create_payments_webhook
+        when: project_config.project__custom__payments
       7:
-        flow: prepare_price_adjustment_schedules
+        task: deploy_full
       8:
-        flow: prepare_scratch
+        flow: prepare_price_adjustment_schedules
       9:
-        flow: prepare_quantumbit
+        flow: prepare_scratch
       10:
-        flow: prepare_product_data
+        flow: prepare_quantumbit
       11:
-        flow: prepare_pricing_data
+        flow: prepare_product_data
       12:
-        flow: prepare_dro
+        flow: prepare_pricing_data
       13:
-        flow: prepare_tax
+        flow: prepare_dro
       14:
-        flow: prepare_billing
+        flow: prepare_tax
       15:
-        flow: prepare_clm
+        flow: prepare_billing
       16:
-        flow: prepare_rating
+        flow: prepare_clm
       17:
-        task: activate_and_deploy_expression_sets
+        flow: prepare_rating
       18:
-        flow: prepare_tso
+        task: activate_and_deploy_expression_sets
       19:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       20:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       21:
-        flow: prepare_agents
+        flow: prepare_prm
       22:
-        flow: prepare_docgen
+        flow: prepare_agents
       23:
-        flow: prepare_constraints
+        flow: prepare_docgen
       24:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       25:
+        flow: prepare_guidedselling
+      26:
+        flow: prepare_visualization
+      27:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -1345,64 +1454,70 @@ flows:
         options:
           api_names: *rlm_psl_api_names
       2:
-        task: deploy_pre
+        task: cleanup_settings_for_dev
+        when: org_config.scratch
       3:
+        task: exclude_active_decision_tables
+        when: org_config.scratch
+      4:
+        task: deploy_pre
+      5:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
-      4:
+      6:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_psl_api_names  
-      5:
+      7:
         task: util_sleep
         options:
           seconds: *sleep_default
-      6:
-        task: assign_permission_set_groups
+      8:
+        task: assign_permission_set_groups_tolerant
         options:
           api_names: *rlm_psg_api_names
-      7:
+      9:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      8:
+      10:
         flow: extend_context_definitions
-      9:
+      11:
         task: util_sleep
         options:
           seconds: *sleep_default
-      10:
+      12:
         task: create_price_adjustment_schedules
         when: org_config.scratch and project_config.project__custom__pas_debug 
-      11:
+      13:
         task: create_price_adjustment_schedules_prod
         when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
-      12:
+      14:
         task: util_sleep
         when: project_config.project__custom__pas_debug 
         options:
           seconds: *sleep_default
-      13:
+      15:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      14:
+      16:
         task: util_sleep
         when: project_config.project__custom__breconfig
         options:
           seconds: *sleep_default
-      15:
+      17:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      16:
+      18:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      17:
+      19:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -1460,26 +1575,20 @@ flows:
     steps:
       1:
         task: insert_quantumbit_pcm_data
-        when: org_config.scratch and project_config.project__custom__qb
+        when: project_config.project__custom__qb
       2:
-        task: insert_quantumbit_pcm_data_prod
-        when: not org_config.scratch and project_config.project__custom__qb
-      3:
         task: insert_q3_data
-        when: org_config.scratch and project_config.project__custom__q3
-      4:
-        task: insert_q3_data_prod
-        when: not org_config.scratch and project_config.project__custom__q3
-      5:
+        when: project_config.project__custom__q3
+      3:
         task: insert_quantumbit_product_image_data
-        when: org_config.scratch and project_config.project__custom__qb
+        when: project_config.project__custom__qb
 
   prepare_pricing_data:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: insert_quantumbit_pricing_data
-        when: org_config.scratch and project_config.project__custom__qb
+        when: project_config.project__custom__qb
 
   prepare_scratch:
     group: Revenue Lifecycle Management
@@ -1487,22 +1596,28 @@ flows:
       1:
         task: insert_scratch_data
         when: org_config.scratch and not project_config.project__custom__tso
-      2:
-        task: deploy_post_scratch
-        when: org_config.scratch and not project_config.project__custom__tso
 
   prepare_quantumbit:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_quantumbit
+        task: deploy_post_utils
         when: project_config.project__custom__quantumbit
       2:
+        task: deploy_post_billing
+        when: project_config.project__custom__quantumbit and project_config.project__custom__billing
+      3:
+        task: deploy_post_approvals
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      4:
+        task: deploy_quantumbit
+        when: project_config.project__custom__quantumbit
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_quantumbit
-      3:
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
@@ -1755,4 +1870,11 @@ flows:
       2:
         task: deploy_post_guidedselling
         when: project_config.project__custom__guidedselling
+
+  prepare_visualization:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_visualization
+        when: project_config.project__custom__visualization
       
