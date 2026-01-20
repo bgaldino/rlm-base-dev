@@ -1,6 +1,7 @@
 {
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
   "objectSets": [
     {
       "name": "First Pass - Insert/Upsert with Draft Status",
@@ -69,6 +70,36 @@
           "query": "SELECT EffectiveEndDate, EffectiveStartDate, ProductId, Status, UsageResourceId FROM ProductUsageResource",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "skipExistingRecords": true,
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Activate Rating Records",
+      "objects": [
+        {
+          "query": "SELECT Code, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "operation": "Update",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, Status FROM UsageResource ORDER BY Code ASC",
+          "operation": "Update",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Product.StockKeepingUnit, UsageResource.Code, Status FROM ProductUsageResource",
+          "operation": "Update",
+          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Status, UsageDefinitionProduct.StockKeepingUnit, UnitOfMeasureClass.Code, UnitOfMeasure.UnitCode FROM ProductUsageGrant",
+          "operation": "Update",
+          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
           "excluded": false
         }
       ]

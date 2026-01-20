@@ -1,0 +1,4 @@
+$$UsageDefinitionProduct.StockKeepingUnit$UnitOfMeasureClass.Code$UnitOfMeasure.UnitCode,UsageDefinitionProduct.StockKeepingUnit,UnitOfMeasureClass.Code,UnitOfMeasure.UnitCode,Status
+QB-DATA-THPT-BLNG;DATAVOL;TB,QB-DATA-THPT-BLNG,DATAVOL,TB,Active
+QB-CPU-BLNG;TIME;m,QB-CPU-BLNG,TIME,m,Active
+QB-DATA-STORAGE-BLNG;DATAVOL;TB,QB-DATA-STORAGE-BLNG,DATAVOL,TB,Active

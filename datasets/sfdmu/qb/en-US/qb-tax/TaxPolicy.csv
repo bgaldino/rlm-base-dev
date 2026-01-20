@@ -1,2 +1,2 @@
-DefaultTaxTreatment.Name,Description,Name,Status,TreatmentSelection
-Default Tax Policy,,Default Tax Policy,Draft,Default
+DefaultTaxTreatment.$$Name$LegalEntity.Name$TaxPolicy.Name,Description,Name,Status,TreatmentSelection
+Default Tax Policy;Default Legal Entity - US;Default Tax Policy,,Default Tax Policy,Draft,Default

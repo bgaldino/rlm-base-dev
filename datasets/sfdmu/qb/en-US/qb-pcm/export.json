@@ -66,9 +66,9 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC",
+      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, ProductSellingModel.SellingModelType ASC",
       "operation": "Upsert",
-      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name"
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
     },
     {
       "query": "SELECT DurationType, Id, Name, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",

@@ -1,3 +1,3 @@
-$$PriceBook.Name$RateCard.Name$RateCardType,PriceBook.Name,RateCard.Name,RateCardType
-Standard Price Book;Base Rate Card;Base,Standard Price Book,Base Rate Card,Base
-Standard Price Book;Tier Rate Card;Tier,Standard Price Book,Tier Rate Card,Tier
+$$PriceBook.Name$RateCard.Name$RateCardType,PriceBook.Name,RateCard.$$Name$Type,RateCard.Name,RateCardType
+Standard Price Book;Base Rate Card;Base,Standard Price Book,Base Rate Card;Base,Base Rate Card,Base
+Standard Price Book;Tier Rate Card;Tier,Standard Price Book,Tier Rate Card;Tier,Tier Rate Card,Tier

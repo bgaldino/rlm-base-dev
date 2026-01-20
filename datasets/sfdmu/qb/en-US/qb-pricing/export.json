@@ -6,7 +6,7 @@
       "objects": [
         {
           "query": "SELECT ConversionRate, DecimalPlaces, IsActive, IsCorporate, IsoCode FROM CurrencyType ORDER BY IsoCode ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "IsoCode",
           "excluded": false
         },
@@ -49,9 +49,8 @@
         {
           "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
           "operation": "Upsert",
-          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name,TierType,TierValue,UpperBound,LowerBound,CurrencyIsoCode",
-          "excluded": false,
-          "skipExistingRecords": true
+          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
+          "excluded": false
         },
         {
           "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
@@ -86,13 +85,13 @@
         {
           "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode FROM PricebookEntry ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
           "operation": "Upsert",
-          "externalId": "Name;Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "externalId": "Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
           "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
           "operation": "Upsert",
-          "externalId": "Pricebook.Name;PricebookEntry.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "externalId": "Pricebook.Name;PricebookEntry.Pricebook2.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {

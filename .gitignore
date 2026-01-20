@@ -63,7 +63,7 @@ datasets/**/source/**
 datasets/**/target/**
 datasets/**/CSVIssuesReport.csv
 datasets/**/MissingParentRecordsReport.csv
-datasets/**/test/**
+datasets/sfdmu/test/**
 
 # QBranch
 .qbrix
@@ -87,7 +87,7 @@ sfdx
 mdapi
 temp_folder
 temp
-datasets/sfdmu/test*/**
+#datasets/sfdmu/test*/**
 tasks/sfdmuload.py
 experience-bundle-package*/**
 
@@ -100,3 +100,4 @@ experience-bundle-package*/**
 **/*.tsbuildinfo
 agents256*/**
 unpackaged/*bak/**
+.claude/settings.local.json

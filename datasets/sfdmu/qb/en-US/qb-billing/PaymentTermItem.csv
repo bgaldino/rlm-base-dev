@@ -1,3 +1,3 @@
-Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
-30 Days,Default Payment Term,Standard,30,Days,Period-Based
-,Net 45,Standard,45,Days,Period-Based
+$$PaymentTerm.Name$Type,Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
+Default Payment Term;Period-Based,30 Days,Default Payment Term,Standard,30,Days,Period-Based
+Net 45;Period-Based,,Net 45,Standard,45,Days,Period-Based

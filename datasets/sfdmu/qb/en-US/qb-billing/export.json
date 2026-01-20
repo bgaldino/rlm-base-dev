@@ -1,6 +1,7 @@
 {
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "true",
+  "useSeparatedCSVFiles": true,
   "objectSets": [
     {
       "name": "First Pass - Insert/Upsert with Draft Status",
@@ -8,7 +9,7 @@
         {
           "query": "SELECT EndDate, FinancialYear, Name, StartDate, Status FROM AccountingPeriod",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "Name;FinancialYear",
           "excluded": false
         },
         {
@@ -18,7 +19,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT AccountingPeriodId, LegalEntityId, Name, Status FROM LegalEntyAccountingPeriod",
+          "query": "SELECT AccountingPeriodId, AccountingPeriod.Name, LegalEntityId, LegalEntity.Name, Name, Status FROM LegalEntyAccountingPeriod",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -27,30 +28,34 @@
           "query": "SELECT Description, IsDefault, Name, Status FROM PaymentTerm",
           "operation": "Upsert",
           "externalId": "Name",
+          "skipExistingRecords": true,
           "excluded": false
         },
         {
-          "query": "SELECT Description, PaymentTermId, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem",
+          "query": "SELECT Description, PaymentTermId, PaymentTerm.Name, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem",
           "operation": "Upsert",
-          "externalId": "PaymentTerm.Name",
+          "externalId": "$$PaymentTerm.Name$Type",
           "excluded": false
         },
         {
-          "query": "SELECT BillingTreatmentSelection, DefaultBillingTreatmentId, Description, Name, Status FROM BillingPolicy",
+          "query": "SELECT BillingTreatmentSelection, Description, Name, Status FROM BillingPolicy",
           "operation": "Upsert",
           "externalId": "Name",
+          "skipExistingRecords": true,
           "excluded": false
         },
         {
           "query": "SELECT BillingPolicyId, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, Name, Status FROM BillingTreatment",
           "operation": "Upsert",
           "externalId": "Name;BillingPolicy.Name;LegalEntity.Name",
+          "skipExistingRecords": true,
           "excluded": false
         },
         {
           "query": "SELECT BillingTreatmentId, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount FROM BillingTreatmentItem",
           "operation": "Upsert",
-          "externalId": "Name;BillingTreatment.Name",
+          "externalId": "$$Name$BillingTreatment.Name",
+          "skipExistingRecords": true,
           "excluded": false
         },
         {
@@ -60,15 +65,44 @@
           "excluded": false
         },
         {
-          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name FROM GeneralLedgerAccount",
+          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name, Type FROM GeneralLedgerAccount",
           "operation": "Upsert",
           "externalId": "Name;LegalEntity.Name",
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, DebitGeneralLedgerAccountId, CreditGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionType FROM GeneralLedgerAcctAsgntRule",
+          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, DebitGeneralLedgerAccountId, CreditGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
           "operation": "Upsert",
           "externalId": "Name;LegalEntity.Name",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Activate and Set Defaults",
+      "objects": [
+        {
+          "query": "SELECT Name, Status FROM PaymentTerm",
+          "operation": "Update",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DefaultBillingTreatmentId, Name, Status FROM BillingPolicy",
+          "operation": "Update",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingPolicyId, LegalEntityId, Name, Status FROM BillingTreatment",
+          "operation": "Update",
+          "externalId": "Name;BillingPolicy.Name;LegalEntity.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingTreatmentId, Name, Status FROM BillingTreatmentItem",
+          "operation": "Update",
+          "externalId": "$$Name$BillingTreatment.Name",
           "excluded": false
         }
       ]

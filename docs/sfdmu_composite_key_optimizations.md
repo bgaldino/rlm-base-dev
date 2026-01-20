@@ -1,0 +1,41 @@
+# SFDMU Composite Key Optimizations (QB)
+
+## Changes applied
+
+### `datasets/sfdmu/qb/en-US/qb-pcm/export.json`
+- **ProductSellingModelOption** externalId includes `ProductSellingModel.SellingModelType`.
+- Query includes `Product2.StockKeepingUnit`, `ProductSellingModel.Name`, and `ProductSellingModel.SellingModelType`.
+- Reason: avoids collisions when the same selling model name exists across types.
+
+### `datasets/sfdmu/qb/en-US/qb-pricing/export.json`
+- **PriceAdjustmentTier** externalId uses full composite key with `;` delimiters.
+- **PricebookEntry** externalId uses `Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` with `$$Pricebook2.Name$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode` in CSV.
+- **PricebookEntryDerivedPrice** externalId includes the PricebookEntry key parts plus `Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`, with matching `$$` column in CSV.
+- Reason: aligns keys with org uniqueness and prevents false inserts.
+
+### `datasets/sfdmu/qb/en-US/qb-billing/export.json`
+- **AccountingPeriod** externalId uses `Name;FinancialYear`.
+- **LegalEntyAccountingPeriod** externalId uses `Name`.
+- **PaymentTermItem** externalId uses `$$PaymentTerm.Name$Type` with matching CSV column.
+- **BillingTreatmentItem** externalId uses `$$Name$BillingTreatment.Name` with `BillingTreatment.Name` in CSV.
+- Reason: stable keys for updates without duplicate inserts.
+
+### `datasets/sfdmu/qb/en-US/qb-tax/export.json`
+- **TaxTreatment** externalId uses `Name;LegalEntity.Name;TaxPolicy.Name`, with matching query fields.
+- **TaxEngine** externalId uses `TaxEngineName`.
+- Reason: scope tax treatments by legal entity/policy and match org uniqueness.
+
+### `datasets/sfdmu/qb/en-US/qb-rating/export.json`
+- **ProductUsageResource** externalId uses `Product.StockKeepingUnit;UsageResource.Code` with `$$Product.StockKeepingUnit$UsageResource.Code` in CSV.
+- Reason: stable composite key for usage resource linkage.
+
+### `datasets/sfdmu/qb/en-US/qb-rates/export.json`
+- **RateCard** externalId uses `Name;Type` with `$$Name$Type` in CSV.
+- **PriceBookRateCard** uses `RateCard.$$Name$Type` in CSV to resolve lookups.
+- **RateCardEntry** externalId uses `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` with matching `$$` column in CSV.
+- **RateAdjustmentByTier** externalId includes `LowerBound;UpperBound` for uniqueness.
+- Reason: distinguish rate card entries and tiers by usage resource, UoM, and bounds.
+
+## Notes
+- These updates focus on QB datasets referenced by `cumulusci.yml`.
+- If you want similar composite key hardening for non-QB datasets (q3, multicurrency, accounting, etc.), call that out and I’ll extend the same approach.

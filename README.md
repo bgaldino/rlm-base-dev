@@ -132,9 +132,9 @@ This project includes custom CumulusCI tasks for Revenue Cloud-specific operatio
 
 | Task Name | Description | Documentation |
 |-----------|-------------|--------------|
-| `manage_decision_tables` | Comprehensive Decision Table management (list, query, refresh) | [DECISION_TABLE_EXAMPLES.md](DECISION_TABLE_EXAMPLES.md) |
-| `manage_flows` | Flow management (list, query, activate, deactivate) | [TASK_EXAMPLES.md](TASK_EXAMPLES.md) |
-| `manage_expression_sets` | Expression Set management with version control | [TASK_EXAMPLES.md](TASK_EXAMPLES.md) |
+| `manage_decision_tables` | Comprehensive Decision Table management (list, query, refresh) | [docs/DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md) |
+| `manage_flows` | Flow management (list, query, activate, deactivate) | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
+| `manage_expression_sets` | Expression Set management with version control | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
 | `cleanup_settings_for_dev` | Conditionally remove unsupported settings for dev orgs | See `cumulusci.yml` |
 | `exclude_active_decision_tables` | Exclude active decision tables from deployment | See `cumulusci.yml` |
 | `assign_permission_set_groups_tolerant` | Assign PSGs with tolerance for missing permissions | See `cumulusci.yml` |
@@ -159,8 +159,8 @@ cci task run manage_expression_sets --operation list
 ```
 
 For detailed examples and usage, see:
-- [Decision Table Examples](DECISION_TABLE_EXAMPLES.md)
-- [Flow and Expression Set Examples](TASK_EXAMPLES.md)
+- [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md)
+- [Flow and Expression Set Examples](docs/TASK_EXAMPLES.md)
 
 ### Custom Task Development
 
@@ -191,9 +191,9 @@ class MyCustomTask(BaseTask):
 
 ### Main Documentation Files
 
-- **[DECISION_TABLE_EXAMPLES.md](DECISION_TABLE_EXAMPLES.md)** - Comprehensive examples for Decision Table management
-- **[TASK_EXAMPLES.md](TASK_EXAMPLES.md)** - Examples for Flow and Expression Set management
-- **[TOOLING_OPPORTUNITIES.md](TOOLING_OPPORTUNITIES.md)** - Analysis of Spring '26 features and opportunities for new tooling tasks
+- **[DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md)** - Comprehensive examples for Decision Table management
+- **[TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md)** - Examples for Flow and Expression Set management
+- **[TOOLING_OPPORTUNITIES.md](docs/TOOLING_OPPORTUNITIES.md)** - Analysis of Spring '26 features and opportunities for new tooling tasks
 
 ### Configuration Files
 

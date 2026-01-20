@@ -14,7 +14,7 @@
         {
           "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "Name;Type",
           "excluded": false
         },
         {
@@ -24,15 +24,15 @@
           "excluded": false
         },
         {
-          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, Status, UsageResourceId FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Name ASC",
+          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, Status, UsageResourceId, UsageResource.Code FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
           "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Name",
+          "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
           "excluded": false
         },
         {
           "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
           "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code",
+          "externalId": "Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
           "excluded": false
         }
       ]

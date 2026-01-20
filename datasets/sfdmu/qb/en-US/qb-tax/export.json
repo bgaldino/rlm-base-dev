@@ -1,6 +1,7 @@
 {
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
   "objectSets": [
     {
       "name": "First Pass - Insert/Upsert with Draft Status",
@@ -24,21 +25,40 @@
           "excluded": false
         },
         {
-          "query": "SELECT Description, IsTaxable, LegalEntityId, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxPolicyId FROM TaxTreatment",
+          "query": "SELECT Description, IsTaxable, LegalEntityId, LegalEntity.Name, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxPolicyId, TaxPolicy.Name FROM TaxTreatment",
           "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false
+          "externalId": "Name;LegalEntity.Name;TaxPolicy.Name",
+          "excluded": false,
+          "skipExistingRecords": true
         },
         {
-          "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
+          "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
           "operation": "Upsert",
           "externalId": "Name",
-          "excluded": false
+          "excluded": false,
+          "skipExistingRecords": true
         },
         {
           "query": "SELECT TaxPolicyId, StockKeepingUnit FROM Product2",
           "operation": "Update",
           "externalId": "StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Activate and Set Defaults",
+      "objects": [
+        {
+          "query": "SELECT Status, Name, LegalEntity.Name, TaxPolicy.Name FROM TaxTreatment",
+          "operation": "Update",
+          "externalId": "Name;LegalEntity.Name;TaxPolicy.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
+          "operation": "Update",
+          "externalId": "Name",
           "excluded": false
         }
       ]
