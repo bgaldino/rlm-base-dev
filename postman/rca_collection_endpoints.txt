@@ -1,0 +1,659 @@
+RCA COLLECTION ENDPOINTS (164 total)
+================================================================================
+
+1. [GET] /services/oauth2/userinfo
+   Name: Get Endpoint from User Info
+   Raw: {{_endpoint}}/services/oauth2/userinfo
+
+2. [GET] /services/data/
+   Name: Get Latest Release Version
+   Raw: {{_endpoint}}/services/data/
+
+3. [GET] /services/data/v{{version}}/query
+   Name: Get Default Account
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Account WHERE Name = '{{defaultAccou
+
+4. [GET] /services/data/v{{version}}/query
+   Name: Get Standard Pricebook
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Pricebook2 WHERE Name='{{standardPri
+
+5. [GET] /services/data/v{{version}}/query
+   Name: Get Default Catalog
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ProductCatalog WHERE Name='{{default
+
+6. [GET] /services/data/v{{version}}/query
+   Name: Get Default Category
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ProductCategory WHERE Name='{{defaul
+
+7. [GET] /services/data/v{{version}}/query
+   Name: Get Example Product ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Product2 WHERE Name = '{{defaultProd
+
+8. [GET] /services/data/v{{version}}/query
+   Name: Get Example Pricing Procedure ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ExpressionSetDefinition WHERE Master
+
+9. [GET] /services/data/v{{version}}/query
+   Name: Get Product Selling Model ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ProductSellingModel WHERE Name = '{{
+
+10. [GET] /services/data/v{{version}}/query
+   Name: Get PBE Id
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{p
+
+11. [GET] /services/data/v{{version}}/query
+   Name: Get Unit of Measure ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM UnitOfMeasure WHERE Name = '{{uomNam
+
+12. [GET] /services/data/v{{version}}/query
+   Name: Get Price Adjustment Schedule ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM PriceAdjustmentSchedule WHERE Name =
+
+13. [GET] /services/data/v{{version}}/query
+   Name: Get Example Recipe ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM PricingRecipe WHERE Name = '{{recipe
+
+14. [GET] /services/data/v{{version}}/query
+   Name: Get Example Lookup ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM PricingLookUpTable WHERE Name = '{{l
+
+15. [GET] /services/data/v{{version}}/query
+   Name: Get Example Procedure Plan Definition ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ProcedurePlanDefinition WHERE Name =
+
+16. [GET] /services/data/v{{version}}/query
+   Name: Get Example Procedure Plan Version ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ProcedurePlanVersion WHERE Name = '{
+
+17. [GET] /services/data/v{{version}}/query
+   Name: Get Example Context Definition ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ContextDefinition WHERE DeveloperNam
+
+18. [GET] /services/data/v{{version}}/query
+   Name: Get Example Context Mapping ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ContextMapping WHERE Title = '{{cont
+
+19. [GET] /services/data/v{{version}}/query
+   Name: Get Example Order ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Order WHERE Name = '{{orderName}}' L
+
+20. [GET] /services/data/v{{version}}/query
+   Name: Get Example Order Item ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM OrderItem WHERE OrderId = '{{orderId
+
+21. [GET] /services/data/v{{version}}/query
+   Name: Get Example Quote Line Item ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM QuoteLineItem WHERE Name = '{{quoteL
+
+22. [GET] /services/data/v{{version}}/query
+   Name: Get Example Asset ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Asset WHERE Name = '{{assetName}}' L
+
+23. [GET] /services/data/v{{version}}/query
+   Name: Get Example Credit Memo ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM CreditMemo WHERE Name = '{{creditMem
+
+24. [GET] /services/data/v{{version}}/query
+   Name: Get Example Credit Memo Inv Application ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM CreditMemoInvApplication WHERE Name 
+
+25. [GET] /services/data/v{{version}}/query
+   Name: Get Example Credit Memo Line ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM CreditMemoLine WHERE Name = '{{credi
+
+26. [GET] /services/data/v{{version}}/query
+   Name: Get Example Credit Memo Line Invoice Line ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM CreditMemoLineInvLine WHERE Name = '
+
+27. [GET] /services/data/v{{version}}/query
+   Name: Get Example Invoice ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Invoice WHERE Name = '{{invoiceName}
+
+28. [GET] /services/data/v{{version}}/query
+   Name: Get Example Invoice Line ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM InvoiceLine WHERE Name = '{{invoiceL
+
+29. [GET] /services/data/v{{version}}/query
+   Name: Get Example Billing Transaction ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM BillingTransaction WHERE Name = '{{b
+
+30. [GET] /services/data/v{{version}}/query
+   Name: Get Example Billing Schedule ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM BillingSchedule WHERE Name = '{{bill
+
+31. [GET] /services/data/v{{version}}/query
+   Name: Get Example Invoice Batch Run ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM InvoiceBatchRun WHERE Name = '{{invo
+
+32. [GET] /services/data/v{{version}}/query
+   Name: Get Example Payment ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Payment WHERE Name = '{{paymentName}
+
+33. [GET] /services/data/v{{version}}/query
+   Name: Get Example Payment Line ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM PaymentLine WHERE Name = '{{paymentL
+
+34. [GET] /services/data/v{{version}}/query
+   Name: Get Example Refund ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Refund WHERE Name = '{{refundName}}'
+
+35. [GET] /services/data/v{{version}}/query
+   Name: Get Example Tax Engine ID
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM TaxEngine WHERE Name = '{{taxEngineN
+
+36. [GET] /services/data/v{{version}}/connect/pcm/index/configurations
+   Name: Get Index Configurations
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/index/configurations
+
+37. [POST] /services/data/v{{version}}/connect/pcm/relatedRecords/entityName
+   Name: Get Related Records
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/relatedRecords/entityName
+
+38. [GET] /services/data/v{{version}}/connect/pcm/index/snapshots
+   Name: Get Index Snapshots
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/index/snapshots
+
+39. [POST] /services/data/v{{version}}/connect/pcm/index/deploy
+   Name: Deploy Index
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/index/deploy
+
+40. [GET] /services/data/v{{version}}/connect/pcm/index/setting
+   Name: Get/Update Index Settings
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/index/setting
+
+41. [GET] /services/data/v{{version}}/connect/pcm/index/error
+   Name: Get Index Errors
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/index/error
+
+42. [POST] /services/data/v{{version}}/connect/pcm/deep-clone
+   Name: Deep Clone Record
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/deep-clone
+
+43. [GET] /services/data/v{{version}}/connect/pcm/unit-of-measure/info
+   Name: Get Unit of Measure Info
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/unit-of-measure/info
+
+44. [POST] /services/data/v{{version}}/connect/pcm/unit-of-measure/rounded-data
+   Name: Round Unit of Measure Data
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/unit-of-measure/rounded-data
+
+45. [POST] /services/data/v{{version}}/connect/pcm/catalogs
+   Name: Search Catalogs
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs
+
+46. [GET] /services/data/v{{version}}/connect/pcm/catalogs
+   Name: Get Catalog
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs/{{catalogId}}
+
+47. [GET] /services/data/v{{version}}/connect/pcm/catalogs/categories
+   Name: List Catalog Categories
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs/{{catalogId}}/categories
+
+48. [GET] /services/data/v{{version}}/connect/pcm/categories
+   Name: Get Category
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/categories/{{categoryId}}
+
+49. [POST] /services/data/v{{version}}/connect/pcm/products
+   Name: List/Search Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/products
+
+50. [GET] /services/data/v{{version}}/connect/pcm/products
+   Name: Get Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/products/{{productId}}
+
+51. [POST] /services/data/v{{version}}/connect/pcm/products/bulk
+   Name: Get Bulk Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/products/bulk
+
+52. [POST] /services/data/v{{version}}/connect/cpq/catalogs
+   Name: Get Catalog Details
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/catalogs/{{catalogId}}
+
+53. [POST] /services/data/v{{version}}/connect/cpq/catalogs
+   Name: List Catalogs
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/catalogs
+
+54. [POST] /services/data/v{{version}}/connect/cpq/categories
+   Name: List Categories
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/categories
+
+55. [POST] /services/data/v{{version}}/connect/cpq/categories
+   Name: Get Category Details
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/categories/{{categoryId}}
+
+56. [POST] /services/data/v{{version}}/connect/cpq/qualification
+   Name: Run Qualification Procedure
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/qualification
+
+57. [POST] /services/data/v{{version}}/connect/cpq/products/search
+   Name: Search Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/search
+
+58. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: Get Product Details
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{productId}}
+
+59. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: List Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+60. [POST] /services/data/v{{version}}/connect/cpq/products/bulk
+   Name: Get Bulk Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/bulk
+
+61. [POST] /services/data/v{{version}}/connect/cpq/products/guided-selection
+   Name: Get Guided Selection Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/guided-selection
+
+62. [POST] /services/data/v{{version}}/connect/core-pricing/price-contexts
+   Name: Price Context
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/price-contexts/{{contextId}}
+
+63. [POST] /services/data/v{{version}}/connect/core-pricing/pricing
+   Name: Get Core Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing
+
+64. [GET] /services/data/v{{version}}/connect/core-pricing/sync/pricingSyncOrigin
+   Name: Sync Pricing Data
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/sync/pricingSyncOrigin
+
+65. [GET] /services/data/v{{version}}/connect/core-pricing/recipe
+   Name: Get Pricing Recipe
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/recipe
+
+66. [POST] /services/data/v{{version}}/connect/core-pricing/recipe/mapping
+   Name: Create Recipe Mapping
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/recipe/mapping
+
+67. [POST] /services/data/v{{version}}/connect/core-pricing/versioned-revise-details
+   Name: Create Priced Revision
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/versioned-revise-details
+
+68. [GET] /services/data/v{{version}}/connect/core-pricing/waterfall
+   Name: Get Price Waterfall
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/waterfall/{{lineItemId}}/{{executionId
+
+69. [POST] /services/data/v{{version}}/connect/core-pricing/waterfall
+   Name: Create Price Waterfall Log
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/waterfall
+
+70. [POST] /services/data/v{{version}}/connect/core-pricing/pbeDerivedPricingSourceProduct
+   Name: Get Price Book Entry Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pbeDerivedPricingSourceProduct
+
+71. [GET] /services/data/v{{version}}/connect/core-pricing/apiexecutionlogs
+   Name: Get API Execution Logs
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/apiexecutionlogs/{{executionId}}
+
+72. [GET] /services/data/v{{version}}/connect/core-pricing/pricing-process-execution
+   Name: Get Pricing Execution
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing-process-execution/{{executionI
+
+73. [GET] /services/data/v{{version}}/connect/core-pricing/pricing-process-execution/lineitems
+   Name: Get Pricing Line Items
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing-process-execution/lineitems/{{
+
+74. [GET] /services/data/v{{version}}/connect/core-pricing/simulationInputVariablesWithData
+   Name: Get Simulation Variables
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/simulationInputVariablesWithData
+
+75. [GET] /services/data/v{{version}}/connect/procedure-plan-definitions
+   Name: Manage Plan Definitions
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/procedure-plan-definitions
+
+76. [GET] /services/data/v{{version}}/connect/procedure-plan-definitions
+   Name: Get/Update Plan Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/procedure-plan-definitions/{{procedurePlanDefinitio
+
+77. [POST] /services/data/v{{version}}/connect/procedure-plan-definitions/evaluate
+   Name: Evaluate Plan Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/procedure-plan-definitions/evaluate
+
+78. [POST] /services/data/v{{version}}/connect/procedure-plan-definitions/evaluate
+   Name: Evaluate Plan Definition by Name
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/procedure-plan-definitions/evaluate/{{procedurePlan
+
+79. [POST] /services/data/v{{version}}/connect/procedure-plan-definitions/version
+   Name: Create Plan Version
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/procedure-plan-definitions/{{procedurePlanDefinitio
+
+80. [GET] /services/data/v{{version}}/connect/procedure-plan-definitions/versions
+   Name: Get/Update Plan Version
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/procedure-plan-definitions/versions/{{procedurePlan
+
+81. [POST] /services/data/v{{version}}/connect/revenue-management/assets/actions/amend
+   Name: Amend Asset
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/assets/actions/amend
+
+82. [POST] /services/data/v{{version}}/connect/revenue-management/assets/actions/cancel
+   Name: Cancel Asset
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/assets/actions/cancel
+
+83. [POST] /services/data/v{{version}}/connect/revenue-management/assets/actions/renew
+   Name: Renew Asset
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/assets/actions/renew
+
+84. [POST] /services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price
+   Name: Get Instant Price
+   Raw: {{_endpoint}}/services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price
+
+85. [POST] /services/data/v{{version}}/commerce/sales-orders/actions/place
+   Name: Place Orders
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/sales-orders/actions/place
+
+86. [POST] /services/data/v{{version}}/commerce/quotes/actions/place
+   Name: Place Quotes
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/quotes/actions/place
+
+87. [POST] /services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/actions/ramp-deal-create
+   Name: Create Ramp Deal
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/{{res
+
+88. [POST] /services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/actions/ramp-deal-update
+   Name: Update Ramp Deal
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/{{res
+
+89. [GET] /services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/actions/ramp-deal-view
+   Name: View Ramp Deal
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/{{res
+
+90. [POST] /services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/actions/ramp-deal-delete
+   Name: Delete Ramp Deal
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/revenue-management/sales-transaction-contexts/{{res
+
+91. [POST] /services/data/v{{version}}/connect/rev/sales-transaction/actions/place
+   Name: Place SalesTransaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/rev/sales-transaction/actions/place
+
+92. [POST] /services/data/v{{version}}/connect/rev/sales-transaction/actions/clone
+   Name: Clone Sales Transaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/rev/sales-transaction/actions/clone
+
+93. [POST] /services/data/v{{version}}/connect/rev/sales-transaction/actions/place-supplemental-transaction
+   Name: Place Supplemental Transaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/rev/sales-transaction/actions/place-supplemental-tr
+
+94. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/configure
+   Name: Configure Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/configure
+
+95. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/load-instance
+   Name: Load Instance
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/load-instance
+
+96. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/set-instance
+   Name: Set Instance
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/set-instance
+
+97. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/get-instance
+   Name: Get Instance
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/get-instance
+
+98. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/save-instance
+   Name: Save Instance
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/save-instance
+
+99. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/set-product-quantity
+   Name: Set Product Quantity
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/set-product-quantity
+
+100. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/add-nodes
+   Name: Add Nodes
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/add-nodes
+
+101. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/update-nodes
+   Name: Update Nodes
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/update-nodes
+
+102. [POST] /services/data/v{{version}}/connect/cpq/configurator/actions/delete-nodes
+   Name: Delete Nodes
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/configurator/actions/delete-nodes
+
+103. [POST] /services/data/v{{version}}/actions/standard/freezeSalesTransaction
+   Name: Freeze Transaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/freezeSalesTransaction
+
+104. [POST] /services/data/v{{version}}/actions/standard/getPointOfNoReturn
+   Name: Get Point of No Return
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/getPointOfNoReturn
+
+105. [POST] /services/data/v{{version}}/actions/standard/submitOrder
+   Name: Submit Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/submitOrder
+
+106. [POST] /services/data/v{{version}}/actions/standard/submitSalesTransaction
+   Name: Submit Sales Transaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/submitSalesTransaction
+
+107. [POST] /services/data/v{{version}}/actions/standard/unfreezeSalesTransaction
+   Name: Unfreeze Transaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/unfreezeSalesTransaction
+
+108. [GET] /services/data/v{{version}}/connect/core-rating/rate-plan
+   Name: Get Rate Plan
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-rating/rate-plan?contextId={{contextId}}&proce
+
+109. [GET] /services/data/v{{version}}/connect/core-pricing/waterfall
+   Name: Get Rating Waterfall
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/waterfall/{{lineItemId}}/{{executionId
+
+110. [GET] /services/data/v{{version}}/asset-management/assets/usage-details
+   Name: Get Asset Usage
+   Raw: {{_endpoint}}/services/data/v{{version}}/asset-management/assets/{{assetId}}/usage-details?effective
+
+111. [GET] /services/data/v{{version}}/commerce/sales-orders/line-items/usage-details
+   Name: Get Order Item Usage
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/sales-orders/line-items/{{orderItemId}}/usage-deta
+
+112. [GET] /services/data/v{{version}}/commerce/quotes/line-items/usage-details
+   Name: Get Quote Line Item Usage
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/quotes/line-items/{{quoteLineItemId}}/usage-detail
+
+113. [POST] /services/data/v{{version}}/commerce/invoicing/billing-schedules/actions/create
+   Name: Create Billing Schedules
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/billing-schedules/actions/create
+
+114. [POST] /services/data/v{{version}}/commerce/invoicing/standalone/billing-schedules/actions/create
+   Name: Create Standalone Billing Schedules
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/standalone/billing-schedules/actions/cre
+
+115. [POST] /services/data/v{{version}}/commerce/invoicing/billing-schedules/collection/actions/recover
+   Name: Recover Billing Schedules
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/billing-schedules/collection/actions/rec
+
+116. [POST] /services/data/v{{version}}/commerce/invoicing/actions/suspend-billing
+   Name: Suspend Billing
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/actions/suspend-billing
+
+117. [POST] /services/data/v{{version}}/commerce/invoicing/actions/resume-billing
+   Name: Resume Billing
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/actions/resume-billing
+
+118. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/actions/void
+   Name: Void Invoice
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/{{invoiceId}}/actions/void
+
+119. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/actions/convert-to-credit
+   Name: Convert To Credit
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/{{invoiceId}}/actions/convert-t
+
+120. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/actions/credit
+   Name: Credit Invoice
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/{{invoiceId}}/actions/credit
+
+121. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/generate
+   Name: Generate Invoice
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/generate
+
+122. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/post
+   Name: Post Invoices
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/post
+
+123. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/preview
+   Name: Preview Invoices
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/preview
+
+124. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/ingest
+   Name: Ingest Invoice
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/ingest
+
+125. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/actions/write-off
+   Name: Write Off Invoice
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/actions/write-off
+
+126. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/calculate-estimated-tax
+   Name: Calculate Estimated Tax
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/calculate-es
+
+127. [POST] /services/data/v{{version}}/commerce/billing/payments/actions/apply
+   Name: Apply Payment
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/billing/payments/{{paymentId}}/actions/apply
+
+128. [POST] /services/data/v{{version}}/commerce/billing/payments/paymentlines/actions/unapply
+   Name: Unapply Payment
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/billing/payments/{{paymentId}}/paymentlines/{{paym
+
+129. [POST] /services/data/v{{version}}/commerce/invoicing/credit-memos/actions/apply
+   Name: Apply Credit Memo
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/credit-memos/{{creditMemoId}}/actions/ap
+
+130. [POST] /services/data/v{{version}}/commerce/invoicing/credit-memo-inv-applications/actions/unapply
+   Name: Unapply Credit Memo
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/credit-memo-inv-applications/{{creditMem
+
+131. [POST] /services/data/v{{version}}/commerce/invoicing/credit-memo-lines/actions/apply
+   Name: Apply Credit Memo Line
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/credit-memo-lines/{{creditMemoLineId}}/a
+
+132. [POST] /services/data/v{{version}}/commerce/invoicing/credit-memo-line-invoice-line/actions/unapply
+   Name: Unapply Credit Memo Line
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/credit-memo-line-invoice-line/{{creditMe
+
+133. [POST] /services/data/v{{version}}/commerce/invoicing/credit-memos/actions/generate
+   Name: Create Credit Memo
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/credit-memos/actions/generate
+
+134. [POST] /services/data/v{{version}}/commerce/taxes/actions/calculate
+   Name: Calculate Tax
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/taxes/actions/calculate
+
+135. [POST] /services/data/v{{version}}/commerce/billing/refunds/actions/apply
+   Name: Apply Refund
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/billing/refunds/{{refundId}}/actions/apply
+
+136. [POST] /services/data/v{{version}}/commerce/invoicing/invoice-batch-runs/actions/draft-to-posted
+   Name: Post Invoice Batch
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoice-batch-runs/{{invoiceBatchRunId}}
+
+137. [POST] /services/data/v{{version}}/commerce/billing/invoices/invoice-batch-docgen/actions/run
+   Name: Generate Invoice PDFs
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/billing/invoices/invoice-batch-docgen/{{invoiceBat
+
+138. [POST] /services/data/v{{version}}/commerce/billing/invoices/invoice-batch-docgen/actions/retry
+   Name: Retry Invoice PDF Generation
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/billing/invoices/invoice-batch-docgen/{{invoiceBat
+
+139. [POST] /services/data/v{{version}}/commerce/invoicing/invoice-batch-runs/actions/send-email
+   Name: Send Invoice Emails
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoice-batch-runs/actions/send-email
+
+140. [POST] /services/data/v{{version}}/commerce/invoicing/invoice-batch-runs/actions/recover
+   Name: Recover Failed Invoices
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoice-batch-runs/{{invoiceBatchRunId}}
+
+141. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: List Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+142. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: Get Product Details
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{productId}}
+
+143. [POST] /services/data/v{{version}}/connect/core-pricing/pricing
+   Name: Get Core Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing
+
+144. [POST] /services/data/v{{version}}/connect/rev/sales-transaction/actions/place
+   Name: Place SalesTransaction
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/rev/sales-transaction/actions/place
+
+145. [PATCH] /services/data/v{{version}}/sobjects/Order
+   Name: Activate Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{orderId}}
+
+146. [POST] /services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/generate
+   Name: Generate Invoice
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/invoicing/invoices/collection/actions/generate
+
+147. [GET] /services/data/v{{version}}/query
+   Name: Get Product Selling Model ID(OneTime)
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM ProductSellingModel WHERE Name = '{{
+
+148. [GET] /services/data/v{{version}}/query
+   Name: Get Product ID 2
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Product2 WHERE Name = '{{productName
+
+149. [GET] /services/data/v{{version}}/query
+   Name: Get PBE Id 2
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{p
+
+150. [GET] /services/data/v{{version}}/query
+   Name: Get Product ID 3
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Product2 WHERE Name = '{{productName
+
+151. [GET] /services/data/v{{version}}/query
+   Name: Get PBE Id 3
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{p
+
+152. [GET] /services/data/v{{version}}/query
+   Name: Get Product ID 4
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Product2 WHERE Name = '{{productName
+
+153. [GET] /services/data/v{{version}}/query
+   Name: Get PBE Id 4
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{p
+
+154. [GET] /services/data/v{{version}}/query
+   Name: Get Product ID 5
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id FROM Product2 WHERE Name = '{{productName
+
+155. [GET] /services/data/v{{version}}/query
+   Name: Get PBE Id 5
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{p
+
+156. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: 1. Search Product Catalog
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+157. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: 1. Search Product Catalog Copy
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+158. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: 2. Get Product Details
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{productId}}
+
+159. [POST] /services/data/v{{version}}/connect/core-pricing/pricing
+   Name: 3. Get Core Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing
+
+160. [POST] /services/data/v{{version}}/connect/rev/sales-transaction/actions/place
+   Name: 4. Add to Cart (Place Quote)
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/rev/sales-transaction/actions/place
+
+161. [POST] /services/data/v{{version}}/composite
+   Name: 5. Get Quote Details
+   Raw: {{_endpoint}}/services/data/v{{version}}/composite
+
+162. [POST] /services/data/v{{version}}/actions/custom/flow/Generate_Quote_PDF
+   Name: 6. Generate Proposal
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/custom/flow/Generate_Quote_PDF
+
+163. [POST] /services/data/v{{version}}/actions/standard/createOrderFromQuote
+   Name: 7. Create Order from Quote
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/createOrderFromQuote
+
+164. [POST] /services/data/v{{version}}/composite
+   Name: Get File
+   Raw: {{_endpoint}}/services/data/v{{version}}/composite
+

@@ -4,7 +4,7 @@
     <prodDiscBrowseContextDefOrgValue>RLM_ProductDiscoveryContext</prodDiscBrowseContextDefOrgValue>
     <prodDiscPricingEnabledOrgValue>true</prodDiscPricingEnabledOrgValue>
     <prodDiscProcedureOrgValue>RLM Product Discovery Pricing Procedure</prodDiscProcedureOrgValue>
-    <prodDiscQualEnabledOrgValue>true</prodDiscQualEnabledOrgValue>
+    <prodDiscQualEnabledOrgValue>false</prodDiscQualEnabledOrgValue>
     <prodDiscQualificationOrgValue>RLM Qualification Procedure</prodDiscQualificationOrgValue>
     <promoContextMappingNameOrgValue>ProductDiscoveryPromoMapping</promoContextMappingNameOrgValue>
 </ProductDiscoverySettings>

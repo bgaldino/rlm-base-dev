@@ -1,0 +1,55 @@
+=== Extracting v260 API Endpoints ===
+
+## Product Catalog Management (PCM)
+/connect/pcm/catalogs (POST)                                                                         Retrieve, search, filter, or sort
+/connect/pcm/deep-clone (POST)                                                            Copy related records of an
+/connect/pcm/index/configurations (GET, PUT)                                                         Retrieve the saved index
+/connect/pcm/index/deploy (POST)                                                          Create indexes for a snapshot.
+/connect/pcm/index/error (GET)                                                            Get the count and details of the
+/connect/pcm/index/setting (GET, PATCH)                                                   Fetch and update settings
+/connect/pcm/index/snapshots (GET)                                                        Retrieve the created snapshots
+/connect/pcm/products (POST)                                                                         Retrieve products. You can also
+/connect/pcm/products/bulk (POST)                                                                    Retrieve details for multiple
+/connect/pcm/unit-of-measure/info (GET)                                                   Get details about the unit of
+/connect/pcm/unit-of-measure/rounded-data (POST)                                          Round off and scale decimal
+
+## Product Discovery (CPQ)
+/connect/cpq/catalogs (POST)                                                                             Get a paginated list of catalogs.
+/connect/cpq/categories (POST)                                                                           Get a list of categories and
+/connect/cpq/configurator/actions/add-nodes (POST)                    Add a node to the context
+/connect/cpq/configurator/actions/configure (POST)                    Retrieve and update a product’s
+/connect/cpq/configurator/actions/delete-nodes (POST)                                                      Delete nodes from a product
+/connect/cpq/configurator/actions/get-instance (POST)                 Fetch the JSON representation
+/connect/cpq/configurator/actions/load-instance (POST)                Create a session for the product
+/connect/cpq/configurator/actions/save-instance (POST)                Save a configuration instance
+/connect/cpq/configurator/actions/set-instance (POST)                 Set a product configuration
+/connect/cpq/configurator/actions/set-product-quantity (POST)         Set the quantity of a product
+/connect/cpq/configurator/actions/update-nodes (POST)                                                      Update nodes in a product
+/connect/cpq/products (POST)                                                                           Get a list of products for a
+/connect/cpq/products/bulk (POST)                                                                      Retrieve details for multiple
+/connect/cpq/products/guided-selection (POST)                                                          Retrieve a list of products based
+/connect/cpq/products/search (POST)                                                                    Retrieves a list of products
+/connect/cpq/qualification (POST)                                                                        Run the qualification procedure
+/industries/cpq/quotes/actions/get-instant-price (POST)                                              Fetch instant pricing data on
+
+## Core Pricing
+/connect/core-pricing/price-contexts/contextid (POST)                                                       Perform a pricing request by
+/connect/core-pricing/pricing (POST)                                                                        Create and hydrate context
+/connect/core-pricing/recipe (GET)                                                                          Get the mapping details of
+/connect/core-pricing/recipe/mapping (POST)                                                                Create a mapping between the
+/connect/core-pricing/versioned-revise-details (POST)                                                      Create revisions of a pricing
+/connect/core-pricing/waterfall (POST)                                                                     Create a log of price waterfall.
+
+## Billing
+
+## Rating & Usage
+
+## Actions (Invocable)
+/services/data/v66.0/actions/standard/applyPayment (POST)                                               Apply a payment record to an
+/services/data/v66.0/actions/standard/paymentSale (POST)                                                Capture a payment without any
+
+## Commerce/Sales Orders
+/commerce/quotes/actions/place (POST)                                                                Create a quote to discover and
+/commerce/sales-orders/actions/place (POST)                                                          Place orders with integrated
+
+## Dynamic Revenue Orchestrator (DRO)

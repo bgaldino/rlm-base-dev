@@ -1,0 +1,375 @@
+RLM COLLECTION ENDPOINTS (93 total)
+================================================================================
+
+1. [GET] /services/oauth2/userinfo
+   Name: Get Endpoint from User Info
+   Raw: {{url}}{{site}}/services/oauth2/userinfo
+
+2. [GET] /services/data/
+   Name: Get Latest Release Version
+   Raw: {{_endpoint}}/services/data/
+
+3. [GET] /services/data/v{{version}}/query
+   Name: Get Default Account
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Account WHERE Name = '{{defaul
+
+4. [GET] /services/data/v{{version}}/query
+   Name: Get Standard Pricebook
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Pricebook2 WHERE Name='{{stand
+
+5. [GET] /services/data/v{{version}}/query
+   Name: Get Default Catalog
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM ProductCatalog WHERE name='{{d
+
+6. [GET] /services/data/v{{version}}/query
+   Name: Get Default Category
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM ProductCategory WHERE Name='{{
+
+7. [GET] /services/data/v{{version}}/query
+   Name: Get Product Selling Models
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name, SellingModelType, PricingTermUnit 
+
+8. [GET] /services/data/v{{version}}/query
+   Name: Get One Time Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defau
+
+9. [GET] /services/data/v{{version}}/query
+   Name: Get One Time PBE
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{d
+
+10. [GET] /services/data/v{{version}}/query
+   Name: Get Evergreen Monthly Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defau
+
+11. [GET] /services/data/v{{version}}/query
+   Name: Get Evergreen Monthly PBE
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{d
+
+12. [GET] /services/data/v{{version}}/query
+   Name: Get Evergreen Annual Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defau
+
+13. [GET] /services/data/v{{version}}/query
+   Name: Get Evergreen Annual PBE
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{d
+
+14. [GET] /services/data/v{{version}}/query
+   Name: Get Term Annual Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defau
+
+15. [GET] /services/data/v{{version}}/query
+   Name: Get Term Annual PBE
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{d
+
+16. [GET] /services/data/v{{version}}/query
+   Name: Get Term Monthly Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Name FROM Product2 WHERE Name = '{{defau
+
+17. [GET] /services/data/v{{version}}/query
+   Name: Get Term Monthly PBE
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id from PricebookEntry Where Product2Id='{{d
+
+18. [GET] /services/data/v{{version}}/query
+   Name: Get Default Context Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id, DeveloperName from ContextDefinition Whe
+
+19. [GET] /services/data/v{{version}}/query
+   Name: Get Default Context Mapping
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Title FROM ContextMapping WHERE ContextD
+
+20. [GET] /services/data/v{{version}}/query
+   Name: Get Default Pricing Procedure
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id, MasterLabel, DeveloperName from Expressi
+
+21. [GET] /services/data/v{{version}}/query
+   Name: Get Custom Context Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, DeveloperName FROM ContextDefinition WHE
+
+22. [GET] /services/data/v{{version}}/query
+   Name: Get Custom Context Mapping
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Title FROM ContextMapping WHERE ContextD
+
+23. [GET] /services/data/v{{version}}/query
+   Name: Get Custom Pricing Procedure
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id, MasterLabel, DeveloperName from Expressi
+
+24. [GET] /services/data/v{{version}}/query
+   Name: Get Cart Context Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id, DeveloperName from ContextDefinition Whe
+
+25. [GET] /services/data/v{{version}}/query
+   Name: Get Cart Context Mapping
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=Select Id, Title from ContextMapping Where Title='{
+
+26. [GET] /services/data/v{{version}}/query
+   Name: Get Cart Pricing Procedure
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, MasterLabel, DeveloperName FROM Expressi
+
+27. [GET] /services/data/v{{version}}/query
+   Name: Get PD Context Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, DeveloperName FROM ContextDefinition WHE
+
+28. [GET] /services/data/v{{version}}/query
+   Name: Get PD Context Mapping
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, Title FROM ContextMapping WHERE ContextD
+
+29. [GET] /services/data/v{{version}}/query
+   Name: Get PD Pricing Procedure
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, MasterLabel, DeveloperName FROM Expressi
+
+30. [GET] /services/data/v{{version}}/query
+   Name: Get Qualification Procedure
+   Raw: {{_endpoint}}/services/data/v{{version}}/query?q=SELECT Id, MasterLabel, DeveloperName FROM Expressi
+
+31. [POST] /services/data/v{{version}}/connect/pcm/catalogs
+   Name: PCM: List Catalogs
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs
+
+32. [GET] /services/data/v{{version}}/connect/pcm/catalogs
+   Name: PCM: Get Catalog
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs/{{defaultCatalogId}}
+
+33. [GET] /services/data/v{{version}}/connect/pcm/catalogs/categories
+   Name: PCM: List Catalog Categories
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/catalogs/{{defaultCatalogId}}/categories
+
+34. [GET] /services/data/v{{version}}/connect/pcm/categories
+   Name: PCM: Get Category
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/categories/{{defaultCategoryId}}
+
+35. [POST] /services/data/v{{version}}/connect/pcm/products
+   Name: PCM: List Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/products
+
+36. [GET] /services/data/v{{version}}/connect/pcm/products
+   Name: PCM: Get Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/products/{{defaultTermDefinedAnnualProductId}}
+
+37. [POST] /services/data/v{{version}}/connect/cpq/catalogs
+   Name: PD: List Catalogs
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/catalogs
+
+38. [POST] /services/data/v{{version}}/connect/cpq/catalogs
+   Name: PD: Get Catalog
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/catalogs/{{defaultCatalogId}}
+
+39. [POST] /services/data/v{{version}}/connect/cpq/categories
+   Name: PD: List Catalog Categories
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/categories
+
+40. [GET] /services/data/v{{version}}/connect/pcm/categories
+   Name: PD: Get Category
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/pcm/categories/{{defaultCategoryId}}
+
+41. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: PD: List Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+42. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: PD: Get Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{defaultTermDefinedAnnualProductId}}
+
+43. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: PD: Get Account Context Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+44. [POST] /services/data/v{{version}}/connect/cpq/qualification
+   Name: PD: Get Account Context Product Qualification
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/qualification
+
+45. [POST] /services/data/v{{version}}/connect/contexts/
+   Name: Create Context
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/contexts/
+
+46. [POST] /services/data/v{{version}}/connect/core-pricing/price-contexts
+   Name: Price Context
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/price-contexts/{{currentContextId}}
+
+47. [GET] /services/data/v{{version}}/connect/core-pricing/waterfall
+   Name: Get Pricing Waterfall
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/waterfall/{{defaultTermDefinedAnnualPr
+
+48. [POST] /services/data/v{{version}}/connect/core-pricing/pricing
+   Name: Core Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing
+
+49. [GET] /services/data/v{{version}}/connect/core-pricing/sync/syncData
+   Name: Pricing Data Sync
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/sync/syncData
+
+50. [GET] /services/data/v{{version}}/connect/core-pricing/recipe
+   Name: Get Pricing Recipe
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/recipe
+
+51. [POST] /services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price
+   Name: Instant Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price
+
+52. [POST] /services/data/v{{version}}/commerce/sales-orders/actions/place
+   Name: Place Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/sales-orders/actions/place
+
+53. [PATCH] /services/data/v{{version}}/sobjects/Order
+   Name: Activate Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentOrderId}}
+
+54. [POST] /services/data/v{{version}}/commerce/quotes/actions/place
+   Name: Place Quote
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/quotes/actions/place
+
+55. [POST] /services/data/v{{version}}/actions/standard/createOrderFromQuote
+   Name: Create Order From Quote Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/createOrderFromQuote
+
+56. [POST] /services/data/v{{version}}/actions/standard/createOrUpdateAssetFromOrder
+   Name: Create or Update Asset From Order Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/createOrUpdateAssetFromOrder
+
+57. [POST] /services/data/v{{version}}/actions/standard/createOrUpdateAssetFromOrderItem
+   Name: Create or Update Asset From Order Item Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/createOrUpdateAssetFromOrderItem
+
+58. [PATCH] /services/data/v{{version}}/sobjects/Asset/02iao0000007D0XAAU
+   Name: Update Asset Pricing Source
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Asset/02iao0000007D0XAAU
+
+59. [POST] /services/data/v{{version}}/actions/standard/initiateAmendment
+   Name: Initiate Amendment Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/initiateAmendment
+
+60. [POST] /services/data/v{{version}}/composite
+   Name: Create Renewal Opp
+   Raw: {{_endpoint}}/services/data/v{{version}}/composite
+
+61. [POST] /services/data/v{{version}}/actions/standard/initiateRenewal
+   Name: Initiate Renewal Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/initiateRenewal
+
+62. [POST] /services/data/v{{version}}/composite
+   Name: Create Cancel Opp
+   Raw: {{_endpoint}}/services/data/v{{version}}/composite
+
+63. [POST] /services/data/v{{version}}/actions/standard/initiateCancellation
+   Name: Initiate Cancellation Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/initiateCancellation
+
+64. [POST] /services/data/v{{version}}/connect/core-pricing/pricing
+   Name: Core Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing
+
+65. [POST] /services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price
+   Name: Instant Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/industries/cpq/quotes/actions/get-instant-price
+
+66. [POST] /services/data/v{{version}}/commerce/quotes/actions/place
+   Name: Place Quote
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/quotes/actions/place
+
+67. [POST] /services/data/v{{version}}/actions/standard/createOrderFromQuote
+   Name: Create Order From Quote Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/createOrderFromQuote
+
+68. [GET] /services/data/v{{version}}/query/
+   Name: Get Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/query/?q=SELECT Id FROM Order where QuoteId = '{{currentQuo
+
+69. [GET] /services/data/v{{version}}/query/
+   Name: Get Order Item
+   Raw: {{_endpoint}}/services/data/v{{version}}/query/?q=SELECT Id, Product2Id, ProductSellingModelId FROM 
+
+70. [GET] /services/data/v{{version}}/query/
+   Name: Get Contract
+   Raw: {{_endpoint}}/services/data/v{{version}}/query/?q=SELECT ContractId, Id FROM Order WHERE Id = '{{cur
+
+71. [PATCH] /services/data/v{{version}}/sobjects/Contract
+   Name: Activate Contract
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Contract/{{currentContractId}}
+
+72. [PATCH] /services/data/v{{version}}/sobjects/Order
+   Name: Activate Initial Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentOrderId}}
+
+73. [GET] /services/data/v{{version}}/query/
+   Name: Get Asset Action Source
+   Raw: {{_endpoint}}/services/data/v{{version}}/query/?q=SELECT AssetActionId, Id FROM AssetActionSource WH
+
+74. [GET] /services/data/v{{version}}/query/
+   Name: Get Asset Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/query/?q=SELECT AssetId, Id FROM AssetAction WHERE Id = '{{
+
+75. [PATCH] /services/data/v{{version}}/sobjects/Asset
+   Name: Update Asset Pricing Source
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Asset/{{currentAssetId}}
+
+76. [POST] /services/data/v{{version}}/actions/standard/initiateAmendment
+   Name: Initiate Amendment
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/initiateAmendment
+
+77. [PATCH] /services/data/v{{version}}/sobjects/Order
+   Name: Activate Amendment Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentAmendmentOrderId}}
+
+78. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: 1) PD: List Products
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products
+
+79. [POST] /services/data/v{{version}}/connect/cpq/products
+   Name: 2) PD: Get Product
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/cpq/products/{{defaultTermDefinedAnnualProductId}}
+
+80. [POST] /services/data/v{{version}}/connect/core-pricing/pricing
+   Name: 3) Get Core Pricing
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/core-pricing/pricing
+
+81. [POST] /services/data/v{{version}}/commerce/sales-orders/actions/place
+   Name: 4) Place Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/commerce/sales-orders/actions/place
+
+82. [PATCH] /services/data/v{{version}}/sobjects/Order
+   Name: 5) Activate Order
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Order/{{currentOrder}}
+
+83. [PATCH] /services/data/v{{version}}/sobjects/Asset/02i1Q00000Dw5AxQAJ
+   Name: 6) Update Asset Pricing Source [Copy Asset Id from Org]
+   Raw: {{_endpoint}}/services/data/v{{version}}/sobjects/Asset/02i1Q00000Dw5AxQAJ
+
+84. [POST] /services/data/v{{version}}/actions/standard/initiateAmendment
+   Name: 7) Initiate Amendment Action
+   Raw: {{_endpoint}}/services/data/v{{version}}/actions/standard/initiateAmendment
+
+85. [POST] /services/data/v{{version}}/connect/context-definitions
+   Name: Create Context Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions
+
+86. [GET] /services/data/v{{version}}/connect/context-definitions
+   Name: Get Context Definitions
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions
+
+87. [GET] /services/data/v{{version}}/connect/context-definitions
+   Name: Get Context Definition
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions
+
+88. [POST] /services/data/v{{version}}/connect/context-definitions/context-nodes
+   Name: Create Context Nodes
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context
+
+89. [POST] /services/data/v{{version}}/connect/context-definitions/context-mappings
+   Name: Create Context Mappings
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context
+
+90. [POST] /services/data/v{{version}}/connect/context-definitions/context-tags
+   Name: Create Context Tags (Nodes)
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context
+
+91. [POST] /services/data/v{{version}}/connect/context-definitions/context-tags
+   Name: Create Context Tags (Attributes)
+   Raw: {{_endpoint}}/services/data/v{{version}}/connect/context-definitions/{{contextDefinitionId}}/context
+
+92. [DELETE] /services/data/v{{version}}/composite/sobjects
+   Name: SObject Collections Delete Copy
+   Raw: {{_endpoint}}/services/data/v{{version}}/composite/sobjects?ids=02ibn0000003ewzAAA&allOrNone=true
+
+93. [PATCH] /services/data/v{{version}}/composite/sobjects
+   Name: SObject Collections Update Copy
+   Raw: {{_endpoint}}/services/data/v{{version}}/composite/sobjects
+
