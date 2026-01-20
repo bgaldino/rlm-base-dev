@@ -7,3 +7,5 @@ Negotiable_Rating_Procedure_V1,false,Negotiable Rating Procedure,1,1
 RLM_ProductDiscoveryQualificationProcedure_V1,false,RLM Product Discovery Qualification Procedure,1,1
 RLM_DefaultRatingDiscoveryProcedure_V1,false,RLM Default Rating Discovery Procedure,1,1
 RLM_DefaultRatingProcedure_V1,false,RLM Default Rating Procedure,1,1
+RC_DefaultPricingProcedure_V1,false,RC Revenue Cloud Default Pricing Procedure,1,1
+RC_NegotiableRatingProcedure_V1,false,RC Negotiable Rating Procedure,1,1

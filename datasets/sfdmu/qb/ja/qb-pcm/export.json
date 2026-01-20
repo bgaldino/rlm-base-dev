@@ -1,9 +1,9 @@
 {
     "objects": [
         {
-            "query": "SELECT Code, DataType, Description, Id, Name, Status, UnitOfMeasureId FROM AttributePicklist ORDER BY Code ASC",
+            "query": "SELECT DataType, Description, Id, Name, Status, UnitOfMeasureId FROM AttributePicklist ORDER BY Name ASC",
             "operation": "Upsert",
-            "externalId": "Code"
+            "externalId": "Name"
         },
         {
             "query": "SELECT Abbreviation, Code, DisplayValue, Id, IsDefault, Name, PicklistId, Sequence, Status, Value FROM AttributePicklistValue ORDER BY Code ASC",
