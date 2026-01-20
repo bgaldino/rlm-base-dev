@@ -217,7 +217,7 @@ type Server : LineItem {
     //CPU Cooler Power Draw Variables
     int cooler_PowerDraw = aircooler_watts + liquidcooler_watts;
     int aircooler_watts = aircooler[AirCooler].sum(watts);
-    int liquidcooler_watts = aircooler[AirCooler].sum(watts);
+    int liquidcooler_watts = liquidcooler[LiquidCooler].sum(watts);
 
     //RAM Power Draw Variables
     int RAM_PowerDraw = ram8_watts + ram16_watts +ram32_watts + ram64_watts + ram128_watts;

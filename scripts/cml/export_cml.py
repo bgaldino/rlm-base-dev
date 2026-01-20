@@ -9,7 +9,11 @@ import argparse
 parser = argparse.ArgumentParser(description="Export metadata/data for one Expression Set Definition & Version")
 parser.add_argument("--developerName", type=str, required=True, help="DeveloperName of the Expression Set Definition (e.g. ProductQualification)")
 parser.add_argument("--version", type=str, default="1", help="Version number (e.g. 1)")
+parser.add_argument("--output-dir", type=str, default="data", help="Directory to write standard CSV exports.")
+parser.add_argument("--sfdmu-dir", type=str, default="", help="Optional SFDMU dataset directory to write mapping CSVs.")
 args = parser.parse_args()
+output_dir = args.output_dir
+sfdmu_dir = args.sfdmu_dir.strip() or None
 
 dev_name = args.developerName.strip()
 version_num = args.version.strip()
@@ -36,7 +40,8 @@ def get_field_value(rec, field):
 
 # === Export CSV Helper ===
 def export_to_csv(query, filename, fields, alias="srcOrg"):
-    print(f"📦 Exporting: {filename.replace('data/', '')}")
+    rel_name = filename.replace(f"{output_dir}/", "")
+    print(f"📦 Exporting: {rel_name}")
     print("🔍 SOQL Query:", query.strip())
     
     try:
@@ -81,8 +86,10 @@ def export_to_csv(query, filename, fields, alias="srcOrg"):
     
 
 # === Blob Download Helper ===
-def download_constraint_model_blobs(alias="srcOrg", input_csv="data/ExpressionSetDefinitionVersion.csv"):
+def download_constraint_model_blobs(alias="srcOrg", input_csv=None):
     print("📥 Downloading ConstraintModel blobs...")
+    if input_csv is None:
+        input_csv = os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv")
 
     try:
         result = subprocess.run(
@@ -101,7 +108,7 @@ def download_constraint_model_blobs(alias="srcOrg", input_csv="data/ExpressionSe
         return
 
     headers = { "Authorization": f"Bearer {access_token}" }
-    os.makedirs("data/blobs", exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "blobs"), exist_ok=True)
 
     with open(input_csv, newline='') as f:
         reader = csv.DictReader(f)
@@ -122,7 +129,7 @@ def download_constraint_model_blobs(alias="srcOrg", input_csv="data/ExpressionSe
 
             resp = requests.get(full_url, headers=headers)
             if resp.status_code == 200:
-                file_path = f"data/blobs/ESDV_{dev_name}_V{version_num}.ffxblob"
+                file_path = os.path.join(output_dir, "blobs", f"ESDV_{dev_name}_V{version_num}.ffxblob")
                 with open(file_path, "wb") as out_file:
                     out_file.write(resp.content)
                 print(f"✅ Saved blob: {file_path}")
@@ -133,7 +140,7 @@ def download_constraint_model_blobs(alias="srcOrg", input_csv="data/ExpressionSe
 def get_reference_ids_by_prefix(filename, prefix):
     ids = set()
     try:
-        with open(filename, newline='') as csvfile:
+    with open(filename, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 ref_id = row.get("ReferenceObjectId", "")
@@ -154,7 +161,7 @@ export_to_csv(
         WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
           AND VersionNumber = {version_num}
     """,
-    filename="data/ExpressionSetDefinitionVersion.csv",
+    filename=os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv"),
     fields=[
         "ConstraintModel", "DeveloperName", "ExpressionSetDefinition.DeveloperName", "ExpressionSetDefinitionId", "Id", "Language",
         "MasterLabel", "Status", "VersionNumber"
@@ -167,7 +174,7 @@ export_to_csv(
         FROM ExpressionSetDefinitionContextDefinition
         WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
     """,
-    filename="data/ExpressionSetDefinitionContextDefinition.csv",
+    filename=os.path.join(output_dir, "ExpressionSetDefinitionContextDefinition.csv"),
     fields=[
         "ContextDefinitionApiName", "ContextDefinitionId", "ExpressionSetApiName", "ExpressionSetDefinitionId"
     ]
@@ -180,7 +187,7 @@ export_to_csv(
         FROM ExpressionSet
         WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
     """,
-    filename="data/ExpressionSet.csv",
+    filename=os.path.join(output_dir, "ExpressionSet.csv"),
     fields=[
         "ApiName", "Description", "ExpressionSetDefinitionId", "Id",
         "InterfaceSourceType", "Name", "ResourceInitializationType", "UsageType"
@@ -193,7 +200,7 @@ export_to_csv(
         FROM ExpressionSetConstraintObj
         WHERE ExpressionSet.ApiName = '{dev_name}'
     """,
-    filename="data/ExpressionSetConstraintObj.csv",
+    filename=os.path.join(output_dir, "ExpressionSetConstraintObj.csv"),
     fields=["Name", "ExpressionSetId", "ExpressionSet.ApiName", "ReferenceObjectId", "ConstraintModelTag", "ConstraintModelTagType"]
 )
 
@@ -201,9 +208,10 @@ export_to_csv(
 # === Pull only referenced Product2, ProductClassification, and ProductRelatedComponent ===
 print("🔍 Filtering ReferenceObjectIds...")
 
-product_ids = get_reference_ids_by_prefix("data/ExpressionSetConstraintObj.csv", "01t")
-classification_ids = get_reference_ids_by_prefix("data/ExpressionSetConstraintObj.csv", "11B")
-component_ids = get_reference_ids_by_prefix("data/ExpressionSetConstraintObj.csv", "0dS")
+esc_path = os.path.join(output_dir, "ExpressionSetConstraintObj.csv")
+product_ids = get_reference_ids_by_prefix(esc_path, "01t")
+classification_ids = get_reference_ids_by_prefix(esc_path, "11B")
+component_ids = get_reference_ids_by_prefix(esc_path, "0dS")
 
 def build_id_query(obj_name, ids):
     if not ids:
@@ -214,14 +222,14 @@ def build_id_query(obj_name, ids):
 # Export referenced Product2
 export_to_csv(
     query=build_id_query("Product2", product_ids),
-    filename="data/Product2.csv",
+    filename=os.path.join(output_dir, "Product2.csv"),
     fields=["Id", "Name"]
 )
 
 # Export referenced ProductClassification
 export_to_csv(
     query=build_id_query("ProductClassification", classification_ids),
-    filename="data/ProductClassification.csv",
+    filename=os.path.join(output_dir, "ProductClassification.csv"),
     fields=["Id", "Name"]
 )
 
@@ -236,7 +244,7 @@ export_to_csv(
         FROM ProductRelatedComponent
         WHERE Id IN (%s)
     """ % ",".join(f"'{i}'" for i in component_ids) if component_ids else "SELECT Id, Name FROM ProductRelatedComponent WHERE Id = '000000000000000AAA'",
-    filename="data/ProductRelatedComponent.csv",
+    filename=os.path.join(output_dir, "ProductRelatedComponent.csv"),
     fields=[
         "Id", "Name",
         "ParentProductId", "ParentProduct.Name",
@@ -248,3 +256,62 @@ export_to_csv(
 
 # === Download Blob ===
 download_constraint_model_blobs()
+
+
+def write_sfdmu_files():
+    if not sfdmu_dir:
+        return
+    os.makedirs(sfdmu_dir, exist_ok=True)
+
+    # ExpressionSet.csv (Name only)
+    expr_out = os.path.join(sfdmu_dir, "ExpressionSet.csv")
+    with open(expr_out, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Name"])
+        writer.writerow([dev_name])
+
+    # ExpressionSetConstraintObj.csv (Name + composite external id)
+    esc_in = os.path.join(output_dir, "ExpressionSetConstraintObj.csv")
+    esc_out = os.path.join(sfdmu_dir, "ExpressionSetConstraintObj.csv")
+    if os.path.exists(esc_in):
+        with open(esc_in, newline="") as infile, open(esc_out, mode="w", newline="") as outfile:
+            reader = csv.DictReader(infile)
+            fieldnames = [
+                "$$ConstraintModelTag$ExpressionSet.ApiName",
+                "ConstraintModelTag",
+                "ConstraintModelTagType",
+                "CurrencyIsoCode",
+                "ExpressionSet.Name",
+                "ReferenceObject.Name",
+            ]
+            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in reader:
+                tag = row.get("ConstraintModelTag", "")
+                ref_name = row.get("ReferenceObject.Name", "")
+                writer.writerow({
+                    "$$ConstraintModelTag$ExpressionSet.ApiName": f"{tag};{dev_name}",
+                    "ConstraintModelTag": tag,
+                    "ConstraintModelTagType": row.get("ConstraintModelTagType", ""),
+                    "CurrencyIsoCode": row.get("CurrencyIsoCode", ""),
+                    "ExpressionSet.Name": dev_name,
+                    "ReferenceObject.Name": ref_name,
+                })
+
+    # Product2/ProductClassification/ProductRelatedComponent by Name only
+    for name in ("Product2", "ProductClassification", "ProductRelatedComponent"):
+        src = os.path.join(output_dir, f"{name}.csv")
+        dest = os.path.join(sfdmu_dir, f"{name}.csv")
+        if not os.path.exists(src):
+            continue
+        with open(src, newline="") as infile, open(dest, mode="w", newline="") as outfile:
+            reader = csv.DictReader(infile)
+            writer = csv.DictWriter(outfile, fieldnames=["Name"])
+            writer.writeheader()
+            for row in reader:
+                nm = row.get("Name")
+                if nm:
+                    writer.writerow({"Name": nm})
+
+
+write_sfdmu_files()

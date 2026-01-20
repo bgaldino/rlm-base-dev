@@ -1,12 +1,20 @@
+import argparse
 import os
 import csv
 import json
 import requests
 import subprocess
 
-DATA_DIR = "data"
-BLOB_DIR = os.path.join(DATA_DIR, "blobs")
+DEFAULT_DATA_DIR = "data"
 TARGET_ALIAS = "tgtOrg"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Import CML metadata and data into a target org.")
+    parser.add_argument("--data-dir", default=DEFAULT_DATA_DIR, help="Directory containing CML CSV exports.")
+    parser.add_argument("--dataset-dir", action="append", default=[], help="SFDMU dataset directory for ExpressionSetConstraintObj mapping.")
+    parser.add_argument("--target-org", default=TARGET_ALIAS, help="Target org alias (Salesforce CLI).")
+    return parser.parse_args()
 
 access_token = None
 instance_url = None
@@ -22,9 +30,9 @@ def get_latest_api_version(instance_url):
         raise Exception(f"Failed to retrieve API versions: {resp.status_code} - {resp.text}")
 
 # === Auth + Org Info ===
-def get_auth():
+def get_auth(target_alias):
     result = subprocess.run(
-        ["sf", "org", "display", "--target-org", TARGET_ALIAS, "--json"],
+        ["sf", "org", "display", "--target-org", target_alias, "--json"],
         check=True,
         capture_output=True,
         text=True
@@ -33,9 +41,34 @@ def get_auth():
     return info["accessToken"], info["instanceUrl"]
 
 # === CSV Loader ===
-def read_csv(filename):
-    with open(os.path.join(DATA_DIR, filename), newline="") as f:
+def read_csv(filename, data_dir):
+    with open(os.path.join(data_dir, filename), newline="") as f:
         return list(csv.DictReader(f))
+
+
+def read_csv_optional(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def build_name_set(rows, key):
+    return {row.get(key, "").strip() for row in rows if row.get(key, "").strip()}
+
+
+def resolve_name_map(instance_url, api_version, access_token, obj_name, names):
+    if not names:
+        return {}
+    query_url = f"{instance_url}/services/data/v{api_version}/query"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    name_filter = ",".join(f"'{n}'" for n in names)
+    soql = f"SELECT Id, Name FROM {obj_name} WHERE Name IN ({name_filter})"
+    resp = requests.get(query_url, headers=headers, params={"q": soql})
+    if resp.status_code != 200:
+        print(f"❌ Failed to query {obj_name} by Name: {resp.status_code} - {resp.text}")
+        return {}
+    return {r["Name"]: r["Id"] for r in resp.json().get("records", [])}
 
 # === REST: POST ===
 def create_record(obj_name, record, access_token, instance_url, api_version):
@@ -155,8 +188,14 @@ def upload_blob_via_patch(record_id, blob_path, access_token, instance_url, api_
 
 # === MAIN ===
 def main():
+    args = parse_args()
+    data_dir = args.data_dir
+    dataset_dirs = args.dataset_dir
+    target_alias = args.target_org
+    blob_dir = os.path.join(data_dir, "blobs")
+
     global access_token, instance_url, api_version, headers
-    access_token, instance_url = get_auth()
+    access_token, instance_url = get_auth(target_alias)
     api_version = get_latest_api_version(instance_url) # e.g., '66.0'
     print(f"API Version is: {api_version}")
     headers = {
@@ -165,10 +204,18 @@ def main():
     }
 
     # Load all input data
-    esdv = read_csv("ExpressionSetDefinitionVersion.csv")[0]
-    esdcd = read_csv("ExpressionSetDefinitionContextDefinition.csv")[0]
-    ess = read_csv("ExpressionSet.csv")[0]
-    esc_list = read_csv("ExpressionSetConstraintObj.csv")
+    esdv = read_csv("ExpressionSetDefinitionVersion.csv", data_dir)[0]
+    esdcd = read_csv("ExpressionSetDefinitionContextDefinition.csv", data_dir)[0]
+    ess = read_csv("ExpressionSet.csv", data_dir)[0]
+
+    esc_list = []
+    for dataset_dir in dataset_dirs:
+        dataset_path = os.path.join(dataset_dir, "ExpressionSetConstraintObj.csv")
+        if os.path.exists(dataset_path):
+            esc_list = read_csv_optional(dataset_path)
+            break
+    if not esc_list:
+        esc_list = read_csv("ExpressionSetConstraintObj.csv", data_dir)
 
     # === Insert ExpressionSet
     ess.pop("Id", None)
@@ -232,74 +279,109 @@ def main():
     prc_parent_names = set()
 
     # Product2
-    for row in read_csv("Product2.csv"):
-        legacy_id = row["Id"]
-        name = row["Name"]
-        product_names.add(name)
-        legacy_to_uk[legacy_id] = name  # UK for Product2 is just Name
+    product2_rows = []
+    if dataset_dirs:
+        for dataset_dir in dataset_dirs:
+            dataset_path = os.path.join(dataset_dir, "Product2.csv")
+            if os.path.exists(dataset_path):
+                product2_rows = read_csv_optional(dataset_path)
+                break
+    if not product2_rows:
+        product2_rows = read_csv("Product2.csv", data_dir)
+
+    for row in product2_rows:
+        legacy_id = row.get("Id", "")
+        name = row.get("Name", "")
+        if name:
+            product_names.add(name)
+        if legacy_id:
+            legacy_to_uk[legacy_id] = name  # UK for Product2 is just Name
 
     # ProductClassification
-    for row in read_csv("ProductClassification.csv"):
-        legacy_id = row["Id"]
-        name = row["Name"]
-        classification_names.add(name)
-        legacy_to_uk[legacy_id] = name  # UK for Classification is just Name
+    classification_rows = []
+    if dataset_dirs:
+        for dataset_dir in dataset_dirs:
+            dataset_path = os.path.join(dataset_dir, "ProductClassification.csv")
+            if os.path.exists(dataset_path):
+                classification_rows = read_csv_optional(dataset_path)
+                break
+    if not classification_rows and os.path.exists(os.path.join(data_dir, "ProductClassification.csv")):
+        classification_rows = read_csv("ProductClassification.csv", data_dir)
+
+    for row in classification_rows:
+        legacy_id = row.get("Id", "")
+        name = row.get("Name", "")
+        if name:
+            classification_names.add(name)
+        if legacy_id:
+            legacy_to_uk[legacy_id] = name  # UK for Classification is just Name
 
     # ProductRelatedComponent
-    for row in read_csv("ProductRelatedComponent.csv"):
-        legacy_id = row["Id"]
-        uk = (
-            row["ParentProduct.Name"] + "|" +
-            (row.get("ChildProduct.Name") or "") + "|" +
-            (row.get("ChildProductClassification.Name") or "") + "|" +
-            (row.get("ProductRelationshipType.Name") or "") + "|" +
-            (row.get("Sequence") or "")
-        )
-        prc_parent_names.add(row["ParentProduct.Name"])
-        legacy_to_uk[legacy_id] = uk
+    prc_rows = []
+    if dataset_dirs:
+        for dataset_dir in dataset_dirs:
+            dataset_path = os.path.join(dataset_dir, "ProductRelatedComponent.csv")
+            if os.path.exists(dataset_path):
+                prc_rows = read_csv_optional(dataset_path)
+                break
+    if not prc_rows:
+        prc_rows = read_csv("ProductRelatedComponent.csv", data_dir)
+
+    for row in prc_rows:
+        legacy_id = row.get("Id", "")
+        name = row.get("Name", "")
+        if legacy_id and row.get("ParentProduct.Name"):
+            uk = (
+                row["ParentProduct.Name"] + "|" +
+                (row.get("ChildProduct.Name") or "") + "|" +
+                (row.get("ChildProductClassification.Name") or "") + "|" +
+                (row.get("ProductRelationshipType.Name") or "") + "|" +
+                (row.get("Sequence") or "")
+            )
+            prc_parent_names.add(row["ParentProduct.Name"])
+            legacy_to_uk[legacy_id] = uk
+        if name:
+            prc_parent_names.add(name)
 
     print("📡 Querying target org for new IDs...")
 
     headers = {"Authorization": f"Bearer {access_token}"}
     query_url = f"{instance_url}/services/data/v{api_version}/query"
 
-    # Query target org for Product2
-    prod_filter = ",".join(f"'{n}'" for n in product_names)
-    q1 = f"SELECT Id, Name FROM Product2 WHERE Name IN ({prod_filter})"
-    resp1 = requests.get(query_url, headers=headers, params={"q": q1})
-    uk_to_targetId_prod = {r["Name"]: r["Id"] for r in resp1.json().get("records", [])}
+    uk_to_targetId_prod = resolve_name_map(instance_url, api_version, access_token, "Product2", product_names)
 
-    # Query target org for ProductClassification
-    uk_to_targetId_class = {}
-    if classification_names:
-        class_filter = ",".join(f"'{n}'" for n in classification_names)
-        q2 = f"SELECT Id, Name FROM ProductClassification WHERE Name IN ({class_filter})"
-        resp2 = requests.get(query_url, headers=headers, params={"q": q2})
-        uk_to_targetId_class = {r["Name"]: r["Id"] for r in resp2.json().get("records", [])}
+    uk_to_targetId_class = resolve_name_map(instance_url, api_version, access_token, "ProductClassification", classification_names)
 
-    # Query target org for ProductRelatedComponent
-    prc_filter = ",".join(f"'{n}'" for n in prc_parent_names)
-    q3 = f"""
-    SELECT Id,
-        ParentProduct.Name,
-        ChildProduct.Name,
-        ChildProductClassification.Name,
-        ProductRelationshipType.Name, Sequence
-    FROM ProductRelatedComponent
-    WHERE ParentProduct.Name IN ({prc_filter})
-    """
-    resp3 = requests.get(query_url, headers=headers, params={"q": q3})
-    uk_to_targetId_prc = {
-    (
-        r["ParentProduct"]["Name"] + "|" +
-        (r["ChildProduct"]["Name"] if r.get("ChildProduct") else "") + "|" +
-        (r["ChildProductClassification"]["Name"] if r.get("ChildProductClassification") else "") + "|" +
-        (r["ProductRelationshipType"]["Name"] if r.get("ProductRelationshipType") else "") + "|" +
-        (str(r["Sequence"]) if r.get("Sequence") is not None else "")
-    ): r["Id"]
-    for r in resp3.json().get("records", [])
-    if r.get("ParentProduct")
-    }
+    uk_to_targetId_prc = {}
+    if prc_parent_names:
+        prc_filter = ",".join(f"'{n}'" for n in prc_parent_names)
+        q3 = f"""
+        SELECT Id,
+            Name,
+            ParentProduct.Name,
+            ChildProduct.Name,
+            ChildProductClassification.Name,
+            ProductRelationshipType.Name, Sequence
+        FROM ProductRelatedComponent
+        WHERE ParentProduct.Name IN ({prc_filter}) OR Name IN ({prc_filter})
+        """
+        resp3 = requests.get(query_url, headers=headers, params={"q": q3})
+        if resp3.status_code == 200:
+            uk_to_targetId_prc = {
+                (
+                    r["ParentProduct"]["Name"] + "|" +
+                    (r["ChildProduct"]["Name"] if r.get("ChildProduct") else "") + "|" +
+                    (r["ChildProductClassification"]["Name"] if r.get("ChildProductClassification") else "") + "|" +
+                    (r["ProductRelationshipType"]["Name"] if r.get("ProductRelationshipType") else "") + "|" +
+                    (str(r["Sequence"]) if r.get("Sequence") is not None else "")
+                ): r["Id"]
+                for r in resp3.json().get("records", [])
+                if r.get("ParentProduct")
+            }
+        else:
+            print(f"⚠️ Failed to query ProductRelatedComponent: {resp3.status_code} - {resp3.text}")
+
+    prc_name_to_id = resolve_name_map(instance_url, api_version, access_token, "ProductRelatedComponent", prc_parent_names)
 
     print("🔁 Maps ready. Resolving ReferenceObjectIds...")
 
@@ -318,19 +400,40 @@ def main():
     for row in esc_list:
         row.pop("Id", None)
         row.pop("ExpressionSet.ApiName", None)
+        row.pop("ExpressionSet.Name", None)
+        row.pop("ReferenceObject.Name", None)
+        row.pop("ReferenceObject.Type", None)
         row.pop("Name", None)
+        for key in list(row.keys()):
+            if key.startswith("$$"):
+                row.pop(key, None)
+            if "." in key:
+                row.pop(key, None)
         row["ExpressionSetId"] = ess_id
 
-        ref_id = row.get("ReferenceObjectId", "")
+        ref_id = row.get("ReferenceObjectId", "").strip()
+        ref_name = row.get("ReferenceObject.Name", "").strip()
+        ref_type = row.get("ReferenceObject.Type", "").strip()
+        tag_type = row.get("ConstraintModelTagType", "").strip()
         resolved_id = None
         uk = legacy_to_uk.get(ref_id)
 
-        if ref_id.startswith("01t"):
-            resolved_id = uk_to_targetId_prod.get(uk)
-        elif ref_id.startswith("11B") and uk_to_targetId_class:
-            resolved_id = uk_to_targetId_class.get(uk)
-        elif ref_id.startswith("0dS"):
-            resolved_id = uk_to_targetId_prc.get(uk)
+        if ref_id:
+            if ref_id.startswith("01t"):
+                resolved_id = uk_to_targetId_prod.get(uk)
+            elif ref_id.startswith("11B") and uk_to_targetId_class:
+                resolved_id = uk_to_targetId_class.get(uk)
+            elif ref_id.startswith("0dS"):
+                resolved_id = uk_to_targetId_prc.get(uk)
+        elif ref_name:
+            if ref_type == "ProductRelatedComponent" or tag_type.lower() == "port":
+                resolved_id = prc_name_to_id.get(ref_name)
+            elif ref_type == "ProductClassification":
+                resolved_id = uk_to_targetId_class.get(ref_name)
+            elif ref_type == "Product2":
+                resolved_id = uk_to_targetId_prod.get(ref_name)
+            else:
+                resolved_id = uk_to_targetId_class.get(ref_name) or uk_to_targetId_prod.get(ref_name)
 
         if resolved_id:
             row["ReferenceObjectId"] = resolved_id
@@ -360,7 +463,7 @@ def main():
 
     # === Upload Blob
     version = esdv.get("VersionNumber")
-    blob_file = os.path.join(BLOB_DIR, f"ESDV_{devname.replace('_V' + version, '')}_V{version}.ffxblob")
+    blob_file = os.path.join(blob_dir, f"ESDV_{devname.replace('_V' + version, '')}_V{version}.ffxblob")
     if os.path.exists(blob_file):
         upload_blob_via_patch(esdv_id, blob_file, access_token, instance_url, api_version)
     else:

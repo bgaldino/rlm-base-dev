@@ -994,7 +994,7 @@ type HousingArrangement_Left : HousingArrangement {
 }
 
 type HousingArrangement_Right : HousingArrangement {
-    string entranceType = "Left";
+    string entranceType = "Right";
 
 }
 
