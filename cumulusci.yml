@@ -142,6 +142,7 @@ project:
       - BillingAdvancedPsl
       - IndustriesARCPsl
       - CollectionsAndRecoveryPsl
+      - RevPromotionsManagementPsl
 
     rlm_ai_psg_api_names: &rlm_ai_psg_api_names
       # AI-related permission set groups
@@ -832,6 +833,25 @@ tasks:
     options:
       path: unpackaged/post_payments
 
+  deploy_post_payments_site:
+    description: Deploy Payments site settings only
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_payments/sites
+
+  deploy_post_payments_settings:
+    description: Deploy Payments Settings
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_payments_settings
+
+  ensure_pricing_schedules:
+    description: Ensure pricing schedules exist before expression sets
+    class_path: tasks.rlm_repair_pricing_schedules.EnsurePricingSchedules
+    options:
+      disable_settings_path: tasks/resources/pricing_settings_disable
+      enable_settings_path: unpackaged/pre/2_settings
+
   deploy_expression_sets:
     description: Deploy Expression Sets
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1159,6 +1179,13 @@ tasks:
     options:
       path: unpackaged/pre/5_decisiontables
 
+  restore_decision_tables:
+    group: Revenue Lifecycle Management
+    description: "Restore skipped decision tables after deploy"
+    class_path: tasks.rlm_exclude_active_decision_tables.RestoreDecisionTables
+    options:
+      path: unpackaged/pre/5_decisiontables
+
   assign_permission_set_groups_tolerant:
     group: Revenue Lifecycle Management
     description: "Assign Permission Set Groups with tolerance for permission warnings"
@@ -1395,20 +1422,22 @@ flows:
         flow: prepare_core
       2:
         flow: prepare_decision_tables
-      4:
+      3:
         flow: prepare_expression_sets
-      5:
+      4:
         task: create_partner_central
         when: project_config.project__custom__prm
-      6:
+      5:
         task: create_payments_webhook
         when: project_config.project__custom__payments
-      7:
+      6:
         task: deploy_full
-      8:
+      7:
         flow: prepare_price_adjustment_schedules
-      9:
+      8:
         flow: prepare_scratch
+      9:
+        flow: prepare_payments
       10:
         flow: prepare_quantumbit
       11:
@@ -1462,38 +1491,45 @@ flows:
       4:
         task: deploy_pre
       5:
+        task: restore_decision_tables
+        when: org_config.scratch
+      6:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
-      6:
+      7:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_psl_api_names  
-      7:
+      8:
         task: util_sleep
         options:
           seconds: *sleep_default
-      8:
+      9:
+        task: assign_permission_set_licenses
+        options:
+          api_names: EinsteinAnalyticsPlusPsl
+      10:
         task: assign_permission_set_groups_tolerant
         options:
           api_names: *rlm_psg_api_names
-      9:
+      11:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      10:
+      12:
         flow: extend_context_definitions
-      11:
+      13:
         task: util_sleep
         options:
           seconds: *sleep_default
-      12:
+      14:
         task: create_price_adjustment_schedules
         when: org_config.scratch and project_config.project__custom__pas_debug 
-      13:
+      15:
         task: create_price_adjustment_schedules_prod
         when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
       14:
@@ -1567,6 +1603,9 @@ flows:
         task: deactivate_expression_sets_prod
         when: not org_config.scratch
       3:
+        task: ensure_pricing_schedules
+        when: org_config.scratch
+      4:
         task: deploy_expression_sets
         when: org_config.scratch
   
@@ -1877,4 +1916,18 @@ flows:
       1:
         task: deploy_post_visualization
         when: project_config.project__custom__visualization
-      
+
+  prepare_payments:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_payments_site
+        when: project_config.project__custom__payments
+      2:
+        task: publish_community
+        when: project_config.project__custom__payments
+        options:
+          name: Payments Webhook
+      3:
+        task: deploy_post_payments_settings
+        when: project_config.project__custom__payments
