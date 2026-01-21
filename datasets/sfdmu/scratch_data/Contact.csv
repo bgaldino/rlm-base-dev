@@ -1,5 +1,5 @@
-Account.Name,AssistantName,AssistantPhone,Birthdate,CurrencyIsoCode,Department,Description,Email,Fax,FirstName,HomePhone,LastName,LeadSource,MailingCity,MailingCountry,MailingPostalCode,MailingState,MailingStreet,MobilePhone,Name,OtherCity,OtherCountry,OtherPhone,OtherPostalCode,OtherState,OtherStreet,Phone,PhotoUrl,ReportsTo.Name,Salutation,Title
-Apple Inc,,,,USD,,,steelbrick_demo@salesforce.com,,Steve,,Wozniak,,Cupertino,US,95014,CA,1 Apple Park Way,,Steve Wozniak,,,,,,,,,+14085551212,/services/images/photo/003KP000001ngA3YAI,,,
-Global Media,,,,USD,,,steelbrick_demo@salesforce.com,,Geoff,,Minor,,Toronto,CA,L4B 1Y3,ON,150 Chestnut Street,,Geoff Minor,Toronto,Canada,CA,,L4B 1Y3,ON,150 Chestnut Street,(415) 555-1212,/services/images/photo/003KP000001nfywYAA,,,President
-Global Media,,,,USD,,Carole White is looking at moving forward with our products and will act as the champion for us.,steelbrick_demo@salesforce.com,,Carole,,White,Employee Referral,Toronto,CA,L4B 1Y3,ON,150 Chestnut Street,,Carole White,,,,,,,,,(415) 555-1212,/services/images/photo/003KP000001nfyxYAA,Geoff Minor,,VP Sales
-Global Media,,,,USD,,,steelbrick_demo@salesforce.com,(555) 555-1212,Jon,,Amos,,Toronto,CA,L4B 1Y3,ON,150 Chestnut Street,,Jon Amos,,,,,,,,,(905) 555-1212,/services/images/photo/003KP000001nfyyYAA,Carole White,,Sales Manager
+Account.Name,FirstName,LastName
+Apple Inc,Steve,Wozniak
+Global Media,Geoff,Minor
+Global Media,Carole,White
+Global Media,Jon,Amos

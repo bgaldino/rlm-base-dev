@@ -10,9 +10,8 @@
           "externalId": "Name"
         },
         {
-          "query": "SELECT AccountId, AssistantName, AssistantPhone, Birthdate, CurrencyIsoCode, Department, Description, Email, Fax, FirstName, HomePhone, Id, LastName, LeadSource, MailingCity, MailingCountry, MailingPostalCode, MailingState, MailingStreet, MobilePhone, Name, OtherCity, OtherCountry, OtherPostalCode, OtherState, OtherStreet, OtherPhone, Phone, PhotoUrl, ReportsToId, Salutation, Title FROM Contact",
-          "operation": "Upsert",
-          "externalId": "Name"
+          "query": "SELECT AccountId, FirstName, LastName FROM Contact",
+          "operation": "Insert"
         }
       ]
     }
