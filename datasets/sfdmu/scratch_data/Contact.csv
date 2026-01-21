@@ -1,5 +1,5 @@
-Account.Name,FirstName,LastName
-Apple Inc,Steve,Wozniak
-Global Media,Geoff,Minor
-Global Media,Carole,White
-Global Media,Jon,Amos
+Account.Name,FirstName,LastName,Name
+Apple Inc,Steve,Wozniak,Steve Wozniak
+Global Media,Geoff,Minor,Geoff Minor
+Global Media,Carole,White,Carole White
+Global Media,Jon,Amos,Jon Amos

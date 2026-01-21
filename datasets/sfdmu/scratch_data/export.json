@@ -10,8 +10,9 @@
           "externalId": "Name"
         },
         {
-          "query": "SELECT AccountId, FirstName, LastName FROM Contact",
-          "operation": "Insert"
+          "query": "SELECT AccountId, FirstName, LastName, Name FROM Contact",
+          "operation": "Upsert",
+          "externalId": "Name"
         }
       ]
     }
