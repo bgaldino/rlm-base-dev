@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <IndustriesUsageSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableUsage>true</enableUsage>
+    <enableUsageReleaseTask258>true</enableUsageReleaseTask258>
 </IndustriesUsageSettings>

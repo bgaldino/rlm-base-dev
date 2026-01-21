@@ -7,6 +7,7 @@
     <template>false</template>
     <versions>
         <fullName>RLM_ProductDiscoveryQualificationProcedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Creates qualification procedures that determine product eligibility for Product Discovery.</description>
         <expressionSetDefinition>RLM_ProductDiscoveryQualificationProcedure</expressionSetDefinition>
         <interfaceSourceType>QualificationProcedure</interfaceSourceType>
@@ -18,8 +19,45 @@
         <status>Draft</status>
         <steps>
             <actionType>EvaluateCategoryQualification</actionType>
-            <customElement/>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>CategoryId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>CategoryId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>DTName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>RLM_ProductCategoryQualification</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>DTId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWL0000000n5Z2AQ</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>IsQualified</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>IsCategoryQualified</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Reason</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>CategoryDisqualifiedReason</value>
+                </parameters>
+            </customElement>
             <description>Evaluate Category Qualification</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Evaluate Category Qualification</label>
             <name>EvaluateCategoryQualification</name>
             <resultIncluded>true</resultIncluded>
@@ -31,8 +69,59 @@
         </steps>
         <steps>
             <actionType>EvaluateQualification</actionType>
-            <customElement/>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>ProductId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ProductId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>ParentProductId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ParentProductId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>RootProductId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>RootProductId</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>DTName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>RLM_ProductQualification</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>DTId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDWL0000000n5a2AA</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>IsQualified</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>IsQualified</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>Reason</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>Reason</value>
+                </parameters>
+            </customElement>
             <description>Evaluate Qualification</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Evaluate Qualification</label>
             <name>EvaluateQualification</name>
             <resultIncluded>true</resultIncluded>

@@ -32,7 +32,7 @@
         <expression>HYPERLINK(&quot;/Loop_TJs.Id&quot;, &quot;Loop_TJs.Name&quot;)</expression>
     </formulas>
     <interviewLabel>Usage Data Tables Concept - US {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC - Usage Summaries Data Tables</label>
+    <label>RC Usage Summaries Data Tables</label>
     <loops>
         <name>Loop_Current_US</name>
         <label>Loop Current US</label>

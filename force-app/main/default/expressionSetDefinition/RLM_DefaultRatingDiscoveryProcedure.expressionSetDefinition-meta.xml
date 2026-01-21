@@ -100,6 +100,7 @@
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Adjustments</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Asset Rate Adjustments</label>
             <name>GetAssetRateAdjustments</name>
             <resultIncluded>false</resultIncluded>
@@ -129,6 +130,13 @@
                 <parameters>
                     <input>true</input>
                     <name>StartDate</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>FilterNodeEffectiveFrom__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>EndDate</name>
                     <output>false</output>
                     <type>Parameter</type>
                     <value>FilterNodeEffectiveFrom__std</value>
@@ -198,6 +206,7 @@
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Card Entries</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Asset Rate Card Entries</label>
             <name>GetAssetRateCardEntries</name>
             <resultIncluded>false</resultIncluded>
@@ -289,6 +298,7 @@
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Adjustments</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Binding Object Rate Adjustments</label>
             <name>GetBindingObjectRateAdjustments</name>
             <resultIncluded>false</resultIncluded>
@@ -318,6 +328,13 @@
                 <parameters>
                     <input>true</input>
                     <name>EffectiveFrom</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>FilterNodeEffectiveFrom__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>EffectiveTo</name>
                     <output>false</output>
                     <type>Parameter</type>
                     <value>FilterNodeEffectiveFrom__std</value>
@@ -387,6 +404,7 @@
                 </parameters>
             </customElement>
             <description>Get Binding Object Rate Card Entries</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Binding Object Rate Card Entries</label>
             <name>GetBindingObjectRateCardEntries</name>
             <resultIncluded>false</resultIncluded>
@@ -520,6 +538,7 @@
                 </parameters>
             </customElement>
             <description>Get Rate Card Entries</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Rate Card Entries</label>
             <name>GetRateCardEntries</name>
             <resultIncluded>false</resultIncluded>
@@ -590,6 +609,7 @@
                 </parameters>
             </customElement>
             <description>Get Rate Cards</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Rate Cards</label>
             <name>GetRateCards</name>
             <resultIncluded>false</resultIncluded>
@@ -681,6 +701,7 @@
                 </parameters>
             </customElement>
             <description>Get Tier-Based Rate Adjustments</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Get Tier-Based Rate Adjustments</label>
             <name>GetTierBasedRateAdjustments</name>
             <resultIncluded>true</resultIncluded>

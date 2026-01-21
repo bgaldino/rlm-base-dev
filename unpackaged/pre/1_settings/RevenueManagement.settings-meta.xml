@@ -10,7 +10,7 @@
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
     <enableRampDeal>true</enableRampDeal>
-    <enableRevInstPricingDefaultPref>false</enableRevInstPricingDefaultPref>
+    <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
     <enableTransactionCloning>true</enableTransactionCloning>

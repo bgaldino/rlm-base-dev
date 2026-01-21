@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ProductDiscoverySettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <discoverProductsFlowNameOrgValue>RC_Discover_Products</discoverProductsFlowNameOrgValue>
+    <discoverProductsFlowNameOrgValue>RLM_Discover_Products</discoverProductsFlowNameOrgValue>
     <prodDiscBrowseContextDefOrgValue>RLM_ProductDiscoveryContext</prodDiscBrowseContextDefOrgValue>
     <prodDiscPricingEnabledOrgValue>true</prodDiscPricingEnabledOrgValue>
     <prodDiscProcedureOrgValue>RLM Product Discovery Pricing Procedure</prodDiscProcedureOrgValue>
-    <prodDiscQualEnabledOrgValue>false</prodDiscQualEnabledOrgValue>
-    <prodDiscQualificationOrgValue>RLM Qualification Procedure</prodDiscQualificationOrgValue>
+    <prodDiscQualEnabledOrgValue>true</prodDiscQualEnabledOrgValue>
+    <prodDiscQualificationOrgValue>RLM Product Discovery Qualification Procedure</prodDiscQualificationOrgValue>
     <promoContextMappingNameOrgValue>ProductDiscoveryPromoMapping</promoContextMappingNameOrgValue>
 </ProductDiscoverySettings>

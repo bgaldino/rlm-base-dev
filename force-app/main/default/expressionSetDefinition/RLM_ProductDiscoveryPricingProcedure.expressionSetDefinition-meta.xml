@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <contextDefinitions>RLM_ProductDiscoveryContext</contextDefinitions>
-    <description>Creates pricing procedures that get the list price of products for Product Discovery.</description>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
     <label>RLM Product Discovery Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
         <fullName>RLM_ProductDiscoveryPricingProcedure_V1</fullName>
+        <decimalScale>2</decimalScale>
         <description>Creates pricing procedures that get the list price of products for Product Discovery.</description>
         <expressionSetDefinition>RLM_ProductDiscoveryPricingProcedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
@@ -29,10 +29,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>ListPriceField</name>
+                    <name>Pricebook2Id</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_UnitPrice_Price_Book_Entry_Decision_Table_v2_LP</value>
+                    <value>PricebookId</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -43,13 +43,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>Pricebook2Id</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>PricebookId</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>Quantity</name>
                     <output>false</output>
                     <type>Parameter</type>
@@ -57,10 +50,10 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>CurrencyIsoCode</name>
+                    <name>ListPriceField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>PricingCurrencyCode</value>
+                    <value>Constant_UnitPrice_Price_Book_Entry_Decision_Table_v2_LP</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -148,6 +141,7 @@
                 </parameters>
             </customElement>
             <description>List Price</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Price Book Entries</label>
             <name>PriceBookEntries</name>
             <resultIncluded>true</resultIncluded>
@@ -169,13 +163,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>CurrencyIsoCode</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>PricingCurrencyCode</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>sectionCount</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -191,6 +178,13 @@
                 <parameters>
                     <input>true</input>
                     <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsPropagationEnabled</name>
                     <output>false</output>
                     <type>Literal</type>
                     <value>false</value>
@@ -218,6 +212,7 @@
                 </parameters>
             </customElement>
             <description>Pricing Setting</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Pricing Setting</label>
             <name>PricingSetting</name>
             <resultIncluded>true</resultIncluded>

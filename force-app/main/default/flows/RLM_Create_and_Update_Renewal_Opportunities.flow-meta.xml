@@ -338,6 +338,13 @@
             </value>
         </assignmentItems>
         <assignmentItems>
+            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>IterateOverAssets.totalLineAmount</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
             <assignToReference>OpportunityProductsToCreate</assignToReference>
             <operator>Add</operator>
             <value>
@@ -401,6 +408,13 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>IterateOverAssets.endDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>opportunityProductToUpdate.TotalPrice</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>IterateOverAssets.totalLineAmount</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -487,6 +501,13 @@
             </value>
         </assignmentItems>
         <assignmentItems>
+            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>IterateOverOpportunityProducts.TotalPrice</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
             <assignToReference>OpportunityProductsWithOpportunityIdForAllProducts</assignToReference>
             <operator>Add</operator>
             <value>
@@ -557,6 +578,13 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>IterateOverOpportunityProductsToCreate.AssetId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>IterateOverOpportunityProductsToCreate.TotalPrice</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -881,6 +909,14 @@
         </value>
     </constants>
     <constants>
+        <description>Prefix for opportunity standard entity</description>
+        <name>OpportunityRecordPrefix</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>006</stringValue>
+        </value>
+    </constants>
+    <constants>
         <description>Stores the Renewals picklist value of the lastAssetAction field on an asset record.</description>
         <name>RenewalPicklistValue</name>
         <dataType>String</dataType>
@@ -976,12 +1012,19 @@
         <defaultConnectorLabel>No (Default)</defaultConnectorLabel>
         <rules>
             <name>HasReferenceStringInOpportunityIdToAssign</name>
-            <conditionLogic>and</conditionLogic>
+            <conditionLogic>1 OR 2</conditionLogic>
             <conditions>
                 <leftValueReference>IterateOverOpportunityProductsToCreate.OpportunityId</leftValueReference>
                 <operator>StartsWith</operator>
                 <rightValue>
                     <elementReference>RootAssetOpportunityPrefix</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>IterateOverOpportunityProductsToCreate.OpportunityId</leftValueReference>
+                <operator>StartsWith</operator>
+                <rightValue>
+                    <elementReference>OpportunityRecordPrefix</elementReference>
                 </rightValue>
             </conditions>
             <connector>
@@ -1054,14 +1097,7 @@
         <defaultConnectorLabel>Other (Default)</defaultConnectorLabel>
         <rules>
             <name>CreateOpportunityProduct</name>
-            <conditionLogic>(1 OR 2 OR 3) AND 4</conditionLogic>
-            <conditions>
-                <leftValueReference>IterateOverAssets.lastAssetActionSubtype</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <elementReference>StartDateAdjustmentPicklistValue</elementReference>
-                </rightValue>
-            </conditions>
+            <conditionLogic>(1 OR 2) AND 3</conditionLogic>
             <conditions>
                 <leftValueReference>IterateOverAssets.lastAssetAction</leftValueReference>
                 <operator>EqualTo</operator>

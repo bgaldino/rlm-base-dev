@@ -4,10 +4,10 @@
     <enableDebugPriceLogs>true</enableDebugPriceLogs>
     <enableDerivedPricingLog>false</enableDerivedPricingLog>
     <enableHighAvailability>true</enableHighAvailability>
-    <enableHighestPriceCompliance>true</enableHighestPriceCompliance>
+    <enableHighestPriceCompliance>false</enableHighestPriceCompliance>
     <enableLargeQuoteLog>false</enableLargeQuoteLog>
     <enableLargeTransactionPricing>false</enableLargeTransactionPricing>
-    <enableLowestPriceCompliance>true</enableLowestPriceCompliance>
+    <enableLowestPriceCompliance>false</enableLowestPriceCompliance>
     <enablePricingProcParallelization>true</enablePricingProcParallelization>
     <enablePricingWaterfall>true</enablePricingWaterfall>
     <enablePricingWaterfallPersistence>true</enablePricingWaterfallPersistence>

@@ -32,7 +32,7 @@
         <expression>HYPERLINK(&quot;/Loop_TJs.Id&quot;, &quot;Loop_TJs.Name&quot;)</expression>
     </formulas>
     <interviewLabel>Usage Data Tables Concept - TJ {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC - Transaction Journal Data Tables</label>
+    <label>RC Transaction Journal Data Tables</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

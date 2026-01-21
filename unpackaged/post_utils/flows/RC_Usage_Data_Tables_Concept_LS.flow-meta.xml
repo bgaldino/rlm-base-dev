@@ -92,7 +92,7 @@
         <expression>HYPERLINK(&quot;/Loop_TJs.Id&quot;, &quot;Loop_TJs.Name&quot;)</expression>
     </formulas>
     <interviewLabel>Usage Data Tables Concept - LS {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC - Liable Summaries Data Tables</label>
+    <label>RC Liable Summaries Data Tables</label>
     <loops>
         <name>Loop_Current_LS</name>
         <label>Loop Current LS</label>
