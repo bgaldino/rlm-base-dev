@@ -216,6 +216,16 @@
                     <contextInputAttributeName>SavedPaymentMethod</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/SavedPaymentMethod</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/TransactionType__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>Order</objectName>
+                        <queryAttribute>TransactionType</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>TransactionType__std</contextAttribute>
+                    <contextInputAttributeName>TransactionType__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction/TransactionType__std</inheritedFrom>
+                </contextAttributeMappings>
                 <contextNode>BillingTransaction</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransaction</inheritedFrom>
                 <object>Order</object>
@@ -756,6 +766,26 @@
                     <contextInputAttributeName>RelatedBillingTransactionItemDetail</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail/RelatedBillingTransactionItemDetail</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail/StartDate__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItemDetail</objectName>
+                        <queryAttribute>EffectiveFrom</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>StartDate__std</contextAttribute>
+                    <contextInputAttributeName>StartDate__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail/StartDate__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail/EndDate__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>OrderItemDetail</objectName>
+                        <queryAttribute>EffectiveTo</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>EndDate__std</contextAttribute>
+                    <contextInputAttributeName>EndDate__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail/EndDate__std</inheritedFrom>
+                </contextAttributeMappings>
                 <contextNode>BillingTransactionItemDetail</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/OrderEntitiesMapping/BillingTransactionItemDetail</inheritedFrom>
                 <object>OrderItemDetail</object>
@@ -1199,6 +1229,26 @@
                     <contextInputAttributeName>ChargeType__std</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/ChargeType__std</inheritedFrom>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/BillingArrangement__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>BillingArrangementId</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>BillingArrangement__std</contextAttribute>
+                    <contextInputAttributeName>BillingArrangement__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/BillingArrangement__std</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/UsageType__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingScheduleGroup</objectName>
+                        <queryAttribute>UsageType</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>UsageType__std</contextAttribute>
+                    <contextInputAttributeName>UsageType__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup/UsageType__std</inheritedFrom>
+                </contextAttributeMappings>
                 <contextNode>BillingScheduleGroup</contextNode>
                 <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingScheduleGroup</inheritedFrom>
                 <object>BillingScheduleGroup</object>
@@ -1293,6 +1343,16 @@
                     <contextAttribute>BillingTermUnit</contextAttribute>
                     <contextInputAttributeName>BillingTermUnit</contextInputAttributeName>
                     <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/BillingTermUnit</inheritedFrom>
+                </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/PricingTermUnit__std/hydrationInfo-1</inheritedFrom>
+                        <objectName>BillingSchedule</objectName>
+                        <queryAttribute>PricingTermUnit</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>PricingTermUnit__std</contextAttribute>
+                    <contextInputAttributeName>PricingTermUnit__std</contextInputAttributeName>
+                    <inheritedFrom>BillingContext__stdctx/version/BSGEntitiesMapping/BillingSchedule/PricingTermUnit__std</inheritedFrom>
                 </contextAttributeMappings>
                 <contextAttributeMappings>
                     <contextAttrHydrationDetails>
@@ -1968,12 +2028,48 @@
                     <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingProfile__std/BillingProfileId__std</inheritedFrom>
                     <title>BillingProfileId__std</title>
                 </contextTags>
-                <customMappingAllowed>false</customMappingAllowed>
+                <customMappingAllowed>true</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingProfile__std</inheritedFrom>
                 <key>false</key>
                 <title>BillingProfile__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingArrangement__std/BillingTransactionBillingArrangement__std</inheritedFrom>
+                    <title>BillingTransactionBillingArrangement__std</title>
+                </contextTags>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingArrangement__std/BillingArrangementId__std</inheritedFrom>
+                    <title>BillingArrangementId__std</title>
+                </contextTags>
+                <customMappingAllowed>true</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingArrangement__std</inheritedFrom>
+                <key>false</key>
+                <title>BillingArrangement__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/TransactionType__std/BillingTransactionTransactionType__std</inheritedFrom>
+                    <title>BillingTransactionTransactionType__std</title>
+                </contextTags>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/TransactionType__std/TransactionType__std</inheritedFrom>
+                    <title>TransactionType__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/TransactionType__std</inheritedFrom>
+                <key>false</key>
+                <title>TransactionType__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
@@ -2576,6 +2672,34 @@
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingArrangement__std/BillingScheduleGroupBillingArrangement__std</inheritedFrom>
+                    <title>BillingScheduleGroupBillingArrangement__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingArrangement__std</inheritedFrom>
+                <key>false</key>
+                <title>BillingArrangement__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/UsageType__std/BillingScheduleGroupUsageType__std</inheritedFrom>
+                    <title>BillingScheduleGroupUsageType__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/UsageType__std</inheritedFrom>
+                <key>false</key>
+                <title>UsageType__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
             <contextTags>
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingScheduleGroup</inheritedFrom>
                 <title>BillingScheduleGroup</title>
@@ -2845,6 +2969,10 @@
                 <contextTags>
                     <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTermUnit/BillingTransactionItemPricingTermUnit</inheritedFrom>
                     <title>BillingTransactionItemPricingTermUnit</title>
+                </contextTags>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/PricingTermUnit/PricingTermUnit__std</inheritedFrom>
+                    <title>PricingTermUnit__std</title>
                 </contextTags>
                 <customMappingAllowed>false</customMappingAllowed>
                 <dataType>string</dataType>
@@ -3162,7 +3290,7 @@
                     <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ChargeType__std/ChargeType__std</inheritedFrom>
                     <title>ChargeType__std</title>
                 </contextTags>
-                <customMappingAllowed>false</customMappingAllowed>
+                <customMappingAllowed>true</customMappingAllowed>
                 <dataType>string</dataType>
                 <fieldType>input</fieldType>
                 <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/ChargeType__std</inheritedFrom>
@@ -3316,6 +3444,20 @@
                 <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/BillingTermUnit</inheritedFrom>
                 <key>false</key>
                 <title>BillingTermUnit</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/PricingTermUnit__std/BillingSchedulePricingTermUnit__std</inheritedFrom>
+                    <title>BillingSchedulePricingTermUnit__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>string</dataType>
+                <fieldType>inputoutput</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingScheduleGroup/BillingSchedule/PricingTermUnit__std</inheritedFrom>
+                <key>false</key>
+                <title>PricingTermUnit__std</title>
                 <transient>false</transient>
                 <value>false</value>
             </contextAttributes>
@@ -4029,6 +4171,42 @@
             </contextAttributes>
             <contextAttributes>
                 <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/StartDate__std/BillingTransactionItemDetailStartDate__std</inheritedFrom>
+                    <title>BillingTransactionItemDetailStartDate__std</title>
+                </contextTags>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/StartDate__std/TransactionDetailStartDate__std</inheritedFrom>
+                    <title>TransactionDetailStartDate__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>date</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/StartDate__std</inheritedFrom>
+                <key>false</key>
+                <title>StartDate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/EndDate__std/BillingTransactionItemDetailEndDate__std</inheritedFrom>
+                    <title>BillingTransactionItemDetailEndDate__std</title>
+                </contextTags>
+                <contextTags>
+                    <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/EndDate__std/TransactionDetailEndDate__std</inheritedFrom>
+                    <title>TransactionDetailEndDate__std</title>
+                </contextTags>
+                <customMappingAllowed>false</customMappingAllowed>
+                <dataType>date</dataType>
+                <fieldType>input</fieldType>
+                <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/EndDate__std</inheritedFrom>
+                <key>false</key>
+                <title>EndDate__std</title>
+                <transient>false</transient>
+                <value>false</value>
+            </contextAttributes>
+            <contextAttributes>
+                <contextTags>
                     <inheritedFrom>BillingContext__stdctx/version/BillingTransaction/BillingTransactionItem/BillingTransactionItemDetail/TotalLineAmount/BillingTransactionItemDetailTotalLineAmount</inheritedFrom>
                     <title>BillingTransactionItemDetailTotalLineAmount</title>
                 </contextTags>
@@ -4102,7 +4280,7 @@
     <description>Extension of Standard Billing Context Definition</description>
     <hasSystemTags>false</hasSystemTags>
     <inheritedFrom>BillingContext__stdctx</inheritedFrom>
-    <inheritedFromVersion>62.25</inheritedFromVersion>
+    <inheritedFromVersion>62.30</inheritedFromVersion>
     <isProtected>false</isProtected>
     <masterLabel>RLM_BillingContext</masterLabel>
     <title>RLM_BillingContext</title>
