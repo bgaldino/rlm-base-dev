@@ -11,12 +11,136 @@ DEFINE_RE = re.compile(r"^\s*define\s+([A-Za-z_][A-Za-z0-9_]*)\s+\[(.*)\]\s*$")
 RELATION_RE = re.compile(
     r"^\s*relation\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)"
 )
+EXTERN_RE = re.compile(
+    r"^\s*(?:@\(.*\)\s*)*extern\s+([A-Za-z0-9_()]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(=\s*[^;]+)?;"
+)
+CONSTRAINT_LINE_RE = re.compile(r"^\s*(?:@\(.*\)\s*)*(constraint|message|preference|require|exclude|rule|setdefault)\b")
 ORDER_RE = re.compile(r"order\s*\(([^)]*)\)")
 FIELD_RE = re.compile(
     r"^\s*(?:@\(.*\)\s*)*(string|int|boolean|decimal(?:\(\d+\))?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);"
 )
 DEFAULT_RE = re.compile(r"defaultValue\s*=\s*(\"[^\"]*\"|[^,\)]+)")
 RANGE_RE = re.compile(r"\[\s*(\d+)\s*\.\.\s*(\d+)\s*\]")
+ANNOTATION_KEY_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*=")
+ANNOTATION_KV_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(\"[^\"]*\"|[^,\)]+)")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+CARDINALITY_RE = re.compile(r"\[\s*(\d+)\s*(?:\.\.\s*(\d+))?\s*\]")
+HEADER_DECL_RE = re.compile(r"^\s*(define|property|extern)\b")
+
+SUPPORTED_ANNOTATIONS = {
+    "type": {
+        "sequence",
+        "groupBy",
+        "peelable",
+        "sharingCount",
+        "source",
+        "split",
+        "virtual",
+        "minInstanceQty",
+        "maxInstanceQty",
+        "computeDomainBeforeRelation",
+        "computeDomainBeforeAttribute",
+        "computeDomainBeforeAllAttributesAndRelations",
+    },
+    "port": {
+        "closeRelation",
+        "compNumberVar",
+        "configurable",
+        "disableCardinalityConstraint",
+        "domainComputation",
+        "filterExpression",
+        "generic",
+        "goal",
+        "goalFactory",
+        "noneLeafCardVar",
+        "orderBy",
+        "domainOrder",
+        "propagateUp",
+        "relatedAttributes",
+        "relatedRelations",
+        "sequence",
+        "sharing",
+        "singleton",
+        "source",
+        "sourceAttribute",
+        "sourceContextNode",
+        "sharingExpression",
+        "sharingClass",
+        "sharingSource",
+        "readOnly",
+        "allowNewInstance",
+        "removeAssetWithZeroQuantity",
+    },
+    "attribute": {
+        "allowOverride",
+        "configurable",
+            "contextPath",
+        "defaultValue",
+        "domainComputation",
+        "goal",
+        "goalFactory",
+        "nullAssignable",
+        "peelable",
+        "relatedAttributes",
+        "relatedRelations",
+        "sequence",
+        "setDefault",
+        "source",
+        "sourceAttribute",
+        "strategy",
+        "tagName",
+        "domainScope",
+        "attributeSource",
+        "productGroup",
+        "skipParentAttributeValidation",
+    },
+    "extern": {
+        "contextPath",
+        "tagName",
+    },
+    "constraint": {
+        "sequence",
+        "abort",
+        "active",
+        "endDate",
+        "startDate",
+        "targetType",
+        "skipValidation",
+    },
+}
+
+BOOLEAN_ANNOTATIONS = {
+    "allowOverride",
+    "configurable",
+    "domainComputation",
+    "nullAssignable",
+    "setDefault",
+    "closeRelation",
+    "allowNewInstance",
+    "disableCardinalityConstraint",
+    "generic",
+    "noneLeafCardVar",
+    "propagateUp",
+    "readOnly",
+    "sharing",
+    "singleton",
+    "abort",
+    "active",
+    "skipValidation",
+    "peelable",
+}
+
+INTEGER_ANNOTATIONS = {
+    "sequence",
+    "sharingCount",
+    "maxInstanceQty",
+    "minInstanceQty",
+    "productGroup",
+}
+
+ENUM_ANNOTATIONS = {
+    "split": {"true", "false", "none"},
+}
 
 
 def split_list_values(raw):
@@ -49,7 +173,89 @@ def parse_default_value(annotation_text):
     return raw
 
 
-def validate_file(path):
+def extract_annotation_keys(annotation_text):
+    keys = set()
+    for match in ANNOTATION_KEY_RE.finditer(annotation_text):
+        keys.add(match.group(1))
+    return keys
+
+
+def extract_annotation_kv(annotation_text):
+    values = {}
+    for match in ANNOTATION_KV_RE.finditer(annotation_text):
+        key, raw = match.group(1), match.group(2).strip()
+        if raw.startswith('"') and raw.endswith('"'):
+            raw = raw[1:-1]
+        values[key] = raw
+    return values
+
+
+def validate_annotation_values(keys, values, line_no, issues, context_label):
+    for key in sorted(keys):
+        value = values.get(key)
+        if value is None:
+            continue
+        if key in BOOLEAN_ANNOTATIONS and value not in {"true", "false"}:
+            issues.append(
+                (
+                    "warning",
+                    line_no,
+                    f"Annotation '{key}' expects true/false on {context_label}.",
+                )
+            )
+        if key in INTEGER_ANNOTATIONS and not value.isdigit():
+            issues.append(
+                (
+                    "warning",
+                    line_no,
+                    f"Annotation '{key}' expects an integer on {context_label}.",
+                )
+            )
+        if key in ENUM_ANNOTATIONS and value not in ENUM_ANNOTATIONS[key]:
+            issues.append(
+                (
+                    "warning",
+                    line_no,
+                    f"Annotation '{key}' expects one of {sorted(ENUM_ANNOTATIONS[key])} on {context_label}.",
+                )
+            )
+        if key in {"startDate", "endDate"} and not DATE_RE.match(value):
+            issues.append(
+                (
+                    "warning",
+                    line_no,
+                    f"Annotation '{key}' expects ISO date YYYY-MM-DD on {context_label}.",
+                )
+            )
+
+
+def strip_comments(lines):
+    cleaned = []
+    in_block = False
+    for line in lines:
+        text = line
+        if in_block:
+            if "*/" in text:
+                text = text.split("*/", 1)[1]
+                in_block = False
+            else:
+                cleaned.append("")
+                continue
+        while "/*" in text:
+            before, rest = text.split("/*", 1)
+            if "*/" in rest:
+                text = before + rest.split("*/", 1)[1]
+            else:
+                text = before
+                in_block = True
+                break
+        if "//" in text:
+            text = text.split("//", 1)[0]
+        cleaned.append(text)
+    return cleaned
+
+
+def validate_file(path, supported_annotations=None):
     issues = []
     types = {}
     abstract_types = set()
@@ -58,21 +264,62 @@ def validate_file(path):
     relations = []
     type_order_refs = []
     pending_annotations = []
+    supported_any = set()
+    if supported_annotations:
+        for values in supported_annotations.values():
+            supported_any |= values
 
     with open(path, "r", encoding="utf-8") as handle:
-        lines = handle.readlines()
+        raw_lines = handle.readlines()
+    lines = strip_comments(raw_lines)
+
+    brace_balance = 0
+    paren_balance = 0
+    first_type_line = None
 
     for line_no, line in enumerate(lines, start=1):
+        brace_balance += line.count("{") - line.count("}")
+        paren_balance += line.count("(") - line.count(")")
+        if brace_balance < 0:
+            issues.append(("error", line_no, "Unbalanced '}' brace."))
+            brace_balance = 0
+        if paren_balance < 0:
+            issues.append(("warning", line_no, "Unbalanced ')' parenthesis."))
+            paren_balance = 0
+
         define_parsed = parse_define(line)
         if define_parsed:
+            if first_type_line is not None:
+                issues.append(("warning", line_no, "Header declarations should appear before the first type."))
             defines[define_parsed[0]] = define_parsed[1]
             continue
+
+        if HEADER_DECL_RE.match(line):
+            if first_type_line is not None:
+                issues.append(("warning", line_no, "Header declarations should appear before the first type."))
 
         type_match = TYPE_RE.match(line)
         if type_match:
             type_name = type_match.group(1)
             base_name = type_match.group(2)
             body_token = type_match.group(3)
+            if first_type_line is None:
+                first_type_line = line_no
+            annotation_text = " ".join(pending_annotations + [line])
+            pending_annotations = []
+            if supported_any:
+                keys = extract_annotation_keys(annotation_text)
+                values = extract_annotation_kv(annotation_text)
+                for key in sorted(keys):
+                    if key not in supported_annotations["type"]:
+                        issues.append(
+                            (
+                                "warning",
+                                line_no,
+                                f"Unsupported annotation '{key}' on type '{type_name}'.",
+                            )
+                        )
+                validate_annotation_values(keys, values, line_no, issues, f"type '{type_name}'")
             if type_name in types:
                 issues.append(
                     (
@@ -91,7 +338,34 @@ def validate_file(path):
         relation_match = RELATION_RE.match(line)
         if relation_match:
             rel_name, rel_type = relation_match.groups()
+            annotation_text = " ".join(pending_annotations + [line])
+            pending_annotations = []
+            if supported_any:
+                keys = extract_annotation_keys(annotation_text)
+                values = extract_annotation_kv(annotation_text)
+                for key in sorted(keys):
+                    if key not in supported_annotations["port"]:
+                        issues.append(
+                            (
+                                "warning",
+                                line_no,
+                                f"Unsupported annotation '{key}' on relation '{rel_name}'.",
+                            )
+                        )
+                validate_annotation_values(keys, values, line_no, issues, f"relation '{rel_name}'")
             relations.append((line_no, rel_name, rel_type))
+            card_match = CARDINALITY_RE.search(line)
+            if card_match:
+                min_val = card_match.group(1)
+                max_val = card_match.group(2)
+                if max_val is not None and int(max_val) < int(min_val):
+                    issues.append(
+                        (
+                            "warning",
+                            line_no,
+                            f"Relation '{rel_name}' cardinality has max < min.",
+                        )
+                    )
             order_match = ORDER_RE.search(line)
             if order_match:
                 order_list = [
@@ -107,11 +381,93 @@ def validate_file(path):
             pending_annotations.append(line.strip())
             continue
 
+        extern_match = EXTERN_RE.match(line)
+        if extern_match:
+            _, extern_name, extern_default = extern_match.groups()
+            annotation_text = " ".join(pending_annotations + [line])
+            pending_annotations = []
+            if first_type_line is not None:
+                issues.append(("warning", line_no, "Header declarations should appear before the first type."))
+
+            if supported_any:
+                keys = extract_annotation_keys(annotation_text)
+                values = extract_annotation_kv(annotation_text)
+                for key in sorted(keys):
+                    if key not in supported_annotations["extern"]:
+                        issues.append(
+                            (
+                                "warning",
+                                line_no,
+                                f"Unsupported annotation '{key}' on extern '{extern_name}'.",
+                            )
+                        )
+
+                validate_annotation_values(keys, values, line_no, issues, f"extern '{extern_name}'")
+
+                if "contextPath" not in keys and not extern_default:
+                    issues.append(
+                        (
+                            "warning",
+                            line_no,
+                            f"Extern '{extern_name}' has no default and no contextPath; it may remain unbound.",
+                        )
+                    )
+            continue
+
+        constraint_match = CONSTRAINT_LINE_RE.match(line)
+        if constraint_match:
+            annotation_text = " ".join(pending_annotations + [line])
+            pending_annotations = []
+            if supported_any:
+                keys = extract_annotation_keys(annotation_text)
+                values = extract_annotation_kv(annotation_text)
+                for key in sorted(keys):
+                    if key not in supported_annotations["constraint"]:
+                        issues.append(
+                            (
+                                "warning",
+                                line_no,
+                                f"Unsupported annotation '{key}' on constraint/rule.",
+                            )
+                        )
+                validate_annotation_values(keys, values, line_no, issues, "constraint/rule")
+            continue
+
         field_match = FIELD_RE.match(line)
         if field_match:
             field_type, field_name, raw_rhs = field_match.groups()
             annotation_text = " ".join(pending_annotations + [line])
             pending_annotations = []
+
+            if supported_any:
+                keys = extract_annotation_keys(annotation_text)
+                values = extract_annotation_kv(annotation_text)
+                for key in sorted(keys):
+                    if key not in supported_any:
+                        issues.append(
+                            (
+                                "warning",
+                                line_no,
+                                f"Unsupported annotation '{key}' on attribute '{field_name}'.",
+                            )
+                        )
+                if "contextPath" in keys:
+                    issues.append(
+                        (
+                            "warning",
+                            line_no,
+                            f"contextPath should only be used on extern variables (found on attribute '{field_name}').",
+                        )
+                    )
+                if "productGroup" in keys:
+                    issues.append(
+                        (
+                            "warning",
+                            line_no,
+                            "productGroup is deprecated; use minInstanceQty/maxInstanceQty type annotations instead.",
+                        )
+                    )
+                validate_annotation_values(keys, values, line_no, issues, f"attribute '{field_name}'")
 
             default_value = parse_default_value(annotation_text)
             if default_value is None:
@@ -158,7 +514,24 @@ def validate_file(path):
             continue
 
         if line.strip() and not line.strip().startswith("//"):
+            if supported_any and pending_annotations:
+                annotation_text = " ".join(pending_annotations)
+                keys = extract_annotation_keys(annotation_text)
+                for key in sorted(keys):
+                    if key not in supported_any:
+                        issues.append(
+                            (
+                                "warning",
+                                line_no,
+                                f"Unsupported annotation '{key}'.",
+                            )
+                        )
             pending_annotations = []
+
+    if brace_balance != 0:
+        issues.append(("error", None, "Unbalanced '{'/' }' braces in file."))
+    if paren_balance != 0:
+        issues.append(("warning", None, "Unbalanced '(' / ')' parentheses in file."))
 
     for line_no, rel_name, rel_type in relations:
         if rel_type not in types:
@@ -243,6 +616,7 @@ def main():
     cml_dir = args.cml_dir
     dataset_dirs = args.dataset_dir
     expression_set_override = args.expression_set_name.strip()
+    supported_annotations = SUPPORTED_ANNOTATIONS
 
     cml_files = [
         os.path.join(cml_dir, name)
@@ -261,7 +635,7 @@ def main():
         associations.update(read_dataset_associations(dataset_dir))
 
     for path in sorted(cml_files):
-        issues, types, relations, leaf_types = validate_file(path)
+        issues, types, relations, leaf_types = validate_file(path, supported_annotations)
         if issues:
             all_issues[path] = issues
 

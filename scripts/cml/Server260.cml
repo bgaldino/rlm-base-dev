@@ -1,0 +1,714 @@
+type Server : LineItem {
+    @(defaultValue = "false")
+    boolean bigDrive;
+
+    @(defaultValue = "false")
+    boolean smallDrive;
+
+    // Computed attributes should have higher sequence numbers
+    @(configurable = false, defaultValue = "0")
+    decimal(2) x8Lanes = total_x8count;
+
+    @(configurable = false, defaultValue = "0")
+    decimal(2) x16Lanes = total_x16count;
+
+    @(configurable = false, defaultValue = "0", sequence="10")
+    decimal(2) PowerDraw = gpu_PowerDraw + CPUPowerDraw_Sum + cooler_PowerDraw + RAM_PowerDraw + HDD_PowerDraw + SSD_PowerDraw + networking_PowerDraw + io_PowerDraw;
+
+    string Redundancy = ["Basic Uptime", "High Availability"];
+
+    @(configurable = false, defaultValue = "6")
+    decimal(2) AvailablePCIeSlots = 6 - total_slots;
+
+    @(configurable = false, defaultValue = "0")
+    decimal(2) GB_Storage = total_HDD_TB;
+
+    @(defaultValue = "12x3.5 inch Drives")
+    string FrontStorage = ["12x3.5 inch Drives", "24x2.5 inch Drives", "16x2.5 inch Drives"];
+
+    @(defaultValue = "N/A")
+    string RearStorage = ["N/A", "2x2.5 inch Drives", "4x2.5 inch Drives"];
+
+    @(defaultValue = "N/A")
+    string RAID = ["N/A", "RAID 0", "RAID 1", "RAID 5", "Unconfigured RAID"];
+
+    @(defaultValue = "Capacity")
+    string StorageProfile = ["N/A", "Capacity", "Performance", "Balanced"];
+
+    @(defaultValue = "3200MT/s RDIMMs")
+    string DIMMType = ["3200MT/s RDIMMs", "3200MT/s LRDIMMs"];
+
+    @(defaultValue = "Standard")
+    string PerformanceTier = ["N/A", "Entry", "Standard", "Performance", "Accelerated"];
+
+    @(defaultValue = "Single")
+    string SocketConfiguration = ["Single", "Dual"];
+
+    @(defaultValue = "General")
+    string Workload = ["General", "AI", "High Performance Computing"];
+
+    // CPU Relations
+    relation gold3ghz : Gold_3Ghz_18C36T[0..2];
+    relation gold21ghz : Gold_21Ghz_24C48T[0..2];
+    relation gold22ghz : Gold_22Ghz_28C56T[0..2];
+    relation plat22ghz : Plat_22Ghz_32C64T[0..2];
+    relation plat23ghz : Plat_23Ghz_32C64T[0..2];
+    relation plat24ghz36c : Plat_24Ghz_36C72T[0..2];
+    relation plat24ghz38c : Plat_24Ghz_38C76T[0..2];
+
+    // Cooler Relations
+    relation aircooler : AirCooler[0..2];
+    relation liquidcooler : LiquidCooler[0..2];
+
+    // RAM Relations
+    relation ram8 : RAM8[0..8];
+    relation ram16 : RAM16[0..8];
+    relation ram32 : RAM32[0..8];
+    relation ram64 : RAM64[0..8];
+    relation ram128 : RAM128[0..8];
+
+    // HDD Relations
+    relation hdd1_big : HDD1_Big[0..9999];
+    relation hdd4_big : HDD4_Big[0..9999];
+    relation hdd3_small : HDD3_Small[0..9999];
+    relation hdd20_big : HDD20_Big[0..9999];
+    relation hdd8_big : HDD8_Big[0..9999];
+    relation hdd1_small : HDD1_Small[0..9999];
+
+    // SSD Relations
+    relation ssd2 : SSD2[0..9999];
+    relation ssd4 : SSD4[0..9999];
+    relation ssd8 : SSD8[0..9999];
+    relation ssd16 : SSD16[0..9999];
+    relation ssd30 : SSD30[0..9999];
+
+    // Networking Relations
+    relation link10g : Link10G[0..9999];
+    relation link25g : Link25G[0..9999];
+    relation link100g : Link100G[0..9999];
+    relation secure10g : Secure10G[0..9999];
+
+    // IO Relations
+    relation raid500 : RAID500[0..9999];
+    relation nvexpand : NVExpand[0..9999];
+    relation cacheboost : CacheBoost[0..9999];
+
+    // GPU Relations
+    relation nova : Nova[0..9999];
+    relation accel : Accel[0..9999];
+
+    // Power Supply Relations
+    relation pwr500s : QBPowerCore500S[0..1];
+    relation pwr800s : QBPowerCore800S[0..1];
+    relation pwr1600s : QBPowerCore1600S[0..1];
+    relation pwr600d : QBPowerSafe600D[0..1];
+    relation pwr1000d : QBPowerSafe1000D[0..1];
+    relation pwr2000d : QBPowerSafe2000D[0..1];
+
+    // ========== RDIMM Rules ==========
+    constraint(DIMMType == "3200MT/s RDIMMs" -> ram128[RAM128] == 0);
+    constraint(DIMMType == "3200MT/s LRDIMMs" -> ram8[RAM8] == 0 && ram16[RAM16] == 0 && ram32[RAM32] == 0 && ram64[RAM64] == 0, "Please select compatible memory for your server.");
+    preference(DIMMType == "3200MT/s LRDIMMs" -> ram128[RAM128] == 2);
+
+    // Permit one type of RAM per Server (using distinct would be cleaner if applicable)
+    rule(ram8[RAM8] > 0, "disable", "relation", "ram16", "type", "RAM16");
+    rule(ram8[RAM8] > 0, "disable", "relation", "ram32", "type", "RAM32");
+    rule(ram8[RAM8] > 0, "disable", "relation", "ram64", "type", "RAM64");
+    rule(ram16[RAM16] > 0, "disable", "relation", "ram8", "type", "RAM8");
+    rule(ram16[RAM16] > 0, "disable", "relation", "ram32", "type", "RAM32");
+    rule(ram16[RAM16] > 0, "disable", "relation", "ram64", "type", "RAM64");
+    rule(ram32[RAM32] > 0, "disable", "relation", "ram8", "type", "RAM8");
+    rule(ram32[RAM32] > 0, "disable", "relation", "ram16", "type", "RAM16");
+    rule(ram32[RAM32] > 0, "disable", "relation", "ram64", "type", "RAM64");
+    rule(ram64[RAM64] > 0, "disable", "relation", "ram8", "type", "RAM8");
+    rule(ram64[RAM64] > 0, "disable", "relation", "ram16", "type", "RAM16");
+    rule(ram64[RAM64] > 0, "disable", "relation", "ram32", "type", "RAM32");
+
+    // ========== CPU Rules ==========
+    constraint(Workload != "General" <-> SocketConfiguration == "Dual");
+    constraint(SocketConfiguration == "Dual" -> gold3ghz[Gold_3Ghz_18C36T] == 0 && gold21ghz[Gold_21Ghz_24C48T] == 0 && gold22ghz[Gold_22Ghz_28C56T] == 0, "Dual CPUs are only available for Platinum CPUs.");
+
+    // Platinum CPU Preferences
+    preference(Workload != "General" && PerformanceTier == "Entry" -> plat22ghz[Plat_22Ghz_32C64T] == 2 && liquidcooler[LiquidCooler] == 2);
+    preference(Workload != "General" && PerformanceTier == "Standard" -> plat23ghz[Plat_23Ghz_32C64T] == 2 && liquidcooler[LiquidCooler] == 2 && nova[Nova] == 1);
+    preference(Workload != "General" && PerformanceTier == "Performance" -> plat24ghz36c[Plat_24Ghz_36C72T] == 2 && accel[Accel] == 1 && liquidcooler[LiquidCooler] == 2);
+    preference(Workload != "General" && PerformanceTier == "Accelerated" -> plat24ghz38c[Plat_24Ghz_38C76T] == 2 && accel[Accel] == 2 && liquidcooler[LiquidCooler] == 2);
+
+    // Gold CPU Preferences
+    preference(Workload == "General" && PerformanceTier == "Entry" -> gold21ghz[Gold_21Ghz_24C48T] == 1 && aircooler[AirCooler] == 1);
+    preference(Workload == "General" && PerformanceTier == "Standard" -> gold22ghz[Gold_22Ghz_28C56T] == 1 && aircooler[AirCooler] == 1);
+    preference(Workload == "General" && PerformanceTier == "Performance" -> gold3ghz[Gold_3Ghz_18C36T] == 1 && aircooler[AirCooler] == 1);
+    preference(Workload == "General" && PerformanceTier == "Accelerated" -> gold3ghz[Gold_3Ghz_18C36T] == 1 && liquidcooler[LiquidCooler] == 1 && nova[Nova] == 1);
+
+    exclude(Workload != "General", aircooler[AirCooler]);
+    exclude(Workload == "General" && PerformanceTier == "Accelerated", aircooler[AirCooler]);
+    require(Workload != "General" && SocketConfiguration == "Dual", liquidcooler[LiquidCooler] == 2);
+
+    // ========== HDD Constraints ==========
+    @(sequence = "1")
+    int availableDrives = [0, 12, 14, 16, 18, 20, 24, 26, 28];
+    
+    @(sequence = "1")
+    int frontDrives = [12, 16, 24];
+    
+    @(sequence = "1")
+    int rearDrives = [0, 2, 4];
+    
+    @(sequence = "2")
+    constraint(table(
+        FrontStorage, RearStorage, availableDrives, frontDrives, rearDrives,
+        {"12x3.5 inch Drives", "N/A", 12, 12, 0},
+        {"16x2.5 inch Drives", "N/A", 16, 16, 0},
+        {"24x2.5 inch Drives", "N/A", 24, 24, 0},
+        {"12x3.5 inch Drives", "2x2.5 inch Drives", 14, 12, 2},
+        {"16x2.5 inch Drives", "2x2.5 inch Drives", 18, 16, 2},
+        {"24x2.5 inch Drives", "2x2.5 inch Drives", 26, 24, 2},
+        {"12x3.5 inch Drives", "4x2.5 inch Drives", 16, 12, 4},
+        {"16x2.5 inch Drives", "4x2.5 inch Drives", 20, 16, 4},
+        {"24x2.5 inch Drives", "4x2.5 inch Drives", 28, 24, 4}
+    ));
+
+    @(sequence = "3")
+    int bigDrivesCount = hdd1_big[HDD1_Big] + hdd4_big[HDD4_Big] + hdd20_big[HDD20_Big] + hdd8_big[HDD8_Big];
+    
+    @(sequence = "3")
+    int smallDrivesCount = hdd1_small[HDD1_Small] + hdd3_small[HDD3_Small];
+
+    message(FrontStorage == "12x3.5 inch Drives" && (frontDrives < bigDrivesCount || rearDrives < smallDrivesCount), "Too many drives selected");
+    message(FrontStorage != "12x3.5 inch Drives" && frontDrives < smallDrivesCount && RearStorage == "N/A", "Add Rear Storage for additional 2.5 inch drive space");
+    message(FrontStorage != "12x3.5 inch Drives" && RearStorage != "N/A" && availableDrives < bigDrivesCount + smallDrivesCount, "Too many HDD's selected. Please adjust the quantity");
+
+    constraint(FrontStorage == "12x3.5 inch Drives" && RearStorage == "N/A" -> hdd1_small[HDD1_Small] == 0 && hdd3_small[HDD3_Small] == 0);
+    constraint(FrontStorage != "12x3.5 inch Drives" -> hdd1_big[HDD1_Big] == 0 && hdd4_big[HDD4_Big] == 0 && hdd20_big[HDD20_Big] == 0 && hdd8_big[HDD8_Big] == 0);
+
+    // FIXED: Changed from count() to cardinality multiplication
+    @(sequence = "4")
+    int hdd1tb_big = hdd1_big[HDD1_Big] * 1;
+    
+    @(sequence = "4")
+    int hdd4tb_big = hdd4_big[HDD4_Big] * 4;
+    
+    @(sequence = "4")
+    int hdd3tb_small = hdd3_small[HDD3_Small] * 3;
+    
+    @(sequence = "4")
+    int hdd20tb_big = hdd20_big[HDD20_Big] * 20;
+    
+    @(sequence = "4")
+    int hdd8tb_big = hdd8_big[HDD8_Big] * 8;
+    
+    @(sequence = "4")
+    int hdd1tb_small = hdd1_small[HDD1_Small] * 1;
+    
+    @(sequence = "4")
+    int ssd2tb = ssd2[SSD2] * 2;
+    
+    @(sequence = "4")
+    int ssd4tb = ssd4[SSD4] * 4;
+    
+    @(sequence = "4")
+    int ssd8tb = ssd8[SSD8] * 8;
+    
+    @(sequence = "4")
+    int ssd16tb = ssd16[SSD16] * 16;
+    
+    @(sequence = "4")
+    int ssd30tb = ssd30[SSD30] * 30;
+
+    @(sequence = "5")
+    int total_HDD_TB = hdd1tb_big + hdd4tb_big + hdd3tb_small + hdd20tb_big + hdd8tb_big + hdd1tb_small + ssd2tb + ssd4tb + ssd8tb + ssd16tb + ssd30tb;
+
+    // SSD count
+    @(sequence = "3")
+    int SSD_count = ssd2[SSD2] + ssd4[SSD4] + ssd8[SSD8] + ssd16[SSD16] + ssd30[SSD30];
+    
+    message(SSD_count > 6, "A maximum of 6 SSD's are supported with the Q-Rack 750");
+    message(total_HDD_TB == 0, "Please select storage. Refer to our storage profiles for a quick start.");
+
+    // ========== CPU PowerDraw Variables ==========
+    @(sequence = "6")
+    int gold3ghz_watts = gold3ghz[Gold_3Ghz_18C36T].sum(watts);
+    
+    @(sequence = "6")
+    int gold21ghz_watts = gold21ghz[Gold_21Ghz_24C48T].sum(watts);
+    
+    @(sequence = "6")
+    int gold22ghz_watts = gold22ghz[Gold_22Ghz_28C56T].sum(watts);
+    
+    @(sequence = "6")
+    int plat22ghz_watts = plat22ghz[Plat_22Ghz_32C64T].sum(watts);
+    
+    @(sequence = "6")
+    int plat23ghz_watts = plat23ghz[Plat_23Ghz_32C64T].sum(watts);
+    
+    @(sequence = "6")
+    int plat24ghz36c_watts = plat24ghz36c[Plat_24Ghz_36C72T].sum(watts);
+    
+    @(sequence = "6")
+    int plat24ghz38c_watts = plat24ghz38c[Plat_24Ghz_38C76T].sum(watts);
+
+    @(sequence = "7")
+    int CPUPowerDraw_Sum = gold3ghz_watts + gold21ghz_watts + gold22ghz_watts + plat22ghz_watts + plat23ghz_watts + plat24ghz36c_watts + plat24ghz38c_watts;
+
+    // ========== CPU Cooler Power Draw ==========
+    @(sequence = "6")
+    int aircooler_watts = aircooler[AirCooler].sum(watts);
+    
+    @(sequence = "6")
+    int liquidcooler_watts = liquidcooler[LiquidCooler].sum(watts);
+
+    @(sequence = "7")
+    int cooler_PowerDraw = aircooler_watts + liquidcooler_watts;
+
+    // ========== RAM Power Draw ==========
+    @(sequence = "6")
+    int ram8_watts = ram8[RAM8].sum(watts);
+    
+    @(sequence = "6")
+    int ram16_watts = ram16[RAM16].sum(watts);
+    
+    @(sequence = "6")
+    int ram32_watts = ram32[RAM32].sum(watts);
+    
+    @(sequence = "6")
+    int ram64_watts = ram64[RAM64].sum(watts);
+    
+    @(sequence = "6")
+    int ram128_watts = ram128[RAM128].sum(watts);
+
+    @(sequence = "7")
+    int RAM_PowerDraw = ram8_watts + ram16_watts + ram32_watts + ram64_watts + ram128_watts;
+
+    // ========== HDD & SSD Power Draw ==========
+    @(sequence = "6")
+    int hdd1_big_watts = hdd1_big[HDD1_Big].sum(watts);
+    
+    @(sequence = "6")
+    int hdd4_big_watts = hdd4_big[HDD4_Big].sum(watts);
+    
+    @(sequence = "6")
+    int hdd8_big_watts = hdd8_big[HDD8_Big].sum(watts);
+    
+    @(sequence = "6")
+    int hdd20_big_watts = hdd20_big[HDD20_Big].sum(watts);
+    
+    @(sequence = "6")
+    int hdd1_small_watts = hdd1_small[HDD1_Small].sum(watts);
+    
+    @(sequence = "6")
+    int hdd3_small_watts = hdd3_small[HDD3_Small].sum(watts);
+
+    @(sequence = "7")
+    int HDD_PowerDraw = hdd1_big_watts + hdd4_big_watts + hdd8_big_watts + hdd20_big_watts + hdd1_small_watts + hdd3_small_watts;
+
+    @(sequence = "6")
+    int ssd2_watts = ssd2[SSD2].sum(watts);
+    
+    @(sequence = "6")
+    int ssd4_watts = ssd4[SSD4].sum(watts);
+    
+    @(sequence = "6")
+    int ssd8_watts = ssd8[SSD8].sum(watts);
+    
+    @(sequence = "6")
+    int ssd16_watts = ssd16[SSD16].sum(watts);
+    
+    @(sequence = "6")
+    int ssd30_watts = ssd30[SSD30].sum(watts);
+
+    @(sequence = "7")
+    int SSD_PowerDraw = ssd2_watts + ssd4_watts + ssd8_watts + ssd16_watts + ssd30_watts;
+
+    // ========== PCIe Power Draw ==========
+    @(sequence = "6")
+    int link10g_watts = link10g[Link10G].sum(watts);
+    
+    @(sequence = "6")
+    int link25g_watts = link25g[Link25G].sum(watts);
+    
+    @(sequence = "6")
+    int link100g_watts = link100g[Link100G].sum(watts);
+    
+    @(sequence = "6")
+    int secure10g_watts = secure10g[Secure10G].sum(watts);
+
+    @(sequence = "7")
+    int networking_PowerDraw = link10g_watts + link25g_watts + link100g_watts + secure10g_watts;
+
+    // ========== IO Power Draw ==========
+    @(sequence = "6")
+    int RAID500_watts = raid500[RAID500].sum(watts);
+    
+    @(sequence = "6")
+    int nvexpand_watts = nvexpand[NVExpand].sum(watts);
+    
+    @(sequence = "6")
+    int Cacheboost_watts = cacheboost[CacheBoost].sum(watts);
+
+    @(sequence = "7")
+    int io_PowerDraw = RAID500_watts + nvexpand_watts + Cacheboost_watts;
+
+    // ========== GPU PowerDraw ==========
+    @(sequence = "6")
+    int accel_watts = accel[Accel].sum(watts);
+    
+    @(sequence = "6")
+    int nova_watts = nova[Nova].sum(watts);
+
+    @(sequence = "7")
+    int gpu_PowerDraw = accel_watts + nova_watts;
+
+    // ========== Power Supply Constraints ==========
+    constraint(Redundancy == "High Availability" -> pwr500s[QBPowerCore500S] == 0 && pwr800s[QBPowerCore800S] == 0 && pwr1600s[QBPowerCore1600S] == 0);
+
+    message(PowerDraw > 500 && pwr500s[QBPowerCore500S] > 0, "The QB PowerCore 500S is not compatible. Please select a higher output PSU.");
+    message(PowerDraw > 600 && pwr600d[QBPowerSafe600D] > 0, "The QB PowerSafe 600D is not compatible. Please select a higher output PSU.");
+    message(PowerDraw > 800 && pwr800s[QBPowerCore800S] > 0, "The QB PowerCore 800S is not compatible. Please select a higher output PSU.");
+    message(PowerDraw > 1000 && pwr1000d[QBPowerSafe1000D] > 0, "The QB PowerSafe 1000D is not compatible. Please select a higher output PSU.");
+    message(PowerDraw > 1600 && pwr1600s[QBPowerCore1600S] > 0, "The QB PowerCore 1600S is not compatible. Please select a higher output PSU.");
+    message(PowerDraw > 2000 && pwr2000d[QBPowerSafe2000D] > 0, "The QB PowerSafe 2000D is not compatible. Please select a higher output PSU.");
+
+    rule(PowerDraw > 500, "disable", "relation", "pwr500s", "type", "QBPowerCore500S");
+    rule(PowerDraw > 600, "disable", "relation", "pwr600d", "type", "QBPowerSafe600D");
+    rule(PowerDraw > 800, "disable", "relation", "pwr800s", "type", "QBPowerCore800S");
+    rule(PowerDraw > 1000, "disable", "relation", "pwr1000d", "type", "QBPowerSafe1000D");
+    rule(PowerDraw > 1600, "disable", "relation", "pwr1600s", "type", "QBPowerCore1600S");
+    rule(PowerDraw > 2000, "disable", "relation", "pwr2000d", "type", "QBPowerSafe2000D");
+
+    // ========== Storage Preference Rules ==========
+    preference(StorageProfile == "Capacity" && FrontStorage == "12x3.5 inch Drives" && RearStorage == "N/A" -> hdd20_big[HDD20_Big] == 8 && ssd30[SSD30] == 6);
+    preference(StorageProfile == "Capacity" && FrontStorage != "12x3.5 inch Drives" -> hdd3_small[HDD3_Small] == 16 && ssd30[SSD30] == 6);
+    preference(StorageProfile == "Performance" && FrontStorage == "12x3.5 inch Drives" -> hdd4_big[HDD4_Big] == 8 && ssd16[SSD16] == 3);
+    preference(StorageProfile == "Performance" && FrontStorage != "12x3.5 inch Drives" -> hdd3_small[HDD3_Small] == 14 && ssd8[SSD8] == 2);
+    preference(StorageProfile == "Balanced" && FrontStorage == "12x3.5 inch Drives" -> hdd8_big[HDD8_Big] == 8 && ssd16[SSD16] == 2);
+    preference(StorageProfile == "Balanced" && FrontStorage != "12x3.5 inch Drives" -> hdd1_small[HDD1_Small] == 8 && hdd3_small[HDD3_Small] == 8 && ssd16[SSD16] == 4);
+
+    // ========== RAID Rules ==========
+    require(RAID != "N/A", raid500[RAID500]);
+
+    // ========== PCIe Slot & Lane Count ==========
+    // FIXED: Changed from count(qty>0) to simple cardinality
+    @(sequence = "8")
+    int link10g_x8count = link10g[Link10G];
+    
+    @(sequence = "8")
+    int link25g_x8count = link25g[Link25G];
+    
+    @(sequence = "8")
+    int link100g_x16count = link100g[Link100G];
+    
+    @(sequence = "8")
+    int secure10g_x8count = secure10g[Secure10G];
+    
+    @(sequence = "8")
+    int raid500_x16count = raid500[RAID500];
+    
+    @(sequence = "8")
+    int nve_x16count = nvexpand[NVExpand];
+    
+    @(sequence = "8")
+    int cache_x8count = cacheboost[CacheBoost];
+    
+    @(sequence = "8")
+    int nova_x16count = nova[Nova];
+    
+    @(sequence = "8")
+    int accel_x16count = accel[Accel];
+
+    @(sequence = "9")
+    int total_x16count = link100g_x16count + raid500_x16count + nve_x16count + accel_x16count + nova_x16count;
+    
+    @(sequence = "9")
+    int total_x8count = link10g_x8count + link25g_x8count + secure10g_x8count + cache_x8count;
+
+    @(sequence = "9")
+    int total_slots = link10g_x8count + link25g_x8count + link100g_x16count + secure10g_x8count + raid500_x16count + nve_x16count + cache_x8count + nova_x16count + accel_x16count;
+
+    message(AvailablePCIeSlots < 0, "Out of PCIe Slots. There are only 6 slots available.");
+    message(x16Lanes > 4, "There are 4 x16 Lanes. Performance may be impacted");
+}
+
+// ========== CPU Types ==========
+type Gold_3Ghz_18C36T : LineItem {
+    int watts = 190;
+    int qty = this.quantity;
+}
+
+type Gold_21Ghz_24C48T : LineItem {
+    int watts = 150;
+    int qty = this.quantity;
+}
+
+type Gold_22Ghz_28C56T : LineItem {
+    int watts = 180;
+    int qty = this.quantity;
+}
+
+type Plat_22Ghz_32C64T : LineItem {
+    int watts = 250;
+    int qty = this.quantity;
+}
+
+type Plat_23Ghz_32C64T : LineItem {
+    int watts = 255;
+    int qty = this.quantity;
+}
+
+type Plat_24Ghz_36C72T : LineItem {
+    int watts = 260;
+    int qty = this.quantity;
+}
+
+type Plat_24Ghz_38C76T : LineItem {
+    int watts = 270;
+    int qty = this.quantity;
+}
+
+// ========== Cooler Types ==========
+type AirCooler : LineItem {
+    int watts = 15;
+    int qty = this.quantity;
+}
+
+type LiquidCooler : LineItem {
+    int watts = 30;
+    int qty = this.quantity;
+}
+
+// ========== RAM Types ==========
+type RAM8 : LineItem {
+    string DIMMType = "3200MT/s RDIMMs";
+    int watts = 1;
+    int qty = this.quantity;
+}
+
+type RAM16 : LineItem {
+    string DIMMType = "3200MT/s RDIMMs";
+    int watts = 2;
+    int qty = this.quantity;
+}
+
+type RAM32 : LineItem {
+    string DIMMType = "3200MT/s RDIMMs";
+    int watts = 3;
+    int qty = this.quantity;
+}
+
+type RAM64 : LineItem {
+    string DIMMType = "3200MT/s RDIMMs";
+    int watts = 4;
+    int qty = this.quantity;
+}
+
+type RAM128 : LineItem {
+    string DIMMType = "3200MT/s RDIMMs";
+    int watts = 5;
+    int qty = this.quantity;
+}
+
+// ========== HDD Types ==========
+type HDD1_Big : LineItem {
+    int qty = this.quantity;
+    int HDD_TB = 1;
+    int totalTB = qty * HDD_TB;
+    int watts = 2;
+    string HDD_Storage = "1TB";
+}
+
+type HDD4_Big : LineItem {
+    int qty = this.quantity;
+    int HDD_TB = 4;
+    int totalTB = qty * HDD_TB;
+    int watts = 3;
+    string HDD_Storage = "4TB";
+}
+
+type HDD3_Small : LineItem {
+    int qty = this.quantity;
+    int HDD_TB = 3;
+    int totalTB = qty * HDD_TB;
+    int watts = 5;
+    string HDD_Storage = "3TB";
+}
+
+type HDD20_Big : LineItem {
+    int qty = this.quantity;
+    int HDD_TB = 20;
+    int totalTB = qty * HDD_TB;
+    int watts = 3;
+    string HDD_Storage = "20TB";
+}
+
+type HDD8_Big : LineItem {
+    int qty = this.quantity;
+    int HDD_TB = 8;
+    int totalTB = qty * HDD_TB;
+    int watts = 3;
+    string HDD_Storage = "8TB";
+}
+
+type HDD1_Small : LineItem {
+    int qty = this.quantity;
+    int HDD_TB = 1;
+    int totalTB = qty * HDD_TB;
+    int watts = 5;
+    string HDD_Storage = "1TB";
+}
+
+// ========== SSD Types ==========
+type SSD2 : LineItem {
+    int qty = this.quantity;
+    int SSD_TB = 2;
+    int totalTB = qty * SSD_TB;
+    int watts = 2;
+    string HDD_Storage = "2TB";
+}
+
+type SSD4 : LineItem {
+    int qty = this.quantity;
+    int SSD_TB = 4;
+    int totalTB = qty * SSD_TB;
+    int watts = 2;
+    string HDD_Storage = "4TB";
+}
+
+type SSD8 : LineItem {
+    int qty = this.quantity;
+    int SSD_TB = 8;
+    int totalTB = qty * SSD_TB;
+    int watts = 2;
+    string HDD_Storage = "8TB";
+}
+
+type SSD16 : LineItem {
+    int qty = this.quantity;
+    int SSD_TB = 16;
+    int totalTB = qty * SSD_TB;
+    int watts = 2;
+    string HDD_Storage = "16TB";
+}
+
+type SSD30 : LineItem {
+    int qty = this.quantity;
+    int SSD_TB = 30;
+    int totalTB = qty * SSD_TB;
+    int watts = 2;
+    string HDD_Storage = "30TB";
+}
+
+// ========== Networking Types ==========
+type Link10G : LineItem {
+    int watts = 8;
+    int x8lane = 1;
+    int x16lane = 0;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x8";
+}
+
+type Link25G : LineItem {
+    int watts = 12;
+    int x8lane = 1;
+    int x16lane = 0;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x8";
+}
+
+type Link100G : LineItem {
+    int watts = 25;
+    int x8lane = 0;
+    int x16lane = 1;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x16";
+}
+
+type Secure10G : LineItem {
+    int watts = 8;
+    int x8lane = 1;
+    int x16lane = 0;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x8";
+}
+
+// ========== IO Types ==========
+type RAID500 : LineItem {
+    int watts = 15;
+    int x8lane = 0;
+    int x16lane = 1;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x16";
+}
+
+type NVExpand : LineItem {
+    int watts = 12;
+    int x8lane = 0;
+    int x16lane = 1;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x16";
+}
+
+type CacheBoost : LineItem {
+    int watts = 10;
+    int x8lane = 1;
+    int x16lane = 0;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x8";
+}
+
+// ========== GPU Types ==========
+type Nova : LineItem {
+    int watts = 300;
+    int x8lane = 0;
+    int x16lane = 1;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x16";
+}
+
+type Accel : LineItem {
+    int watts = 400;
+    int x8lane = 0;
+    int x16lane = 1;
+    int slot = 1;
+    int qty = this.quantity;
+    string PCIeLane = "x16";
+}
+
+// ========== Power Supply Types ==========
+type QBPowerCore1600S : LineItem {
+    int watts = 1600;
+    string redundancy = "Single";
+}
+
+type QBPowerSafe2000D : LineItem {
+    int watts = 1600;
+    string redundancy = "Dual";
+}
+
+type QBPowerSafe1000D : LineItem {
+    int watts = 1000;
+    string redundancy = "Dual";
+}
+
+type QBPowerCore800S : LineItem {
+    int watts = 800;
+    string redundancy = "Single";
+}
+
+type QBPowerCore500S : LineItem {
+    int watts = 500;
+    string redundancy = "Single";
+}
+
+type QBPowerSafe600D : LineItem {
+    int watts = 600;
+    string redundancy = "Dual";
+}
+
+type LineItem;
