@@ -411,13 +411,23 @@ class CleanupSettingsForDev(BaseTask):
     
     def _manage_rc_tso_in_forceignore(self):
         """Add or remove RC_TSO from .forceignore based on tso flag."""
-        # Check if tso flag is enabled
+        # Check if tso flag is enabled using CumulusCI project config format
         tso_enabled = False
         try:
-            if hasattr(self, 'project_config'):
-                tso_enabled = getattr(self.project_config.project, 'custom', {}).get('tso', False)
-        except (AttributeError, KeyError):
-            pass
+            if hasattr(self, 'project_config') and self.project_config:
+                # Access custom project config using CumulusCI format: project__custom__tso
+                tso_enabled = getattr(self.project_config, 'project__custom__tso', False)
+                # Also try alternative access pattern
+                if not tso_enabled:
+                    try:
+                        custom = getattr(self.project_config, 'project', {}).get('custom', {})
+                        tso_enabled = custom.get('tso', False)
+                    except (AttributeError, KeyError, TypeError):
+                        pass
+        except (AttributeError, KeyError) as e:
+            self.logger.debug(f"Could not read tso flag from project config: {e}, defaulting to False")
+        
+        self.logger.info(f"tso flag is {'enabled' if tso_enabled else 'disabled'}")
         
         forceignore_path = Path.cwd() / ".forceignore"
         if not forceignore_path.exists():
@@ -426,40 +436,37 @@ class CleanupSettingsForDev(BaseTask):
         
         rc_tso_entry = "unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml"
         rc_tso_comment = "# RC_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)"
-        # Use a shorter comment to avoid duplicates
-        rc_tso_short_comment = "# RC_TSO"
         
         try:
             # Read current .forceignore
             with open(forceignore_path, 'r') as f:
                 lines = f.readlines()
             
-            # Check if RC_TSO entry exists
-            rc_tso_found = False
-            rc_tso_comment_index = -1
-            rc_tso_entry_index = -1
+            # Find all RC_TSO entries (both active and commented)
+            rc_tso_entry_indices = []
+            rc_tso_comment_indices = []
             
             for i, line in enumerate(lines):
                 # Check for the actual entry (not commented)
                 if rc_tso_entry in line and not line.strip().startswith('#'):
-                    rc_tso_found = True
-                    rc_tso_entry_index = i
-                # Check for comment lines (could be either comment format)
-                if ("RC_TSO" in line and line.strip().startswith('#')) or rc_tso_comment in line:
-                    if rc_tso_comment_index == -1:
-                        rc_tso_comment_index = i
+                    rc_tso_entry_indices.append(i)
+                # Check for commented entry
+                elif rc_tso_entry in line and line.strip().startswith('#'):
+                    rc_tso_entry_indices.append(i)
+                # Check for comment lines
+                if "RC_TSO" in line and line.strip().startswith('#'):
+                    rc_tso_comment_indices.append(i)
             
             # Determine what to do
             if tso_enabled:
                 # tso=true: Remove RC_TSO from .forceignore (allow deployment)
-                if rc_tso_found:
-                    # Remove the entry line
-                    lines.pop(rc_tso_entry_index)
-                    # Remove comment line if it's directly before the entry
-                    if rc_tso_comment_index >= 0 and rc_tso_comment_index < rc_tso_entry_index:
-                        # Check if comment is right before entry (with possible blank line)
-                        if rc_tso_entry_index - rc_tso_comment_index <= 2:
-                            lines.pop(rc_tso_comment_index)
+                # Remove all RC_TSO entries and associated comments
+                if rc_tso_entry_indices or rc_tso_comment_indices:
+                    # Remove in reverse order to maintain indices
+                    indices_to_remove = sorted(set(rc_tso_entry_indices + rc_tso_comment_indices), reverse=True)
+                    for idx in indices_to_remove:
+                        lines.pop(idx)
+                    
                     with open(forceignore_path, 'w') as f:
                         f.writelines(lines)
                     self.logger.info("RC_TSO removed from .forceignore (tso=true - will be deployed)")
@@ -467,7 +474,13 @@ class CleanupSettingsForDev(BaseTask):
                     self.logger.debug("RC_TSO not in .forceignore (tso=true - will be deployed)")
             else:
                 # tso=false: Add RC_TSO to .forceignore (exclude from deployment)
-                if not rc_tso_found:
+                # Check if there's already an active (non-commented) entry
+                has_active_entry = any(
+                    rc_tso_entry in lines[i] and not lines[i].strip().startswith('#')
+                    for i in rc_tso_entry_indices
+                )
+                
+                if not has_active_entry:
                     # Find the PSGs section or add at end
                     psg_section_index = -1
                     for i, line in enumerate(lines):

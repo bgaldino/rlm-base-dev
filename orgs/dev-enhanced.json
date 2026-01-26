@@ -20,7 +20,9 @@
     "CGAnalytics",
     "InsightsPlatform",
     "RevenueIntelligence",
-    "SalesCloudEinstein"
+    "SalesCloudEinstein",
+    "B2BCommerce",
+    "EnablePRM"
   ],
   "settings": {
     "billingSettings": {

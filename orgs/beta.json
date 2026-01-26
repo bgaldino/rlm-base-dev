@@ -2,6 +2,7 @@
   "orgName": "Salesforce Agentforce Revenue Management (Enhanced)",
   "country": "US",
   "edition": "Enterprise",
+  "instance": "USA794",
   "features": [
     "EnableSetPasswordInApi",
     "OrderSaveLogicEnabled",
@@ -20,7 +21,9 @@
     "CGAnalytics",
     "InsightsPlatform",
     "RevenueIntelligence",
-    "SalesCloudEinstein"
+    "SalesCloudEinstein",
+    "B2BCommerce",
+    "EnablePRM"
   ],
   "settings": {
     "billingSettings": {

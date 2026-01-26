@@ -1,24 +1,18 @@
 <?xml version='1.0' encoding='utf-8'?>
 <IndustriesSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <enableAIAccelerator>true</enableAIAccelerator>
     <enableAccountScoreEnabled>false</enableAccountScoreEnabled>
     <enableContractMgmtPref>true</enableContractMgmtPref>
     <enableDiscoveryFrameworkMetadata>true</enableDiscoveryFrameworkMetadata>
     <enableDontSharePartyprofWPortalOrgPref>false</enableDontSharePartyprofWPortalOrgPref>
     <enableEnhancedQuestionCreation>true</enableEnhancedQuestionCreation>
     <enableEpcDeleteAccess>false</enableEpcDeleteAccess>
-    <enableGnrcDisclsFrmwrk>false</enableGnrcDisclsFrmwrk>
     <enableIndustriesAssessment>true</enableIndustriesAssessment>
     <enableIndustriesAssessmentPrefill>false</enableIndustriesAssessmentPrefill>
     <enableIndustriesIntegrationOrchestratorPref>false</enableIndustriesIntegrationOrchestratorPref>
-    <enableInformationLibrary>false</enableInformationLibrary>
     <enableMicrosoftWordAddInEnabled>true</enableMicrosoftWordAddInEnabled>
     <enablePCMConfigRules>false</enablePCMConfigRules>
     <enablePartyProfileParentSharingOrgPref>false</enablePartyProfileParentSharingOrgPref>
     <enablePartyprofParentMultiSharingOrgPref>false</enablePartyprofParentMultiSharingOrgPref>
-    <enableScoringFrameworkCRMAPref>false</enableScoringFrameworkCRMAPref>
-    <enableScoringFrameworkOrgPref>true</enableScoringFrameworkOrgPref>
-    <enableTurnOffDsclsReprtPbsrName>false</enableTurnOffDsclsReprtPbsrName>
     <partyProfMultiShrPrtnrsOrgPref>false</partyProfMultiShrPrtnrsOrgPref>
     <rlaEditIfAccHasEdit>false</rlaEditIfAccHasEdit>
 </IndustriesSettings>

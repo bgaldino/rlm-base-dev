@@ -72,7 +72,7 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    prm: false                # Use Partner Relationship Management
+    qbrix: false             # Use xDO base (false for dev scratch orgs without xDO licenses)
     tso: false               # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                 # Is QuantumBit?
     q3: false                # Include Q3 data
@@ -87,10 +87,10 @@ project:
     rates: true              # Insert Rates
     ramps: true              # Insert and configure ramps
     einstein: true           # Use Einstein AI
-    product_dataset: qb      # Default product dataset to use
-    qbrix: false             # Use xDO base (false for dev scratch orgs without xDO licenses)
+    product_dataset: qb      # Default product dataset to use=
     agents: false            # Deploy Agentforce Agent Configurations
     refresh: false           # Data refresh flag
+    prm: false                # Use Partner Relationship Management
     commerce: false          # Use Commerce
     quantumbit: true         # Use QuantumBit
     breconfig: false         # Business Rules Engine configuration
