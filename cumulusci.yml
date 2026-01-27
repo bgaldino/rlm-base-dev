@@ -103,7 +103,7 @@ project:
     docgen: true             # Use Document Generation
     psg_debug: false         # Debug Permission Set Groups
     pas_debug: false         # Debug Price Adjustment Schedules
-    constraints: false       # Use Constraint Builder
+    constraints: true       # Use Constraint Builder
     guidedselling: false      # Use Guided Selling
     procedureplans: false    # Use Procedure Plans
     sharingsettings: false   # Deploy Sharing Settings
@@ -435,6 +435,7 @@ project:
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
     quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # QuantumBit constraints product data
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # QuantumBit constraints component data
+    quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
@@ -525,6 +526,18 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *sales_transaction_context_default_mapping
       activate: true
+
+  apply_context_constraint_engine_node_status:
+    group: Revenue Lifecycle Management
+    description: Apply ConstraintEngineNodeStatus mappings to Sales Transaction context
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/ConstraintEngineNodeStatus/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
 
   extend_context_product_discovery:
     description: Extend Standard Product Discovery Context
@@ -1164,6 +1177,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_constraints_component_dataset
 
+  insert_qb_transactionprocessingtypes_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Transaction Processing Types Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_transactionprocessingtypes_dataset
+
   insert_qb_guidedselling_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Guided Selling Data
@@ -1411,6 +1431,43 @@ tasks:
       version_full_name: null  # For version operations: Full name of the version
       sort_by: LastModifiedDate
       sort_order: Desc
+
+  manage_transaction_processing_types:
+    group: Revenue Lifecycle Management
+    description: Manage TransactionProcessingType entries via Tooling API
+    class_path: tasks.rlm_manage_transaction_processing_types.ManageTransactionProcessingTypes
+    options:
+      operation: list  # Options: 'list', 'upsert'
+      input_file: null  # Required for upsert; JSON array of records
+      key_field: DeveloperName
+      api_version: null
+      dry_run: false
+
+  manage_context_definition:
+    group: Revenue Lifecycle Management
+    description: Modify context definitions via Context Service (connect) endpoints
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      context_definition_id: null
+      developer_name: null
+      plan_file: null
+      activate: false
+      dry_run: false
+
+  extend_standard_context:
+    group: Revenue Lifecycle Management
+    description: Extend a standard context definition and optionally apply a plan
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: null
+      description: null
+      developerName: null
+      baseReference: null
+      startDate: null
+      contextTtl: null
+      defaultMapping: null
+      activate: true
+      plan_file: null
 
 #----------------#
 # MAIN CCI FLOWS #
@@ -1897,14 +1954,20 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: insert_qb_transactionprocessingtypes_data
+        when: project_config.project__custom__constraints and project_config.project__custom__qb
+      2:
         task: deploy_post_constraints
         when: project_config.project__custom__constraints
-      2:
-        task: insert_qb_constraints_product_data
-        when: project_config.project__custom__constraints and project_config.project__custom__qb
       3:
+        task: apply_context_constraint_engine_node_status
+        when: project_config.project__custom__constraints
+      4:
+        task: insert_qb_constraints_product_data
+        when: false
+      5:
         task: insert_qb_constraints_component_data
-        when: project_config.project__custom__constraints and project_config.project__custom__qb
+        when: false
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management

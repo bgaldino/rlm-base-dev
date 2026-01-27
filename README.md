@@ -140,8 +140,9 @@ This project includes custom CumulusCI tasks for Revenue Cloud-specific operatio
 | `assign_permission_set_groups_tolerant` | Assign PSGs with tolerance for missing permissions | See `cumulusci.yml` |
 | `load_sfdmu_data` | Load data using SFDMU | See `cumulusci.yml` |
 | `sync_pricing_data` | Sync pricing data | See `cumulusci.yml` |
-| `extend_stdctx` | Extend standard context definitions | See `cumulusci.yml` |
-| `modify_context` | Modify context definitions | See `cumulusci.yml` |
+| `extend_standard_context` | Extend standard context definitions | See `cumulusci.yml` |
+| `manage_context_definition` | Modify context definitions via Context Service | [docs/context_service_utility.md](docs/context_service_utility.md) |
+| `manage_transaction_processing_types` | Manage TransactionProcessingType records | [docs/constraints_setup.md](docs/constraints_setup.md) |
 
 ### Using Custom Tasks
 
@@ -193,6 +194,8 @@ class MyCustomTask(BaseTask):
 
 - **[DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md)** - Comprehensive examples for Decision Table management
 - **[TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md)** - Examples for Flow and Expression Set management
+- **[context_service_utility.md](docs/context_service_utility.md)** - Context Service utility usage and plan examples
+- **[constraints_setup.md](docs/constraints_setup.md)** - Constraints deployment order and data plan notes
 - **[TOOLING_OPPORTUNITIES.md](docs/TOOLING_OPPORTUNITIES.md)** - Analysis of Spring '26 features and opportunities for new tooling tasks
 
 ### Configuration Files
@@ -260,6 +263,15 @@ cci flow run prepare_rlm_org
 # Enable a feature flag in cumulusci.yml, then:
 cci flow run prepare_rlm_org
 ```
+
+### Prepare Constraints
+
+```bash
+# Runs the constraints deployment flow
+cci flow run prepare_constraints
+```
+
+See [docs/constraints_setup.md](docs/constraints_setup.md) for the current step order and required data plans.
 
 ### Load Test Data
 

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-
+import json
 import requests
 
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -45,6 +45,11 @@ class ExtendStandardContext(SFDXBaseTask):
         "activate": {
             "description": "Whether the context definition should be activated",
             "required": True,
+        }
+        ,
+        "plan_file": {
+            "description": "Optional JSON plan with nodes/mappings/tags to apply after creation",
+            "required": False,
         }
     }
 
@@ -135,7 +140,111 @@ class ExtendStandardContext(SFDXBaseTask):
             ]
         }
         self._make_request("patch", url, headers=headers, json=payload)
+        self._apply_plan_if_present()
         self._activate_context_id()
+
+    def _apply_plan_if_present(self):
+        plan_file = self.options.get("plan_file")
+        if not plan_file:
+            return
+        try:
+            with open(plan_file, "r", encoding="utf-8") as handle:
+                plan = json.load(handle)
+        except Exception as exc:
+            self.logger.error(f"Failed to load plan_file {plan_file}: {exc}")
+            return
+
+        if plan.get("contextNodes"):
+            self._post_context_nodes(plan["contextNodes"])
+        if plan.get("contextMappings"):
+            self._post_context_mappings(plan["contextMappings"])
+        if plan.get("contextMappingUpdates"):
+            self._patch_context_mappings(plan["contextMappingUpdates"])
+        if plan.get("contextTagsByName"):
+            resolved = self._resolve_tags_by_name(plan["contextTagsByName"])
+            if resolved:
+                self._post_context_tags({"contextTags": resolved})
+        if plan.get("contextTags"):
+            self._post_context_tags(plan["contextTags"])
+
+    def _post_context_nodes(self, payload):
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{self.context_id}/context-nodes"
+        )
+        self._make_request("post", url, headers=headers, json=payload)
+
+    def _post_context_mappings(self, payload):
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{self.context_id}/context-mappings"
+        )
+        self._make_request("post", url, headers=headers, json=payload)
+
+    def _patch_context_mappings(self, payload):
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{self.context_id}/context-mappings"
+        )
+        self._make_request("patch", url, headers=headers, json=payload)
+
+    def _post_context_tags(self, payload):
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{self.context_id}/context-tags"
+        )
+        self._make_request("post", url, headers=headers, json=payload)
+
+    def _resolve_tags_by_name(self, tag_specs):
+        if not isinstance(tag_specs, list):
+            return []
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{self.context_id}"
+        )
+        response = self._make_request("get", url, headers=headers)
+        if not response:
+            return []
+        versions = response.get("contextDefinitionVersionList", [])
+        if not versions:
+            return []
+        nodes = versions[0].get("contextNodes", [])
+
+        node_index = {}
+        attr_index = {}
+
+        def walk(node_list):
+            for node in node_list or []:
+                node_id = node.get("contextNodeId")
+                node_name = node.get("name")
+                if node_id and node_name:
+                    node_index[node_name] = node_id
+                attrs = node.get("attributes", {}).get("contextAttributes", [])
+                for attr in attrs or []:
+                    attr_id = attr.get("contextAttributeId")
+                    attr_name = attr.get("name")
+                    if attr_id and node_name and attr_name:
+                        attr_index[(node_name, attr_name)] = attr_id
+                child_nodes = node.get("childNodes", {}).get("contextNodes", [])
+                walk(child_nodes)
+
+        walk(nodes)
+
+        resolved = []
+        for spec in tag_specs:
+            if not isinstance(spec, dict):
+                continue
+            tag_name = spec.get("name")
+            node_name = spec.get("nodeName")
+            attr_name = spec.get("attributeName")
+            if not tag_name or not node_name:
+                continue
+            if attr_name:
+                attr_id = attr_index.get((node_name, attr_name))
+                if not attr_id:
+                    continue
+                resolved.append({"contextAttributeId": attr_id, "name": tag_name})
+            else:
+                node_id = node_index.get(node_name)
+                if not node_id:
+                    continue
+                resolved.append({"contextNodeId": node_id, "name": tag_name})
+        return resolved
 
     # Activate the context ID once all changes and updates have been made
     def _activate_context_id(self):

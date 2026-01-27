@@ -1,0 +1,8 @@
+{
+  "contexts": [
+    {
+      "developerName": "RLM_SalesTransactionContext",
+      "planFile": "contexts/rlm_salestransaction.json"
+    }
+  ]
+}

@@ -5,41 +5,23 @@
         <customLabel>false</customLabel>
         <detailHeading>false</detailHeading>
         <editHeading>true</editHeading>
-        <label>QuoteLineItem Information</label>
+        <label>Product Information</label>
         <layoutColumns>
             <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>LineNumber</field>
+                <behavior>Required</behavior>
+                <field>OrderId</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Required</behavior>
+                <behavior>Readonly</behavior>
                 <field>Product2Id</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Required</behavior>
-                <field>QuoteId</field>
-            </layoutItems>
-            <layoutItems>
                 <behavior>Readonly</behavior>
-                <field>ListPrice</field>
+                <field>ProductCode</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Required</behavior>
                 <field>UnitPrice</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Required</behavior>
-                <field>Quantity</field>
-            </layoutItems>
-        </layoutColumns>
-        <layoutColumns>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>Subtotal</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>Discount</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Readonly</behavior>
@@ -47,15 +29,33 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>Description</field>
+                <field>BindingInstanceTargetId</field>
             </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>StartDate</field>
+                <field>Status</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Required</behavior>
+                <field>Quantity</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>EndDate</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ServiceDate</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>SubscriptionTerm</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>LineNumber</field>
             </layoutItems>
         </layoutColumns>
         <style>TwoColumnsTopToBottom</style>
@@ -64,23 +64,31 @@
         <customLabel>true</customLabel>
         <detailHeading>true</detailHeading>
         <editHeading>true</editHeading>
-        <label>Revenue Lifecycle Management</label>
+        <label>Pricing Information</label>
         <layoutColumns>
             <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>NetUnitPrice</field>
+                <behavior>Edit</behavior>
+                <field>QuoteLineItemId</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>DiscountAmount</field>
+                <field>Type</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>NetTotalPrice</field>
+                <behavior>Edit</behavior>
+                <field>OrderActionId</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>TotalLineAmount</field>
+                <behavior>Edit</behavior>
+                <field>ProductSellingModelId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>PricingTermCount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ProrationPolicyId</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
@@ -88,81 +96,19 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>PeriodBoundaryDay</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
                 <field>PeriodBoundaryStartMonth</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>StartQuantity</field>
+                <field>PeriodBoundaryDay</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Edit</behavior>
-                <field>EndQuantity</field>
+                <behavior>Readonly</behavior>
+                <field>QuantityUnitOfMeasureId</field>
             </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>BillingFrequency</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>BillingReference</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>PriceRevisionPolicyId</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>UnitPriceUplift</field>
-            </layoutItems>
-        </layoutColumns>
-        <layoutColumns>
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>PriceWaterfallIdentifier</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>PricingTerm</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>PricingTermCount</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>PricingTermUnit</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>ProrationPolicyId</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>QuoteActionId</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>SellingModelType</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>SubscriptionTerm</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>SubscriptionTermUnit</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>BillingTreatmentId</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>LegalEntityId</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
@@ -170,7 +116,88 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>BindingInstanceTargetId</field>
+                <field>PriceRevisionPolicyId</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>ListPrice</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>DiscountAmount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>NetUnitPrice</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Discount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>NetTotalPrice</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>TotalLineAmount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>RoundedLineAmount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>TotalLineTaxAmount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>RoundedLineAmtWithTax</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>TotalTaxAmount</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>TotalAmtWithTax</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsLeftToRight</style>
+    </layoutSections>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>true</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Billing Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>BillingFrequency2</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BillingTreatmentId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BillingReference2</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>LegalEntityId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>TaxTreatmentId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>EffectiveGrantDate</field>
             </layoutItems>
         </layoutColumns>
         <style>TwoColumnsLeftToRight</style>
@@ -179,58 +206,8 @@
         <customLabel>true</customLabel>
         <detailHeading>true</detailHeading>
         <editHeading>true</editHeading>
-        <label>Debug</label>
+        <label>Segment Information</label>
         <layoutColumns>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>CustomProductName</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>ServiceDate</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>EffectiveGrantDate</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>IsPrimarySegment</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>ParentQuoteLineItemId</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>PartnerDiscountPercent</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>PartnerUnitPrice</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>ProductCode</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>ProductInstanceIdentifier</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>RLM_ProductName__c</field>
-            </layoutItems>
-        </layoutColumns>
-        <layoutColumns>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>QuoteLineGroupId</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Readonly</behavior>
-                <field>QuoteLineItemRecipientId</field>
-            </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>RampIdentifier</field>
@@ -241,37 +218,44 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
+                <field>IsPrimarySegment</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
                 <field>SegmentName</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
                 <field>SegmentType</field>
             </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>TotalAdjustmentAmount</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>ValidationResult</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>AggregatedQuantity</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>SortOrder</field>
-            </layoutItems>
         </layoutColumns>
         <style>TwoColumnsLeftToRight</style>
     </layoutSections>
     <layoutSections>
-        <customLabel>false</customLabel>
+        <customLabel>true</customLabel>
         <detailHeading>true</detailHeading>
         <editHeading>true</editHeading>
+        <label>Constraints Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>RLM_ConstraintEngineNodeStatus__c</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>OneColumn</style>
+    </layoutSections>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>false</editHeading>
         <label>System Information</label>
         <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ValidationResult</field>
+            </layoutItems>
             <layoutItems>
                 <behavior>Readonly</behavior>
                 <field>CreatedById</field>
@@ -289,14 +273,25 @@
         <customLabel>false</customLabel>
         <detailHeading>false</detailHeading>
         <editHeading>false</editHeading>
-        <label>Custom Links</label>
-        <layoutColumns/>
-        <layoutColumns/>
-        <layoutColumns/>
-        <style>CustomLinks</style>
+        <label>Description Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Description</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>OneColumn</style>
     </layoutSections>
-    <multilineLayoutFields>Product2Id</multilineLayoutFields>
-    <multilineLayoutFields>QuoteId</multilineLayoutFields>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>false</editHeading>
+        <label>Additional Information</label>
+        <layoutColumns/>
+        <layoutColumns/>
+        <style>TwoColumnsLeftToRight</style>
+    </layoutSections>
+    <multilineLayoutFields>OrderId</multilineLayoutFields>
     <multilineLayoutFields>UnitPrice</multilineLayoutFields>
     <multilineLayoutFields>Quantity</multilineLayoutFields>
     <relatedLists>
@@ -304,57 +299,65 @@
         <fields>AttributeValue</fields>
         <fields>AttributeDefinition</fields>
         <fields>AttributePicklistValue</fields>
-        <relatedList>QuoteLineItemAttribute</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>Name</fields>
-        <fields>ReferenceNumber</fields>
-        <fields>ReferenceDate</fields>
-        <fields>Quantity</fields>
-        <fields>UnitPrice</fields>
-        <fields>TotalLineAmount</fields>
-        <fields>NetUnitPrice</fields>
-        <fields>TotalPrice</fields>
-        <relatedList>QuoteLineDetail</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>Product2</fields>
-        <fields>Quantity</fields>
-        <fields>UnitPrice</fields>
-        <fields>TotalPrice</fields>
-        <relatedList>RelatedOrderItemList</relatedList>
-    </relatedLists>
-    <relatedLists>
-        <fields>Name</fields>
-        <fields>UsageResource</fields>
-        <fields>ProductUsageResourcePolicy</fields>
-        <relatedList>QuotLineItmUsageRsrcPolicies</relatedList>
+        <relatedList>OrderItemAttribute</relatedList>
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
         <fields>RateCardEntry</fields>
         <fields>NegotiatedRate</fields>
         <fields>RateUnitOfMeasure</fields>
-        <relatedList>QuoteLineRateCardEntry</relatedList>
+        <relatedList>OrderItemRateCardEntry</relatedList>
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
-        <fields>UsageResource</fields>
-        <fields>GrantQuantity</fields>
-        <fields>GrantType</fields>
-        <relatedList>QuotLineItmUseRsrcGrants</relatedList>
+        <fields>Amount</fields>
+        <fields>Type</fields>
+        <relatedList>OrderItemTaxLineItems</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>ReferenceEntityItem</fields>
+        <fields>TotalAmount</fields>
+        <relatedList>BillingSchedules</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>AssociatedOrderItem</fields>
+        <fields>AssociatedOrderItemRole</fields>
+        <fields>AssociatedOrderItemPricing</fields>
+        <fields>AssociatedQuantScaleMethod</fields>
+        <relatedList>AssociatedOrderItemRelationships</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>Step</fields>
+        <relatedList>FulfillmentSteps</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>Contract</fields>
+        <fields>EffectiveStartDateTime</fields>
+        <fields>EffectiveEndDateTime</fields>
+        <fields>Status</fields>
+        <relatedList>SalesContractLine</relatedList>
     </relatedLists>
     <relatedLists>
         <fields>RTEL.NAME</fields>
         <fields>RTEL.ERROR_MESSAGE</fields>
-        <fields>RTEL.RELATED_RECORD</fields>
+        <fields>RTEL.PRIMARY_RECORD</fields>
         <relatedList>RevenueTransactionErrorLogs</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <fields>Name</fields>
+        <fields>FulfilmentOrderLine</fields>
+        <fields>SourceType</fields>
+        <relatedList>DecomposedToLineItemRels</relatedList>
     </relatedLists>
     <showEmailCheckbox>false</showEmailCheckbox>
     <showRunAssignmentRulesCheckbox>false</showRunAssignmentRulesCheckbox>
     <showSubmitAndAttachButton>false</showSubmitAndAttachButton>
     <summaryLayout>
-        <masterLabel>00hWt000002qESu</masterLabel>
+        <masterLabel>00hWt000002qESq</masterLabel>
         <sizeX>4</sizeX>
         <sizeY>0</sizeY>
         <summaryLayoutStyle>Default</summaryLayoutStyle>

@@ -216,6 +216,42 @@ cci task run manage_expression_sets --operation list --sort_by ProcessType --sor
 
 ---
 
+## Transaction Processing Type Management (`manage_transaction_processing_types`)
+
+### Basic Operations
+
+#### 1. List Transaction Processing Types
+```bash
+cci task run manage_transaction_processing_types --operation list
+```
+
+#### 2. Upsert Transaction Processing Types from File
+```bash
+cci task run manage_transaction_processing_types --operation upsert --input_file datasets/transaction_processing_types.json
+```
+
+### Example Input File
+
+```json
+[
+  {
+    "DeveloperName": "RLM_Example",
+    "MasterLabel": "RLM Example",
+    "Description": "Example TransactionProcessingType",
+    "Language": "en_US",
+    "RuleEngine": "Pricing",
+    "SaveType": "Draft"
+  }
+]
+```
+
+Notes:
+- `DeveloperName` is the default key field.
+- Use `--dry_run true` to validate without changes.
+- For the SFDMU-based load order used in deployments, see `docs/constraints_setup.md`.
+
+---
+
 ## Common Use Cases
 
 ### Refresh Decision Tables (Using Flow)

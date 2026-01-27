@@ -1,0 +1,156 @@
+{
+  "developerName": "RLM_SalesTransactionContext",
+  "contextNodes": {
+    "contextNodes": [
+      {
+        "name": "SalesTransactionItem",
+        "attributes": {
+          "contextAttributes": [
+            {
+              "dataType": "STRING",
+              "fieldType": "INPUTOUTPUT",
+              "name": "ConstraintEngineNodeStatus"
+            }
+          ]
+        }
+      },
+      {
+        "name": "AssetActionSource",
+        "attributes": {
+          "contextAttributes": [
+            {
+              "dataType": "STRING",
+              "fieldType": "INPUTOUTPUT",
+              "name": "AssetConstraintEngineNodeStatus"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "contextMappings": {
+    "contextMappings": [
+      {
+        "name": "QuoteEntitiesMapping",
+        "description": "QuoteEntitiesMapping"
+      },
+      {
+        "name": "OrderEntitiesMapping",
+        "description": "OrderEntitiesMapping"
+      },
+      {
+        "name": "AssetEntitiesMapping",
+        "description": "AssetEntitiesMapping"
+      },
+      {
+        "name": "AssetToSalesTransactionMapping",
+        "description": "AssetToSalesTransactionMapping"
+      }
+    ],
+    "generateInputMappings": true,
+    "generateSObjectMappings": true
+  },
+  "contextMappingUpdates": {
+    "contextMappings": [
+      {
+        "name": "QuoteEntitiesMapping",
+        "contextNodeMappings": [
+          {
+            "contextNode": "SalesTransactionItem",
+            "contextAttributeMappings": [
+              {
+                "contextAttribute": "ConstraintEngineNodeStatus",
+                "mappingType": "SOBJECT",
+                "sObject": "QuoteLineItem",
+                "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+              }
+            ]
+          },
+          {
+            "contextNode": "SalesTransaction",
+            "contextAttributeMappings": [
+              {
+                "contextAttribute": "TransactionType",
+                "mappingType": "SOBJECT",
+                "sObject": "Quote",
+                "sObjectField": "TransactionType"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "OrderEntitiesMapping",
+        "contextNodeMappings": [
+          {
+            "contextNode": "SalesTransactionItem",
+            "contextAttributeMappings": [
+              {
+                "contextAttribute": "ConstraintEngineNodeStatus",
+                "mappingType": "SOBJECT",
+                "sObject": "OrderItem",
+                "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+              }
+            ]
+          },
+          {
+            "contextNode": "SalesTransaction",
+            "contextAttributeMappings": [
+              {
+                "contextAttribute": "TransactionType",
+                "mappingType": "SOBJECT",
+                "sObject": "Order",
+                "sObjectField": "TransactionType"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "AssetEntitiesMapping",
+        "contextNodeMappings": [
+          {
+            "contextNode": "AssetActionSource",
+            "contextAttributeMappings": [
+              {
+                "contextAttribute": "AssetConstraintEngineNodeStatus",
+                "mappingType": "SOBJECT",
+                "sObject": "AssetActionSource",
+                "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "AssetToSalesTransactionMapping",
+        "contextNodeMappings": [
+          {
+            "contextNode": "SalesTransactionItem",
+            "contextAttributeMappings": [
+              {
+                "contextAttribute": "ConstraintEngineNodeStatus",
+                "mappingType": "CONTEXT",
+                "sourceContextNode": "AssetActionSource",
+                "sourceContextAttribute": "AssetConstraintEngineNodeStatus"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "ConstraintEngineNodeStatus",
+      "name": "ConstraintEngineNodeStatus"
+    },
+    {
+      "nodeName": "AssetActionSource",
+      "attributeName": "AssetConstraintEngineNodeStatus",
+      "name": "AssetConstraintEngineNodeStatus"
+    }
+  ],
+  "activate": true
+}

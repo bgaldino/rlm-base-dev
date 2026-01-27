@@ -11,9 +11,11 @@ parser.add_argument("--developerName", type=str, required=True, help="DeveloperN
 parser.add_argument("--version", type=str, default="1", help="Version number (e.g. 1)")
 parser.add_argument("--output-dir", type=str, default="data", help="Directory to write standard CSV exports.")
 parser.add_argument("--sfdmu-dir", type=str, default="", help="Optional SFDMU dataset directory to write mapping CSVs.")
+parser.add_argument("--target-org", type=str, default="srcOrg", help="Salesforce org alias to export from.")
 args = parser.parse_args()
 output_dir = args.output_dir
 sfdmu_dir = args.sfdmu_dir.strip() or None
+target_org = args.target_org.strip()
 
 dev_name = args.developerName.strip()
 version_num = args.version.strip()
@@ -39,7 +41,7 @@ def get_field_value(rec, field):
     return rec.get(field, "")
 
 # === Export CSV Helper ===
-def export_to_csv(query, filename, fields, alias="srcOrg"):
+def export_to_csv(query, filename, fields, alias):
     rel_name = filename.replace(f"{output_dir}/", "")
     print(f"📦 Exporting: {rel_name}")
     print("🔍 SOQL Query:", query.strip())
@@ -57,7 +59,7 @@ def export_to_csv(query, filename, fields, alias="srcOrg"):
     except Exception as e:
         print("❌ Failed to retrieve org info from Salesforce CLI.")
         print(e)
-        return
+        return False
 
     api_version = get_latest_api_version(instance_url)
     endpoint = f"{instance_url}/services/data/v{api_version}/query"
@@ -70,7 +72,7 @@ def export_to_csv(query, filename, fields, alias="srcOrg"):
     if response.status_code != 200:
         print(f"❌ API Error ({filename}): {response.status_code}")
         print(response.text)
-        return
+        return False
 
     records = response.json().get("records", [])
     print(f"✅ {len(records)} records fetched for {filename}")
@@ -83,13 +85,17 @@ def export_to_csv(query, filename, fields, alias="srcOrg"):
             writer.writerow([get_field_value(rec, f) for f in fields])
 
     print(f"📄 Saved to {filename}\n")
+    return True
     
 
 # === Blob Download Helper ===
-def download_constraint_model_blobs(alias="srcOrg", input_csv=None):
+def download_constraint_model_blobs(alias, input_csv=None):
     print("📥 Downloading ConstraintModel blobs...")
     if input_csv is None:
         input_csv = os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv")
+    if not os.path.exists(input_csv):
+        print(f"⚠️ Skipping blob download; missing {input_csv}")
+        return
 
     try:
         result = subprocess.run(
@@ -112,6 +118,9 @@ def download_constraint_model_blobs(alias="srcOrg", input_csv=None):
 
     with open(input_csv, newline='') as f:
         reader = csv.DictReader(f)
+        if "ConstraintModel" not in (reader.fieldnames or []):
+            print("⚠️ ConstraintModel field not available; skipping blob download.")
+            return
         for row in reader:
             print(f"🧪 Row: DeveloperName={row.get('DeveloperName')}, Version={row.get('VersionNumber')}")
 
@@ -140,7 +149,7 @@ def download_constraint_model_blobs(alias="srcOrg", input_csv=None):
 def get_reference_ids_by_prefix(filename, prefix):
     ids = set()
     try:
-    with open(filename, newline='') as csvfile:
+        with open(filename, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 ref_id = row.get("ReferenceObjectId", "")
@@ -151,22 +160,50 @@ def get_reference_ids_by_prefix(filename, prefix):
     return list(ids)
 
 
-# === Begin Export Tasks ===
-
-export_to_csv(
-    query=f"""
+def export_expression_set_definition_version():
+    # Try with ConstraintModel first (industries orgs)
+    primary_query = f"""
         SELECT ConstraintModel, DeveloperName, ExpressionSetDefinition.DeveloperName, ExpressionSetDefinitionId, Id, Language,
                MasterLabel, Status, VersionNumber
         FROM ExpressionSetDefinitionVersion
         WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
           AND VersionNumber = {version_num}
-    """,
-    filename=os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv"),
-    fields=[
+    """
+    primary_fields = [
         "ConstraintModel", "DeveloperName", "ExpressionSetDefinition.DeveloperName", "ExpressionSetDefinitionId", "Id", "Language",
         "MasterLabel", "Status", "VersionNumber"
     ]
-)
+    if export_to_csv(
+        query=primary_query,
+        filename=os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv"),
+        fields=primary_fields,
+        alias=target_org,
+    ):
+        return
+
+    # Fallback when ConstraintModel isn't supported
+    fallback_query = f"""
+        SELECT DeveloperName, ExpressionSetDefinition.DeveloperName, ExpressionSetDefinitionId, Id, Language,
+               MasterLabel, Status, VersionNumber
+        FROM ExpressionSetDefinitionVersion
+        WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
+          AND VersionNumber = {version_num}
+    """
+    fallback_fields = [
+        "DeveloperName", "ExpressionSetDefinition.DeveloperName", "ExpressionSetDefinitionId", "Id", "Language",
+        "MasterLabel", "Status", "VersionNumber"
+    ]
+    export_to_csv(
+        query=fallback_query,
+        filename=os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv"),
+        fields=fallback_fields,
+        alias=target_org,
+    )
+
+
+# === Begin Export Tasks ===
+
+export_expression_set_definition_version()
 
 export_to_csv(
     query=f"""
@@ -177,7 +214,8 @@ export_to_csv(
     filename=os.path.join(output_dir, "ExpressionSetDefinitionContextDefinition.csv"),
     fields=[
         "ContextDefinitionApiName", "ContextDefinitionId", "ExpressionSetApiName", "ExpressionSetDefinitionId"
-    ]
+    ],
+    alias=target_org
 )
 
 export_to_csv(
@@ -191,7 +229,8 @@ export_to_csv(
     fields=[
         "ApiName", "Description", "ExpressionSetDefinitionId", "Id",
         "InterfaceSourceType", "Name", "ResourceInitializationType", "UsageType"
-    ]
+    ],
+    alias=target_org
 )
 
 export_to_csv(
@@ -201,7 +240,8 @@ export_to_csv(
         WHERE ExpressionSet.ApiName = '{dev_name}'
     """,
     filename=os.path.join(output_dir, "ExpressionSetConstraintObj.csv"),
-    fields=["Name", "ExpressionSetId", "ExpressionSet.ApiName", "ReferenceObjectId", "ConstraintModelTag", "ConstraintModelTagType"]
+    fields=["Name", "ExpressionSetId", "ExpressionSet.ApiName", "ReferenceObjectId", "ConstraintModelTag", "ConstraintModelTagType"],
+    alias=target_org
 )
 
 # === Supporting Objects ===
@@ -209,9 +249,15 @@ export_to_csv(
 print("🔍 Filtering ReferenceObjectIds...")
 
 esc_path = os.path.join(output_dir, "ExpressionSetConstraintObj.csv")
-product_ids = get_reference_ids_by_prefix(esc_path, "01t")
-classification_ids = get_reference_ids_by_prefix(esc_path, "11B")
-component_ids = get_reference_ids_by_prefix(esc_path, "0dS")
+if os.path.exists(esc_path):
+    product_ids = get_reference_ids_by_prefix(esc_path, "01t")
+    classification_ids = get_reference_ids_by_prefix(esc_path, "11B")
+    component_ids = get_reference_ids_by_prefix(esc_path, "0dS")
+else:
+    print(f"⚠️ Skipping reference exports; missing {esc_path}")
+    product_ids = []
+    classification_ids = []
+    component_ids = []
 
 def build_id_query(obj_name, ids):
     if not ids:
@@ -223,14 +269,16 @@ def build_id_query(obj_name, ids):
 export_to_csv(
     query=build_id_query("Product2", product_ids),
     filename=os.path.join(output_dir, "Product2.csv"),
-    fields=["Id", "Name"]
+    fields=["Id", "Name"],
+    alias=target_org
 )
 
 # Export referenced ProductClassification
 export_to_csv(
     query=build_id_query("ProductClassification", classification_ids),
     filename=os.path.join(output_dir, "ProductClassification.csv"),
-    fields=["Id", "Name"]
+    fields=["Id", "Name"],
+    alias=target_org
 )
 
 # Export referenced ProductRelatedComponent
@@ -251,11 +299,12 @@ export_to_csv(
         "ChildProductId", "ChildProduct.Name",
         "ChildProductClassificationId", "ChildProductClassification.Name",
         "ProductRelationshipTypeId", "ProductRelationshipType.Name","Sequence"
-    ]
+    ],
+    alias=target_org
 )
 
 # === Download Blob ===
-download_constraint_model_blobs()
+download_constraint_model_blobs(target_org)
 
 
 def write_sfdmu_files():

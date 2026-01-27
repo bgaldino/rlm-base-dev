@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <fieldPermissions>
-        <editable>true</editable>
-        <field>AssetActionSource.RLM_ConstraintEngineNodeStatus__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
         <editable>false</editable>
         <field>Contract.ActivatedById</field>
         <readable>true</readable>
@@ -296,11 +291,6 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>true</editable>
-        <field>OrderItem.RLM_ConstraintEngineNodeStatus__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
         <editable>false</editable>
         <field>OrderItem.RLM_ProductName__c</field>
         <readable>true</readable>
@@ -423,11 +413,6 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.RC_Start_Sync__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>QuoteLineItem.RLM_ConstraintEngineNodeStatus__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
