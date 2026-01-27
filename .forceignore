@@ -47,8 +47,6 @@ force-app/main/default/contextDefinitions
 # PSGs
 #unpackaged/pre/3_permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
 
-# RC_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
-unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
 #unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
@@ -123,3 +121,6 @@ force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
 unpackaged/post_approvals/flows/RC_Quote_Smart_Approval.flow-meta.xml
 unpackaged/post_approvals/flows/RC_Quote_Transfer_Approval.flow-meta.xml
 unpackaged/post_approvals/flows/RC_AA_Quote_Approval.flow-meta.xml
+unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml
+unpackaged/pre/5_decisiontables/RLM_ProductCategoryQualification.decisionTable-meta.xml
+unpackaged/pre/5_decisiontables/RLM_ProductQualification.decisionTable-meta.xml
