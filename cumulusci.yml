@@ -78,8 +78,8 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    qbrix: false             # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false               # Is Trialforce Source Org? (false for dev scratch orgs)
+    qbrix: true             # Use xDO base (false for dev scratch orgs without xDO licenses)
+    tso: true               # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                 # Is QuantumBit?
     q3: false                # Include Q3 data
     calmdelete: true         # Use CALM Delete
@@ -273,6 +273,9 @@ project:
       - RLM_PCM
       - RLM_PSL
       - RLM_USG
+
+    psg_tso: &psg_tso
+      - RC_TSO
       
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
@@ -290,6 +293,10 @@ project:
     ps_procedureplans: &ps_procedureplans
       # Procedure Plans-specific permission sets
       - RLM_ProcedurePlans
+
+    ps_constraints: &ps_constraints
+      # Constraints-specific permission sets
+      - RLM_Constraints
 
 #-----------------#
 # DECISION TABLES #
@@ -1749,6 +1756,11 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
+      6:
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
 
   prepare_dro:
     group: Revenue Lifecycle Management
@@ -1960,12 +1972,17 @@ flows:
         task: deploy_post_constraints
         when: project_config.project__custom__constraints
       3:
+        task: assign_permission_sets
+        when: project_config.project__custom__tso and project_config.project__custom__procedureplans
+        options:
+          api_names: *ps_constraints
+      4:
         task: apply_context_constraint_engine_node_status
         when: project_config.project__custom__constraints
-      4:
+      5:
         task: insert_qb_constraints_product_data
         when: false
-      5:
+      6:
         task: insert_qb_constraints_component_data
         when: false
 

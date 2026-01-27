@@ -15,5 +15,5 @@
         <field>QuoteLineItem.RLM_ConstraintEngineNodeStatus__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <label>RLM QuantumBit</label>
+    <label>RLM Constraints</label>
 </PermissionSet>
