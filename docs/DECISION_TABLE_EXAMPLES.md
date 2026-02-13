@@ -1,17 +1,18 @@
 # Decision Table Management Task Examples
 
-This document provides working examples for the `manage_decision_tables` CumulusCI task.
+This document provides working examples for the `manage_decision_tables` CumulusCI task and related refresh tasks and flows.
 
 ## Decision Table Management (`manage_decision_tables`)
 
-Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities for querying, listing, and refreshing decision tables.
+Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh** (full or incremental), **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
 
 ### Basic Operations
 
-#### 1. List All Active Decision Tables
+#### 1. List All Active Decision Tables (with UsageType)
 ```bash
 cci task run manage_decision_tables --operation list
 ```
+The list output includes **UsageType** (e.g. DefaultPricing, DefaultRating, RatingDiscovery) to help organize and filter decision tables.
 
 #### 2. List Decision Tables with Limit
 ```bash
@@ -89,36 +90,68 @@ cci task run manage_decision_tables --operation refresh --developer_names RLM_Pr
 cci task run manage_decision_tables --operation refresh --developer_names RLM_ProductQualification --is_incremental true
 ```
 
+### Activate and Deactivate Operations
+
+#### 16. Activate Decision Tables (e.g. for prepare_decision_tables)
+```bash
+cci task run manage_decision_tables --operation activate --developer_names "RLM_ProductCategoryQualification,RLM_ProductQualification,RLM_CostBookEntries"
+```
+Uses the list from `dt_activation_decision_tables` in project config. Required for scratch org setup so qualification and cost book decision tables are Active.
+
+#### 17. Deactivate Decision Tables
+```bash
+cci task run manage_decision_tables --operation deactivate --developer_names "RLM_ProductQualification"
+```
+Sets the specified decision table(s) to Inactive via the API.
+
+### Validate Lists Operation
+
+Compare decision tables in the org to the project's configured list anchors (`dt_*_decision_tables` in `cumulusci.yml`). Use this to ensure no org table is missing from refresh lists and no list entry points to a non-existent table.
+
+#### 18. Validate All Project Decision Table Lists
+```bash
+cci task run manage_decision_tables --operation validate_lists
+```
+- Queries all active decision tables from the org (with UsageType).
+- Discovers all anchors matching `dt_*_decision_tables` from project custom config.
+- Reports: **Decision tables in org by UsageType**; **In org but not in any list**; **In lists but not in org** (invalid entries).
+
+#### 19. Validate Specific List Anchors
+```bash
+cci task run manage_decision_tables --operation validate_lists -o list_anchors:"['dt_rating_decision_tables','dt_commerce_decision_tables']"
+```
+Validates only the specified anchors. Useful when you add a new list and want to verify it without scanning all anchors.
+
 ### Sorting Options
 
-#### 16. List Decision Tables Sorted by LastSyncDate (Ascending)
+#### 20. List Decision Tables Sorted by LastSyncDate (Ascending)
 ```bash
 cci task run manage_decision_tables --operation list --sort_by LastSyncDate --sort_order Asc
 ```
 
-#### 17. List Decision Tables Sorted by DeveloperName
+#### 21. List Decision Tables Sorted by DeveloperName
 ```bash
 cci task run manage_decision_tables --operation list --sort_by DeveloperName --sort_order Asc
 ```
 
-#### 18. Query Decision Tables Sorted by SetupName
+#### 22. Query Decision Tables Sorted by SetupName
 ```bash
 cci task run manage_decision_tables --operation query --sort_by SetupName --sort_order Asc
 ```
 
 ### Combined Operations
 
-#### 19. List Active Decision Tables with Custom Sorting
+#### 23. List Active Decision Tables with Custom Sorting
 ```bash
 cci task run manage_decision_tables --operation list --status Active --sort_by LastSyncDate --sort_order Desc --limit 10
 ```
 
-#### 20. Query Inactive Decision Tables
+#### 24. Query Inactive Decision Tables
 ```bash
 cci task run manage_decision_tables --operation query --status Inactive
 ```
 
-#### 21. Refresh Active Decision Tables (Incremental) with Limit
+#### 25. Refresh Active Decision Tables (Incremental) with Limit
 ```bash
 cci task run manage_decision_tables --operation refresh --status Active --is_incremental true
 ```
@@ -219,6 +252,7 @@ cci task run manage_decision_tables --operation list --status Active
 The `list` operation displays decision tables in a formatted table with:
 - DeveloperName
 - Status
+- **UsageType** (e.g. DefaultPricing, DefaultRating, RatingDiscovery, RevenueStandardTax)
 - LastSyncDate
 - SetupName
 
@@ -275,7 +309,7 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 
 ### Operation
 - **Required**: Yes
-- **Options**: `list`, `query`, `refresh`
+- **Options**: `list`, `query`, `refresh`, `activate`, `deactivate`, `validate_lists`
 - **Description**: The operation to perform
 
 ### Developer Names
@@ -314,6 +348,46 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 - **Default**: None (no limit)
 - **Description**: Maximum number of decision tables to return
 
+### List Anchors (validate_lists only)
+- **Required**: No
+- **Type**: List of strings (YAML list or comma-separated)
+- **Default**: All anchors matching `dt_*_decision_tables` in project custom config
+- **Description**: Restrict validation to specific list anchor names (e.g. `dt_rating_decision_tables`, `dt_commerce_decision_tables`)
+
+---
+
+## Project List Anchors and Refresh Flow
+
+Decision table lists are defined in `cumulusci.yml` under `project.custom` as YAML anchors and used by both CCI tasks and the **refresh_all_decision_tables** flow:
+
+| Anchor | Purpose |
+|--------|---------|
+| `dt_rating_decision_tables` | Rating and rate card decision tables |
+| `dt_rating_discovery_decision_tables` | Rating discovery resolution tables |
+| `dt_default_pricing_decision_tables` | Default pricing and contract pricing tables (includes StandardTax) |
+| `dt_asset_decision_tables` | Asset-specific rate and adjustment tables |
+| `dt_pricing_discovery_decision_tables` | Pricing discovery and derived pricing tables |
+| `dt_activation_decision_tables` | Tables activated during org prepare (RLM_ProductCategoryQualification, RLM_ProductQualification, RLM_CostBookEntries) |
+| `dt_commerce_decision_tables` | Commerce decision tables (refreshed when `commerce: true`) |
+
+The **refresh_all_decision_tables** flow runs: sync_pricing_data → refresh_dt_pricing_discovery → (rating steps when `rating: true`) → refresh_dt_commerce (when `commerce: true`). Individual refresh tasks (`refresh_dt_rating`, `refresh_dt_default_pricing`, etc.) use these same anchors.
+
+---
+
+## Org Utility Flows (Screen Flows)
+
+Screen flows in the org provide manual refresh by category. Deployed from **unpackaged/post_utils** and **unpackaged/post_commerce**:
+
+| Flow | Location | Description |
+|------|----------|-------------|
+| RC Refresh Pricing Decision Tables | post_utils | Refresh default pricing tables; includes Incremental toggle |
+| RC Refresh Asset Decision Tables | post_utils | Refresh asset decision tables; includes Incremental toggle |
+| RC Refresh Rate Card Decision Tables | post_utils | Refresh usage & rating decision tables; includes Incremental toggle |
+| RC Refresh Commerce Decision Tables | post_commerce | Refresh Commerce decision tables (when Commerce is enabled) |
+| RC UpdateDecisionTables | post_utils | Generic: select which decision tables to refresh from a list |
+
+The Incremental toggle on Pricing, Asset, and Rate Card flows is wired to the **refreshDecisionTable** action (`IsIncremental` input) so the run is incremental or full based on user choice. Deploy post_utils: `cci task run deploy_post_utils`. Deploy Commerce flows: `cci task run deploy_post_commerce` (or enable `deploy_post_commerce` in prepare when `commerce: true`).
+
 ---
 
 ## Notes
@@ -329,8 +403,10 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 - **Field Names**: 
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name
+  - `UsageType`: Category (DefaultPricing, DefaultRating, RatingDiscovery, PricingDiscovery, RevenueStandardTax, etc.)
   - `LastSyncDate`: When the table was last refreshed
   - `Status`: `Active` or `Inactive`
+- **SFDMU**: Expression set and decision table activate/deactivate are handled by CCI tasks (`manage_expression_sets`, `manage_decision_tables` / `activate_decision_tables`). The former SFDMU data plans for these have been removed from the repo.
 
 ---
 

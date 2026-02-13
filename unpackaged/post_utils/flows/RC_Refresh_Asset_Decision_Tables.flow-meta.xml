@@ -17,6 +17,12 @@
                 <stringValue>Asset_Action_Source_Entries_Decision_Table_V2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -36,6 +42,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Asset_Rate_Adjustment_Resolution_Entries</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -59,6 +71,12 @@
                 <stringValue>Asset_Rate_Card_Entry_Resolution_Entries</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -78,6 +96,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Asset_Rate_Card_Entry_Resolution_V2</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -101,6 +125,12 @@
                 <stringValue>Asset_Rate_Decision_Table_V2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -122,6 +152,12 @@
                 <stringValue>Asset_Tier_based_Rate_Adjustment_V2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -133,11 +169,44 @@
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
+        <connector>
+            <targetReference>Refresh_Commitment_based_Rate_Adjustment</targetReference>
+        </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Asset_Volume_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Refresh_Commitment_based_Rate_Adjustment</name>
+        <label>Refresh Commitment-based Rate Adjustment</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>Commitment_based_Rate_Adjustment</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -200,7 +269,7 @@
         </fields>
         <fields>
             <name>txtAssetDTs</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;This will manually run an incremental refresh of the Asset-related decision tables that need to be refreshed after Assets are created.  There is a custom flow that is enabled and should do this automatically when Assets are created from an Order, using the standard IA and platform event.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Asset_Action_Source_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Asset_Rate_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Asset_Rate_Card_Entry_Resolution_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Asset_Tier_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Asset_Volume_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;Manually run incremental refresh of Asset-related decision tables (e.g. after Assets are created).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Action_Source_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Rate_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Rate_Card_Entry_Resolution_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Tier_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Volume_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Rate_Adjustment_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Asset_Rate_Card_Entry_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Commitment_based_Rate_Adjustment&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>

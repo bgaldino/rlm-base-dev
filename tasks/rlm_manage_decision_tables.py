@@ -35,7 +35,7 @@ class ManageDecisionTables(BaseTask):
     
     task_options = {
         "operation": {
-            "description": "Operation to perform: 'list', 'refresh', 'query'",
+            "description": "Operation to perform: 'list', 'refresh', 'query', 'activate', 'deactivate', 'validate_lists'",
             "required": True
         },
         "developer_names": {
@@ -61,6 +61,10 @@ class ManageDecisionTables(BaseTask):
         "limit": {
             "description": "Maximum number of decision tables to return. Default: None (no limit)",
             "required": False
+        },
+        "list_anchors": {
+            "description": "For validate_lists: list of config anchor names (e.g. dt_rating_decision_tables). If omitted, all dt_*_decision_tables from project custom are used.",
+            "required": False
         }
     }
     
@@ -74,8 +78,17 @@ class ManageDecisionTables(BaseTask):
             self._query_decision_tables()
         elif operation == "refresh":
             self._refresh_decision_tables()
+        elif operation == "activate":
+            self._set_decision_tables_status("Active")
+        elif operation == "deactivate":
+            self._set_decision_tables_status("Inactive")
+        elif operation == "validate_lists":
+            self._validate_lists()
         else:
-            raise TaskOptionsError(f"Unknown operation: {operation}. Supported operations: 'list', 'query', 'refresh'")
+            raise TaskOptionsError(
+                f"Unknown operation: {operation}. Supported operations: "
+                "'list', 'query', 'refresh', 'activate', 'deactivate', 'validate_lists'"
+            )
     
     def _list_decision_tables(self):
         """List decision tables with their metadata (similar to the flow's query)."""
@@ -87,12 +100,13 @@ class ManageDecisionTables(BaseTask):
         
         self.logger.info(f"Found {len(decision_tables)} decision table(s):")
         self.logger.info("")
-        self.logger.info(f"{'DeveloperName':<50} {'Status':<10} {'LastSyncDate':<25} {'SetupName':<50}")
-        self.logger.info("-" * 135)
+        self.logger.info(f"{'DeveloperName':<50} {'Status':<10} {'UsageType':<28} {'LastSyncDate':<25} {'SetupName':<50}")
+        self.logger.info("-" * 165)
         
         for dt in decision_tables:
             dev_name = dt.get('DeveloperName', 'N/A')
             status = dt.get('Status', 'N/A')
+            usage_type = dt.get('UsageType', '') or ''
             last_sync = dt.get('LastSyncDate', 'N/A')
             setup_name = dt.get('SetupName', 'N/A')
             
@@ -105,7 +119,7 @@ class ManageDecisionTables(BaseTask):
                 except:
                     pass
             
-            self.logger.info(f"{dev_name:<50} {status:<10} {last_sync:<25} {setup_name:<50}")
+            self.logger.info(f"{dev_name:<50} {status:<10} {usage_type:<28} {last_sync:<25} {setup_name:<50}")
         
         # Return results as JSON for programmatic use
         return decision_tables
@@ -159,7 +173,8 @@ class ManageDecisionTables(BaseTask):
             "DeveloperName",
             "Status",
             "LastSyncDate",
-            "SetupName"
+            "SetupName",
+            "UsageType"
         ]
         
         # Build WHERE clause
@@ -268,6 +283,112 @@ class ManageDecisionTables(BaseTask):
         
         if fail_count > 0:
             raise TaskOptionsError(f"Failed to refresh {fail_count} decision table(s). Check logs for details.")
+
+    def _validate_lists(self):
+        """
+        Validate decision table list anchors from project config against the org.
+        - Lists all org DTs grouped by UsageType.
+        - Reports DTs in org that are not in any configured list.
+        - Reports list entries that are not in the org (invalid/missing).
+        """
+        # Query all active decision tables (ignore developer_names so we get full org list)
+        saved_dev_names = self.options.get("developer_names")
+        try:
+            self.options["developer_names"] = None
+            self.logger.info("Querying all active decision tables from org...")
+            decision_tables = self._query_decision_tables()
+        finally:
+            if saved_dev_names is not None:
+                self.options["developer_names"] = saved_dev_names
+            elif "developer_names" in self.options:
+                del self.options["developer_names"]
+        if not decision_tables:
+            self.logger.warning("No active decision tables found in org.")
+            return
+
+        org_by_name = {dt["DeveloperName"]: dt for dt in decision_tables}
+        org_names = set(org_by_name.keys())
+
+        # Resolve which list anchors to validate
+        list_anchors = self.options.get("list_anchors")
+        if list_anchors:
+            if isinstance(list_anchors, str):
+                list_anchors = [list_anchors]
+        else:
+            list_anchors = self._get_decision_table_list_anchors()
+
+        # Build: anchor -> list of developer names; and set of all names in any list
+        anchor_to_names: Dict[str, List[str]] = {}
+        all_listed_names: Set[str] = set()
+        custom = self._get_project_custom_config()
+        for anchor in list_anchors:
+            names = custom.get(anchor)
+            if names is None:
+                self.logger.warning("List anchor '%s' not found in project custom config.", anchor)
+                continue
+            if not isinstance(names, list):
+                self.logger.warning("List anchor '%s' is not a list, skipping.", anchor)
+                continue
+            anchor_to_names[anchor] = names
+            all_listed_names.update(names)
+
+        # --- Report: DTs in org grouped by UsageType ---
+        by_usage: Dict[str, List[Dict]] = {}
+        for dt in decision_tables:
+            ut = dt.get("UsageType") or "(blank)"
+            by_usage.setdefault(ut, []).append(dt)
+        self.logger.info("")
+        self.logger.info("=== Decision tables in org by UsageType ===")
+        for ut in sorted(by_usage.keys()):
+            dts = by_usage[ut]
+            self.logger.info("  %s (%d): %s", ut, len(dts), ", ".join(d["DeveloperName"] for d in sorted(dts, key=lambda d: d["DeveloperName"])))
+        self.logger.info("")
+
+        # --- Report: In org but not in any list ---
+        not_in_any_list = org_names - all_listed_names
+        if not_in_any_list:
+            self.logger.info("=== In org but not in any configured list ===")
+            by_ut = {}
+            for name in not_in_any_list:
+                rec = org_by_name.get(name, {})
+                ut = rec.get("UsageType") or "(blank)"
+                by_ut.setdefault(ut, []).append(name)
+            for ut in sorted(by_ut.keys()):
+                names = sorted(by_ut[ut])
+                self.logger.info("  %s: %s", ut, ", ".join(names))
+            self.logger.info("  Total: %d", len(not_in_any_list))
+        else:
+            self.logger.info("=== In org but not in any list: (none) ===")
+        self.logger.info("")
+
+        # --- Report: In lists but not in org (invalid entries) ---
+        not_in_org = all_listed_names - org_names
+        if not_in_org:
+            self.logger.info("=== In configured lists but not in org (invalid/missing) ===")
+            for anchor in list_anchors:
+                names = anchor_to_names.get(anchor, [])
+                missing = [n for n in names if n not in org_names]
+                if missing:
+                    self.logger.info("  %s: %s", anchor, ", ".join(sorted(missing)))
+            self.logger.info("  Total: %d", len(not_in_org))
+        else:
+            self.logger.info("=== In lists but not in org: (none) ===")
+        self.logger.info("")
+        self.logger.info("Validate lists complete. Org total: %d, Listed total (unique): %d.", len(org_names), len(all_listed_names))
+
+    def _get_project_custom_config(self) -> Dict:
+        """Return project custom config dict (e.g. from cumulusci.yml project.custom)."""
+        if not getattr(self, "project_config", None):
+            return {}
+        config = getattr(self.project_config, "config", None) or {}
+        project = config.get("project") or {}
+        return project.get("custom") or {}
+
+    def _get_decision_table_list_anchors(self) -> List[str]:
+        """Return list of decision table anchor names from project custom (dt_*_decision_tables)."""
+        custom = self._get_project_custom_config()
+        anchors = [k for k in custom.keys() if k.startswith("dt_") and k.endswith("_decision_tables")]
+        return sorted(anchors)
     
     def _refresh_single_decision_table(self, conn, api_version: str, developer_name: str, is_incremental: bool) -> Dict:
         """
@@ -299,3 +420,64 @@ class ManageDecisionTables(BaseTask):
             return result
         else:
             raise TaskOptionsError(f"Unexpected response format for decision table '{developer_name}': {type(result)}")
+
+    def _set_decision_tables_status(self, target_status: str):
+        """Set status for specified DecisionTable records."""
+        developer_names = self.options.get("developer_names")
+        if not developer_names:
+            raise TaskOptionsError(
+                "developer_names is required for activate/deactivate operations"
+            )
+
+        if isinstance(developer_names, str):
+            developer_names = [developer_names]
+        elif not isinstance(developer_names, list):
+            raise TaskOptionsError("developer_names must be a string or list of strings")
+
+        escaped_names = [name.replace("'", "\\'") for name in developer_names]
+        names_str = "', '".join(escaped_names)
+        soql = (
+            "SELECT Id, DeveloperName, Status FROM DecisionTable "
+            f"WHERE DeveloperName IN ('{names_str}')"
+        )
+        sf = self.org_config.salesforce_client
+        records = sf.query(soql).get("records", [])
+        if not records:
+            raise TaskOptionsError(
+                f"No DecisionTable records found for developer_names: {', '.join(developer_names)}"
+            )
+
+        found_names = {rec.get("DeveloperName") for rec in records if rec.get("DeveloperName")}
+        missing_names = [name for name in developer_names if name not in found_names]
+        if missing_names:
+            self.logger.warning(
+                "DecisionTable records not found for: %s", ", ".join(missing_names)
+            )
+
+        updates = 0
+        skips = 0
+        for rec in records:
+            record_id = rec.get("Id")
+            dev_name = rec.get("DeveloperName")
+            current_status = rec.get("Status")
+            if current_status == target_status:
+                skips += 1
+                self.logger.info(
+                    "DecisionTable '%s' already in status '%s'.", dev_name, target_status
+                )
+                continue
+
+            sf.DecisionTable.update(record_id, {"Status": target_status})
+            updates += 1
+            self.logger.info(
+                "Updated DecisionTable '%s' status: %s -> %s",
+                dev_name,
+                current_status,
+                target_status,
+            )
+
+        self.logger.info(
+            "DecisionTable status update complete. Updated: %s, unchanged: %s",
+            updates,
+            skips,
+        )

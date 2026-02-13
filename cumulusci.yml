@@ -309,7 +309,7 @@ project:
       - Asset_Rate_Card_Entry_Resolution_Entries
       - Asset_Rate_Decision_Table_V2
       - Asset_Rate_Adjustment_Resolution_Entries
-      - Asset_Tier_based_Rate_Adjustmen_V2
+      - Asset_Tier_based_Rate_Adjustment_V2
       - Asset_Volume_based_Rate_Adjustment_V2
       - Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID
       - Binding_Object_Rate_Card_Entry_Resolution_V2
@@ -330,7 +330,7 @@ project:
     dt_rating_discovery_decision_tables: &dt_rating_discovery_decision_tables
       # Decision tables used for rating discovery and resolution
       - Binding_Object_Rate_Adjustment_Resolution_Entries
-      - Binding_Object_Rate_Card_Entry_Resolution_Entries_V2
+      - Binding_Object_Rate_Card_Entry_Resolution_Entries_v2
       - Pricebook_Rate_Card_Decision_Table
       - Rate_Adjustment_by_Attribute_Resolution_Decision_Table
       - Rate_Adjustment_by_Tier_Resolution_Decision_Table
@@ -338,6 +338,7 @@ project:
 
     dt_default_pricing_decision_tables: &dt_default_pricing_decision_tables
       # Default pricing decision tables for contract and price adjustments
+      # UsageType in org: DefaultPricing (StandardTax: RevenueStandardTax)
       - Attribute_Based_Adjustment_Decision_Table
       - Bundle_Based_Adjustment_Decision_Table
       - Contract_Pricing_Adjustment_Tiers
@@ -346,8 +347,7 @@ project:
       - Price_Adjustment_Tier_Decision_Table
       - Price_Book_Entry_Decision_Table_v2
       - Tiered_Adjustment_Tier_Decision_Table
-      - Product_Price_Range_Entries_Decision_Table
-      - Product_Price_Range_Entries_Decision_Table_v2
+      - StandardTax
 
     dt_asset_decision_tables: &dt_asset_decision_tables
       # Asset-specific decision tables for rate calculations and adjustments
@@ -364,8 +364,21 @@ project:
       # Decision tables used for pricing discovery and derived pricing
       - Asset_Action_Source_Entries_Decision_Table_V2
       - Derived_Pricing_Entries_Decision_Table
-      - Product_Price_Range_Entries_Decision_Table
-      - Product_Price_Range_Entries_Decision_Table_v2
+
+    dt_activation_decision_tables: &dt_activation_decision_tables
+      # Decision tables to enforce as Active during org preparation
+      - RLM_ProductCategoryQualification
+      - RLM_ProductQualification
+      - RLM_CostBookEntries
+
+    dt_commerce_decision_tables: &dt_commerce_decision_tables
+      # Commerce decision tables (refresh when project__custom__commerce is true)
+      # UsageType in org: DefaultPricing
+      - Price_Book_Entry_Commerce_V2
+      - Price_Book_Entry_For_Unit_Price_Commerce_V1
+      - Pricebook_Entry_Adjustment_Commerce_V1
+      - Range_Based_Adjustments_Commerce_V1
+      - Slab_Based_Adjustments_Commerce_V1
 
 #-----------------------------#
 # CONTEXT DEFINITION SETTINGS #
@@ -807,6 +820,12 @@ tasks:
     options:
       path: unpackaged/post_utils
 
+  deploy_post_commerce:
+    description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_commerce
+
   deploy_post_procedureplans:
     description: Deploy Procedure Plans Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1228,40 +1247,41 @@ tasks:
         description: "Alias of target user (if not the current running user)"
         required: False
 
+  recalculate_permission_set_groups:
+    group: Revenue Lifecycle Management
+    description: Recalculate permission set groups and wait for Updated status
+    class_path: tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups
+    options:
+      api_names:
+        description: "API Developer Names of Permission Set Groups to recalculate"
+        required: True
+      timeout_seconds: 300
+      poll_seconds: 10
+      trigger_recalc: true
+
   activate_decision_tables:
     group: Revenue Lifecycle Management
-    description: Activate Decision Tables
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    description: Activate selected Decision Tables via API
+    class_path: tasks.rlm_manage_decision_tables.ManageDecisionTables
     options:
-      pathtoexportjson: "datasets/sfdmu/decision_tables_active"
+      operation: activate
+      developer_names: *dt_activation_decision_tables
 
   activate_expression_sets:
     group: Revenue Lifecycle Management
-    description: Activate Expression Sets
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    description: Activate expression set versions via Tooling API
+    class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
-      pathtoexportjson: "datasets/sfdmu/expressionsets_active"
-
-  activate_expression_sets_prod:
-    group: Revenue Lifecycle Management
-    description: Activate Expression Sets in Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/expressionsets_active"
+      operation: activate_versions
+      metadata_path: force-app/main/default/expressionSetDefinition
 
   deactivate_expression_sets:
     group: Revenue Lifecycle Management
-    description: Deactivate Expression Sets
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    description: Deactivate expression set versions via Tooling API
+    class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
-      pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
-
-  deactivate_expression_sets_prod:
-    group: Revenue Lifecycle Management
-    description: Deactivate Expression Sets in Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/expressionsets_inactive"
+      operation: deactivate_versions
+      metadata_path: force-app/main/default/expressionSetDefinition
 
   create_price_adjustment_schedules:
     group: Revenue Lifecycle Management
@@ -1401,12 +1421,19 @@ tasks:
     options:
       developerNames: *dt_asset_decision_tables
 
+  refresh_dt_commerce:
+    group: Revenue Lifecycle Management
+    description: Refresh Commerce Decision Tables (when commerce flag is true)
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_commerce_decision_tables
+
   manage_decision_tables:
     group: Revenue Lifecycle Management
-    description: Comprehensive Decision Table management (list, query, refresh)
+    description: "Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)"
     class_path: tasks.rlm_manage_decision_tables.ManageDecisionTables
     options:
-      operation: list  # Options: 'list', 'query', 'refresh'
+      operation: list  # Options: 'list', 'query', 'refresh', 'activate', 'deactivate', 'validate_lists'
       status: Active   # Filter by status
       is_incremental: false  # For refresh: true for incremental, false for full
       sort_by: LastSyncDate
@@ -1433,6 +1460,8 @@ tasks:
       interface_source_type: null  # Filter by InterfaceSourceType (PricingProcedure, RatingProcedure, etc.)
       process_type: null  # Filter by ProcessType (DefaultPricing, DefaultRating, etc.)
       version_full_name: null  # For version operations: Full name of the version
+      version_full_names: null  # For bulk version operations: list or comma-separated FullName values
+      metadata_path: force-app/main/default/expressionSetDefinition  # For bulk operations when version names are omitted
       sort_by: LastModifiedDate
       sort_order: Desc
 
@@ -1579,48 +1608,52 @@ flows:
         options:
           api_names: EinsteinAnalyticsPlusPsl
       10:
-        task: assign_permission_set_groups_tolerant
+        task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
       11:
+        task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      12:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      12:
-        flow: extend_context_definitions
       13:
+        flow: extend_context_definitions
+      14:
         task: util_sleep
         options:
           seconds: *sleep_default
-      14:
+      15:
         task: create_price_adjustment_schedules
         when: org_config.scratch and project_config.project__custom__pas_debug 
-      15:
+      16:
         task: create_price_adjustment_schedules_prod
         when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
-      16:
+      17:
         task: util_sleep
         when: project_config.project__custom__pas_debug 
         options:
           seconds: *sleep_default
-      17:
+      18:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      18:
+      19:
         task: util_sleep
         when: project_config.project__custom__breconfig
         options:
           seconds: *sleep_default
-      19:
+      20:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      20:
+      21:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      21:
+      22:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -1665,14 +1698,10 @@ flows:
     steps:
       1:
         task: deactivate_expression_sets
-        when: org_config.scratch
       2:
-        task: deactivate_expression_sets_prod
-        when: not org_config.scratch
-      3:
         task: ensure_pricing_schedules
         when: org_config.scratch
-      4:
+      3:
         task: deploy_expression_sets
         when: org_config.scratch
   
@@ -1929,6 +1958,9 @@ flows:
       5:
         task: refresh_dt_rating_discovery
         when: project_config.project__custom__rating
+      6:
+        task: refresh_dt_commerce
+        when: project_config.project__custom__commerce
 
   prepare_decision_tables:
     group: Revenue Lifecycle Management

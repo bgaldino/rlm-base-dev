@@ -1,27 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <name>Asset_Action_Source_Entries_Decision_Table_V2</name>
-        <label>Asset_Action_Source_Entries_Decision_Table_V2</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Derived_Pricing_Entries_Decision_Table</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Asset_Action_Source_Entries_Decision_Table_V2</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
         <name>Attribute_Based_Adjustment_Decision_Table</name>
         <label>Attribute_Based_Adjustment_Decision_Table</label>
         <locationX>0</locationX>
@@ -36,6 +15,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Attribute_Based_Adjustment_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -59,6 +44,12 @@
                 <stringValue>Bundle_Based_Adjustment_Decision_Table</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -78,6 +69,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Contract_Pricing_Adjustment_Tiers</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -101,6 +98,12 @@
                 <stringValue>Contract_Pricing_Entries_Decision_Table</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -122,43 +125,10 @@
                 <stringValue>Contract_Pricing_Volume_Tiers</stringValue>
             </value>
         </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Derived_Pricing_Entries_Decision_Table</name>
-        <label>Derived_Pricing_Entries_Decision_Table</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>RLM_CostBookEntries</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
-            <name>DecisionTableApiName</name>
+            <name>IsIncremental</name>
             <value>
-                <stringValue>Derived_Pricing_Entries_Decision_Table</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Index_Rate_Decision_Table</name>
-        <label>Index_Rate_Decision_Table</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Index_Rate_Decision_Table</stringValue>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -182,6 +152,12 @@
                 <stringValue>Price_Adjustment_Tier_Decision_Table</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -203,67 +179,10 @@
                 <stringValue>Price_Book_Entry_Decision_Table_v2</stringValue>
             </value>
         </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Product_Price_Range_Entries_Decision_Table</name>
-        <label>Product_Price_Range_Entries_Decision_Table</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Index_Rate_Decision_Table</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
-            <name>DecisionTableApiName</name>
+            <name>IsIncremental</name>
             <value>
-                <stringValue>Product_Price_Range_Entries_Decision_Table</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Product_Price_Range_Entries_Decision_Table_v2</name>
-        <label>Product_Price_Range_Entries_Decision_Table_v2</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Product_Price_Range_Entries_Decision_Table</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>Product_Price_Range_Entries_Decision_Table_v2</stringValue>
-            </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>RLM_CostBookEntries</name>
-        <label>RLM_CostBookEntries</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Product_Price_Range_Entries_Decision_Table_v2</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
-            <value>
-                <stringValue>RLM_CostBookEntries</stringValue>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -278,13 +197,43 @@
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
         <connector>
-            <targetReference>Asset_Action_Source_Entries_Decision_Table_V2</targetReference>
+            <targetReference>StandardTax</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Tiered_Adjustment_Tier_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>refreshDecisionTable</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>StandardTax</name>
+        <label>StandardTax</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>refreshDecisionTable</actionName>
+        <actionType>refreshDecisionTable</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>DecisionTableApiName</name>
+            <value>
+                <stringValue>StandardTax</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -347,8 +296,48 @@
         </fields>
         <fields>
             <name>txtDecisionTables</name>
-            <fieldText>&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Attribute_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Bundle_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Contract_Pricing_Adjustment_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Contract_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Contract_Pricing_Volume_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Price_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Tiered_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Asset_Action_Source_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px;&quot;&gt;Derived_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Product_Price_Range_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;Product_Price_Range_Entries_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 10px; background-color: rgb(255, 255, 255);&quot;&gt;RLM_CostBookEntries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px;&quot;&gt;Index_Rate_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;This will refresh the following default pricing decision tables.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Attribute_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Bundle_Based_Adjustment_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Contract_Pricing_Adjustment_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Contract_Pricing_Entries_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Contract_Pricing_Volume_Tiers&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Price_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Tiered_Adjustment_Tier_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;StandardTax&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>IncrementalRefresh</name>
+            <extensionName>flowruntime:toggle</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>label</name>
+                <value>
+                    <stringValue>Incremental Refresh</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>messageToggleActive</name>
+                <value>
+                    <stringValue>Incremental Refresh</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>messageToggleInactive</name>
+                <value>
+                    <stringValue>Full Refresh</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>value</name>
+                <value>
+                    <booleanValue>true</booleanValue>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <storeOutputAutomatically>true</storeOutputAutomatically>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>

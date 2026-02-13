@@ -132,25 +132,31 @@ This project includes custom CumulusCI tasks for Revenue Cloud-specific operatio
 
 | Task Name | Description | Documentation |
 |-----------|-------------|--------------|
-| `manage_decision_tables` | Comprehensive Decision Table management (list, query, refresh) | [docs/DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md) |
+| `manage_decision_tables` | Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists | [docs/DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md) |
+| `refresh_dt_rating`, `refresh_dt_rating_discovery`, `refresh_dt_default_pricing`, `refresh_dt_asset`, `refresh_dt_pricing_discovery`, `refresh_dt_commerce` | Refresh decision tables by category (use list anchors from `cumulusci.yml`) | [docs/DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md) |
 | `manage_flows` | Flow management (list, query, activate, deactivate) | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
-| `manage_expression_sets` | Expression Set management with version control | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
+| `manage_expression_sets` | Expression Set management: list, query, activate/deactivate versions | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
 | `cleanup_settings_for_dev` | Conditionally remove unsupported settings for dev orgs | See `cumulusci.yml` |
 | `exclude_active_decision_tables` | Exclude active decision tables from deployment | See `cumulusci.yml` |
 | `assign_permission_set_groups_tolerant` | Assign PSGs with tolerance for missing permissions | See `cumulusci.yml` |
+| `recalculate_permission_set_groups` | Trigger PSG recalculation so Outdated groups become Updated | See `cumulusci.yml` |
 | `load_sfdmu_data` | Load data using SFDMU | See `cumulusci.yml` |
 | `sync_pricing_data` | Sync pricing data | See `cumulusci.yml` |
 | `extend_standard_context` | Extend standard context definitions | See `cumulusci.yml` |
 | `manage_context_definition` | Modify context definitions via Context Service | [docs/context_service_utility.md](docs/context_service_utility.md) |
 | `manage_transaction_processing_types` | Manage TransactionProcessingType records | [docs/constraints_setup.md](docs/constraints_setup.md) |
+| `deploy_post_commerce` | Deploy Commerce metadata (e.g. Commerce decision table flows) | See `cumulusci.yml` |
 
 ### Using Custom Tasks
 
 All custom tasks are automatically available via CumulusCI. Use them like any standard CCI task:
 
 ```bash
-# List decision tables
+# List decision tables (includes UsageType)
 cci task run manage_decision_tables --operation list
+
+# Validate decision table lists vs org
+cci task run manage_decision_tables --operation validate_lists
 
 # Manage flows
 cci task run manage_flows --operation list --process_type ScreenFlow
@@ -228,11 +234,11 @@ rlm-base-dev/
 ├── force-app/              # Main Salesforce metadata (source format)
 ├── unpackaged/             # Conditional metadata (deployed based on flags)
 │   ├── pre/               # Pre-deployment metadata
-│   ├── post_*/           # Post-deployment metadata (feature-specific)
+│   ├── post_*/            # Post-deployment metadata (post_utils, post_commerce, etc.)
 ├── tasks/                 # Custom CumulusCI tasks
 ├── orgs/                  # Scratch org definitions
-├── datasets/              # SFDMU data sets
-│   └── sfdmu/            # SFDMU export configurations
+├── datasets/              # SFDMU data sets (product, billing, tax, etc.)
+│   └── sfdmu/             # SFDMU export configurations (no DT/expression set plans; use CCI tasks)
 ├── scripts/               # Utility scripts
 │   ├── apex/             # Anonymous Apex scripts
 │   ├── cml/              # CML scripts
@@ -286,12 +292,17 @@ cci task run insert_billing_data
 ### Manage Decision Tables
 
 ```bash
-# List all active decision tables
+# List all active decision tables (with UsageType)
 cci task run manage_decision_tables --operation list
 
-# Refresh all decision tables
+# Validate project list anchors against the org
+cci task run manage_decision_tables --operation validate_lists
+
+# Refresh all decision tables (full or incremental)
 cci task run manage_decision_tables --operation refresh
+# Or use the flow: cci flow run refresh_all_decision_tables
 ```
+Decision table activate/deactivate and expression set version activation use CCI tasks only; the former SFDMU data plans for these have been removed.
 
 ## Troubleshooting
 

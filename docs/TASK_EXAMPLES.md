@@ -105,6 +105,8 @@ cci task run manage_flows --operation list --sort_by ProcessType --sort_order As
 
 ## Expression Set Management (`manage_expression_sets`)
 
+Expression set **version** activation and deactivation are performed by this task (operations `activate_versions` / `deactivate_versions` or single-version `activate_version` / `deactivate_version`). SFDMU data plans for expression sets are no longer used; use these CCI operations instead.
+
 ### Basic Operations
 
 #### 1. List All Expression Sets

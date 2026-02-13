@@ -38,4 +38,5 @@
 
 ## Notes
 - These updates focus on QB datasets referenced by `cumulusci.yml`.
+- Decision tables and expression sets: SFDMU data plans for activating/deactivating them have been removed; use CCI tasks `manage_decision_tables` and `manage_expression_sets` instead.
 - If you want similar composite key hardening for non-QB datasets (q3, multicurrency, accounting, etc.), call that out and I’ll extend the same approach.

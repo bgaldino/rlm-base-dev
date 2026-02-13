@@ -5,7 +5,7 @@ Based on evaluation of the [Revenue Cloud Developer Guide (Release 260)](https:/
 ## Current Tooling Coverage
 
 The project already includes management tasks for:
-- ✅ **Decision Tables** (`manage_decision_tables`) - List, query, refresh (full/incremental)
+- ✅ **Decision Tables** (`manage_decision_tables`) - List (with UsageType), query, refresh (full/incremental), activate, deactivate, validate_lists; category refresh tasks and org utility flows
 - ✅ **Flows** (`manage_flows`) - List, query, activate, deactivate
 - ✅ **Expression Sets** (`manage_expression_sets`) - List, query, version management
 - ✅ **Context Definitions** (`extend_stdctx`, `modify_context`) - Extend and modify context definitions

@@ -17,6 +17,12 @@
                 <stringValue>Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -38,6 +44,12 @@
                 <stringValue>Binding_Object_Rate_Adjustment_Resolution_Entries</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -56,7 +68,13 @@
         <inputParameters>
             <name>DecisionTableApiName</name>
             <value>
-                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_Entries_V2</stringValue>
+                <stringValue>Binding_Object_Rate_Card_Entry_Resolution_Entries_v2</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -80,6 +98,12 @@
                 <stringValue>Binding_Object_Rate_Card_Entry_Resolution_V2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -101,6 +125,12 @@
                 <stringValue>Binding_Object_Rate_Decision_Table_V2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -117,6 +147,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Binding_Object_Tier_based_Rate_Adjustment_V2</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -140,6 +176,12 @@
                 <stringValue>Binding_Object_Volume_based_Rate_Adjustment_V2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -159,6 +201,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Commitment_based_Rate_Adjustment</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -182,6 +230,12 @@
                 <stringValue>Price_Book_Entry_Decision_Table_v2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -201,6 +255,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Pricebook_Rate_Card_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -224,6 +284,12 @@
                 <stringValue>Rate_Adjustment_by_Attribute_Entries_2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -243,6 +309,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Rate_Adjustment_by_Attribute_Resolution_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -266,6 +338,12 @@
                 <stringValue>Rate_Adjustment_by_Tier_Entries_2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -285,6 +363,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Rate_Adjustment_by_Tier_Resolution_Decision_Table</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -308,6 +392,12 @@
                 <stringValue>Rate_Adjustment_by_Volume_Entries_2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -327,6 +417,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Rate_Card_Entries_2</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -350,6 +446,12 @@
                 <stringValue>Rate_Card_Entry_Resolution_Entries_2</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -371,6 +473,12 @@
                 <stringValue>Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID</stringValue>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -390,6 +498,12 @@
             <name>DecisionTableApiName</name>
             <value>
                 <stringValue>Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>IsIncremental</name>
+            <value>
+                <elementReference>IncrementalRefresh</elementReference>
             </value>
         </inputParameters>
         <nameSegment>refreshDecisionTable</nameSegment>
@@ -452,7 +566,7 @@
         </fields>
         <fields>
             <name>txtDecisionTables</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 11px; background-color: rgb(255, 255, 255);&quot;&gt;This will manually run a full refresh of the usage and rating decision tables that need to be refreshed after rate configuration and modification. There is a custom flow that is enabled and should incrementally refresh the relevant decision tables automatically when Assets are created from an Order, using the standard IA and platform event, or you can manually request an incremental refresh.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Tier_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Tier_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Volume_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Card_Entry_Resolution_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Pricebook_Rate_Card_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Card_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;﻿Commitment_based_Rate_Adjustment&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Attribute_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;﻿Rate_Adjustment_by_Attribute_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Adjustment_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_Entries_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Tier_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Volume_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 11px;&quot;&gt;Manually run full or incremental refresh of usage and rating decision tables after rate configuration (or when Assets are created from an Order).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Tier_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Tier_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Tier_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Volume_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Volume_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Card_Entry_Resolution_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Pricebook_Rate_Card_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Rate_Card_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;Price_Book_Entry_Decision_Table_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;font-size: 10px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);&quot;&gt;﻿Commitment_based_Rate_Adjustment&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Rate_Adjustment_by_Attribute_Entries_2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;﻿Rate_Adjustment_by_Attribute_Resolution_Decision_Table&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Attribute_based_Rate_Adjustment_by_Rate_Card_Entry_ID&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Decision_Table_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Adjustment_Resolution_Entries&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Rate_Card_Entry_Resolution_Entries_v2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Tier_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); font-size: 10px; color: rgb(0, 0, 0);&quot;&gt;Binding_Object_Volume_based_Rate_Adjustment_V2&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
