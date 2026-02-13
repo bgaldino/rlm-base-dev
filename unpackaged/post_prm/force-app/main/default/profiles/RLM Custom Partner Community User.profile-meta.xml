@@ -8,6 +8,8 @@
     </classAccesses>
     <classAccesses>
         <apexClass>RLM_OrderItemContractingUtility</apexClass>
+    </classAccesses>
+    <userPermissions>
         <enabled>true</enabled>
         <name>ClauseDEUser</name>
     </userPermissions>
