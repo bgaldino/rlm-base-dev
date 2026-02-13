@@ -78,37 +78,39 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    qbrix: true             # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: true               # Is Trialforce Source Org? (false for dev scratch orgs)
-    qb: true                 # Is QuantumBit?
-    q3: false                # Include Q3 data
-    calmdelete: true         # Use CALM Delete
-    tax: true                # Use Tax engine
-    billing: true            # Use Billing
-    payments: true           # Use Payments
-    approvals: true          # Use Approvals
-    clm: false               # Use Contract Lifecycle Management
-    dro: true                # Use Dynamic Revenue Orchestration
-    rating: true             # Insert Rating Design Time Data
-    rates: true              # Insert Rates
-    ramps: true              # Insert and configure ramps
-    einstein: true           # Use Einstein AI
-    product_dataset: qb      # Default product dataset to use=
-    agents: false            # Deploy Agentforce Agent Configurations
-    refresh: false           # Data refresh flag
+    qbrix: true               # Use xDO base (false for dev scratch orgs without xDO licenses)
+    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    qb: true                  # Is QuantumBit?
+    q3: false                 # Include Q3 data
+    calmdelete: true          # Use CALM Delete
+    tax: true                 # Use Tax engine
+    billing: true             # Use Billing
+    payments: true            # Use Payments
+    approvals: true           # Use Approvals
+    clm: false                # Use Contract Lifecycle Management
+    clm_data: false           # Use Contract Lifecycle Management Data
+    dro: true                 # Use Dynamic Revenue Orchestration
+    rating: true              # Insert Rating Design Time Data
+    rates: true               # Insert Rates
+    ramps: true               # Insert and configure ramps
+    einstein: true            # Use Einstein AI
+    product_dataset: qb       # Default product dataset to use=
+    agents: false             # Deploy Agentforce Agent Configurations
+    refresh: false            # Data refresh flag
     prm: false                # Use Partner Relationship Management
-    commerce: false          # Use Commerce
-    quantumbit: true         # Use QuantumBit
-    breconfig: false         # Business Rules Engine configuration
-    docgen: true             # Use Document Generation
-    psg_debug: false         # Debug Permission Set Groups
-    pas_debug: false         # Debug Price Adjustment Schedules
-    constraints: true       # Use Constraint Builder
+    commerce: false           # Use Commerce
+    quantumbit: true          # Use QuantumBit
+    breconfig: false          # Business Rules Engine configuration
+    docgen: true              # Use Document Generation
+    psg_debug: false          # Debug Permission Set Groups
+    pas_debug: false          # Debug Price Adjustment Schedules
+    constraints: true         # Use Constraint Builder
+    constraints_data: false   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
-    procedureplans: false    # Use Procedure Plans
-    sharingsettings: false   # Deploy Sharing Settings
-    visualization: false     # Use Visualization components (Flow with Visuals, LWC styling)
-    locale: en_US            # Default locale
+    procedureplans: false     # Use Procedure Plans
+    sharingsettings: false    # Deploy Sharing Settings
+    visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
+    locale: en_US             # Default locale
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -118,14 +120,9 @@ project:
 # Each section is defined as a YAML anchor (&) for reuse throughout the file
 
     rlm_psl_api_names: &rlm_psl_api_names
-      # Core RLM permission set licenses (CLM-specific PSLs removed - see rlm_clm_psl_api_names)
+      # Core RLM permission set licenses
       - BREDesigner
       - BRERuntime
-      # Removed CLM PSLs (assigned separately when clm: true):
-      # - ClauseManagementUser (moved to rlm_clm_psl_api_names)
-      # - ContractManagementUser (moved to rlm_clm_psl_api_names)
-      # - ContractsAIUserPsl (moved to rlm_clm_psl_api_names)
-      # - ObligationManagementUser (moved to rlm_clm_psl_api_names)
       - CorePricingDesignTime
       - DataProcessingEnginePsl
       - DecimalQuantityDesigntimePsl
@@ -1602,28 +1599,28 @@ flows:
       15:
         task: create_price_adjustment_schedules_prod
         when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
-      14:
+      16:
         task: util_sleep
         when: project_config.project__custom__pas_debug 
         options:
           seconds: *sleep_default
-      15:
+      17:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      16:
+      18:
         task: util_sleep
         when: project_config.project__custom__breconfig
         options:
           seconds: *sleep_default
-      17:
+      19:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      18:
+      20:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      19:
+      21:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -1783,10 +1780,7 @@ flows:
     steps:
       1:
         task: insert_clm_data
-        when: org_config.scratch and project_config.project__custom__clm
-      2:
-        task: insert_clm_data_prod
-        when: not org_config.scratch and project_config.project__custom__clm
+        when: project_config.project__custom__clm and project_config.project__custom__clm_data
 
   prepare_docgen:
     group: Revenue Lifecycle Management
@@ -1981,10 +1975,10 @@ flows:
         when: project_config.project__custom__constraints
       5:
         task: insert_qb_constraints_product_data
-        when: false
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
       6:
         task: insert_qb_constraints_component_data
-        when: false
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management

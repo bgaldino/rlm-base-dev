@@ -4,4 +4,5 @@
     <label>RLM_PCM</label>
     <permissionSets>force__ProductCatalogManagementAdministrator</permissionSets>
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
+    <permissionSets>force__ProductDetailsApiCache</permissionSets>
 </PermissionSetGroup>
