@@ -4,12 +4,15 @@
   "version": "1.0.0",
   "description": "Salesforce Revenue Lifecycle Management Base",
   "scripts": {
+    "test": "sfdx-lwc-jest",
+    "test:watch": "sfdx-lwc-jest --watch",
+    "test:coverage": "sfdx-lwc-jest --coverage",
     "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
     "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\""
   },
   "devDependencies": {
-    "@babel/core": "^7.28.4",
-    "prettier": "^3.6.2",
+    "@salesforce/sfdx-lwc-jest": "^7.1.2",
+    "prettier": "^3.8.1",
     "prettier-plugin-apex": "^2.2.6"
   }
 }
