@@ -445,8 +445,7 @@ project:
     quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb/en-US/qb-pricing"               # QuantumBit product data
     quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb/en-US/qb-product-images"  # QuantumBit product image data
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb/en-US/qb-billing"                     # QuantumBit billing data
-    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data
-    quantumbit_dro_scratch_dataset: &quantumbit_dro_scratch_dataset "datasets/sfdmu/qb/en-US/qb-dro_scratch"                                 # QuantumBit DRO data
+    quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data (dynamic AssignedTo from target org)
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
@@ -1044,7 +1043,8 @@ tasks:
     description: Insert QuantumBit DRO Data to Scratch
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: *quantumbit_dro_scratch_dataset
+      pathtoexportjson: *quantumbit_dro_dataset
+      dynamic_assigned_to_user: true
 
   insert_qb_dro_data_prod:
     group: Revenue Lifecycle Management
@@ -1052,6 +1052,7 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_dro_dataset
+      dynamic_assigned_to_user: true
 
   insert_q3_dro_data_scratch:
     group: Revenue Lifecycle Management
@@ -1258,6 +1259,11 @@ tasks:
       timeout_seconds: 300
       poll_seconds: 10
       trigger_recalc: true
+      initial_delay_seconds: 60
+      retry_count: 2
+      retry_delay_seconds: 120
+      post_trigger_delay_seconds: 90
+      use_tooling_api: false
 
   activate_decision_tables:
     group: Revenue Lifecycle Management

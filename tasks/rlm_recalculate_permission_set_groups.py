@@ -22,7 +22,7 @@ class RecalculatePermissionSetGroups(BaseTask):
             "required": True,
         },
         "timeout_seconds": {
-            "description": "Max time to wait for all PSGs to become Updated.",
+            "description": "Max time to wait for all PSGs to become Updated (per attempt).",
             "required": False,
         },
         "poll_seconds": {
@@ -33,6 +33,26 @@ class RecalculatePermissionSetGroups(BaseTask):
             "description": "Update Description on Outdated PSGs to trigger recalculation.",
             "required": False,
         },
+        "initial_delay_seconds": {
+            "description": "Seconds to wait before starting to poll (gives platform time after PSL assign/deploy).",
+            "required": False,
+        },
+        "retry_count": {
+            "description": "Number of retries after a timeout (sleep then poll again).",
+            "required": False,
+        },
+        "retry_delay_seconds": {
+            "description": "Seconds to wait before retrying after a timeout.",
+            "required": False,
+        },
+        "post_trigger_delay_seconds": {
+            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating).",
+            "required": False,
+        },
+        "use_tooling_api": {
+            "description": "Use Tooling API for PSG updates (can be required in some orgs to trigger recalculation).",
+            "required": False,
+        },
     }
 
     def _run_task(self):
@@ -40,9 +60,55 @@ class RecalculatePermissionSetGroups(BaseTask):
         timeout_seconds = int(self.options.get("timeout_seconds", 300))
         poll_seconds = int(self.options.get("poll_seconds", 10))
         trigger_recalc = str(self.options.get("trigger_recalc", "true")).lower() == "true"
+        initial_delay_seconds = int(self.options.get("initial_delay_seconds", 0))
+        retry_count = int(self.options.get("retry_count", 2))
+        retry_delay_seconds = int(self.options.get("retry_delay_seconds", 120))
+        post_trigger_delay_seconds = int(self.options.get("post_trigger_delay_seconds", 90))
+        use_tooling_api = str(self.options.get("use_tooling_api", "false")).lower() == "true"
 
+        if initial_delay_seconds > 0:
+            self.logger.info(
+                f"Waiting {initial_delay_seconds}s for permission set groups to perform operations before polling."
+            )
+            time.sleep(initial_delay_seconds)
+
+        last_error = None
+        for attempt in range(retry_count + 1):
+            try:
+                self._wait_until_updated(
+                    names=names,
+                    timeout_seconds=timeout_seconds,
+                    poll_seconds=poll_seconds,
+                    trigger_recalc=trigger_recalc,
+                    post_trigger_delay_seconds=post_trigger_delay_seconds,
+                    use_tooling_api=use_tooling_api,
+                )
+                return
+            except TaskOptionsError as e:
+                last_error = e
+                if attempt < retry_count:
+                    self.logger.warning(
+                        f"Permission set groups not yet Updated (attempt {attempt + 1}/{retry_count + 1}). "
+                        f"Waiting {retry_delay_seconds}s before retry."
+                    )
+                    time.sleep(retry_delay_seconds)
+                else:
+                    raise
+        if last_error is not None:
+            raise last_error
+
+    def _wait_until_updated(
+        self,
+        names,
+        timeout_seconds,
+        poll_seconds,
+        trigger_recalc,
+        post_trigger_delay_seconds=0,
+        use_tooling_api=False,
+    ):
         deadline = time.time() + timeout_seconds
         recalc_attempted = set()
+        self._use_tooling_api = use_tooling_api
 
         while True:
             rows = self._query_groups(names)
@@ -67,13 +133,21 @@ class RecalculatePermissionSetGroups(BaseTask):
                 self.logger.info("All target Permission Set Groups are Updated.")
                 return
 
+            triggered_this_round = False
             if trigger_recalc:
                 for name in outdated:
                     if name in recalc_attempted:
                         continue
                     self._touch_group_description(name)
                     recalc_attempted.add(name)
+                    triggered_this_round = True
                     self.logger.info(f"Triggered recalculation for Permission Set Group '{name}'.")
+
+            if triggered_this_round and post_trigger_delay_seconds > 0:
+                self.logger.info(
+                    f"Waiting {post_trigger_delay_seconds}s for platform to start recalc before next poll."
+                )
+                time.sleep(post_trigger_delay_seconds)
 
             if time.time() >= deadline:
                 statuses = ", ".join(
@@ -150,9 +224,10 @@ class RecalculatePermissionSetGroups(BaseTask):
         return response.json().get("records", [])
 
     def _update_permission_set_group(self, record_id: str, payload: dict):
+        base = "tooling" if getattr(self, "_use_tooling_api", False) else "sobjects"
         url = (
             f"{self.org_config.instance_url}/services/data/"
-            f"v{self._api_version()}/sobjects/PermissionSetGroup/{record_id}"
+            f"v{self._api_version()}/{base}/PermissionSetGroup/{record_id}"
         )
         response = requests.patch(url, headers=self._headers(), json=payload)
         if response.status_code not in (200, 204):

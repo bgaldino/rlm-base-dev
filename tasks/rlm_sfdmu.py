@@ -1,6 +1,8 @@
 import json
 import os
+import shutil
 import subprocess
+import tempfile
 from abc import abstractmethod
 from typing import Dict, Any, Optional
 
@@ -23,6 +25,8 @@ except ImportError:
 LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusername {targetusername} -p {pathtoexportjson} --canmodify {instanceurl} --noprompt --verbose"
 SCRATCHORG_LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusername {targetusername} -p {pathtoexportjson} --canmodify {instanceurl} --noprompt --verbose"
 EXPORT_JSON_FILENAME = "export.json"
+DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
+DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "UserAndGroup.csv")
 
 class LoadSFDMUData(SFDXBaseTask):
     keychain_class = BaseProjectKeychain
@@ -45,6 +49,14 @@ class LoadSFDMUData(SFDXBaseTask):
         },
         "org": {
             "description": "Value to replace every instance of the find value in the source file.",
+            "required": False
+        },
+        "dynamic_assigned_to_user": {
+            "description": "If true, query the target org for the default user's Name and replace the placeholder in DRO CSVs (FulfillmentStepDefinition.csv, UserAndGroup.csv) so one plan works for both scratch (User User) and TSO (Admin User).",
+            "required": False
+        },
+        "assigned_to_placeholder": {
+            "description": "Placeholder string in DRO CSVs to replace with the target org user's Name. Used when dynamic_assigned_to_user is true.",
             "required": False
         }
     }
@@ -90,6 +102,67 @@ class LoadSFDMUData(SFDXBaseTask):
                 json.dump(export_json, file, indent=2)
         except (json.JSONDecodeError, IOError) as e:
             self.logger.error(f"Error cleaning up export.json: {e}")
+
+    def _get_target_org_user_name(self) -> str:
+        """Query the target org for the current user's Name (e.g. 'User User' or 'Admin User')."""
+        username = getattr(self.org_config, "username", None) or self.targetusername
+        if not username or "@" not in str(username):
+            raise CommandException(
+                "dynamic_assigned_to_user requires an org with a username (e.g. scratch or connected org). "
+                "Cannot determine user when target is token-only."
+            )
+        # Use username for -o so SF CLI finds the org (CCI org name like 'tfid-cdo' may not be a valid CLI alias)
+        org_for_cli = str(username)
+        escaped = org_for_cli.replace("\\", "\\\\").replace("'", "\\'")
+        query = "SELECT Name FROM User WHERE Username = '%s'" % escaped
+        result = subprocess.run(
+            ["sf", "data", "query", "-q", query, "-o", org_for_cli, "--json"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            self.logger.error(f"sf data query STDERR: {result.stderr}")
+            raise CommandException(f"Failed to query User Name: {result.stderr or result.stdout}")
+        out = json.loads(result.stdout)
+        records = out.get("result", {}).get("records") or []
+        if not records:
+            raise CommandException("No User record found for target org username.")
+        name = records[0].get("Name")
+        if not name:
+            raise CommandException("User record has no Name.")
+        return name
+
+    def _apply_dynamic_assigned_to_user(self) -> None:
+        """Copy plan to a temp dir and replace DRO assigned-to placeholder with target org user Name."""
+        placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
+        user_name = self._get_target_org_user_name()
+        self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
+        source_dir = self.pathtoexportjson
+        self._temp_plan_dir = tempfile.mkdtemp(prefix="sfdmu_dro_")
+        try:
+            for item in os.listdir(source_dir):
+                src = os.path.join(source_dir, item)
+                dst = os.path.join(self._temp_plan_dir, item)
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
+            for filename in DRO_CSV_FILES_TO_REPLACE:
+                path = os.path.join(self._temp_plan_dir, filename)
+                if not os.path.isfile(path):
+                    continue
+                with open(path, "r", encoding="utf-8", newline="") as f:
+                    content = f.read()
+                if placeholder not in content:
+                    continue
+                with open(path, "w", encoding="utf-8", newline="") as f:
+                    f.write(content.replace(placeholder, user_name))
+                self.logger.info(f"Replaced placeholder in {filename}")
+            self.pathtoexportjson = self._temp_plan_dir
+        except Exception:
+            if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
+                shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+            raise
 
     def _set_project_defaults(self, instanceurl: str) -> None:
         try:
@@ -137,6 +210,7 @@ class LoadSFDMUData(SFDXBaseTask):
             self._load_keychain()
         
         self.pathtoexportjson = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        self._temp_plan_dir = None
 
         if isinstance(self.org_config, ScratchOrgConfig):
             self.targetusername = self.org_config.username
@@ -146,12 +220,13 @@ class LoadSFDMUData(SFDXBaseTask):
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
 
+        if self.options.get("dynamic_assigned_to_user"):
+            self._apply_dynamic_assigned_to_user()
         self._prepare_export_json_file()
     
     def _run_task(self) -> None:
         try:
             self._prep_runtime()
-            self._prepare_export_json_file()
             
             self.logger.info(f'Target Path: {self.pathtoexportjson}')
             self.logger.info(f'Current Working Directory: {self.options.get("dir")}')
@@ -175,6 +250,9 @@ class LoadSFDMUData(SFDXBaseTask):
         finally:
             self.logger.info('Cleaning up export.json...')
             self._cleanup_export_json_file()
+            if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
+                shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+                self.logger.info("Removed temp plan directory.")
     def _get_command(self) -> str:
         trimmed_instance_url = self._trim_instance_url(self.instanceurl)
         if not isinstance(self.org_config, ScratchOrgConfig):

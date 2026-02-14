@@ -139,8 +139,8 @@ This project includes custom CumulusCI tasks for Revenue Cloud-specific operatio
 | `cleanup_settings_for_dev` | Conditionally remove unsupported settings for dev orgs | See `cumulusci.yml` |
 | `exclude_active_decision_tables` | Exclude active decision tables from deployment | See `cumulusci.yml` |
 | `assign_permission_set_groups_tolerant` | Assign PSGs with tolerance for missing permissions | See `cumulusci.yml` |
-| `recalculate_permission_set_groups` | Trigger PSG recalculation so Outdated groups become Updated | See `cumulusci.yml` |
-| `load_sfdmu_data` | Load data using SFDMU | See `cumulusci.yml` |
+| `recalculate_permission_set_groups` | Recalculate permission set groups and wait for Updated status; supports initial delay, retries, and post-trigger delay for slow orgs | See `cumulusci.yml` |
+| `load_sfdmu_data` / SFDMU tasks | Load data using SFDMU; DRO tasks use dynamic AssignedTo user from target org | See `cumulusci.yml` |
 | `sync_pricing_data` | Sync pricing data | See `cumulusci.yml` |
 | `extend_standard_context` | Extend standard context definitions | See `cumulusci.yml` |
 | `manage_context_definition` | Modify context definitions via Context Service | [docs/context_service_utility.md](docs/context_service_utility.md) |
@@ -289,6 +289,8 @@ cci task run insert_quantumbit_pcmdata_prod
 cci task run insert_billing_data
 ```
 
+DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org’s default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
+
 ### Manage Decision Tables
 
 ```bash
@@ -329,6 +331,10 @@ sf plugins install sfdmu
 # Verify installation
 sf plugins list
 ```
+
+### Permission Set Groups stuck Outdated / Updating
+
+- After assigning permission set licenses or deploying PSG metadata, the platform may queue recalculation. The `recalculate_permission_set_groups` task waits with an initial delay, polls for Updated status, and retries with a delay on timeout (see `initial_delay_seconds`, `retry_count`, `retry_delay_seconds`, `post_trigger_delay_seconds` in `cumulusci.yml`). If you still hit timeouts, increase those options or run the flow again once the org has finished recalculating.
 
 ### Permission Errors
 

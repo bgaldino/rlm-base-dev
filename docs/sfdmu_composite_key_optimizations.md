@@ -36,7 +36,11 @@
 - **RateAdjustmentByTier** externalId includes `LowerBound;UpperBound` for uniqueness.
 - Reason: distinguish rate card entries and tiers by usage resource, UoM, and bounds.
 
+### `datasets/sfdmu/qb/en-US/qb-dro/` (single DRO plan)
+- **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name) and `UserAndGroup.csv` (Name). The tasks `insert_qb_dro_data_scratch` and `insert_qb_dro_data_prod` run with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU. This replaces the former separate `qb-dro_scratch` plan (removed).
+
 ## Notes
 - These updates focus on QB datasets referenced by `cumulusci.yml`.
 - Decision tables and expression sets: SFDMU data plans for activating/deactivating them have been removed; use CCI tasks `manage_decision_tables` and `manage_expression_sets` instead.
+- The separate **qb-dro_scratch** data plan has been removed; use the single **qb-dro** plan with dynamic AssignedTo user (see above).
 - If you want similar composite key hardening for non-QB datasets (q3, multicurrency, accounting, etc.), call that out and I’ll extend the same approach.

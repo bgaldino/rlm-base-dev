@@ -1,10 +1,18 @@
 $$Name$StepDefinitionGroup.Name,AmendGroup.Name,AssignedTo.Name,CancelledGroup.Name,CustomBaseExecutionDate,CustomFulfillmentScope,DelayOf,DelayUnit,ExecuteOn,FlowDefinitionName,ForcePlanFreezeDuringExecution,IntegrationDefinitionName.DeveloperName,IsSkipBranch,Name,OmniscriptName,PointOfNoReturn,ResumeOnRule.Name,Scope,StepDefinitionGroup.Name,StepType,TaskAllocationType,UsageType
-Convert Order to Asset;Order Processing,,,,,,,,,RLM_Assetize_Order_DRO_Fulfillment,Never,,false,Convert Order to Asset,,,,Plan,Order Processing,Milestone,,
-Stage New Tenant for Provisioning;Platform,,,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning,,,,Plan,Platform,Callout,,
-Initiate Billing;Finance,,,,,,,,,,Never,,false,Initiate Billing,,,,Plan,Finance,Milestone,,
-Create Project;Services,,Brian Galdino,,,,,,,,Never,,false,Create Project,,,,LineItem,Services,Milestone,,
-Assign Resources;Services,,Brian Galdino,,,,,,,,Never,,false,Assign Resources,,,,LineItem,Services,ManualTask,,
-Start Project;Services,,,,,,,,,,Never,,false,Start Project,,,,Plan,Services,Milestone,,
-Review Order;Order Processing,,Brian Galdino,,,,,,,,Never,,false,Review Order,,,,Plan,Order Processing,ManualTask,,
-Receive Key + Assign to Asset;Platform,,Brian Galdino,,,,,,,,Never,,false,Receive Key + Assign to Asset,,,,Plan,Platform,Milestone,,
-Provision Licensing/Features;Feature/License Provisioning + Activation,,Brian Galdino,,,,,,SourceLineStartDate,,Never,RLM_DFOTenantProvisioningCallout,false,Provision Licensing/Features,,,,LineItem,Feature/License Provisioning + Activation,ManualTask,,
+Convert Order to Asset;Tenant Provisioning + Activation,,,,,,,,,RLM_Assetize_Order_DRO_Fulfillment,Never,,false,Convert Order to Asset,,,,Plan,Tenant Provisioning + Activation,Milestone,,Fulfillment
+Provision Platform;Platform Provisioning,,,,,,,,,,Never,,false,Provision Platform,,,,Plan,Platform Provisioning,Milestone,,Fulfillment
+Activate Tokens;License Activation,,License Administrators,,,Group_Identifier,,,SourceLineStartDate,,Never,,false,Activate Tokens,,,,Custom,License Activation,ManualTask,,
+Post Invoice;Finance,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Post Invoice,,,,Plan,Finance,ManualTask,,Fulfillment
+Validate Order Info;Order Processing,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Validate Order Info,,,,Plan,Order Processing,ManualTask,,Fulfillment
+Stage New Tenant for Provisioning;Tenant Provisioning + Activation,,,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning,,,,Plan,Tenant Provisioning + Activation,Callout,,Fulfillment
+Initiate Billing;Finance,,,,,,,,,,Never,,false,Initiate Billing,,,,Plan,Finance,Milestone,,Fulfillment
+Update Billing;Billing and Invoicing,,,,,,,,,,Never,,false,Update Billing,,,,Plan,Billing and Invoicing,Milestone,,Fulfillment
+Receive Payment;Finance,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Payment,,,,Plan,Finance,ManualTask,,Fulfillment
+Convert Order to Asset;Order Processing,,,,,,,,,RLM_Assetize_Order_DRO_Fulfillment,Never,,false,Convert Order to Asset,,,,Plan,Order Processing,Milestone,,Fulfillment
+Stage New Tenant for Provisioning;Platform,,,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning,,,,Plan,Platform,Callout,,Fulfillment
+Create Project;Services,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Create Project,,,,LineItem,Services,Milestone,,Fulfillment
+Assign Resources;Services,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Assign Resources,,,,LineItem,Services,ManualTask,,Fulfillment
+Start Project;Services,,,,,,,,,,Never,,false,Start Project,,,,Plan,Services,Milestone,,Fulfillment
+Review Order;Order Processing,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Review Order,,,,Plan,Order Processing,ManualTask,,Fulfillment
+Receive Key + Assign to Asset;Platform,,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Key + Assign to Asset,,,,Plan,Platform,Milestone,,Fulfillment
+Provision Licensing/Features;Feature/License Provisioning + Activation,,__DRO_ASSIGNED_TO_USER__,,,,,,SourceLineStartDate,,Never,RLM_DFOTenantProvisioningCallout,false,Provision Licensing/Features,,,,LineItem,Feature/License Provisioning + Activation,ManualTask,,Fulfillment
