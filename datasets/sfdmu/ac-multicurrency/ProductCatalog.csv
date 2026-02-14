@@ -1,7 +1,0 @@
-CatalogType,Code,Description,Name
-Sales,,,Power Management
-Sales,GC001,Generac,Generac Business
-Sales,HC001,,Hardware Catalog
-Sales,MED001,Catalog for all Media,Media Catalog
-ServiceProcess,SC001,,Service Catalog
-Sales,SF001,,Software Catalog

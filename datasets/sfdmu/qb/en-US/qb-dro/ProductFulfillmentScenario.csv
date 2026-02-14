@@ -1,4 +1,7 @@
 $$Name$Product.StockKeepingUnit,Action,FulfillmentProcess.Name,FulfillmentStepDefnGroup.Name,Name,Product.StockKeepingUnit,ProductClassification.Name,SourceClassIdentifier,SourceIdentifier,Type
+QuantumBit Database (Token Based)- Billing;QB-DB-TOKEN,Add,,Billing and Invoicing,QuantumBit Database (Token Based)- Billing,QB-DB-TOKEN,,,,
+QuantumBit Database (Token Based)- Activation;QB-DB-TOKEN,Add,,License Activation,QuantumBit Database (Token Based)- Activation,QB-DB-TOKEN,,,,
+QuantumBit Database (Token Based)-Platform Prov;QB-DB-TOKEN,Add,,Platform Provisioning,QuantumBit Database (Token Based)-Platform Prov,QB-DB-TOKEN,,,,
 AEH API to Provisioning;QB-DRO-AEH,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,AEH API to Provisioning,QB-DRO-AEH,,,,
 API Platform to Provisioning;QB-DRO-APIPLAT,Add;Amend;Renew;No Change;Cancel,,Platform,API Platform to Provisioning,QB-DRO-APIPLAT,,,,
 Additional Messages to Provisioning;QB-DRO-AM,Add;Amend;Renew;No Change;Cancel,,Feature/License Provisioning + Activation,Additional Messages to Provisioning,QB-DRO-AM,,,,

@@ -59,7 +59,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT BillingPolicyId, StockKeepingUnit FROM Product2",
+          "query": "SELECT BillingPolicyId, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
           "operation": "Update",
           "externalId": "StockKeepingUnit",
           "excluded": false

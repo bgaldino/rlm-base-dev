@@ -3,3 +3,4 @@ EACH,CAS01,EACH,Support Cases,Case,Draft,Usage
 USD,CURRENCY,USD,,Currency,Draft,Currency
 GB,DATAVOL,GB,,Data Volume,Draft,Usage
 m,TIME,m,,Time,Draft,Usage
+,Token_UoM_Class,TOKEN-UOM,Tokens UoM Class,Tokens UoM Class,Draft,Token

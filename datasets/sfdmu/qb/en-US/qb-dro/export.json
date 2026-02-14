@@ -51,7 +51,7 @@
           "operation": "Upsert",
           "externalId": "Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name",
           "excluded": false
-        },        
+        },
         {
           "query": "SELECT Action, FulfillmentProcessId, FulfillmentStepDefnGroupId, ProductClassificationId, Name, Id, ProductId, SourceClassIdentifier, SourceIdentifier, Type FROM ProductFulfillmentScenario",
           "operation": "Upsert",

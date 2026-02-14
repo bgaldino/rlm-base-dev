@@ -50,6 +50,45 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/essential_train,QuantumBit Essentials Training,QB-TRN-ESSNTLS
 /resource/fund_training,QuantumBit Fundamentals Training,QB-TRN-FUND
 /resource/subscription,QuantumBit Subscription,TEST-SUB
+/resource/database,QuantumBit Database (Token Commit - Each),QB-CMT-TKN-EACH
+/resource/database,QuantumBit Database (Token Based),QB-DB-TOKEN
+/resource/database,QuantumBit Database (Token Commit - Flat),QB-CMT-TKN-FLAT
+/resource/database,QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER
+/resource/database,QuantumBit Database (Quantity Commit),QB-QTY-CMT
+/resource/database,QuantumBit Database (Monetary Commit),QB-MTY-CMT
+/resource/cacheboost,QB-CacheBoost 150,QB-CBOOST-150
+/resource/cpuheatsink,QB CPU Heat Sink,QB-CPU-HEATSINK
+/resource/hd_8tb_72k,1TB 10k RPM (2.5in),QB-HD 1.2TB
+/resource/hd_8tb_72k,20TB 7.2k RPM NLSAS (3.5in),QB-HD 20TB
+/resource/hd_8tb_72k,3TB 10k RPM (2.5in),QB-HD 3TB
+/resource/intel_e52609,"Intel Xeon Gold 5318N 2.1GHz, 24C/48T",QB-INTEL-GOLD-5318N
+/resource/intel_e52609,"Intel Xeon Gold 6330N 2.2GHz, 28C/56T",QB-INTEL-GOLD-6330N
+/resource/intel_e52609,"Intel Xeon Gold 6354 3GHz, 18C/36T",QB-INTEL-GOLD-6354
+/resource/intel_e52609,"Intel Xeon Platinum 8352M 2.3GHz, 32C/64T",QB-INTEL-PLAT-8352M
+/resource/intel_e52609,"Intel Xeon Platinum 8352Y 2.2GHz, 32C/64T",QB-INTEL-PLAT-8352Y
+/resource/intel_e52609,"Intel Xeon Platinum 8360Y 2.4GHz, 36C/72T",QB-INTEL-PLAT-8360Y
+/resource/intel_e52609,"Intel Xeon Platinum 8368 2.4GHz, 38C/76T",QB-INTEL-PLAT-8368
+/resource/liquidcooler,QB Liquid Cooler,QB-LIQUIDCOOL
+/resource/ram_32GB_RDIMM,128GB LRDIMM,QB-MEM 128GB
+/resource/ram_32GB_RDIMM,64GB RDIMM,QB-MEM 64GB
+/resource/intel_x710_dp,QB-NetLink 10G,QB-NET-10G
+/resource/intel_x710_dp,QB-NetLink 25G,QB-NET-25G
+/resource/intel_x710_dp,QB-NetSecure 10G,QB-NETSECURE-10G
+/resource/intel_e52609,QB-Accel NovaX150,QB-NovaX150
+/resource/nvexpand,QB-NVExpand 200,QB-NVExpand-200
+/resource/powersupply,QB-PowerCore 1600S,QB-PWRCORE-1600S
+/resource/powersupply,QB-PowerCore 500S,QB-PWRCORE-500S
+/resource/powersupply,QB-PowerCore 800S,QB-PWRCORE-800S
+/resource/powersupply,QB-PowerSafe 1000D,QB-PWRSAFE-1000D
+/resource/powersupply,QB-PowerSafe 2000D,QB-PWRSAFE-2000D
+/resource/powerswerve,QuantumBit Q-Rack 750,QB-QRack-750
+/resource/RAIDController,QB-RAIDForce 500,QB-RAID-500
+/resource/hd_8tb_72k,Q-Drive NVX 16TB,QB-SSD 16TB
+/resource/hd_8tb_72k,Q-Drive NVX 2TB,QB-SSD 2TB
+/resource/hd_8tb_72k,Q-Drive NVX Ultra 30TB,QB-SSD 30TB
+/resource/hd_8tb_72k,Q-Drive NVX 4TB,QB-SSD 4TB
+/resource/hd_8tb_72k,Q-Drive NVX 8TB,QB-SSD 8TB
+/resource/intel_e52609,QB-Accel VegaX200,QB-VegaX200
 /resource/ps_dn_expert,Data Normalization Expert,QB-SRV-DNE
 /resource/ps_imp_engineer,Implementation Engineer,QB-SRV-IMP
 /resource/ps_int_specialist,Integration Specialist Engineer,QB-SRV-ISE
@@ -61,46 +100,66 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/RLM_quantumBit_logo_sq,QB API Management Solution,QB-API-MGMT
 /resource/RLM_quantumBit_logo_sq,Additional Flows - QB Starter,QB-FLO-STRT
 /resource/RLM_quantumBit_logo_sq,Additional Messages - QB Starter,QB-MSG-STRT
-/resource/RLM_quantumBit_logo_sq,Additional Data Throughput,QB-DAT-THPT
-/resource/RLM_quantumBit_logo_sq,Cloud License (Monthly),QB-LIC-CLOUD
-/resource/RLM_quantumBit_logo_sq,Provisioning and Activation Service,QB-AEH-CPU
+/resource/intel_x710_dp,QB-NetLink 100G Ultra,QB-NET-100G-ULTRA
+/resource/powersupply,QB-PowerSafe 600D,QB-PWRSAFE-600D
 /resource/RLM_quantumBit_logo_sq,Finance Service,QB-AEH-BILL
+/resource/RLM_quantumBit_logo_sq,Additional Data Throughput,QB-DAT-THPT
+,Billing,QB-DRO-BILLING
+,Provision DB,QB-DRO-PROVISION
+,License Activation,QB-DRO-LICACT
+/resource/RLM_quantumBit_logo_sq,Additional API - Provision & Activation Service,QB-DRO-AAPI
+/resource/RLM_quantumBit_logo_sq,API Platform - Provisioning & Activation Service,QB-DRO-APIPLAT
+/resource/RLM_quantumBit_logo_sq,Finance Service,QB-DRO-BILL
+/resource/RLM_quantumBit_logo_sq,API Management License - Provisioning & Activation Service,QB-DRO-PERMS
+/resource/RLM_quantumBit_logo_sq,AEH API - Provisioning & Activation Service,QB-DRO-AEH
+/resource/RLM_quantumBit_logo_sq,Additional Automation QB Credits - Provisioning & Activation Service,QB-DRO-AAQBC
+/resource/RLM_quantumBit_logo_sq,Project Service,QB-DRO-PROJ
+/resource/RLM_quantumBit_logo_sq,QuantumBit Database - Provisioning & Activation Service,QB-DRO-QBD
+/resource/RLM_quantumBit_logo_sq,Additional Flows - Provisioning & Activation Service,QB-DRO-AACR
+/resource/RLM_quantumBit_logo_sq,Additional Messages QB Starter - Provisioning & Activation Service,QB-DRO-AM
 /resource/RLM_quantumBit_logo_sq,Order Processing,QB-AEH-OR
-/resource/RLM_quantumBit_logo_sq,Compute Time,QB-CPU-BLNG
+,Quantum Tokens Definition,QB-TOKEN-DEF
+,USD Resource Definition Product,RES-USD-DEF
+,QuantumBit Tokens Pack,QB-TOKENS-PACK
+/resource/RLM_quantumBit_logo_sq,Cloud License (Monthly),QB-LIC-CLOUD
 /resource/RLM_quantumBit_logo_sq,Data Storage,QB-DATA-STORAGE-BLNG
+/resource/RLM_quantumBit_logo_sq,Compute Time,QB-CPU-BLNG
 /resource/RLM_quantumBit_logo_sq,Data Throughput,QB-DATA-THPT-BLNG
 /resource/RLM_quantumBit_logo_sq,Shipping Charge Product,9999999
-/resource/RLM_quantumBit_logo_sq,vSphere Standard,QB-VMW-S
-/resource/RLM_quantumBit_logo_sq,vSphere Enterprise,QB-VMW-E
 /resource/RLM_quantumBit_logo_sq,vSphere Desktop,QB-VMW-D
-/resource/RLM_quantumBit_logo_sq,Quick Start Enablement,QB-SRV-QSE
-/resource/RLM_quantumBit_logo_sq,Standard Success Plan,QB-STD-SP
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 5.7W, 208V, C13 output",QB-PDU-2029
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 14.4kW, 208V, C13 output",QB-PDU-2028
-/resource/ps_adv_serv,"QuantumBit Advisory Services, CSM Premium",QB-SRV-AS
-/resource/RLM_quantumBit_logo_sq,Red Hat Enterprise Linux,QB-REDHAT
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 20A, 230V C20 input C1",QB-PDU-2025
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 15A, 120V L5-20",QB-PDU-2024
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 16A, 230V, C13 output",QB-PDU-2027
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 10A, 230V C20 input C19",QB-PDU-2026
-/resource/RLM_quantumBit_logo_sq,"Rack PDU 30A, 120V L5-20",QB-PDU-2023
-/resource/RLM_quantumBit_logo_sq,AEH Object Store - Restricted Use,QB-AEH-OBJ
-/resource/RLM_quantumBit_logo_sq,AEH Environment Runtime,QB-AEH-ENV
+/resource/RLM_quantumBit_logo_sq,vSphere Enterprise,QB-VMW-E
+/resource/RLM_quantumBit_logo_sq,vSphere Standard,QB-VMW-S
+/resource/RLM_quantumBit_logo_sq,Roof Fan Tray 750mm - 208V,QB-BSSA-4308
 /resource/RLM_quantumBit_logo_sq,API Calls,QB-API-CALLS
-/resource/RLM_quantumBit_logo_sq,Additional Messages - QB Enterprise,QB-MSG-ENTR
+/resource/RLM_quantumBit_logo_sq,Provisioning and Activation Service,QB-AEH-CPU
+/resource/RLM_quantumBit_logo_sq,AEH Environment Runtime,QB-AEH-ENV
+/resource/RLM_quantumBit_logo_sq,AEH Object Store - Restricted Use,QB-AEH-OBJ
+/resource/RLM_quantumBit_logo_sq,Additional Flows - QB Enterprise,QB-FLO-ENTR
+/resource/RLM_quantumBit_logo_sq,TX Bolt-Down Kit,QB-BSSA-4304
+/resource/RLM_quantumBit_logo_sq,Blanking Panel,QB-BSSA-4298
+/resource/RLM_quantumBit_logo_sq,Sliding Shelf 200lbs,QB-BSSA-4300
+/resource/RLM_quantumBit_logo_sq,Fixed Shelf 250lbs,QB-BSSA-4302
+/resource/RLM_quantumBit_logo_sq,TX 600mm/750mm Stabilizer Plate,QB-BSSA-4303
+/resource/RLM_quantumBit_logo_sq,Roof Fan Tray 750mm - 120V,QB-BSSA-4306
 /resource/RLM_quantumBit_logo_sq,No Operating System,QB-NO-OSYS
 /resource/RLM_quantumBit_logo_sq,"Rack PDU 20A, 120V L5-20",QB-PDU-2022
+/resource/RLM_quantumBit_logo_sq,Additional Messages - QB Enterprise,QB-MSG-ENTR
 /resource/RLM_quantumBit_logo_sq,Installation and Assembly,QB-INST-1000
+/resource/RLM_quantumBit_logo_sq,Quick Start Enablement,QB-SRV-QSE
+/resource/RLM_quantumBit_logo_sq,Standard Success Plan,QB-STD-SP
 /resource/RLM_quantumBit_logo_sq,Premium Success Plan,QB-SRV-PRM-SP
-/resource/RLM_quantumBit_logo_sq,Professional Services - Project Management Daily Rate,QB-SRV-OG-PM-PSH
 /resource/RLM_quantumBit_logo_sq,Professional Services - Associate Consultant Daily Rate,QB-SRV-OG-AC-PSH
+/resource/RLM_quantumBit_logo_sq,Professional Services - Project Management Daily Rate,QB-SRV-OG-PM-PSH
 /resource/RLM_quantumBit_logo_sq,Professional Service Hours (Consumption),QB-SRV-OG-PSHC
-/resource/RLM_quantumBit_logo_sq,Roof Fan Tray 750mm - 208V,QB-BSSA-4308
-/resource/RLM_quantumBit_logo_sq,Roof Fan Tray 750mm - 120V,QB-BSSA-4306
-/resource/RLM_quantumBit_logo_sq,TX Bolt-Down Kit,QB-BSSA-4304
-/resource/RLM_quantumBit_logo_sq,Sliding Shelf 200lbs,QB-BSSA-4300
-/resource/RLM_quantumBit_logo_sq,Blanking Panel,QB-BSSA-4298
-/resource/RLM_quantumBit_logo_sq,TX 600mm/750mm Stabilizer Plate,QB-BSSA-4303
-/resource/RLM_quantumBit_logo_sq,Fixed Shelf 250lbs,QB-BSSA-4302
-/resource/RLM_quantumBit_logo_sq,Additional Flows - QB Enterprise,QB-FLO-ENTR
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 30A, 120V L5-20",QB-PDU-2023
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 14.4kW, 208V, C13 output",QB-PDU-2028
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 5.7W, 208V, C13 output",QB-PDU-2029
+/resource/RLM_quantumBit_logo_sq,Red Hat Enterprise Linux,QB-REDHAT
+/resource/ps_adv_serv,"QuantumBit Advisory Services, CSM Premium",QB-SRV-AS
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 15A, 120V L5-20",QB-PDU-2024
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 20A, 230V C20 input C1",QB-PDU-2025
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 10A, 230V C20 input C19",QB-PDU-2026
+/resource/RLM_quantumBit_logo_sq,"Rack PDU 16A, 230V, C13 output",QB-PDU-2027
 /resource/RLM_quantumBit_logo_sq,QuantumBit Rack Enclosure,QB-BDL-RAXS
+/resource/RLM_quantumBit_logo_sq,Order Processing,QB-DRO-OR
+/resource/RLM_quantumBit_logo_sq,Additional Flows - QB Starter - Provisioning & Activation Service,QB-DRO-AFBQ

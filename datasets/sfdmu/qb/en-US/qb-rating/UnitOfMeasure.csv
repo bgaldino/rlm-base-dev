@@ -9,4 +9,5 @@ ConversionFactor,CurrencyIsoCode,Description,Name,RoundingMethod,Scale,Sequence,
 0.000001,USD,,Petabyte,,,6,Active,Data,PB,DATAVOL
 0.016667,USD,,Seconds,,,1,Active,Time,s,TIME
 0.001,USD,,Terabyte,,,5,Active,Data,TB,DATAVOL
+,USD,Token UOM,Tokens,,,,Active,Custom,TOKEN-UOM,Token_UoM_Class
 1,USD,,USD,,,1,Active,Cost,USD,CURRENCY

@@ -1,5 +1,8 @@
 $$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name,FulfillmentStepDefinitionGroup.Name,FulfillmentWorkspace.Name,Name,ShowOrder
-QB Complete Solution Bundle;Feature/License Provisioning + Activation,Feature/License Provisioning + Activation,QB Complete Solution Bundle,FWI-000000002,4
-QB Complete Solution Bundle;Finance,Finance,QB Complete Solution Bundle,FWI-000000003,5
-QB Complete Solution Bundle;Services,Services,QB Complete Solution Bundle,FWI-000000004,2
-QB Complete Solution Bundle;Platform,Platform,QB Complete Solution Bundle,FWI-000000005,3
+Ramp Deal Orchestration;Platform Provisioning,Platform Provisioning,Ramp Deal Orchestration,FWI-000000004,1
+Ramp Deal Orchestration;Billing and Invoicing,Billing and Invoicing,Ramp Deal Orchestration,FWI-000000005,3
+Ramp Deal Orchestration;License Activation,License Activation,Ramp Deal Orchestration,FWI-000000006,2
+QB Complete Solution Bundle;Feature/License Provisioning + Activation,Feature/License Provisioning + Activation,QB Complete Solution Bundle,FWI-000000007,4
+QB Complete Solution Bundle;Finance,Finance,QB Complete Solution Bundle,FWI-000000008,5
+QB Complete Solution Bundle;Services,Services,QB Complete Solution Bundle,FWI-000000009,2
+QB Complete Solution Bundle;Platform,Platform,QB Complete Solution Bundle,FWI-000000010,3

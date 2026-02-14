@@ -1,4 +1,6 @@
 Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Token,QB-TOKEN,TOKEN-UOM,Quantum Tokens,Quantum Tokens,Draft,Token_UoM_Class,QB-TOKEN-DEF,monthlytotal
 Usage,UR-CPUTIME,m,,Compute Time,Draft,TIME,QB-CPU-BLNG,monthlytotal
-Usage,UR-DATASTORAGE,GB,,Data Storage,Draft,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
+Usage,UR-DATASTORAGE,TB,,Data Storage,Draft,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
 Usage,UR-DATAXFR,GB,,Data Throughput,Draft,DATAVOL,QB-DATA-THPT-BLNG,monthlytotal
+Currency,UR-USD,USD,,USD Resource,Draft,CURRENCY,RES-USD-DEF,monthlytotal
