@@ -1038,17 +1038,9 @@ tasks:
     options:
       pathtoexportjson: "datasets/sfdmu/clm"
 
-  insert_qb_dro_data_scratch:
+  insert_qb_dro_data:
     group: Revenue Lifecycle Management
-    description: Insert QuantumBit DRO Data to Scratch
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_dro_dataset
-      dynamic_assigned_to_user: true
-
-  insert_qb_dro_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit DRO Data to Production
+    description: Insert QuantumBit DRO Data (scratch and prod; AssignedTo resolved from target org)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_dro_dataset
@@ -1288,20 +1280,6 @@ tasks:
     options:
       operation: deactivate_versions
       metadata_path: force-app/main/default/expressionSetDefinition
-
-  create_price_adjustment_schedules:
-    group: Revenue Lifecycle Management
-    description: Create Price Adjustment Schedules
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/pas"
-
-  create_price_adjustment_schedules_prod:
-    group: Revenue Lifecycle Management
-    description: Create Price Adjustment Schedules in Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/pas"
 
 #------------#
 # APEX TASKS #
@@ -1633,33 +1611,22 @@ flows:
         options:
           seconds: *sleep_default
       15:
-        task: create_price_adjustment_schedules
-        when: org_config.scratch and project_config.project__custom__pas_debug 
-      16:
-        task: create_price_adjustment_schedules_prod
-        when: not org_config.scratch and project_config.project__custom__tso and project_config.project__custom__pas_debug
-      17:
-        task: util_sleep
-        when: project_config.project__custom__pas_debug 
-        options:
-          seconds: *sleep_default
-      18:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      19:
+      16:
         task: util_sleep
         when: project_config.project__custom__breconfig
         options:
           seconds: *sleep_default
-      20:
+      17:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      21:
+      18:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      22:
+      19:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -1798,15 +1765,12 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_qb_dro_data_scratch
-        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__qb
+        task: insert_qb_dro_data
+        when: project_config.project__custom__dro and project_config.project__custom__qb
       2:
-        task: insert_qb_dro_data_prod
-        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__qb
-      3:
         task: insert_q3_dro_data_scratch
         when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      4:
+      3:
         task: insert_q3_dro_data_prod
         when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
 
