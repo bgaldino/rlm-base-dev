@@ -67,4 +67,4 @@ cci task run robot --options "suites=robot/rlm-base/tests/setup"
 
 ## Generated output
 
-Running the test (or the CCI task) produces log and report files in `robot/rlm-base/results/` (or `--outputdir`). On failure, a screenshot may be saved (e.g. `document_builder_toggle_verification_failed.png`). These paths are listed in `.gitignore` and should not be committed.
+Running the test (or the CCI task) produces log and report files in `robot/rlm-base/results/` (or `--outputdir`). On failure, a screenshot may be saved (e.g. `document_builder_toggle_verification_failed.png`). This directory is in `.gitignore`; do not commit its contents. To remove local run artifacts: `rm -f robot/rlm-base/results/*`.

@@ -63,12 +63,12 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
    **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
    - Python 3.8+
-   - Robot Framework and SeleniumLibrary: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
+   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
      ```bash
-     pipx inject cumulusci robotframework robotframework-seleniumlibrary
+     pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
      ```
-     If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install robotframework robotframework-seleniumlibrary` inside the venv.
-   - Chrome (or set `BROWSER=firefox`); for Chrome, ChromeDriver is required (often installed with SeleniumLibrary or via `webdriver-manager`).
+     `urllib3>=1.26,<2` avoids a known Selenium/urllib3 2.x issue (`Timeout value connect was <object object at ...>`). webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"` inside the venv.
+   - Chrome (or set `BROWSER=firefox`). With webdriver-manager injected, ChromeDriver is downloaded automatically when the test runs; otherwise install ChromeDriver in PATH.
    - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
 
 3. **Install SFDMU:**
@@ -252,7 +252,12 @@ rlm-base-dev/
 ├── unpackaged/             # Conditional metadata (deployed based on flags)
 │   ├── pre/               # Pre-deployment metadata
 │   ├── post_*/            # Post-deployment metadata (post_utils, post_commerce, etc.)
-├── tasks/                 # Custom CumulusCI tasks
+├── tasks/                 # Custom CumulusCI tasks (e.g. enable_document_builder_toggle)
+├── robot/                 # Robot Framework tests for Document Builder toggle automation
+│   └── rlm-base/
+│       ├── resources/     # Keywords, WebDriverManager helper (ChromeDriver via webdriver-manager)
+│       ├── tests/setup/   # enable_document_builder.robot; see robot/.../setup/README.md
+│       └── results/       # Runtime output (gitignored; purge with rm -f robot/rlm-base/results/*)
 ├── orgs/                  # Scratch org definitions
 ├── datasets/              # SFDMU data sets (product, billing, tax, etc.)
 │   └── sfdmu/             # SFDMU export configurations (no DT/expression set plans; use CCI tasks)
@@ -331,13 +336,23 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
 
 1. Uninstall from the Python you used:
    ```bash
-   python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework
+   python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager
    ```
 2. Install them into CumulusCI’s environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
    ```bash
-   pipx inject cumulusci robotframework robotframework-seleniumlibrary
+   pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
    ```
 3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — “Document Builder (Robot) env only”): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
+
+### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
+
+This comes from a Selenium/urllib3 2.x compatibility issue. Pin urllib3 to 1.x in CCI’s environment:
+
+```bash
+pipx inject cumulusci "urllib3>=1.26,<2" --force
+```
+
+Use `--force` if pipx says urllib3 is already injected. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 

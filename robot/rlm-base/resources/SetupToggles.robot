@@ -4,6 +4,7 @@ Library           SeleniumLibrary    timeout=15    implicit_wait=5
 Library           Collections
 Library           String
 Library           Process
+Library           ${EXECDIR}/robot/rlm-base/resources/WebDriverManager.py    WITH NAME    WebDriverManager
 
 *** Variables ***
 # Default timeout for waiting for setup page and toggle elements
@@ -245,10 +246,17 @@ _ClickToggleByLabelFallback
 
 *** Keywords ***
 Open Browser For Setup
-    [Documentation]    Opens a browser (Chrome by default). Call this before navigating if not already in a session. Set BROWSER or \${BROWSER} to override.
+    [Documentation]    Opens a browser (Chrome by default). Chrome uses webdriver-manager so ChromeDriver does not need to be in PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
     [Arguments]    ${browser}=chrome
-    Open Browser    about:blank    ${browser}
+    Run Keyword If    """${browser}""" == "chrome"    _Open Chrome With Managed Driver
+    ...    ELSE    Open Browser    about:blank    ${browser}
     Maximize Browser Window
+
+_Open Chrome With Managed Driver
+    [Documentation]    Create Chrome driver using webdriver-manager (no PATH chromedriver required).
+    ${path}=    WebDriverManager.Get Chrome Driver Path
+    Create Webdriver    Chrome    executable_path=${path}
+    Go To    about:blank
 
 Close Browser After Setup
     [Documentation]    Closes the browser. Use in suite teardown or after tests.

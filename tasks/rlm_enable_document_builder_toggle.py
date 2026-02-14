@@ -6,6 +6,7 @@ deploy_post_docgen when the org does not have Document Builder enabled via metad
 """
 
 import subprocess
+import sys
 from pathlib import Path
 
 try:
@@ -58,7 +59,10 @@ class EnableDocumentBuilderToggle(BaseTask):
         out_path = repo_root / outputdir
         out_path.mkdir(parents=True, exist_ok=True)
 
+        # Use same Python as CCI (e.g. pipx venv) so injected robot package is found
         cmd = [
+            sys.executable,
+            "-m",
             "robot",
             "--variable",
             f"ORG_ALIAS:{org_name}",
