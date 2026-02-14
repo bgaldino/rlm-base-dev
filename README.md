@@ -28,7 +28,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
 2. **CumulusCI** (CCI)
    - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
-   - Installation: `pipx install cumulusci` or `pip install cumulusci`
+   - Installation: **prefer** `pipx install cumulusci` (isolated environment; avoids modifying your global Python). If you don't use pipx: create a virtual environment and run `pip install cumulusci` inside it.
    - Verify: `cci version`
 
 3. **SFDMU (Salesforce Data Move Utility)**
@@ -58,13 +58,16 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 2. **Install CumulusCI:**
    ```bash
    pipx install cumulusci
-   # OR
-   pip install cumulusci
    ```
+   Prefer **pipx** so CumulusCI runs in an isolated environment and does not install into your global Python. If you don't use pipx, create a [virtual environment](https://docs.python.org/3/library/venv.html) first, then run `pip install cumulusci` inside it.
 
    **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
    - Python 3.8+
-   - Robot Framework and SeleniumLibrary: `pip install robotframework robotframework-seleniumlibrary`
+   - Robot Framework and SeleniumLibrary: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
+     ```bash
+     pipx inject cumulusci robotframework robotframework-seleniumlibrary
+     ```
+     If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install robotframework robotframework-seleniumlibrary` inside the venv.
    - Chrome (or set `BROWSER=firefox`); for Chrome, ChromeDriver is required (often installed with SeleniumLibrary or via `webdriver-manager`).
    - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
 
@@ -83,6 +86,14 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    cci version
    sf plugins list  # Should show sfdmu if installed via plugin
    ```
+   **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI’s environment before running any flow or test:
+   ```bash
+   # Robot CLI (pipx venv path; on Windows use ...\Scripts\robot.bat)
+   ~/.local/pipx/venvs/cumulusci/bin/robot --version
+   # SeleniumLibrary importable in same env
+   ~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
+   ```
+   If both succeed, your env is ready for `prepare_docgen` / `enable_document_builder_toggle` when prerequisites are in place.
 
 5. **Authenticate with Salesforce:**
    ```bash
@@ -314,13 +325,26 @@ Decision table activate/deactivate and expression set version activation use CCI
 
 ## Troubleshooting
 
+### Fixing a global pip install (Robot / Document Builder)
+
+If you installed Robot Framework or SeleniumLibrary with `pip install` and got a warning about modifying the global environment:
+
+1. Uninstall from the Python you used:
+   ```bash
+   python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework
+   ```
+2. Install them into CumulusCI’s environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
+   ```bash
+   pipx inject cumulusci robotframework robotframework-seleniumlibrary
+   ```
+3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — “Document Builder (Robot) env only”): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
+
 ### CumulusCI Not Found
 
 ```bash
-# Install CumulusCI
+# Install CumulusCI (prefer pipx to avoid global Python install)
 pipx install cumulusci
-# OR
-pip install cumulusci
+# If you don't use pipx, use a virtual environment first, then: pip install cumulusci
 
 # Verify installation
 cci version

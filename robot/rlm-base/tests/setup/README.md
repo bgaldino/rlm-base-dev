@@ -4,15 +4,7 @@ Tests that enable toggles on Salesforce Lightning Setup pages that cannot be con
 
 ## Prerequisites
 
-These match the [Document Builder automation dependencies](../../../README.md#installation) in the main README (required for `prepare_docgen` / `enable_document_builder_toggle`):
-
-- Python 3.8+
-- Robot Framework and SeleniumLibrary:
-  ```bash
-  pip install robotframework robotframework-seleniumlibrary
-  ```
-- Salesforce CLI (`sf`) with an authenticated org (for `sf org open --url-only` when using `ORG_ALIAS`)
-- Chrome (or set `BROWSER=firefox`); ChromeDriver is required for Chrome (often installed with SeleniumLibrary or via `webdriver-manager`).
+Install and verify prerequisites in the **main README** only: [Installation — Document Builder automation dependencies](../../../README.md#installation) (Robot Framework, SeleniumLibrary, Chrome/ChromeDriver, Salesforce CLI). Do not install or verify from this folder; the main README is the single source of truth.
 
 ## Run the Document Builder test
 
