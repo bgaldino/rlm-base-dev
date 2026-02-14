@@ -62,6 +62,12 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    pip install cumulusci
    ```
 
+   **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
+   - Python 3.8+
+   - Robot Framework and SeleniumLibrary: `pip install robotframework robotframework-seleniumlibrary`
+   - Chrome (or set `BROWSER=firefox`); for Chrome, ChromeDriver is required (often installed with SeleniumLibrary or via `webdriver-manager`).
+   - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
+
 3. **Install SFDMU:**
    ```bash
    # Option 1: Via npm

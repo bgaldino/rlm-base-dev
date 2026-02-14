@@ -91,6 +91,14 @@ temp
 tasks/sfdmuload.py
 experience-bundle-package*/**
 
+# Robot Framework (setup toggles, enable_document_builder)
+robot/rlm-base/results/
+log.html
+report.html
+output.xml
+document_builder_toggle_verification_failed.png
+selenium-screenshot*.png
+
 # Added by Illuminated Cloud
 /.idea/
 /IlluminatedCloud/

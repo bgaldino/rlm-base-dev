@@ -1302,6 +1302,14 @@ tasks:
     options:
       path: scripts/apex/createDocgenTemplateLibrary.apex
 
+  enable_document_builder_toggle:
+    group: Revenue Lifecycle Management
+    description: Enable the Document Builder toggle on Revenue Settings (Robot test with sf org open). Run before deploy_post_docgen when the org does not have Document Builder enabled via metadata.
+    class_path: tasks.rlm_enable_document_builder_toggle.EnableDocumentBuilderToggle
+    options:
+      suite: robot/rlm-base/tests/setup/enable_document_builder.robot
+      outputdir: robot/rlm-base/results
+
   create_dro_rule_library:
     group: Revenue Lifecycle Management
     description: Create DRO Rule Library
@@ -1788,6 +1796,9 @@ flows:
         task: create_docgen_library
         when: project_config.project__custom__docgen
       2:
+        task: enable_document_builder_toggle
+        when: project_config.project__custom__docgen
+      3:
         task: deploy_post_docgen
         when: project_config.project__custom__docgen
 
