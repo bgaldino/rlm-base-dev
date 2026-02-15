@@ -461,8 +461,6 @@ project:
     q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3/en-US/q3-tax"                                                 # Q3 tax data
     q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3/en-US/q3-rating"                                    # Q3 rating data
     q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3/en-US/q3-rates"                                           # Q3 rates data
-    q3_constraints_product_dataset: &q3_constraints_product_dataset "datasets/sfdmu/q3/en-US/q3-constraints-product" # Q3 constraints product data
-    q3_constraints_component_dataset: &q3_constraints_component_dataset "datasets/sfdmu/q3/en-US/q3-constraints-component"
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -1013,7 +1011,7 @@ tasks:
 
   insert_quantumbit_product_image_data:
     group: Revenue Lifecycle Management
-    description: Insert QuantumBit Product Image Data to Production
+    description: Insert QuantumBit Product Image Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_product_image_dataset
@@ -1068,12 +1066,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_tax_dataset
 
-  insert_tax_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Tax Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_tax_dataset
 
   insert_q3_tax_data:
     group: Revenue Lifecycle Management
@@ -1082,12 +1074,6 @@ tasks:
     options:
       pathtoexportjson: *q3_tax_dataset
 
-  insert_q3_tax_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert Q3 Tax Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *q3_tax_dataset
 
   insert_billing_data:
     group: Revenue Lifecycle Management
@@ -1096,12 +1082,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_billing_dataset
 
-  insert_billing_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Billing Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_billing_dataset
 
   insert_q3_billing_data:
     group: Revenue Lifecycle Management
@@ -1110,12 +1090,6 @@ tasks:
     options:
       pathtoexportjson: *q3_billing_dataset
 
-  insert_q3_billing_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert Q3 Billing Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *q3_billing_dataset
 
   insert_qb_rating_data:
     group: Revenue Lifecycle Management
@@ -1124,12 +1098,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_rating_dataset
 
-  insert_qb_rating_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Rating Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_rating_dataset
   
   insert_q3_rating_data:
     group: Revenue Lifecycle Management
@@ -1138,12 +1106,6 @@ tasks:
     options:
       pathtoexportjson: *q3_rating_dataset
 
-  insert_q3_rating_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert Q3 Rating Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *q3_rating_dataset
 
   insert_qb_rates_data:
     group: Revenue Lifecycle Management
@@ -1152,12 +1114,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_rates_dataset
 
-  insert_qb_rates_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Rates Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_rates_dataset
 
   insert_q3_rates_data:
     group: Revenue Lifecycle Management
@@ -1166,12 +1122,6 @@ tasks:
     options:
       pathtoexportjson: *q3_rates_dataset
 
-  insert_q3_rates_data_prod:
-    group: Revenue Lifecycle Management
-    description: Insert Q3 Rates Data to Production
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *q3_rates_dataset
 
   insert_scratch_data:
     group: Revenue Lifecycle Management
@@ -1829,28 +1779,22 @@ flows:
     steps:
       1:
         task: insert_billing_data
-        when: org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
       2:
-        task: insert_billing_data_prod
-        when: not org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
-      3:
         task: insert_q3_billing_data
-        when: org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
-      4:
-        task: insert_q3_billing_data_prod
-        when: not org_config.scratch and project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
-      5:
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
+      3:
         task: activate_flow
         when: project_config.project__custom__billing
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      6:
+      4:
         task: activate_default_payment_term
         when: project_config.project__custom__billing
-      7: 
+      5:
         task: activate_billing_records
         when: project_config.project__custom__billing
-      8:
+      6:
         task: deploy_post_billing
         when: project_config.project__custom__billing
 
@@ -1877,17 +1821,11 @@ flows:
         when: project_config.project__custom__tax
       2:
         task: insert_tax_data
-        when: org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
-        task: insert_tax_data_prod
-        when: not org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
-      4:
         task: insert_q3_tax_data
-        when: org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
-      5:
-        task: insert_q3_tax_data_prod
-        when: not org_config.scratch and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
-      6: 
+        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
+      4:
         task: activate_tax_records
         when: project_config.project__custom__tax
 
@@ -1896,32 +1834,20 @@ flows:
     steps:
       1:
         task: insert_qb_rating_data
-        when: org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       2:
-        task: insert_qb_rating_data_prod
-        when: not org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      3:
         task: insert_q3_rating_data
-        when: org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
-      4:
-        task: insert_q3_rating_data_prod
-        when: not org_config.scratch and project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
-      5:
+        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
+      3:
         task: insert_qb_rates_data
-        when: org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      6:
-        task: insert_qb_rates_data_prod
-        when: not org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      7:
+        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
+      4:
         task: insert_q3_rates_data
-        when: org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
-      8:
-        task: insert_q3_rates_data_prod
-        when: not org_config.scratch and project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
-      9: 
+        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
+      5:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      10: 
+      6:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
   
