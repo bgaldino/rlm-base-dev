@@ -78,8 +78,8 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    qbrix: true               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
+    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -98,12 +98,13 @@ project:
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: false                # Use Partner Relationship Management
+    prm_exp_bundle: false     # Use PRM Experience Bundle
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
     docgen: true              # Use Document Generation
-    psg_debug: false          # Debug Permission Set Groups
-    pas_debug: false          # Debug Price Adjustment Schedules
+    #psg_debug: false          # Debug Permission Set Groups
+    #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
     constraints_data: false   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
@@ -1337,6 +1338,27 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateBillingRecords.apex
+
+  query_billing_state:
+    group: Revenue Lifecycle Management
+    description: Query billing record state (PaymentTerm, BillingTreatment, BillingPolicy, BillingTreatmentItem) for validation; check debug logs for output.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/query_billing_state.apex
+
+  delete_draft_billing_records:
+    group: Revenue Lifecycle Management
+    description: Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteDraftBillingRecords.apex
+
+  validate_billing_structure:
+    group: Revenue Lifecycle Management
+    description: Validate that every BillingTreatment has BillingPolicyId set. Run after data load to verify structure before activation.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/validateBillingStructure.apex
 
   activate_tax_records:
     group: Revenue Lifecycle Management

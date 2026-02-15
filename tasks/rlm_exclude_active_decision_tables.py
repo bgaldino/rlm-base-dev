@@ -1,6 +1,9 @@
 """
 Custom CumulusCI task to exclude active decision tables from deployment.
-Active decision tables cannot be edited, so we skip deploying them.
+Active decision tables cannot be edited, so we skip deploying them by moving
+them into a .skip subdirectory before deploy_pre; restore_decision_tables
+moves them back after deploy. No .forceignore changes are made—the .skip
+move is sufficient and avoids leaving .forceignore entries behind.
 TODO: Find a proper way to deactivate decision tables before deployment.
 """
 import os
@@ -66,9 +69,6 @@ class ExcludeActiveDecisionTables(BaseTask):
             return
         
         self.logger.info(f"Found {len(active_decision_tables)} active decision table(s) to exclude from deployment")
-        
-        # Add active decision tables to .forceignore
-        self._manage_forceignore(path, active_decision_tables)
         self._move_active_decision_tables(path, skip_dir, active_decision_tables)
     
     def _get_active_decision_tables(self, decision_table_names: Set[str]) -> Set[str]:
@@ -107,83 +107,6 @@ class ExcludeActiveDecisionTables(BaseTask):
             active_tables = decision_table_names
         
         return active_tables
-    
-    def _manage_forceignore(self, decision_tables_path: Path, active_tables: Set[str]):
-        """Add active decision tables to .forceignore."""
-        forceignore_path = Path.cwd() / ".forceignore"
-        if not forceignore_path.exists():
-            self.logger.warning(".forceignore file not found, skipping decision table exclusion")
-            return
-        
-        try:
-            # Read current .forceignore
-            with open(forceignore_path, 'r') as f:
-                lines = f.readlines()
-            
-            # Find existing decision table entries
-            existing_entries = set()
-            entry_indices = {}
-            for i, line in enumerate(lines):
-                stripped = line.strip()
-                if stripped and not stripped.startswith('#'):
-                    for dt_name in active_tables:
-                        if dt_name in stripped and 'decisionTable' in stripped:
-                            existing_entries.add(dt_name)
-                            entry_indices[dt_name] = i
-            
-            # Add missing entries
-            new_entries = active_tables - existing_entries
-            if new_entries:
-                # Find the decision tables section or add at end
-                dt_section_index = -1
-                for i, line in enumerate(lines):
-                    if "# Decision Tables" in line or "#decisiontables" in line.lower():
-                        dt_section_index = i
-                        break
-                
-                comment = "# Active decision tables - excluded from deployment (TODO: implement proper deactivation)"
-                
-                if dt_section_index >= 0:
-                    # Insert after decision tables section
-                    insert_index = dt_section_index + 1
-                    # Find the next non-comment line after section
-                    for i in range(dt_section_index + 1, len(lines)):
-                        if lines[i].strip() and not lines[i].strip().startswith('#'):
-                            insert_index = i
-                            break
-                        if lines[i].strip().startswith('#'):
-                            insert_index = i + 1
-                    
-                    # Insert comment if not already there
-                    if comment not in ''.join(lines):
-                        lines.insert(insert_index, f"{comment}\n")
-                        insert_index += 1
-                    
-                    # Insert decision table entries
-                    for dt_name in sorted(new_entries):
-                        entry = f"{decision_tables_path}/{dt_name}.decisionTable-meta.xml\n"
-                        lines.insert(insert_index, entry)
-                        insert_index += 1
-                        self.logger.info(f"Added {dt_name} to .forceignore")
-                else:
-                    # Add at end
-                    if comment not in ''.join(lines):
-                        lines.append(f"\n{comment}\n")
-                    for dt_name in sorted(new_entries):
-                        entry = f"{decision_tables_path}/{dt_name}.decisionTable-meta.xml\n"
-                        lines.append(entry)
-                        self.logger.info(f"Added {dt_name} to .forceignore")
-                
-                # Write updated .forceignore
-                with open(forceignore_path, 'w') as f:
-                    f.writelines(lines)
-                
-                self.logger.info(f"Added {len(new_entries)} active decision table(s) to .forceignore")
-            else:
-                self.logger.debug("All active decision tables already in .forceignore")
-                
-        except Exception as e:
-            self.logger.warning(f"Error managing .forceignore: {e}")
 
     def _move_active_decision_tables(self, decision_tables_path: Path, skip_dir: Path, active_tables: Set[str]):
         """Move active decision tables out of deploy path to avoid MDAPI updates."""

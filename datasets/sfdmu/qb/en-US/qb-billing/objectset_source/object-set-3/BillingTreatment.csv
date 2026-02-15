@@ -1,0 +1,6 @@
+$$Name$BillingPolicy.Name$LegalEntity.Name,BillingPolicy.Name,LegalEntity.Name,Name,Status
+Billing Treatment - USA - Advance;Billing Policy - Advance;Default Legal Entity - US,Billing Policy - Advance,Default Legal Entity - US,Billing Treatment - USA - Advance,Draft
+Billing Treatment - USA - Arrears;Billing Policy - Arrears;Default Legal Entity - US,Billing Policy - Arrears,Default Legal Entity - US,Billing Treatment - USA - Arrears,Draft
+Billing Treatment - Advance - Canada;Billing Policy - Advance;Default Legal Entity - Canada,Billing Policy - Advance,Default Legal Entity - Canada,Billing Treatment - Advance - Canada,Draft
+Billing Treatment - Canada - Arrears;Billing Policy - Arrears;Default Legal Entity - Canada,Billing Policy - Arrears,Default Legal Entity - Canada,Billing Treatment - Canada - Arrears,Draft
+Milestone Billing Treatment;Milestone Billing Policy - Software,Milestone Billing Policy - Software,,Milestone Billing Treatment,Draft

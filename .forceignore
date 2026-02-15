@@ -39,16 +39,10 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 
-# contextDefinitions
+# contextDefinitions (extended at runtime via extend_context_* tasks)
 force-app/main/default/contextDefinitions
 
-# connectedApps
-
-# unpackaged/pre
-# PSGs
-#unpackaged/pre/3_permissionsetgroups/RLM_PCM.permissionsetgroup-meta.xml
-
-# RC_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
+# RC_TSO - storage only, never deployed (preserves permission sets not available in dev orgs)
 unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
@@ -60,41 +54,13 @@ unpackaged/post_sharing/objects/ProductConfigurationRule/ProductConfigurationRul
 unpackaged/post_sharing/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 #unpackaged/post_sharing/objects
 
-#unpackaged/pre/5_decisiontables
-
-## pricingActionParameters
+# pricingActionParameters
 unpackaged/post_quantumbit/pricingActionParameters
-## ADVANCED APPROVALS
-# classes
-#force-app/main/default/classes/RC_QuoteApprovalController.cls
-# flows
-#force-app/main/default/flows/RC_AA_Evaluate_Approval_Request.flow-meta.xml
-#force-app/main/default/flows/RC_AA_Quote_Approval.flow-meta.xml
-#force-app/main/default/flows/RC_AA_Set_Quote_Status.flow-meta.xml
-# globalValueSets
-#force-app/main/default/globalValueSets/RC_Approval_Status.globalValueSet-meta.xml
-# objects
-#force-app/main/default/objects/Quote/fields/RC_Approval_Level__c.field-meta.xml
-#force-app/main/default/objects/Quote/fields/RC_Approval_Status__c.field-meta.xml
-#force-app/main/default/objects/QuoteLineItem/fields/RC_Approval__c.field-meta.xml
-#force-app/main/default/objects/QuoteLineItem/fields/RC_Approval_Level_Calc__c.field-meta.xml
-# pages
-#force-app/main/default/pages/RC_QuoteApproval.page
-# quickActions
-#force-app/main/default/quickActions/Quote.RC_Submit_for_Approval.quickAction-meta.xml
 
-## DOCGEN
-# When docgen is successfully set up, experience bundles need these files.  If not, they must be uncommented.
-#unpackaged/post_prm/experiences/rlm1/routes/serviceDocument.json
-#unpackaged/post_prm/experiences/rlm1/views/serviceDocument.json
-
-## MISC - TO ORGANIZE
+# Misc
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 
-#unpackaged/pre/2_settings/IndustriesUsage.settings-meta.xml
 force-app/main/default/settings/UserInterface.settings-meta.xml
-#unpackaged/pre/3_permissionsetgroups
-#force-app/main/default/permissionsetgroups
 
 unpackaged/post_agents/bots/Agentforce_for_Analytics.bot-meta.xml
 unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
@@ -113,12 +79,7 @@ unpackaged/post_constraints/staticresources
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
 
-## TO DELETE
-
-# Active decision tables - excluded from deployment (TODO: implement proper deactivation)
-#unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml
-#unpackaged/pre/5_decisiontables/RLM_ProductCategoryQualification.decisionTable-meta.xml
-#unpackaged/pre/5_decisiontables/RLM_ProductQualification.decisionTable-meta.xml
+# Ignored (deployed from unpackaged paths or org-specific)
 force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
 force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
 unpackaged/post_approvals/flows/RC_Quote_Smart_Approval.flow-meta.xml

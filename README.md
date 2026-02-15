@@ -129,6 +129,23 @@ cci org default <org-alias>
 cci flow run prepare_rlm_org
 ```
 
+### Reset default or target scratch org and run full flow
+
+To remove your current default (or target) scratch org, create a new one, and run the full RLM prepare flow (includes billing data when applicable), use your scratch org config and alias (e.g. `beta`, `dev`, `dev_enhanced`—see `orgs/` and `cumulusci.yml` under `orgs.scratch`):
+
+```bash
+# Delete existing scratch org (use the same alias you created it with)
+cci org scratch_delete <org-alias>
+
+# Create a new scratch org (config name and alias; set as default if desired)
+cci org scratch <config-name> <org-alias> --default --days 30
+
+# Run the full prepare flow on that org
+cci flow run prepare_rlm_org --org <org-alias>
+```
+
+Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flow. Active decision tables are excluded per run by moving them into a `.skip` subdirectory before deploy (no `.forceignore` changes). Permission set groups are recalculated only when they are in **Outdated** state; if all are already **Updated**, the recalc step exits without waiting.
+
 ### List Available Flows
 
 ```bash

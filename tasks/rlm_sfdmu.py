@@ -55,11 +55,61 @@ class LoadSFDMUData(SFDXBaseTask):
             "description": "If true, query the target org for the default user's Name and replace the placeholder in DRO CSVs (FulfillmentStepDefinition.csv, UserAndGroup.csv) so one plan works for both scratch (User User) and TSO (Admin User).",
             "required": False
         },
+        "sync_objectset_source_to_source": {
+            "description": "If true, before running SFDMU copy objectset_source/object-set-* into source/object-set-* so object set 2+ use the version-controlled CSVs as source (avoids org-export overwriting desired state for billing etc.).",
+            "required": False
+        },
+        "object_sets": {
+            "description": "Optional list of 0-based object set indices to run (e.g. [0] for Pass 1 only, [1, 2] for Pass 2 and 3). If omitted, all object sets run.",
+            "required": False
+        },
         "assigned_to_placeholder": {
             "description": "Placeholder string in DRO CSVs to replace with the target org user's Name. Used when dynamic_assigned_to_user is true.",
             "required": False
         }
     }
+
+    def _sync_objectset_source_to_source(self) -> None:
+        """Copy objectset_source/object-set-* into source so SFDMU uses version-controlled CSVs.
+        Object set 1: also copy to plan root (base) so Pass 1 uses our composites; copy to source/ with _source suffix.
+        Object sets 2+ use source/object-set-N only.
+        Set 1 must have BillingPolicy (no default treatment) and BillingTreatment so lookups resolve in order.
+        """
+        base = self.pathtoexportjson
+        objectset_source_dir = os.path.join(base, "objectset_source")
+        source_dir = os.path.join(base, "source")
+        if not os.path.isdir(objectset_source_dir):
+            return
+        for name in sorted(os.listdir(objectset_source_dir)):
+            if not name.startswith("object-set-"):
+                continue
+            src_set = os.path.join(objectset_source_dir, name)
+            if not os.path.isdir(src_set):
+                continue
+            # Object set 1 uses source/ (root); sets 2+ use source/object-set-N
+            if name == "object-set-1":
+                dst_set = source_dir
+            else:
+                dst_set = os.path.join(source_dir, name)
+            os.makedirs(dst_set, exist_ok=True)
+            for f in os.listdir(src_set):
+                if not f.endswith(".csv"):
+                    continue
+                src_f = os.path.join(src_set, f)
+                dst_name = f.replace(".csv", "_source.csv") if not f.endswith("_source.csv") else f
+                dst_f = os.path.join(dst_set, dst_name)
+                shutil.copy2(src_f, dst_f)
+                self.logger.info(f"Synced objectset_source -> source: {name}/{f} -> {dst_set}/{dst_name}")
+                # Pass 1 reads object set 1 from plan root (working dir); overwrite root with object-set-1 so composites match.
+                if name == "object-set-1":
+                    root_f = os.path.join(base, f)
+                    shutil.copy2(src_f, root_f)
+                    self.logger.info(f"Synced object-set-1 to plan root: {name}/{f} -> {root_f}")
+                # Some SFDMU versions read object set 2+ by base name (e.g. BillingTreatment.csv); write both base and _source.
+                elif not f.endswith("_source.csv"):
+                    dst_base = os.path.join(dst_set, f)
+                    shutil.copy2(src_f, dst_base)
+                    self.logger.info(f"Synced object-set to source (base name): {name}/{f} -> {dst_base}")
 
     def _prepare_export_json_file(self) -> None:
         export_json_path = os.path.join(self.pathtoexportjson, EXPORT_JSON_FILENAME)
@@ -71,17 +121,29 @@ class LoadSFDMUData(SFDXBaseTask):
         try:
             with open(export_json_path, "r") as file:
                 export_json = json.load(file)
-            
+
+            object_sets = self.options.get("object_sets")
+            if object_sets is not None:
+                all_sets = export_json.get("objectSets", [])
+                filtered = [all_sets[i] for i in object_sets if 0 <= i < len(all_sets)]
+                if len(filtered) < len(object_sets):
+                    raise TaskOptionsError(
+                        f"object_sets {object_sets} out of range for {len(all_sets)} object sets"
+                    )
+                self._original_object_sets = all_sets
+                export_json["objectSets"] = filtered
+                self.logger.info(f"Running only object sets (0-based): {object_sets}")
+
             org_data = {
                 'name': self.targetusername,
                 'accessToken': self.accesstoken,
                 'instanceUrl': self.instanceurl
             }
             export_json["orgs"] = [org_data]
-            
+
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
-            
+
             self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(export_json, indent=2)}')
         except json.JSONDecodeError as e:
             self.logger.error(f"Error parsing export.json: {e}")
@@ -95,9 +157,11 @@ class LoadSFDMUData(SFDXBaseTask):
         try:
             with open(export_json_path, "r") as file:
                 export_json = json.load(file)
-            
+
             export_json["orgs"] = []
-            
+            if getattr(self, "_original_object_sets", None) is not None:
+                export_json["objectSets"] = self._original_object_sets
+
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
         except (json.JSONDecodeError, IOError) as e:
@@ -222,6 +286,8 @@ class LoadSFDMUData(SFDXBaseTask):
 
         if self.options.get("dynamic_assigned_to_user"):
             self._apply_dynamic_assigned_to_user()
+        if self.options.get("sync_objectset_source_to_source"):
+            self._sync_objectset_source_to_source()
         self._prepare_export_json_file()
     
     def _run_task(self) -> None:

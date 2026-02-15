@@ -1,5 +1,11 @@
 """
 Recalculate Permission Set Groups and wait until they are Updated.
+
+Why PSGs show "Outdated": After deploy_pre or assign_permission_set_licenses, Salesforce
+marks PSGs as Outdated when their effective permissions need to be recalculated. The normal
+transition is Outdated → Updating (platform recalculating) → Updated. We trigger recalc by
+updating the PSG (e.g. Description); using the Tooling API for the update is required in
+many orgs for the platform to actually start recalc and move status to Updating.
 """
 import time
 from typing import List
@@ -65,6 +71,28 @@ class RecalculatePermissionSetGroups(BaseTask):
         retry_delay_seconds = int(self.options.get("retry_delay_seconds", 120))
         post_trigger_delay_seconds = int(self.options.get("post_trigger_delay_seconds", 90))
         use_tooling_api = str(self.options.get("use_tooling_api", "false")).lower() == "true"
+        self._use_tooling_api = use_tooling_api
+
+        # Check once up front: if all PSGs are already Updated, skip delay and wait loop
+        rows = self._query_groups(names)
+        status_by_name = {row["DeveloperName"]: row["Status"] for row in rows}
+        missing = [name for name in names if name not in status_by_name]
+        if missing:
+            raise TaskOptionsError(
+                f"PermissionSetGroup records not found: {', '.join(missing)}"
+            )
+        outdated = [n for n, s in status_by_name.items() if s == "Outdated"]
+        updating = [n for n, s in status_by_name.items() if s == "Updating"]
+        failed = [n for n, s in status_by_name.items() if s == "Failed"]
+        if failed:
+            raise TaskOptionsError(
+                f"PermissionSetGroup recalculation failed: {', '.join(failed)}"
+            )
+        if not outdated and not updating:
+            self.logger.info(
+                "All target Permission Set Groups are already Updated; skipping recalc and wait."
+            )
+            return
 
         if initial_delay_seconds > 0:
             self.logger.info(
@@ -135,13 +163,17 @@ class RecalculatePermissionSetGroups(BaseTask):
 
             triggered_this_round = False
             if trigger_recalc:
+                api_note = " (via Tooling API)" if getattr(self, "_use_tooling_api", False) else ""
                 for name in outdated:
                     if name in recalc_attempted:
                         continue
                     self._touch_group_description(name)
                     recalc_attempted.add(name)
                     triggered_this_round = True
-                    self.logger.info(f"Triggered recalculation for Permission Set Group '{name}'.")
+                    self.logger.info(
+                        f"Triggered recalculation for Permission Set Group '{name}'{api_note}; "
+                        "status should transition Outdated → Updating → Updated."
+                    )
 
             if triggered_this_round and post_trigger_delay_seconds > 0:
                 self.logger.info(
