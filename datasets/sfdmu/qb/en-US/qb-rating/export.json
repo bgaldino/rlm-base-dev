@@ -1,4 +1,8 @@
 {
+  "$comment_plan": "qb-rating SFDMU data plan - creates and activates rating/usage objects",
+  "$comment_pass1": "Pass 1: Upsert/Insert all objects in Draft status. Objects with composite externalId use SFDMU notation (Field1;Field2) for matching. ProductUsageResourcePolicy and ProductUsageGrant use Insert/Id because they lack suitable unique external IDs.",
+  "$comment_pass2": "Pass 2: Activate UnitOfMeasureClass and UsageResource (Status→Active). PUR/PUG activation is handled by the Apex script (activateRatingRecords.apex) due to complex API 260 ordering constraints.",
+  "$comment_260": "API 260 notes: QB-DB;QB-TOKEN (Token PUR for Anchor product) is required before QB-DB Usage PURs can activate. CommitmentSpend optional PURs (QB-MTY-CMT;UR-CPUTIME/UR-DATASTORAGE) are excluded due to platform TokenResourceId auto-population conflict.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,
@@ -19,21 +23,15 @@
           "excluded": false
         },
         {
-          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, Status, UnitOfMeasureClassId, DefaultUnitOfMeasureId, UsageResourceBillingPolicyId FROM UsageResource ORDER BY Code ASC",
-          "operation": "Upsert",
-          "externalId": "Code",
-          "excluded": false
-        },
-        {
           "query": "SELECT Code, Name, Status, UsageAccumulationMethod, UsageAccumulationPeriod FROM UsageResourceBillingPolicy ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
         },
         {
-          "query": "SELECT DrawdownOrder, Label, OverageChargeable, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, ValidityPeriodTerm, ValidityPeriodUnit, EffectiveStartDate, EffectiveEndDate FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
+          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, Status, TokenResourceId, UnitOfMeasureClassId, DefaultUnitOfMeasureId, UsageResourceBillingPolicyId FROM UsageResource ORDER BY Code ASC",
           "operation": "Upsert",
-          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
+          "externalId": "Code",
           "excluded": false
         },
         {
@@ -55,6 +53,24 @@
           "excluded": false
         },
         {
+          "query": "SELECT Name, OverageChargeable FROM UsageOveragePolicy",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name FROM UsageCommitmentPolicy",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Status, TokenResourceId, UsageResourceId FROM ProductUsageResource",
+          "operation": "Upsert",
+          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "excluded": false
+        },
+        {
           "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Name FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "Name;Product2.StockKeepingUnit",
@@ -63,20 +79,25 @@
         {
           "query": "SELECT ProductId, RatingDelayDuration, RatingPeriod, UsageResourceId FROM RatingFrequencyPolicy",
           "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "externalId": "RatingPeriod",
           "excluded": false
         },
         {
-          "query": "SELECT EffectiveEndDate, EffectiveStartDate, ProductId, Status, UsageResourceId FROM ProductUsageResource",
-          "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
-          "skipExistingRecords": true,
+          "query": "SELECT ProductUsageResourceId, RatingFrequencyPolicyId, UsageAggregationPolicyId, UsageCommitmentPolicyId, UsageOveragePolicyId FROM ProductUsageResourcePolicy",
+          "operation": "Insert",
+          "externalId": "Id",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
+          "operation": "Insert",
+          "externalId": "Id",
           "excluded": false
         }
       ]
     },
     {
-      "name": "Second Pass - Activate Rating Records",
+      "name": "Second Pass - Activate UnitOfMeasureClass and UsageResource",
       "objects": [
         {
           "query": "SELECT Code, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
@@ -88,18 +109,6 @@
           "query": "SELECT Code, Status FROM UsageResource ORDER BY Code ASC",
           "operation": "Update",
           "externalId": "Code",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Product.StockKeepingUnit, UsageResource.Code, Status FROM ProductUsageResource",
-          "operation": "Update",
-          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Status, UsageDefinitionProduct.StockKeepingUnit, UnitOfMeasureClass.Code, UnitOfMeasure.UnitCode FROM ProductUsageGrant",
-          "operation": "Update",
-          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
           "excluded": false
         }
       ]

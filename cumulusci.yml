@@ -87,7 +87,7 @@ project:
     billing: true             # Use Billing
     payments: true            # Use Payments
     approvals: true           # Use Approvals
-    clm: false                # Use Contract Lifecycle Management
+    clm: true                # Use Contract Lifecycle Management
     clm_data: false           # Use Contract Lifecycle Management Data
     dro: true                 # Use Dynamic Revenue Orchestration
     rating: true              # Insert Rating Design Time Data
@@ -97,7 +97,7 @@ project:
     product_dataset: qb       # Default product dataset to use=
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
-    prm: false                # Use Partner Relationship Management
+    prm: true                # Use Partner Relationship Management
     prm_exp_bundle: false     # Use PRM Experience Bundle
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
@@ -247,7 +247,7 @@ project:
       - ClauseManagementUser
       - CLMAnalyticsPsl
       - ContractManagementUser
-      - ContractsAIUserPsl
+      #- ContractsAIUserPsl
       - DisclosureAndComplianceHubUserPsl
       - DocGenDesignerPsl
       - DocumentBuilderUserPsl
@@ -968,7 +968,8 @@ tasks:
     options:
       name: "rlm"
       description: "RLM Partner Digital Experience"
-      template: "Build Your Own"
+      template: "Partner Central (Enhanced)"
+      url_path_prefix: "partners"
       skip_existing: true
 
   create_payments_webhook:
@@ -1803,7 +1804,7 @@ flows:
     steps:
       1:
         task: deploy_post_prm
-        when: project_config.project__custom__prm
+        when: project_config.project__custom__prm and project_config.project__prm_exp_bundle
       2:
         task: publish_community
         when: project_config.project__custom__prm
