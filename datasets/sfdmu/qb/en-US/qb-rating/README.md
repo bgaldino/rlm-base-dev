@@ -71,17 +71,18 @@ Only UoMClass and UsageResource are activated in SFDMU. PUR and PUG activation r
 
 **File:** `scripts/apex/activateRatingRecords.apex`
 
-PUR and PUG activation follows a strict 7-step dependency order:
+PUR and PUG activation follows a strict 6-step dependency order:
 
 | Step | What                                      | Why                                                                |
 |------|-------------------------------------------|--------------------------------------------------------------------|
 | 1    | UnitOfMeasureClass → Active               | Safety net (Pass 2 should already do this)                         |
-| 2    | UsageResource → Active                    | Safety net (Pass 2 should already do this)                         |
-| 3    | Non-Token PUR without TokenResourceId     | Currency PURs (QB-MTY-CMT;UR-USD) must be active first             |
-| 4    | Commitment-type PUR (clear+activate)      | Clears auto-populated TokenResourceId + activates in single DML    |
-| 5    | Token PUR                                 | Must be active before non-Token PURs with TokenResourceId          |
-| 6    | Non-Token PUR with TokenResourceId        | Depends on Token PUR being active                                  |
-| 7    | ProductUsageGrant → Active                | Depends on parent PUR being active                                 |
+| 2    | UsageResource → Active                    | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
+| 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 4 (see below)                 |
+| 4    | ALL non-Token PUR → clear+activate        | TokenResourceId=null + Status='Active' in single DML               |
+| 5    | Token PUR → Active                        | Token PURs are not subject to auto-population                      |
+| 6    | ProductUsageGrant → Active                | Depends on parent PUR being active                                 |
+
+**Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 4 only prevents auto-population when `TokenResourceId` changes from a non-null value to null — a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 4's clear is a real change.
 
 The script is **idempotent** — all queries filter on `Status != 'Active'`, so re-running on an already-activated org is a safe no-op.
 
@@ -164,11 +165,13 @@ The script is **idempotent** — all queries filter on `Status != 'Active'`, so 
 
 ### TokenResourceId Auto-Population
 
-When the `QB-TOKEN` UsageResource is `Active`, the platform auto-populates `TokenResourceId` on all PURs whose UsageResource (e.g., UR-CPUTIME, UR-DATASTORAGE) is shared with any product that has a Token PUR. This happens at DML time (insert/update) and cannot be prevented.
+The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: UR-CPUTIME and UR-DATASTORAGE (both have `TokenResource.Code = QB-TOKEN`).
 
-### Commitment Product Conflict
+### Activation Conflict and Clear+Activate Workaround
 
-`CommitmentQuantity` and `CommitmentSpend` products cannot have `TokenResourceId` set on their PURs. But auto-population forces it. The workaround ("clear+activate") sets `TokenResourceId=null` AND `Status='Active'` in a single DML update. The platform re-populates `TokenResourceId` after the record is Active, which is accepted.
+When activating a PUR (`Status='Active'`), the platform auto-populates `TokenResourceId` during the same DML. This then fails because "TokenResourceId can't be edited when the PUR is Active." The workaround sets `TokenResourceId=null` AND `Status='Active'` in a single DML update, which prevents auto-population.
+
+**Critical nuance:** The clear+activate only works when `TokenResourceId` changes from a **non-null** value to null. A null-to-null "clear" is a no-op and does NOT prevent auto-population. This is why Step 3 of the Apex script pre-populates `TokenResourceId` on Draft PURs where it is missing -- ensuring Step 4's clear is a real field change.
 
 ### Excluded Records (258 → 260 Migration Gap)
 
