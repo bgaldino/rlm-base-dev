@@ -1339,6 +1339,7 @@ tasks:
     options:
       path: scripts/apex/activateRateCardEntries.apex
 
+
 #--------------------#
 # EXTRACTION TASKS   #
 #--------------------#
@@ -1870,8 +1871,6 @@ flows:
       3:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-        options:
-          object_sets: [0]
       4:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
@@ -1881,11 +1880,6 @@ flows:
       6:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      7:
-        task: insert_qb_rates_data
-        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-        options:
-          object_sets: [1]
 
   extract_rating:
     group: Revenue Lifecycle Management

@@ -11,10 +11,9 @@ This plan is executed as **step 3** of the `prepare_rating` flow (when `rating=t
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
 | 1    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
-| 3    | `insert_qb_rates_data`   | **Runs this plan Pass 1** (`object_sets: [0]`)     |
+| 3    | `insert_qb_rates_data`   | **Runs this plan** (single pass — all objects)     |
 | 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
 | 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
-| 7    | `insert_qb_rates_data`   | **Runs this plan Pass 2** (`object_sets: [1]`) — RABT |
 
 ### Task Definition
 
@@ -27,38 +26,28 @@ insert_qb_rates_data:
 
 ## Data Plan Overview
 
-The plan uses **2 SFDMU passes** with **Apex activation** between them:
+The plan uses a **single SFDMU pass** followed by **Apex activation**:
 
 ```
-Pass 1 (SFDMU)               Apex Activation            Pass 2 (SFDMU)
------------------             -----------------          -----------------
-RateCard, RateCardEntry  ->  activate_rates           -> RateAdjustmentByTier
-(Draft), PriceBookRateCard   (RateCardEntry > Active)    (requires Active RCE)
+SFDMU (single pass)                          Apex Activation
+──────────────────────────────               ─────────────────
+RateCard, RateCardEntry (Draft),         ->  activate_rates
+PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
 ```
 
-### Pass 1 — RateCard, RateCardEntry (Draft), PriceBookRateCard
+**Key constraint:** RateAdjustmentByTier (RABT) must be inserted while its parent RateCardEntry is in `Draft` status. SFDMU processes objects in dependency order within the single pass, so RABT is inserted before any activation occurs.
+
+### Objects
 
 | # | Object               | Operation | External ID                                                                          | Records |
 |---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
-| 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 165     |
+| 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 164     |
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
-| 3 | PriceBookRateCard    | Upsert    | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 3       |
+| 3 | PriceBookRateCard    | Upsert    | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
 | 4 | RateCardEntry        | Upsert    | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 19     |
+| 5 | RateAdjustmentByTier | Upsert    | `Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 21 |
 
-**Note:** Product2 is an `Update` operation -- it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status and activated via Apex before Pass 2 can run.
-
-### Pass 2 — RateAdjustmentByTier (requires Active RateCardEntry)
-
-| # | Object               | Operation | External ID                                                                          | Records |
-|---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
-| 1 | Product2             | Readonly  | `StockKeepingUnit`                                                                   | —       |
-| 2 | RateCard             | Readonly  | `Name;Type`                                                                          | —       |
-| 3 | UnitOfMeasure        | Readonly  | `UnitCode`                                                                           | —       |
-| 4 | UsageResource        | Readonly  | `Code`                                                                               | —       |
-| 5 | RateCardEntry        | Readonly  | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | —     |
-| 6 | RateAdjustmentByTier | Upsert    | `Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 22 |
-
-**Note:** Readonly parent objects in Pass 2 provide SFDMU with correct externalIds for parent lookup resolution when this object set runs independently via `object_sets` filtering. RateAdjustmentByTier uses individual relationship traversal fields in its externalId, with a `$$` column in the CSV for idempotent matching and a separate `RateCardEntry.$$...` column for parent resolution.
+**Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier uses `RateCard.Name` (portable) in its composite key instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution.
 
 ### Lookup Reference CSVs
 
@@ -136,7 +125,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | QB-QTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
 | QB-QTY-CMT       | UR-DATASTORAGE  | USD       | Term Annual   |
 
-## Rate Adjustments by Tier (22 records)
+## Rate Adjustments by Tier (21 records)
 
 ### QB-DB — Compute Time (Override tiers, USD/minute)
 
@@ -228,7 +217,7 @@ The SOQL queries in `export.json` include relationship traversal fields (e.g., `
 
 ```
 qb-rates/
-├── export.json                # SFDMU data plan (2 passes)
+├── export.json                # SFDMU data plan (single pass)
 ├── README.md                  # This file
 │
 │  Source CSVs (data to load)
@@ -236,7 +225,7 @@ qb-rates/
 ├── RateCard.csv               # 3 records
 ├── PriceBookRateCard.csv      # 3 records
 ├── RateCardEntry.csv          # 19 records (Draft status)
-├── RateAdjustmentByTier.csv   # 22 records
+├── RateAdjustmentByTier.csv   # 21 records
 │
 │  Lookup Reference CSVs (for SFDMU resolution)
 ├── Pricebook2.csv             # Standard Price Book

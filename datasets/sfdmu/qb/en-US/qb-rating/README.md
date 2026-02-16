@@ -11,10 +11,9 @@ This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=t
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
 | 1    | `insert_qb_rating_data`  | Runs this SFDMU plan (2 passes)                    |
-| 3    | `insert_qb_rates_data`   | Runs qb-rates Pass 1 (`object_sets: [0]`)          |
+| 3    | `insert_qb_rates_data`   | Runs qb-rates plan (single pass — all objects)     |
 | 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
 | 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
-| 7    | `insert_qb_rates_data`   | Runs qb-rates Pass 2 (`object_sets: [1]`) — RABT   |
 
 ### Task Definition
 
