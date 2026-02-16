@@ -168,8 +168,12 @@ _GetToggleLocatorForLabel
     RETURN    ${fallback2}
 
 _EnsureToggleByLabel
-    [Documentation]    Clicks the toggle for the label only if current state does not match desired state (turn_on True/False). Tries normal click, then label click, then JS click in section.
+    [Documentation]    Clicks the toggle for the label only if current state does not match desired state (turn_on True/False). For Document Builder the toggle input is in shadow DOM so aria-checked/checked are inaccessible; we use section text ("Enabled"/"Disabled") to detect current state.
     [Arguments]    ${label}    ${turn_on}=True
+    # For Document Builder, detect state via section text (shadow DOM hides attrs)
+    Run Keyword If    """${label}""" == "Document Builder"    _EnsureDocumentBuilderToggle    ${turn_on}
+    Run Keyword If    """${label}""" == "Document Builder"    Return From Keyword
+    # For other toggles, use aria-checked / checked attributes
     ${toggle_locator}=    _GetToggleLocatorForLabel    ${label}
     Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${toggle_locator}
     Scroll Element Into View    ${toggle_locator}
@@ -178,39 +182,29 @@ _EnsureToggleByLabel
     ${checked}=    Get Element Attribute    ${toggle_locator}    checked
     ${is_on}=    Set Variable If    """${aria}""" == "true"    ${True}    ${False}
     ${is_on}=    Set Variable If    """${aria}""" == "" and """${checked}""" == "true"    ${True}    ${is_on}
-    Run Keyword If    ${turn_on} and not ${is_on}    _ClickDocumentBuilderToggle    ${label}    ${toggle_locator}
+    Run Keyword If    ${turn_on} and not ${is_on}    _ClickToggleElement    ${toggle_locator}
     Run Keyword If    not ${turn_on} and ${is_on}    _ClickToggleElement    ${toggle_locator}
     Run Keyword If    ${turn_on} and not ${is_on}    Sleep    2s    reason=Allow toggle to update
     Run Keyword If    not ${turn_on} and ${is_on}    Sleep    1s    reason=Allow toggle to update
 
-_ClickDocumentBuilderToggle
-    [Documentation]    Click the toggle for the label. For Document Builder, runs JS first to find and click input[name=documentBuilderEnabled] (pierces shadow DOM), then Selenium click as fallback.
-    [Arguments]    ${label}    ${toggle_locator}
-    Run Keyword If    """${label}""" == "Document Builder"    Run Keywords
-    ...    Run Keyword And Ignore Error    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
-    ...    AND    Sleep    2s    reason=Allow toggle state to update after JS click
-    _ClickToggleElement    ${toggle_locator}
-    Sleep    1s
-    ${label_locator}=    Set Variable    xpath=//*[normalize-space(.)='${label}']
-    Run Keyword And Ignore Error    Run Keywords    Scroll Element Into View    ${label_locator}    AND    Click Element    ${label_locator}
-    Sleep    1s
-    Run Keyword And Ignore Error    Double Click Element    ${toggle_locator}
-    Sleep    1s
-    Run Keyword And Ignore Error    Press Keys    ${toggle_locator}    SPACE
-    Sleep    2s    reason=Allow UI to update
-
-_ClickLabelIfToggleStillOff
-    [Documentation]    If the switch has no aria-checked/checked, try clicking the section title (label) which often toggles the control on Lightning pages.
-    [Arguments]    ${label}    ${toggle_locator}
-    ${aria}=    Get Element Attribute    ${toggle_locator}    aria-checked
-    ${checked}=    Get Element Attribute    ${toggle_locator}    checked
-    ${is_on}=    Set Variable If    """${aria}""" == "true"    ${True}    ${False}
-    ${is_on}=    Set Variable If    """${aria}""" == "" and """${checked}""" == "true"    ${True}    ${is_on}
-    Run Keyword If    ${is_on}    Return From Keyword
-    ${label_locator}=    Set Variable    xpath=//*[normalize-space(.)='${label}']
-    ${exists}=    Run Keyword And Return Status    Get WebElement    ${label_locator}
-    Run Keyword If    ${exists}    Run Keywords    Scroll Element Into View    ${label_locator}    AND    Click Element    ${label_locator}
-    Sleep    1s    reason=Allow toggle to update after label click
+_EnsureDocumentBuilderToggle
+    [Documentation]    For Document Builder: check section text to see if already Enabled/Disabled, then click ONCE via JS only if needed. Avoids the multiple-click problem that toggles it back off.
+    [Arguments]    ${turn_on}=True
+    ${section}=    Set Variable    xpath=//*[normalize-space(.)='Document Builder']/ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]
+    Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${section}
+    Sleep    1s    reason=Allow section to render
+    ${section_text}=    Get Text    ${section}
+    ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
+    ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
+    # Already in desired state -- do nothing
+    Run Keyword If    ${turn_on} and ${has_enabled}    Log    Document Builder is already Enabled. No click needed.
+    Return From Keyword If    ${turn_on} and ${has_enabled}
+    Run Keyword If    not ${turn_on} and ${has_disabled}    Log    Document Builder is already Disabled. No click needed.
+    Return From Keyword If    not ${turn_on} and ${has_disabled}
+    # Need to toggle -- click exactly once via JS (pierces shadow DOM)
+    Log    Document Builder is currently ${{" Enabled" if ${has_enabled} else "Disabled"}}. Clicking once to toggle.
+    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
+    Sleep    3s    reason=Allow toggle state to update after JS click
 
 _ClickToggleElement
     [Documentation]    Clicks the toggle element. Tries Click Element and Double Click (JS click with xpath is avoided; it can break when xpath contains //).
@@ -218,31 +212,6 @@ _ClickToggleElement
     ${clicked}=    Run Keyword And Return Status    Click Element    ${toggle_locator}
     Run Keyword If    not ${clicked}    Double Click Element    ${toggle_locator}
     Sleep    0.5s    reason=Allow click to register
-
-_ClickElement By Xpath With JavaScript
-    [Documentation]    Clicks element by xpath using JS (bypasses overlay). Locator must be xpath=...
-    [Arguments]    ${locator}
-    ${xpath}=    Replace String    ${locator}    xpath=    ${EMPTY}
-    ${script}=    Set Variable    (function(){ var x = arguments[0]; var r = document.evaluate(x, document, null, 4, null); var n = r.iterateNext(); if (n) n.click(); })()
-    Execute JavaScript    ${script}    ${xpath}
-
-_ClickToggleByLabel
-    [Documentation]    Internal: locate the row/section containing the label, then find and click the toggle (button/switch/checkbox). Tries multiple strategies for Lightning markup.
-    [Arguments]    ${label}    ${turn_off}=False
-    ${label_locator}=    Set Variable    xpath=//*[contains(normalize-space(.), '${label}')]
-    Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${label_locator}
-    Scroll Element Into View    ${label_locator}
-    Wait Until Element Is Visible    ${label_locator}    timeout=10s
-    ${toggle_locator}=    _GetToggleLocatorForLabel    ${label}
-    Wait Until Element Is Visible    ${toggle_locator}    timeout=5s
-    Click Element    ${toggle_locator}
-
-_ClickToggleByLabelFallback
-    [Arguments]    ${label}    ${turn_off}
-    # Fallback: label might be in a div container, not tr
-    ${toggle_locator}=    _GetToggleLocatorForLabel    ${label}
-    Wait Until Element Is Visible    ${toggle_locator}    timeout=8s
-    Click Element    ${toggle_locator}
 
 *** Keywords ***
 Open Browser For Setup
