@@ -253,3 +253,135 @@ This plan depends on the following having been loaded first:
 - **Product2** uses `Update` by `StockKeepingUnit`, so only existing products are modified.
 
 **Key requirement:** Objects with multi-component composite `externalId` definitions require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values. Without this column, SFDMU inserts duplicates on re-runs. SFDMU auto-generates these columns during extraction.
+
+## 260 Schema Analysis (Confirmed via Org Describe)
+
+Schema was queried against a 260 scratch org. Findings below.
+
+### Polymorphic Fields
+
+**None found.** All reference fields on rate objects are single-target lookups.
+
+### Self-Referencing Fields
+
+**None found.**
+
+### Schema Concerns
+
+**`RateCard.Status` — NOT in 260 schema!**
+
+The current SOQL query includes `Status`:
+```sql
+SELECT Description, EffectiveFrom, EffectiveTo, Name, Status, Type FROM RateCard ORDER BY Name ASC
+```
+
+However, the 260 schema describe for `RateCard` returns only:
+
+| Field          | Type     | Updateable | In Current SOQL? |
+|----------------|----------|------------|-------------------|
+| `Name`         | STRING   | Yes        | Yes               |
+| `Description`  | STRING   | Yes        | Yes               |
+| `Type`         | PICKLIST | Yes        | Yes               |
+| `EffectiveFrom`| DATETIME | Yes        | Yes               |
+| `EffectiveTo`  | DATETIME | Yes        | Yes               |
+
+**`Status` is not a field on `RateCard` in 260.** This was also confirmed in prior testing (error: "No such column 'Status' on entity 'RateCard'"). The SOQL query includes it but the field does not exist — SFDMU may handle this gracefully by ignoring unknown fields, or it may cause an error. **Needs urgent validation.**
+
+**Note:** `RateCardEntry` *does* have a `Status` field (confirmed in schema), so the confusion may be between the two objects.
+
+### Field Coverage Audit
+
+| Object               | Status | Notes                                                    |
+|----------------------|--------|----------------------------------------------------------|
+| Product2             | ✅     | Update only (UsageModelType) — correct                   |
+| RateCard             | ⚠️     | `Status` field not in 260 schema — must be removed       |
+| PriceBookRateCard    | ✅     | All fields present (Name auto-generated, read-only)      |
+| RateCardEntry        | ✅     | All fields present including Status, RateNegotiation     |
+| RateAdjustmentByTier | ✅     | All updateable fields present (4: AdjType, AdjValue, LB, UB) |
+
+### RateCardEntry — Read-Only Field Analysis
+
+RateCardEntry SOQL includes several fields that are **read-only** (`updateable=false`) in the schema:
+
+| Field                         | Updateable | Notes                                        |
+|-------------------------------|------------|----------------------------------------------|
+| `DefaultUnitOfMeasureClassId` | No         | Auto-populated from UsageResource             |
+| `DefaultUnitOfMeasureId`      | No         | Auto-populated from UsageResource             |
+| `RateUnitOfMeasureClassId`    | No         | Auto-populated from RateUnitOfMeasure         |
+| `UsageProductId`              | No         | Auto-populated                                |
+
+These read-only fields are correctly included in the SOQL for **extraction** purposes (they produce meaningful values in exported CSVs) but SFDMU will skip them during Upsert/Update operations.
+
+### RateAdjustmentByTier — Read-Only Field Analysis
+
+Most RABT fields are **read-only** — auto-populated from the parent RateCardEntry:
+
+| Field                  | Updateable | Notes                                        |
+|------------------------|------------|----------------------------------------------|
+| `RateCardEntryId`      | No         | Parent lookup (set at insert)                |
+| `RateCardEntryStatus`  | No         | Mirrors parent RCE status                     |
+| `RateCardId`           | No         | Auto-populated from parent RCE               |
+| `UsageResourceId`      | No         | Auto-populated from parent RCE               |
+| `ProductId`            | No         | Auto-populated from parent RCE               |
+| `EffectiveFrom`        | No         | Auto-populated from parent RCE               |
+| `EffectiveTo`          | No         | Auto-populated from parent RCE               |
+| `RateUnitOfMeasureId`  | No         | Auto-populated from parent RCE               |
+| `RateUnitOfMeasureName`| No         | Auto-populated                                |
+| `ProductSellingModelId`| No         | Auto-populated from parent RCE               |
+
+Only 4 fields are updateable: `AdjustmentType`, `AdjustmentValue`, `LowerBound`, `UpperBound`. All are in the current SOQL.
+
+### Cross-Object Dependencies
+
+| Lookup Target        | Source       | Status     |
+|----------------------|--------------|------------|
+| Product2             | qb-pcm       | Update only|
+| UnitOfMeasure        | qb-pcm       | Lookup CSV |
+| UnitOfMeasureClass   | qb-pcm       | Lookup CSV |
+| ProductSellingModel  | qb-pcm       | Lookup CSV |
+| UsageResource        | qb-rating    | Lookup CSV |
+| Pricebook2           | qb-pricing   | Lookup CSV |
+| RateCard             | This plan    | Upsert     |
+| RateCardEntry        | This plan    | Upsert     |
+
+## External ID / Composite Key Analysis (Confirmed via Org Describe)
+
+### Schema-Enforced Unique Fields
+
+**None found.** No rates objects have schema-enforced unique fields.
+
+### Auto-Numbered Name Fields
+
+| Object               | Name Auto-Num | Current ExternalId                                                       | Assessment |
+|----------------------|---------------|--------------------------------------------------------------------------|------------|
+| RateCardEntry        | **Yes**       | `Product.SKU;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | ✅ Good — 4-field composite from parents |
+| RateAdjustmentByTier | **Yes**       | `Product.SKU;RateCard.Name;RateUoM.UnitCode;UsageResource.Code;LowerBound;UpperBound` | ✅ Good — 6-field composite |
+| PriceBookRateCard    | **Yes**       | `PriceBook.Name;RateCard.Name;RateCardType`                              | ✅ Good — all parent refs |
+
+### ExternalId Assessment
+
+| Object               | Current ExternalId                  | isUnique | Assessment |
+|----------------------|-------------------------------------|----------|------------|
+| Product2             | `StockKeepingUnit`                  | No*      | ✅ OK — platform-enforced unique when RLM enabled |
+| RateCard             | `Name;Type`                         | No       | ✅ OK — 2-field composite, few records |
+| PriceBookRateCard    | `PriceBook.Name;RateCard.Name;Type` | No       | ✅ OK — 3-field composite |
+| RateCardEntry        | 4-field composite                   | No       | ✅ OK — comprehensive |
+| RateAdjustmentByTier | 6-field composite                   | No       | ✅ OK — tier bounds ensure uniqueness |
+
+### Composite Key Complexity
+
+| Object               | Key Fields | Complexity | Simplification? |
+|----------------------|-----------|------------|-----------------|
+| RateCard             | 2 (Name + Type) | Low | No — Name alone may not be unique across types |
+| PriceBookRateCard    | 3 fields | Medium | No — junction natural key |
+| RateCardEntry        | 4 fields | Medium | No — Product + RateCard + Resource + UoM is the natural key |
+| RateAdjustmentByTier | **6** fields | **High** | Possible — investigate if `RateCardEntry.Name + LowerBound + UpperBound` could work, but RCE.Name is auto-num |
+
+The 6-field RABT key avoids using `RateCardEntry.Name` (auto-numbered) by instead using the RCE's natural key components (Product.SKU, RateCard.Name, Resource.Code, UoM.UnitCode) plus the tier bounds. This is the correct portable approach.
+
+## Optimization Opportunities
+
+1. **Remove `Status` from RateCard SOQL**: Field does not exist in 260 schema — must be removed to prevent query errors
+2. **Fix `excludeIdsFromCSVFiles`**: Currently set to `"false"` — change to `"true"` for portability
+3. **Validate RateCard.Status in CSV**: Check if `RateCard.csv` has a Status column and remove it if present
+4. **Document read-only field strategy**: Many RABT and RCE fields are read-only (auto-populated) but included in SOQL for extraction — document this dual-purpose pattern clearly

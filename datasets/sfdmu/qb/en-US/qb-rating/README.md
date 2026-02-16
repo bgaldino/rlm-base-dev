@@ -300,3 +300,131 @@ This plan depends on the following having been loaded first:
 This plan is a prerequisite for:
 
 - **qb-rates** — RateCardEntry references ProductUsageResource, UsageResource, and Product2 records created here
+
+## 260 Schema Analysis (Confirmed via Org Describe)
+
+Schema was queried against a 260 scratch org. Findings below.
+
+### Polymorphic Fields
+
+**None found** (excluding standard OwnerId on UsageResource). All reference fields on rating objects are single-target lookups.
+
+### Self-Referencing Fields
+
+| Object         | Field             | Notes                                                    |
+|----------------|-------------------|----------------------------------------------------------|
+| **UsageResource** | `TokenResourceId` | Self-ref to UsageResource — already handled in plan     |
+
+This self-reference is well-understood and documented in the API 260 Known Issues section above. SFDMU handles it correctly because the token UsageResource records (QB-TOKEN) are inserted first (no parent ref), then usage resources that reference QB-TOKEN are inserted. The Apex activation script handles the complex TokenResourceId pre-population and clear+activate sequence.
+
+### New Fields Found in 260 (Not in Current SOQL)
+
+| Object                       | Field                    | Type      | Updateable | Notes                                                |
+|------------------------------|--------------------------|-----------|------------|-------------------------------------------------------|
+| **ProductUsageGrant**        | `ProductSellingModelId`  | REFERENCE | Yes        | Lookup to ProductSellingModel — selling model context for grant |
+| **ProductUsageResourcePolicy** | `ProductSellingModelId`| REFERENCE | Yes        | Lookup to ProductSellingModel — selling model context for policy |
+| **RatingFrequencyPolicy**    | `RatingDelayDurationUnit`| PICKLIST  | Yes        | Unit for rating delay (currently `RatingDelayDuration` is in SOQL without its unit) |
+| **UsageCommitmentPolicy**    | `CommitmentRate`         | PICKLIST  | Yes        | Commitment fulfilled rate — controls overage behavior  |
+
+### Field Coverage Audit
+
+| Object                       | Status | Notes                                                        |
+|------------------------------|--------|--------------------------------------------------------------|
+| UnitOfMeasure                | ✅     | All updateable fields present                                |
+| UnitOfMeasureClass           | ✅     | All updateable fields present                                |
+| UsageResourceBillingPolicy   | ✅     | All fields present (Code, Name, Status, methods, period)     |
+| UsageResource                | ✅     | All fields present including TokenResourceId self-ref        |
+| Product2                     | ✅     | Update only (UsageModelType) — correct                       |
+| UsageGrantRenewalPolicy      | ✅     | All fields present                                           |
+| UsageGrantRolloverPolicy     | ✅     | All fields present                                           |
+| UsageOveragePolicy           | ✅     | All fields present (Name, OverageChargeable)                 |
+| UsageCommitmentPolicy        | ⚠️     | Missing `CommitmentRate` (new picklist)                      |
+| ProductUsageResource         | ✅     | All fields present                                           |
+| UsagePrdGrantBindingPolicy   | ✅     | All fields present                                           |
+| RatingFrequencyPolicy        | ⚠️     | Missing `RatingDelayDurationUnit` (unit for delay duration)  |
+| ProductUsageResourcePolicy   | ⚠️     | Missing `ProductSellingModelId` (new lookup)                 |
+| ProductUsageGrant            | ⚠️     | Missing `ProductSellingModelId` (new lookup)                 |
+
+### Impact Assessment
+
+- **`ProductUsageGrant.ProductSellingModelId`** and **`ProductUsageResourcePolicy.ProductSellingModelId`**: These new lookups allow associating grants and policies with specific selling models. **High priority** — enables selling-model-specific usage grant configuration, which is a key 260 rating feature.
+- **`RatingFrequencyPolicy.RatingDelayDurationUnit`**: Complements the existing `RatingDelayDuration` field with its unit (currently only duration value is captured). **Medium priority** — incomplete without the unit.
+- **`UsageCommitmentPolicy.CommitmentRate`**: Controls commitment fulfillment rate behavior. **Medium priority** — the current SOQL only captures `Name`, missing the key functional field.
+
+### Cross-Object Dependencies
+
+| Lookup Target              | Source         | Status     |
+|----------------------------|----------------|------------|
+| Product2                   | qb-pcm         | Update only|
+| UnitOfMeasure              | qb-pcm/this    | Upsert     |
+| UnitOfMeasureClass         | qb-pcm/this    | Upsert     |
+| UsageResourceBillingPolicy | qb-billing/this| Upsert     |
+| UsageResource              | This plan      | Upsert     |
+| UsageGrantRenewalPolicy    | This plan      | Upsert     |
+| UsageGrantRolloverPolicy   | This plan      | Upsert     |
+| UsageOveragePolicy         | This plan      | Upsert     |
+| UsageCommitmentPolicy      | This plan      | Upsert     |
+| RatingFrequencyPolicy      | This plan      | Upsert     |
+| ProductSellingModel        | qb-pcm         | Not in plan (new ref) |
+
+**Note:** The new `ProductSellingModelId` lookup on ProductUsageGrant and ProductUsageResourcePolicy references ProductSellingModel from qb-pcm. If these fields are populated, a Readonly ProductSellingModel entry may need to be added to this plan for lookup resolution.
+
+## External ID / Composite Key Analysis (Confirmed via Org Describe)
+
+### Schema-Enforced Unique Fields
+
+| Object                     | Field  | isUnique | isIdLookup | Current ExternalId Uses It? |
+|----------------------------|--------|----------|------------|------------------------------|
+| UsageResource              | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
+| UsageResourceBillingPolicy | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
+| UsageGrantRenewalPolicy    | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
+| UsageGrantRolloverPolicy   | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
+| UnitOfMeasureClass         | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
+
+All schema-unique fields are already correctly used as externalIds.
+
+### Fields NOT Schema-Unique but Used as ExternalId
+
+| Object                  | Current ExternalId                  | Name AutoNum | isUnique | Risk |
+|-------------------------|-------------------------------------|-------------|----------|------|
+| UnitOfMeasure           | `UnitCode`                          | No*         | No*      | OK — likely platform-enforced when RLM enabled (verify) |
+| UsageOveragePolicy      | `Name`                              | No          | No       | Low — 2 records |
+| UsageCommitmentPolicy   | `Name`                              | No          | No       | Low — 1 record |
+| UsagePrdGrantBindingPolicy | `Name;Product2.SKU`              | No          | No       | Low — 1 record |
+| RatingFrequencyPolicy   | `RatingPeriod`                      | **Yes**     | No       | ⚠️ Picklist — only unique if 1 policy per period |
+
+### Portability Concern: RatingFrequencyPolicy
+
+`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there is 1 record (RatingPeriod = some value), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
+
+**Note:** RatingFrequencyPolicy has auto-numbered Name (`autoNum=true`), so Name cannot be used as a portable alternative.
+
+### Auto-Numbered Name Fields
+
+| Object                       | Name Field Type          | Current ExternalId                                     | Assessment |
+|------------------------------|--------------------------|--------------------------------------------------------|------------|
+| ProductUsageResource         | `ProductUsageResourceNum` (auto-num) | `Product.SKU;UsageResource.Code`           | ✅ Good — both parents have portable keys |
+| ProductUsageGrant            | `ProductUsageGrantNum` (auto-num) | 5-field composite from parents               | ✅ Good — comprehensive |
+| ProductUsageResourcePolicy   | `ProductUsageResourcePolicyNum` (auto-num) | `ProductUsageResource.$$Product.SKU$UsageResource.Code` | ✅ Good — references parent composite |
+| RatingFrequencyPolicy        | Auto-num                 | `RatingPeriod`                                          | ⚠️ Picklist only (see above) |
+
+### Composite Key Complexity
+
+| Object                       | Key Fields | Complexity | Simplification? |
+|------------------------------|-----------|------------|-----------------|
+| UnitOfMeasure                | 1 (`UnitCode`) | Simple | No |
+| UnitOfMeasureClass           | 1 (`Code`) | Simple | No — schema-unique |
+| UsageResource                | 1 (`Code`) | Simple | No — schema-unique |
+| ProductUsageResource         | 2 (Product.SKU + Resource.Code) | Low | No — junction natural key |
+| UsagePrdGrantBindingPolicy   | 2 (Name + Product2.SKU) | Low | No |
+| ProductUsageResourcePolicy   | 1 (parent PUR's `$$` composite) | Medium | No — correct SFDMU pattern |
+| ProductUsageGrant            | **5** fields | **High** | No — all 5 required for uniqueness (grant per product per UoM per PUR) |
+
+## Optimization Opportunities
+
+1. **Add `ProductSellingModelId` to PUG and PURP SOQL**: New 260 field for selling-model-specific usage grants and policies. May require adding ProductSellingModel as Readonly in this plan.
+2. **Add `CommitmentRate` to UsageCommitmentPolicy SOQL**: Key functional field missing from current query
+3. **Add `RatingDelayDurationUnit` to RatingFrequencyPolicy SOQL**: Completes the delay duration configuration
+4. **Investigate RatingFrequencyPolicy externalId**: If more policies per period are expected, switch to a composite key
+5. **Fix `excludeIdsFromCSVFiles`**: Currently set to `"false"` — change to `"true"` for portability (same concern as qb-tax)
+6. **Coordinate LegalEntity fields**: If qb-billing or qb-tax add LegalEntity geo/email fields, this plan's upstream dependencies should be kept in sync
