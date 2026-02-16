@@ -1,9 +1,15 @@
 {
+  "$comment_plan": "qb-rates SFDMU data plan - creates rate cards, rate card entries, rate adjustment tiers, and pricebook-rate card associations. Split into two object sets because RateAdjustmentByTier requires its parent RateCardEntry to be Active before insert (cross-reference access error otherwise).",
+  "$comment_pass1": "Pass 1 (object set 0): Insert RateCard, RateCardEntry (Draft), PriceBookRateCard. RateCardEntry activation must happen externally (activateRateCardEntries.apex) before Pass 2.",
+  "$comment_pass2": "Pass 2 (object set 1): Insert RateAdjustmentByTier against now-Active RateCardEntry records.",
+  "$comment_composite_keys": "IMPORTANT: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). Without this column, SFDMU inserts duplicates on re-runs instead of matching existing records.",
+  "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
   "objectSets": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
+      "name": "Pass 1 - RateCard, RateCardEntry (Draft), PriceBookRateCard",
       "objects": [
         {
           "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
@@ -12,27 +18,63 @@
           "excluded": false
         },
         {
-          "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
+          "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Status, Type FROM RateCard ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name;Type",
           "excluded": false
         },
         {
-          "query": "SELECT PriceBookId, RateCardId, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
+          "query": "SELECT PriceBookId, PriceBook.Name, RateCardId, RateCard.Name, RateCard.Type, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
           "operation": "Upsert",
           "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
           "excluded": false
         },
         {
-          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, Status, UsageResourceId, UsageResource.Code FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
+          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.Name, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, Rate, RateCardId, RateCard.Name, RateCard.Type, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureClass.Name, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, Status, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
           "operation": "Upsert",
+          "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Pass 2 - RateAdjustmentByTier (requires Active RateCardEntry)",
+      "$comment_pass2_parents": "Readonly parent objects provide SFDMU with correct externalIds for parent lookup resolution when this object set runs independently via object_sets filtering.",
+      "objects": [
+        {
+          "query": "SELECT Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, Type FROM RateCard ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name;Type",
+          "excluded": false
+        },
+        {
+          "query": "SELECT UnitCode, Name FROM UnitOfMeasure ORDER BY UnitCode ASC",
+          "operation": "Readonly",
+          "externalId": "UnitCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, Name FROM UsageResource ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Product.StockKeepingUnit, RateCard.Name, UsageResource.Code, RateUnitOfMeasure.UnitCode, Status FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
+          "operation": "Readonly",
           "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
+          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, RateCardEntryId, RateCardEntry.Product.StockKeepingUnit, RateCardEntry.RateCard.Name, RateCardEntry.UsageResource.Code, RateCardEntry.RateUnitOfMeasure.UnitCode, RateCardEntryStatus, RateCardId, RateCard.Name, RateUnitOfMeasureName, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, UpperBound, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC, LowerBound ASC",
           "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
+          "externalId": "Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
           "excluded": false
         }
       ]

@@ -110,3 +110,5 @@ agents256*/**
 unpackaged/*bak/**
 .claude/settings.local.json
 datasets/sfdmu/reconcile/**
+datasets/sfdmu/extractions/**
+datasets/sfdmu/**/*.csv.bak

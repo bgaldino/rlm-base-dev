@@ -24,6 +24,7 @@ except ImportError:
 # Constants
 LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusername {targetusername} -p {pathtoexportjson} --canmodify {instanceurl} --noprompt --verbose"
 SCRATCHORG_LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusername {targetusername} -p {pathtoexportjson} --canmodify {instanceurl} --noprompt --verbose"
+EXTRACT_COMMAND = "sf sfdmu run --sourceusername {sourceusername} --targetusername CSVFILE -p {pathtoexportjson} --noprompt --verbose"
 EXPORT_JSON_FILENAME = "export.json"
 DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
 DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "UserAndGroup.csv")
@@ -336,3 +337,209 @@ class LoadSFDMUData(SFDXBaseTask):
         
     def _trim_instance_url(self, url: str) -> str:
         return url.replace("https://", "").replace("http://", "")
+
+
+class ExtractSFDMUData(SFDXBaseTask):
+    """Extract data from a Salesforce org into CSV files using SFDMU.
+
+    Uses the same export.json as LoadSFDMUData but reverses the direction:
+    the org becomes the source and CSVFILE becomes the target.  SFDMU writes
+    one CSV per queried object into the plan directory (or a separate output
+    directory when ``output_dir`` is specified).
+
+    Relationship traversal fields in the SOQL queries (e.g.
+    Product.StockKeepingUnit) are resolved during extraction, producing
+    portable CSVs with human-readable names/codes instead of raw Salesforce
+    Ids.
+    """
+
+    keychain_class = BaseProjectKeychain
+    task_options: Dict[str, Dict[str, Any]] = {
+        "pathtoexportjson": {
+            "description": "Directory path containing the export.json to use for extraction",
+            "required": True
+        },
+        "sourceusername": {
+            "description": "Username or alias of the org to extract from.  Defaults to the current CCI org.",
+            "required": False
+        },
+        "output_dir": {
+            "description": (
+                "Directory where extracted CSVs will be written.  "
+                "If omitted, SFDMU writes CSVs into the plan directory itself.  "
+                "When set, the export.json is copied to a temp working directory "
+                "and SFDMU writes its output there, then CSVs are moved to output_dir."
+            ),
+            "required": False
+        },
+        "object_sets": {
+            "description": "Optional list of 0-based object set indices to extract (e.g. [0] for Pass 1 only).  If omitted, all object sets are extracted.",
+            "required": False
+        }
+    }
+
+    def _init_options(self, kwargs: Dict[str, Any]) -> None:
+        super(ExtractSFDMUData, self)._init_options(kwargs)
+        self.env = self._get_env()
+        self.keychain: Optional[BaseProjectKeychain] = None
+
+    @property
+    def keychain_cls(self):
+        return self.get_keychain_class() or self.keychain_class
+
+    @abstractmethod
+    def get_keychain_class(self):
+        return None
+
+    @property
+    def keychain_key(self):
+        return self.get_keychain_key()
+
+    @abstractmethod
+    def get_keychain_key(self):
+        return None
+
+    def _load_keychain(self) -> None:
+        if self.keychain is not None:
+            return
+        keychain_key = self.keychain_key if self.keychain_cls.encrypted else None
+        if self.project_config is None:
+            self.keychain = self.keychain_cls(self.universal_config, keychain_key)
+        else:
+            self.keychain = self.keychain_cls(self.project_config, keychain_key)
+            self.project_config.keychain = self.keychain
+
+    def _prepare_working_dir(self) -> str:
+        """Create a temporary working directory with a copy of the export.json.
+
+        SFDMU writes extracted CSVs into the directory that contains
+        export.json.  To avoid clobbering the version-controlled plan CSVs we
+        copy only the export.json to a temp dir and point SFDMU there.
+        """
+        plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        export_json_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
+        if not os.path.isfile(export_json_path):
+            raise FileNotFoundError(f"export.json not found: {export_json_path}")
+
+        work_dir = tempfile.mkdtemp(prefix="sfdmu_extract_")
+        shutil.copy2(export_json_path, os.path.join(work_dir, EXPORT_JSON_FILENAME))
+        self.logger.info(f"Created extraction working directory: {work_dir}")
+        return work_dir
+
+    def _prepare_export_json(self, work_dir: str) -> None:
+        """Inject org credentials and optional object_sets filter."""
+        export_json_path = os.path.join(work_dir, EXPORT_JSON_FILENAME)
+        with open(export_json_path, "r") as f:
+            export_json = json.load(f)
+
+        object_sets = self.options.get("object_sets")
+        if object_sets is not None:
+            all_sets = export_json.get("objectSets", [])
+            filtered = [all_sets[i] for i in object_sets if 0 <= i < len(all_sets)]
+            if len(filtered) < len(object_sets):
+                raise TaskOptionsError(
+                    f"object_sets {object_sets} out of range for {len(all_sets)} object sets"
+                )
+            export_json["objectSets"] = filtered
+            self.logger.info(f"Extracting only object sets (0-based): {object_sets}")
+
+        # For extraction the source is the org; inject auth so SFDMU can connect
+        org_data = {
+            "name": self.sourceusername,
+            "accessToken": self.accesstoken,
+            "instanceUrl": self.instanceurl,
+        }
+        export_json["orgs"] = [org_data]
+
+        with open(export_json_path, "w") as f:
+            json.dump(export_json, f, indent=2)
+
+        self.logger.info(f"Prepared export.json for extraction in {work_dir}")
+
+    def _collect_output(self, work_dir: str) -> str:
+        """Move extracted CSVs from work_dir to the output_dir (or plan dir).
+
+        Returns the final output directory path.
+        """
+        output_dir = self.options.get("output_dir")
+        plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        if not output_dir:
+            # Default: timestamped subdirectory under datasets/sfdmu/extractions/<plan_name>/
+            plan_name = os.path.basename(os.path.normpath(plan_dir))
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
+            output_dir = os.path.join(
+                os.path.dirname(plan_dir), "..", "..", "extractions", plan_name, timestamp
+            )
+            output_dir = os.path.normpath(output_dir)
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        csv_count = 0
+        for fname in os.listdir(work_dir):
+            if fname.endswith(".csv"):
+                src = os.path.join(work_dir, fname)
+                dst = os.path.join(output_dir, fname)
+                shutil.move(src, dst)
+                csv_count += 1
+                self.logger.info(f"  {fname}")
+
+        self.logger.info(f"Collected {csv_count} CSV files to {output_dir}")
+        return output_dir
+
+    def _run_task(self) -> None:
+        work_dir = None
+        try:
+            # Resolve org credentials
+            if "org" not in self.options or not self.options["org"]:
+                self._load_keychain()
+
+            plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+            if not os.path.isdir(plan_dir):
+                raise FileNotFoundError(f"Plan directory not found: {plan_dir}")
+
+            if isinstance(self.org_config, ScratchOrgConfig):
+                self.sourceusername = self.org_config.username
+            else:
+                self.sourceusername = self.options.get("sourceusername") or self.org_config.access_token
+
+            self.accesstoken = self.org_config.access_token
+            self.instanceurl = self.org_config.instance_url
+
+            # Prepare isolated working directory
+            work_dir = self._prepare_working_dir()
+            self._prepare_export_json(work_dir)
+
+            # Build and run SFDMU extract command
+            cmd = EXTRACT_COMMAND.format(
+                sourceusername=self.sourceusername,
+                pathtoexportjson=work_dir,
+            )
+            self.logger.info(f"Executing extraction: {cmd}")
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True,
+                cwd=self.options.get("dir"),
+            )
+
+            for line in result.stdout.splitlines():
+                self.logger.info(line)
+
+            if result.returncode != 0:
+                self.logger.error(f"SFDMU extraction failed (exit {result.returncode})")
+                self.logger.error(f"STDERR: {result.stderr}")
+                raise CommandException(
+                    f"SFDMU extraction failed with exit code {result.returncode}"
+                )
+
+            # Move CSVs to final destination
+            output_dir = self._collect_output(work_dir)
+            self.logger.info(f"Extraction complete. Output: {output_dir}")
+            self.return_values = {"output_dir": output_dir}
+
+        except Exception as e:
+            self.logger.error(f"Extraction error: {e}")
+            raise
+        finally:
+            if work_dir and os.path.isdir(work_dir):
+                shutil.rmtree(work_dir, ignore_errors=True)
+                self.logger.info("Cleaned up extraction working directory.")

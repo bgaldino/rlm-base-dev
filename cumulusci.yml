@@ -1339,6 +1339,34 @@ tasks:
     options:
       path: scripts/apex/activateRateCardEntries.apex
 
+#--------------------#
+# EXTRACTION TASKS   #
+#--------------------#
+# These tasks extract data from a Salesforce org into CSV files using SFDMU.
+# They reuse the same export.json as the import tasks but reverse the direction
+# (org → CSVFILE). Extracted CSVs include relationship traversal fields for portability.
+
+  extract_qb_rating_data:
+    group: Revenue Lifecycle Management
+    description: Extract QuantumBit Rating Data from org to CSV
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rating_dataset
+
+  extract_qb_rates_data:
+    group: Revenue Lifecycle Management
+    description: Extract QuantumBit Rates Data from org to CSV
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rates_dataset
+
+  post_process_extraction:
+    group: Revenue Lifecycle Management
+    description: Post-process extracted CSVs into import-ready format
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: "python3 scripts/post_process_extraction.py {extraction_dir} {plan_dir}"
+
 #------------------#
 # PYTHON CCI TASKS #
 #------------------#
@@ -1842,6 +1870,8 @@ flows:
       3:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
+        options:
+          object_sets: [0]
       4:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
@@ -1851,6 +1881,20 @@ flows:
       6:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
+      7:
+        task: insert_qb_rates_data
+        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
+        options:
+          object_sets: [1]
+
+  extract_rating:
+    group: Revenue Lifecycle Management
+    description: Extract rating and rates data from an org into CSV files
+    steps:
+      1:
+        task: extract_qb_rating_data
+      2:
+        task: extract_qb_rates_data
   
   prepare_agents:
     group: Revenue Lifecycle Management

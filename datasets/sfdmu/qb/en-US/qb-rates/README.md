@@ -11,9 +11,10 @@ This plan is executed as **step 3** of the `prepare_rating` flow (when `rating=t
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
 | 1    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
-| 3    | `insert_qb_rates_data`   | **Runs this SFDMU plan (1 pass)**                  |
+| 3    | `insert_qb_rates_data`   | **Runs this plan Pass 1** (`object_sets: [0]`)     |
 | 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
 | 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+| 7    | `insert_qb_rates_data`   | **Runs this plan Pass 2** (`object_sets: [1]`) — RABT |
 
 ### Task Definition
 
@@ -26,16 +27,16 @@ insert_qb_rates_data:
 
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** followed by **Apex activation**:
+The plan uses **2 SFDMU passes** with **Apex activation** between them:
 
 ```
-Pass 1 (SFDMU)               Apex Activation
-─────────────────             ─────────────────
-Insert/Upsert all        →   activateRateCardEntries.apex
-objects in Draft status       (activate RateCardEntry)
+Pass 1 (SFDMU)               Apex Activation            Pass 2 (SFDMU)
+-----------------             -----------------          -----------------
+RateCard, RateCardEntry  ->  activate_rates           -> RateAdjustmentByTier
+(Draft), PriceBookRateCard   (RateCardEntry > Active)    (requires Active RCE)
 ```
 
-### Pass 1 — Insert/Upsert with Draft Status
+### Pass 1 — RateCard, RateCardEntry (Draft), PriceBookRateCard
 
 | # | Object               | Operation | External ID                                                                          | Records |
 |---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
@@ -43,9 +44,21 @@ objects in Draft status       (activate RateCardEntry)
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
 | 3 | PriceBookRateCard    | Upsert    | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 3       |
 | 4 | RateCardEntry        | Upsert    | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 19     |
-| 5 | RateAdjustmentByTier | Upsert    | `Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 22 |
 
-**Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status and activated via Apex.
+**Note:** Product2 is an `Update` operation -- it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status and activated via Apex before Pass 2 can run.
+
+### Pass 2 — RateAdjustmentByTier (requires Active RateCardEntry)
+
+| # | Object               | Operation | External ID                                                                          | Records |
+|---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
+| 1 | Product2             | Readonly  | `StockKeepingUnit`                                                                   | —       |
+| 2 | RateCard             | Readonly  | `Name;Type`                                                                          | —       |
+| 3 | UnitOfMeasure        | Readonly  | `UnitCode`                                                                           | —       |
+| 4 | UsageResource        | Readonly  | `Code`                                                                               | —       |
+| 5 | RateCardEntry        | Readonly  | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | —     |
+| 6 | RateAdjustmentByTier | Upsert    | `Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 22 |
+
+**Note:** Readonly parent objects in Pass 2 provide SFDMU with correct externalIds for parent lookup resolution when this object set runs independently via `object_sets` filtering. RateAdjustmentByTier uses individual relationship traversal fields in its externalId, with a `$$` column in the CSV for idempotent matching and a separate `RateCardEntry.$$...` column for parent resolution.
 
 ### Lookup Reference CSVs
 
@@ -183,11 +196,39 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | One-Time    | One-time purchase (token packs)|
 | Term Annual | Annual term subscription       |
 
+## Data Extraction
+
+This plan supports **bidirectional** operation: in addition to importing data (CSV > org), it can extract data from any org into portable CSVs.
+
+### Extraction via CCI
+
+```bash
+# Extract rates data from the current default org
+cci task run extract_qb_rates_data
+
+# Or use the extract_rating flow to extract both rating and rates
+cci flow run extract_rating
+```
+
+### Post-Processing
+
+```bash
+# Diff only (compare extraction against current plan)
+python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-rates --diff-only
+
+# Process and write import-ready CSVs
+python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-rates --output-dir <output-dir>
+```
+
+### Dual-Purpose SOQL Queries
+
+The SOQL queries in `export.json` include relationship traversal fields (e.g., `Product.StockKeepingUnit`, `RateCard.Name`, `UsageResource.Code`) alongside raw ID fields. During **import**, SFDMU uses these for lookup resolution. During **extraction**, these fields are populated with human-readable values, producing portable CSVs without raw Salesforce IDs.
+
 ## File Structure
 
 ```
 qb-rates/
-├── export.json                # SFDMU data plan (1 pass)
+├── export.json                # SFDMU data plan (2 passes)
 ├── README.md                  # This file
 │
 │  Source CSVs (data to load)
@@ -219,5 +260,7 @@ This plan depends on the following having been loaded first:
 ## Idempotency
 
 - **RateCard**, **PriceBookRateCard**, and **RateCardEntry** use `Upsert` with composite external IDs, so re-runs update existing records rather than creating duplicates.
-- **RateAdjustmentByTier** uses a 6-field composite external ID (`Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound`) ensuring each tier range is unique.
+- **RateAdjustmentByTier** uses a 6-field composite external ID (`Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound`) ensuring each tier range is unique. The parent RateCardEntry is resolved via a `$$` composite column in the CSV (`RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode`) alongside individual relationship columns. The externalId uses individual fields (not `$$` notation) to avoid SOQL parse errors in multi-component externalIds.
 - **Product2** uses `Update` by `StockKeepingUnit`, so only existing products are modified.
+
+**Key requirement:** Objects with multi-component composite `externalId` definitions require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values. Without this column, SFDMU inserts duplicates on re-runs. SFDMU auto-generates these columns during extraction.

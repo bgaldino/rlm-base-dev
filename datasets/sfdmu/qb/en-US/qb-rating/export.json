@@ -1,8 +1,10 @@
 {
   "$comment_plan": "qb-rating SFDMU data plan - creates and activates rating/usage objects",
-  "$comment_pass1": "Pass 1: Upsert/Insert all objects in Draft status. Objects with composite externalId use SFDMU notation (Field1;Field2) for matching. ProductUsageResourcePolicy and ProductUsageGrant use Insert/Id because they lack suitable unique external IDs.",
-  "$comment_pass2": "Pass 2: Activate UnitOfMeasureClass and UsageResource (Status→Active). PUR/PUG activation is handled by the Apex script (activateRatingRecords.apex) due to complex API 260 ordering constraints.",
+  "$comment_pass1": "Pass 1: Upsert all objects in Draft status. Objects with composite externalId use semicolon-separated relationship traversal fields (Field1;Field2) for matching.",
+  "$comment_pass2": "Pass 2: Activate UnitOfMeasureClass and UsageResource (Status > Active). PUR/PUG activation is handled by the Apex script (activateRatingRecords.apex) due to complex API 260 ordering constraints.",
   "$comment_260": "API 260 notes: QB-DB;QB-TOKEN (Token PUR for Anchor product) is required before QB-DB Usage PURs can activate. CommitmentSpend optional PURs (QB-MTY-CMT;UR-CPUTIME/UR-DATASTORAGE) are excluded due to platform TokenResourceId auto-population conflict.",
+  "$comment_composite_keys": "IMPORTANT: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). Without this column, SFDMU inserts duplicates on re-runs instead of matching existing records. Single-component externalIds do not need a $$ column.",
+  "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, UsageResource.Code) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,
@@ -11,13 +13,13 @@
       "name": "First Pass - Insert/Upsert with Draft Status",
       "objects": [
         {
-          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure ORDER BY UnitCode ASC",
+          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId, UnitOfMeasureClass.Code FROM UnitOfMeasure ORDER BY UnitCode ASC",
           "operation": "Upsert",
           "externalId": "UnitCode",
           "excluded": false
         },
         {
-          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "query": "SELECT Code, BaseUnitOfMeasureId, BaseUnitOfMeasure.UnitCode, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
@@ -29,7 +31,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, Status, TokenResourceId, UnitOfMeasureClassId, DefaultUnitOfMeasureId, UsageResourceBillingPolicyId FROM UsageResource ORDER BY Code ASC",
+          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, UsageResourceBillingPolicyId, UsageResourceBillingPolicy.Code FROM UsageResource ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
@@ -65,33 +67,33 @@
           "excluded": false
         },
         {
-          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Status, TokenResourceId, UsageResourceId FROM ProductUsageResource",
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UsageResourceId, UsageResource.Code FROM ProductUsageResource",
           "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
           "excluded": false
         },
         {
-          "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Name FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
+          "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Product2.StockKeepingUnit, Name FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "Name;Product2.StockKeepingUnit",
           "excluded": false
         },
         {
-          "query": "SELECT ProductId, RatingDelayDuration, RatingPeriod, UsageResourceId FROM RatingFrequencyPolicy",
+          "query": "SELECT ProductId, Product.StockKeepingUnit, RatingDelayDuration, RatingPeriod, UsageResourceId, UsageResource.Code FROM RatingFrequencyPolicy",
           "operation": "Upsert",
           "externalId": "RatingPeriod",
           "excluded": false
         },
         {
-          "query": "SELECT ProductUsageResourceId, RatingFrequencyPolicyId, UsageAggregationPolicyId, UsageCommitmentPolicyId, UsageOveragePolicyId FROM ProductUsageResourcePolicy",
-          "operation": "Insert",
-          "externalId": "Id",
+          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy",
+          "operation": "Upsert",
+          "externalId": "ProductUsageResource.$$Product.StockKeepingUnit$UsageResource.Code",
           "excluded": false
         },
         {
-          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, Quantity, RenewalPolicyId, RolloverPolicyId, Status, Type, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
-          "operation": "Insert",
-          "externalId": "Id",
+          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
+          "operation": "Upsert",
+          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;ProductUsageResource.Product.StockKeepingUnit;ProductUsageResource.UsageResource.Code",
           "excluded": false
         }
       ]

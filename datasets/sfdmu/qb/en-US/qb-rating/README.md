@@ -11,9 +11,10 @@ This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=t
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
 | 1    | `insert_qb_rating_data`  | Runs this SFDMU plan (2 passes)                    |
-| 3    | `insert_qb_rates_data`   | Runs the qb-rates SFDMU plan (depends on this)     |
+| 3    | `insert_qb_rates_data`   | Runs qb-rates Pass 1 (`object_sets: [0]`)          |
 | 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
 | 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+| 7    | `insert_qb_rates_data`   | Runs qb-rates Pass 2 (`object_sets: [1]`) — RABT   |
 
 ### Task Definition
 
@@ -31,7 +32,7 @@ The plan uses **2 SFDMU passes** followed by **Apex activation**:
 ```
 Pass 1 (SFDMU)          Pass 2 (SFDMU)         Apex Activation
 ─────────────────        ─────────────────      ─────────────────
-Insert/Upsert all   →   Activate UoMClass  →   activateRatingRecords.apex
+Insert/Upsert all   ->  Activate UoMClass  ->  activateRatingRecords.apex
 objects in Draft         and UsageResource       (7-step PUR/PUG activation)
 ```
 
@@ -53,10 +54,10 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 10| ProductUsageResource         | Upsert    | `Product.StockKeepingUnit;UsageResource.Code`        | 20      |
 | 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 1       |
 | 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 1       |
-| 13| ProductUsageResourcePolicy   | Insert    | `Id`                                                 | 17      |
-| 14| ProductUsageGrant            | Insert    | `Id`                                                 | 17      |
+| 13| ProductUsageResourcePolicy   | Upsert    | `ProductUsageResource.$$Product.StockKeepingUnit$UsageResource.Code` | 17      |
+| 14| ProductUsageGrant            | Upsert    | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;ProductUsageResource.Product.StockKeepingUnit;ProductUsageResource.UsageResource.Code` | 17      |
 
-**Why Insert for PURP and PUG?** These objects lack suitable unique external IDs for Upsert. Using `Insert` with `externalId: "Id"` ensures clean inserts each time. The `cleanupRatingRecords.apex` script can be used to delete existing records before re-running.
+**Composite keys for PURP and PUG:** These objects reference their parent ProductUsageResource (which has a composite externalId) for portable cross-org compatibility. ProductUsageResourcePolicy uses `$$` composite key notation as its sole externalId (SFDMU expands this to individual SOQL fields). ProductUsageGrant uses individual relationship traversal fields in its externalId (avoids `$$` in multi-component externalIds which breaks SOQL), with a separate `$$` column in the CSV for parent resolution. ProductUsageResourcePolicy is uniquely identified by its parent PUR (17 rows, 17 unique keys). ProductUsageGrant requires 5 fields for uniqueness: the usage definition product, UoM class, UoM, and the parent PUR's product and resource.
 
 ### Pass 2 — Activate UnitOfMeasureClass and UsageResource
 
@@ -65,7 +66,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 1 | UnitOfMeasureClass | Update    | `Code`      | 5       |
 | 2 | UsageResource      | Update    | `Code`      | 5       |
 
-Only UoMClass and UsageResource are activated in SFDMU. PUR and PUG activation requires a specific ordering enforced by the Apex script.
+Only UoMClass and UsageResource are explicitly activated in SFDMU. On API 260 scratch orgs, PUR and PUG records auto-activate when their parent records (UoMClass, UsageResource, Product2) are all Active, making `activate_rating_records` effectively a no-op. The Apex script is retained as a safety net for upgraded orgs or environments where auto-activation may not occur.
 
 ## Apex Activation Script
 
@@ -75,12 +76,12 @@ PUR and PUG activation follows a strict 6-step dependency order:
 
 | Step | What                                      | Why                                                                |
 |------|-------------------------------------------|--------------------------------------------------------------------|
-| 1    | UnitOfMeasureClass → Active               | Safety net (Pass 2 should already do this)                         |
-| 2    | UsageResource → Active                    | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
+| 1    | UnitOfMeasureClass -> Active              | Safety net (Pass 2 should already do this)                         |
+| 2    | UsageResource -> Active                   | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
 | 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 4 (see below)                 |
-| 4    | ALL non-Token PUR → clear+activate        | TokenResourceId=null + Status='Active' in single DML               |
-| 5    | Token PUR → Active                        | Token PURs are not subject to auto-population                      |
-| 6    | ProductUsageGrant → Active                | Depends on parent PUR being active                                 |
+| 4    | ALL non-Token PUR -> clear+activate       | TokenResourceId=null + Status='Active' in single DML               |
+| 5    | Token PUR -> Active                       | Token PURs are not subject to auto-population                      |
+| 6    | ProductUsageGrant -> Active               | Depends on parent PUR being active                                 |
 
 **Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 4 only prevents auto-population when `TokenResourceId` changes from a non-null value to null — a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 4's clear is a real change.
 
@@ -173,7 +174,7 @@ When activating a PUR (`Status='Active'`), the platform auto-populates `TokenRes
 
 **Critical nuance:** The clear+activate only works when `TokenResourceId` changes from a **non-null** value to null. A null-to-null "clear" is a no-op and does NOT prevent auto-population. This is why Step 3 of the Apex script pre-populates `TokenResourceId` on Draft PURs where it is missing -- ensuring Step 4's clear is a real field change.
 
-### Excluded Records (258 → 260 Migration Gap)
+### Excluded Records (258 -> 260 Migration Gap)
 
 The following PURs and their dependent PURP/PUG records are **excluded** from this plan because they cannot be activated in API 260:
 
@@ -216,23 +217,79 @@ qb-rating/
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
 │   └── object-set-2/
-│       ├── UnitOfMeasureClass.csv       # 5 records (Status → Active)
-│       └── UsageResource.csv            # 5 records (Status → Active)
+│       ├── UnitOfMeasureClass.csv       # 5 records (Status > Active)
+│       └── UsageResource.csv            # 5 records (Status > Active)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
 └── target/                              # SFDMU-generated target snapshots
 ```
 
-## Cleanup / Re-run
+## Data Extraction
 
-To delete all rating records for a clean re-run:
+This plan supports **bidirectional** operation: in addition to importing data (CSV > org), it can extract data from any org into portable CSVs.
+
+### Extraction via CCI
 
 ```bash
+# Extract rating data from the current default org
+cci task run extract_qb_rating_data
+
+# Or use the extract_rating flow to extract both rating and rates
+cci flow run extract_rating
+```
+
+### Extraction via SFDMU Directly
+
+```bash
+sf sfdmu run --sourceusername <org-alias> --targetusername CSVFILE -p datasets/sfdmu/qb/en-US/qb-rating --noprompt --verbose
+```
+
+### Post-Processing Extracted CSVs
+
+Raw SFDMU extraction output contains `Active` status values and may have different column ordering. Use the post-processor to convert:
+
+```bash
+# Diff only (compare extraction against current plan)
+python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-rating --diff-only
+
+# Process and write import-ready CSVs
+python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-rating --output-dir <output-dir>
+
+# Process and update the plan in place
+python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-rating --copy-to-plan
+```
+
+The post-processor:
+- Rewrites `Status` fields from `Active`/`Inactive` to `Draft`
+- Aligns column order to match the existing plan CSVs
+- Aligns composite key columns (individual relationship fields preferred over legacy `$$` notation)
+- Generates `objectset_source/` CSVs for Pass 2
+- Produces a diff report comparing extraction against the current plan
+
+### Dual-Purpose SOQL Queries
+
+The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`) and relationship traversal fields (e.g., `Product.StockKeepingUnit`). During **import**, SFDMU uses the traversal fields for lookup resolution. During **extraction**, SFDMU populates these fields with human-readable values (names, codes, SKUs) instead of raw Salesforce IDs, producing portable CSVs.
+
+## Idempotency
+
+This plan is **idempotent**. Re-running `insert_qb_rating_data` on an org that already has the data will match all existing records via composite external IDs and leave them untouched (zero new inserts). This was verified on API 260 scratch orgs with records in both Draft and Active states.
+
+**Key requirement:** Objects with multi-component composite `externalId` definitions (ProductUsageGrant, ProductUsageResourcePolicy, ProductUsageResource, UsagePrdGrantBindingPolicy) require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values (e.g., `val1;val2`). Without this column, SFDMU inserts duplicates on re-runs. SFDMU auto-generates these columns during extraction.
+
+## Cleanup / Re-run
+
+Two cleanup scripts are available:
+
+```bash
+# Full cleanup — deletes PUG, PURP, PUR, and policies in reverse dependency order
+cci task run execute_anon --path scripts/apex/deleteQbRatingData.apex --org <alias>
+
+# Legacy cleanup — similar scope, different implementation
 cci task run execute_anon --path scripts/apex/cleanupRatingRecords.apex --org <alias>
 ```
 
-This script deletes PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. It does **not** delete UoM, UoMClass, UsageResource, or UsageResourceBillingPolicy (managed by qb-billing/qb-pcm).
+These scripts delete PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. They do **not** delete UoM, UoMClass, UsageResource, or UsageResourceBillingPolicy (managed by qb-billing/qb-pcm).
 
 ## Dependencies
 
