@@ -9,12 +9,13 @@
 //   sf apex run --target-org <alias> --file scripts/apex/activateRatingRecords.apex
 //
 // Activation order (6 steps):
-//   1. UnitOfMeasureClass → Active  (safety net; SFDMU Pass 2 handles this)
-//   2. UsageResource → Active       (safety net; SFDMU Pass 2 handles this)
+//   1. UnitOfMeasureClass > Active  (safety net; SFDMU Pass 2 handles this)
+//   2. UsageResource > Active       (safety net; SFDMU Pass 2 handles this)
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
-//   4. ALL non-Token PUR → clear+activate (TokenResourceId=null + Status='Active')
-//   5. Token PUR → Active
-//   6. ProductUsageGrant → Active
+//   4. Token PUR > Active           (must precede Step 5; products with Token PURs
+//                                    require them Active before usage PURs can activate)
+//   5. ALL non-Token PUR > clear+activate (TokenResourceId=null + Status='Active')
+//   6. ProductUsageGrant > Active
 //
 // API 260 Platform Behaviors:
 //   - Auto-population: The platform auto-populates TokenResourceId on non-Token
@@ -28,17 +29,17 @@
 //
 //   - Clear+activate workaround: Setting TokenResourceId=null AND Status='Active'
 //     in a single DML prevents auto-population — BUT only when TokenResourceId
-//     was non-null before the update. A null→null "clear" does NOT prevent
+//     was non-null before the update. A null>null "clear" does NOT prevent
 //     auto-population.
 //
 //   - Pre-populate + clear+activate: For PURs where TokenResourceId was not set
 //     at insert time (QB-DB;UR-*, QB-QTY-CMT;UR-*), we first SET it to the
 //     correct value (from UsageResource.TokenResourceId) while the PUR is Draft,
-//     then use clear+activate. The non-null→null change prevents auto-population.
+//     then use clear+activate. The non-null>null change prevents auto-population.
 //
 //   - CommitmentSpend + Usage PURs: QB-MTY-CMT;UR-CPUTIME and
 //     QB-MTY-CMT;UR-DATASTORAGE cannot be activated in API 260. These
-//     optional PURs are excluded from the data plan (258→260 migration gap).
+//     optional PURs are excluded from the data plan (258>260 migration gap).
 //
 // Idempotency:
 //   All queries filter on Status != 'Active', so re-running this script on an
@@ -68,7 +69,7 @@ if (!urs.isEmpty()) {
 // Step 3: Pre-populate TokenResourceId on Draft non-Token PURs where it's null.
 // Some PURs (QB-DB;UR-*, QB-QTY-CMT;UR-*) don't get TokenResourceId auto-populated
 // at SFDMU insert time. For clear+activate to work in Step 4, TokenResourceId must
-// be non-null so the null assignment is a REAL change (not null→null no-op).
+// be non-null so the null assignment is a REAL change (not null>null no-op).
 // We set it to the UsageResource's TokenResourceId value while the PUR is Draft.
 List<ProductUsageResource> needsTokenRes = [
     SELECT Id, TokenResourceId, UsageResource.TokenResourceId
@@ -99,9 +100,28 @@ if (!needsTokenRes.isEmpty()) {
     System.debug('All non-Token PURs already have TokenResourceId set (or no Token association).');
 }
 
-// Step 4: Activate ALL non-Token PURs using clear+activate approach.
-// Now that all non-Token PURs have TokenResourceId set (from Step 3 or SFDMU insert),
-// the clear+activate (non-null→null + Active) prevents auto-population during DML.
+// Step 4: Activate Token PURs (UsageResource.Category='Token').
+// Token PURs must be activated BEFORE non-Token PURs because products with a
+// Token PUR counterpart require it to be Active before their usage PURs can activate.
+// Token PURs are not affected by TokenResourceId auto-population.
+List<ProductUsageResource> tokenPurs = [
+    SELECT Id, Status
+    FROM ProductUsageResource
+    WHERE Status != 'Active'
+    AND UsageResource.Category = 'Token'
+];
+if (!tokenPurs.isEmpty()) {
+    for (ProductUsageResource pur : tokenPurs) { pur.Status = 'Active'; }
+    update tokenPurs;
+    System.debug('Activated ' + tokenPurs.size() + ' Token PUR(s).');
+} else {
+    System.debug('All Token PURs are already Active.');
+}
+
+// Step 5: Activate ALL non-Token PURs using clear+activate approach.
+// Now that all Token PURs are Active (Step 4) and all non-Token PURs have
+// TokenResourceId set (from Step 3 or SFDMU insert), the clear+activate
+// (non-null>null + Active) prevents auto-population during DML.
 List<ProductUsageResource> nonTokenPurs = [
     SELECT Id, Status, TokenResourceId
     FROM ProductUsageResource
@@ -128,22 +148,6 @@ if (!nonTokenPurs.isEmpty()) {
     System.debug('Clear+activated ' + successCount + '/' + nonTokenPurs.size() + ' non-Token PUR(s).');
 } else {
     System.debug('All non-Token PURs are already Active.');
-}
-
-// Step 5: Activate Token PURs (UsageResource.Category='Token').
-// Token PURs are not affected by TokenResourceId auto-population.
-List<ProductUsageResource> tokenPurs = [
-    SELECT Id, Status
-    FROM ProductUsageResource
-    WHERE Status != 'Active'
-    AND UsageResource.Category = 'Token'
-];
-if (!tokenPurs.isEmpty()) {
-    for (ProductUsageResource pur : tokenPurs) { pur.Status = 'Active'; }
-    update tokenPurs;
-    System.debug('Activated ' + tokenPurs.size() + ' Token PUR(s).');
-} else {
-    System.debug('All Token PURs are already Active.');
 }
 
 // Step 6: Activate ProductUsageGrant

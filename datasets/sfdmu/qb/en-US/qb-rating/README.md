@@ -66,7 +66,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 1 | UnitOfMeasureClass | Update    | `Code`      | 5       |
 | 2 | UsageResource      | Update    | `Code`      | 5       |
 
-Only UoMClass and UsageResource are explicitly activated in SFDMU. On API 260 scratch orgs, PUR and PUG records auto-activate when their parent records (UoMClass, UsageResource, Product2) are all Active, making `activate_rating_records` effectively a no-op. The Apex script is retained as a safety net for upgraded orgs or environments where auto-activation may not occur.
+Only UoMClass and UsageResource are activated in SFDMU Pass 2. PUR and PUG activation requires the Apex script (`activate_rating_records`) which enforces a strict dependency order — Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
 
 ## Apex Activation Script
 
@@ -78,12 +78,12 @@ PUR and PUG activation follows a strict 6-step dependency order:
 |------|-------------------------------------------|--------------------------------------------------------------------|
 | 1    | UnitOfMeasureClass -> Active              | Safety net (Pass 2 should already do this)                         |
 | 2    | UsageResource -> Active                   | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
-| 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 4 (see below)                 |
-| 4    | ALL non-Token PUR -> clear+activate       | TokenResourceId=null + Status='Active' in single DML               |
-| 5    | Token PUR -> Active                       | Token PURs are not subject to auto-population                      |
+| 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 5 (see below)                 |
+| 4    | Token PUR -> Active                       | Must precede Step 5; products with Token PURs require them Active before usage PURs can activate |
+| 5    | ALL non-Token PUR -> clear+activate       | TokenResourceId=null + Status='Active' in single DML               |
 | 6    | ProductUsageGrant -> Active               | Depends on parent PUR being active                                 |
 
-**Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 4 only prevents auto-population when `TokenResourceId` changes from a non-null value to null — a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 4's clear is a real change.
+**Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 5 only prevents auto-population when `TokenResourceId` changes from a non-null value to null -- a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 5's clear is a real change.
 
 The script is **idempotent** — all queries filter on `Status != 'Active'`, so re-running on an already-activated org is a safe no-op.
 

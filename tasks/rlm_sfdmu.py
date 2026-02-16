@@ -125,6 +125,9 @@ class LoadSFDMUData(SFDXBaseTask):
 
             object_sets = self.options.get("object_sets")
             if object_sets is not None:
+                if isinstance(object_sets, str):
+                    object_sets = json.loads(object_sets)
+                object_sets = [int(i) for i in object_sets]
                 all_sets = export_json.get("objectSets", [])
                 filtered = [all_sets[i] for i in object_sets if 0 <= i < len(all_sets)]
                 if len(filtered) < len(object_sets):
@@ -434,6 +437,9 @@ class ExtractSFDMUData(SFDXBaseTask):
 
         object_sets = self.options.get("object_sets")
         if object_sets is not None:
+            if isinstance(object_sets, str):
+                object_sets = json.loads(object_sets)
+            object_sets = [int(i) for i in object_sets]
             all_sets = export_json.get("objectSets", [])
             filtered = [all_sets[i] for i in object_sets if 0 <= i < len(all_sets)]
             if len(filtered) < len(object_sets):
