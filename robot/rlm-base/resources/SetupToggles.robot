@@ -246,15 +246,20 @@ _ClickToggleByLabelFallback
 
 *** Keywords ***
 Open Browser For Setup
-    [Documentation]    Opens a browser (Chrome by default). Chrome uses webdriver-manager so ChromeDriver does not need to be in PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
+    [Documentation]    Opens a browser (Chrome by default). If webdriver-manager is installed it manages ChromeDriver automatically; otherwise falls back to the system ChromeDriver on PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
     [Arguments]    ${browser}=chrome
     Run Keyword If    """${browser}""" == "chrome"    _Open Chrome With Managed Driver
     ...    ELSE    Open Browser    about:blank    ${browser}
     Maximize Browser Window
 
 _Open Chrome With Managed Driver
-    [Documentation]    Create Chrome driver using webdriver-manager (no PATH chromedriver required).
+    [Documentation]    Create Chrome driver. Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
     ${path}=    WebDriverManager.Get Chrome Driver Path
+    Run Keyword If    """${path}""" != "None" and """${path}""" != ""    _Open Chrome With Explicit Path    ${path}
+    ...    ELSE    Open Browser    about:blank    chrome
+
+_Open Chrome With Explicit Path
+    [Arguments]    ${path}
     Create Webdriver    Chrome    executable_path=${path}
     Go To    about:blank
 
