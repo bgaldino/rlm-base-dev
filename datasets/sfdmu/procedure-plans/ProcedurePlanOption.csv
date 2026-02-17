@@ -1,0 +1,3 @@
+$$ProcedurePlanSection.SubSectionType$Priority,CriteriaLogic,CtxDefinitionOutputField.Id,CtxMappingOutputField.Id,DecisionTable.DeveloperName,ExpressionSetApiName,ExpressionSetDefinition.DeveloperName,ExpressionSetLabel,ExpressionSetOutputField.Id,PrimaryObject,Priority,ProcedurePlanSection.$$ProcedurePlanVersion.DeveloperName$Sequence,ReadContextMapping,SaveContextMapping
+DefaultPricing;1,,,,,RC_DefaultPricingProcedure,RC_DefaultPricingProcedure,RC Revenue Cloud Default Pricing Procedure,,Quote,1,RC_Quote_Pricing_Procedure_Plan;1,,
+HeaderDistribution;1,,,,,RC_Price_Distribution_Procedure,RC_Price_Distribution_Procedure,RC Price Distribution Procedure,,Quote,1,RC_Quote_Pricing_Procedure_Plan;2,,
