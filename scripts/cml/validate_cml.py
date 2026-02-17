@@ -1,3 +1,15 @@
+"""
+DEPRECATED: This standalone script has been replaced by the CCI-integrated
+ValidateCML task in tasks/rlm_cml.py.
+
+Usage (new):
+    cci task run validate_cml \\
+        -o cml_dir scripts/cml \\
+        -o data_dir datasets/constraints/qb/<ModelName>
+
+This file is retained for reference only and will be removed in a future release.
+"""
+
 import argparse
 import csv
 import os

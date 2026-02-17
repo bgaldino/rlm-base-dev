@@ -450,8 +450,9 @@ project:
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
-    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # QuantumBit constraints product data
-    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # QuantumBit constraints component data
+    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
+    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
+    quantumbit_constraints_data_dir: &quantumbit_constraints_data_dir "datasets/constraints/qb/QuantumBitComplete"  # CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
 
@@ -1144,6 +1145,22 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_constraints_component_dataset
+
+  # --- CML Constraint Model Tasks ---
+  export_cml:
+    group: Revenue Lifecycle Management
+    description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+    class_path: tasks.rlm_cml.ExportCML
+
+  import_cml:
+    group: Revenue Lifecycle Management
+    description: Import constraint model metadata, ESC associations, and ConstraintModel blob into org
+    class_path: tasks.rlm_cml.ImportCML
+
+  validate_cml:
+    group: Revenue Lifecycle Management
+    description: Validate CML file structure, annotations, and ESC association coverage
+    class_path: tasks.rlm_cml.ValidateCML
 
   insert_qb_transactionprocessingtypes_data:
     group: Revenue Lifecycle Management
@@ -1974,11 +1991,17 @@ flows:
         task: apply_context_constraint_engine_node_status
         when: project_config.project__custom__constraints
       5:
-        task: insert_qb_constraints_product_data
+        task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          cml_dir: scripts/cml
+          data_dir: *quantumbit_constraints_data_dir
       6:
-        task: insert_qb_constraints_component_data
+        task: import_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          data_dir: *quantumbit_constraints_data_dir
+          dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management

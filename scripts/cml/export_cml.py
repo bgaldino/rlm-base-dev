@@ -1,3 +1,15 @@
+"""
+DEPRECATED: This standalone script has been replaced by the CCI-integrated
+ExportCML task in tasks/rlm_cml.py.
+
+Usage (new):
+    cci task run export_cml --org <org_name> \\
+        -o developer_name <DevName> -o version 1 \\
+        -o output_dir datasets/constraints/qb/<ModelName>
+
+This file is retained for reference only and will be removed in a future release.
+"""
+
 import subprocess
 import requests
 import csv

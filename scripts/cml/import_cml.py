@@ -1,3 +1,14 @@
+"""
+DEPRECATED: This standalone script has been replaced by the CCI-integrated
+ImportCML task in tasks/rlm_cml.py.
+
+Usage (new):
+    cci task run import_cml --org <org_name> \\
+        -o data_dir datasets/constraints/qb/<ModelName>
+
+This file is retained for reference only and will be removed in a future release.
+"""
+
 import argparse
 import os
 import csv

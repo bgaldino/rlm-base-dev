@@ -1,0 +1,22 @@
+Id,Name,ParentProductId,ParentProduct.Name,ChildProductId,ChildProduct.Name,ChildProductClassificationId,ChildProductClassification.Name,ProductRelationshipTypeId,ProductRelationshipType.Name,Sequence
+0dSWt000000FFIIMA4,PRC-000000022,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYoIAO,Data Normalization Expert,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,2
+0dSWt000000FFIJMA4,PRC-000000023,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYpIAO,Implementation Engineer,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,1
+0dSWt000000FFIKMA4,PRC-000000024,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYqIAO,Integration Specialist Engineer,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,5
+0dSWt000000FFILMA4,PRC-000000025,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYrIAO,Module Extension Engineer,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,3
+0dSWt000000FFIMMA4,PRC-000000027,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYsIAO,Program Director,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,1
+0dSWt000000FFINMA4,PRC-000000028,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYtIAO,Project Manager,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,2
+0dSWt000000FFIOMA4,PRC-000000029,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYuIAO,Quality Assurance Engineer,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,4
+0dSWt000000FFIPMA4,PRC-000000030,01tWt000009JQY3IAO,QuantumBit Services Project,01tWt000009JQYvIAO,Solutions Architect,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,1
+0dSWt000000FFIUMA4,PRC-000000001,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQXtIAO,Additional API,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
+0dSWt000000FFIVMA4,PRC-000000002,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYwIAO,QB API Management Solution,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
+0dSWt000000FFIWMA4,PRC-000000003,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQXyIAO,API Access Requests (AEH),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,70
+0dSWt000000FFIXMA4,PRC-000000004,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQXzIAO,Additional Automation QB Credits,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,60
+0dSWt000000FFIYMA4,PRC-000000005,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQY3IAO,QuantumBit Services Project,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,50
+0dSWt000000FFIZMA4,PRC-000000020,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYyIAO,Additional Messages - QB Starter,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,30
+0dSWt000000FFIaMAO,PRC-000000007,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYMIA4,QuantumBit Database,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,5
+0dSWt000000FFIbMAO,PRC-000000008,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYxIAO,Additional Flows - QB Starter,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,40
+0dSWt000000FFIcMAO,PRC-000000026,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYaIAO,Professional Services Daily Rate,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
+0dSWt000000FFIdMAO,PRC-000000031,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYbIAO,Professional Services Scope of Work,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
+0dSWt000000FFIeMAO,PRC-000000034,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYeIAO,Software Maintenance,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,40
+0dSWt000000FFIfMAO,PRC-000000036,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYfIAO,QuantumBit Essentials Training,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
+0dSWt000000FFIgMAO,PRC-000000038,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYgIAO,QuantumBit Fundamentals Training,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
