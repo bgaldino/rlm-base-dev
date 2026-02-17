@@ -456,6 +456,7 @@ project:
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
+    quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -1031,14 +1032,14 @@ tasks:
     description: Insert CLM Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/test-clm"
+      pathtoexportjson: *quantumbit_clm_dataset
 
   insert_clm_data_prod:
     group: Revenue Lifecycle Management
     description: Insert CLM Data to Production
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/clm"
+      pathtoexportjson: *quantumbit_clm_dataset
 
   insert_qb_dro_data:
     group: Revenue Lifecycle Management
@@ -1053,7 +1054,8 @@ tasks:
     description: Insert Q3 DRO Data to Scratch
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/q3-dro_scratch"
+      pathtoexportjson: *q3_dro_dataset
+      dynamic_assigned_to_user: true
 
   insert_q3_dro_data_prod:
     group: Revenue Lifecycle Management
@@ -1061,6 +1063,7 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_dro_dataset
+      dynamic_assigned_to_user: true
 
   insert_tax_data:
     group: Revenue Lifecycle Management
@@ -1851,7 +1854,7 @@ flows:
     steps:
       1:
         task: deploy_post_prm
-        when: project_config.project__custom__prm and project_config.project__prm_exp_bundle
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
       2:
         task: publish_community
         when: project_config.project__custom__prm
@@ -1985,7 +1988,7 @@ flows:
         when: project_config.project__custom__constraints
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__tso and project_config.project__custom__procedureplans
+        when: project_config.project__custom__tso and project_config.project__custom__constraints
         options:
           api_names: *ps_constraints
       4:
