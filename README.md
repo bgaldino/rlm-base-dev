@@ -1,6 +1,6 @@
 # Revenue Cloud Base Foundations
 
-**Salesforce Release:** 260 (Spring '26)  
+**Salesforce Release:** 260 (Spring '26)
 **API Version:** 66.0
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
@@ -12,10 +12,17 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Feature Flags](#feature-flags)
 - [Custom Tasks](#custom-tasks)
+- [Flows](#flows)
+- [Data Plans](#data-plans)
 - [Documentation](#documentation)
 - [Project Structure](#project-structure)
+- [Common Workflows](#common-workflows)
+- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [Branch Information](#branch-information)
+- [Additional Resources](#additional-resources)
 
 ## Prerequisites
 
@@ -86,7 +93,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    cci version
    sf plugins list  # Should show sfdmu if installed via plugin
    ```
-   **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI’s environment before running any flow or test:
+   **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI's environment before running any flow or test:
    ```bash
    # Robot CLI (pipx venv path; on Windows use ...\Scripts\robot.bat)
    ~/.local/pipx/venvs/cumulusci/bin/robot --version
@@ -146,40 +153,143 @@ cci flow run prepare_rlm_org --org <org-alias>
 
 Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flow. Active decision tables are excluded per run by moving them into a `.skip` subdirectory before deploy (no `.forceignore` changes). Permission set groups are recalculated only when they are in **Outdated** state; if all are already **Updated**, the recalc step exits without waiting.
 
-### List Available Flows
+### List Available Flows and Tasks
 
 ```bash
 cci flow list
-```
-
-### List Available Tasks
-
-```bash
 cci task list
 ```
 
+## Feature Flags
+
+The project uses custom flags in `cumulusci.yml` under `project.custom` to control feature deployment. Modify these flags or override them at runtime with `-o <flag> <value>`.
+
+### Core Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `qbrix` | `false` | Use xDO base (false for dev scratch orgs without xDO licenses) |
+| `tso` | `false` | Is Trialforce Source Org? (false for dev scratch orgs) |
+| `qb` | `true` | QuantumBit dataset family |
+| `q3` | `false` | Include Q3 data |
+| `quantumbit` | `true` | QuantumBit features |
+| `product_dataset` | `qb` | Default product dataset to use |
+| `locale` | `en_US` | Default locale |
+| `refresh` | `false` | Data refresh flag (skips initial data loads when true) |
+
+### Data Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `rating` | `true` | Insert Rating design-time data |
+| `rates` | `true` | Insert Rates |
+| `ramps` | `true` | Insert and configure ramps |
+| `clm_data` | `false` | Load Contract Lifecycle Management data |
+| `constraints_data` | `false` | Load constraint model data (CML import + activation) |
+
+### Feature Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `calmdelete` | `true` | Use CALM Delete |
+| `tax` | `true` | Use Tax engine |
+| `billing` | `true` | Use Billing |
+| `payments` | `true` | Use Payments |
+| `approvals` | `true` | Use Approvals |
+| `clm` | `true` | Use Contract Lifecycle Management |
+| `dro` | `true` | Use Dynamic Revenue Orchestration |
+| `einstein` | `true` | Use Einstein AI |
+| `agents` | `false` | Deploy Agentforce Agent configurations |
+| `prm` | `true` | Use Partner Relationship Management |
+| `prm_exp_bundle` | `false` | Use PRM Experience Bundle |
+| `commerce` | `false` | Use Commerce |
+| `breconfig` | `false` | Business Rules Engine configuration |
+| `docgen` | `true` | Use Document Generation |
+| `constraints` | `true` | Use Constraint Builder (metadata setup) |
+| `guidedselling` | `false` | Use Guided Selling |
+| `procedureplans` | `false` | Use Procedure Plans |
+| `visualization` | `false` | Use Visualization components (Flow with Visuals, LWC styling) |
+
+### Deployment Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `sharingsettings` | `false` | Deploy Sharing Settings |
+
 ## Custom Tasks
 
-This project includes custom CumulusCI tasks for Revenue Cloud-specific operations. These tasks are located in the `tasks/` directory.
+This project includes 19 custom Python task modules in the `tasks/` directory, registered as CCI tasks in `cumulusci.yml`.
 
-### Available Custom Tasks
+### Data Management Tasks
 
-| Task Name | Description | Documentation |
-|-----------|-------------|--------------|
-| `manage_decision_tables` | Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists | [docs/DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md) |
-| `refresh_dt_rating`, `refresh_dt_rating_discovery`, `refresh_dt_default_pricing`, `refresh_dt_asset`, `refresh_dt_pricing_discovery`, `refresh_dt_commerce` | Refresh decision tables by category (use list anchors from `cumulusci.yml`) | [docs/DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md) |
-| `manage_flows` | Flow management (list, query, activate, deactivate) | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
-| `manage_expression_sets` | Expression Set management: list, query, activate/deactivate versions | [docs/TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md) |
-| `cleanup_settings_for_dev` | Conditionally remove unsupported settings for dev orgs | See `cumulusci.yml` |
-| `exclude_active_decision_tables` | Exclude active decision tables from deployment | See `cumulusci.yml` |
-| `assign_permission_set_groups_tolerant` | Assign PSGs with tolerance for missing permissions | See `cumulusci.yml` |
-| `recalculate_permission_set_groups` | Recalculate permission set groups and wait for Updated status; supports initial delay, retries, and post-trigger delay for slow orgs | See `cumulusci.yml` |
-| `load_sfdmu_data` / SFDMU tasks | Load data using SFDMU; DRO tasks use dynamic AssignedTo user from target org | See `cumulusci.yml` |
-| `sync_pricing_data` | Sync pricing data | See `cumulusci.yml` |
-| `extend_standard_context` | Extend standard context definitions | See `cumulusci.yml` |
-| `manage_context_definition` | Modify context definitions via Context Service | [docs/context_service_utility.md](docs/context_service_utility.md) |
-| `manage_transaction_processing_types` | Manage TransactionProcessingType records | [docs/constraints_setup.md](docs/constraints_setup.md) |
-| `deploy_post_commerce` | Deploy Commerce metadata (e.g. Commerce decision table flows) | See `cumulusci.yml` |
+| Task Name | Module | Description | Documentation |
+|-----------|--------|-------------|---------------|
+| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (DRO tasks replace `__DRO_ASSIGNED_TO_USER__` dynamically) | See `cumulusci.yml` |
+| `export_cml` | `rlm_cml.py` | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `import_cml` | `rlm_cml.py` | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `validate_cml` | `rlm_cml.py` | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `extract_qb_rating_data` | `rlm_sfdmu.py` | Extract QuantumBit rating data from an org to CSV | See `cumulusci.yml` |
+| `extract_qb_rates_data` | `rlm_sfdmu.py` | Extract QuantumBit rates data from an org to CSV | See `cumulusci.yml` |
+| `post_process_extraction` | `rlm_sfdmu.py` | Post-process extracted CSV data | See `cumulusci.yml` |
+| `sync_pricing_data` | `rlm_sync_pricing_data.py` | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
+
+### Metadata Management Tasks
+
+| Task Name | Module | Description | Documentation |
+|-----------|--------|-------------|---------------|
+| `manage_decision_tables` | `rlm_manage_decision_tables.py` | Decision Table management: list, query, refresh, activate, deactivate, validate_lists | [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) |
+| `manage_flows` | `rlm_manage_flows.py` | Flow management (list, query, activate, deactivate) | [Task Examples](docs/TASK_EXAMPLES.md) |
+| `manage_expression_sets` | `rlm_manage_expression_sets.py` | Expression Set management: list, query, activate/deactivate versions | [Task Examples](docs/TASK_EXAMPLES.md) |
+| `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/constraints_setup.md) |
+| `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/context_service_utility.md) |
+| `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/context_service_utility.md) |
+
+### Decision Table Refresh Tasks
+
+| Task Name | Module | Description |
+|-----------|--------|-------------|
+| `refresh_dt_rating` | `rlm_refresh_decision_table.py` | Refresh rating decision tables |
+| `refresh_dt_rating_discovery` | `rlm_refresh_decision_table.py` | Refresh rating discovery decision tables |
+| `refresh_dt_default_pricing` | `rlm_refresh_decision_table.py` | Refresh default pricing decision tables |
+| `refresh_dt_pricing_discovery` | `rlm_refresh_decision_table.py` | Refresh pricing discovery decision tables |
+| `refresh_dt_asset` | `rlm_refresh_decision_table.py` | Refresh asset decision tables |
+| `refresh_dt_commerce` | `rlm_refresh_decision_table.py` | Refresh commerce decision tables |
+
+### Deployment & Permissions Tasks
+
+| Task Name | Module | Description |
+|-----------|--------|-------------|
+| `cleanup_settings_for_dev` | `rlm_cleanup_settings.py` | Remove unsupported settings for dev scratch orgs |
+| `exclude_active_decision_tables` | `rlm_exclude_active_decision_tables.py` | Move active decision tables to `.skip` dir before deploy |
+| `assign_permission_set_groups_tolerant` | `rlm_assign_permission_set_groups.py` | Assign PSGs with tolerance for missing permissions |
+| `recalculate_permission_set_groups` | `rlm_recalculate_permission_set_groups.py` | Recalculate PSGs and wait for Updated status (retries, delays) |
+
+### Activation Tasks
+
+| Task Name | Module | Description |
+|-----------|--------|-------------|
+| `activate_decision_tables` | `rlm_manage_decision_tables.py` | Activate decision tables |
+| `deactivate_decision_tables` | `rlm_manage_decision_tables.py` | Deactivate decision tables |
+| `activate_expression_sets` | `rlm_manage_expression_sets.py` | Activate expression sets |
+| `deactivate_expression_sets` | `rlm_manage_expression_sets.py` | Deactivate expression sets |
+| `activate_default_payment_term` | `rlm_sfdmu.py` | Activate default payment term |
+| `activate_billing_records` | `rlm_sfdmu.py` | Activate billing records |
+| `activate_tax_records` | `rlm_sfdmu.py` | Activate tax records |
+| `activate_price_adjustment_schedules` | `rlm_repair_pricing_schedules.py` | Activate price adjustment schedules |
+| `activate_rating_records` | `rlm_sfdmu.py` | Activate rating records |
+| `activate_rates` | `rlm_sfdmu.py` | Activate rates |
+
+### Setup & Configuration Tasks
+
+| Task Name | Module | Description | Documentation |
+|-----------|--------|-------------|---------------|
+| `create_rule_library` | `rlm_sfdmu.py` | Create BRE rule library | See `cumulusci.yml` |
+| `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
+| `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
+| `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
+| `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
+| `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
 ### Using Custom Tasks
 
@@ -197,19 +307,29 @@ cci task run manage_flows --operation list --process_type ScreenFlow
 
 # Manage expression sets
 cci task run manage_expression_sets --operation list
+
+# Export a constraint model
+cci task run export_cml --org <org> -o developer_name QuantumBitComplete -o version 1 -o output_dir datasets/constraints/qb/QuantumBitComplete
+
+# Import a constraint model (with dry run)
+cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitComplete -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
+
+# Validate CML files
+cci task run validate_cml -o cml_dir scripts/cml -o data_dir datasets/constraints/qb/QuantumBitComplete
 ```
 
 For detailed examples and usage, see:
 - [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md)
 - [Flow and Expression Set Examples](docs/TASK_EXAMPLES.md)
+- [Constraints Utility Guide](datasets/constraints/README.md)
 
 ### Custom Task Development
 
-Custom tasks are Python modules in the `tasks/` directory. They inherit from CumulusCI's `BaseTask` class and are automatically discovered by CumulusCI.
+Custom tasks are Python modules in the `tasks/` directory. They inherit from CumulusCI's `BaseTask` (or `BaseSalesforceTask` for org-connected tasks) and are automatically discovered by CumulusCI.
 
 To add a new custom task:
 1. Create a Python file in `tasks/` (e.g., `tasks/rlm_my_task.py`)
-2. Define your task class inheriting from `BaseTask`
+2. Define your task class inheriting from the appropriate base
 3. Add task configuration to `cumulusci.yml` under `tasks:`
 4. Reference the task in flows or run directly
 
@@ -228,63 +348,267 @@ class MyCustomTask(BaseTask):
         pass
 ```
 
+For tasks that need Salesforce org access (REST API, SOQL, etc.):
+```python
+from cumulusci.tasks.salesforce import BaseSalesforceTask
+
+class MyOrgTask(BaseSalesforceTask):
+    task_options = {
+        "option1": {"description": "Description", "required": True}
+    }
+    
+    def _run_task(self):
+        # self.org_config provides access_token, instance_url, etc.
+        pass
+```
+
+## Flows
+
+All flows belong to the **Revenue Lifecycle Management** group. The main orchestration flow is `prepare_rlm_org`, which calls sub-flows in sequence.
+
+### Main Orchestration
+
+| Flow | Description |
+|------|-------------|
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (27 steps). This is the primary flow for full org setup. |
+
+#### prepare_rlm_org Step Order
+
+| Step | Flow/Task | Condition |
+|------|-----------|-----------|
+| 1 | `prepare_core` | Always |
+| 2 | `prepare_decision_tables` | Always |
+| 3 | `prepare_expression_sets` | Always |
+| 4 | `create_partner_central` | `prm` |
+| 5 | `create_payments_webhook` | `payments` |
+| 6 | `deploy_full` | Always |
+| 7 | `prepare_price_adjustment_schedules` | Always |
+| 8 | `prepare_scratch` | Always |
+| 9 | `prepare_payments` | Always |
+| 10 | `prepare_quantumbit` | Always |
+| 11 | `prepare_product_data` | Always |
+| 12 | `prepare_pricing_data` | Always |
+| 13 | `prepare_dro` | Always |
+| 14 | `prepare_tax` | Always |
+| 15 | `prepare_billing` | Always |
+| 16 | `prepare_clm` | Always |
+| 17 | `prepare_rating` | Always |
+| 18 | `activate_and_deploy_expression_sets` | Always |
+| 19 | `prepare_tso` | Always |
+| 20 | `prepare_procedureplans` | Always |
+| 21 | `prepare_prm` | Always |
+| 22 | `prepare_agents` | Always |
+| 23 | `prepare_docgen` | Always |
+| 24 | `prepare_constraints` | Always |
+| 25 | `prepare_guidedselling` | Always |
+| 26 | `prepare_visualization` | Always |
+| 27 | `refresh_all_decision_tables` | Always |
+
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
+
+### Sub-Flows
+
+| Flow | Description | Key Feature Flags |
+|------|-------------|-------------------|
+| `prepare_core` | PSL/PSG assignment, context definitions, rule libraries, settings cleanup | `clm`, `einstein`, `dro`, `breconfig`, `billing` |
+| `extend_context_definitions` | Extend all standard context definitions | `commerce`, `billing`, `dro`, `clm`, `rating` |
+| `prepare_expression_sets` | Deactivate, ensure pricing schedules, deploy expression sets | Scratch only |
+| `prepare_product_data` | Load PCM + product image SFDMU data | `qb`, `q3` |
+| `prepare_pricing_data` | Load pricing SFDMU data | `qb` |
+| `prepare_scratch` | Insert scratch-only data | Scratch only, not `tso` |
+| `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
+| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
+| `prepare_dro` | Load DRO data (dynamic user resolution) | `dro`, `qb`, `q3` |
+| `prepare_clm` | Load CLM data | `clm`, `clm_data` |
+| `prepare_docgen` | Create docgen library, enable Document Builder toggle, deploy metadata | `docgen` |
+| `prepare_billing` | Load billing data, activate flows/records | `billing`, `qb`, `q3`, `refresh` |
+| `prepare_prm` | Deploy PRM metadata, publish community, sharing rules | `prm`, `prm_exp_bundle`, `sharingsettings` |
+| `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
+| `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
+| `extract_rating` | Extract rating and rates data from an org | -- |
+| `prepare_agents` | Deploy Agentforce agents, settings, permissions | `agents` |
+| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce` |
+| `prepare_decision_tables` | Activate decision tables | Scratch only |
+| `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
+| `prepare_procedureplans` | Deploy procedure plans metadata, assign permissions | `tso`, `procedureplans` |
+| `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, import CML models, activate | `constraints`, `constraints_data`, `qb` |
+| `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
+| `prepare_visualization` | Deploy visualization components | `visualization` |
+| `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
+
+### Utility Flows
+
+| Flow | Description |
+|------|-------------|
+| `deploy_full` | Full metadata deployment (source, pre/post bundles) |
+| `activate_and_deploy_expression_sets` | Activate expression sets then deploy them |
+
+## Data Plans
+
+Data plans provide the reference data loaded during org setup. This project uses two mechanisms:
+
+### SFDMU Data Plans
+
+SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
+
+#### QuantumBit (QB) Data Plans
+
+| Data Plan | Directory | Description | Documentation |
+|-----------|-----------|-------------|---------------|
+| qb-pcm | `datasets/sfdmu/qb/en-US/qb-pcm/` | Product Catalog Management -- products, classifications, components, attributes | [README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
+| qb-product-images | `datasets/sfdmu/qb/en-US/qb-product-images/` | Product images and content document links | [README](datasets/sfdmu/qb/en-US/qb-product-images/README.md) |
+| qb-pricing | `datasets/sfdmu/qb/en-US/qb-pricing/` | Pricing data (pricebook entries, price adjustments) | [README](datasets/sfdmu/qb/en-US/qb-pricing/README.md) |
+| qb-tax | `datasets/sfdmu/qb/en-US/qb-tax/` | Tax engine data (tax treatments, policies) | [README](datasets/sfdmu/qb/en-US/qb-tax/README.md) |
+| qb-billing | `datasets/sfdmu/qb/en-US/qb-billing/` | Billing data (billing terms, schedules) | [README](datasets/sfdmu/qb/en-US/qb-billing/README.md) |
+| qb-dro | `datasets/sfdmu/qb/en-US/qb-dro/` | Dynamic Revenue Orchestration plans | [README](datasets/sfdmu/qb/en-US/qb-dro/README.md) |
+| qb-transactionprocessingtypes | `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/` | Transaction Processing Type records | [README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) |
+| qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](datasets/sfdmu/qb/en-US/qb-rating/README.md) |
+| qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](datasets/sfdmu/qb/en-US/qb-rates/README.md) |
+
+#### Archived Data Plans
+
+Deprecated data plans are retained in `datasets/sfdmu/_archived/` for reference. These are no longer used:
+
+- `qb-constraints-product` -- replaced by CML utility
+- `qb-constraints-component` -- replaced by CML utility
+- `qb-constraints-consolidated` -- replaced by CML utility
+- `qb-constraints-prc-aisummit` -- replaced by CML utility
+
+### Constraint Model Data Plans
+
+Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. These plans are stored under `datasets/constraints/` and include CSVs for Expression Sets, ESC associations, and binary ConstraintModel blobs.
+
+| Model | Directory | ESC Records | Documentation |
+|-------|-----------|-------------|---------------|
+| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
+
+For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
+
 ## Documentation
 
-### Main Documentation Files
+### Primary Guides
 
-- **[DECISION_TABLE_EXAMPLES.md](docs/DECISION_TABLE_EXAMPLES.md)** - Comprehensive examples for Decision Table management
-- **[TASK_EXAMPLES.md](docs/TASK_EXAMPLES.md)** - Examples for Flow and Expression Set management
-- **[context_service_utility.md](docs/context_service_utility.md)** - Context Service utility usage and plan examples
-- **[constraints_setup.md](docs/constraints_setup.md)** - Constraints deployment order and data plan notes
-- **[TOOLING_OPPORTUNITIES.md](docs/TOOLING_OPPORTUNITIES.md)** - Analysis of Spring '26 features and opportunities for new tooling tasks
+| Document | Description |
+|----------|-------------|
+| [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
+| [Constraints Setup](docs/constraints_setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
+| [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) | Comprehensive examples for Decision Table management tasks |
+| [Task Examples](docs/TASK_EXAMPLES.md) | Examples for Flow and Expression Set management tasks |
+| [Context Service Utility](docs/context_service_utility.md) | Context Service utility usage and plan examples |
+
+### Analysis & Planning
+
+| Document | Description |
+|----------|-------------|
+| [Tooling Opportunities](docs/TOOLING_OPPORTUNITIES.md) | Analysis of Spring '26 features and opportunities for new tooling tasks |
+| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU composite key analysis for data plan portability |
+| [RCA/RCB Unique ID Fields](docs/rca_rcb_unique_id_fields.md) | Unique ID field analysis for Revenue Cloud objects |
+
+### SFDMU Data Plan READMEs
+
+Each SFDMU data plan has its own detailed README documenting objects, fields, load order, external IDs, and optimization opportunities:
+
+- [qb-pcm README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) -- Product Catalog Management
+- [qb-product-images README](datasets/sfdmu/qb/en-US/qb-product-images/README.md) -- Product Images
+- [qb-pricing README](datasets/sfdmu/qb/en-US/qb-pricing/README.md) -- Pricing
+- [qb-tax README](datasets/sfdmu/qb/en-US/qb-tax/README.md) -- Tax
+- [qb-billing README](datasets/sfdmu/qb/en-US/qb-billing/README.md) -- Billing
+- [qb-dro README](datasets/sfdmu/qb/en-US/qb-dro/README.md) -- Dynamic Revenue Orchestration
+- [qb-transactionprocessingtypes README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) -- Transaction Processing Types
+- [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
+- [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
+
+### Robot Framework
+
+- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Document Builder toggle automation
 
 ### Configuration Files
 
-- **`cumulusci.yml`** - Main CumulusCI configuration with all tasks, flows, and project settings
-- **`sfdx-project.json`** - Salesforce DX project configuration
-- **`orgs/`** - Scratch org definition files for different scenarios
-
-### Key Configuration Options
-
-The project uses custom flags in `cumulusci.yml` to control feature deployment:
-
-```yaml
-custom:
-  prm: false          # Partner Relationship Management
-  tso: false         # Trialforce Source Org
-  qb: true           # QuantumBit
-  einstein: true     # Einstein AI
-  visualization: false  # Visualization components
-  quantumbit: true    # QuantumBit features
-  # ... and more
-```
-
-Modify these flags in `cumulusci.yml` to enable/disable features during deployment.
+- **`cumulusci.yml`** -- Main CumulusCI configuration with all tasks, flows, and project settings
+- **`sfdx-project.json`** -- Salesforce DX project configuration
+- **`orgs/`** -- Scratch org definition files for different scenarios
 
 ## Project Structure
 
 ```
 rlm-base-dev/
-├── force-app/              # Main Salesforce metadata (source format)
-├── unpackaged/             # Conditional metadata (deployed based on flags)
-│   ├── pre/               # Pre-deployment metadata
-│   ├── post_*/            # Post-deployment metadata (post_utils, post_commerce, etc.)
-├── tasks/                 # Custom CumulusCI tasks (e.g. enable_document_builder_toggle)
-├── robot/                 # Robot Framework tests for Document Builder toggle automation
+├── force-app/                  # Main Salesforce metadata (source format)
+├── unpackaged/                 # Conditional metadata (deployed based on flags)
+│   ├── pre/                    # Pre-deployment metadata
+│   │   └── 5_decisiontables/   # Decision tables (active ones auto-excluded)
+│   ├── post_approvals/         # Approvals metadata
+│   ├── post_billing/           # Billing metadata
+│   ├── post_commerce/          # Commerce metadata
+│   ├── post_constraints/       # Constraints metadata
+│   ├── post_docgen/            # Document Generation metadata
+│   ├── post_guidedselling/     # Guided Selling metadata
+│   ├── post_payments/          # Payments metadata
+│   ├── post_prm/               # Partner Relationship Management metadata
+│   ├── post_procedureplans/    # Procedure Plans metadata
+│   ├── post_scratch/           # Scratch org-only metadata
+│   ├── post_tso/               # TSO-specific metadata
+│   ├── post_utils/             # Utility metadata
+│   └── post_visualization/     # Visualization metadata
+├── tasks/                      # Custom CumulusCI tasks (19 Python modules)
+│   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
+│   ├── rlm_sfdmu.py            # SFDMU data loading tasks
+│   ├── rlm_manage_decision_tables.py
+│   ├── rlm_manage_expression_sets.py
+│   ├── rlm_manage_flows.py
+│   ├── rlm_manage_transaction_processing_types.py
+│   ├── rlm_context_service.py
+│   ├── rlm_extend_stdctx.py
+│   ├── rlm_enable_document_builder_toggle.py
+│   ├── rlm_refresh_decision_table.py
+│   ├── rlm_sync_pricing_data.py
+│   ├── rlm_repair_pricing_schedules.py
+│   ├── rlm_cleanup_settings.py
+│   ├── rlm_assign_permission_set_groups.py
+│   ├── rlm_recalculate_permission_set_groups.py
+│   ├── rlm_exclude_active_decision_tables.py
+│   ├── rlm_modify_context.py
+│   ├── rlm_restore_rc_tso.py
+│   └── sfdmuload.py
+├── robot/                      # Robot Framework tests
 │   └── rlm-base/
-│       ├── resources/     # Keywords, WebDriverManager helper (ChromeDriver via webdriver-manager)
-│       ├── tests/setup/   # enable_document_builder.robot; see robot/.../setup/README.md
-│       └── results/       # Runtime output (gitignored; purge with rm -f robot/rlm-base/results/*)
-├── orgs/                  # Scratch org definitions
-├── datasets/              # SFDMU data sets (product, billing, tax, etc.)
-│   └── sfdmu/             # SFDMU export configurations (no DT/expression set plans; use CCI tasks)
-├── scripts/               # Utility scripts
-│   ├── apex/             # Anonymous Apex scripts
-│   ├── cml/              # CML scripts
-│   └── bash/             # Bash scripts
-├── cumulusci.yml         # CumulusCI configuration
-├── sfdx-project.json     # Salesforce DX configuration
-└── README.md             # This file
+│       ├── resources/          # Keywords, WebDriverManager helper
+│       ├── tests/setup/        # Document Builder toggle automation
+│       └── results/            # Runtime output (gitignored)
+├── datasets/                   # Data plans
+│   ├── sfdmu/                  # SFDMU data plans
+│   │   ├── qb/en-US/           # QuantumBit data plans (9 active plans)
+│   │   │   ├── qb-pcm/
+│   │   │   ├── qb-product-images/
+│   │   │   ├── qb-pricing/
+│   │   │   ├── qb-tax/
+│   │   │   ├── qb-billing/
+│   │   │   ├── qb-dro/
+│   │   │   ├── qb-transactionprocessingtypes/
+│   │   │   ├── qb-rating/
+│   │   │   └── qb-rates/
+│   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
+│   └── constraints/            # CML constraint model data plans
+│       ├── qb/
+│       │   ├── QuantumBitComplete/
+│       │   └── Server2/
+│       └── README.md           # Constraints utility guide
+├── scripts/                    # Utility scripts
+│   ├── apex/                   # Anonymous Apex scripts
+│   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
+│   └── bash/                   # Bash scripts
+├── docs/                       # Documentation
+│   ├── constraints_setup.md
+│   ├── DECISION_TABLE_EXAMPLES.md
+│   ├── TASK_EXAMPLES.md
+│   ├── context_service_utility.md
+│   ├── TOOLING_OPPORTUNITIES.md
+│   ├── sfdmu_composite_key_optimizations.md
+│   └── rca_rcb_unique_id_fields.md
+├── orgs/                       # Scratch org definitions
+├── cumulusci.yml               # CumulusCI configuration
+├── sfdx-project.json           # Salesforce DX configuration
+└── README.md                   # This file
 ```
 
 ## Common Workflows
@@ -309,26 +633,51 @@ cci flow run prepare_rlm_org
 cci flow run prepare_rlm_org
 ```
 
-### Prepare Constraints
+### Prepare Constraints (with Data)
 
 ```bash
-# Runs the constraints deployment flow
-cci flow run prepare_constraints
+# Run constraints flow with CML data loading enabled
+cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-See [docs/constraints_setup.md](docs/constraints_setup.md) for the current step order and required data plans.
+This will validate CML files, import both QuantumBitComplete and Server2 models, and activate their expression sets. See [Constraints Setup](docs/constraints_setup.md) for flow details.
 
-### Load Test Data
+### Export a Constraint Model
 
 ```bash
-# Load QuantumBit product data
-cci task run insert_quantumbit_pcmdata_prod
+# Export from a source org to a local data plan directory
+cci task run export_cml --org <source_org> \
+    -o developer_name QuantumBitComplete \
+    -o version 1 \
+    -o output_dir datasets/constraints/qb/QuantumBitComplete
+```
 
-# Load billing data
+See the [Constraints Utility Guide](datasets/constraints/README.md) for full export/import/validate documentation.
+
+### Load Product Data
+
+```bash
+# Load QuantumBit PCM data
+cci task run insert_quantumbit_pcm_data
+
+# Load product images
+cci task run insert_quantumbit_product_image_data
+```
+
+### Load Billing Data
+
+```bash
 cci task run insert_billing_data
 ```
 
-DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org’s default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
+DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
+
+### Extract Rating Data
+
+```bash
+# Extract rating and rates data from an org
+cci flow run extract_rating --org <org>
+```
 
 ### Manage Decision Tables
 
@@ -355,15 +704,15 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
    ```bash
    python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager
    ```
-2. Install them into CumulusCI’s environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
+2. Install them into CumulusCI's environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
    ```bash
    pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
    ```
-3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — “Document Builder (Robot) env only”): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
+3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — "Document Builder (Robot) env only"): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This comes from a Selenium/urllib3 2.x compatibility issue. Pin urllib3 to 1.x in CCI’s environment:
+This comes from a Selenium/urllib3 2.x compatibility issue. Pin urllib3 to 1.x in CCI's environment:
 
 ```bash
 pipx inject cumulusci "urllib3>=1.26,<2" --force
@@ -410,6 +759,12 @@ sf plugins list
 - Review deployment logs for specific error messages
 - Some features require specific licenses (e.g., Einstein, QuantumBit)
 
+### Constraint Import Errors
+
+- **MALFORMED_QUERY**: Product names with special characters (single quotes, backslashes) can cause SOQL issues. The CML utility automatically escapes these, but if you encounter this error, check that you're using the latest `tasks/rlm_cml.py`.
+- **NOT_FOUND for ExpressionSetConstraintObj**: The target org may not have the RLM Constraints feature enabled. Enable it in Setup before running the import.
+- **Could not resolve ReferenceObjectId**: The target org is missing products or PRC records that the constraint model references. Ensure the product data plan (e.g., `qb-pcm`) has been loaded first.
+
 ## Contributing
 
 When contributing to this project:
@@ -418,6 +773,8 @@ When contributing to this project:
 2. Document custom tasks in `cumulusci.yml` and create example documentation
 3. Test changes with appropriate scratch org configurations
 4. Update this README if adding new prerequisites or workflows
+5. Add detailed READMEs for new data plans
+6. Register new tasks and flows in `cumulusci.yml`
 
 ## Branch Information
 
