@@ -218,7 +218,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 
 ## Custom Tasks
 
-This project includes 19 custom Python task modules in the `tasks/` directory, registered as CCI tasks in `cumulusci.yml`.
+This project includes custom Python task modules in the `tasks/` directory, each registered as one or more CCI tasks in `cumulusci.yml`.
 
 ### Data Management Tasks
 
@@ -288,6 +288,9 @@ This project includes 19 custom Python task modules in the `tasks/` directory, r
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
+| `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
+| `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
 | `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
@@ -370,7 +373,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (27 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (29 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -402,7 +405,9 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 24 | `prepare_constraints` | Always |
 | 25 | `prepare_guidedselling` | Always |
 | 26 | `prepare_visualization` | Always |
-| 27 | `refresh_all_decision_tables` | Always |
+| 27 | `configure_revenue_settings` | Always |
+| 28 | `reconfigure_pricing_discovery` | Always |
+| 29 | `refresh_all_decision_tables` | Always |
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
 
@@ -431,7 +436,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata, assign permissions | `tso`, `procedureplans` |
-| `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, import CML models, activate | `constraints`, `constraints_data`, `qb` |
+| `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
 | `prepare_visualization` | Deploy visualization components | `visualization` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
@@ -550,7 +555,7 @@ rlm-base-dev/
 │   ├── post_tso/               # TSO-specific metadata
 │   ├── post_utils/             # Utility metadata
 │   └── post_visualization/     # Visualization metadata
-├── tasks/                      # Custom CumulusCI tasks (19 Python modules)
+├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
 │   ├── rlm_manage_decision_tables.py
@@ -560,6 +565,9 @@ rlm-base-dev/
 │   ├── rlm_context_service.py
 │   ├── rlm_extend_stdctx.py
 │   ├── rlm_enable_document_builder_toggle.py
+│   ├── rlm_enable_constraints_settings.py
+│   ├── rlm_configure_revenue_settings.py
+│   ├── rlm_reconfigure_expression_set.py
 │   ├── rlm_refresh_decision_table.py
 │   ├── rlm_sync_pricing_data.py
 │   ├── rlm_repair_pricing_schedules.py
@@ -588,11 +596,16 @@ rlm-base-dev/
 │   │   │   ├── qb-rating/
 │   │   │   └── qb-rates/
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
-│   └── constraints/            # CML constraint model data plans
-│       ├── qb/
-│       │   ├── QuantumBitComplete/
-│       │   └── Server2/
-│       └── README.md           # Constraints utility guide
+│   ├── constraints/            # CML constraint model data plans
+│   │   ├── qb/
+│   │   │   ├── QuantumBitComplete/
+│   │   │   └── Server2/
+│   │   └── README.md           # Constraints utility guide
+│   └── context_plans/          # Context definition update plans (JSON manifests)
+│       ├── ConstraintEngineNodeStatus/  # Adds ConstraintEngineNodeStatus to SalesTransaction context
+│       │   ├── manifest.json
+│       │   └── contexts/
+│       └── archive/            # Archived/previous context plans
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts

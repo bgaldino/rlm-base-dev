@@ -103,10 +103,8 @@ project:
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
     docgen: true              # Use Document Generation
-    #psg_debug: false          # Debug Permission Set Groups
-    #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
-    constraints_data: false   # Use Constraint Builder Data
+    constraints_data: true   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
@@ -1283,6 +1281,37 @@ tasks:
       suite: robot/rlm-base/tests/setup/enable_document_builder.robot
       outputdir: robot/rlm-base/results
 
+  enable_constraints_settings:
+    group: Revenue Lifecycle Management
+    description: "Set Default Transaction Type, Asset Context for Product Configurator, and enable Constraints Engine toggle on Revenue Settings (Robot test). Required before CML constraint data import."
+    class_path: tasks.rlm_enable_constraints_settings.EnableConstraintsSettings
+    options:
+      suite: robot/rlm-base/tests/setup/enable_constraints_settings.robot
+      outputdir: robot/rlm-base/results
+      default_transaction_type: Advanced Configurator
+      asset_context: RLM_AssetContext
+
+  configure_revenue_settings:
+    group: Revenue Lifecycle Management
+    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, and Create Orders from Quote flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
+    class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
+    options:
+      suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: RLM Revenue Management Default Pricing Procedure
+      usage_rating_procedure: RLM Default Rating Discovery Procedure
+      create_orders_flow: RC_CreateOrdersFromQuote
+
+  reconfigure_pricing_discovery:
+    group: Revenue Lifecycle Management
+    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. Required before decision table refresh."
+    class_path: tasks.rlm_reconfigure_expression_set.ReconfigureExpressionSet
+    options:
+      expression_set_name: Salesforce_Default_Pricing_Discovery_Procedure
+      context_definition_name: *sales_transaction_context_name
+      rank: 1
+      start_date: "2020-01-01T00:00:00.000Z"
+
   create_dro_rule_library:
     group: Revenue Lifecycle Management
     description: Create DRO Rule Library
@@ -1584,6 +1613,10 @@ flows:
       26:
         flow: prepare_visualization
       27:
+        task: configure_revenue_settings
+      28:
+        task: reconfigure_pricing_discovery
+      29:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -1995,24 +2028,27 @@ flows:
         task: apply_context_constraint_engine_node_status
         when: project_config.project__custom__constraints
       5:
+        task: enable_constraints_settings
+        when: project_config.project__custom__constraints_data
+      6:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           cml_dir: scripts/cml
           data_dir: *quantumbit_constraints_data_dir
-      6:
+      7:
         task: import_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           data_dir: *quantumbit_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
-      7:
+      8:
         task: import_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           data_dir: *server2_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
-      8:
+      9:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
