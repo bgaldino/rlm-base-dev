@@ -894,7 +894,8 @@ class ManageContextDefinition(SFDXBaseTask):
                             f"Attribute mapping exists for {mapping_name} -> {node_name}.{attr_name} "
                             f"but MappedContextDefinition is not set; updating via sObject API."
                         )
-                        self._set_mapped_context_definition(node_mapping_id, mapped_ctx_def_name, dry_run=False)
+                        dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
+                        self._set_mapped_context_definition(node_mapping_id, mapped_ctx_def_name, dry_run=dry_run)
                     continue
                 if attr_mapping_id and requested_input and requested_input != existing_input_name:
                     self.logger.warning(

@@ -218,7 +218,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 
 ## Custom Tasks
 
-This project includes 20 custom Python task modules in the `tasks/` directory, registered as CCI tasks in `cumulusci.yml`.
+This project includes custom Python task modules in the `tasks/` directory, each registered as one or more CCI tasks in `cumulusci.yml`.
 
 ### Data Management Tasks
 
@@ -555,7 +555,7 @@ rlm-base-dev/
 │   ├── post_tso/               # TSO-specific metadata
 │   ├── post_utils/             # Utility metadata
 │   └── post_visualization/     # Visualization metadata
-├── tasks/                      # Custom CumulusCI tasks (20 Python modules)
+├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
 │   ├── rlm_manage_decision_tables.py

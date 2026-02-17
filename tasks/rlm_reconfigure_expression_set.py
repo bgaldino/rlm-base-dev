@@ -154,6 +154,13 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         )
         return None
 
+    # -- SOQL escape helper --------------------------------------------
+
+    @staticmethod
+    def _soql_escape(value: str) -> str:
+        """Escape a string for use in a SOQL literal (single-quoted value)."""
+        return value.replace("\\", "\\\\").replace("'", "\\'")
+
     # -- Main task logic -----------------------------------------------
 
     def _run_task(self):
@@ -210,16 +217,22 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
             )
         self.logger.info("Updated Rank and StartDateTime.")
 
-        # 5. Reactivate
-        self.logger.info("Reactivating ExpressionSetVersion %s ...", esv_id)
-        if not self._patch_record(
-            "ExpressionSetVersion",
-            esv_id,
-            {"IsActive": True},
-            label=es_name,
-        ):
-            raise TaskOptionsError(
-                f"Failed to reactivate ExpressionSetVersion for '{es_name}'"
+        # 5. Reactivate (only if it was active on entry)
+        if was_active:
+            self.logger.info("Reactivating ExpressionSetVersion %s ...", esv_id)
+            if not self._patch_record(
+                "ExpressionSetVersion",
+                esv_id,
+                {"IsActive": True},
+                label=es_name,
+            ):
+                raise TaskOptionsError(
+                    f"Failed to reactivate ExpressionSetVersion for '{es_name}'"
+                )
+        else:
+            self.logger.info(
+                "ExpressionSetVersion %s was inactive on entry; leaving it inactive.",
+                esv_id,
             )
         self.logger.info(
             "Successfully reconfigured '%s' (context=%s, rank=%s, start=%s).",
@@ -240,10 +253,11 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         """
         candidates = [f"{es_name}_V1", f"{es_name}V1"]
         for candidate in candidates:
+            safe = self._soql_escape(candidate)
             records = self._soql_query(
                 f"SELECT Id, IsActive, Rank, StartDateTime "
                 f"FROM ExpressionSetVersion "
-                f"WHERE ApiName = '{candidate}'"
+                f"WHERE ApiName = '{safe}'"
             )
             if records:
                 self.logger.info(
@@ -251,11 +265,14 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
                 )
                 return records[0]
 
-        # Fallback: LIKE query
+        # Fallback: LIKE query (deterministic via ORDER BY / LIMIT 1)
+        safe = self._soql_escape(es_name)
         records = self._soql_query(
             f"SELECT Id, IsActive, Rank, StartDateTime, ApiName "
             f"FROM ExpressionSetVersion "
-            f"WHERE ApiName LIKE '{es_name}%'"
+            f"WHERE ApiName LIKE '{safe}%' "
+            f"ORDER BY IsActive DESC, CreatedDate DESC "
+            f"LIMIT 1"
         )
         if records:
             self.logger.info(
@@ -276,7 +293,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         # Resolve ExpressionSetDefinition Id
         esd_records = self._soql_query(
             f"SELECT Id FROM ExpressionSetDefinition "
-            f"WHERE DeveloperName = '{es_name}'"
+            f"WHERE DeveloperName = '{self._soql_escape(es_name)}'"
         )
         if not esd_records:
             raise TaskOptionsError(
@@ -286,7 +303,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
 
         # Resolve target ContextDefinition Id
         cd_records = self._soql_query(
-            f"SELECT Id FROM ContextDefinition WHERE DeveloperName = '{cd_name}'"
+            f"SELECT Id FROM ContextDefinition WHERE DeveloperName = '{self._soql_escape(cd_name)}'"
         )
         if not cd_records:
             raise TaskOptionsError(
