@@ -453,6 +453,7 @@ project:
     quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
     quantumbit_constraints_data_dir: &quantumbit_constraints_data_dir "datasets/constraints/qb/QuantumBitComplete"  # CML constraint model data (CSVs + blob)
+    server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
 
@@ -2002,6 +2003,18 @@ flows:
         options:
           data_dir: *quantumbit_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
+      7:
+        task: import_cml
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          data_dir: *server2_constraints_data_dir
+          dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
+      8:
+        task: manage_expression_sets
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          operation: activate_versions
+          version_full_names: "QuantumBitComplete_V1,Server2_V1"
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management
