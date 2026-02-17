@@ -172,7 +172,7 @@ class ManageContextDefinition(SFDXBaseTask):
                         detail = self._fetch_context_definition(context_id)
 
             if context_rules:
-                translated = self._translate_mapping_rules(context_rules, detail)
+                translated = self._translate_mapping_rules(context_rules, detail, developer_name=developer_name)
                 if translated:
                     resolved_updates = self._resolve_context_mapping_ids(detail, translated)
                     if resolved_updates:
@@ -406,6 +406,15 @@ class ManageContextDefinition(SFDXBaseTask):
                         self._patch_context_node_mappings(context_mapping_id, normalized, dry_run)
                     else:
                         self._post_context_node_mappings(context_mapping_id, normalized, dry_run)
+                # If the mapping carries mappedContextDefinitionName (CONTEXT-type mapping
+                # source), set it via the ContextNodeMapping sObject REST API. The Connect
+                # API context-mappings PATCH silently ignores this field.
+                mapped_ctx_def = mapping.get("mappedContextDefinitionName")
+                if mapped_ctx_def:
+                    for nm in normalized:
+                        node_mapping_id = nm.get("contextNodeMappingId")
+                        if node_mapping_id:
+                            self._set_mapped_context_definition(node_mapping_id, mapped_ctx_def, dry_run)
                 continue
             remaining.append(mapping)
 
@@ -448,6 +457,23 @@ class ManageContextDefinition(SFDXBaseTask):
             self.logger.warning("Unexpected list response for context definition; skipping validation.")
             return {}
         return response or {}
+
+    def _set_mapped_context_definition(self, node_mapping_id: str, developer_name: str, dry_run: bool = False):
+        """Set MappedContextDefinition on a ContextNodeMapping sObject record.
+
+        The Connect API context-mappings PATCH silently ignores mappedContextDefinitionName,
+        so we update the sObject directly via the REST API.
+        """
+        url, headers = self._build_url_and_headers(
+            f"sobjects/ContextNodeMapping/{node_mapping_id}"
+        )
+        payload = {"MappedContextDefinition": developer_name}
+        self.logger.info(
+            "Setting MappedContextDefinition=%s on ContextNodeMapping %s",
+            developer_name,
+            node_mapping_id,
+        )
+        self._make_request("patch", url, headers=headers, json=payload, dry_run=dry_run)
 
     def _is_context_active(self, context_id: str) -> bool:
         detail = self._fetch_context_definition(context_id)
@@ -768,7 +794,7 @@ class ManageContextDefinition(SFDXBaseTask):
             )
         return resolved
 
-    def _translate_mapping_rules(self, mapping_rules, detail):
+    def _translate_mapping_rules(self, mapping_rules, detail, developer_name=None):
         if not isinstance(mapping_rules, list):
             raise TaskOptionsError("mappingRules must be a list")
 
@@ -848,10 +874,27 @@ class ManageContextDefinition(SFDXBaseTask):
                 )
                 continue
             if mapping_type == "CONTEXT":
-                if attr_mapping_id and (requested_input is None or requested_input == existing_input_name):
+                # Even if the attribute mapping exists, we may still need to set
+                # mappedContextDefinitionName on the mapping (Mapping Source = Context Definition).
+                existing_mapped_ctx = mapping_meta.get("mappedContextDefinitionId") or mapping_meta.get("mappedContextDefinitionName")
+                needs_ctx_def_update = not existing_mapped_ctx
+                if attr_mapping_id and (requested_input is None or requested_input == existing_input_name) and not needs_ctx_def_update:
                     self.logger.info(
                         f"Skipping existing attribute mapping for {mapping_name} -> {node_name}.{attr_name}"
                     )
+                    continue
+                if attr_mapping_id and (requested_input is None or requested_input == existing_input_name) and needs_ctx_def_update:
+                    # Attribute mapping exists but MappedContextDefinition is not set on the
+                    # ContextNodeMapping sObject. Set it directly via the sObject REST API
+                    # (the Connect API context-mappings PATCH silently ignores this field).
+                    mapped_ctx_def_name = developer_name or detail.get("developerName") or detail.get("contextDefinitionId")
+                    node_mapping_id = (node_map_meta or {}).get("contextNodeMappingId")
+                    if mapped_ctx_def_name and node_mapping_id:
+                        self.logger.info(
+                            f"Attribute mapping exists for {mapping_name} -> {node_name}.{attr_name} "
+                            f"but MappedContextDefinition is not set; updating via sObject API."
+                        )
+                        self._set_mapped_context_definition(node_mapping_id, mapped_ctx_def_name, dry_run=False)
                     continue
                 if attr_mapping_id and requested_input and requested_input != existing_input_name:
                     self.logger.warning(
@@ -892,7 +935,7 @@ class ManageContextDefinition(SFDXBaseTask):
                     ]
                 }
                 mapped_context_node_id = source_node_id
-                mapped_context_definition = detail.get("contextDefinitionId")
+                mapped_context_definition = developer_name or detail.get("developerName") or detail.get("contextDefinitionId")
             else:
                 if rule.get("sObject") and rule.get("sObjectField"):
                     context_attribute_mapping["hydrationDetails"] = {

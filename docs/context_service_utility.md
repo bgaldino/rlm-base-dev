@@ -128,6 +128,12 @@ datasets/context_plans/<PlanName>/
 }
 ```
 
+When `mappingType` is `CONTEXT`, the utility:
+
+1. Sets `mappedContextNodeId` on the node mapping to point to the source context node.
+2. Adds `contextAttrContextHydrationDetails` with the source attribute and parent mapping IDs.
+3. Sets `MappedContextDefinition` on the `ContextNodeMapping` sObject record to the context definition's developer name (e.g. `RLM_SalesTransactionContext`). This makes the UI show **"Context Definition"** as the Mapping Source. The Connect API `PATCH /context-mappings` endpoint silently ignores `mappedContextDefinitionName`, so the task uses the sObject REST API (`PATCH /sobjects/ContextNodeMapping/{id}`) to set this field.
+
 ### Verification Mode
 
 Set `verify` to log the key changes after updates:
@@ -167,3 +173,4 @@ Legacy plans are archived under `datasets/context_plans/archive` and are not ref
 
 - The task skips updates for `TransactionType` because those mappings are inherited.
 - Tag names for custom artifacts must end with `__c` in extended definitions.
+- For `CONTEXT`-type mapping rules, the task sets `MappedContextDefinition` on the `ContextNodeMapping` sObject directly (via the REST API) because the Connect API `context-mappings` PATCH silently ignores the `mappedContextDefinitionName` field. On re-runs, if the attribute mapping already exists but `MappedContextDefinition` is not set, the task detects this and updates it.
