@@ -80,7 +80,7 @@ project:
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
     tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
-    qb: true                  # Is QuantumBit?
+    qb: false                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
     tax: true                 # Use Tax engine
@@ -94,7 +94,7 @@ project:
     rates: true               # Insert Rates
     ramps: true               # Insert and configure ramps
     einstein: true            # Use Einstein AI
-    product_dataset: qb       # Default product dataset to use=
+    product_dataset: badger       # Default product dataset to use=
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: true                # Use Partner Relationship Management
@@ -112,6 +112,7 @@ project:
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     locale: en_US             # Default locale
+    badger: true              #Badger Metadata & Dataset
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -295,6 +296,16 @@ project:
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
       - RLM_Constraints
+
+#Badger Perms
+    badger_mfg_ps: &badger_mfg_ps
+      - MFG_RCA
+
+    badger_mfg_scratch_psg: &badger_mfg_scratch_psg
+      - MFG_scratch
+
+    badger_mfg_psg: &badger_mfg_psg
+      - MFG
 
 #-----------------#
 # DECISION TABLES #
@@ -938,6 +949,51 @@ tasks:
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
 
+  # Badger Deploy Full Tasks
+
+  deploy_full_badger_1:
+    description: Deploy Badger Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/1_initial_setup
+
+  deploy_full_badger_2:
+    description: Deploy Badger Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/2_initial_setup
+
+  deploy_full_badger_3:
+    description: Deploy Badger Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/3_initial_setup
+
+  deploy_full_badger_4:
+    description: Deploy Badger Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/4_initial_setup
+
+  deploy_full_badger_5:
+    description: Deploy Badger Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/5_initial_setup
+
+  # Test Task
+  deploy_test:
+    description: Test deployment
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/test
+  
   deploy_full:
     description: Deploy all metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2050,3 +2106,27 @@ flows:
       3:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+
+## Badger Flows - Prepare Badger
+
+  prepare_badger_perms:
+    group: Badger
+    steps:
+      1:
+        task: assign_permission_sets
+        class: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
+        when: project_config.project__custom__badger
+        options:
+          api_names: *badger_mfg_ps
+      2:
+        task: assign_permission_set_groups
+        when: project_config.project__custom__badger and not project__custom__tso
+        options:
+          api_names: *badger_mfg_scratch_psg
+      3: 
+        task: assign_permission_set_groups
+        when: project_config.project__custom__badger and project__custom__tso
+        options:
+          api_names: *badger_mfg_psg
+        

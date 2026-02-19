@@ -1,0 +1,95 @@
+{
+  "orgName": "Salesforce Agentforce Revenue Management",
+  "country": "US",
+  "edition": "Enterprise",
+  "features": [
+    "EnableSetPasswordInApi",
+    "OrderSaveLogicEnabled",
+    "OrderManagement",
+    "PartnerCommunity",
+    "Communities",
+    "CustomerCommunityPlus",
+    "CoreCpq",
+    "UsageManagement",
+    "BillingAdvanced",
+    "DocGen",
+    "Einstein1AIPlatform",
+    "AIProviderOpenAI",
+    "AIProviderAWSBedrock",
+    "DisclosureFramework",
+    "CGAnalytics",
+    "InsightsPlatform",
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "B2BCommerce",
+    "EnablePRM",
+    "IndustriesMfgRebates",
+    "IndustriesMfgTargets",
+    "IndustriesManufacturingCmty",
+    "B2BLoyaltyManagement",
+    "AnalyticsAdminPerms",
+    "AnalyticsAppEmbedded",
+    "EinsteinAnalyticsPlus"
+  ],
+  "settings": {
+    "billingSettings": {
+      "enableBillingSetup": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    },
+    "currencySettings": {
+      "enableMultiCurrency": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "industriesContextSettings": {
+      "enableContextDefinitions": true
+    },
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
+    },
+    "opportunitySettings": {
+      "enableOpportunityTeam": true
+    },
+    "orderManagementSettings": {
+      "enableOrderManagement": true
+    },
+    "orderSettings": {
+      "enableOrders": true,
+      "enableEnhancedCommerceOrders": true,
+      "enableOrderEvents": true,
+      "enableOptionalPricebook": true,
+      "enableZeroQuantity": true,
+      "enableNegativeQuantity": true
+    },
+    "quoteSettings": {
+      "enableQuote": true,
+      "enableQuotesWithoutOppEnabled": true
+    },
+    "industriesPricingSettings": {
+      "enableHighAvailability": true,
+      "enablePricingWaterfall": true,
+      "enablePricingWaterfallPersistence": true,
+      "enableSalesforcePricing": true
+    },
+    "industriesRatingSettings": {
+      "enableRating": true,
+      "enableRatingWaterfall": true,
+      "enableRatingWaterfallPersistence": true
+    },
+    "revenueManagementSettings": {
+      "enableCoreCPQ": true
+    },
+    "productConfiguratorSettings": {
+      "enableProductConfigurator": true
+    },
+    "dynamicFulfillmentOrchestratorSettings": {
+      "enableDFOPref": true
+    }
+  }
+}

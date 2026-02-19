@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>MFG_scratch</label>
+    <permissionSets>MFG_RCA</permissionSets>
+    <permissionSets>force__CopilotSalesforceAdmin</permissionSets>
+    <permissionSets>force__CopilotSalesforceUser</permissionSets>
+    <permissionSets>force__DecimalQuantityDesigntime</permissionSets>
+    <permissionSets>force__DecimalQuantityRuntime</permissionSets>
+    <permissionSets>force__ManufacturingAccountForecastPsl</permissionSets>
+    <permissionSets>force__ManufacturingAccountManagerTargetsPsl</permissionSets>
+    <permissionSets>force__ManufacturingAdvancedAccountForecastPsl</permissionSets>
+    <permissionSets>force__ManufacturingSalesAgreementsPsl</permissionSets>
+    <permissionSets>force__OmniStudioExecution</permissionSets>
+    <permissionSets>force__PricingFeatrForSalesAgr</permissionSets>
+    <permissionSets>force__ProductCatalogMgmtForSalesAgr</permissionSets>
+    <permissionSets>force__RebateManagementAdminPsl</permissionSets>
+    <permissionSets>force__RebateManagementUserPsl</permissionSets>
+    <permissionSets>force__SalesAgreementsBulkUpdate</permissionSets>
+    <permissionSets>force__ShipAndDebitManagementAdminPsl</permissionSets>
+    <permissionSets>force__ShipAndDebitManagementUserPsl</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>
