@@ -1,2 +1,2 @@
-ContextDefinition,DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,InheritedFrom,IsActive,ProcedurePlanDefinition.DeveloperName,Rank
-11OWt000000AHPNMA4,QuoteEntitiesMapping,QuoteEntitiesMapping,RC_Quote_Pricing_Procedure_Plan,2026-01-17T00:00:00.000+0000,,,true,RC_Quote_Pricing_Procedure_Plan,1
+﻿"DefaultReadContextMapping","DefaultSaveContextMapping","DeveloperName","EffectiveFrom","EffectiveTo","InheritedFrom","IsActive","Rank","ProcedurePlanDefinition.DeveloperName"
+"QuoteEntitiesMapping","QuoteEntitiesMapping","RC_Quote_Pricing_Procedure_Plan","2026-01-17T00:00:00.000+0000","#N/A","#N/A","true","1","RC_Quote_Pricing_Procedure_Plan"

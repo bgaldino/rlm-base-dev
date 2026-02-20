@@ -400,6 +400,26 @@ project:
     rating_discovery_context_base_reference: &rating_discovery_context_base_reference RatingDiscoveryContext__stdctx
 
 #------------------------------------#
+# PROCEDURE PLAN DEFINITION SETTINGS #
+#------------------------------------#
+# These anchors define the settings for the procedure plan definition
+# Each setting is referenced in the create_procedure_plan_definition task
+
+    procedure_plan_definition_description: &procedure_plan_definition_description "Procedure Plan Definition for Quote Pricing"
+    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_name: &procedure_plan_definition_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
+    procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
+    procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
+    context_definition_label: &context_definition_label "RLM_SalesTransactionContext"
+    procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
+    procedure_plan_definition_version_save_context_mapping: &procedure_plan_definition_version_save_context_mapping "QuoteEntitiesMapping"
+    procedure_plan_definition_version_effective_from: &procedure_plan_definition_version_effective_from "2026-01-01T00:00:00.000Z"
+    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_version_rank: &procedure_plan_definition_version_rank 1
+    procedure_plan_definition_version_effective_to: &procedure_plan_definition_version_effective_to 
+
+#------------------------------------#
 # DATA PLAN NAMES AND PATHS SETTINGS #
 #------------------------------------#
 # These anchors define the paths to various datasets used for data loading tasks
@@ -1275,6 +1295,25 @@ tasks:
     class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
     options:
       developerNames: *dt_asset_decision_tables
+
+  create_procedure_plan_definition:
+    group: Revenue Lifecycle Management
+    description: Create Procedure Plan Definition
+    class_path: tasks.rlm_create_procedure_plan_def.CreateProcedurePlanDefinition
+    options:
+      description: *procedure_plan_definition_description
+      developerName: *procedure_plan_definition_developer_name
+      name: *procedure_plan_definition_name
+      primaryObject: *procedure_plan_definition_primary_object
+      processType: *procedure_plan_definition_process_type
+      versionActive: *procedure_plan_definition_version_active
+      context_definition_label: *context_definition_label
+      versionReadContextMapping: *procedure_plan_definition_version_read_context_mapping
+      versionSaveContextMapping: *procedure_plan_definition_version_save_context_mapping
+      versionEffectiveFrom: *procedure_plan_definition_version_effective_from
+      versionDeveloperName: *procedure_plan_definition_version_developer_name
+      versionRank: *procedure_plan_definition_version_rank
+      versionEffectiveTo: *procedure_plan_definition_version_effective_to
 
 #----------------#
 # MAIN CCI FLOWS #

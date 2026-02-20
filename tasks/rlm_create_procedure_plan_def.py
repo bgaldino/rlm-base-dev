@@ -1,3 +1,5 @@
+import urllib.parse
+
 import requests
 
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -41,8 +43,12 @@ class CreateProcedurePlanDefinition(SFDXBaseTask):
             "required": True,
         },
         "versionContextDefinition": {
-            "description": "Context definition for the version (e.g. SalesTransactionContext__stdctx)",
-            "required": True,
+            "description": "Context definition Id for the version. If omitted, Id is looked up by context_definition_label.",
+            "required": False,
+        },
+        "context_definition_label": {
+            "description": "Label of ContextDefinition to look up when versionContextDefinition is not set (default RLM_SalesTransactionContext)",
+            "required": False,
         },
         "versionReadContextMapping": {
             "description": "Read context mapping for the version (e.g. QuoteEntitiesMapping)",
@@ -116,12 +122,37 @@ class CreateProcedurePlanDefinition(SFDXBaseTask):
         )
         return None
 
+    # Query Salesforce for ContextDefinition Id by Label (MasterLabel). Returns Id or None.
+    def _get_context_definition_id_by_label(self, label):
+        api_version = self.project_config.project__package__api_version
+        soql = f"SELECT Id FROM ContextDefinition WHERE MasterLabel = '{label.replace(chr(39), chr(39)+chr(39))}'"
+        query_url = f"{self.instance_url}/services/data/v{api_version}/query?q={urllib.parse.quote(soql)}"
+        headers = {"Authorization": f"Bearer {self.access_token}"}
+        response = self._make_request("get", query_url, headers=headers)
+        if not response or "records" not in response or not response["records"]:
+            self.logger.error(
+                f"No ContextDefinition found with MasterLabel = '{label}'"
+            )
+            return None
+        return response["records"][0].get("Id")
+
+    # Resolve contextDefinition for the version: use option if set, else query by context_definition_label.
+    def _resolve_context_definition_id(self):
+        explicit = self.options.get("versionContextDefinition")
+        if explicit:
+            return explicit
+        label = self.options.get("context_definition_label") or "RLM_SalesTransactionContext"
+        return self._get_context_definition_id_by_label(label)
+
     # Build the POST request body per Procedure Plan Definitions resource (POST).
     # procedurePlanDefinitionVersions is constructed from version* task options.
     def _build_request_body(self):
+        context_definition_id = self._resolve_context_definition_id()
+        if not context_definition_id:
+            return None
         version_item = {
             "active": self._to_bool(self.options.get("versionActive", False)),
-            "contextDefinition": self.options.get("versionContextDefinition"),
+            "contextDefinition": context_definition_id,
             "readContextMapping": self.options.get("versionReadContextMapping"),
             "saveContextMapping": self.options.get("versionSaveContextMapping"),
             "effectiveFrom": self.options.get("versionEffectiveFrom"),

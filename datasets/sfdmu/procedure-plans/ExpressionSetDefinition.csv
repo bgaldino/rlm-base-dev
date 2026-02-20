@@ -1,3 +1,15 @@
-DeveloperName
-RC_DefaultPricingProcedure
-RC_Price_Distribution_Procedure
+﻿"DeveloperName","MasterLabel","NamespacePrefix"
+"RC_DefaultPricingProcedure","RC Revenue Cloud Default Pricing Procedure","#N/A"
+"Negotiable_Rating_Procedure","Negotiable Rating Procedure","#N/A"
+"RLM_DefaultRatingDiscoveryProcedure","RLM Default Rating Discovery Procedure","#N/A"
+"RLM_DefaultRatingProcedure","RLM Default Rating Procedure","#N/A"
+"RLM_ProductDiscoveryPricingProcedure","RLM Product Discovery Pricing Procedure","#N/A"
+"RLM_ProductDiscoveryQualificationProcedure","RLM Product Discovery Qualification Procedure","#N/A"
+"RLM_QualificationProcedure","RLM Qualification Procedure","#N/A"
+"GeneratorSet","GeneratorSet","#N/A"
+"QuantumBitComplete","QuantumBitComplete","#N/A"
+"Salesforce_Default_Pricing_Discovery_Procedure","Salesforce Default Pricing Discovery Procedure","#N/A"
+"RLM_DefaultPricingProcedure","RLM Default Pricing Procedure","#N/A"
+"Server2","Server2","#N/A"
+"RC_Price_Distribution_Procedure","RC Price Distribution Procedure","#N/A"
+"RC_Revenue_Management_Recalc_Procedure","RC Revenue Management Recalc Procedure","#N/A"

@@ -1,3 +1,3 @@
-$$ProcedurePlanVersion.DeveloperName$Sequence,Description,IsInherited,ProcedurePlanVersion.DeveloperName,ResolutionType,SectionType,Sequence,SubSectionType
-RC_Quote_Pricing_Procedure_Plan;1,,false,RC_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,1,DefaultPricing
-RC_Quote_Pricing_Procedure_Plan;2,,false,RC_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,2,HeaderDistribution
+﻿"Description","Phase","ResolutionType","SectionType","Sequence","SubSectionType","ProcedurePlanVersion.DeveloperName"
+"#N/A","0","Default","PricingProcedure","1","DefaultPricing","RC_Quote_Pricing_Procedure_Plan"
+"#N/A","0","Default","PricingProcedure","2","HeaderDistribution","RC_Quote_Pricing_Procedure_Plan"
