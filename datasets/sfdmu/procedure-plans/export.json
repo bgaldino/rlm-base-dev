@@ -12,25 +12,37 @@
         },
         {
           "query": "SELECT ApexClassId, ApexClassName, CriteriaLogic, CtxDefinitionOutputFieldId, CtxMappingOutputFieldId, DecisionTableId, ExpressionSetApiName, ExpressionSetDefinitionId, ExpressionSetLabel, ExpressionSetOutputFieldId, PrimaryObject, Priority, ProcedurePlanSectionId, ReadContextMapping, SaveContextMapping FROM ProcedurePlanOption",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "ExpressionSetApiName;Priority",
           "excluded": false
         },
         {
           "query": "SELECT ActualValue,DataType,FieldPath,Id,ObjectField,Operator,ProcedurePlanOptionId,Sequence FROM ProcedurePlanCriterion",
-          "operation": "Upsert",
-          "externalId": "ProcedurePlanOptionId;Sequence",
+          "operation": "Insert",
           "excluded": false
         },
         {
           "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "SubSectionType;Sequence",
-          "excluded": false
+          "excluded": false,
+          "filterRecordsAddons": [
+            {
+              "module": "core:RecordsFilter",
+              "args": {
+                "filterType": "BadWords",
+                "settings": {
+                  "badwordsFile": "badwords.json",
+                  "detectFields": ["SectionType", "SubSectionType"],
+                  "outputMatches": false
+                }
+              }
+            }
+          ]
         },
         {
           "query": "SELECT DataType,DefaultValue,DeveloperName,Label,ProcedurePlanVersionId FROM ProcedurePlanVariable",
-          "operation": "Upsert",
+          "operation": "Insert",
           "excluded": false
         },
         {
