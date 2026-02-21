@@ -33,7 +33,7 @@
                 "filterType": "BadWords",
                 "settings": {
                   "badwordsFile": "badwords.json",
-                  "detectFields": ["SectionType", "SubSectionType"],
+                  "detectFields": ["Id"],
                   "outputMatches": false
                 }
               }
