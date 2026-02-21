@@ -4,64 +4,23 @@
   "objectSets": [
     {
       "objects": [
-        {
-          "query": "SELECT Description, DeveloperName, Language, Rank, MasterLabel, NamespacePrefix, PrimaryObject, ProcessType FROM ProcedurePlanDefinition",
-          "operation": "Readonly",
-          "externalId": "DeveloperName",
-          "excluded": false
-        },
-        {
-          "query": "SELECT ApexClassId, ApexClassName, CriteriaLogic, CtxDefinitionOutputFieldId, CtxMappingOutputFieldId, DecisionTableId, ExpressionSetApiName, ExpressionSetDefinitionId, ExpressionSetLabel, ExpressionSetOutputFieldId, PrimaryObject, Priority, ProcedurePlanSectionId, ReadContextMapping, SaveContextMapping FROM ProcedurePlanOption",
-          "operation": "Insert",
-          "externalId": "ExpressionSetApiName;Priority",
-          "excluded": false
-        },
-        {
-          "query": "SELECT ActualValue,DataType,FieldPath,Id,ObjectField,Operator,ProcedurePlanOptionId,Sequence FROM ProcedurePlanCriterion",
-          "operation": "Insert",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection",
-          "operation": "Insert",
-          "externalId": "SubSectionType;Sequence",
-          "excluded": false,
-          "filterRecordsAddons": [
-            {
-              "module": "core:RecordsFilter",
-              "args": {
-                "filterType": "BadWords",
-                "settings": {
-                  "badwordsFile": "badwords.json",
-                  "detectFields": ["Id"],
-                  "outputMatches": false
-                }
-              }
-            }
-          ]
-        },
-        {
-          "query": "SELECT DataType,DefaultValue,DeveloperName,Label,ProcedurePlanVersionId FROM ProcedurePlanVariable",
-          "operation": "Insert",
-          "excluded": false
-        },
-        {
-          "query": "SELECT DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,Id,InheritedFrom,IsActive,ProcedurePlanDefinitionId,Rank FROM ProcedurePlanDefinitionVersion",
-          "operation": "Readonly",
-          "externalId": "DeveloperName",
-          "excluded": false
-        },
-        {
-          "query": "SELECT ApiName, IsActive, Name, Rank, VersionNumber FROM ExpressionSetVersion",
-          "operation": "Readonly",
-          "excluded": false
-        },
-        {
-          "query": "SELECT DeveloperName, MasterLabel, NamespacePrefix FROM ExpressionSetDefinition",
-          "operation": "Readonly",
-          "externalId": "DeveloperName",
-          "excluded": false
-        }
+        {"query": "SELECT Description, DeveloperName, Language, Rank, MasterLabel, NamespacePrefix, PrimaryObject, ProcessType FROM ProcedurePlanDefinition", "operation": "Readonly", "externalId": "DeveloperName", "excluded": false},
+        {"query": "SELECT DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,Id,InheritedFrom,IsActive,ProcedurePlanDefinitionId,Rank FROM ProcedurePlanDefinitionVersion", "operation": "Readonly", "externalId": "DeveloperName", "excluded": false},
+        {"query": "SELECT DeveloperName, MasterLabel, NamespacePrefix FROM ExpressionSetDefinition", "operation": "Readonly", "externalId": "DeveloperName", "excluded": false},
+        {"query": "SELECT ApiName, IsActive, Name, Rank, VersionNumber FROM ExpressionSetVersion", "operation": "Readonly", "excluded": false},
+        {"query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection", "operation": "Insert", "externalId": "SubSectionType;Sequence", "excluded": false}
+      ]
+    },
+    {
+      "objects": [
+        {"query": "SELECT Description, DeveloperName, Language, Rank, MasterLabel, NamespacePrefix, PrimaryObject, ProcessType FROM ProcedurePlanDefinition", "operation": "Readonly", "externalId": "DeveloperName", "excluded": false},
+        {"query": "SELECT DefaultReadContextMapping,DefaultSaveContextMapping,DeveloperName,EffectiveFrom,EffectiveTo,Id,InheritedFrom,IsActive,ProcedurePlanDefinitionId,Rank FROM ProcedurePlanDefinitionVersion", "operation": "Readonly", "externalId": "DeveloperName", "excluded": false},
+        {"query": "SELECT DeveloperName, MasterLabel, NamespacePrefix FROM ExpressionSetDefinition", "operation": "Readonly", "externalId": "DeveloperName", "excluded": false},
+        {"query": "SELECT ApiName, IsActive, Name, Rank, VersionNumber FROM ExpressionSetVersion", "operation": "Readonly", "excluded": false},
+        {"query": "SELECT Id, Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection", "operation": "Readonly", "externalId": "SubSectionType;Sequence", "excluded": false},
+        {"query": "SELECT ApexClassId, ApexClassName, CriteriaLogic, CtxDefinitionOutputFieldId, CtxMappingOutputFieldId, DecisionTableId, ExpressionSetApiName, ExpressionSetDefinitionId, ExpressionSetLabel, ExpressionSetOutputFieldId, PrimaryObject, Priority, ProcedurePlanSectionId, ReadContextMapping, SaveContextMapping FROM ProcedurePlanOption", "operation": "Insert", "externalId": "ExpressionSetApiName;Priority", "excluded": false},
+        {"query": "SELECT ActualValue,DataType,FieldPath,Id,ObjectField,Operator,ProcedurePlanOptionId,Sequence FROM ProcedurePlanCriterion", "operation": "Insert", "excluded": false},
+        {"query": "SELECT DataType,DefaultValue,DeveloperName,Label,ProcedurePlanVersionId FROM ProcedurePlanVariable", "operation": "Insert", "excluded": false}
       ]
     }
   ],
