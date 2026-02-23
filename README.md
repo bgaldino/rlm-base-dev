@@ -207,7 +207,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `docgen` | `true` | Use Document Generation |
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `false` | Use Guided Selling |
-| `procedureplans` | `false` | Use Procedure Plans |
+| `procedureplans` | `true` | Use Procedure Plans |
 | `visualization` | `false` | Use Visualization components (Flow with Visuals, LWC styling) |
 
 ### Deployment Flags
@@ -224,7 +224,7 @@ This project includes custom Python task modules in the `tasks/` directory, each
 
 | Task Name | Module | Description | Documentation |
 |-----------|--------|-------------|---------------|
-| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (DRO tasks replace `__DRO_ASSIGNED_TO_USER__` dynamically) | See `cumulusci.yml` |
+| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (supports `simulation` dry-run mode, `object_sets` pass filtering, dynamic DRO user resolution) | See `cumulusci.yml` |
 | `export_cml` | `rlm_cml.py` | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
 | `import_cml` | `rlm_cml.py` | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
 | `validate_cml` | `rlm_cml.py` | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
@@ -291,6 +291,8 @@ This project includes custom Python task modules in the `tasks/` directory, each
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
+| `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
+| `activate_procedure_plan_version` | `rlm_create_procedure_plan_def.py` | Activate ProcedurePlanDefinitionVersion after data load (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
 | `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
@@ -435,7 +437,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
-| `prepare_procedureplans` | Deploy procedure plans metadata, assign permissions | `tso`, `procedureplans` |
+| `prepare_procedureplans` | Deploy procedure plans metadata, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
 | `prepare_visualization` | Deploy visualization components | `visualization` |
@@ -469,6 +471,12 @@ SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load
 | qb-transactionprocessingtypes | `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/` | Transaction Processing Type records | [README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) |
 | qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](datasets/sfdmu/qb/en-US/qb-rating/README.md) |
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](datasets/sfdmu/qb/en-US/qb-rates/README.md) |
+
+#### Procedure Plans Data Plan
+
+| Data Plan | Directory | Description | Documentation |
+|-----------|-----------|-------------|---------------|
+| procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API + activation) | [README](datasets/sfdmu/procedure-plans/README.md) |
 
 #### Archived Data Plans
 
@@ -523,6 +531,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-transactionprocessingtypes README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) -- Transaction Processing Types
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
+- [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 
 ### Robot Framework
 
@@ -568,6 +577,7 @@ rlm-base-dev/
 │   ├── rlm_enable_constraints_settings.py
 │   ├── rlm_configure_revenue_settings.py
 │   ├── rlm_reconfigure_expression_set.py
+│   ├── rlm_create_procedure_plan_def.py
 │   ├── rlm_refresh_decision_table.py
 │   ├── rlm_sync_pricing_data.py
 │   ├── rlm_repair_pricing_schedules.py
@@ -595,6 +605,7 @@ rlm-base-dev/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
 │   │   │   └── qb-rates/
+│   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/

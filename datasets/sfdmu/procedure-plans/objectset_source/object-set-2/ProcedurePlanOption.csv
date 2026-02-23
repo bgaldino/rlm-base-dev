@@ -1,0 +1,3 @@
+$$ProcedurePlanSection.SubSectionType$Priority,CriteriaLogic,ExpressionSetDefinition.DeveloperName,Priority,ProcedurePlanSection.$$SubSectionType$Sequence,ReadContextMapping,SaveContextMapping
+DefaultPricing;1,,RLM_DefaultPricingProcedure,1,DefaultPricing;1,,
+HeaderDistribution;1,,RC_Price_Distribution_Procedure,1,HeaderDistribution;2,,
