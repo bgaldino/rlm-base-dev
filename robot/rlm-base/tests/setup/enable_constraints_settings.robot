@@ -105,105 +105,103 @@ Enable Constraints Engine Toggle
 
 Set Asset Context Picklist
     [Documentation]    Sets the "Set Up Asset Context for Product Configurator" picklist.
-    ...    If the correct value is already shown in a pill, skips. If a different value
-    ...    is set, clears the pill first, then selects from the dropdown.
-    ...    All element searches are scoped to the section container to avoid interacting
-    ...    with adjacent sections (e.g. Instant Pricing below).
+    ...    Uses the same <li>-scoped approach as configure_revenue_settings: all XPath
+    ...    selectors are scoped to the specific <li> setup-assistant step that contains
+    ...    the "Set Up Asset Context" title, preventing cross-section interference.
+    ...
+    ...    Flow:
+    ...    1. Scroll to step title and click to expand the content area
+    ...    2. Check if pill shows correct value → skip
+    ...    3. Clear pill if wrong value
+    ...    4. Find <select> or combobox within the <li> and set value
     [Arguments]    ${target_value}
-    ${section}=    Set Variable    xpath=//*[contains(normalize-space(text()), 'Set Up Asset Context')]
-    ${section_found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${section}
-    IF    not ${section_found}
-        Log    WARNING: "Set Up Asset Context" section not found on page. Skipping.    WARN
+    ${step_li}=    Set Variable    xpath=//li[.//span[contains(normalize-space(text()), 'Set Up Asset Context')]]
+    ${title_span}=    Set Variable    xpath=//span[contains(normalize-space(text()), 'Set Up Asset Context')]
+    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${title_span}
+    IF    not ${found}
+        Log    WARNING: "Set Up Asset Context" not found on page. Skipping.    WARN
         RETURN
     END
     Sleep    1s
-    # Find the scoped container (nearest ancestor div) to avoid bleeding into adjacent sections
-    ${container}=    _Get Asset Context Container
-    # Check if already set to the correct value
-    IF    $container != 'NONE'
-        ${area_text}=    Get Text    ${container}
-        ${already_set}=    Run Keyword And Return Status    Should Contain    ${area_text}    ${target_value}
-        IF    ${already_set}
-            Log    Asset Context is already set to "${target_value}". No change needed.
+    Click Element    ${title_span}
+    Sleep    2s    reason=Allow step content to render after expand
+    # Check if pill already shows correct value (scoped to this <li>)
+    ${pill_label}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill__label')]
+    ${has_pill}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${pill_label}    timeout=5s
+    IF    ${has_pill}
+        ${pill_text}=    Get Text    ${pill_label}
+        ${correct}=    Run Keyword And Return Status    Should Contain    ${pill_text}    ${target_value}
+        IF    ${correct}
+            Log    Asset Context already set to "${target_value}". No change needed.
             RETURN
         END
-        # Check if any pill is present (wrong value) and clear it within this container
-        ${clear_btn}=    Set Variable    ${container}//button[contains(@title, 'Remove') or contains(@title, 'Clear') or contains(@title, 'close') or contains(@class, 'pill__remove') or contains(@class, 'slds-pill__remove')]
-        ${has_pill}=    Run Keyword And Return Status    Get WebElement    ${clear_btn}
-        IF    ${has_pill}
-            Log    Asset Context has a different value. Clearing pill.
-            ${pill_area}=    Set Variable    ${container}//*[contains(@class, 'pill') or contains(@class, 'selectedOption') or contains(@class, 'slds-pill')]
-            ${pill_found}=    Run Keyword And Return Status    Get WebElement    ${pill_area}
-            Run Keyword If    ${pill_found}    Mouse Over    ${pill_area}
-            Sleep    1s
-            Click Element    ${clear_btn}
-            Sleep    2s    reason=Allow picklist to reappear after clearing pill
-        END
-    ELSE
-        # Fallback: position-limited search to stay in this section
-        ${clear_btn}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Set Up Asset Context')]/following::button[position() <= 5 and (contains(@title, 'Remove') or contains(@title, 'Clear') or contains(@title, 'close') or contains(@class, 'pill__remove') or contains(@class, 'slds-pill__remove'))])[1]
-        ${has_pill}=    Run Keyword And Return Status    Get WebElement    ${clear_btn}
-        IF    ${has_pill}
-            Log    Asset Context has a different value. Clearing pill (fallback).
-            ${pill_area}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Set Up Asset Context')]/following::*[position() <= 8 and (contains(@class, 'pill') or contains(@class, 'selectedOption') or contains(@class, 'slds-pill'))])[1]
-            ${pill_found}=    Run Keyword And Return Status    Get WebElement    ${pill_area}
-            Run Keyword If    ${pill_found}    Mouse Over    ${pill_area}
-            Sleep    1s
-            Click Element    ${clear_btn}
-            Sleep    2s    reason=Allow picklist to reappear after clearing pill
+        # Wrong value - clear the pill (scoped to this <li>)
+        Log    Asset Context has wrong value "${pill_text}". Clearing pill.
+        ${pill_area}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill')]
+        Mouse Over    ${pill_area}
+        Sleep    1s    reason=Reveal X button on hover
+        ${remove_btn}=    Set Variable    ${step_li}//button[contains(@class, 'pill__rem') or contains(@class, 'slds-pill__remove')]
+        ${btn_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${remove_btn}    timeout=5s
+        IF    ${btn_found}
+            Click Element    ${remove_btn}
+            Sleep    2s    reason=Allow pill to clear and dropdown to appear
         END
     END
     Capture Page Screenshot
-    # Try native <select> first (Asset Context renders as a native dropdown)
-    ${native_select}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Set Up Asset Context')]/following::select)[1]
-    ${is_native}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${native_select}    timeout=8s
-    IF    ${is_native}
-        Scroll Element Into View    ${native_select}
+    # Try native <select> within this specific <li>
+    ${select_el}=    Set Variable    ${step_li}//select
+    ${is_select}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
+    IF    ${is_select}
+        Scroll Element Into View    ${select_el}
         Sleep    0.5s
-        Select From List By Label    ${native_select}    ${target_value}
+        Select From List By Label    ${select_el}    ${target_value}
         Sleep    2s    reason=Allow selection to persist
         Capture Page Screenshot
         Log    Asset Context set to "${target_value}" (native select).
         RETURN
     END
-    # Fallback: Lightning combobox approach
-    ${trigger}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Set Up Asset Context')]/following::*[@role='combobox' or contains(@class, 'slds-combobox')])[1]
-    ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${trigger}    timeout=8s
-    IF    not ${found}
-        Log    WARNING: Could not find Asset Context picklist (native select or combobox). Skipping.    WARN
-        RETURN
-    END
-    Scroll Element Into View    ${trigger}
-    Sleep    0.5s
-    Click Element    ${trigger}
-    Sleep    2s    reason=Allow dropdown to populate
-    ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
-    ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
-    IF    not ${opt_found}
-        Log    WARNING: Option "${target_value}" not found in Asset Context dropdown. Skipping.    WARN
-        Press Keys    ${trigger}    ESCAPE
+    # Try combobox with role='combobox' within this <li>
+    ${cb_trigger}=    Set Variable    ${step_li}//*[@role='combobox' or contains(@class, 'slds-combobox')]
+    ${is_cb}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${cb_trigger}    timeout=5s
+    IF    ${is_cb}
+        Scroll Element Into View    ${cb_trigger}
         Sleep    0.5s
-        RETURN
-    END
-    Click Element    ${option}
-    Sleep    2s    reason=Allow selection to apply
-    Capture Page Screenshot
-    Log    Asset Context set to "${target_value}".
-
-_Get Asset Context Container
-    [Documentation]    Returns an XPath locator for the nearest ancestor container scoping the
-    ...    Asset Context section. Prevents element searches from bleeding into adjacent
-    ...    sections like Instant Pricing.
-    @{ancestors}=    Create List
-    ...    xpath=(//*[contains(normalize-space(text()), 'Set Up Asset Context')]/ancestor::div[contains(@class, 'slds-card') or contains(@class, 'card') or contains(@class, 'section') or contains(@class, 'form-element') or contains(@class, 'setup-content')])[last()]
-    ...    xpath=(//*[contains(normalize-space(text()), 'Set Up Asset Context')]/ancestor::div[position() <= 3])[last()]
-    FOR    ${xpath}    IN    @{ancestors}
-        ${found}=    Run Keyword And Return Status    Get WebElement    ${xpath}
-        IF    ${found}
-            RETURN    ${xpath}
+        Click Element    ${cb_trigger}
+        Sleep    2s    reason=Allow dropdown to populate
+        Capture Page Screenshot
+        ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
+        ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
+        IF    not ${opt_found}
+            ${option}=    Set Variable    ${step_li}//*[contains(normalize-space(text()), '${target_value}')]
+            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
+        END
+        IF    ${opt_found}
+            Click Element    ${option}
+            Sleep    2s    reason=Allow selection to apply
+            Capture Page Screenshot
+            Log    Asset Context set to "${target_value}" (combobox).
+            RETURN
+        ELSE
+            Log    WARNING: Option "${target_value}" not found in Asset Context dropdown.    WARN
+            Press Keys    ${cb_trigger}    ESCAPE
         END
     END
-    RETURN    NONE
+    # Fallback: retry by clicking title again
+    Log    No dropdown found on first attempt for Asset Context. Retrying.    WARN
+    Click Element    ${title_span}
+    Sleep    3s
+    ${is_select2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
+    IF    ${is_select2}
+        Scroll Element Into View    ${select_el}
+        Sleep    0.5s
+        Select From List By Label    ${select_el}    ${target_value}
+        Sleep    2s
+        Capture Page Screenshot
+        Log    Asset Context set to "${target_value}" (native select, retry).
+        RETURN
+    END
+    Log    WARNING: Could not set Asset Context to "${target_value}". No interactive element found.    WARN
+    Capture Page Screenshot
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.
@@ -257,6 +255,8 @@ _Try Native Select
 
 _Find Native Select
     [Documentation]    Looks for a native <select> element near the Default Transaction Type label.
+    ...    Removed the broad css:select fallback to prevent matching unrelated <select>
+    ...    elements (e.g. from other sections on the same page).
     # Strategy 1: select following the label text
     ${loc1}=    Set Variable    xpath=(//*[contains(normalize-space(.), 'Default Transaction Type')]/following::select)[1]
     ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${loc1}    timeout=8s
@@ -265,10 +265,6 @@ _Find Native Select
     ${loc2}=    Set Variable    xpath=(//*[contains(normalize-space(.), 'Default Transaction Type')]/ancestor::*[.//select][1]//select)[1]
     ${found}=    Run Keyword And Return Status    Get WebElement    ${loc2}
     Return From Keyword If    ${found}    ${loc2}
-    # Strategy 3: any select on the page
-    ${loc3}=    Set Variable    css:select
-    ${found}=    Run Keyword And Return Status    Get WebElement    ${loc3}
-    Return From Keyword If    ${found}    ${loc3}
     RETURN    NONE
 
 _Set Via Lightning Combobox

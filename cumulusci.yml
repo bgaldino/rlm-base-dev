@@ -16,6 +16,9 @@ orgs:
     dev-sb0:
       config_file: orgs/dev-sb0.json
       days: 30
+    test-sb0:
+      config_file: orgs/test-sb0.json
+      days: 30
     tfid:
       config_file: orgs/tfid.json
       days: 30
@@ -106,7 +109,7 @@ project:
     constraints: true         # Use Constraint Builder
     constraints_data: true   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
-    procedureplans: false     # Use Procedure Plans
+    procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     locale: en_US             # Default locale
@@ -286,9 +289,6 @@ project:
       # Agent-specific permission sets
       - RLM_Revenue_Cloud_Agent
 
-    ps_procedureplans: &ps_procedureplans
-      # Procedure Plans-specific permission sets
-      - RLM_ProcedurePlans
 
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
@@ -408,6 +408,9 @@ project:
     billing_context_name: &billing_context_name RLM_BillingContext
     billing_context_default_mapping: &billing_context_default_mapping BSGEntitiesMapping
     billing_context_base_reference: &billing_context_base_reference BillingContext__stdctx
+    billing_default_treatment_name: &billing_default_treatment_name "Billing Treatment - USA - Advance"
+    billing_default_legal_entity_name: &billing_default_legal_entity_name "Default Legal Entity - US"
+    billing_default_tax_treatment_name: &billing_default_tax_treatment_name "Default Tax Policy"
 
     fulfillment_asset_context_name: &fulfillment_asset_context_name RLM_FulfillmentAssetContext
     fulfillment_asset_context_default_mapping: &fulfillment_asset_context_default_mapping FulfillAssetEntitiesMapping
@@ -433,6 +436,27 @@ project:
     rating_discovery_context_default_mapping: &rating_discovery_context_default_mapping CatalogMapping
     rating_discovery_context_base_reference: &rating_discovery_context_base_reference RatingDiscoveryContext__stdctx
 
+
+#------------------------------------#
+# PROCEDURE PLAN DEFINITION SETTINGS #
+#------------------------------------#
+# These anchors define the settings for the procedure plan definition
+# Each setting is referenced in the create_procedure_plan_definition task
+
+    procedure_plan_definition_description: &procedure_plan_definition_description "Procedure Plan Definition for Quote Pricing"
+    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_name: &procedure_plan_definition_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
+    procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
+    procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
+    context_definition_label: &context_definition_label "RLM_SalesTransactionContext"
+    procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
+    procedure_plan_definition_version_save_context_mapping: &procedure_plan_definition_version_save_context_mapping "QuoteEntitiesMapping"
+    procedure_plan_definition_version_effective_from: &procedure_plan_definition_version_effective_from "2026-01-01T00:00:00.000Z"
+    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_version_rank: &procedure_plan_definition_version_rank 1
+    procedure_plan_definition_version_effective_to: &procedure_plan_definition_version_effective_to 
+
 #------------------------------------#
 # DATA PLAN NAMES AND PATHS SETTINGS #
 #------------------------------------#
@@ -455,6 +479,8 @@ project:
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
+
+    procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -854,6 +880,33 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_billing
+
+  deploy_billing_id_settings:
+    description: Deploy Billing Settings with org-specific record IDs (resolved via XPath transform queries at deploy time)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_billing_id_settings
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //BillingSettings/defaultBillingTreatment[text()="__DEFAULT_BILLING_TREATMENT_ID__"]
+                replace_record_id_query: SELECT Id FROM BillingTreatment WHERE Name = 'Billing Treatment - USA - Advance' AND Status = 'Active' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultLegalEntity[text()="__DEFAULT_LEGAL_ENTITY_ID__"]
+                replace_record_id_query: SELECT Id FROM LegalEntity WHERE Name = 'Default Legal Entity - US' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultTaxTreatment[text()="__DEFAULT_TAX_TREATMENT_ID__"]
+                replace_record_id_query: SELECT Id FROM TaxTreatment WHERE Name = 'Default Tax Policy' AND Status = 'Active' LIMIT 1
+                api: rest
+
+  deploy_billing_template_settings:
+    description: Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_billing_template_settings
 
   deploy_post_guidedselling:
     description: Deploy Guided Selling Metadata
@@ -1546,6 +1599,48 @@ tasks:
       activate: true
       plan_file: null
 
+  create_procedure_plan_definition:
+    group: Revenue Lifecycle Management
+    description: Create Procedure Plan Definition via Connect API (idempotent)
+    class_path: tasks.rlm_create_procedure_plan_def.CreateProcedurePlanDefinition
+    options:
+      description: *procedure_plan_definition_description
+      developerName: *procedure_plan_definition_developer_name
+      name: *procedure_plan_definition_name
+      primaryObject: *procedure_plan_definition_primary_object
+      processType: *procedure_plan_definition_process_type
+      versionActive: *procedure_plan_definition_version_active
+      context_definition_label: *context_definition_label
+      versionReadContextMapping: *procedure_plan_definition_version_read_context_mapping
+      versionSaveContextMapping: *procedure_plan_definition_version_save_context_mapping
+      versionEffectiveFrom: *procedure_plan_definition_version_effective_from
+      versionDeveloperName: *procedure_plan_definition_version_developer_name
+      versionRank: *procedure_plan_definition_version_rank
+      versionEffectiveTo: *procedure_plan_definition_version_effective_to
+
+  insert_procedure_plan_data:
+    group: Revenue Lifecycle Management
+    description: Insert Procedure Plan data (sections in pass 1, options with expression set links in pass 2)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *procedure_plans_dataset
+
+  activate_procedure_plan_version:
+    group: Revenue Lifecycle Management
+    description: Activate the ProcedurePlanDefinitionVersion after sections and options have been inserted
+    class_path: tasks.rlm_create_procedure_plan_def.ActivateProcedurePlanVersion
+    options:
+      developerName: *procedure_plan_definition_developer_name
+
+  activate_procedure_plan_expression_sets:
+    group: Revenue Lifecycle Management
+    description: Activate Procedure Plan expression set versions (RC_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
+    class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
+    options:
+      operation: activate_versions
+      version_full_names: RC_Price_Distribution_Procedure_V1
+
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -1585,27 +1680,27 @@ flows:
       12:
         flow: prepare_pricing_data
       13:
-        flow: prepare_dro
-      14:
-        flow: prepare_tax
-      15:
-        flow: prepare_billing
-      16:
-        flow: prepare_clm
-      17:
-        flow: prepare_rating
-      18:
-        task: activate_and_deploy_expression_sets
-      19:
-        flow: prepare_tso
-      20:
-        flow: prepare_procedureplans
-      21:
-        flow: prepare_prm
-      22:
-        flow: prepare_agents
-      23:
         flow: prepare_docgen
+      14:
+        flow: prepare_dro
+      15:
+        flow: prepare_tax
+      16:
+        flow: prepare_billing
+      17:
+        flow: prepare_clm
+      18:
+        flow: prepare_rating
+      19:
+        task: activate_and_deploy_expression_sets
+      20:
+        flow: prepare_tso
+      21:
+        flow: prepare_procedureplans
+      22:
+        flow: prepare_prm
+      23:
+        flow: prepare_agents
       24:
         flow: prepare_constraints
       25:
@@ -1616,6 +1711,7 @@ flows:
         task: configure_revenue_settings
       28:
         task: reconfigure_pricing_discovery
+        when: org_config.scratch and not project_config.project__custom__tso
       29:
         flow: refresh_all_decision_tables
          
@@ -1881,6 +1977,12 @@ flows:
       6:
         task: deploy_post_billing
         when: project_config.project__custom__billing
+      7:
+        task: deploy_billing_id_settings
+        when: project_config.project__custom__billing
+      8:
+        task: deploy_billing_template_settings
+        when: project_config.project__custom__billing
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -2003,13 +2105,20 @@ flows:
     steps:
       1:
         task: deploy_post_procedureplans
-        when: project_config.project__custom__tso and project_config.project__custom__procedureplans
+        when: project_config.project__custom__procedureplans
       2:
-        task: assign_permission_sets
-        when: project_config.project__custom__tso and project_config.project__custom__procedureplans
-        options:
-          api_names: *ps_procedureplans
-      
+        task: activate_procedure_plan_expression_sets
+        when: project_config.project__custom__procedureplans
+      3:
+        task: create_procedure_plan_definition
+        when: project_config.project__custom__procedureplans
+      4:
+        task: insert_procedure_plan_data
+        when: project_config.project__custom__procedureplans
+      5:
+        task: activate_procedure_plan_version
+        when: project_config.project__custom__procedureplans
+
   prepare_constraints:
     group: Revenue Lifecycle Management
     steps:

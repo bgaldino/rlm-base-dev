@@ -4,6 +4,13 @@ Documentation     Configure Revenue Settings page: set default procedures (Prici
 ...               from Quote screen flow. Must run after all data and metadata has
 ...               been deployed and before decision table refresh. Asset Context is
 ...               configured separately via enable_constraints_settings.
+...
+...               The Pricing and Usage Rating fields are inside an LWC component
+...               (runtime_revenue_admin_console-rev-lifecycle-mgmt-settings) that uses
+...               synthetic shadow DOM. Each field lives in an <li> setup-assistant step.
+...               When not set, the step content area is empty until expanded. When set,
+...               it shows a pill. All selectors are scoped to the parent <li> to avoid
+...               cross-section interference (preventing accidental Asset Context changes).
 Resource          ../../resources/SetupToggles.robot
 Suite Setup       Open Browser For Setup
 Suite Teardown    Close Browser After Setup
@@ -12,208 +19,182 @@ Suite Teardown    Close Browser After Setup
 ${ORG_ALIAS}                            ${EMPTY}
 ${REVENUE_SETTINGS_URL}                 ${EMPTY}
 ${MANUAL_LOGIN_WAIT}                    90s
-# Picklist values for default procedures
 ${PRICING_PROCEDURE}                    RLM Revenue Management Default Pricing Procedure
 ${USAGE_RATING_PROCEDURE}               RLM Default Rating Discovery Procedure
-# Flow field
 ${CREATE_ORDERS_FLOW}                   RC_CreateOrdersFromQuote
 
 *** Test Cases ***
 Configure Revenue Settings
     [Documentation]    Navigates to Revenue Settings and configures:
-    ...    1. Set Up Salesforce Pricing (picklist/pill)
-    ...    2. Set Up Usage Rating (picklist/pill)
+    ...    1. Set Up Salesforce Pricing (combobox-recipe in setup assistant step)
+    ...    2. Set Up Usage Rating (combobox-recipe in setup assistant step)
     ...    3. Enable Instant Pricing toggle
     ...    4. Set Up Flow for Creating Orders from Quotes (text + Save)
     Open Revenue Settings Page
-    # 1. Set Up Salesforce Pricing
-    Set Picklist Field    Set Up Salesforce Pricing    ${PRICING_PROCEDURE}
+    Set Procedure Field    Set Up Salesforce Pricing    ${PRICING_PROCEDURE}
     Dismiss Toast If Present
-    # 2. Set Up Usage Rating
-    Set Picklist Field    Set Up Usage Rating    ${USAGE_RATING_PROCEDURE}
+    # Reload the page to ensure a clean state for Usage Rating; selecting a procedure
+    # value can leave the page in a transitional state where subsequent comboboxes
+    # don't populate their options.
+    Reload Page
+    Sleep    5s    reason=Allow page to fully reload after Pricing selection
+    Wait Until Page Contains Element    css:body    timeout=20s
+    Sleep    2s    reason=Allow Lightning to finish rendering
+    Set Procedure Field    Set Up Usage Rating    ${USAGE_RATING_PROCEDURE}
     Dismiss Toast If Present
-    # 3. Enable Instant Pricing
     Enable Instant Pricing Toggle
     Dismiss Toast If Present
-    # 4. Set Create Orders Flow
     Set Create Orders Flow    ${CREATE_ORDERS_FLOW}
     Capture Page Screenshot
     Log    Revenue Settings configured successfully.
 
 *** Keywords ***
-Set Picklist Field
-    [Documentation]    Sets a picklist field on the Revenue Settings page. These fields have
-    ...    two UI states:
-    ...    - NOT SET: A combobox/dropdown is visible with "Select an Option".
-    ...    - ALREADY SET: The dropdown is replaced by a pill/chip showing the selected value,
-    ...      with an X button (visible on hover) to clear it.
-    ...    If the correct value is already set, skips. If a wrong value is set, clears the
-    ...    pill first, then selects from the dropdown.
-    [Arguments]    ${section_label}    ${target_value}
-    # Scroll to the section
-    ${section}=    Set Variable    xpath=//*[contains(normalize-space(text()), '${section_label}')]
-    ${section_found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${section}
-    IF    not ${section_found}
-        Log    WARNING: Section "${section_label}" not found on page. Skipping.    WARN
+Set Procedure Field
+    [Documentation]    Sets a procedure combobox-recipe field on Revenue Settings.
+    ...    Each field lives in its own <li> element within the setup assistant.
+    ...    All XPath selectors are scoped to the specific <li> that contains the
+    ...    step title, preventing cross-section interference with other fields
+    ...    like Asset Context.
+    ...
+    ...    Flow:
+    ...    1. Scroll to the step title to trigger lazy rendering of step content
+    ...    2. Click the step title to expand/toggle the content area
+    ...    3. Check if a pill already shows the correct value → skip
+    ...    4. If wrong pill, clear it
+    ...    5. Find and use the <select> or combobox dropdown to set the value
+    [Arguments]    ${step_title}    ${target_value}
+    # Find the step LI element that contains this title
+    ${step_li}=    Set Variable    xpath=//li[.//span[contains(normalize-space(text()), '${step_title}')]]
+    # Scroll to step title to trigger rendering
+    ${title_span}=    Set Variable    xpath=//span[contains(normalize-space(text()), '${step_title}')]
+    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${title_span}
+    IF    not ${found}
+        Log    WARNING: "${step_title}" not found on page. Skipping.    WARN
         RETURN
     END
     Sleep    1s
-    # Check if the target value is already displayed in a pill/chip
-    ${pill_with_value}=    _Has Pill With Value    ${section_label}    ${target_value}
-    IF    ${pill_with_value}
-        Log    "${section_label}" is already set to "${target_value}". No change needed.
+    # Click the step title to expand the content area
+    Click Element    ${title_span}
+    Sleep    2s    reason=Allow step content to render after expand
+    # Check if pill already shows the correct value (scoped to this <li>)
+    ${pill_label}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill__label')]
+    ${has_pill}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${pill_label}    timeout=5s
+    IF    ${has_pill}
+        ${pill_text}=    Get Text    ${pill_label}
+        ${correct}=    Run Keyword And Return Status    Should Contain    ${pill_text}    ${target_value}
+        IF    ${correct}
+            Log    "${step_title}" already set to "${target_value}". No change needed.
+            RETURN
+        END
+        # Wrong value - clear the pill (scoped to this <li>)
+        Log    "${step_title}" has wrong value "${pill_text}". Clearing pill.
+        ${pill_area}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill')]
+        Mouse Over    ${pill_area}
+        Sleep    1s    reason=Reveal X button on hover
+        ${remove_btn}=    Set Variable    ${step_li}//button[contains(@class, 'pill__rem') or contains(@class, 'slds-pill__remove')]
+        ${btn_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${remove_btn}    timeout=5s
+        IF    ${btn_found}
+            Click Element    ${remove_btn}
+            Sleep    2s    reason=Allow pill to clear and dropdown to appear
+        END
+    END
+    Capture Page Screenshot
+    # Try to find a native <select> within this specific <li>
+    ${select_el}=    Set Variable    ${step_li}//select
+    ${is_select}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
+    IF    ${is_select}
+        Scroll Element Into View    ${select_el}
+        Sleep    0.5s
+        Select From List By Label    ${select_el}    ${target_value}
+        Sleep    2s    reason=Allow selection to persist
+        Capture Page Screenshot
+        Log    "${step_title}" set to "${target_value}" (native select).
         RETURN
     END
-    # Check if ANY pill is present (wrong value set) and clear it
-    ${has_any_pill}=    _Has Any Pill    ${section_label}
-    IF    ${has_any_pill}
-        Log    "${section_label}" has a different value set. Clearing to re-select.
-        _Clear Pill    ${section_label}
-        Sleep    2s    reason=Allow picklist to reappear after clearing pill
-    END
-    Capture Page Screenshot
-    # Now the picklist/combobox should be visible - select the target value
-    ${selected}=    _Select From Combobox    ${section_label}    ${target_value}
-    IF    not ${selected}
-        Log    WARNING: Could not set "${section_label}" to "${target_value}". The option may not exist in this org.    WARN
-        Capture Page Screenshot
-    END
-
-_Has Pill With Value
-    [Documentation]    Checks if a pill/chip displaying the target value exists near the section.
-    ...    IMPORTANT: Uses a scoped ancestor container to avoid matching pills in adjacent sections
-    ...    (e.g. Asset Context pill when looking for Usage Rating).
-    [Arguments]    ${section_label}    ${target_value}
-    # Find the nearest ancestor container that scopes this section
-    ${container}=    _Get Section Container    ${section_label}
-    IF    $container != 'NONE'
-        ${area_text}=    Get Text    ${container}
-        ${has}=    Run Keyword And Return Status    Should Contain    ${area_text}    ${target_value}
-        RETURN    ${has}
-    END
-    # Fallback: look for pill within a narrow range (position <= 8 to stay within this section)
-    ${pill}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::*[position() <= 8 and (contains(@class, 'pill') or contains(@class, 'selectedOption'))])[1]
-    ${found}=    Run Keyword And Return Status    Get WebElement    ${pill}
-    IF    ${found}
-        ${pill_text}=    Get Text    ${pill}
-        ${has_value}=    Run Keyword And Return Status    Should Contain    ${pill_text}    ${target_value}
-        RETURN    ${has_value}
-    END
-    RETURN    ${False}
-
-_Has Any Pill
-    [Documentation]    Checks if any pill/chip (with an X clear button) exists near the section.
-    ...    IMPORTANT: Scoped to the section container to avoid matching pills from adjacent sections.
-    [Arguments]    ${section_label}
-    # Use the scoped container to check for pills
-    ${container}=    _Get Section Container    ${section_label}
-    IF    $container != 'NONE'
-        ${clear_btn}=    Set Variable    ${container}//button[contains(@title, 'Remove') or contains(@title, 'Clear') or contains(@title, 'close') or contains(@class, 'pill__remove') or contains(@class, 'slds-pill__remove')]
-        ${found}=    Run Keyword And Return Status    Get WebElement    ${clear_btn}
-        RETURN    ${found}
-    END
-    # Fallback: narrow position-limited following:: to stay within current section
-    ${clear_btn}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::button[position() <= 5 and (contains(@title, 'Remove') or contains(@title, 'Clear') or contains(@title, 'close') or contains(@class, 'pill__remove') or contains(@class, 'slds-pill__remove'))])[1]
-    ${found}=    Run Keyword And Return Status    Get WebElement    ${clear_btn}
-    RETURN    ${found}
-
-_Clear Pill
-    [Documentation]    Clears a pill/chip value by hovering to reveal the X button, then clicking it.
-    ...    IMPORTANT: Scoped to the section container to avoid clearing pills from adjacent sections.
-    [Arguments]    ${section_label}
-    # Use scoped container to find the pill and clear button
-    ${container}=    _Get Section Container    ${section_label}
-    IF    $container != 'NONE'
-        # Find pill within the container to hover over
-        ${pill_area}=    Set Variable    ${container}//*[contains(@class, 'pill') or contains(@class, 'selectedOption') or contains(@class, 'slds-pill')]
-        ${pill_found}=    Run Keyword And Return Status    Get WebElement    ${pill_area}
-        Run Keyword If    ${pill_found}    Mouse Over    ${pill_area}
-        Sleep    1s    reason=Allow X button to appear on hover
-        # Find and click the clear button within the container
-        ${clear_btn}=    Set Variable    ${container}//button[contains(@title, 'Remove') or contains(@title, 'Clear') or contains(@title, 'close') or contains(@class, 'pill__remove') or contains(@class, 'slds-pill__remove')]
-        ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${clear_btn}    timeout=5s
-        IF    ${found}
-            Click Element    ${clear_btn}
-            Sleep    1s
-            Log    Cleared existing value for "${section_label}".
-            RETURN
-        END
-        # Fallback within container: any close button icon
-        ${x_btn}=    Set Variable    ${container}//button[.//lightning-primitive-icon or .//*[contains(@class,'close')]]
-        ${x_found}=    Run Keyword And Return Status    Get WebElement    ${x_btn}
-        IF    ${x_found}
-            Mouse Over    ${x_btn}
-            Sleep    0.5s
-            Click Element    ${x_btn}
-            Sleep    1s
-            Log    Cleared existing value for "${section_label}" (fallback X button).
-            RETURN
-        END
-    END
-    # Last resort: narrow following:: with position limit
-    ${pill_area}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::*[position() <= 8 and (contains(@class, 'pill') or contains(@class, 'selectedOption') or contains(@class, 'slds-pill'))])[1]
-    ${pill_found}=    Run Keyword And Return Status    Get WebElement    ${pill_area}
-    Run Keyword If    ${pill_found}    Mouse Over    ${pill_area}
-    Sleep    1s    reason=Allow X button to appear on hover
-    ${clear_btn}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::button[position() <= 5 and (contains(@title, 'Remove') or contains(@title, 'Clear') or contains(@title, 'close') or contains(@class, 'pill__remove') or contains(@class, 'slds-pill__remove'))])[1]
-    ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${clear_btn}    timeout=5s
-    IF    ${found}
-        Click Element    ${clear_btn}
-        Sleep    1s
-        Log    Cleared existing value for "${section_label}".
-    ELSE
-        Log    WARNING: Could not find clear/remove button for "${section_label}".    WARN
-    END
-
-_Select From Combobox
-    [Documentation]    Finds the combobox/dropdown near the section, clicks to open, selects target.
-    [Arguments]    ${section_label}    ${target_value}
-    # Find the combobox trigger
-    ${trigger}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::*[@role='combobox' or contains(@class, 'slds-combobox')])[1]
-    ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${trigger}    timeout=8s
-    IF    not ${found}
-        ${trigger}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::button[@aria-haspopup='listbox' or contains(@class, 'combobox')])[1]
-        ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${trigger}    timeout=5s
-    END
-    IF    not ${found}
-        ${trigger}=    Set Variable    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/following::*[contains(normalize-space(.), 'Select an Option') or contains(normalize-space(.), 'Select')])[1]
-        ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${trigger}    timeout=5s
-    END
-    Return From Keyword If    not ${found}    ${False}
-    # Click to open
-    Scroll Element Into View    ${trigger}
-    Sleep    0.5s
-    Click Element    ${trigger}
-    Sleep    2s    reason=Allow dropdown to populate
-    Capture Page Screenshot
-    # Find and click the target option
-    ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
-    ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
-    IF    not ${opt_found}
-        ${option}=    Set Variable    xpath=(//lightning-base-combobox-item[contains(normalize-space(.), '${target_value}')])[1]
-        ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
-    END
-    IF    not ${opt_found}
-        ${option}=    Set Variable    xpath=(//*[@role='listbox']//*[contains(normalize-space(text()), '${target_value}')])[1]
-        ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
-    END
-    IF    not ${opt_found}
-        Log    WARNING: Option "${target_value}" not found in dropdown for "${section_label}".    WARN
-        Press Keys    ${trigger}    ESCAPE
+    # Try combobox with role='combobox' within this <li>
+    ${cb_trigger}=    Set Variable    ${step_li}//*[@role='combobox' or contains(@class, 'slds-combobox')]
+    ${is_cb}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${cb_trigger}    timeout=5s
+    IF    ${is_cb}
+        Scroll Element Into View    ${cb_trigger}
         Sleep    0.5s
-        RETURN    ${False}
+        Click Element    ${cb_trigger}
+        Sleep    2s    reason=Allow dropdown to populate
+        Capture Page Screenshot
+        # Search for the target option using multiple patterns
+        ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
+        ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
+        IF    not ${opt_found}
+            # Try lightning-base-combobox-item
+            ${option}=    Set Variable    xpath=(//lightning-base-combobox-item[contains(normalize-space(.), '${target_value}')])[1]
+            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
+        END
+        IF    not ${opt_found}
+            # Try any element in a listbox
+            ${option}=    Set Variable    xpath=(//*[@role='listbox']//*[contains(normalize-space(text()), '${target_value}')])[1]
+            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
+        END
+        IF    not ${opt_found}
+            # Try any link/span in the step li that appeared after click
+            ${option}=    Set Variable    ${step_li}//*[contains(normalize-space(text()), '${target_value}')]
+            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
+        END
+        IF    ${opt_found}
+            Click Element    ${option}
+            Sleep    2s    reason=Allow selection to apply
+            Capture Page Screenshot
+            Log    "${step_title}" set to "${target_value}" (combobox).
+            RETURN
+        ELSE
+            # Log all visible options for debugging
+            ${all_opts}=    Execute JavaScript
+            ...    return (function(){
+            ...        var opts = document.querySelectorAll('[role="option"]');
+            ...        var result = [];
+            ...        for (var i = 0; i < opts.length; i++) {
+            ...            if (opts[i].offsetParent !== null) result.push(opts[i].textContent.trim().substring(0,80));
+            ...        }
+            ...        return 'visible_options:[' + result.join('|') + '] total=' + opts.length;
+            ...    })()
+            Log    WARNING: Option "${target_value}" not found for "${step_title}". ${all_opts}    WARN
+            Press Keys    ${cb_trigger}    ESCAPE
+        END
     END
-    Click Element    ${option}
-    Sleep    2s    reason=Allow selection to apply
+    # Fallback: try clicking the step title again and re-check
+    Log    No dropdown found on first attempt. Clicking step title again.    WARN
+    Click Element    ${title_span}
+    Sleep    3s    reason=Retry: allow content to render
+    ${is_select2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
+    IF    ${is_select2}
+        Scroll Element Into View    ${select_el}
+        Sleep    0.5s
+        Select From List By Label    ${select_el}    ${target_value}
+        Sleep    2s
+        Capture Page Screenshot
+        Log    "${step_title}" set to "${target_value}" (native select, retry).
+        RETURN
+    END
+    ${is_cb2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${cb_trigger}    timeout=5s
+    IF    ${is_cb2}
+        Scroll Element Into View    ${cb_trigger}
+        Sleep    0.5s
+        Click Element    ${cb_trigger}
+        Sleep    2s
+        ${option2}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
+        ${opt_found2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option2}    timeout=10s
+        IF    ${opt_found2}
+            Click Element    ${option2}
+            Sleep    2s
+            Capture Page Screenshot
+            Log    "${step_title}" set to "${target_value}" (combobox, retry).
+            RETURN
+        END
+    END
+    Log    WARNING: Could not set "${step_title}" to "${target_value}". No interactive element found.    WARN
     Capture Page Screenshot
-    Log    "${section_label}" set to "${target_value}".
-    RETURN    ${True}
 
 Enable Instant Pricing Toggle
     [Documentation]    Enables the Instant Pricing toggle on Revenue Settings.
-    ...    Uses JavaScript shadow DOM traversal to both detect state and click,
-    ...    since setup toggles are Lightning Web Components inside Shadow DOM.
-    ...    The toggle's checked property is read directly for accurate state detection.
+    ...    Uses JavaScript shadow DOM traversal to detect state and click.
     ${section}=    Set Variable    xpath=//*[normalize-space(text())='Instant Pricing']
     ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${section}
     IF    not ${found}
@@ -221,8 +202,6 @@ Enable Instant Pricing Toggle
         RETURN
     END
     Sleep    1s
-    # Detect state AND click in one JS call via shadow DOM traversal.
-    # Returns 'already_enabled', 'clicked', or 'not_found'.
     ${result}=    Execute JavaScript
     ...    return (function(){
     ...        function findInShadows(root, name) {
@@ -253,7 +232,7 @@ Enable Instant Pricing Toggle
         Capture Page Screenshot
         Log    Instant Pricing toggle clicked and should now be Enabled.
     ELSE
-        Log    WARNING: Instant Pricing toggle input (instantPricingEnabled) not found via shadow DOM traversal. Check manually.    WARN
+        Log    WARNING: Instant Pricing toggle input (instantPricingEnabled) not found. Check manually.    WARN
         Capture Page Screenshot
     END
 
@@ -268,7 +247,6 @@ Set Create Orders Flow
         RETURN
     END
     Sleep    1s
-    # Find the text input (exclude checkboxes/switches)
     ${input}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Creating Orders from Quotes')]/following::input[@type='text' or (not(@type) and not(@role='switch'))])[1]
     ${input_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${input}    timeout=10s
     IF    not ${input_found}
@@ -281,7 +259,6 @@ Set Create Orders Flow
         RETURN
     END
     Scroll Element Into View    ${input}
-    # Check if already set
     ${current}=    Get Value    ${input}
     ${current_stripped}=    Strip String    ${current}
     ${target_stripped}=    Strip String    ${flow_api_name}
@@ -289,12 +266,10 @@ Set Create Orders Flow
         Log    Create Orders Flow is already set to "${flow_api_name}". No change needed.
         RETURN
     END
-    # Clear and type the new value
     Click Element    ${input}
     Press Keys    ${input}    CTRL+a    DELETE
     Input Text    ${input}    ${flow_api_name}
     Sleep    1s
-    # Find and click Save
     ${save_btn}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Creating Orders from Quotes')]/following::button[normalize-space(.)='Save'])[1]
     ${save_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${save_btn}    timeout=10s
     IF    not ${save_found}
@@ -313,33 +288,13 @@ Set Create Orders Flow
     Log    Create Orders Flow set to "${flow_api_name}" and saved.
 
 Dismiss Toast If Present
-    [Documentation]    Clicks the close button on any visible Salesforce toast messages
-    ...    to prevent them from intercepting clicks on page elements below.
+    [Documentation]    Clicks the close button on any visible Salesforce toast messages.
     ${close_btns}=    Get WebElements    xpath=//button[contains(@class, 'toastClose') or (@title='Close' and ancestor::*[contains(@class, 'toast')])]
     FOR    ${btn}    IN    @{close_btns}
         ${visible}=    Run Keyword And Return Status    Element Should Be Visible    ${btn}
         Run Keyword If    ${visible}    Click Element    ${btn}
     END
     Sleep    0.5s
-
-_Get Section Container
-    [Documentation]    Returns a WebElement XPath for the nearest ancestor container that scopes
-    ...    a Revenue Settings section. This prevents pill/button searches from bleeding
-    ...    into adjacent sections (e.g. Asset Context when looking for Usage Rating).
-    ...    Returns 'NONE' if no suitable container is found.
-    [Arguments]    ${section_label}
-    # Try to find a containing div with a class that indicates a section boundary
-    # Salesforce setup pages typically wrap each section in a card or form-element container
-    @{ancestors}=    Create List
-    ...    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/ancestor::div[contains(@class, 'slds-card') or contains(@class, 'card') or contains(@class, 'section') or contains(@class, 'form-element') or contains(@class, 'setup-content')])[last()]
-    ...    xpath=(//*[contains(normalize-space(text()), '${section_label}')]/ancestor::div[position() <= 3])[last()]
-    FOR    ${xpath}    IN    @{ancestors}
-        ${found}=    Run Keyword And Return Status    Get WebElement    ${xpath}
-        IF    ${found}
-            RETURN    ${xpath}
-        END
-    END
-    RETURN    NONE
 
 _Scroll To Element
     [Arguments]    ${locator}

@@ -565,8 +565,18 @@ class ManageExpressionSets(BaseTask):
         if not query_result or 'records' not in query_result or len(query_result['records']) == 0:
             raise TaskOptionsError(f"Version '{version_full_name}' not found by ApiName")
         
-        version_id = query_result['records'][0]['Id']
-        
+        record = query_result['records'][0]
+        version_id = record['Id']
+        current_is_active = record.get('IsActive', False)
+
+        if current_is_active == target_is_active:
+            self.logger.info(
+                "Version '%s' is already %s. Skipping.",
+                version_full_name,
+                status,
+            )
+            return True
+
         # Update the data record directly.
         url = f"{instance_url}/services/data/v{api_version}/sobjects/ExpressionSetVersion/{version_id}"
         headers = {

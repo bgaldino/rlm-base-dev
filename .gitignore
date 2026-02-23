@@ -112,3 +112,5 @@ unpackaged/*bak/**
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak
+tmp-metadata/
+.cursor/plans/**

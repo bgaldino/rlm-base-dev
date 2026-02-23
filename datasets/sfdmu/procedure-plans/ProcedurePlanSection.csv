@@ -1,0 +1,3 @@
+$$SubSectionType$Sequence,Description,Phase,ProcedurePlanVersion.DeveloperName,ResolutionType,SectionType,Sequence,SubSectionType
+DefaultPricing;1,,0,RC_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,1,DefaultPricing
+HeaderDistribution;2,,0,RC_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,2,HeaderDistribution

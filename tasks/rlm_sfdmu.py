@@ -67,6 +67,10 @@ class LoadSFDMUData(SFDXBaseTask):
         "assigned_to_placeholder": {
             "description": "Placeholder string in DRO CSVs to replace with the target org user's Name. Used when dynamic_assigned_to_user is true.",
             "required": False
+        },
+        "simulation": {
+            "description": "If true, run SFDMU in simulation mode (dry run without writing to the target org).",
+            "required": False
         }
     }
 
@@ -326,17 +330,20 @@ class LoadSFDMUData(SFDXBaseTask):
     def _get_command(self) -> str:
         trimmed_instance_url = self._trim_instance_url(self.instanceurl)
         if not isinstance(self.org_config, ScratchOrgConfig):
-            return LOAD_COMMAND.format(
+            cmd = LOAD_COMMAND.format(
                 targetusername=self.targetusername,
                 pathtoexportjson=self.pathtoexportjson,
                 instanceurl=trimmed_instance_url
             )
         else:
-            return SCRATCHORG_LOAD_COMMAND.format(
+            cmd = SCRATCHORG_LOAD_COMMAND.format(
                 targetusername=self.targetusername,
                 pathtoexportjson=self.pathtoexportjson,
                 instanceurl=trimmed_instance_url
             )
+        if self.options.get("simulation"):
+            cmd += " --simulation"
+        return cmd
         
     def _trim_instance_url(self, url: str) -> str:
         return url.replace("https://", "").replace("http://", "")
