@@ -14,7 +14,7 @@ These steps run when the `constraints` flag is `true`:
 |------|------|-----------|---------|
 | 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `qb` | Load TransactionProcessingType SFDMU records |
 | 2 | `deploy_post_constraints` | `constraints` | Deploy constraint-related metadata |
-| 3 | `assign_permission_sets` | `tso` + `procedureplans` | Assign constraint permission sets |
+| 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
 ### Phase 2: Constraint Data Loading (steps 5-9)
@@ -109,6 +109,8 @@ Before constraint data can be imported, three Revenue Settings must be configure
 
 The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](../README.md#installation)).
 
+The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (step 27 in `prepare_rlm_org`) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
+
 All values are configurable via `cumulusci.yml` task options:
 
 ```yaml
@@ -131,12 +133,12 @@ In addition to the constraints-specific settings above, the `prepare_rlm_org` fl
 
 Automates general Revenue Settings page configuration via Robot Framework:
 
-- **Pricing Procedure** -- set to `RLM Revenue Management Default Pricing Procedure`
-- **Usage Rating Procedure** -- set to `RLM Default Rating Discovery Procedure`
-- **Instant Pricing** toggle -- enabled
-- **Create Orders Flow** -- set to `RC_CreateOrdersFromQuote`
+- **Pricing Procedure** -- set to `RLM Revenue Management Default Pricing Procedure` (combobox-recipe, `<li>`-scoped)
+- **Usage Rating Procedure** -- set to `RLM Default Rating Discovery Procedure` (combobox-recipe, `<li>`-scoped; page reload between Pricing and Usage Rating ensures clean dropdown state)
+- **Instant Pricing** toggle -- enabled (shadow DOM toggle via JavaScript)
+- **Create Orders Flow** -- set to `RC_CreateOrdersFromQuote` (text input)
 
-All values are configurable via `cumulusci.yml` task options.
+All values are configurable via `cumulusci.yml` task options. All procedure field selectors are scoped to their parent `<li>` setup-assistant step, making it impossible to accidentally interact with the Asset Context field. The Asset Context field is **not** configured in this step; it is handled exclusively by `enable_constraints_settings`.
 
 ### reconfigure_pricing_discovery (step 28 of prepare_rlm_org)
 

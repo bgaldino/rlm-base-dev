@@ -12,11 +12,11 @@ ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
 
 *** Keywords ***
-Get Authenticated Revenue Settings Url
-    [Documentation]    Runs \`sf org open -o <org> --url-only -p /lightning/setup/RevenueSettings/home\` to get a one-time authenticated URL. Use this so the Selenium browser session logs in without manual steps. Requires Salesforce CLI and an authenticated org alias.
-    [Arguments]    ${org_alias}
+Get Authenticated Setup Page Url
+    [Documentation]    Runs \`sf org open -o <org> --url-only -p <setup_path>\` to get a one-time authenticated URL. Requires Salesforce CLI and an authenticated org alias.
+    [Arguments]    ${org_alias}    ${setup_path}=/lightning/setup/RevenueSettings/home
     Run Keyword If    """${org_alias}""" == ""    Fail    msg=ORG_ALIAS must be set (e.g. robot -v ORG_ALIAS:my-scratch ...)
-    ${result}=    Run Process    sf    org    open    -o    ${org_alias}    --url-only    -p    /lightning/setup/RevenueSettings/home    shell=False
+    ${result}=    Run Process    sf    org    open    -o    ${org_alias}    --url-only    -p    ${setup_path}    shell=False
     Run Keyword If    ${result.rc} != 0    Fail    msg=sf org open failed: ${result.stderr}
     ${raw}=    Strip String    ${result.stdout}
     ${raw}=    Evaluate    $raw.replace(chr(10), ' ').replace(chr(13), ' ').strip()
@@ -24,6 +24,12 @@ Get Authenticated Revenue Settings Url
     ${url}=    Evaluate    $raw.split('with the following URL:')[-1].strip() if 'with the following URL:' in $raw else $raw
     ${url}=    Strip String    ${url}
     Run Keyword If    """${url}""" == ""    Fail    msg=sf org open did not return a URL
+    RETURN    ${url}
+
+Get Authenticated Revenue Settings Url
+    [Documentation]    Convenience wrapper for Revenue Settings page.
+    [Arguments]    ${org_alias}
+    ${url}=    Get Authenticated Setup Page Url    ${org_alias}    /lightning/setup/RevenueSettings/home
     RETURN    ${url}
 
 _Get Revenue Settings Target Url
@@ -34,6 +40,18 @@ _Get Revenue Settings Target Url
     Return From Keyword If    """${ORG_ALIAS}""" != ""    ${auth}
     Run Keyword If    """${REVENUE_SETTINGS_URL}""" == ""    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or REVENUE_SETTINGS_URL
     RETURN    ${REVENUE_SETTINGS_URL}
+
+Open Setup Page
+    [Documentation]    Opens any Salesforce setup page by path. If \${ORG_ALIAS} is set, uses \`sf org open --url-only\` to get an authenticated URL. Otherwise falls back to the provided url argument.
+    [Arguments]    ${setup_path}=/lightning/setup/RevenueSettings/home    ${url}=${EMPTY}    ${wait_for_login}=${True}
+    ${target}=    Set Variable If    """${url}""" != ""    ${url}    ${EMPTY}
+    ${target}=    Run Keyword If    """${target}""" == "" and """${ORG_ALIAS}""" != ""    Get Authenticated Setup Page Url    ${ORG_ALIAS}    ${setup_path}
+    ...    ELSE    Set Variable    ${target}
+    Run Keyword If    """${target}""" == "" or """${target}""" == "None"    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or provide a url argument
+    Go To    ${target}
+    Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
+    Run Keyword If    ${wait_for_login}    _Wait For Login If Needed    ${target}
+    Sleep    2s    reason=Allow Lightning to finish rendering
 
 Open Revenue Settings Page
     [Documentation]    Opens the Revenue Settings setup page. If \${ORG_ALIAS} is set, uses \`sf org open --url-only\` to get an authenticated URL (recommended). Otherwise uses \${REVENUE_SETTINGS_URL} or url argument; if the page shows login, waits \${MANUAL_LOGIN_WAIT} for you to log in then reloads.
@@ -99,9 +117,13 @@ _VerifyToggleByEnabledTextOneCheck
     ${section_text}=    Get Text    ${section}
     ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
     Run Keyword If    ${expected_on} and ${has_enabled}    Log    Toggle "${label}" verified ON via section text.
-    Run Keyword If    ${expected_on} and not ${has_enabled}    Run Keywords
+    # Document Builder gets a lenient warning; all other toggles fail strictly
+    Run Keyword If    ${expected_on} and not ${has_enabled} and """${label}""" == "Document Builder"    Run Keywords
     ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
     ...    AND    Log    WARNING: Toggle "${label}" section still shows Disabled after click. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+    Run Keyword If    ${expected_on} and not ${has_enabled} and """${label}""" != "Document Builder"    Run Keywords
+    ...    Capture Page Screenshot    filename=toggle_verification_failed_${label}.png
+    ...    AND    Fail    msg=Toggle "${label}" section still shows Disabled after click. The toggle was not enabled.
     ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
     Run Keyword If    not ${expected_on} and not ${has_disabled}    Fail    msg=Toggle "${label}" section does not show "Disabled" after turning off.
 
@@ -180,8 +202,15 @@ _EnsureToggleByLabel
     Wait Until Element Is Visible    ${toggle_locator}    timeout=10s
     ${aria}=    Get Element Attribute    ${toggle_locator}    aria-checked
     ${checked}=    Get Element Attribute    ${toggle_locator}    checked
+    # Determine current state: aria-checked first, then section text fallback for LWC shadow-DOM toggles
+    ${attrs_missing}=    Evaluate    """${aria}""" in ("", "None") and """${checked}""" in ("", "None")
+    # LWC shadow-DOM toggles: attrs inaccessible — use section-text based detection and JS-only click
+    Run Keyword If    ${attrs_missing}    _EnsureShadowDOMToggle    ${label}    ${toggle_locator}    ${turn_on}
+    Return From Keyword If    ${attrs_missing}
+    # Standard toggles: use aria-checked / checked to decide
     ${is_on}=    Set Variable If    """${aria}""" == "true"    ${True}    ${False}
-    ${is_on}=    Set Variable If    """${aria}""" == "" and """${checked}""" == "true"    ${True}    ${is_on}
+    ${ck}=    Evaluate    """${checked}""".lower() if """${checked}""" not in ("", "None") else ""
+    ${is_on}=    Set Variable If    """${ck}""" == "true"    ${True}    ${is_on}
     Run Keyword If    ${turn_on} and not ${is_on}    _ClickToggleElement    ${toggle_locator}
     Run Keyword If    not ${turn_on} and ${is_on}    _ClickToggleElement    ${toggle_locator}
     Run Keyword If    ${turn_on} and not ${is_on}    Sleep    2s    reason=Allow toggle to update
@@ -206,11 +235,35 @@ _EnsureDocumentBuilderToggle
     Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
     Sleep    3s    reason=Allow toggle state to update after JS click
 
+_EnsureShadowDOMToggle
+    [Documentation]    For LWC shadow-DOM toggles where aria-checked/checked are inaccessible. Detects current state from section text ("Enabled"/"Disabled") and clicks via JS within the correct section container, piercing shadow DOM to reach the actual input.
+    [Arguments]    ${label}    ${toggle_locator}    ${turn_on}=True
+    ${section}=    Set Variable    xpath=//*[normalize-space(.)='${label}']/ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]
+    ${section_found}=    Run Keyword And Return Status    Get WebElement    ${section}
+    Run Keyword If    not ${section_found}    Fail    msg=Could not find section for toggle "${label}"
+    ${section_text}=    Get Text    ${section}
+    ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
+    ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
+    # Already in desired state
+    Run Keyword If    ${turn_on} and ${has_enabled}    Log    Toggle "${label}" is already Enabled. No click needed.
+    Return From Keyword If    ${turn_on} and ${has_enabled}
+    Run Keyword If    not ${turn_on} and ${has_disabled}    Log    Toggle "${label}" is already Disabled. No click needed.
+    Return From Keyword If    not ${turn_on} and ${has_disabled}
+    # Click the toggle WITHIN this specific section via JS, piercing LWC shadow DOM.
+    # XPath following::*[@role='switch'] can resolve to the wrong element when shadow DOM is
+    # flattened, so we find the lightning-input toggle inside the section and reach into its shadowRoot.
+    Log    Toggle "${label}" is ${{" Enabled" if ${has_enabled} else "Disabled"}}. Clicking via JS to toggle.
+    ${section_el}=    Get WebElement    ${section}
+    ${result}=    Execute Javascript    var s=arguments[0]; var toggles=s.querySelectorAll('lightning-input'); for(var i=0;i<toggles.length;i++){if(toggles[i].shadowRoot){var inp=toggles[i].shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]'); if(inp){inp.click(); return 'clicked'}}} var direct=s.querySelector('input[role="switch"],input[type="checkbox"]'); if(direct){direct.click(); return 'clicked'} return 'not_found'    ARGUMENTS    ${section_el}
+    Run Keyword If    """${result}""" == "not_found"    Log    JS section-scoped toggle not found, falling back to pre-computed locator.    WARN
+    Run Keyword If    """${result}""" == "not_found"    _ClickToggleElement    ${toggle_locator}
+    Sleep    3s    reason=Allow toggle state to update after JS click
+
 _ClickToggleElement
-    [Documentation]    Clicks the toggle element. Tries Click Element and Double Click (JS click with xpath is avoided; it can break when xpath contains //).
+    [Documentation]    Clicks the toggle element via JavaScript. Native Selenium clicks can be intercepted by LWC shadow-DOM overlays, causing a double-toggle (ON then OFF). JS click avoids this by dispatching a single click directly on the element.
     [Arguments]    ${toggle_locator}
-    ${clicked}=    Run Keyword And Return Status    Click Element    ${toggle_locator}
-    Run Keyword If    not ${clicked}    Double Click Element    ${toggle_locator}
+    ${element}=    Get WebElement    ${toggle_locator}
+    Execute Javascript    arguments[0].click();    ARGUMENTS    ${element}
     Sleep    0.5s    reason=Allow click to register
 
 *** Keywords ***

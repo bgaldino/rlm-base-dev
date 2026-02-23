@@ -185,7 +185,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `rates` | `true` | Insert Rates |
 | `ramps` | `true` | Insert and configure ramps |
 | `clm_data` | `false` | Load Contract Lifecycle Management data |
-| `constraints_data` | `false` | Load constraint model data (CML import + activation) |
+| `constraints_data` | `true` | Load constraint model data (CML import + activation) |
 
 ### Feature Flags
 
@@ -287,12 +287,14 @@ This project includes custom Python task modules in the `tasks/` directory, each
 | `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
-| `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
 | `activate_procedure_plan_version` | `rlm_create_procedure_plan_def.py` | Activate ProcedurePlanDefinitionVersion after data load (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
+| `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
+| `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
 | `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
@@ -393,17 +395,17 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 10 | `prepare_quantumbit` | Always |
 | 11 | `prepare_product_data` | Always |
 | 12 | `prepare_pricing_data` | Always |
-| 13 | `prepare_dro` | Always |
-| 14 | `prepare_tax` | Always |
-| 15 | `prepare_billing` | Always |
-| 16 | `prepare_clm` | Always |
-| 17 | `prepare_rating` | Always |
-| 18 | `activate_and_deploy_expression_sets` | Always |
-| 19 | `prepare_tso` | Always |
-| 20 | `prepare_procedureplans` | Always |
-| 21 | `prepare_prm` | Always |
-| 22 | `prepare_agents` | Always |
-| 23 | `prepare_docgen` | Always |
+| 13 | `prepare_docgen` | Always |
+| 14 | `prepare_dro` | Always |
+| 15 | `prepare_tax` | Always |
+| 16 | `prepare_billing` | Always |
+| 17 | `prepare_clm` | Always |
+| 18 | `prepare_rating` | Always |
+| 19 | `activate_and_deploy_expression_sets` | Always |
+| 20 | `prepare_tso` | Always |
+| 21 | `prepare_procedureplans` | Always |
+| 22 | `prepare_prm` | Always |
+| 23 | `prepare_agents` | Always |
 | 24 | `prepare_constraints` | Always |
 | 25 | `prepare_guidedselling` | Always |
 | 26 | `prepare_visualization` | Always |
@@ -427,8 +429,8 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
 | `prepare_dro` | Load DRO data (dynamic user resolution) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
-| `prepare_docgen` | Create docgen library, enable Document Builder toggle, deploy metadata | `docgen` |
-| `prepare_billing` | Load billing data, activate flows/records | `billing`, `qb`, `q3`, `refresh` |
+| `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
+| `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
 | `prepare_prm` | Deploy PRM metadata, publish community, sharing rules | `prm`, `prm_exp_bundle`, `sharingsettings` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
@@ -437,18 +439,18 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
-| `prepare_procedureplans` | Deploy procedure plans metadata, create PPD via Connect API, load sections/options, activate | `procedureplans` |
+| `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
 | `prepare_visualization` | Deploy visualization components | `visualization` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
-### Utility Flows
+### Utility Flows and Tasks
 
-| Flow | Description |
-|------|-------------|
-| `deploy_full` | Full metadata deployment (source, pre/post bundles) |
-| `activate_and_deploy_expression_sets` | Activate expression sets then deploy them |
+| Flow/Task | Type | Description |
+|-----------|------|-------------|
+| `deploy_full` | Task | Full metadata deployment (source, pre/post bundles) |
+| `activate_and_deploy_expression_sets` | Task | Re-deploy expression sets with Draft status transformed to Active via XPath |
 
 ## Data Plans
 
@@ -535,7 +537,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 
 ### Robot Framework
 
-- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Document Builder toggle automation
+- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings)
 
 ### Configuration Files
 
@@ -552,14 +554,16 @@ rlm-base-dev/
 │   ├── pre/                    # Pre-deployment metadata
 │   │   └── 5_decisiontables/   # Decision tables (active ones auto-excluded)
 │   ├── post_approvals/         # Approvals metadata
-│   ├── post_billing/           # Billing metadata
+│   ├── post_billing/           # Billing metadata (toggles, flexipages, billingContextDefinition)
+│   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)
+│   ├── post_billing_template_settings/ # Re-enable invoice toggles (template auto-creation cycle step 3)
 │   ├── post_commerce/          # Commerce metadata
 │   ├── post_constraints/       # Constraints metadata
 │   ├── post_docgen/            # Document Generation metadata
 │   ├── post_guidedselling/     # Guided Selling metadata
 │   ├── post_payments/          # Payments metadata
 │   ├── post_prm/               # Partner Relationship Management metadata
-│   ├── post_procedureplans/    # Procedure Plans metadata
+│   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings (skipOrgSttPricing)
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
 │   ├── post_utils/             # Utility metadata
@@ -591,7 +595,7 @@ rlm-base-dev/
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/
 │       ├── resources/          # Keywords, WebDriverManager helper
-│       ├── tests/setup/        # Document Builder toggle automation
+│       ├── tests/setup/        # Setup page automation (Document Builder, Constraints, Revenue Settings)
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
@@ -693,6 +697,14 @@ cci task run insert_quantumbit_product_image_data
 ```bash
 cci task run insert_billing_data
 ```
+
+The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properly configure ID-based fields and trigger default template auto-creation:
+
+1. **Step 6** (`deploy_post_billing`): Enable billing toggles (`enableInvoiceEmailDelivery`, `enableInvoicePdfGeneration` = `true`) and set `billingContextDefinition`
+2. **Step 7** (`deploy_billing_id_settings`): Set context mapping, DPE definition names, and record IDs via XPath transforms; disable invoice toggles (`false`)
+3. **Step 8** (`deploy_billing_template_settings`): Re-enable invoice toggles (`true`) to trigger Salesforce auto-creation of default invoice preview and document templates
+
+The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 6 (before step 7) because `billingContextSourceMapping` requires it to already be persisted.
 
 DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
 

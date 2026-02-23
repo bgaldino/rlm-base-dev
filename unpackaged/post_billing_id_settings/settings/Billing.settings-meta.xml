@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <billingContextSourceMapping>OrderEntitiesMapping</billingContextSourceMapping>
+    <defaultAPClosureDPEDefnName>LegalEntityAccountingPeriodClosure</defaultAPClosureDPEDefnName>
+    <defaultBillingTreatment>__DEFAULT_BILLING_TREATMENT_ID__</defaultBillingTreatment>
+    <defaultFxGLDPEDefnName>CreateUnrealizedFXGainLossTrxnJrnls</defaultFxGLDPEDefnName>
+    <defaultLeapSumDPEDefnName>CreateGLAcctPrdSummaryRecMultiCurr</defaultLeapSumDPEDefnName>
+    <defaultLegalEntity>__DEFAULT_LEGAL_ENTITY_ID__</defaultLegalEntity>
+    <defaultTaxTreatment>__DEFAULT_TAX_TREATMENT_ID__</defaultTaxTreatment>
+    <enableInvoiceEmailDelivery>false</enableInvoiceEmailDelivery>
+    <enableInvoicePdfGeneration>false</enableInvoicePdfGeneration>
+</BillingSettings>

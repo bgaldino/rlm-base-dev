@@ -10,7 +10,7 @@ This data plan is executed as **step 4** of the `prepare_procedureplans` flow (w
 
 | Step | Task                                    | Description                                                                  |
 |------|-----------------------------------------|------------------------------------------------------------------------------|
-| 1    | `deploy_post_procedureplans`            | Deploy expression set metadata (RC_Price_Distribution_Procedure, RC_Revenue_Management_Recalc_Procedure) |
+| 1    | `deploy_post_procedureplans`            | Deploy expression set metadata (RC_Price_Distribution_Procedure, RC_Revenue_Management_Recalc_Procedure) + RevenueManagement.settings (`skipOrgSttPricing=true`) |
 | 2    | `activate_procedure_plan_expression_sets` | Activate RC_Price_Distribution_Procedure_V1 (idempotent)                   |
 | 3    | `create_procedure_plan_definition`      | Create PPD + inactive PPDV via Connect API (idempotent)                      |
 | 4    | `insert_procedure_plan_data`            | Run this SFDMU plan (2 passes — sections then options)                       |
@@ -174,7 +174,7 @@ Verified on API 260 against `dev-sb0` with all records present.
 
 This plan depends on the following having been loaded/deployed first:
 
-- **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 18 of `prepare_rlm_org`)
+- **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 19 of `prepare_rlm_org`)
 - **Context definitions** — `RLM_SalesTransactionContext` must exist for Connect API context resolution (deployed by `extend_context_definitions` in `prepare_core`)
 
 This plan deploys its own prerequisite expression sets (`RC_Price_Distribution_Procedure`, `RC_Revenue_Management_Recalc_Procedure`) in step 1 of the flow.
