@@ -22,6 +22,22 @@ DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_document_builder.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 
 
+def _check_urllib3_for_robot():
+    """Fail fast with a clear message if urllib3 2.x is installed (causes Timeout value connect error)."""
+    try:
+        import urllib3
+        ver = getattr(urllib3, "__version__", "0")
+        major = int(ver.split(".")[0])
+        if major >= 2:
+            raise TaskOptionsError(
+                "urllib3 2.x is installed; it causes the 'Timeout value connect was <object object at ...>' error "
+                "when running Robot setup tests. Pin urllib3 to 1.x in this environment (e.g. pip install \"urllib3>=1.26,<2\" "
+                "or pip install -r robot/requirements.txt). See README Troubleshooting for details."
+            )
+    except (ImportError, ValueError):
+        pass
+
+
 class EnableDocumentBuilderToggle(BaseTask):
     """Run the Robot test that enables the Document Builder toggle on Revenue Settings."""
 
@@ -37,6 +53,7 @@ class EnableDocumentBuilderToggle(BaseTask):
     }
 
     def _run_task(self):
+        _check_urllib3_for_robot()
         # sf org open -o requires a value the CLI knows: username or CLI alias.
         # CCI org name (e.g. tfid-cdo) is not always in the CLI; username is.
         org_name = getattr(self.org_config, "username", None)

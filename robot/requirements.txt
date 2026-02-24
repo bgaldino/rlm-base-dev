@@ -1,0 +1,9 @@
+# Robot Framework and browser automation for setup tests (Document Builder, Constraints, Revenue Settings).
+# Install in the same environment as CumulusCI so CCI tasks can run robot:
+#   pip install -r robot/requirements.txt
+#   or: pipx inject cumulusci -r robot/requirements.txt
+# urllib3<2 avoids "Timeout value connect was <object object at ...>" with webdriver-manager/Selenium.
+robotframework
+robotframework-seleniumlibrary
+webdriver-manager
+urllib3>=1.26,<2
