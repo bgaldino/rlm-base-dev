@@ -57,7 +57,7 @@ def get_chrome_driver_path():
     # Try to inject a normalizing session into webdriver-manager's HTTP client.
     # WDMHttpClient (wdm >= 3.x) exposes a `.session` attribute we can replace.
     try:
-        import requests  # noqa: F401 — needed to build the session subclass
+        import requests  # noqa: F401 - needed to build the session subclass
         from webdriver_manager.core.http import WDMHttpClient
 
         http_client = WDMHttpClient()
