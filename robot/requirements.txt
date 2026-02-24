@@ -3,7 +3,7 @@
 #   pip install -r robot/requirements.txt
 #   or: pipx inject cumulusci -r robot/requirements.txt
 # urllib3<2 avoids "Timeout value connect was <object object at ...>" with webdriver-manager/Selenium.
-robotframework
-robotframework-seleniumlibrary
-webdriver-manager
+robotframework>=6,<8
+robotframework-seleniumlibrary>=6,<8
+webdriver-manager>=4,<5
 urllib3>=1.26,<2

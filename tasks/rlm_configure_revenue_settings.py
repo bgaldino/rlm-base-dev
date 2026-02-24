@@ -19,25 +19,10 @@ except ImportError:
     BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
+from tasks.robot_utils import check_urllib3_for_robot
 
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/configure_revenue_settings.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
-
-
-def _check_urllib3_for_robot():
-    """Fail fast with a clear message if urllib3 2.x is installed (causes Timeout value connect error)."""
-    try:
-        import urllib3
-        ver = getattr(urllib3, "__version__", "0")
-        major = int(ver.split(".")[0])
-        if major >= 2:
-            raise TaskOptionsError(
-                "urllib3 2.x is installed; it causes the 'Timeout value connect was <object object at ...>' error "
-                "when running Robot setup tests. Pin urllib3 to 1.x in this environment (e.g. pip install \"urllib3>=1.26,<2\" "
-                "or pip install -r robot/requirements.txt). See README Troubleshooting for details."
-            )
-    except (ImportError, ValueError):
-        pass
 
 
 class ConfigureRevenueSettings(BaseSalesforceTask):
@@ -72,7 +57,7 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
     }
 
     def _run_task(self):
-        _check_urllib3_for_robot()
+        check_urllib3_for_robot()
         org_name = getattr(self.org_config, "username", None)
         if not org_name:
             org_name = getattr(self.org_config, "name", None) or getattr(

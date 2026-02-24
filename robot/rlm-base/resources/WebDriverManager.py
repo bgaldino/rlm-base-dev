@@ -27,33 +27,43 @@ def _normalize_timeout(timeout):
     return (10, 10)
 
 
+def _make_normalizing_session():
+    """Return a requests.Session subclass instance that normalizes timeout values."""
+    import requests
+
+    class _NormalizingSession(requests.Session):
+        def request(self, method, url, *args, **kwargs):
+            if "timeout" in kwargs:
+                kwargs["timeout"] = _normalize_timeout(kwargs["timeout"])
+            return super().request(method, url, *args, **kwargs)
+
+    return _NormalizingSession()
+
+
 def get_chrome_driver_path():
     """Return the path to the ChromeDriver executable.
 
     Uses webdriver-manager if available; otherwise returns None so the
     caller can fall back to the default (system PATH) ChromeDriver.
-    When webdriver-manager is used, patches requests.Session.request to
-    coerce invalid timeout values (e.g. from urllib3 2.x compatibility)
-    so ChromeDriver download succeeds even if a dependency passes a sentinel.
+
+    Coerces invalid timeout values (e.g. urllib3 2.x sentinels) by injecting
+    a custom requests.Session into webdriver-manager's HTTP client. The patch
+    is scoped to the single session instance used for the download, so it
+    cannot affect other threads or concurrent HTTP calls.
     """
     if not _HAS_WDM:
         return None
-    try:
-        import requests
-    except ImportError:
-        return ChromeDriverManager().install()
-    session_cls = getattr(requests, "Session", None)
-    if session_cls is None:
-        return ChromeDriverManager().install()
-    original_request = session_cls.request
 
-    def _patched_request(self, method, url, *args, **kwargs):
-        if "timeout" in kwargs:
-            kwargs["timeout"] = _normalize_timeout(kwargs["timeout"])
-        return original_request(self, method, url, *args, **kwargs)
-
-    session_cls.request = _patched_request
+    # Try to inject a normalizing session into webdriver-manager's HTTP client.
+    # WDMHttpClient (wdm >= 3.x) exposes a `.session` attribute we can replace.
     try:
+        import requests  # noqa: F401 — needed to build the session subclass
+        from webdriver_manager.core.http import WDMHttpClient
+
+        http_client = WDMHttpClient()
+        http_client.session = _make_normalizing_session()
+        return ChromeDriverManager(http_client=http_client).install()
+    except (ImportError, TypeError, AttributeError):
+        # WDMHttpClient or http_client kwarg unavailable in this wdm version;
+        # fall back to a bare install (timeout normalisation best-effort only).
         return ChromeDriverManager().install()
-    finally:
-        session_cls.request = original_request
