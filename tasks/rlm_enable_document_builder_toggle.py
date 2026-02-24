@@ -38,7 +38,7 @@ class EnableDocumentBuilderToggle(BaseTask):
     }
 
     def _run_task(self):
-        check_urllib3_for_robot()
+        check_urllib3_for_robot(task_name="EnableDocumentBuilderToggle")
         # sf org open -o requires a value the CLI knows: username or CLI alias.
         # CCI org name (e.g. tfid-cdo) is not always in the CLI; username is.
         org_name = getattr(self.org_config, "username", None)

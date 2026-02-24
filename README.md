@@ -748,7 +748,7 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This comes from a Selenium/urllib3 2.x compatibility issue: urllib3 2.x validates that HTTP timeouts are int/float/None, but webdriver-manager (used when opening the browser) can pass an invalid value, so the environment running Robot must use urllib3 &lt; 2. Pin urllib3 to 1.x in CCI's environment:
+This comes from a Selenium/urllib3 2.x compatibility issue: urllib3 2.x validates that HTTP timeouts are int/float/None, but webdriver-manager (used when opening the browser) can pass an invalid value, so the environment running Robot must use urllib3 < 2. Pin urllib3 to 1.x in CCI's environment:
 
 ```bash
 pipx inject cumulusci "urllib3>=1.26,<2" --force

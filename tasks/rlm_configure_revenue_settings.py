@@ -57,7 +57,7 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
     }
 
     def _run_task(self):
-        check_urllib3_for_robot()
+        check_urllib3_for_robot(task_name="ConfigureRevenueSettings")
         org_name = getattr(self.org_config, "username", None)
         if not org_name:
             org_name = getattr(self.org_config, "name", None) or getattr(

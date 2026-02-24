@@ -8,21 +8,29 @@ To install: pip install webdriver-manager
   (or: pipx inject cumulusci webdriver-manager)
 """
 
+import logging
+
 _HAS_WDM = True
 try:
     from webdriver_manager.chrome import ChromeDriverManager
 except ImportError:
     _HAS_WDM = False
 
+_logger = logging.getLogger(__name__)
+
 
 def _normalize_timeout(timeout):
-    """Return a timeout valid for requests/urllib3 (int, float, None, or (connect, read) tuple)."""
+    """Return a timeout valid for requests/urllib3 (int, float, None, or (connect, read) tuple).
+
+    Accepts None as a valid element in (connect, read) tuples, e.g. (None, 30)
+    meaning no connect timeout with a 30 s read timeout.
+    """
     if timeout is None:
         return None
     if isinstance(timeout, (int, float)):
         return timeout
     if isinstance(timeout, tuple) and len(timeout) == 2:
-        if all(isinstance(t, (int, float)) for t in timeout):
+        if all(t is None or isinstance(t, (int, float)) for t in timeout):
             return timeout
     return (10, 10)
 
@@ -64,6 +72,15 @@ def get_chrome_driver_path():
         http_client.session = _make_normalizing_session()
         return ChromeDriverManager(http_client=http_client).install()
     except (ImportError, TypeError, AttributeError):
-        # WDMHttpClient or http_client kwarg unavailable in this wdm version;
-        # fall back to a bare install (timeout normalisation best-effort only).
+        # WDMHttpClient or http_client kwarg unavailable in this wdm version.
+        # Timeout normalisation cannot be applied; if urllib3 2.x is present
+        # the "Timeout value connect was <object object at ...>" error may occur.
+        # Pin urllib3<2 (pip install -r robot/requirements.txt) to avoid this.
+        _logger.warning(
+            "webdriver-manager: could not inject normalizing session into "
+            "WDMHttpClient (incompatible wdm version?). Falling back to bare "
+            "ChromeDriverManager().install() without urllib3 timeout fix. "
+            "If you see 'Timeout value connect was <object object at ...>', "
+            "pin urllib3<2 via: pip install -r robot/requirements.txt"
+        )
         return ChromeDriverManager().install()
