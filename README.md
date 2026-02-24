@@ -287,6 +287,7 @@ This project includes custom Python task modules in the `tasks/` directory, each
 | `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
+| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |

@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -1344,6 +1344,20 @@ tasks:
       default_transaction_type: Advanced Configurator
       asset_context: RLM_AssetContext
 
+  validate_setup:
+    group: Revenue Lifecycle Management
+    description: >
+      Validate the local developer setup for rlm-base-dev. Checks Python,
+      CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework,
+      SeleniumLibrary, webdriver-manager, and urllib3. When auto_fix=true the
+      SFDMU plugin is automatically installed or updated to the required version.
+      Run without an org: cci task run validate_setup
+    class_path: tasks.rlm_validate_setup.ValidateSetup
+    options:
+      auto_fix: true
+      required_sfdmu_version: "4.38.0"
+      fail_on_error: true
+
   configure_revenue_settings:
     group: Revenue Lifecycle Management
     description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, and Create Orders from Quote flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
@@ -1719,74 +1733,76 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: validate_setup
+      2:
         task: assign_permission_set_licenses
         options:
           api_names: *rlm_psl_api_names
-      2:
+      3:
         task: cleanup_settings_for_dev
         when: org_config.scratch
-      3:
+      4:
         task: exclude_active_decision_tables
         when: org_config.scratch
-      4:
-        task: deploy_pre
       5:
+        task: deploy_pre
+      6:
         task: restore_decision_tables
         when: org_config.scratch
-      6:
+      7:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
-      7:
+      8:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_psl_api_names  
-      8:
+      9:
         task: util_sleep
         options:
           seconds: *sleep_default
-      9:
+      10:
         task: assign_permission_set_licenses
         options:
           api_names: EinsteinAnalyticsPlusPsl
-      10:
+      11:
         task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
-      11:
+      12:
         task: assign_permission_set_groups_tolerant
         options:
           api_names: *rlm_psg_api_names
-      12:
+      13:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      13:
-        flow: extend_context_definitions
       14:
+        flow: extend_context_definitions
+      15:
         task: util_sleep
         options:
           seconds: *sleep_default
-      15:
+      16:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      16:
+      17:
         task: util_sleep
         when: project_config.project__custom__breconfig
         options:
           seconds: *sleep_default
-      17:
+      18:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      18:
+      19:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      19:
+      20:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
