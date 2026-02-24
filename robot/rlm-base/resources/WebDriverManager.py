@@ -24,6 +24,9 @@ def _normalize_timeout(timeout):
 
     Accepts None as a valid element in (connect, read) tuples, e.g. (None, 30)
     meaning no connect timeout with a 30 s read timeout.
+
+    Falls back to (10, 10) — 10 s connect, 10 s read — when the provided value
+    is not a recognised type (e.g. the sentinel object passed by urllib3 2.x).
     """
     if timeout is None:
         return None
@@ -65,7 +68,6 @@ def get_chrome_driver_path():
     # Try to inject a normalizing session into webdriver-manager's HTTP client.
     # WDMHttpClient (wdm >= 3.x) exposes a `.session` attribute we can replace.
     try:
-        import requests  # noqa: F401 - needed to build the session subclass
         from webdriver_manager.core.http import WDMHttpClient
 
         http_client = WDMHttpClient()
@@ -78,7 +80,7 @@ def get_chrome_driver_path():
         # Pin urllib3<2 (pip install -r robot/requirements.txt) to avoid this.
         _logger.warning(
             "webdriver-manager: could not inject normalizing session into "
-            "WDMHttpClient (incompatible wdm version?). Falling back to bare "
+            "WDMHttpClient (an incompatible wdm version?). Falling back to bare "
             "ChromeDriverManager().install() without urllib3 timeout fix. "
             "If you see 'Timeout value connect was <object object at ...>', "
             "pin urllib3<2 via: pip install -r robot/requirements.txt"

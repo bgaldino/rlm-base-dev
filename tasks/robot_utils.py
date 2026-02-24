@@ -52,8 +52,8 @@ def check_urllib3_for_robot(task_name: str = "") -> None:
         if Version(ver_str) >= Version("2.0"):
             raise _urllib3_error(task_name)
         return
-    except ImportError:
-        pass  # packaging not available; fall back to manual parse
+    except Exception:
+        pass  # packaging not available or version string unparseable; fall back to manual parse
 
     # Manual parse - fail conservatively on any parse error
     try:
