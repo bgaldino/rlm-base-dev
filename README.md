@@ -72,11 +72,11 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
    **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
    - Python 3.8+
-   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. A full dependency set (including the urllib3 pin) is in **`robot/requirements.txt`**; install in the same env as CCI (e.g. `pip install -r robot/requirements.txt` in your venv). If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
+   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**; install in the same env as CCI (e.g. `pip install -r robot/requirements.txt` in your venv). If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
      ```bash
-     pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
+     pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
      ```
-     `urllib3>=1.26,<2` avoids a known Selenium/urllib3 2.x issue (`Timeout value connect was <object object at ...>`). webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install -r robot/requirements.txt` (or the packages above) inside the venv.
+     webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install -r robot/requirements.txt` (or the packages above) inside the venv.
    - Chrome (or set `BROWSER=firefox`). With webdriver-manager installed, ChromeDriver is downloaded automatically when the test runs. If webdriver-manager is **not** installed, the test falls back to the system ChromeDriver on `PATH`.
    - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
 
@@ -745,19 +745,19 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
    ```
 2. Install them into CumulusCI's environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
    ```bash
-   pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
+   pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
    ```
 3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — "Document Builder (Robot) env only"): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This comes from a Selenium/urllib3 2.x compatibility issue: urllib3 2.x validates that HTTP timeouts are int/float/None, but webdriver-manager (used when opening the browser) can pass an invalid value, so the environment running Robot must use urllib3 < 2. Pin urllib3 to 1.x in CCI's environment:
+This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. The project's `WebDriverManager.py` patches `RemoteConnection._timeout` at import time to resolve this automatically. If you still encounter it, ensure your Robot dependencies are up to date:
 
 ```bash
-pipx inject cumulusci "urllib3>=1.26,<2" --force
+pipx inject cumulusci -r robot/requirements.txt --force
 ```
 
-Use `--force` if pipx says urllib3 is already injected. To avoid this from the start, install Robot deps from `robot/requirements.txt` in the same environment you use for CCI. Then re-run the Document Builder task or flow.
+Use `--force` to upgrade existing packages. CumulusCI currently pins `selenium<4`, so the automatic patch in `WebDriverManager.py` is required for urllib3 2.x compatibility. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 

@@ -227,7 +227,7 @@ class ValidateSetup(BaseTask):
                 label,
                 "not found in the CCI Python env — required for Document Builder automation.\n"
                 "  Fix: pipx inject cumulusci robotframework robotframework-seleniumlibrary "
-                'webdriver-manager "urllib3>=1.26,<2"',
+                'webdriver-manager "urllib3>=2.6.3"',
             )
 
     def _check_selenium_library(self) -> Dict[str, str]:
@@ -259,17 +259,17 @@ class ValidateSetup(BaseTask):
             )
 
     def _check_urllib3(self) -> Dict[str, str]:
-        label = "urllib3 (Selenium compat)"
+        label = "urllib3"
         try:
             import urllib3  # noqa: PLC0415
 
             ver_str = getattr(urllib3, "__version__", "unknown")
-            if _parse_version(ver_str) < (2, 0):
+            if _parse_version(ver_str) >= (2, 6, 3):
                 return self._ok(label, ver_str)
             return self._warn(
                 label,
-                f"{ver_str} >= 2.0 — can cause Selenium timeout errors with webdriver-manager.\n"
-                '  Fix: pipx inject cumulusci "urllib3>=1.26,<2" --force',
+                f"{ver_str} is below the minimum 2.6.3 — older versions have known security vulnerabilities.\n"
+                '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
             )
         except ImportError:
             return self._warn(label, "not found in the CCI Python env")

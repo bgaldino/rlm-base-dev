@@ -12,7 +12,7 @@ Robot Framework tests that configure Salesforce Revenue Settings page options th
 
 ## Prerequisites
 
-Install and verify prerequisites in the **main README** only: [Installation — Document Builder automation dependencies](../../../README.md#installation) (Robot Framework, SeleniumLibrary, Chrome/ChromeDriver, Salesforce CLI). Do not install or verify from this folder; the main README is the single source of truth. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, the main README [Troubleshooting](../../../README.md#troubleshooting) explains the urllib3 pin and fix.
+Install and verify prerequisites in the **main README** only: [Installation — Document Builder automation dependencies](../../../README.md#installation) (Robot Framework, SeleniumLibrary, Chrome/ChromeDriver, Salesforce CLI, urllib3 >= 2.6.3). Do not install or verify from this folder; the main README is the single source of truth. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 >= 2.6.3 is installed and the main README [Troubleshooting](../../../README.md#troubleshooting) explains the fix.
 
 ## Running Tests
 
@@ -83,7 +83,12 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 
 ### Shadow DOM Toggles
 
-The Constraints Engine and Instant Pricing toggles are inside Lightning Web Component Shadow DOM boundaries, making them inaccessible to standard Selenium locators. Both toggles use JavaScript shadow DOM traversal (`findInShadows`) to locate the underlying `<input>` element and read its `checked` property directly for reliable state detection. This avoids false positives from ambient "Enabled"/"Disabled" text elsewhere on the page.
+Many LWC toggles on Setup pages (Constraints Engine, Instant Pricing, Document Templates Export, Design Document Templates, etc.) are inside Lightning Web Component Shadow DOM boundaries, making them inaccessible to standard Selenium XPath locators. The `SetupToggles.robot` resource library handles this in two ways:
+
+1. **`_EnsureShadowDOMToggle`** — Uses pure JavaScript to find the label heading via a text-node tree walker, walks up to the nearest ancestor containing a `lightning-input` toggle, pierces its shadow root, reads the `checked` state, and clicks only if needed. This avoids the cross-section interference caused by XPath `following::*[@role='switch']` which cannot see into shadow roots and may match the wrong toggle.
+2. **`_VerifyToggleViaShadowDOM`** — Uses the same JS approach to verify the toggle's actual `checked` state after clicking, replacing the previous section-text ("Enabled"/"Disabled") heuristic which was unreliable when the section XPath itself couldn't scope correctly.
+
+For Document Builder specifically, a dedicated `_EnsureDocumentBuilderToggle` keyword uses `findInShadows` to locate the `input[name=documentBuilderEnabled]` element.
 
 ### Combobox-Recipe Fields (Pricing, Usage Rating, Asset Context)
 
