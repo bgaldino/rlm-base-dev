@@ -27,7 +27,7 @@
         {
           "query": "SELECT Description, IsTaxable, LegalEntityId, LegalEntity.Name, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxPolicyId, TaxPolicy.Name FROM TaxTreatment",
           "operation": "Upsert",
-          "externalId": "Name;LegalEntity.Name;TaxPolicy.Name",
+          "externalId": "Name",
           "excluded": false,
           "skipExistingRecords": true
         },
@@ -52,11 +52,11 @@
         {
           "query": "SELECT Status, Name, LegalEntity.Name, TaxPolicy.Name FROM TaxTreatment",
           "operation": "Update",
-          "externalId": "Name;LegalEntity.Name;TaxPolicy.Name",
+          "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
+          "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
           "operation": "Update",
           "externalId": "Name",
           "excluded": false

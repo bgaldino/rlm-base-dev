@@ -39,9 +39,11 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    - Verify: `cci version`
 
 3. **SFDMU (Salesforce Data Move Utility)**
+   - **Version 5.0.0 or later required** (v4.x is no longer supported)
    - Required for data loading tasks
-   - Installation: `npm install -g sfdmu` or `sf plugins install sfdmu`
-   - Verify: `sf sfdmu --version` or `sf plugins list`
+   - Installation: `sf plugins install sfdmu`
+   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
 4. **Python** (for custom tasks)
@@ -70,20 +72,16 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
    **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
    - Python 3.8+
-   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
+   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. A full dependency set (including the urllib3 pin) is in **`robot/requirements.txt`**; install in the same env as CCI (e.g. `pip install -r robot/requirements.txt` in your venv). If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
      ```bash
      pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
      ```
-     `urllib3>=1.26,<2` avoids a known Selenium/urllib3 2.x issue (`Timeout value connect was <object object at ...>`). webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"` inside the venv.
+     `urllib3>=1.26,<2` avoids a known Selenium/urllib3 2.x issue (`Timeout value connect was <object object at ...>`). webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install -r robot/requirements.txt` (or the packages above) inside the venv.
    - Chrome (or set `BROWSER=firefox`). With webdriver-manager installed, ChromeDriver is downloaded automatically when the test runs. If webdriver-manager is **not** installed, the test falls back to the system ChromeDriver on `PATH`.
    - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
 
-3. **Install SFDMU:**
+3. **Install SFDMU (v5+):**
    ```bash
-   # Option 1: Via npm
-   npm install -g sfdmu
-   
-   # Option 2: Via Salesforce CLI plugin
    sf plugins install sfdmu
    ```
 
@@ -91,7 +89,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    ```bash
    sf --version
    cci version
-   sf plugins list  # Should show sfdmu if installed via plugin
+   sf plugins list  # Should show sfdmu 5.x
    ```
    **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI's environment before running any flow or test:
    ```bash
@@ -287,6 +285,7 @@ This project includes custom Python task modules in the `tasks/` directory, each
 | `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
+| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
@@ -458,6 +457,10 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 ### SFDMU Data Plans
 
+> **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
+> and idempotency. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md)
+> for the full migration details and known limitations.
+
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
 
 #### QuantumBit (QB) Data Plans
@@ -517,7 +520,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | Document | Description |
 |----------|-------------|
 | [Tooling Opportunities](docs/TOOLING_OPPORTUNITIES.md) | Analysis of Spring '26 features and opportunities for new tooling tasks |
-| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU composite key analysis for data plan portability |
+| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
 | [RCA/RCB Unique ID Fields](docs/rca_rcb_unique_id_fields.md) | Unique ID field analysis for Revenue Cloud objects |
 
 ### SFDMU Data Plan READMEs
@@ -748,13 +751,13 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This comes from a Selenium/urllib3 2.x compatibility issue. Pin urllib3 to 1.x in CCI's environment:
+This comes from a Selenium/urllib3 2.x compatibility issue: urllib3 2.x validates that HTTP timeouts are int/float/None, but webdriver-manager (used when opening the browser) can pass an invalid value, so the environment running Robot must use urllib3 < 2. Pin urllib3 to 1.x in CCI's environment:
 
 ```bash
 pipx inject cumulusci "urllib3>=1.26,<2" --force
 ```
 
-Use `--force` if pipx says urllib3 is already injected. Then re-run the Document Builder task or flow.
+Use `--force` if pipx says urllib3 is already injected. To avoid this from the start, install Robot deps from `robot/requirements.txt` in the same environment you use for CCI. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 
@@ -767,17 +770,27 @@ pipx install cumulusci
 cci version
 ```
 
-### SFDMU Not Found
+### SFDMU Not Found or Outdated
 
 ```bash
-# Install SFDMU
-npm install -g sfdmu
-# OR
+# Install or update SFDMU (v5+ required)
 sf plugins install sfdmu
 
-# Verify installation
+# Verify installation (should show 5.x)
 sf plugins list
 ```
+
+The `validate_setup` task checks and auto-updates SFDMU when `auto_fix=true` (the default):
+```bash
+cci task run validate_setup
+```
+
+### SFDMU Duplicate Records on Re-run
+
+If you see duplicate records after running data tasks multiple times, verify you are on
+SFDMU v5. The data plans have been migrated for v5 idempotency; v4.x may create duplicates
+due to differences in how composite `externalId` definitions are processed. See
+[Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) for details.
 
 ### Permission Set Groups stuck Outdated / Updating
 

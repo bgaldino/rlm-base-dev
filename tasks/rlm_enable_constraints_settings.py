@@ -19,6 +19,7 @@ except ImportError:
     BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
+from tasks.robot_utils import check_urllib3_for_robot
 
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_constraints_settings.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
@@ -52,6 +53,7 @@ class EnableConstraintsSettings(BaseSalesforceTask):
     }
 
     def _run_task(self):
+        check_urllib3_for_robot(task_name="EnableConstraintsSettings")
         org_name = getattr(self.org_config, "username", None)
         if not org_name:
             org_name = getattr(self.org_config, "name", None) or getattr(

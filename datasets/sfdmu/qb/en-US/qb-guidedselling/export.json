@@ -38,7 +38,7 @@
         {
           "query": "SELECT AdditionalInformation, AssessmentQuestionId, CurrencyIsoCode, DataType, DeactivationDateTime, Description, ExternalAsmtContentVersion, GuidanceInformation, HelpText, IsActive, IsOptionSourceResponseValue, Name, QuestionText, ResponseValues, Status, VersionNumber FROM AssessmentQuestionVersion WHERE Status = 'Active'",
           "operation": "Upsert",
-          "externalId": "AssessmentQuestion.UniqueIndex;VersionNumber",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -50,7 +50,7 @@
         {
           "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcessId, OmniProcessVersionNumber, ParentElementId, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
           "operation": "Upsert",
-          "externalId": "OmniProcess.UniqueName;Name",
+          "externalId": "Name",
           "excluded": false
         },
         {

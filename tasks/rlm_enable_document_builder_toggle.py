@@ -16,6 +16,7 @@ except ImportError:
     BaseTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
+from tasks.robot_utils import check_urllib3_for_robot
 
 # Relative to repo root (project_config.repo_root when running under CCI)
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_document_builder.robot"
@@ -37,6 +38,7 @@ class EnableDocumentBuilderToggle(BaseTask):
     }
 
     def _run_task(self):
+        check_urllib3_for_robot(task_name="EnableDocumentBuilderToggle")
         # sf org open -o requires a value the CLI knows: username or CLI alias.
         # CCI org name (e.g. tfid-cdo) is not always in the CLI; username is.
         org_name = getattr(self.org_config, "username", None)

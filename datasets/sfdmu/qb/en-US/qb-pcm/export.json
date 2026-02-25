@@ -43,7 +43,7 @@
     {
       "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, DefaultValue, Description, DisplayType, HelpText, Id, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, ProductClassificationId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductClassificationAttr ORDER BY ProductClassification.Code ASC, AttributeDefinition.Code ASC, AttributeCategory.Code ASC, Name ASC",
       "operation": "Upsert",
-      "externalId": "ProductClassification.Code;AttributeDefinition.Code;AttributeCategory.Code"
+      "externalId": "Name"
     },
     {
       "query": "SELECT BasedOnId, CanRamp, ConfigureDuringSale, Description, DisplayUrl, Family, Id, IsActive, IsAssetizable, IsSoldOnlyWithOtherProds, Name, ProductCode, QuantityUnitOfMeasure, SpecificationType, StockKeepingUnit, Type, UnitOfMeasureId FROM Product2 ORDER BY StockKeepingUnit ASC",
@@ -93,12 +93,14 @@
     {
       "query": "SELECT Id, IsExcluded, MaxBundleComponents, MinBundleComponents, Name, OverrideContextId$Product2 FROM ProductComponentGrpOverride WHERE OverrideContext.Type = 'Product2'",
       "operation": "Upsert",
-      "externalId": "Name"
+      "externalId": "Name",
+      "excluded": true
     },
     {
       "query": "SELECT DoesBundlePriceIncludeChild, Id, IsComponentRequired, IsDefaultComponent, IsExcluded, IsQuantityEditable, MaxQuantity, MinQuantity, Name, OverrideContextId$Product2, ProductRelatedComponentId, Quantity, QuantityScaleMethod, UnitOfMeasureId FROM ProductRelComponentOverride WHERE OverrideContext.Type = 'Product2'",
       "operation": "Upsert",
-      "externalId": "ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit"
+      "externalId": "Name",
+      "excluded": true
     },
     {
       "query": "SELECT CatalogType, Code, Description, EffectiveEndDate, EffectiveStartDate, Id, Name FROM ProductCatalog ORDER BY Code ASC",
