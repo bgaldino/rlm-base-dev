@@ -6,10 +6,10 @@ if (!taxTreatments.isEmpty()) {
     update taxTreatments;
 }
 
-Map<String, Id> treatmentByPolicy = new Map<String, Id>();
-for (TaxTreatment tt : [SELECT Id, TaxPolicy.Name FROM TaxTreatment]) {
-    if (tt.TaxPolicy != null) {
-        treatmentByPolicy.put(tt.TaxPolicy.Name, tt.Id);
+Map<Id, Id> treatmentByPolicyId = new Map<Id, Id>();
+for (TaxTreatment tt : [SELECT Id, TaxPolicyId FROM TaxTreatment]) {
+    if (tt.TaxPolicyId != null) {
+        treatmentByPolicyId.put(tt.TaxPolicyId, tt.Id);
     }
 }
 
@@ -17,8 +17,8 @@ List<TaxPolicy> taxPolicies = [SELECT Id, Name, Status, DefaultTaxTreatmentId FR
 List<TaxPolicy> toUpdate = new List<TaxPolicy>();
 for (TaxPolicy tp : taxPolicies) {
     Boolean changed = false;
-    if (tp.DefaultTaxTreatmentId == null && treatmentByPolicy.containsKey(tp.Name)) {
-        tp.DefaultTaxTreatmentId = treatmentByPolicy.get(tp.Name);
+    if (tp.DefaultTaxTreatmentId == null && treatmentByPolicyId.containsKey(tp.Id)) {
+        tp.DefaultTaxTreatmentId = treatmentByPolicyId.get(tp.Id);
         changed = true;
     }
     if (tp.Status != 'Active') {

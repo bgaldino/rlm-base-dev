@@ -142,7 +142,7 @@
         {
           "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier",
           "operation": "Upsert",
-          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name,TierType,TierValue,UpperBound,LowerBound,CurrencyIsoCode",
+          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;TierType;TierValue;UpperBound;LowerBound;CurrencyIsoCode",
           "excluded": false
         },
         {

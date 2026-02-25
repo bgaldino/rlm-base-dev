@@ -20,9 +20,11 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
+    from cumulusci.core.exceptions import TaskOptionsError
     from cumulusci.core.tasks import BaseTask
 except ImportError:
     BaseTask = object  # type: ignore[assignment,misc]
+    TaskOptionsError = Exception  # type: ignore[assignment,misc]
 
 # ── minimum required versions ────────────────────────────────────────────────
 MIN_PYTHON: Tuple[int, ...] = (3, 8)
@@ -112,7 +114,7 @@ class ValidateSetup(BaseTask):
             failures = [r for r in results if r["status"] == FAIL]
             if failures:
                 labels = ", ".join(r["label"] for r in failures)
-                raise Exception(f"Setup validation failed for: {labels}")
+                raise TaskOptionsError(f"Setup validation failed for: {labels}")
 
     # ── individual checks ─────────────────────────────────────────────────────
 
@@ -163,10 +165,11 @@ class ValidateSetup(BaseTask):
                 ["sf", "--version"], capture_output=True, text=True, timeout=20
             )
             if result.returncode != 0:
-                return self._fail(
-                    label,
-                    "not found — install from https://developer.salesforce.com/tools/salesforcecli",
-                )
+                detail = (result.stderr or result.stdout or "").strip()
+                msg = f"command failed (exit {result.returncode})"
+                if detail:
+                    msg += f": {detail[:200]}"
+                return self._fail(label, msg)
             first_line = result.stdout.strip().split("\n")[0]
             match = re.search(r"@salesforce/cli/(\d+)\.(\d+)\.(\d+)", first_line)
             if match:
@@ -227,7 +230,7 @@ class ValidateSetup(BaseTask):
                 label,
                 "not found in the CCI Python env — required for Document Builder automation.\n"
                 "  Fix: pipx inject cumulusci robotframework robotframework-seleniumlibrary "
-                'webdriver-manager "urllib3>=1.26,<2"',
+                'webdriver-manager "urllib3>=2.6.3"',
             )
 
     def _check_selenium_library(self) -> Dict[str, str]:
@@ -259,17 +262,17 @@ class ValidateSetup(BaseTask):
             )
 
     def _check_urllib3(self) -> Dict[str, str]:
-        label = "urllib3 (Selenium compat)"
+        label = "urllib3"
         try:
             import urllib3  # noqa: PLC0415
 
             ver_str = getattr(urllib3, "__version__", "unknown")
-            if _parse_version(ver_str) < (2, 0):
+            if _parse_version(ver_str) >= (2, 6, 3):
                 return self._ok(label, ver_str)
             return self._warn(
                 label,
-                f"{ver_str} >= 2.0 — can cause Selenium timeout errors with webdriver-manager.\n"
-                '  Fix: pipx inject cumulusci "urllib3>=1.26,<2" --force',
+                f"{ver_str} is below the minimum 2.6.3 — older versions have known security vulnerabilities.\n"
+                '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
             )
         except ImportError:
             return self._warn(label, "not found in the CCI Python env")

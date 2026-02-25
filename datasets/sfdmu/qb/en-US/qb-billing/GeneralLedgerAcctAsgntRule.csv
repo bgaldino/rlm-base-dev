@@ -1,9 +1,9 @@
-Name,CreditGeneralLedgerAccount.Name,CurrencyIsoCode,DebitGeneralLedgerAccount.Name,FilterCriteria,FilterLogic,LegalEntity.Name,Name,Priority,Status,TransactionAmountField,TransactionType
-USD Intercompany Revenue Rule,4240 Intercompany Revenue,USD,1240 Accounts Receivable – Intercompany,All,,Default Legal Entity - US,USD Intercompany Revenue Rule,2,Active,ChargeAmount,InvoiceLine
-USD Revenue Rule,4100 Product Revenue (Software Licenses),USD,1100 Accounts Receivable – Trade,,,Default Legal Entity - US,USD Revenue Rule,1,Active,ChargeAmount,InvoiceLine
-USD CML Taxes,1100 Accounts Receivable – Trade,USD,2400 Sales Tax Payable,,,Default Legal Entity - US,USD CML Taxes,1,Active,TaxAmount,CreditMemoLineTax
-USD Invoice Line Taxes,2400 Sales Tax Payable,USD,1100 Accounts Receivable – Trade,,,Default Legal Entity - US,USD Invoice Line Taxes,1,Active,TaxAmount,InvoiceLineTax
-USD CML Charges,1100 Accounts Receivable – Trade,USD,4100 Product Revenue (Software Licenses),,,Default Legal Entity - US,USD CML Charges,1,Active,ChargeAmount,CreditMemoLine
-USD PMT,1100 Accounts Receivable – Trade,USD,1000 Cash & Cash Equivalents,,,Default Legal Entity - US,USD PMT,1,Active,Amount,Payment
-USD Invoice Line Hardware,4100 Product Revenue (Software Licenses),USD,1100 Accounts Receivable – Trade,All,,Default Legal Entity - US,USD Invoice Line Hardware,1,Active,ChargeAmount,InvoiceLine
-USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),2200 Deferred Revenue – Subscriptions,USD,1100 Accounts Receivable – Trade,Any,,Default Legal Entity - US,USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),1,Active,ChargeAmount,InvoiceLine
+Name,CreditGeneralLedgerAccount.Name,CurrencyIsoCode,DebitGeneralLedgerAccount.Name,FilterCriteria,FilterLogic,LegalEntity.Name,Priority,Status,TransactionAmountField,TransactionType
+USD Intercompany Revenue Rule,4240 Intercompany Revenue,USD,1240 Accounts Receivable – Intercompany,All,,Default Legal Entity - US,2,Active,ChargeAmount,InvoiceLine
+USD Revenue Rule,4100 Product Revenue (Software Licenses),USD,1100 Accounts Receivable – Trade,,,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
+USD CML Taxes,1100 Accounts Receivable – Trade,USD,2400 Sales Tax Payable,,,Default Legal Entity - US,1,Active,TaxAmount,CreditMemoLineTax
+USD Invoice Line Taxes,2400 Sales Tax Payable,USD,1100 Accounts Receivable – Trade,,,Default Legal Entity - US,1,Active,TaxAmount,InvoiceLineTax
+USD CML Charges,1100 Accounts Receivable – Trade,USD,4100 Product Revenue (Software Licenses),,,Default Legal Entity - US,1,Active,ChargeAmount,CreditMemoLine
+USD PMT,1100 Accounts Receivable – Trade,USD,1000 Cash & Cash Equivalents,,,Default Legal Entity - US,1,Active,Amount,Payment
+USD Invoice Line Hardware,4100 Product Revenue (Software Licenses),USD,1100 Accounts Receivable – Trade,All,,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
+USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),2200 Deferred Revenue – Subscriptions,USD,1100 Accounts Receivable – Trade,Any,,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
