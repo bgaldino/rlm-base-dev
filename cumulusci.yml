@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -1348,14 +1348,14 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Validate the local developer setup for rlm-base-dev. Checks Python,
-      CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework,
-      SeleniumLibrary, webdriver-manager, and urllib3. When auto_fix=true the
-      SFDMU plugin is automatically installed or updated to the required version.
-      Run without an org: cci task run validate_setup
+      CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js,
+      Robot Framework, SeleniumLibrary, webdriver-manager, and urllib3. When
+      auto_fix=true the SFDMU plugin is automatically installed or updated to
+      the required version. Run without an org: cci task run validate_setup
     class_path: tasks.rlm_validate_setup.ValidateSetup
     options:
       auto_fix: true
-      required_sfdmu_version: "4.38.0"
+      required_sfdmu_version: "5.0.0"
       fail_on_error: true
 
   configure_revenue_settings:

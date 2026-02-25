@@ -248,11 +248,13 @@ This plan depends on the following having been loaded first:
 
 ## Idempotency
 
-- **RateCard**, **PriceBookRateCard**, and **RateCardEntry** use `Upsert` with composite external IDs, so re-runs update existing records rather than creating duplicates.
-- **RateAdjustmentByTier** uses a 6-field composite external ID (`Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound`) ensuring each tier range is unique. The parent RateCardEntry is resolved via a `$$` composite column in the CSV (`RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode`) alongside individual relationship columns. The externalId uses individual fields (not `$$` notation) to avoid SOQL parse errors in multi-component externalIds.
+> **SFDMU v5 Required.** All externalId definitions and CSV formats are optimized for SFDMU v5.
+
+- **RateCard** uses `Upsert` with `Name;Type` composite key — matches correctly on re-run.
+- **PriceBookRateCard**, **RateCardEntry**, **RateAdjustmentByTier** use `deleteOldData: true` for idempotency. These objects have auto-number Names and all-relationship externalIds that SFDMU v5 cannot match against existing target records. On re-run, records are deleted and reinserted (functional idempotency with stable counts).
 - **Product2** uses `Update` by `StockKeepingUnit`, so only existing products are modified.
 
-**Key requirement:** Objects with multi-component composite `externalId` definitions require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values. Without this column, SFDMU inserts duplicates on re-runs. SFDMU auto-generates these columns during extraction.
+**Key requirement (SFDMU v5):** Objects with multi-component composite `externalId` definitions require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values. Without this column, SFDMU inserts duplicates on re-runs. For objects where a `$$` column cannot be used (e.g., auto-number `Name` fields with all-relationship externalIds), use `deleteOldData: true` for functional idempotency. See [Composite Key Optimizations](../../../../../docs/sfdmu_composite_key_optimizations.md) for the full v5 migration guide.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 

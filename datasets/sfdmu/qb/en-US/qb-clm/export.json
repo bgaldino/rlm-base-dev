@@ -25,7 +25,7 @@
         {
           "query": "SELECT Name, ActionType, InvocableClassName, InvocableMethodName, DisplayLabel, ReferenceObjectId FROM ObjectStateActionDefinition",
           "operation": "Upsert",
-          "externalId": "Name;ReferenceObject.Name",
+          "externalId": "Name",
           "excluded": false
         },
         {

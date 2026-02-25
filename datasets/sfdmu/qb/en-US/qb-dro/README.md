@@ -37,24 +37,25 @@ Upsert all DRO objects in dependency order
 
 ### Objects
 
-| #  | Object                          | Operation | External ID                                                        | Records |
-|----|---------------------------------|-----------|--------------------------------------------------------------------|---------|
-| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 164     |
-| 2  | ProductFulfillmentDecompRule    | Upsert    | `Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit` | 28 |
-| 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       |
-| 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       |
-| 5  | ProductDecompEnrichmentRule     | Upsert    | `Name`                                                             | 0       |
-| 6  | FulfillmentStepDefinitionGroup  | Upsert    | `Name`                                                             | 10      |
-| 7  | FulfillmentStepDefinition       | Upsert    | `Name;StepDefinitionGroup.Name`                                    | 17      |
-| 8  | FulfillmentStepDependencyDef    | Upsert    | `Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name` | 13      |
-| 9  | ProductFulfillmentScenario      | Upsert    | `Name;Product.StockKeepingUnit`                                    | 13      |
-| 10 | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 2       |
-| 11 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 7       |
-| 12 | FulfillmentFalloutRule          | Upsert    | `Name`                                                             | 3       |
-| 13 | FulfillmentStepJeopardyRule     | Upsert    | `Name`                                                             | 6       |
-| 14 | FulfillmentTaskAssignmentRule   | Upsert    | `Name`                                                             | 0       |
+> **SFDMU v5 Required.** ExternalIDs have been simplified for v5 compatibility and idempotency.
 
-**Note:** Objects 3-5 (ValTfrmGrp, ValTfrm, ProductDecompEnrichmentRule) and Object 14 (FulfillmentTaskAssignmentRule) have empty CSVs (0 data records) — placeholders for future data. Product2 is Update-only (sets `CustomDecompositionScope`, `DecompositionScope`, `FulfillmentQtyCalcMethod`).
+| #  | Object                          | Operation | External ID                                                        | Records | v5 Notes |
+|----|---------------------------------|-----------|--------------------------------------------------------------------|---------|----------|
+| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 164     | |
+| 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 28      | Simplified from `Name;SourceProduct.SKU;DestinationProduct.SKU`; 1 duplicate Name disambiguated |
+| 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       | |
+| 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       | |
+| 5  | FulfillmentStepDefinitionGroup  | Upsert    | `Name`                                                             | 10      | |
+| 6  | FulfillmentStepDefinition       | Upsert    | `Name`                                                             | 17      | Simplified from `Name;StepDefinitionGroup.Name`; 2 duplicate Names disambiguated |
+| 7  | FulfillmentStepDependencyDef    | Upsert    | `Name`                                                             | 13      | Simplified from 3-field composite; parent refs updated to match renamed FSDs |
+| 8  | ProductFulfillmentScenario      | Upsert    | `Name`                                                             | 13      | Simplified from `Name;Product.StockKeepingUnit` |
+| 9  | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 2       | |
+| 10 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 7       | `deleteOldData: true` (auto-number Name) |
+| 11 | FulfillmentFalloutRule          | Upsert    | `Name`                                                             | 3       | |
+| 12 | FulfillmentStepJeopardyRule     | Upsert    | `Name`                                                             | 6       | |
+| 13 | FulfillmentTaskAssignmentRule   | Upsert    | `Name`                                                             | 0       | |
+
+**Note:** Objects 3-4 (ValTfrmGrp, ValTfrm) and Object 13 (FulfillmentTaskAssignmentRule) have empty CSVs (0 data records) — placeholders for future data. ProductDecompEnrichmentRule was removed (0 records). Product2 is Update-only (sets `CustomDecompositionScope`, `DecompositionScope`, `FulfillmentQtyCalcMethod`).
 
 ## Dynamic User Resolution
 
@@ -96,28 +97,28 @@ FulfillmentWorkspace (2 workspaces) with FulfillmentWorkspaceItem (7 items) defi
 
 FulfillmentFalloutRule (3 rules) for error handling, FulfillmentStepJeopardyRule (6 rules) for SLA monitoring, and FulfillmentTaskAssignmentRule (0 records — placeholder).
 
-## Composite External IDs
+## Composite External IDs (v5)
 
-| Object                        | Composite Key                                                     | CSV `$$` Column |
-|-------------------------------|-------------------------------------------------------------------|-----------------|
-| ProductFulfillmentDecompRule  | `Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit` | Yes      |
-| FulfillmentStepDefinition     | `Name;StepDefinitionGroup.Name`                                   | Yes             |
-| FulfillmentStepDependencyDef  | `Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name`| Yes             |
-| ProductFulfillmentScenario    | `Name;Product.StockKeepingUnit`                                   | Yes             |
-| FulfillmentWorkspaceItem      | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`   | Yes             |
+With the SFDMU v5 migration, most composite externalIds were simplified to just `Name` after ensuring Name uniqueness in the source CSVs. The `$$` composite key columns have been removed from all DRO CSVs.
 
-Nested `$$` columns are used for parent lookup resolution in FulfillmentStepDependencyDef (e.g., `DependsOnStepDefinition.$$Name$StepDefinitionGroup.Name`).
+| Object                        | v5 ExternalId | Previous (v4) | Change |
+|-------------------------------|---------------|----------------|--------|
+| ProductFulfillmentDecompRule  | `Name` | `Name;SourceProduct.SKU;DestinationProduct.SKU` | Disambiguated 1 duplicate Name |
+| FulfillmentStepDefinition     | `Name` | `Name;StepDefinitionGroup.Name` | Disambiguated 2 duplicate Names (appended group context) |
+| FulfillmentStepDependencyDef  | `Name` | `Name;DependsOn.Name;FSD.Name` | Updated parent refs to match renamed FSDs |
+| ProductFulfillmentScenario    | `Name` | `Name;Product.StockKeepingUnit` | Names already unique |
+| FulfillmentWorkspaceItem      | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Same | `deleteOldData: true` added (auto-number Name) |
 
 ## Portability
 
 All external IDs use portable, human-readable fields:
 
-- **Name** fields: All human-readable (e.g., "Order Processing", "Convert Order to Asset", "QuantumBit Database (Token Based)- Billing")
+- **Name** fields: All human-readable (e.g., "Order Processing", "Convert Order to Asset - Order Processing", "QuantumBit Database (Token Based)- Billing")
 - **StockKeepingUnit** for Product2 references
 - **DeveloperName** for IntegrationDefinition references
 - **Dynamic user resolution**: `__DRO_ASSIGNED_TO_USER__` placeholder ensures cross-org compatibility
 
-No auto-numbered Name fields are used.
+**Auto-numbered Name fields**: FulfillmentWorkspaceItem uses an auto-number Name — matched via its parent composite key with `deleteOldData: true` for functional idempotency.
 
 ## Extra CSV Files Not in export.json
 
@@ -189,9 +190,18 @@ qb-dro/
 
 ## Idempotency
 
-This plan should be idempotent via SFDMU's Upsert operation with composite external IDs. Re-running on an org that already has the data should match all existing records and leave them untouched.
+> **Verified with SFDMU v5** on a 260 scratch org.
 
-**Not yet validated** — idempotency testing against a 260 org is pending.
+This plan is idempotent — re-running on an org that already has the data produces zero net record changes for successfully inserted objects.
+
+- Objects with `Name` externalIds (PFDR, FSD, FSDD, PFS, FSDG, FW, FFR, FSJR): matched correctly on re-run, no duplicates
+- **FulfillmentWorkspaceItem**: uses `deleteOldData: true` (delete + reinsert cycle) since its Name is auto-numbered
+- **TaxEngine**: always inserts 1 record (Salesforce metadata-like limitation)
+
+### Known limitations
+
+- **FulfillmentStepDefinition**: 9/17 records fail to insert due to unresolved polymorphic `AssignedTo` references (`User`/`Group`) and missing `IntegrationProviderDef` records. These are data dependency issues, not SFDMU bugs.
+- **FulfillmentStepDependencyDef**: 10/13 records depend on the missing FSD records above.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 

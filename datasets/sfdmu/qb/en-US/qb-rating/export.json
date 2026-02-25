@@ -3,7 +3,7 @@
   "$comment_pass1": "Pass 1: Upsert all objects in Draft status. Objects with composite externalId use semicolon-separated relationship traversal fields (Field1;Field2) for matching.",
   "$comment_pass2": "Pass 2: Activate UnitOfMeasureClass and UsageResource (Status > Active). PUR/PUG activation is handled by the Apex script (activateRatingRecords.apex) due to complex API 260 ordering constraints.",
   "$comment_260": "API 260 notes: QB-DB;QB-TOKEN (Token PUR for Anchor product) is required before QB-DB Usage PURs can activate. CommitmentSpend optional PURs (QB-MTY-CMT;UR-CPUTIME/UR-DATASTORAGE) are excluded due to platform TokenResourceId auto-population conflict.",
-  "$comment_composite_keys": "IMPORTANT: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). Without this column, SFDMU inserts duplicates on re-runs instead of matching existing records. Single-component externalIds do not need a $$ column.",
+  "$comment_composite_keys": "SFDMU v5: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). For objects with auto-number Names and all-relationship externalIds, use deleteOldData: true instead. Single-component externalIds do not need a $$ column.",
   "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, UsageResource.Code) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
@@ -87,14 +87,14 @@
         {
           "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy",
           "operation": "Upsert",
-          "externalId": "ProductUsageResource.$$Product.StockKeepingUnit$UsageResource.Code",
-          "excluded": false
+          "externalId": "ProductUsageResource.Product.StockKeepingUnit;ProductUsageResource.UsageResource.Code",
+          "excluded": true
         },
         {
           "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
           "operation": "Upsert",
           "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;ProductUsageResource.Product.StockKeepingUnit;ProductUsageResource.UsageResource.Code",
-          "excluded": false
+          "excluded": true
         }
       ]
     },

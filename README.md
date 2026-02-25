@@ -39,9 +39,11 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    - Verify: `cci version`
 
 3. **SFDMU (Salesforce Data Move Utility)**
+   - **Version 5.0.0 or later required** (v4.x is no longer supported)
    - Required for data loading tasks
-   - Installation: `npm install -g sfdmu` or `sf plugins install sfdmu`
-   - Verify: `sf sfdmu --version` or `sf plugins list`
+   - Installation: `sf plugins install sfdmu`
+   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
 4. **Python** (for custom tasks)
@@ -78,12 +80,8 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    - Chrome (or set `BROWSER=firefox`). With webdriver-manager installed, ChromeDriver is downloaded automatically when the test runs. If webdriver-manager is **not** installed, the test falls back to the system ChromeDriver on `PATH`.
    - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
 
-3. **Install SFDMU:**
+3. **Install SFDMU (v5+):**
    ```bash
-   # Option 1: Via npm
-   npm install -g sfdmu
-   
-   # Option 2: Via Salesforce CLI plugin
    sf plugins install sfdmu
    ```
 
@@ -91,7 +89,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    ```bash
    sf --version
    cci version
-   sf plugins list  # Should show sfdmu if installed via plugin
+   sf plugins list  # Should show sfdmu 5.x
    ```
    **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI's environment before running any flow or test:
    ```bash
@@ -459,6 +457,10 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 ### SFDMU Data Plans
 
+> **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
+> and idempotency. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md)
+> for the full migration details and known limitations.
+
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
 
 #### QuantumBit (QB) Data Plans
@@ -518,7 +520,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | Document | Description |
 |----------|-------------|
 | [Tooling Opportunities](docs/TOOLING_OPPORTUNITIES.md) | Analysis of Spring '26 features and opportunities for new tooling tasks |
-| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU composite key analysis for data plan portability |
+| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
 | [RCA/RCB Unique ID Fields](docs/rca_rcb_unique_id_fields.md) | Unique ID field analysis for Revenue Cloud objects |
 
 ### SFDMU Data Plan READMEs
@@ -768,17 +770,27 @@ pipx install cumulusci
 cci version
 ```
 
-### SFDMU Not Found
+### SFDMU Not Found or Outdated
 
 ```bash
-# Install SFDMU
-npm install -g sfdmu
-# OR
+# Install or update SFDMU (v5+ required)
 sf plugins install sfdmu
 
-# Verify installation
+# Verify installation (should show 5.x)
 sf plugins list
 ```
+
+The `validate_setup` task checks and auto-updates SFDMU when `auto_fix=true` (the default):
+```bash
+cci task run validate_setup
+```
+
+### SFDMU Duplicate Records on Re-run
+
+If you see duplicate records after running data tasks multiple times, verify you are on
+SFDMU v5. The data plans have been migrated for v5 idempotency; v4.x may create duplicates
+due to differences in how composite `externalId` definitions are processed. See
+[Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) for details.
 
 ### Permission Set Groups stuck Outdated / Updating
 

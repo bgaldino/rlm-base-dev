@@ -10,7 +10,7 @@ Run without an org:
 
 Options:
     auto_fix                Auto-update SFDMU if outdated (default: true)
-    required_sfdmu_version  Minimum SFDMU version (default: 4.38.0)
+    required_sfdmu_version  Minimum SFDMU version (default: 5.0.0)
     fail_on_error           Raise on required check failures (default: true)
 """
 import json
@@ -28,7 +28,7 @@ except ImportError:
 MIN_PYTHON: Tuple[int, ...] = (3, 8)
 MIN_CCI: Tuple[int, ...] = (4, 0, 0)
 MIN_SF_MAJOR: int = 2
-MIN_SFDMU_DEFAULT: str = "4.38.0"
+MIN_SFDMU_DEFAULT: str = "5.0.0"
 
 # ── status tokens ────────────────────────────────────────────────────────────
 PASS = "PASS"
@@ -69,8 +69,8 @@ class ValidateSetup(BaseTask):
         "required_sfdmu_version": {
             "description": (
                 f"Minimum required SFDMU plugin version. Default: {MIN_SFDMU_DEFAULT}. "
-                "Versions below this cause #N/A source-CSV values and missing logs/ "
-                "directories during data import."
+                "SFDMU v5 is required — v4.x has been deprecated. The project's "
+                "export.json files and CSV data are formatted for v5 compatibility."
             ),
             "required": False,
         },
