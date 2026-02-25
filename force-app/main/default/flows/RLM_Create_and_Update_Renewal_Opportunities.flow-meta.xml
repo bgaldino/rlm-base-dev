@@ -338,13 +338,6 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverAssets.totalLineAmount</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>OpportunityProductsToCreate</assignToReference>
             <operator>Add</operator>
             <value>
@@ -408,13 +401,6 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>IterateOverAssets.endDate</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>opportunityProductToUpdate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverAssets.totalLineAmount</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -501,13 +487,6 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverOpportunityProducts.TotalPrice</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>OpportunityProductsWithOpportunityIdForAllProducts</assignToReference>
             <operator>Add</operator>
             <value>
@@ -578,13 +557,6 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>IterateOverOpportunityProductsToCreate.AssetId</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverOpportunityProductsToCreate.TotalPrice</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
