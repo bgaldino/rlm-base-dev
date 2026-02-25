@@ -20,9 +20,11 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
+    from cumulusci.core.exceptions import TaskOptionsError
     from cumulusci.core.tasks import BaseTask
 except ImportError:
     BaseTask = object  # type: ignore[assignment,misc]
+    TaskOptionsError = Exception  # type: ignore[assignment,misc]
 
 # ── minimum required versions ────────────────────────────────────────────────
 MIN_PYTHON: Tuple[int, ...] = (3, 8)
@@ -112,7 +114,7 @@ class ValidateSetup(BaseTask):
             failures = [r for r in results if r["status"] == FAIL]
             if failures:
                 labels = ", ".join(r["label"] for r in failures)
-                raise Exception(f"Setup validation failed for: {labels}")
+                raise TaskOptionsError(f"Setup validation failed for: {labels}")
 
     # ── individual checks ─────────────────────────────────────────────────────
 
@@ -163,10 +165,11 @@ class ValidateSetup(BaseTask):
                 ["sf", "--version"], capture_output=True, text=True, timeout=20
             )
             if result.returncode != 0:
-                return self._fail(
-                    label,
-                    "not found — install from https://developer.salesforce.com/tools/salesforcecli",
-                )
+                detail = (result.stderr or result.stdout or "").strip()
+                msg = f"command failed (exit {result.returncode})"
+                if detail:
+                    msg += f": {detail[:200]}"
+                return self._fail(label, msg)
             first_line = result.stdout.strip().split("\n")[0]
             match = re.search(r"@salesforce/cli/(\d+)\.(\d+)\.(\d+)", first_line)
             if match:

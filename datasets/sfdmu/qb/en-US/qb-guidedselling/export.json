@@ -50,7 +50,7 @@
         {
           "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcessId, OmniProcessVersionNumber, ParentElementId, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "OmniProcess.UniqueName;Name",
           "excluded": false
         },
         {
