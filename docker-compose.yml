@@ -1,0 +1,33 @@
+services:
+  cci-robot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rlm-base-cci-robot:latest
+    container_name: rlm-base-cci-robot
+    volumes:
+      # Mount your project directory
+      - .:/workspace
+      # Share CumulusCI config and orgs with host
+      - ${HOME}/.cumulusci:/root/.cumulusci
+      # Share SF CLI config with host
+      - ${HOME}/.sf:/root/.sf
+      # Share SFDX config if it exists (for backwards compatibility)
+      - ${HOME}/.sfdx:/root/.sfdx
+    working_dir: /workspace
+    environment:
+      # CumulusCI settings
+      - CUMULUSCI_DISABLE_ANALYTICS=true
+      - CUMULUSCI_KEY=${CUMULUSCI_KEY}
+      # SF CLI settings
+      - SF_AUTOUPDATE_DISABLE=true
+      - SF_DISABLE_ENCRYPTION=true
+      # Robot Framework/Selenium settings for headless mode
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROMIUM_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu
+    stdin_open: true
+    tty: true
+    # Use host network for easier Salesforce OAuth flows
+    network_mode: host
+
+# No named volumes needed - using host directory mounts for full host/container sharing

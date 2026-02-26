@@ -1,0 +1,38 @@
+# Docker Compose override for CI/CD environments
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.ci.yml run cci-robot
+#
+# This configuration is optimized for headless CI/CD pipelines where:
+# - No interactive OAuth flows are available
+# - Org credentials are provided via environment variables
+# - JWT authentication is used for DevHub and persistent orgs
+#
+# To use JWT authentication, set these environment variables:
+#   SFDX_AUTH_URL - DevHub authentication URL (from: sf org display --verbose)
+#   CUMULUSCI_ORG_<orgname> - Per-org auth URLs for persistent orgs
+#
+# Example:
+#   export SFDX_AUTH_URL="force://PlatformCLI::..."
+#   export CUMULUSCI_ORG_production="force://PlatformCLI::..."
+#   docker-compose -f docker-compose.yml -f docker-compose.ci.yml run cci-robot cci org list
+
+services:
+  cci-robot:
+    environment:
+      # Use EnvironmentProjectKeychain for CI/CD - reads org credentials from env vars
+      - CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
+
+      # DevHub authentication via SFDX Auth URL
+      # Generate this with: sf org display --verbose -o YourDevHub | grep "Sfdx Auth Url"
+      - SFDX_AUTH_URL=${SFDX_AUTH_URL:-}
+
+      # Optional: Persistent org credentials
+      # Format: CUMULUSCI_ORG_<orgname>=<sfdx_auth_url>
+      # Example: CUMULUSCI_ORG_production=force://PlatformCLI::...
+      # These can be added as needed for your CI/CD pipeline
+
+    # Optional: Remove volume mounts for fully stateless CI/CD
+    # Uncomment these to prevent any state sharing with host:
+    # volumes: []
+
+    # Optional: Override network mode if needed for CI environments
+    # network_mode: bridge
