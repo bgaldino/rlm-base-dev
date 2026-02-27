@@ -1,0 +1,2 @@
+﻿"ArePartialPeriodsAllowed","Name","ProrationPolicyType","RemainderStrategy","Errors"
+"true","Default Proration Policy","StandardTimePeriods","AddToLast","duplicate value found: Name duplicates value on record with id: 0muO50000004jhhIAA"

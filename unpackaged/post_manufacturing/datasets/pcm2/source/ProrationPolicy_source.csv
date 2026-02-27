@@ -1,0 +1,2 @@
+﻿"Id","ArePartialPeriodsAllowed","Name","ProrationPolicyType","RemainderStrategy"
+"D5RL1UFCWIUTF0Z1OL","true","Default Proration Policy","StandardTimePeriods","AddToLast"

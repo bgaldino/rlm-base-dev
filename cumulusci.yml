@@ -58,6 +58,9 @@ orgs:
     dev_enhanced:
       config_file: orgs/dev-enhanced.json
       days: 30
+    dev-mfg:
+      config_file: orgs/dev-mfg.json
+      days: 30
 
 # Project configuration settings
 # Defines the project name, package details, and source format
@@ -102,14 +105,14 @@ project:
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
-    docgen: true              # Use Document Generation
+    docgen: false              # Use Document Generation
     #psg_debug: false          # Debug Permission Set Groups
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
     constraints_data: false   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
-    sharingsettings: false    # Deploy Sharing Settings
+    sharingsettings: true    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     locale: en_US             # Default locale
     badger: true              #Badger Metadata & Dataset
@@ -475,6 +478,10 @@ project:
     q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3/en-US/q3-tax"                                                 # Q3 tax data
     q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3/en-US/q3-rating"                                    # Q3 rating data
     q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3/en-US/q3-rates"                                           # Q3 rates data
+
+# Badger MFG Datasets
+    badger_product_dataset: &badger_product_dataset "unpackaged/post_manufacturing/datasets/mfg-rca-pcm-dev"         # Badger product data
+    badger_pricing_dataset: &badger_pricing_dataset "unpackaged/post_manufacturing/datasets/mfg-rca-pricing-dev"     # Badger pricing data
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -972,6 +979,13 @@ tasks:
     options:
       path: unpackaged/post_manufacturing/3_initial_setup
 
+  deploy_full_badger_3.5:
+    description: Deploy Badger Metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/3.5_initial_setup
+
   deploy_full_badger_4:
     description: Deploy Badger Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -985,6 +999,37 @@ tasks:
     group: Badger RCA
     options:
       path: unpackaged/post_manufacturing/5_initial_setup
+
+  #Badger Omniscript Tasks
+
+  deploy_badger_omniscripts_1:
+    description: Deploy Badger Doc Gen
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_omni/omniDataTransforms
+
+  deploy_badger_omniscripts_2:
+    description: Deploy Badger Doc Gen
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_omni/omniIntegrationProcedures
+
+  deploy_badger_omniscripts_3:
+    description: Deploy Badger Doc Gen
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_omni/base_docgen_omniscript/omniScripts
+
+  deploy_badger_omniscripts_4:
+    description: Deploy Badger Doc Gen
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_omni/quote_omniscript/omniScripts
+
 
   # Test Task
   deploy_test:
@@ -1054,6 +1099,22 @@ tasks:
     group: Revenue Lifecycle Management
     description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
+
+  # Badger Load Data Tasks
+
+  insert_badger_pcm_data:
+    group: Badger RCA
+    description: Insert Badger PCM Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_product_dataset
+
+  insert_badger_pricing_data:
+    group: Badger RCA
+    description: Insert Badger Pricing Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_pricing_dataset
 
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
@@ -1641,6 +1702,30 @@ flows:
         flow: prepare_visualization
       27:
         flow: refresh_all_decision_tables
+
+# Badger Master Flow
+
+  prepare_badger_flow:
+    group: Badger RCA
+    when: project_config.project__custom__badger
+    steps:
+      1:
+        task: deploy_full_badger_1
+      2:
+        task: deploy_full_badger_2
+      3:
+        task: deploy_full_badger_3
+      4:
+        task: deploy_full_badger_3.5
+        when: project_config.project__custom__tso
+      5:
+        flow: prepare_badger_perms
+      6:
+        task: deploy_full_badger_4
+      7:
+        flow: prepare_badger_omni_docgen
+      8:
+        task: deploy_full_badger_5
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -2114,19 +2199,53 @@ flows:
     group: Badger
     steps:
       1:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      2:
         task: assign_permission_sets
-        class: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
+        #class: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
         when: project_config.project__custom__badger
         options:
           api_names: *badger_mfg_ps
-      2:
+      3:
         task: assign_permission_set_groups
         when: project_config.project__custom__badger and not project__custom__tso
         options:
           api_names: *badger_mfg_scratch_psg
-      3: 
+      4: 
         task: assign_permission_set_groups
         when: project_config.project__custom__badger and project__custom__tso
         options:
           api_names: *badger_mfg_psg
         
+
+# Badger Omniscript Flow
+
+  prepare_badger_omni_docgen:
+    group: Badger
+    steps:
+      1:
+        task: deploy_badger_omniscripts_1
+        when: project_config.project__custom__badger
+      2:
+        task: deploy_badger_omniscripts_2
+        when: project_config.project__custom__badger
+      3:
+        task: deploy_badger_omniscripts_3
+        when: project_config.project__custom__badger
+      4:
+        task: deploy_badger_omniscripts_4
+        when: project_config.project__custom__badger
+
+  # Badger Insert Data Flow
+
+  prepare_badger_data:
+    group: Badger
+    steps:
+      1:
+        task: insert_badger_pcm_data
+        when: project_config.project__custom__badger
+      2:
+        task: insert_badger_pricing_data
+        when: project_config.project__custom__badger

@@ -1,0 +1,8 @@
+﻿"Id","AdjustmentMethod","CurrencyIsoCode","Description","EffectiveFrom","EffectiveTo","IsActive","Name","ScheduleType","Pricebook2.$$Name$IsStandard","Pricebook2Id"
+"QIROP8YDJ9SHUH63JV","Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","true","Standard Attribute Based Adjustment","Attribute","Standard Price Book;true","ID0000000000000001"
+"CZEJEZLIEK5GDVSEIC","Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","true","Standard Bundle Based Adjustment","Bundle","Standard Price Book;true","ID0000000000000001"
+"BMFL0TM9WKUJPQDVEW","Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","false","Standard Price Adjustment Tier","Volume","Standard Price Book;true","ID0000000000000001"
+"KZ1CMPG9NYPNID855S","Slab","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","false","Standard Tier Based Adjustment","Volume","Standard Price Book;true","ID0000000000000001"
+"BAXDDOCHRIJQVLNYUD","Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","false","Standard Volume Based Adjustment","Volume","Standard Price Book;true","ID0000000000000001"
+"ID0000000000000002","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A"
+"ID0000000000000004","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A"

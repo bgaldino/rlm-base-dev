@@ -1,0 +1,5 @@
+﻿"Id","AssociatedProductRoleCat","MainProductRoleCat","Name"
+"LZTUEFUQTTNK0NZSSO","BundleComponent","Bundle","Bundle to Bundle Component Relationship"
+"W3YINXRUOAMR6VIXPS","ClassificationComponent","Bundle","Bundle to Product Classification Component Relationship"
+"CL9OZTCBSMBE1WLNCQ","ProductRequestComponent","ProductRequest","Product Request Relationship"
+"OPJTRHAIN6PJKFQCSH","SetComponent","Set","Set to Set Component Relationship"
