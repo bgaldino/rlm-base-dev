@@ -3,13 +3,15 @@ CumulusCI task to validate the local developer setup for rlm-base-dev.
 
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, SeleniumLibrary, webdriver-manager,
-urllib3). Optionally auto-fixes an outdated or missing SFDMU plugin.
+urllib3). Optionally auto-fixes an outdated or missing SFDMU plugin (auto_fix),
+and optionally installs/upgrades urllib3 via pipx (auto_fix_urllib3, off by default).
 
 Run without an org:
     cci task run validate_setup
 
 Options:
     auto_fix                Auto-update SFDMU if outdated (default: true)
+    auto_fix_urllib3        Auto-install/upgrade urllib3 if missing or outdated (default: false)
     required_sfdmu_version  Minimum SFDMU version (default: 5.0.0)
     fail_on_error           Raise on required check failures (default: true)
 """
@@ -58,8 +60,10 @@ class ValidateSetup(BaseTask):
     Checks each required tool and version, logs a clear pass/warn/fail result
     for each, and prints a summary. When auto_fix=true the SFDMU plugin is
     automatically installed or updated if it is absent or below the required
-    version. Robot Framework dependencies are never auto-installed (the
-    required pipx inject command is logged instead).
+    version. When auto_fix_urllib3=true, urllib3 may also be installed or
+    upgraded via pipx inject (default false). Other Robot Framework
+    dependencies are never auto-installed (the required pipx inject command
+    is logged instead).
     """
 
     task_options: Dict[str, Dict[str, Any]] = {
@@ -67,6 +71,16 @@ class ValidateSetup(BaseTask):
             "description": (
                 "Automatically install or update the SFDMU plugin when it is "
                 "missing or below required_sfdmu_version. Default: true."
+            ),
+            "required": False,
+        },
+        "auto_fix_urllib3": {
+            "description": (
+                "When true, run pipx inject to install or upgrade urllib3 in the "
+                "CumulusCI environment if it is missing or below the minimum "
+                f"version ({MIN_URLLIB3_STR}). Independent of auto_fix (which "
+                "only affects SFDMU). Default: false — urllib3 is optional and "
+                "env changes are opt-in."
             ),
             "required": False,
         },
@@ -91,6 +105,7 @@ class ValidateSetup(BaseTask):
 
     def _run_task(self) -> None:
         auto_fix = self._bool_option("auto_fix", default=True)
+        auto_fix_urllib3 = self._bool_option("auto_fix_urllib3", default=False)
         fail_on_error = self._bool_option("fail_on_error", default=True)
         required_sfdmu = self.options.get("required_sfdmu_version") or MIN_SFDMU_DEFAULT
 
@@ -107,7 +122,7 @@ class ValidateSetup(BaseTask):
             self._check_robot(),
             self._check_selenium_library(),
             self._check_webdriver_manager(),
-            self._check_urllib3(auto_fix),
+            self._check_urllib3(auto_fix_urllib3),
         ]
 
         self._log_summary(results)
@@ -302,9 +317,11 @@ class ValidateSetup(BaseTask):
                 timeout=180,
             )
             if result.returncode != 0:
-                return self._fail(
+                err = result.stderr.strip() or result.stdout.strip()
+                return self._warn(
                     label,
-                    f"auto-fix failed: {result.stderr.strip() or result.stdout.strip()}",
+                    f"auto-fix failed: {err}\n"
+                    f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
                 )
             # Re-import to read the newly installed version.
             # Pop the cached module first so import_module reads from disk, not from
@@ -317,9 +334,17 @@ class ValidateSetup(BaseTask):
             except Exception:
                 new_ver = "unknown"
             detail = f"updated {old_ver} → {new_ver}" if old_ver else f"installed {new_ver}"
+            self.logger.warning(
+                "[urllib3] Auto-fix applied; a restart of this process may be required for the "
+                "upgrade to take full effect in libraries that imported the old urllib3 version."
+            )
             return self._fixed(label, detail)
         except Exception as exc:
-            return self._fail(label, f"auto-fix failed: {exc}")
+            return self._warn(
+                label,
+                f"auto-fix failed: {exc}\n"
+                f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
+            )
 
     # ── SFDMU helpers ─────────────────────────────────────────────────────────
 
