@@ -49,9 +49,27 @@ _patch_selenium_timeout()
 def get_chrome_driver_path():
     """Return the path to the ChromeDriver executable.
 
-    Uses webdriver-manager if available; otherwise returns None so the
-    caller can fall back to the default (system PATH) ChromeDriver.
+    Prefers system ChromeDriver (/usr/bin/chromedriver) when available
+    (e.g., in CI or when chromium-driver is installed). Falls back to
+    webdriver-manager for automatic driver management, or returns None
+    to use system PATH as a last resort.
     """
+    import os
+    import shutil
+
+    # Check for system ChromeDriver first
+    system_chromedriver = "/usr/bin/chromedriver"
+    if os.path.isfile(system_chromedriver) and os.access(system_chromedriver, os.X_OK):
+        _logger.debug(f"Using system ChromeDriver: {system_chromedriver}")
+        return system_chromedriver
+
+    # Try PATH-based chromedriver
+    path_chromedriver = shutil.which("chromedriver")
+    if path_chromedriver:
+        _logger.debug(f"Using ChromeDriver from PATH: {path_chromedriver}")
+        return path_chromedriver
+
+    # Fall back to webdriver-manager
     if not _HAS_WDM:
         return None
 

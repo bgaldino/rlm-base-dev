@@ -12,7 +12,7 @@ Robot Framework tests that configure Salesforce Revenue Settings page options th
 
 ## Prerequisites
 
-Install and verify prerequisites in the **main README** only: [Installation — Document Builder automation dependencies](../../../README.md#installation) (Robot Framework, SeleniumLibrary, Chrome/ChromeDriver, Salesforce CLI, urllib3 >= 2.6.3). Do not install or verify from this folder; the main README is the single source of truth. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 >= 2.6.3 is installed and the main README [Troubleshooting](../../../README.md#troubleshooting) explains the fix.
+Install and verify prerequisites in the **main README** only: [Installation — Document Builder automation dependencies](../../../README.md#installation) (Robot Framework, SeleniumLibrary, Chrome/ChromeDriver, Salesforce CLI, urllib3 >= 2.6.3). Do not install or verify from this folder; the main README is the single source of truth. Tests run headless by default. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 >= 2.6.3 is installed and the main README [Troubleshooting](../../../README.md#troubleshooting) explains the fix.
 
 ## Running Tests
 
