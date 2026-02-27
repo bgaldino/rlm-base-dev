@@ -3,13 +3,15 @@ CumulusCI task to validate the local developer setup for rlm-base-dev.
 
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, SeleniumLibrary, webdriver-manager,
-urllib3). Optionally auto-fixes an outdated or missing SFDMU plugin.
+urllib3). Optionally auto-fixes an outdated or missing SFDMU plugin (auto_fix),
+and optionally installs/upgrades urllib3 via pipx (auto_fix_urllib3, off by default).
 
 Run without an org:
     cci task run validate_setup
 
 Options:
     auto_fix                Auto-update SFDMU if outdated (default: true)
+    auto_fix_urllib3        Auto-install/upgrade urllib3 if missing or outdated (default: false)
     required_sfdmu_version  Minimum SFDMU version (default: 5.0.0)
     fail_on_error           Raise on required check failures (default: true)
 """
@@ -31,6 +33,8 @@ MIN_PYTHON: Tuple[int, ...] = (3, 8)
 MIN_CCI: Tuple[int, ...] = (4, 0, 0)
 MIN_SF_MAJOR: int = 2
 MIN_SFDMU_DEFAULT: str = "5.0.0"
+MIN_URLLIB3: Tuple[int, ...] = (2, 6, 3)
+MIN_URLLIB3_STR: str = "2.6.3"
 
 # ── status tokens ────────────────────────────────────────────────────────────
 PASS = "PASS"
@@ -56,8 +60,10 @@ class ValidateSetup(BaseTask):
     Checks each required tool and version, logs a clear pass/warn/fail result
     for each, and prints a summary. When auto_fix=true the SFDMU plugin is
     automatically installed or updated if it is absent or below the required
-    version. Robot Framework dependencies are never auto-installed (the
-    required pipx inject command is logged instead).
+    version. When auto_fix_urllib3=true, urllib3 may also be installed or
+    upgraded via pipx inject (default false). Other Robot Framework
+    dependencies are never auto-installed (the required pipx inject command
+    is logged instead).
     """
 
     task_options: Dict[str, Dict[str, Any]] = {
@@ -65,6 +71,16 @@ class ValidateSetup(BaseTask):
             "description": (
                 "Automatically install or update the SFDMU plugin when it is "
                 "missing or below required_sfdmu_version. Default: true."
+            ),
+            "required": False,
+        },
+        "auto_fix_urllib3": {
+            "description": (
+                "When true, run pipx inject to install or upgrade urllib3 in the "
+                "CumulusCI environment if it is missing or below the minimum "
+                f"version ({MIN_URLLIB3_STR}). Independent of auto_fix (which "
+                "only affects SFDMU). Default: false — urllib3 is optional and "
+                "env changes are opt-in."
             ),
             "required": False,
         },
@@ -89,6 +105,7 @@ class ValidateSetup(BaseTask):
 
     def _run_task(self) -> None:
         auto_fix = self._bool_option("auto_fix", default=True)
+        auto_fix_urllib3 = self._bool_option("auto_fix_urllib3", default=False)
         fail_on_error = self._bool_option("fail_on_error", default=True)
         required_sfdmu = self.options.get("required_sfdmu_version") or MIN_SFDMU_DEFAULT
 
@@ -105,7 +122,7 @@ class ValidateSetup(BaseTask):
             self._check_robot(),
             self._check_selenium_library(),
             self._check_webdriver_manager(),
-            self._check_urllib3(),
+            self._check_urllib3(auto_fix_urllib3),
         ]
 
         self._log_summary(results)
@@ -261,21 +278,74 @@ class ValidateSetup(BaseTask):
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
 
-    def _check_urllib3(self) -> Dict[str, str]:
+    def _check_urllib3(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "urllib3"
         try:
             import urllib3  # noqa: PLC0415
 
             ver_str = getattr(urllib3, "__version__", "unknown")
-            if _parse_version(ver_str) >= (2, 6, 3):
+            if _parse_version(ver_str) >= MIN_URLLIB3:
                 return self._ok(label, ver_str)
+
+            if auto_fix:
+                self.logger.info(
+                    f"[urllib3] {ver_str} is below {MIN_URLLIB3_STR}. Running pipx inject --force..."
+                )
+                return self._fix_urllib3(label, old_ver=ver_str)
+
             return self._warn(
                 label,
-                f"{ver_str} is below the minimum 2.6.3 — older versions have known security vulnerabilities.\n"
-                '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
+                f"{ver_str} is below the minimum {MIN_URLLIB3_STR} — known security vulnerabilities (CVE-2026-21441).\n"
+                f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
             )
         except ImportError:
-            return self._warn(label, "not found in the CCI Python env")
+            if auto_fix:
+                self.logger.info("[urllib3] Not found in CCI env. Running pipx inject...")
+                return self._fix_urllib3(label)
+            return self._warn(
+                label,
+                "not found in the CCI Python env.\n"
+                f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
+            )
+
+    def _fix_urllib3(self, label: str, old_ver: Optional[str] = None) -> Dict[str, str]:
+        try:
+            result = subprocess.run(
+                ["pipx", "inject", "--force", "cumulusci", f"urllib3>={MIN_URLLIB3_STR}"],
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if result.returncode != 0:
+                err = result.stderr.strip() or result.stdout.strip()
+                return self._warn(
+                    label,
+                    f"auto-fix failed: {err}\n"
+                    f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
+                )
+            # Clear cached urllib3 modules so import_module reads from disk, not from
+            # the already-loaded (old) entries in sys.modules.
+            try:
+                import importlib  # noqa: PLC0415
+                for name in list(sys.modules):
+                    if name == "urllib3" or name.startswith("urllib3."):
+                        sys.modules.pop(name, None)
+                urllib3 = importlib.import_module("urllib3")
+                new_ver = getattr(urllib3, "__version__", "unknown")
+            except Exception:
+                new_ver = "unknown"
+            detail = f"updated {old_ver} → {new_ver}" if old_ver else f"installed {new_ver}"
+            self.logger.warning(
+                "[urllib3] Auto-fix applied; a restart of this process may be required for the "
+                "upgrade to take full effect in libraries that imported the old urllib3 version."
+            )
+            return self._fixed(label, detail)
+        except Exception as exc:
+            return self._warn(
+                label,
+                f"auto-fix failed: {exc}\n"
+                f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
+            )
 
     # ── SFDMU helpers ─────────────────────────────────────────────────────────
 
