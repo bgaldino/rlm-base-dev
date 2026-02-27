@@ -31,6 +31,8 @@ MIN_PYTHON: Tuple[int, ...] = (3, 8)
 MIN_CCI: Tuple[int, ...] = (4, 0, 0)
 MIN_SF_MAJOR: int = 2
 MIN_SFDMU_DEFAULT: str = "5.0.0"
+MIN_URLLIB3: Tuple[int, ...] = (2, 6, 3)
+MIN_URLLIB3_STR: str = "2.6.3"
 
 # ── status tokens ────────────────────────────────────────────────────────────
 PASS = "PASS"
@@ -263,8 +265,6 @@ class ValidateSetup(BaseTask):
 
     def _check_urllib3(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "urllib3"
-        MIN_URLLIB3 = (2, 6, 3)
-        min_str = "2.6.3"
         try:
             import urllib3  # noqa: PLC0415
 
@@ -274,14 +274,14 @@ class ValidateSetup(BaseTask):
 
             if auto_fix:
                 self.logger.info(
-                    f"[urllib3] {ver_str} is below {min_str}. Running pipx inject --force..."
+                    f"[urllib3] {ver_str} is below {MIN_URLLIB3_STR}. Running pipx inject --force..."
                 )
                 return self._fix_urllib3(label, old_ver=ver_str)
 
             return self._warn(
                 label,
-                f"{ver_str} is below the minimum {min_str} — known security vulnerabilities (CVE-2026-21441).\n"
-                '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
+                f"{ver_str} is below the minimum {MIN_URLLIB3_STR} — known security vulnerabilities (CVE-2026-21441).\n"
+                f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
             )
         except ImportError:
             if auto_fix:
@@ -290,13 +290,13 @@ class ValidateSetup(BaseTask):
             return self._warn(
                 label,
                 "not found in the CCI Python env.\n"
-                '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
+                f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
             )
 
     def _fix_urllib3(self, label: str, old_ver: Optional[str] = None) -> Dict[str, str]:
         try:
             result = subprocess.run(
-                ["pipx", "inject", "--force", "cumulusci", "urllib3>=2.6.3"],
+                ["pipx", "inject", "--force", "cumulusci", f"urllib3>={MIN_URLLIB3_STR}"],
                 capture_output=True,
                 text=True,
                 timeout=180,
@@ -311,8 +311,7 @@ class ValidateSetup(BaseTask):
             # the already-loaded (old) entry in sys.modules.
             try:
                 import importlib  # noqa: PLC0415
-                import sys as _sys  # noqa: PLC0415
-                _sys.modules.pop("urllib3", None)
+                sys.modules.pop("urllib3", None)
                 urllib3 = importlib.import_module("urllib3")
                 new_ver = getattr(urllib3, "__version__", "unknown")
             except Exception:
