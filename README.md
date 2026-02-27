@@ -39,9 +39,11 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    - Verify: `cci version`
 
 3. **SFDMU (Salesforce Data Move Utility)**
+   - **Version 5.0.0 or later required** (v4.x is no longer supported)
    - Required for data loading tasks
-   - Installation: `npm install -g sfdmu` or `sf plugins install sfdmu`
-   - Verify: `sf sfdmu --version` or `sf plugins list`
+   - Installation: `sf plugins install sfdmu`
+   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
 4. **Python** (for custom tasks)
@@ -70,20 +72,16 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
    **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
    - Python 3.8+
-   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
+   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**; install in the same env as CCI (e.g. `pip install -r robot/requirements.txt` in your venv). If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
      ```bash
-     pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
+     pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
      ```
-     `urllib3>=1.26,<2` avoids a known Selenium/urllib3 2.x issue (`Timeout value connect was <object object at ...>`). webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"` inside the venv.
-   - Chrome (or set `BROWSER=firefox`). With webdriver-manager installed, ChromeDriver is downloaded automatically when the test runs. If webdriver-manager is **not** installed, the test falls back to the system ChromeDriver on `PATH`.
+     webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install -r robot/requirements.txt` (or the packages above) inside the venv.
+   - Chrome (or set `BROWSER=firefox`). Robot tasks run headless by default. With webdriver-manager installed, ChromeDriver is downloaded automatically when the test runs. If webdriver-manager is **not** installed, the test falls back to the system ChromeDriver on `PATH`.
    - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
 
-3. **Install SFDMU:**
+3. **Install SFDMU (v5+):**
    ```bash
-   # Option 1: Via npm
-   npm install -g sfdmu
-   
-   # Option 2: Via Salesforce CLI plugin
    sf plugins install sfdmu
    ```
 
@@ -91,7 +89,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    ```bash
    sf --version
    cci version
-   sf plugins list  # Should show sfdmu if installed via plugin
+   sf plugins list  # Should show sfdmu 5.x
    ```
    **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI's environment before running any flow or test:
    ```bash
@@ -185,7 +183,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `rates` | `true` | Insert Rates |
 | `ramps` | `true` | Insert and configure ramps |
 | `clm_data` | `false` | Load Contract Lifecycle Management data |
-| `constraints_data` | `false` | Load constraint model data (CML import + activation) |
+| `constraints_data` | `true` | Load constraint model data (CML import + activation) |
 
 ### Feature Flags
 
@@ -207,7 +205,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `docgen` | `true` | Use Document Generation |
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `false` | Use Guided Selling |
-| `procedureplans` | `false` | Use Procedure Plans |
+| `procedureplans` | `true` | Use Procedure Plans |
 | `visualization` | `false` | Use Visualization components (Flow with Visuals, LWC styling) |
 
 ### Deployment Flags
@@ -218,13 +216,13 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 
 ## Custom Tasks
 
-This project includes 19 custom Python task modules in the `tasks/` directory, registered as CCI tasks in `cumulusci.yml`.
+This project includes custom Python task modules in the `tasks/` directory, each registered as one or more CCI tasks in `cumulusci.yml`.
 
 ### Data Management Tasks
 
 | Task Name | Module | Description | Documentation |
 |-----------|--------|-------------|---------------|
-| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (DRO tasks replace `__DRO_ASSIGNED_TO_USER__` dynamically) | See `cumulusci.yml` |
+| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (supports `simulation` dry-run mode, `object_sets` pass filtering, dynamic DRO user resolution) | See `cumulusci.yml` |
 | `export_cml` | `rlm_cml.py` | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
 | `import_cml` | `rlm_cml.py` | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
 | `validate_cml` | `rlm_cml.py` | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
@@ -287,7 +285,15 @@ This project includes 19 custom Python task modules in the `tasks/` directory, r
 | `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
-| `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
+| `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
+| `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
+| `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
+| `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
+| `activate_procedure_plan_version` | `rlm_create_procedure_plan_def.py` | Activate ProcedurePlanDefinitionVersion after data load (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
+| `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
+| `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
 | `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
@@ -370,7 +376,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (27 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (29 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -388,21 +394,23 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 10 | `prepare_quantumbit` | Always |
 | 11 | `prepare_product_data` | Always |
 | 12 | `prepare_pricing_data` | Always |
-| 13 | `prepare_dro` | Always |
-| 14 | `prepare_tax` | Always |
-| 15 | `prepare_billing` | Always |
-| 16 | `prepare_clm` | Always |
-| 17 | `prepare_rating` | Always |
-| 18 | `activate_and_deploy_expression_sets` | Always |
-| 19 | `prepare_tso` | Always |
-| 20 | `prepare_procedureplans` | Always |
-| 21 | `prepare_prm` | Always |
-| 22 | `prepare_agents` | Always |
-| 23 | `prepare_docgen` | Always |
+| 13 | `prepare_docgen` | Always |
+| 14 | `prepare_dro` | Always |
+| 15 | `prepare_tax` | Always |
+| 16 | `prepare_billing` | Always |
+| 17 | `prepare_clm` | Always |
+| 18 | `prepare_rating` | Always |
+| 19 | `activate_and_deploy_expression_sets` | Always |
+| 20 | `prepare_tso` | Always |
+| 21 | `prepare_procedureplans` | Always |
+| 22 | `prepare_prm` | Always |
+| 23 | `prepare_agents` | Always |
 | 24 | `prepare_constraints` | Always |
 | 25 | `prepare_guidedselling` | Always |
 | 26 | `prepare_visualization` | Always |
-| 27 | `refresh_all_decision_tables` | Always |
+| 27 | `configure_revenue_settings` | Always |
+| 28 | `reconfigure_pricing_discovery` | Always |
+| 29 | `refresh_all_decision_tables` | Always |
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
 
@@ -420,8 +428,8 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
 | `prepare_dro` | Load DRO data (dynamic user resolution) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
-| `prepare_docgen` | Create docgen library, enable Document Builder toggle, deploy metadata | `docgen` |
-| `prepare_billing` | Load billing data, activate flows/records | `billing`, `qb`, `q3`, `refresh` |
+| `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
+| `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
 | `prepare_prm` | Deploy PRM metadata, publish community, sharing rules | `prm`, `prm_exp_bundle`, `sharingsettings` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
@@ -430,24 +438,28 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
-| `prepare_procedureplans` | Deploy procedure plans metadata, assign permissions | `tso`, `procedureplans` |
-| `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, import CML models, activate | `constraints`, `constraints_data`, `qb` |
+| `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
+| `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
 | `prepare_visualization` | Deploy visualization components | `visualization` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
-### Utility Flows
+### Utility Flows and Tasks
 
-| Flow | Description |
-|------|-------------|
-| `deploy_full` | Full metadata deployment (source, pre/post bundles) |
-| `activate_and_deploy_expression_sets` | Activate expression sets then deploy them |
+| Flow/Task | Type | Description |
+|-----------|------|-------------|
+| `deploy_full` | Task | Full metadata deployment (source, pre/post bundles) |
+| `activate_and_deploy_expression_sets` | Task | Re-deploy expression sets with Draft status transformed to Active via XPath |
 
 ## Data Plans
 
 Data plans provide the reference data loaded during org setup. This project uses two mechanisms:
 
 ### SFDMU Data Plans
+
+> **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
+> and idempotency. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md)
+> for the full migration details and known limitations.
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
 
@@ -464,6 +476,12 @@ SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load
 | qb-transactionprocessingtypes | `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/` | Transaction Processing Type records | [README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) |
 | qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](datasets/sfdmu/qb/en-US/qb-rating/README.md) |
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](datasets/sfdmu/qb/en-US/qb-rates/README.md) |
+
+#### Procedure Plans Data Plan
+
+| Data Plan | Directory | Description | Documentation |
+|-----------|-----------|-------------|---------------|
+| procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API + activation) | [README](datasets/sfdmu/procedure-plans/README.md) |
 
 #### Archived Data Plans
 
@@ -502,7 +520,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | Document | Description |
 |----------|-------------|
 | [Tooling Opportunities](docs/TOOLING_OPPORTUNITIES.md) | Analysis of Spring '26 features and opportunities for new tooling tasks |
-| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU composite key analysis for data plan portability |
+| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
 | [RCA/RCB Unique ID Fields](docs/rca_rcb_unique_id_fields.md) | Unique ID field analysis for Revenue Cloud objects |
 
 ### SFDMU Data Plan READMEs
@@ -518,10 +536,11 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-transactionprocessingtypes README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) -- Transaction Processing Types
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
+- [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 
 ### Robot Framework
 
-- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Document Builder toggle automation
+- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings)
 
 ### Configuration Files
 
@@ -538,19 +557,21 @@ rlm-base-dev/
 │   ├── pre/                    # Pre-deployment metadata
 │   │   └── 5_decisiontables/   # Decision tables (active ones auto-excluded)
 │   ├── post_approvals/         # Approvals metadata
-│   ├── post_billing/           # Billing metadata
+│   ├── post_billing/           # Billing metadata (toggles, flexipages, billingContextDefinition)
+│   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)
+│   ├── post_billing_template_settings/ # Re-enable invoice toggles (template auto-creation cycle step 3)
 │   ├── post_commerce/          # Commerce metadata
 │   ├── post_constraints/       # Constraints metadata
 │   ├── post_docgen/            # Document Generation metadata
 │   ├── post_guidedselling/     # Guided Selling metadata
 │   ├── post_payments/          # Payments metadata
 │   ├── post_prm/               # Partner Relationship Management metadata
-│   ├── post_procedureplans/    # Procedure Plans metadata
+│   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings (skipOrgSttPricing)
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
 │   ├── post_utils/             # Utility metadata
 │   └── post_visualization/     # Visualization metadata
-├── tasks/                      # Custom CumulusCI tasks (19 Python modules)
+├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
 │   ├── rlm_manage_decision_tables.py
@@ -560,6 +581,10 @@ rlm-base-dev/
 │   ├── rlm_context_service.py
 │   ├── rlm_extend_stdctx.py
 │   ├── rlm_enable_document_builder_toggle.py
+│   ├── rlm_enable_constraints_settings.py
+│   ├── rlm_configure_revenue_settings.py
+│   ├── rlm_reconfigure_expression_set.py
+│   ├── rlm_create_procedure_plan_def.py
 │   ├── rlm_refresh_decision_table.py
 │   ├── rlm_sync_pricing_data.py
 │   ├── rlm_repair_pricing_schedules.py
@@ -573,7 +598,7 @@ rlm-base-dev/
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/
 │       ├── resources/          # Keywords, WebDriverManager helper
-│       ├── tests/setup/        # Document Builder toggle automation
+│       ├── tests/setup/        # Setup page automation (Document Builder, Constraints, Revenue Settings)
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
@@ -587,12 +612,18 @@ rlm-base-dev/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
 │   │   │   └── qb-rates/
+│   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
-│   └── constraints/            # CML constraint model data plans
-│       ├── qb/
-│       │   ├── QuantumBitComplete/
-│       │   └── Server2/
-│       └── README.md           # Constraints utility guide
+│   ├── constraints/            # CML constraint model data plans
+│   │   ├── qb/
+│   │   │   ├── QuantumBitComplete/
+│   │   │   └── Server2/
+│   │   └── README.md           # Constraints utility guide
+│   └── context_plans/          # Context definition update plans (JSON manifests)
+│       ├── ConstraintEngineNodeStatus/  # Adds ConstraintEngineNodeStatus to SalesTransaction context
+│       │   ├── manifest.json
+│       │   └── contexts/
+│       └── archive/            # Archived/previous context plans
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
@@ -670,6 +701,14 @@ cci task run insert_quantumbit_product_image_data
 cci task run insert_billing_data
 ```
 
+The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properly configure ID-based fields and trigger default template auto-creation:
+
+1. **Step 6** (`deploy_post_billing`): Enable billing toggles (`enableInvoiceEmailDelivery`, `enableInvoicePdfGeneration` = `true`) and set `billingContextDefinition`
+2. **Step 7** (`deploy_billing_id_settings`): Set context mapping, DPE definition names, and record IDs via XPath transforms; disable invoice toggles (`false`)
+3. **Step 8** (`deploy_billing_template_settings`): Re-enable invoice toggles (`true`) to trigger Salesforce auto-creation of default invoice preview and document templates
+
+The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 6 (before step 7) because `billingContextSourceMapping` requires it to already be persisted.
+
 DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
 
 ### Extract Rating Data
@@ -706,19 +745,19 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
    ```
 2. Install them into CumulusCI's environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
    ```bash
-   pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=1.26,<2"
+   pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
    ```
 3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — "Document Builder (Robot) env only"): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This comes from a Selenium/urllib3 2.x compatibility issue. Pin urllib3 to 1.x in CCI's environment:
+This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. The project's `WebDriverManager.py` patches `RemoteConnection._timeout` at import time to resolve this automatically. If you still encounter it, ensure your Robot dependencies are up to date:
 
 ```bash
-pipx inject cumulusci "urllib3>=1.26,<2" --force
+pipx inject cumulusci -r robot/requirements.txt --force
 ```
 
-Use `--force` if pipx says urllib3 is already injected. Then re-run the Document Builder task or flow.
+Use `--force` to upgrade existing packages. CumulusCI currently pins `selenium<4`, so the automatic patch in `WebDriverManager.py` is required for urllib3 2.x compatibility. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 
@@ -731,17 +770,27 @@ pipx install cumulusci
 cci version
 ```
 
-### SFDMU Not Found
+### SFDMU Not Found or Outdated
 
 ```bash
-# Install SFDMU
-npm install -g sfdmu
-# OR
+# Install or update SFDMU (v5+ required)
 sf plugins install sfdmu
 
-# Verify installation
+# Verify installation (should show 5.x)
 sf plugins list
 ```
+
+The `validate_setup` task checks and auto-updates SFDMU when `auto_fix=true` (the default):
+```bash
+cci task run validate_setup
+```
+
+### SFDMU Duplicate Records on Re-run
+
+If you see duplicate records after running data tasks multiple times, verify you are on
+SFDMU v5. The data plans have been migrated for v5 idempotency; v4.x may create duplicates
+due to differences in how composite `externalId` definitions are processed. See
+[Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) for details.
 
 ### Permission Set Groups stuck Outdated / Updating
 

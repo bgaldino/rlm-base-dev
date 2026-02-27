@@ -235,12 +235,13 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 |------|------|-----------|---------|
 | 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `qb` | Load TransactionProcessingType records |
 | 2 | `deploy_post_constraints` | `constraints` | Deploy constraint-related metadata |
-| 3 | `assign_permission_sets` | `tso` + `procedureplans` | Assign constraint permission sets |
+| 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
-| 5 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |
-| 6 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model |
-| 7 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
-| 8 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1 and Server2_V1 |
+| 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle (Robot Framework) |
+| 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |
+| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model |
+| 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
+| 9 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1 and Server2_V1 |
 
 ### Feature Flags
 

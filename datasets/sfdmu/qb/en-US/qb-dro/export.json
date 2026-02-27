@@ -13,7 +13,7 @@
         {
           "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceClassIdentifier, SourceIdentifier FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
           "operation": "Upsert",
-          "externalId": "Name;SourceProduct.StockKeepingUnit;DestinationProduct.StockKeepingUnit",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -32,7 +32,7 @@
           "query": "SELECT SourceAttributeDefinitionId, DestinationAttributeDefinitionId, CalculationMethod, DecompositionRuleId, DestinationApiName, DestinationAttributeIdentifier, DestinationContextTag, DestinationType, ListMappingGroupId, Name, Id, RuleEnforcement, SourceApiName, SourceAttributeIdentifier, SourceContextTag, SourceType FROM ProductDecompEnrichmentRule",
           "operation": "Upsert",
           "externalId": "Name",
-          "excluded": false
+          "excluded": true
         },
         {
           "query": "SELECT Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
@@ -43,19 +43,19 @@
         {
           "query": "SELECT AssignedToId, CustomBaseExecutionDate, CustomFulfillmentScope, DelayUnit, DelayOf, ExecuteOn, FlowDefinitionName, ForcePlanFreezeDuringExecution, StepDefinitionGroupId, AmendGroupId, CancelledGroupId, IntegrationDefinitionNameId, Id, Name, OmniscriptName, PointOfNoReturn, ResumeOnRuleId, Scope, IsSkipBranch, TaskAllocationType, StepType, UsageType FROM FulfillmentStepDefinition",
           "operation": "Upsert",
-          "externalId": "Name;StepDefinitionGroup.Name",
+          "externalId": "Name",
           "excluded": false
         },
         {
           "query": "SELECT DependencyScope, IsCompensateInReverse, FulfillmentStepDefinitionId, DependsOnStepDefinitionId, Id, Name, PropagateStateToDependentStep FROM FulfillmentStepDependencyDef",
           "operation": "Upsert",
-          "externalId": "Name;DependsOnStepDefinition.Name;FulfillmentStepDefinition.Name",
+          "externalId": "Name",
           "excluded": false
         },
         {
           "query": "SELECT Action, FulfillmentProcessId, FulfillmentStepDefnGroupId, ProductClassificationId, Name, Id, ProductId, SourceClassIdentifier, SourceIdentifier, Type FROM ProductFulfillmentScenario",
           "operation": "Upsert",
-          "externalId": "Name;Product.StockKeepingUnit",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -68,6 +68,7 @@
           "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, Name, ShowOrder FROM FulfillmentWorkspaceItem",
           "operation": "Upsert",
           "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name",
+          "deleteOldData": true,
           "excluded": false
         },
         {

@@ -1,52 +1,52 @@
-$$Name$LegalEntity.Name,AccountingCode,AccountingName,AccountingType,CurrencyIsoCode,Description,FinancialStatement,LegalEntity.Name,Name,Type
-1100 Accounts Receivable – Trade;Default Legal Entity - US,1100,Accounts Receivable – Trade,,USD,,,Default Legal Entity - US,1100 Accounts Receivable – Trade,Asset
-1110 Accounts Receivable – Unbilled;Default Legal Entity - US,1110,Accounts Receivable – Unbilled,,USD,,,Default Legal Entity - US,1110 Accounts Receivable – Unbilled,Asset
-1120 Accounts Receivable – Retainage;Default Legal Entity - US,1120,Accounts Receivable – Retainage,,USD,,,Default Legal Entity - US,1120 Accounts Receivable – Retainage,Asset
-1130 Allowance for Doubtful Accounts;Default Legal Entity - US,1130,Allowance for Doubtful Accounts,,USD,Allowance for Doubtful Accounts (contra-asset),,Default Legal Entity - US,1130 Allowance for Doubtful Accounts,Asset
-4100 Product Revenue (Software Licenses);Default Legal Entity - US,4100,Product Revenue (Software Licenses),,USD,,,Default Legal Entity - US,4100 Product Revenue (Software Licenses),Revenue
-1010 Bank – Operating Account;Default Legal Entity - US,1010,Bank – Operating Account,,USD,,,Default Legal Entity - US,1010 Bank – Operating Account,Asset
-1140 Accounts Receivable – Related Parties;Default Legal Entity - US,1140,Accounts Receivable – Related Parties,,USD,Accounts Receivable – Related Parties / Intercompany,,Default Legal Entity - US,1140 Accounts Receivable – Related Parties,Asset
-1150 Notes Receivable – Current;Default Legal Entity - US,1150,Notes Receivable – Current,,USD,,,Default Legal Entity - US,1150 Notes Receivable – Current,Asset
-1160 Employee & Other Receivables;Default Legal Entity - US,1160,Employee & Other Receivables,,USD,,,Default Legal Entity - US,1160 Employee & Other Receivables,Asset
-1170 Credit Card Receivable;Default Legal Entity - US,1170,Credit Card Receivable,,USD,Credit Card Receivable / Merchant Clearing,,Default Legal Entity - US,1170 Credit Card Receivable,Asset
-1180 Sales Tax Receivable;Default Legal Entity - US,1180,Sales Tax Receivable,,USD,,,Default Legal Entity - US,1180 Sales Tax Receivable,Asset
-1190 Other Accounts Receivable;Default Legal Entity - US,1190,Other Accounts Receivable,,USD,,,Default Legal Entity - US,1190 Other Accounts Receivable,Asset
-8400 Write-Offs – Small Balance/Uncollectible;Default Legal Entity - US,8400,Write-Offs – Small Balance/Uncollectible,,USD,,,Default Legal Entity - US,8400 Write-Offs – Small Balance/Uncollectible,Expense
-4200 Services Revenue (Implementation);Default Legal Entity - US,4200,Services Revenue (Implementation),,USD,,,Default Legal Entity - US,4200 Services Revenue (Implementation),Revenue
-4300 Subscription / Recurring Revenue (SaaS);Default Legal Entity - US,4300,Subscription / Recurring Revenue (SaaS),,USD,,,Default Legal Entity - US,4300 Subscription / Recurring Revenue (SaaS),Revenue
-"4400 Other Revenue (Training, Misc.);Default Legal Entity - US",4400,"Other Revenue (Training, Misc.)",,USD,,,Default Legal Entity - US,"4400 Other Revenue (Training, Misc.)",Revenue
-8100 Bad Debt Expense;Default Legal Entity - US,8100,Bad Debt Expense,,USD,,,Default Legal Entity - US,8100 Bad Debt Expense,Expense
-8200 Discounts Allowed (contra-revenue);Default Legal Entity - US,8200,Discounts Allowed (contra-revenue),,USD,,,Default Legal Entity - US,8200 Discounts Allowed (contra-revenue),Expense
-8300 Sales Returns & Allowances;Default Legal Entity - US,8300,Sales Returns & Allowances,,USD,,,Default Legal Entity - US,8300 Sales Returns & Allowances,Expense
-1000 Cash & Cash Equivalents;Default Legal Entity - US,1000,Cash & Cash Equivalents,,USD,,,Default Legal Entity - US,1000 Cash & Cash Equivalents,Asset
-5500 Travel & Entertainment;Default Legal Entity - US,5500,Travel & Entertainment,,USD,,,Default Legal Entity - US,5500 Travel & Entertainment,Expense
-1200 Prepaid Expenses;Default Legal Entity - US,1200,Prepaid Expenses,,USD,,,Default Legal Entity - US,1200 Prepaid Expenses,Asset
-1300 Fixed Assets – Equipment;Default Legal Entity - US,1300,Fixed Assets – Equipment,,USD,,,Default Legal Entity - US,1300 Fixed Assets – Equipment,Asset
-1310 Accumulated Depreciation (contra-asset);Default Legal Entity - US,1310,Accumulated Depreciation (contra-asset),,USD,Accumulated Depreciation (contra-asset),,Default Legal Entity - US,1310 Accumulated Depreciation (contra-asset),Asset
-4500 Interest Income;Default Legal Entity - US,4500,Interest Income,,USD,,,Default Legal Entity - US,4500 Interest Income,Revenue
-2000 Accounts Payable – Trade;Default Legal Entity - US,2000,Accounts Payable – Trade,,USD,,,Default Legal Entity - US,2000 Accounts Payable – Trade,Liability
-2100 Accrued Expenses;Default Legal Entity - US,2100,Accrued Expenses,,USD,,,Default Legal Entity - US,2100 Accrued Expenses,Liability
-2200 Deferred Revenue – Subscriptions;Default Legal Entity - US,2200,Deferred Revenue – Subscriptions,,USD,,,Default Legal Entity - US,2200 Deferred Revenue – Subscriptions,Liability
-2210 Deferred Revenue – Services;Default Legal Entity - US,2210,Deferred Revenue – Services,,USD,,,Default Legal Entity - US,2210 Deferred Revenue – Services,Liability
-2300 Payroll Liabilities;Default Legal Entity - US,2300,Payroll Liabilities,,USD,,,Default Legal Entity - US,2300 Payroll Liabilities,Liability
-2400 Sales Tax Payable;Default Legal Entity - US,2400,Sales Tax Payable,,USD,,,Default Legal Entity - US,2400 Sales Tax Payable,Liability
-2500 Other Current Liabilities;Default Legal Entity - US,2500,Other Current Liabilities,,USD,,,Default Legal Entity - US,2500 Other Current Liabilities,Liability
-3000 Common Stock;Default Legal Entity - US,3000,Common Stock,,USD,,,Default Legal Entity - US,3000 Common Stock,Equity
-3100 Additional Paid-In Capital;Default Legal Entity - US,3100,Additional Paid-In Capital,,USD,,,Default Legal Entity - US,3100 Additional Paid-In Capital,Equity
-3200 Retained Earnings;Default Legal Entity - US,3200,Retained Earnings,,USD,,,Default Legal Entity - US,3200 Retained Earnings,Equity
-3300 Owner’s Draw / Distributions;Default Legal Entity - US,3300,Owner’s Draw / Distributions,,USD,,,Default Legal Entity - US,3300 Owner’s Draw / Distributions,Equity
-5000 Cost of Goods Sold (COGS);Default Legal Entity - US,5000,Cost of Goods Sold (COGS),,USD,Cost of Goods Sold (COGS – Hosting & Infrastructure),,Default Legal Entity - US,5000 Cost of Goods Sold (COGS),Expense
-5100 Salaries & Wages;Default Legal Entity - US,5100,Salaries & Wages,,USD,,,Default Legal Entity - US,5100 Salaries & Wages,Expense
-5110 Payroll Taxes;Default Legal Entity - US,5110,Payroll Taxes,,USD,,,Default Legal Entity - US,5110 Payroll Taxes,Expense
-5200 Employee Benefits;Default Legal Entity - US,5200,Employee Benefits,,USD,,,Default Legal Entity - US,5200 Employee Benefits,Expense
-5300 Rent & Office Expenses;Default Legal Entity - US,5300,Rent & Office Expenses,,USD,,,Default Legal Entity - US,5300 Rent & Office Expenses,Expense
-5400 Marketing & Advertising;Default Legal Entity - US,5400,Marketing & Advertising,,USD,,,Default Legal Entity - US,5400 Marketing & Advertising,Expense
-5600 Professional Services;Default Legal Entity - US,5600,Professional Services,,USD,"Professional Services (Legal, Audit, Consulting)",,Default Legal Entity - US,5600 Professional Services,Expense
-5700 Software & Subscriptions;Default Legal Entity - US,5700,Software & Subscriptions,,USD,,,Default Legal Entity - US,5700 Software & Subscriptions,Expense
-5800 Depreciation Expense;Default Legal Entity - US,5800,Depreciation Expense,,USD,,,Default Legal Entity - US,5800 Depreciation Expense,Expense
-4600 Unrealized FX Gain;Default Legal Entity - US,4600,Unrealized FX Gain,,USD,,,Default Legal Entity - US,4600 Unrealized FX Gain,Revenue
-4610 Realized FX Gain;Default Legal Entity - US,4610,Realized FX Gain,,USD,,,Default Legal Entity - US,4610 Realized FX Gain,Revenue
-8500 Unrealized FX Loss;Default Legal Entity - US,8500,Unrealized FX Loss,,USD,,,Default Legal Entity - US,8500 Unrealized FX Loss,Expense
-8510 Realized FX Loss;Default Legal Entity - US,8510,Realized FX Loss,,USD,,,Default Legal Entity - US,8510 Realized FX Loss,Expense
-4240 Intercompany Revenue;Default Legal Entity - US,4240,Intercompany Revenue,,USD,,,Default Legal Entity - US,4240 Intercompany Revenue,Revenue
-1240 Accounts Receivable – Intercompany;Default Legal Entity - US,1240,Accounts Receivable – Intercompany,,USD,,,Default Legal Entity - US,1240 Accounts Receivable – Intercompany,Asset
+Name,AccountingCode,AccountingName,AccountingType,CurrencyIsoCode,Description,FinancialStatement,LegalEntity.Name,Type
+1100 Accounts Receivable – Trade,1100,Accounts Receivable – Trade,,USD,,,Default Legal Entity - US,Asset
+1110 Accounts Receivable – Unbilled,1110,Accounts Receivable – Unbilled,,USD,,,Default Legal Entity - US,Asset
+1120 Accounts Receivable – Retainage,1120,Accounts Receivable – Retainage,,USD,,,Default Legal Entity - US,Asset
+1130 Allowance for Doubtful Accounts,1130,Allowance for Doubtful Accounts,,USD,Allowance for Doubtful Accounts (contra-asset),,Default Legal Entity - US,Asset
+4100 Product Revenue (Software Licenses),4100,Product Revenue (Software Licenses),,USD,,,Default Legal Entity - US,Revenue
+1010 Bank – Operating Account,1010,Bank – Operating Account,,USD,,,Default Legal Entity - US,Asset
+1140 Accounts Receivable – Related Parties,1140,Accounts Receivable – Related Parties,,USD,Accounts Receivable – Related Parties / Intercompany,,Default Legal Entity - US,Asset
+1150 Notes Receivable – Current,1150,Notes Receivable – Current,,USD,,,Default Legal Entity - US,Asset
+1160 Employee & Other Receivables,1160,Employee & Other Receivables,,USD,,,Default Legal Entity - US,Asset
+1170 Credit Card Receivable,1170,Credit Card Receivable,,USD,Credit Card Receivable / Merchant Clearing,,Default Legal Entity - US,Asset
+1180 Sales Tax Receivable,1180,Sales Tax Receivable,,USD,,,Default Legal Entity - US,Asset
+1190 Other Accounts Receivable,1190,Other Accounts Receivable,,USD,,,Default Legal Entity - US,Asset
+8400 Write-Offs – Small Balance/Uncollectible,8400,Write-Offs – Small Balance/Uncollectible,,USD,,,Default Legal Entity - US,Expense
+4200 Services Revenue (Implementation),4200,Services Revenue (Implementation),,USD,,,Default Legal Entity - US,Revenue
+4300 Subscription / Recurring Revenue (SaaS),4300,Subscription / Recurring Revenue (SaaS),,USD,,,Default Legal Entity - US,Revenue
+"4400 Other Revenue (Training, Misc.)",4400,"Other Revenue (Training, Misc.)",,USD,,,Default Legal Entity - US,Revenue
+8100 Bad Debt Expense,8100,Bad Debt Expense,,USD,,,Default Legal Entity - US,Expense
+8200 Discounts Allowed (contra-revenue),8200,Discounts Allowed (contra-revenue),,USD,,,Default Legal Entity - US,Expense
+8300 Sales Returns & Allowances,8300,Sales Returns & Allowances,,USD,,,Default Legal Entity - US,Expense
+1000 Cash & Cash Equivalents,1000,Cash & Cash Equivalents,,USD,,,Default Legal Entity - US,Asset
+5500 Travel & Entertainment,5500,Travel & Entertainment,,USD,,,Default Legal Entity - US,Expense
+1200 Prepaid Expenses,1200,Prepaid Expenses,,USD,,,Default Legal Entity - US,Asset
+1300 Fixed Assets – Equipment,1300,Fixed Assets – Equipment,,USD,,,Default Legal Entity - US,Asset
+1310 Accumulated Depreciation (contra-asset),1310,Accumulated Depreciation (contra-asset),,USD,Accumulated Depreciation (contra-asset),,Default Legal Entity - US,Asset
+4500 Interest Income,4500,Interest Income,,USD,,,Default Legal Entity - US,Revenue
+2000 Accounts Payable – Trade,2000,Accounts Payable – Trade,,USD,,,Default Legal Entity - US,Liability
+2100 Accrued Expenses,2100,Accrued Expenses,,USD,,,Default Legal Entity - US,Liability
+2200 Deferred Revenue – Subscriptions,2200,Deferred Revenue – Subscriptions,,USD,,,Default Legal Entity - US,Liability
+2210 Deferred Revenue – Services,2210,Deferred Revenue – Services,,USD,,,Default Legal Entity - US,Liability
+2300 Payroll Liabilities,2300,Payroll Liabilities,,USD,,,Default Legal Entity - US,Liability
+2400 Sales Tax Payable,2400,Sales Tax Payable,,USD,,,Default Legal Entity - US,Liability
+2500 Other Current Liabilities,2500,Other Current Liabilities,,USD,,,Default Legal Entity - US,Liability
+3000 Common Stock,3000,Common Stock,,USD,,,Default Legal Entity - US,Equity
+3100 Additional Paid-In Capital,3100,Additional Paid-In Capital,,USD,,,Default Legal Entity - US,Equity
+3200 Retained Earnings,3200,Retained Earnings,,USD,,,Default Legal Entity - US,Equity
+3300 Owner's Draw / Distributions,3300,Owner's Draw / Distributions,,USD,,,Default Legal Entity - US,Equity
+5000 Cost of Goods Sold (COGS),5000,Cost of Goods Sold (COGS),,USD,Cost of Goods Sold (COGS – Hosting & Infrastructure),,Default Legal Entity - US,Expense
+5100 Salaries & Wages,5100,Salaries & Wages,,USD,,,Default Legal Entity - US,Expense
+5110 Payroll Taxes,5110,Payroll Taxes,,USD,,,Default Legal Entity - US,Expense
+5200 Employee Benefits,5200,Employee Benefits,,USD,,,Default Legal Entity - US,Expense
+5300 Rent & Office Expenses,5300,Rent & Office Expenses,,USD,,,Default Legal Entity - US,Expense
+5400 Marketing & Advertising,5400,Marketing & Advertising,,USD,,,Default Legal Entity - US,Expense
+5600 Professional Services,5600,Professional Services,,USD,"Professional Services (Legal, Audit, Consulting)",,Default Legal Entity - US,Expense
+5700 Software & Subscriptions,5700,Software & Subscriptions,,USD,,,Default Legal Entity - US,Expense
+5800 Depreciation Expense,5800,Depreciation Expense,,USD,,,Default Legal Entity - US,Expense
+4600 Unrealized FX Gain,4600,Unrealized FX Gain,,USD,,,Default Legal Entity - US,Revenue
+4610 Realized FX Gain,4610,Realized FX Gain,,USD,,,Default Legal Entity - US,Revenue
+8500 Unrealized FX Loss,8500,Unrealized FX Loss,,USD,,,Default Legal Entity - US,Expense
+8510 Realized FX Loss,8510,Realized FX Loss,,USD,,,Default Legal Entity - US,Expense
+4240 Intercompany Revenue,4240,Intercompany Revenue,,USD,,,Default Legal Entity - US,Revenue
+1240 Accounts Receivable – Intercompany,1240,Accounts Receivable – Intercompany,,USD,,,Default Legal Entity - US,Asset

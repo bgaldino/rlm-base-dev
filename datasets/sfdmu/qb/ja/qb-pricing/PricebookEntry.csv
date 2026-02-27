@@ -1,229 +1,229 @@
-$$Name$Pricebook2.Name$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
-追加 API;Standard Price Book;QB-API;エバーグリーン（月間）;USD,USD,true,false,追加 API,Standard Price Book;true,QB-API,エバーグリーン（月間）;Evergreen,2000
-追加 API;Standard Price Book;QB-API;期間ベース（年間）;USD,USD,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（年間）;TermDefined,15000
-追加 API;Standard Price Book;QB-API;期間ベース（月間）;USD,USD,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（月間）;TermDefined,1500
-追加 API;Standard Price Book;QB-API;エバーグリーン（月間）;JPY,JPY,true,false,追加 API,Standard Price Book;true,QB-API,エバーグリーン（月間）;Evergreen,300000
-追加 API;Standard Price Book;QB-API;期間ベース（年間）;JPY,JPY,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（年間）;TermDefined,2250000
-追加 API;Standard Price Book;QB-API;期間ベース（月間）;JPY,JPY,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（月間）;TermDefined,225000
-追加 API フレックス (100M);Standard Price Book;QB-API-FLEX;期間ベース（年間）;USD,USD,true,false,追加 API フレックス (100M),Standard Price Book;true,QB-API-FLEX,期間ベース（年間）;TermDefined,450
-追加 API フレックス (100M);Standard Price Book;QB-API-FLEX;期間ベース（年間）;JPY,JPY,true,false,追加 API フレックス (100M),Standard Price Book;true,QB-API-FLEX,期間ベース（年間）;TermDefined,67500
-追加 API 政府向け;Standard Price Book;QB-API-GOVT;期間ベース（年間）;USD,USD,true,false,追加 API 政府向け,Standard Price Book;true,QB-API-GOVT,期間ベース（年間）;TermDefined,1450
-追加 API 政府向け;Standard Price Book;QB-API-GOVT;期間ベース（年間）;JPY,JPY,true,false,追加 API 政府向け,Standard Price Book;true,QB-API-GOVT,期間ベース（年間）;TermDefined,217500
-QB API管理ソリューション;Standard Price Book;QB-API-MGMT;エバーグリーン（月間）;USD,USD,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,エバーグリーン（月間）;Evergreen,1000
-QB API管理ソリューション;Standard Price Book;QB-API-MGMT;期間ベース（年間）;USD,USD,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（年間）;TermDefined,12000
-QB API管理ソリューション;Standard Price Book;QB-API-MGMT;期間ベース（月間）;USD,USD,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（月間）;TermDefined,1000
-QB API管理ソリューション;Standard Price Book;QB-API-MGMT;エバーグリーン（月間）;JPY,JPY,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,エバーグリーン（月間）;Evergreen,150000
-QB API管理ソリューション;Standard Price Book;QB-API-MGMT;期間ベース（年間）;JPY,JPY,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（年間）;TermDefined,1800000
-QB API管理ソリューション;Standard Price Book;QB-API-MGMT;期間ベース（月間）;JPY,JPY,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（月間）;TermDefined,150000
-追加 API 検証用;Standard Price Book;QB-API-PREP;期間ベース（年間）;USD,USD,true,false,追加 API 検証用,Standard Price Book;true,QB-API-PREP,期間ベース（年間）;TermDefined,3240
-追加 API 検証用;Standard Price Book;QB-API-PREP;期間ベース（年間）;JPY,JPY,true,false,追加 API 検証用,Standard Price Book;true,QB-API-PREP,期間ベース（年間）;TermDefined,486000
-追加 API 本番用;Standard Price Book;QB-API-PROD;期間ベース（年間）;USD,USD,true,false,追加 API 本番用,Standard Price Book;true,QB-API-PROD,期間ベース（年間）;TermDefined,3240
-追加 API 本番用;Standard Price Book;QB-API-PROD;期間ベース（年間）;JPY,JPY,true,false,追加 API 本番用,Standard Price Book;true,QB-API-PROD,期間ベース（年間）;TermDefined,486000
-API アクセスリクエスト (AEH);Standard Price Book;QB-API-REQT;エバーグリーン（月間）;USD,USD,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,エバーグリーン（月間）;Evergreen,5
-API アクセスリクエスト (AEH);Standard Price Book;QB-API-REQT;期間ベース（年間）;USD,USD,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（年間）;TermDefined,45
-API アクセスリクエスト (AEH);Standard Price Book;QB-API-REQT;期間ベース（月間）;USD,USD,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（月間）;TermDefined,5
-API アクセスリクエスト (AEH);Standard Price Book;QB-API-REQT;エバーグリーン（月間）;JPY,JPY,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,エバーグリーン（月間）;Evergreen,750
-API アクセスリクエスト (AEH);Standard Price Book;QB-API-REQT;期間ベース（年間）;JPY,JPY,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（年間）;TermDefined,6750
-API アクセスリクエスト (AEH);Standard Price Book;QB-API-REQT;期間ベース（月間）;JPY,JPY,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（月間）;TermDefined,750
-追加オートメーション QB クレジット;Standard Price Book;QB-AUT-CRED;エバーグリーン（月間）;USD,USD,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,エバーグリーン（月間）;Evergreen,2.5
-追加オートメーション QB クレジット;Standard Price Book;QB-AUT-CRED;期間ベース（年間）;USD,USD,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（年間）;TermDefined,25
-追加オートメーション QB クレジット;Standard Price Book;QB-AUT-CRED;期間ベース（月間）;USD,USD,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（月間）;TermDefined,2
-追加オートメーション QB クレジット;Standard Price Book;QB-AUT-CRED;エバーグリーン（月間）;JPY,JPY,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,エバーグリーン（月間）;Evergreen,375
-追加オートメーション QB クレジット;Standard Price Book;QB-AUT-CRED;期間ベース（年間）;JPY,JPY,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（年間）;TermDefined,3750
-追加オートメーション QB クレジット;Standard Price Book;QB-AUT-CRED;期間ベース（月間）;JPY,JPY,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（月間）;TermDefined,300
-PowerSwerve R750 ラックサーバー;Standard Price Book;QB-BDL-R750;１回限り;USD,USD,true,false,PowerSwerve R750 ラックサーバー,Standard Price Book;true,QB-BDL-R750,１回限り;OneTime,3899
-PowerSwerve R750 ラックサーバー;Standard Price Book;QB-BDL-R750;１回限り;JPY,JPY,true,false,PowerSwerve R750 ラックサーバー,Standard Price Book;true,QB-BDL-R750,１回限り;OneTime,584850
-QuantumBit サービスプロジェクト;Standard Price Book;QB-BDL-SRVC;１回限り;USD,USD,true,false,QuantumBit サービスプロジェクト,Standard Price Book;true,QB-BDL-SRVC,１回限り;OneTime,0
-QuantumBit サービスプロジェクト;Standard Price Book;QB-BDL-SRVC;１回限り;JPY,JPY,true,false,QuantumBit サービスプロジェクト,Standard Price Book;true,QB-BDL-SRVC,１回限り;OneTime,0
-QuantumBit スターター;Standard Price Book;QB-BDL-STND;１回限り;USD,USD,true,false,QuantumBit スターター,Standard Price Book;true,QB-BDL-STND,１回限り;OneTime,0
-QuantumBit スターター;Standard Price Book;QB-BDL-STND;１回限り;JPY,JPY,true,false,QuantumBit スターター,Standard Price Book;true,QB-BDL-STND,１回限り;OneTime,0
-Intel X710 デュアルポート 10Gb SFP;Standard Price Book;QB-BET X710SFP;１回限り;USD,USD,true,false,Intel X710 デュアルポート 10Gb SFP,Standard Price Book;true,QB-BET X710SFP,１回限り;OneTime,1599
-Intel X710 デュアルポート 10Gb SFP;Standard Price Book;QB-BET X710SFP;１回限り;JPY,JPY,true,false,Intel X710 デュアルポート 10Gb SFP,Standard Price Book;true,QB-BET X710SFP,１回限り;OneTime,239850
-QB-CacheBoost 150;Standard Price Book;QB-CBOOST-150;１回限り;USD,USD,true,false,QB-CacheBoost 150,Standard Price Book;true,QB-CBOOST-150,１回限り;OneTime,389
-QB-CacheBoost 150;Standard Price Book;QB-CBOOST-150;１回限り;JPY,JPY,true,false,QB-CacheBoost 150,Standard Price Book;true,QB-CBOOST-150,１回限り;OneTime,58350
-設定済み電源ケーブル;Standard Price Book;QB-CMPC-5882;１回限り;USD,USD,true,false,設定済み電源ケーブル,Standard Price Book;true,QB-CMPC-5882,１回限り;OneTime,249
-設定済み電源ケーブル;Standard Price Book;QB-CMPC-5882;１回限り;JPY,JPY,true,false,設定済み電源ケーブル,Standard Price Book;true,QB-CMPC-5882,１回限り;OneTime,37350
-C13-C14 電源ケーブル 3 フィート;Standard Price Book;QB-CMPC-5887;１回限り;USD,USD,true,false,C13-C14 電源ケーブル 3 フィート,Standard Price Book;true,QB-CMPC-5887,１回限り;OneTime,250
-C13-C14 電源ケーブル 3 フィート;Standard Price Book;QB-CMPC-5887;１回限り;JPY,JPY,true,false,C13-C14 電源ケーブル 3 フィート,Standard Price Book;true,QB-CMPC-5887,１回限り;OneTime,37500
-QuantumBit データベース（トークンコミット - Each）;Standard Price Book;QB-CMT-TKN-EACH;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンコミット - Each）,Standard Price Book;true,QB-CMT-TKN-EACH,期間ベース（年間）;TermDefined,1000
-QuantumBit データベース（トークンコミット - Each）;Standard Price Book;QB-CMT-TKN-EACH;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンコミット - Each）,Standard Price Book;true,QB-CMT-TKN-EACH,期間ベース（年間）;TermDefined,150000
-QuantumBit データベース（トークンコミット - Flat）;Standard Price Book;QB-CMT-TKN-FLAT;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンコミット - Flat）,Standard Price Book;true,QB-CMT-TKN-FLAT,期間ベース（年間）;TermDefined,1000
-QuantumBit データベース（トークンコミット - Flat）;Standard Price Book;QB-CMT-TKN-FLAT;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンコミット - Flat）,Standard Price Book;true,QB-CMT-TKN-FLAT,期間ベース（年間）;TermDefined,150000
-QuantumBit データベース（トークンコミット - TIer）;Standard Price Book;QB-CMT-TKN-TIER;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンコミット - TIer）,Standard Price Book;true,QB-CMT-TKN-TIER,期間ベース（年間）;TermDefined,1000
-QuantumBit データベース（トークンコミット - TIer）;Standard Price Book;QB-CMT-TKN-TIER;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンコミット - TIer）,Standard Price Book;true,QB-CMT-TKN-TIER,期間ベース（年間）;TermDefined,150000
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;エバーグリーン（月間）;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,エバーグリーン（月間）;Evergreen,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;期間ベース（年間）;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（年間）;TermDefined,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;期間ベース（月間）;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（月間）;TermDefined,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;１回限り;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,１回限り;OneTime,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;エバーグリーン（月間）;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,エバーグリーン（月間）;Evergreen,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;期間ベース（年間）;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（年間）;TermDefined,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;期間ベース（月間）;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（月間）;TermDefined,0
-QuantumBit コンプリートソリューション;Standard Price Book;QB-COMPLETE;１回限り;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,１回限り;OneTime,0
-QB CPUヒートシンク;Standard Price Book;QB-CPU-HEATSINK;１回限り;USD,USD,true,false,QB CPUヒートシンク,Standard Price Book;true,QB-CPU-HEATSINK,１回限り;OneTime,35
-QB CPUヒートシンク;Standard Price Book;QB-CPU-HEATSINK;１回限り;JPY,JPY,true,false,QB CPUヒートシンク,Standard Price Book;true,QB-CPU-HEATSINK,１回限り;OneTime,5250
-QuantumBit コラボレーションスイート;Standard Price Book;QB-CS;期間ベース（年間）;USD,USD,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（年間）;TermDefined,0
-QuantumBit コラボレーションスイート;Standard Price Book;QB-CS;期間ベース（月間）;USD,USD,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（月間）;TermDefined,0
-QuantumBit コラボレーションスイート;Standard Price Book;QB-CS;期間ベース（年間）;JPY,JPY,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（年間）;TermDefined,0
-QuantumBit コラボレーションスイート;Standard Price Book;QB-CS;期間ベース（月間）;JPY,JPY,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（月間）;TermDefined,0
-追加 QB データグラフ (500M);Standard Price Book;QB-DAT-GRPH;期間ベース（年間）;USD,USD,true,false,追加 QB データグラフ (500M),Standard Price Book;true,QB-DAT-GRPH,期間ベース（年間）;TermDefined,25000
-追加 QB データグラフ (500M);Standard Price Book;QB-DAT-GRPH;期間ベース（年間）;JPY,JPY,true,false,追加 QB データグラフ (500M),Standard Price Book;true,QB-DAT-GRPH,期間ベース（年間）;TermDefined,3750000
-追加データスループット;Standard Price Book;QB-DAT-THPT;エバーグリーン（月間）;USD,USD,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,エバーグリーン（月間）;Evergreen,0
-追加データスループット;Standard Price Book;QB-DAT-THPT;期間ベース（年間）;USD,USD,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（年間）;TermDefined,0
-追加データスループット;Standard Price Book;QB-DAT-THPT;期間ベース（月間）;USD,USD,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（月間）;TermDefined,0
-追加データスループット;Standard Price Book;QB-DAT-THPT;エバーグリーン（月間）;JPY,JPY,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,エバーグリーン（月間）;Evergreen,0
-追加データスループット;Standard Price Book;QB-DAT-THPT;期間ベース（年間）;JPY,JPY,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（年間）;TermDefined,0
-追加データスループット;Standard Price Book;QB-DAT-THPT;期間ベース（月間）;JPY,JPY,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（月間）;TermDefined,0
-QuantumBit データベース;Standard Price Book;QB-DB;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース,Standard Price Book;true,QB-DB,期間ベース（年間）;TermDefined,12000
-QuantumBit データベース;Standard Price Book;QB-DB;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース,Standard Price Book;true,QB-DB,期間ベース（年間）;TermDefined,1800000
-QuantumBit データベース（トークンベース）;Standard Price Book;QB-DB-TOKEN;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンベース）,Standard Price Book;true,QB-DB-TOKEN,期間ベース（年間）;TermDefined,12000
-QuantumBit データベース（トークンベース）;Standard Price Book;QB-DB-TOKEN;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンベース）,Standard Price Book;true,QB-DB-TOKEN,期間ベース（年間）;TermDefined,1800000
-追加フロー - QB スターター;Standard Price Book;QB-FLO-STRT;エバーグリーン（月間）;USD,USD,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,エバーグリーン（月間）;Evergreen,2000
-追加フロー - QB スターター;Standard Price Book;QB-FLO-STRT;期間ベース（年間）;USD,USD,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（年間）;TermDefined,24000
-追加フロー - QB スターター;Standard Price Book;QB-FLO-STRT;期間ベース（月間）;USD,USD,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（月間）;TermDefined,1500
-追加フロー - QB スターター;Standard Price Book;QB-FLO-STRT;エバーグリーン（月間）;JPY,JPY,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,エバーグリーン（月間）;Evergreen,300000
-追加フロー - QB スターター;Standard Price Book;QB-FLO-STRT;期間ベース（年間）;JPY,JPY,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（年間）;TermDefined,3600000
-追加フロー - QB スターター;Standard Price Book;QB-FLO-STRT;期間ベース（月間）;JPY,JPY,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（月間）;TermDefined,225000
-QuantumBit 生成AIライセンス;Standard Price Book;QB-GEN-AI-LIC;期間ベース（年間）;USD,USD,true,false,QuantumBit 生成AIライセンス,Standard Price Book;true,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,149.99
-QuantumBit 生成AIライセンス;Standard Price Book;QB-GEN-AI-LIC;期間ベース（年間）;JPY,JPY,true,false,QuantumBit 生成AIライセンス,Standard Price Book;true,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,22499
-1TB 10k RPM (2.5インチ);Standard Price Book;QB-HD 1.2TB;１回限り;USD,USD,true,false,1TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 1.2TB,１回限り;OneTime,250
-1TB 10k RPM (2.5インチ);Standard Price Book;QB-HD 1.2TB;１回限り;JPY,JPY,true,false,1TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 1.2TB,１回限り;OneTime,37500
-1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;１回限り;USD,USD,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,１回限り;OneTime,499
-1TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 1TB;１回限り;JPY,JPY,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,１回限り;OneTime,74850
-20TB 7.2k RPM NLSAS (3.5インチ);Standard Price Book;QB-HD 20TB;１回限り;USD,USD,true,false,20TB 7.2k RPM NLSAS (3.5インチ),Standard Price Book;true,QB-HD 20TB,１回限り;OneTime,1848
-20TB 7.2k RPM NLSAS (3.5インチ);Standard Price Book;QB-HD 20TB;１回限り;JPY,JPY,true,false,20TB 7.2k RPM NLSAS (3.5インチ),Standard Price Book;true,QB-HD 20TB,１回限り;OneTime,277200
-3TB 10k RPM (2.5インチ);Standard Price Book;QB-HD 3TB;１回限り;USD,USD,true,false,3TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 3TB,１回限り;OneTime,450
-3TB 10k RPM (2.5インチ);Standard Price Book;QB-HD 3TB;１回限り;JPY,JPY,true,false,3TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 3TB,１回限り;OneTime,67500
-4TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 4TB;１回限り;USD,USD,true,false,4TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 4TB,１回限り;OneTime,799
-4TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 4TB;１回限り;JPY,JPY,true,false,4TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 4TB,１回限り;OneTime,119850
-8TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 8TB;１回限り;USD,USD,true,false,8TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 8TB,１回限り;OneTime,999
-8TB 7.2k RPM NLSAS;Standard Price Book;QB-HD 8TB;１回限り;JPY,JPY,true,false,8TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 8TB,１回限り;OneTime,149850
-8TB 7.2k RPM 自己暗号化 NLSAS;Standard Price Book;QB-HD 8TBSE;１回限り;USD,USD,true,false,8TB 7.2k RPM 自己暗号化 NLSAS,Standard Price Book;true,QB-HD 8TBSE,１回限り;OneTime,1199
-8TB 7.2k RPM 自己暗号化 NLSAS;Standard Price Book;QB-HD 8TBSE;１回限り;JPY,JPY,true,false,8TB 7.2k RPM 自己暗号化 NLSAS,Standard Price Book;true,QB-HD 8TBSE,１回限り;OneTime,179850
-インテル® Xeon® E5-2609 v4 1.7GHz;Standard Price Book;QB-INTEL E5-2609;１回限り;USD,USD,true,false,インテル® Xeon® E5-2609 v4 1.7GHz,Standard Price Book;true,QB-INTEL E5-2609,１回限り;OneTime,1499
-インテル® Xeon® E5-2609 v4 1.7GHz;Standard Price Book;QB-INTEL E5-2609;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2609 v4 1.7GHz,Standard Price Book;true,QB-INTEL E5-2609,１回限り;OneTime,224850
-インテル® Xeon® E5-2660 v4 2.0GHz;Standard Price Book;QB-INTEL E5-2660;１回限り;USD,USD,true,false,インテル® Xeon® E5-2660 v4 2.0GHz,Standard Price Book;true,QB-INTEL E5-2660,１回限り;OneTime,1699
-インテル® Xeon® E5-2660 v4 2.0GHz;Standard Price Book;QB-INTEL E5-2660;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2660 v4 2.0GHz,Standard Price Book;true,QB-INTEL E5-2660,１回限り;OneTime,254850
-インテル® Xeon® E5-2667 v4 3.2GHz;Standard Price Book;QB-INTEL E5-2667;１回限り;USD,USD,true,false,インテル® Xeon® E5-2667 v4 3.2GHz,Standard Price Book;true,QB-INTEL E5-2667,１回限り;OneTime,2499
-インテル® Xeon® E5-2667 v4 3.2GHz;Standard Price Book;QB-INTEL E5-2667;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2667 v4 3.2GHz,Standard Price Book;true,QB-INTEL E5-2667,１回限り;OneTime,374850
-インテル® Xeon® E5-2683 v4 2.1GHz;Standard Price Book;QB-INTEL E5-2683;１回限り;USD,USD,true,false,インテル® Xeon® E5-2683 v4 2.1GHz,Standard Price Book;true,QB-INTEL E5-2683,１回限り;OneTime,1399
-インテル® Xeon® E5-2683 v4 2.1GHz;Standard Price Book;QB-INTEL E5-2683;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2683 v4 2.1GHz,Standard Price Book;true,QB-INTEL E5-2683,１回限り;OneTime,209850
-"インテル® Xeon® Gold 5318N 2.1GHz, 24C/48T;Standard Price Book;QB-INTEL-GOLD-5318N;１回限り;USD",USD,true,false,"インテル® Xeon® Gold 5318N 2.1GHz, 24C/48T",Standard Price Book;true,QB-INTEL-GOLD-5318N,１回限り;OneTime,1999
-"インテル® Xeon® Gold 5318N 2.1GHz, 24C/48T;Standard Price Book;QB-INTEL-GOLD-5318N;１回限り;JPY",JPY,true,false,"インテル® Xeon® Gold 5318N 2.1GHz, 24C/48T",Standard Price Book;true,QB-INTEL-GOLD-5318N,１回限り;OneTime,299850
-インテル Xeon Gold 6330N 2.2GHz、28C/56T;Standard Price Book;QB-INTEL-GOLD-6330N;１回限り;USD,USD,true,false,インテル Xeon Gold 6330N 2.2GHz、28C/56T,Standard Price Book;true,QB-INTEL-GOLD-6330N,１回限り;OneTime,2149
-インテル Xeon Gold 6330N 2.2GHz、28C/56T;Standard Price Book;QB-INTEL-GOLD-6330N;１回限り;JPY,JPY,true,false,インテル Xeon Gold 6330N 2.2GHz、28C/56T,Standard Price Book;true,QB-INTEL-GOLD-6330N,１回限り;OneTime,322350
-インテル Xeon Gold 6354 3GHz、18C/36T;Standard Price Book;QB-INTEL-GOLD-6354;１回限り;USD,USD,true,false,インテル Xeon Gold 6354 3GHz、18C/36T,Standard Price Book;true,QB-INTEL-GOLD-6354,１回限り;OneTime,3300
-インテル Xeon Gold 6354 3GHz、18C/36T;Standard Price Book;QB-INTEL-GOLD-6354;１回限り;JPY,JPY,true,false,インテル Xeon Gold 6354 3GHz、18C/36T,Standard Price Book;true,QB-INTEL-GOLD-6354,１回限り;OneTime,495000
-インテル Xeon Platinum 8352M 2.3GHz、32C/64T;Standard Price Book;QB-INTEL-PLAT-8352M;１回限り;USD,USD,true,false,インテル Xeon Platinum 8352M 2.3GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352M,１回限り;OneTime,2000
-インテル Xeon Platinum 8352M 2.3GHz、32C/64T;Standard Price Book;QB-INTEL-PLAT-8352M;１回限り;JPY,JPY,true,false,インテル Xeon Platinum 8352M 2.3GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352M,１回限り;OneTime,300000
-インテル Xeon Platinum 8352Y 2.2GHz、32C/64T;Standard Price Book;QB-INTEL-PLAT-8352Y;１回限り;USD,USD,true,false,インテル Xeon Platinum 8352Y 2.2GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352Y,１回限り;OneTime,2500
-インテル Xeon Platinum 8352Y 2.2GHz、32C/64T;Standard Price Book;QB-INTEL-PLAT-8352Y;１回限り;JPY,JPY,true,false,インテル Xeon Platinum 8352Y 2.2GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352Y,１回限り;OneTime,375000
-Intel Xeon Platinum 8360Y 2.4GHz、36C/72T;Standard Price Book;QB-INTEL-PLAT-8360Y;１回限り;USD,USD,true,false,Intel Xeon Platinum 8360Y 2.4GHz、36C/72T,Standard Price Book;true,QB-INTEL-PLAT-8360Y,１回限り;OneTime,2800
-Intel Xeon Platinum 8360Y 2.4GHz、36C/72T;Standard Price Book;QB-INTEL-PLAT-8360Y;１回限り;JPY,JPY,true,false,Intel Xeon Platinum 8360Y 2.4GHz、36C/72T,Standard Price Book;true,QB-INTEL-PLAT-8360Y,１回限り;OneTime,420000
-Intel Xeon Platinum 8368 2.4GHz、38C/76T;Standard Price Book;QB-INTEL-PLAT-8368;１回限り;USD,USD,true,false,Intel Xeon Platinum 8368 2.4GHz、38C/76T,Standard Price Book;true,QB-INTEL-PLAT-8368,１回限り;OneTime,2950
-Intel Xeon Platinum 8368 2.4GHz、38C/76T;Standard Price Book;QB-INTEL-PLAT-8368;１回限り;JPY,JPY,true,false,Intel Xeon Platinum 8368 2.4GHz、38C/76T,Standard Price Book;true,QB-INTEL-PLAT-8368,１回限り;OneTime,442500
-クラウドライセンス（月次）;Standard Price Book;QB-LIC-CLOUD;期間ベース（年間）;USD,USD,true,false,クラウドライセンス（月次）,Standard Price Book;true,QB-LIC-CLOUD,期間ベース（年間）;TermDefined,550
-クラウドライセンス（月次）;Standard Price Book;QB-LIC-CLOUD;期間ベース（年間）;JPY,JPY,true,false,クラウドライセンス（月次）,Standard Price Book;true,QB-LIC-CLOUD,期間ベース（年間）;TermDefined,82500
-QB液体冷却器;Standard Price Book;QB-LIQUIDCOOL;１回限り;USD,USD,true,false,QB液体冷却器,Standard Price Book;true,QB-LIQUIDCOOL,１回限り;OneTime,250
-QB液体冷却器;Standard Price Book;QB-LIQUIDCOOL;１回限り;JPY,JPY,true,false,QB液体冷却器,Standard Price Book;true,QB-LIQUIDCOOL,１回限り;OneTime,37500
-128GB LRDIMM;Standard Price Book;QB-MEM 128GB;１回限り;USD,USD,true,false,128GB LRDIMM,Standard Price Book;true,QB-MEM 128GB,１回限り;OneTime,1989
-128GB LRDIMM;Standard Price Book;QB-MEM 128GB;１回限り;JPY,JPY,true,false,128GB LRDIMM,Standard Price Book;true,QB-MEM 128GB,１回限り;OneTime,298350
-16GB RDIMM;Standard Price Book;QB-MEM 16GB;１回限り;USD,USD,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,１回限り;OneTime,599
-16GB RDIMM;Standard Price Book;QB-MEM 16GB;１回限り;JPY,JPY,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,１回限り;OneTime,89850
-32GB RDIMM;Standard Price Book;QB-MEM 32GB;１回限り;USD,USD,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,１回限り;OneTime,889
-32GB RDIMM;Standard Price Book;QB-MEM 32GB;１回限り;JPY,JPY,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,１回限り;OneTime,133350
-64GB RDIMM;Standard Price Book;QB-MEM 64GB;１回限り;USD,USD,true,false,64GB RDIMM,Standard Price Book;true,QB-MEM 64GB,１回限り;OneTime,999
-64GB RDIMM;Standard Price Book;QB-MEM 64GB;１回限り;JPY,JPY,true,false,64GB RDIMM,Standard Price Book;true,QB-MEM 64GB,１回限り;OneTime,149850
-8GB RDIMM;Standard Price Book;QB-MEM 8GB;１回限り;USD,USD,true,false,8GB RDIMM,Standard Price Book;true,QB-MEM 8GB,１回限り;OneTime,399
-8GB RDIMM;Standard Price Book;QB-MEM 8GB;１回限り;JPY,JPY,true,false,8GB RDIMM,Standard Price Book;true,QB-MEM 8GB,１回限り;OneTime,59850
-追加メッセージ - QB スターター;Standard Price Book;QB-MSG-STRT;エバーグリーン（月間）;USD,USD,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,エバーグリーン（月間）;Evergreen,3500
-追加メッセージ - QB スターター;Standard Price Book;QB-MSG-STRT;期間ベース（年間）;USD,USD,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（年間）;TermDefined,30000
-追加メッセージ - QB スターター;Standard Price Book;QB-MSG-STRT;期間ベース（月間）;USD,USD,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（月間）;TermDefined,3000
-追加メッセージ - QB スターター;Standard Price Book;QB-MSG-STRT;エバーグリーン（月間）;JPY,JPY,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,エバーグリーン（月間）;Evergreen,525000
-追加メッセージ - QB スターター;Standard Price Book;QB-MSG-STRT;期間ベース（年間）;JPY,JPY,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（年間）;TermDefined,4500000
-追加メッセージ - QB スターター;Standard Price Book;QB-MSG-STRT;期間ベース（月間）;JPY,JPY,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（月間）;TermDefined,450000
-QuantumBit データベース（金額コミット）;Standard Price Book;QB-MTY-CMT;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（金額コミット）,Standard Price Book;true,QB-MTY-CMT,期間ベース（年間）;TermDefined,8000
-QuantumBit データベース（金額コミット）;Standard Price Book;QB-MTY-CMT;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（金額コミット）,Standard Price Book;true,QB-MTY-CMT,期間ベース（年間）;TermDefined,1200000
-Intel X710 デュアルポート 10Gb ダイレクトアタッチ;Standard Price Book;QB-NET X710;１回限り;USD,USD,true,false,Intel X710 デュアルポート 10Gb ダイレクトアタッチ,Standard Price Book;true,QB-NET X710,１回限り;OneTime,1599
-Intel X710 デュアルポート 10Gb ダイレクトアタッチ;Standard Price Book;QB-NET X710;１回限り;JPY,JPY,true,false,Intel X710 デュアルポート 10Gb ダイレクトアタッチ,Standard Price Book;true,QB-NET X710,１回限り;OneTime,239850
-QB-NetLink 100G Ultra;Standard Price Book;QB-NET-100G-ULTRA;１回限り;USD,USD,true,false,QB-NetLink 100G Ultra,Standard Price Book;true,QB-NET-100G-ULTRA,１回限り;OneTime,700
-QB-NetLink 100G Ultra;Standard Price Book;QB-NET-100G-ULTRA;１回限り;JPY,JPY,true,false,QB-NetLink 100G Ultra,Standard Price Book;true,QB-NET-100G-ULTRA,１回限り;OneTime,105000
-QB-NetLink 10G;Standard Price Book;QB-NET-10G;１回限り;USD,USD,true,false,QB-NetLink 10G,Standard Price Book;true,QB-NET-10G,１回限り;OneTime,220
-QB-NetLink 10G;Standard Price Book;QB-NET-10G;１回限り;JPY,JPY,true,false,QB-NetLink 10G,Standard Price Book;true,QB-NET-10G,１回限り;OneTime,33000
-QB-NetLink 25G;Standard Price Book;QB-NET-25G;１回限り;USD,USD,true,false,QB-NetLink 25G,Standard Price Book;true,QB-NET-25G,１回限り;OneTime,450
-QB-NetLink 25G;Standard Price Book;QB-NET-25G;１回限り;JPY,JPY,true,false,QB-NetLink 25G,Standard Price Book;true,QB-NET-25G,１回限り;OneTime,67500
-QB-NetSecure 10G;Standard Price Book;QB-NETSECURE-10G;１回限り;USD,USD,true,false,QB-NetSecure 10G,Standard Price Book;true,QB-NETSECURE-10G,１回限り;OneTime,500
-QB-NetSecure 10G;Standard Price Book;QB-NETSECURE-10G;１回限り;JPY,JPY,true,false,QB-NetSecure 10G,Standard Price Book;true,QB-NETSECURE-10G,１回限り;OneTime,75000
-QB-Accel NovaX150;Standard Price Book;QB-NovaX150;１回限り;USD,USD,true,false,QB-Accel NovaX150,Standard Price Book;true,QB-NovaX150,１回限り;OneTime,9800
-QB-Accel NovaX150;Standard Price Book;QB-NovaX150;１回限り;JPY,JPY,true,false,QB-Accel NovaX150,Standard Price Book;true,QB-NovaX150,１回限り;OneTime,1470000
-QB-NVExpand 200;Standard Price Book;QB-NVExpand-200;１回限り;USD,USD,true,false,QB-NVExpand 200,Standard Price Book;true,QB-NVExpand-200,１回限り;OneTime,475
-QB-NVExpand 200;Standard Price Book;QB-NVExpand-200;１回限り;JPY,JPY,true,false,QB-NVExpand 200,Standard Price Book;true,QB-NVExpand-200,１回限り;OneTime,71250
-QB-PowerCore 1600S;Standard Price Book;QB-PWRCORE-1600S;１回限り;USD,USD,true,false,QB-PowerCore 1600S,Standard Price Book;true,QB-PWRCORE-1600S,１回限り;OneTime,599
-QB-PowerCore 1600S;Standard Price Book;QB-PWRCORE-1600S;１回限り;JPY,JPY,true,false,QB-PowerCore 1600S,Standard Price Book;true,QB-PWRCORE-1600S,１回限り;OneTime,89850
-QB-PowerCore 500S;Standard Price Book;QB-PWRCORE-500S;１回限り;USD,USD,true,false,QB-PowerCore 500S,Standard Price Book;true,QB-PWRCORE-500S,１回限り;OneTime,299
-QB-PowerCore 500S;Standard Price Book;QB-PWRCORE-500S;１回限り;JPY,JPY,true,false,QB-PowerCore 500S,Standard Price Book;true,QB-PWRCORE-500S,１回限り;OneTime,44850
-QB-PowerCore 800S;Standard Price Book;QB-PWRCORE-800S;１回限り;USD,USD,true,false,QB-PowerCore 800S,Standard Price Book;true,QB-PWRCORE-800S,１回限り;OneTime,489
-QB-PowerCore 800S;Standard Price Book;QB-PWRCORE-800S;１回限り;JPY,JPY,true,false,QB-PowerCore 800S,Standard Price Book;true,QB-PWRCORE-800S,１回限り;OneTime,73350
-QB-PowerSafe 1000D;Standard Price Book;QB-PWRSAFE-1000D;１回限り;USD,USD,true,false,QB-PowerSafe 1000D,Standard Price Book;true,QB-PWRSAFE-1000D,１回限り;OneTime,700
-QB-PowerSafe 1000D;Standard Price Book;QB-PWRSAFE-1000D;１回限り;JPY,JPY,true,false,QB-PowerSafe 1000D,Standard Price Book;true,QB-PWRSAFE-1000D,１回限り;OneTime,105000
-QB-PowerSafe 2000D;Standard Price Book;QB-PWRSAFE-2000D;１回限り;USD,USD,true,false,QB-PowerSafe 2000D,Standard Price Book;true,QB-PWRSAFE-2000D,１回限り;OneTime,1850
-QB-PowerSafe 2000D;Standard Price Book;QB-PWRSAFE-2000D;１回限り;JPY,JPY,true,false,QB-PowerSafe 2000D,Standard Price Book;true,QB-PWRSAFE-2000D,１回限り;OneTime,277500
-QB-PowerSafe 600D;Standard Price Book;QB-PWRSAFE-600D;１回限り;USD,USD,true,false,QB-PowerSafe 600D,Standard Price Book;true,QB-PWRSAFE-600D,１回限り;OneTime,450
-QB-PowerSafe 600D;Standard Price Book;QB-PWRSAFE-600D;１回限り;JPY,JPY,true,false,QB-PowerSafe 600D,Standard Price Book;true,QB-PWRSAFE-600D,１回限り;OneTime,67500
-QuantumBit Q-Rack 750;Standard Price Book;QB-QRack-750;１回限り;USD,USD,true,false,QuantumBit Q-Rack 750,Standard Price Book;true,QB-QRack-750,１回限り;OneTime,3980
-QuantumBit Q-Rack 750;Standard Price Book;QB-QRack-750;１回限り;JPY,JPY,true,false,QuantumBit Q-Rack 750,Standard Price Book;true,QB-QRack-750,１回限り;OneTime,597000
-QuantumBit データベース（数量コミット）;Standard Price Book;QB-QTY-CMT;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（数量コミット）,Standard Price Book;true,QB-QTY-CMT,期間ベース（年間）;TermDefined,500
-QuantumBit データベース（数量コミット）;Standard Price Book;QB-QTY-CMT;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（数量コミット）,Standard Price Book;true,QB-QTY-CMT,期間ベース（年間）;TermDefined,75000
-QB-RAIDForce 500;Standard Price Book;QB-RAID-500;１回限り;USD,USD,true,false,QB-RAIDForce 500,Standard Price Book;true,QB-RAID-500,１回限り;OneTime,620
-QB-RAIDForce 500;Standard Price Book;QB-RAID-500;１回限り;JPY,JPY,true,false,QB-RAIDForce 500,Standard Price Book;true,QB-RAID-500,１回限り;OneTime,93000
-データ正規化エキスパート;Standard Price Book;QB-SRV-DNE;１回限り;USD,USD,true,false,データ正規化エキスパート,Standard Price Book;true,QB-SRV-DNE,１回限り;OneTime,300
-データ正規化エキスパート;Standard Price Book;QB-SRV-DNE;１回限り;JPY,JPY,true,false,データ正規化エキスパート,Standard Price Book;true,QB-SRV-DNE,１回限り;OneTime,45000
-実装エンジニア;Standard Price Book;QB-SRV-IMP;１回限り;USD,USD,true,false,実装エンジニア,Standard Price Book;true,QB-SRV-IMP,１回限り;OneTime,300
-実装エンジニア;Standard Price Book;QB-SRV-IMP;１回限り;JPY,JPY,true,false,実装エンジニア,Standard Price Book;true,QB-SRV-IMP,１回限り;OneTime,45000
-統合スペシャリストエンジニア;Standard Price Book;QB-SRV-ISE;１回限り;USD,USD,true,false,統合スペシャリストエンジニア,Standard Price Book;true,QB-SRV-ISE,１回限り;OneTime,350
-統合スペシャリストエンジニア;Standard Price Book;QB-SRV-ISE;１回限り;JPY,JPY,true,false,統合スペシャリストエンジニア,Standard Price Book;true,QB-SRV-ISE,１回限り;OneTime,52500
-モジュール拡張エンジニア;Standard Price Book;QB-SRV-MEE;１回限り;USD,USD,true,false,モジュール拡張エンジニア,Standard Price Book;true,QB-SRV-MEE,１回限り;OneTime,300
-モジュール拡張エンジニア;Standard Price Book;QB-SRV-MEE;１回限り;JPY,JPY,true,false,モジュール拡張エンジニア,Standard Price Book;true,QB-SRV-MEE,１回限り;OneTime,45000
-プロフェッショナルサービス 1日あたりの料金;Standard Price Book;QB-SRV-OG-PSH;１回限り;USD,USD,true,false,プロフェッショナルサービス 1日あたりの料金,Standard Price Book;true,QB-SRV-OG-PSH,１回限り;OneTime,250
-プロフェッショナルサービス 1日あたりの料金;Standard Price Book;QB-SRV-OG-PSH;１回限り;JPY,JPY,true,false,プロフェッショナルサービス 1日あたりの料金,Standard Price Book;true,QB-SRV-OG-PSH,１回限り;OneTime,37500
-プログラムディレクター;Standard Price Book;QB-SRV-PD;１回限り;USD,USD,true,false,プログラムディレクター,Standard Price Book;true,QB-SRV-PD,１回限り;OneTime,350
-プログラムディレクター;Standard Price Book;QB-SRV-PD;１回限り;JPY,JPY,true,false,プログラムディレクター,Standard Price Book;true,QB-SRV-PD,１回限り;OneTime,52500
-プロジェクトマネージャー;Standard Price Book;QB-SRV-PMN;１回限り;USD,USD,true,false,プロジェクトマネージャー,Standard Price Book;true,QB-SRV-PMN,１回限り;OneTime,300
-プロジェクトマネージャー;Standard Price Book;QB-SRV-PMN;１回限り;JPY,JPY,true,false,プロジェクトマネージャー,Standard Price Book;true,QB-SRV-PMN,１回限り;OneTime,45000
-品質保証エンジニア;Standard Price Book;QB-SRV-QAE;１回限り;USD,USD,true,false,品質保証エンジニア,Standard Price Book;true,QB-SRV-QAE,１回限り;OneTime,300
-品質保証エンジニア;Standard Price Book;QB-SRV-QAE;１回限り;JPY,JPY,true,false,品質保証エンジニア,Standard Price Book;true,QB-SRV-QAE,１回限り;OneTime,45000
-ソリューションアーキテクト;Standard Price Book;QB-SRV-SAT;１回限り;USD,USD,true,false,ソリューションアーキテクト,Standard Price Book;true,QB-SRV-SAT,１回限り;OneTime,500
-ソリューションアーキテクト;Standard Price Book;QB-SRV-SAT;１回限り;JPY,JPY,true,false,ソリューションアーキテクト,Standard Price Book;true,QB-SRV-SAT,１回限り;OneTime,75000
-プロフェッショナルサービスの作業範囲;Standard Price Book;QB-SRV-SOW;１回限り;USD,USD,true,false,プロフェッショナルサービスの作業範囲,Standard Price Book;true,QB-SRV-SOW,１回限り;OneTime,25000
-プロフェッショナルサービスの作業範囲;Standard Price Book;QB-SRV-SOW;１回限り;JPY,JPY,true,false,プロフェッショナルサービスの作業範囲,Standard Price Book;true,QB-SRV-SOW,１回限り;OneTime,3750000
-Q-Drive NVX 16TB;Standard Price Book;QB-SSD 16TB;１回限り;USD,USD,true,false,Q-Drive NVX 16TB,Standard Price Book;true,QB-SSD 16TB,１回限り;OneTime,1200
-Q-Drive NVX 16TB;Standard Price Book;QB-SSD 16TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 16TB,Standard Price Book;true,QB-SSD 16TB,１回限り;OneTime,180000
-Q-Drive NVX 2TB;Standard Price Book;QB-SSD 2TB;１回限り;USD,USD,true,false,Q-Drive NVX 2TB,Standard Price Book;true,QB-SSD 2TB,１回限り;OneTime,150
-Q-Drive NVX 2TB;Standard Price Book;QB-SSD 2TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 2TB,Standard Price Book;true,QB-SSD 2TB,１回限り;OneTime,22500
-Q-Drive NVX Ultra 30TB;Standard Price Book;QB-SSD 30TB;１回限り;USD,USD,true,false,Q-Drive NVX Ultra 30TB,Standard Price Book;true,QB-SSD 30TB,１回限り;OneTime,2500
-Q-Drive NVX Ultra 30TB;Standard Price Book;QB-SSD 30TB;１回限り;JPY,JPY,true,false,Q-Drive NVX Ultra 30TB,Standard Price Book;true,QB-SSD 30TB,１回限り;OneTime,375000
-Q-Drive NVX 4TB;Standard Price Book;QB-SSD 4TB;１回限り;USD,USD,true,false,Q-Drive NVX 4TB,Standard Price Book;true,QB-SSD 4TB,１回限り;OneTime,225
-Q-Drive NVX 4TB;Standard Price Book;QB-SSD 4TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 4TB,Standard Price Book;true,QB-SSD 4TB,１回限り;OneTime,33750
-Q-Drive NVX 8TB;Standard Price Book;QB-SSD 8TB;１回限り;USD,USD,true,false,Q-Drive NVX 8TB,Standard Price Book;true,QB-SSD 8TB,１回限り;OneTime,580
-Q-Drive NVX 8TB;Standard Price Book;QB-SSD 8TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 8TB,Standard Price Book;true,QB-SSD 8TB,１回限り;OneTime,87000
-シルバーハードウェアメンテナンス;Standard Price Book;QB-SUPP-1000;期間ベース（年間）;USD,USD,true,false,シルバーハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1000,期間ベース（年間）;TermDefined,25000
-シルバーハードウェアメンテナンス;Standard Price Book;QB-SUPP-1000;期間ベース（年間）;JPY,JPY,true,false,シルバーハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1000,期間ベース（年間）;TermDefined,3750000
-ゴールドハードウェアメンテナンス;Standard Price Book;QB-SUPP-1005;期間ベース（年間）;USD,USD,true,false,ゴールドハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1005,期間ベース（年間）;TermDefined,30000
-ゴールドハードウェアメンテナンス;Standard Price Book;QB-SUPP-1005;期間ベース（年間）;JPY,JPY,true,false,ゴールドハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1005,期間ベース（年間）;TermDefined,4500000
-ソフトウェア・メンテナンス;Standard Price Book;QB-SUPP-2000;期間ベース（年間）;USD,USD,true,true,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,0
-ソフトウェア・メンテナンス;Standard Price Book;QB-SUPP-2000;期間ベース（年間）;JPY,JPY,true,true,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,0
-QuantumBit トークンパック;Standard Price Book;QB-TOKENS-PACK;１回限り;USD,USD,true,false,QuantumBit トークンパック,Standard Price Book;true,QB-TOKENS-PACK,１回限り;OneTime,100
-QuantumBit トークンパック;Standard Price Book;QB-TOKENS-PACK;１回限り;JPY,JPY,true,false,QuantumBit トークンパック,Standard Price Book;true,QB-TOKENS-PACK,１回限り;OneTime,15000
-QuantumBit 基礎トレーニング;Standard Price Book;QB-TRN-ESSNTLS;１回限り;USD,USD,true,false,QuantumBit 基礎トレーニング,Standard Price Book;true,QB-TRN-ESSNTLS,１回限り;OneTime,8500
-QuantumBit 基礎トレーニング;Standard Price Book;QB-TRN-ESSNTLS;１回限り;JPY,JPY,true,false,QuantumBit 基礎トレーニング,Standard Price Book;true,QB-TRN-ESSNTLS,１回限り;OneTime,1275000
-QuantumBit 上級トレーニング;Standard Price Book;QB-TRN-FUND;１回限り;USD,USD,true,false,QuantumBit 上級トレーニング,Standard Price Book;true,QB-TRN-FUND,１回限り;OneTime,6500
-QuantumBit 上級トレーニング;Standard Price Book;QB-TRN-FUND;１回限り;JPY,JPY,true,false,QuantumBit 上級トレーニング,Standard Price Book;true,QB-TRN-FUND,１回限り;OneTime,975000
-QB-Accel VegaX200;Standard Price Book;QB-VegaX200;１回限り;USD,USD,true,false,QB-Accel VegaX200,Standard Price Book;true,QB-VegaX200,１回限り;OneTime,15000
-QB-Accel VegaX200;Standard Price Book;QB-VegaX200;１回限り;JPY,JPY,true,false,QB-Accel VegaX200,Standard Price Book;true,QB-VegaX200,１回限り;OneTime,2250000
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;エバーグリーン（年間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（年間）;Evergreen,420
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;エバーグリーン（月間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（月間）;Evergreen,35
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;期間ベース（年間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（年間）;TermDefined,360
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;期間ベース（月間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（月間）;TermDefined,30
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;エバーグリーン（年間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（年間）;Evergreen,63000
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;エバーグリーン（月間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（月間）;Evergreen,5250
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;期間ベース（年間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（年間）;TermDefined,54000
-QuantumBit サブスクリプション;Standard Price Book;TEST-SUB;期間ベース（月間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（月間）;TermDefined,4500
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+Standard Price Book;QB-API;エバーグリーン（月間）;USD,USD,true,false,追加 API,Standard Price Book;true,QB-API,エバーグリーン（月間）;Evergreen,2000
+Standard Price Book;QB-API;期間ベース（年間）;USD,USD,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（年間）;TermDefined,15000
+Standard Price Book;QB-API;期間ベース（月間）;USD,USD,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（月間）;TermDefined,1500
+Standard Price Book;QB-API;エバーグリーン（月間）;JPY,JPY,true,false,追加 API,Standard Price Book;true,QB-API,エバーグリーン（月間）;Evergreen,300000
+Standard Price Book;QB-API;期間ベース（年間）;JPY,JPY,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（年間）;TermDefined,2250000
+Standard Price Book;QB-API;期間ベース（月間）;JPY,JPY,true,false,追加 API,Standard Price Book;true,QB-API,期間ベース（月間）;TermDefined,225000
+Standard Price Book;QB-API-FLEX;期間ベース（年間）;USD,USD,true,false,追加 API フレックス (100M),Standard Price Book;true,QB-API-FLEX,期間ベース（年間）;TermDefined,450
+Standard Price Book;QB-API-FLEX;期間ベース（年間）;JPY,JPY,true,false,追加 API フレックス (100M),Standard Price Book;true,QB-API-FLEX,期間ベース（年間）;TermDefined,67500
+Standard Price Book;QB-API-GOVT;期間ベース（年間）;USD,USD,true,false,追加 API 政府向け,Standard Price Book;true,QB-API-GOVT,期間ベース（年間）;TermDefined,1450
+Standard Price Book;QB-API-GOVT;期間ベース（年間）;JPY,JPY,true,false,追加 API 政府向け,Standard Price Book;true,QB-API-GOVT,期間ベース（年間）;TermDefined,217500
+Standard Price Book;QB-API-MGMT;エバーグリーン（月間）;USD,USD,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,エバーグリーン（月間）;Evergreen,1000
+Standard Price Book;QB-API-MGMT;期間ベース（年間）;USD,USD,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（年間）;TermDefined,12000
+Standard Price Book;QB-API-MGMT;期間ベース（月間）;USD,USD,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（月間）;TermDefined,1000
+Standard Price Book;QB-API-MGMT;エバーグリーン（月間）;JPY,JPY,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,エバーグリーン（月間）;Evergreen,150000
+Standard Price Book;QB-API-MGMT;期間ベース（年間）;JPY,JPY,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（年間）;TermDefined,1800000
+Standard Price Book;QB-API-MGMT;期間ベース（月間）;JPY,JPY,true,false,QB API管理ソリューション,Standard Price Book;true,QB-API-MGMT,期間ベース（月間）;TermDefined,150000
+Standard Price Book;QB-API-PREP;期間ベース（年間）;USD,USD,true,false,追加 API 検証用,Standard Price Book;true,QB-API-PREP,期間ベース（年間）;TermDefined,3240
+Standard Price Book;QB-API-PREP;期間ベース（年間）;JPY,JPY,true,false,追加 API 検証用,Standard Price Book;true,QB-API-PREP,期間ベース（年間）;TermDefined,486000
+Standard Price Book;QB-API-PROD;期間ベース（年間）;USD,USD,true,false,追加 API 本番用,Standard Price Book;true,QB-API-PROD,期間ベース（年間）;TermDefined,3240
+Standard Price Book;QB-API-PROD;期間ベース（年間）;JPY,JPY,true,false,追加 API 本番用,Standard Price Book;true,QB-API-PROD,期間ベース（年間）;TermDefined,486000
+Standard Price Book;QB-API-REQT;エバーグリーン（月間）;USD,USD,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,エバーグリーン（月間）;Evergreen,5
+Standard Price Book;QB-API-REQT;期間ベース（年間）;USD,USD,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（年間）;TermDefined,45
+Standard Price Book;QB-API-REQT;期間ベース（月間）;USD,USD,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（月間）;TermDefined,5
+Standard Price Book;QB-API-REQT;エバーグリーン（月間）;JPY,JPY,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,エバーグリーン（月間）;Evergreen,750
+Standard Price Book;QB-API-REQT;期間ベース（年間）;JPY,JPY,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（年間）;TermDefined,6750
+Standard Price Book;QB-API-REQT;期間ベース（月間）;JPY,JPY,true,false,API アクセスリクエスト (AEH),Standard Price Book;true,QB-API-REQT,期間ベース（月間）;TermDefined,750
+Standard Price Book;QB-AUT-CRED;エバーグリーン（月間）;USD,USD,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,エバーグリーン（月間）;Evergreen,2.5
+Standard Price Book;QB-AUT-CRED;期間ベース（年間）;USD,USD,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（年間）;TermDefined,25
+Standard Price Book;QB-AUT-CRED;期間ベース（月間）;USD,USD,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（月間）;TermDefined,2
+Standard Price Book;QB-AUT-CRED;エバーグリーン（月間）;JPY,JPY,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,エバーグリーン（月間）;Evergreen,375
+Standard Price Book;QB-AUT-CRED;期間ベース（年間）;JPY,JPY,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（年間）;TermDefined,3750
+Standard Price Book;QB-AUT-CRED;期間ベース（月間）;JPY,JPY,true,false,追加オートメーション QB クレジット,Standard Price Book;true,QB-AUT-CRED,期間ベース（月間）;TermDefined,300
+Standard Price Book;QB-BDL-R750;１回限り;USD,USD,true,false,PowerSwerve R750 ラックサーバー,Standard Price Book;true,QB-BDL-R750,１回限り;OneTime,3899
+Standard Price Book;QB-BDL-R750;１回限り;JPY,JPY,true,false,PowerSwerve R750 ラックサーバー,Standard Price Book;true,QB-BDL-R750,１回限り;OneTime,584850
+Standard Price Book;QB-BDL-SRVC;１回限り;USD,USD,true,false,QuantumBit サービスプロジェクト,Standard Price Book;true,QB-BDL-SRVC,１回限り;OneTime,0
+Standard Price Book;QB-BDL-SRVC;１回限り;JPY,JPY,true,false,QuantumBit サービスプロジェクト,Standard Price Book;true,QB-BDL-SRVC,１回限り;OneTime,0
+Standard Price Book;QB-BDL-STND;１回限り;USD,USD,true,false,QuantumBit スターター,Standard Price Book;true,QB-BDL-STND,１回限り;OneTime,0
+Standard Price Book;QB-BDL-STND;１回限り;JPY,JPY,true,false,QuantumBit スターター,Standard Price Book;true,QB-BDL-STND,１回限り;OneTime,0
+Standard Price Book;QB-BET X710SFP;１回限り;USD,USD,true,false,Intel X710 デュアルポート 10Gb SFP,Standard Price Book;true,QB-BET X710SFP,１回限り;OneTime,1599
+Standard Price Book;QB-BET X710SFP;１回限り;JPY,JPY,true,false,Intel X710 デュアルポート 10Gb SFP,Standard Price Book;true,QB-BET X710SFP,１回限り;OneTime,239850
+Standard Price Book;QB-CBOOST-150;１回限り;USD,USD,true,false,QB-CacheBoost 150,Standard Price Book;true,QB-CBOOST-150,１回限り;OneTime,389
+Standard Price Book;QB-CBOOST-150;１回限り;JPY,JPY,true,false,QB-CacheBoost 150,Standard Price Book;true,QB-CBOOST-150,１回限り;OneTime,58350
+Standard Price Book;QB-CMPC-5882;１回限り;USD,USD,true,false,設定済み電源ケーブル,Standard Price Book;true,QB-CMPC-5882,１回限り;OneTime,249
+Standard Price Book;QB-CMPC-5882;１回限り;JPY,JPY,true,false,設定済み電源ケーブル,Standard Price Book;true,QB-CMPC-5882,１回限り;OneTime,37350
+Standard Price Book;QB-CMPC-5887;１回限り;USD,USD,true,false,C13-C14 電源ケーブル 3 フィート,Standard Price Book;true,QB-CMPC-5887,１回限り;OneTime,250
+Standard Price Book;QB-CMPC-5887;１回限り;JPY,JPY,true,false,C13-C14 電源ケーブル 3 フィート,Standard Price Book;true,QB-CMPC-5887,１回限り;OneTime,37500
+Standard Price Book;QB-CMT-TKN-EACH;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンコミット - Each）,Standard Price Book;true,QB-CMT-TKN-EACH,期間ベース（年間）;TermDefined,1000
+Standard Price Book;QB-CMT-TKN-EACH;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンコミット - Each）,Standard Price Book;true,QB-CMT-TKN-EACH,期間ベース（年間）;TermDefined,150000
+Standard Price Book;QB-CMT-TKN-FLAT;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンコミット - Flat）,Standard Price Book;true,QB-CMT-TKN-FLAT,期間ベース（年間）;TermDefined,1000
+Standard Price Book;QB-CMT-TKN-FLAT;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンコミット - Flat）,Standard Price Book;true,QB-CMT-TKN-FLAT,期間ベース（年間）;TermDefined,150000
+Standard Price Book;QB-CMT-TKN-TIER;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンコミット - TIer）,Standard Price Book;true,QB-CMT-TKN-TIER,期間ベース（年間）;TermDefined,1000
+Standard Price Book;QB-CMT-TKN-TIER;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンコミット - TIer）,Standard Price Book;true,QB-CMT-TKN-TIER,期間ベース（年間）;TermDefined,150000
+Standard Price Book;QB-COMPLETE;エバーグリーン（月間）;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,エバーグリーン（月間）;Evergreen,0
+Standard Price Book;QB-COMPLETE;期間ベース（年間）;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-COMPLETE;期間ベース（月間）;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（月間）;TermDefined,0
+Standard Price Book;QB-COMPLETE;１回限り;USD,USD,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,１回限り;OneTime,0
+Standard Price Book;QB-COMPLETE;エバーグリーン（月間）;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,エバーグリーン（月間）;Evergreen,0
+Standard Price Book;QB-COMPLETE;期間ベース（年間）;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-COMPLETE;期間ベース（月間）;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,期間ベース（月間）;TermDefined,0
+Standard Price Book;QB-COMPLETE;１回限り;JPY,JPY,true,false,QuantumBit コンプリートソリューション,Standard Price Book;true,QB-COMPLETE,１回限り;OneTime,0
+Standard Price Book;QB-CPU-HEATSINK;１回限り;USD,USD,true,false,QB CPUヒートシンク,Standard Price Book;true,QB-CPU-HEATSINK,１回限り;OneTime,35
+Standard Price Book;QB-CPU-HEATSINK;１回限り;JPY,JPY,true,false,QB CPUヒートシンク,Standard Price Book;true,QB-CPU-HEATSINK,１回限り;OneTime,5250
+Standard Price Book;QB-CS;期間ベース（年間）;USD,USD,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-CS;期間ベース（月間）;USD,USD,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（月間）;TermDefined,0
+Standard Price Book;QB-CS;期間ベース（年間）;JPY,JPY,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-CS;期間ベース（月間）;JPY,JPY,true,false,QuantumBit コラボレーションスイート,Standard Price Book;true,QB-CS,期間ベース（月間）;TermDefined,0
+Standard Price Book;QB-DAT-GRPH;期間ベース（年間）;USD,USD,true,false,追加 QB データグラフ (500M),Standard Price Book;true,QB-DAT-GRPH,期間ベース（年間）;TermDefined,25000
+Standard Price Book;QB-DAT-GRPH;期間ベース（年間）;JPY,JPY,true,false,追加 QB データグラフ (500M),Standard Price Book;true,QB-DAT-GRPH,期間ベース（年間）;TermDefined,3750000
+Standard Price Book;QB-DAT-THPT;エバーグリーン（月間）;USD,USD,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,エバーグリーン（月間）;Evergreen,0
+Standard Price Book;QB-DAT-THPT;期間ベース（年間）;USD,USD,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-DAT-THPT;期間ベース（月間）;USD,USD,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（月間）;TermDefined,0
+Standard Price Book;QB-DAT-THPT;エバーグリーン（月間）;JPY,JPY,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,エバーグリーン（月間）;Evergreen,0
+Standard Price Book;QB-DAT-THPT;期間ベース（年間）;JPY,JPY,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-DAT-THPT;期間ベース（月間）;JPY,JPY,true,false,追加データスループット,Standard Price Book;true,QB-DAT-THPT,期間ベース（月間）;TermDefined,0
+Standard Price Book;QB-DB;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース,Standard Price Book;true,QB-DB,期間ベース（年間）;TermDefined,12000
+Standard Price Book;QB-DB;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース,Standard Price Book;true,QB-DB,期間ベース（年間）;TermDefined,1800000
+Standard Price Book;QB-DB-TOKEN;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（トークンベース）,Standard Price Book;true,QB-DB-TOKEN,期間ベース（年間）;TermDefined,12000
+Standard Price Book;QB-DB-TOKEN;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（トークンベース）,Standard Price Book;true,QB-DB-TOKEN,期間ベース（年間）;TermDefined,1800000
+Standard Price Book;QB-FLO-STRT;エバーグリーン（月間）;USD,USD,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,エバーグリーン（月間）;Evergreen,2000
+Standard Price Book;QB-FLO-STRT;期間ベース（年間）;USD,USD,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（年間）;TermDefined,24000
+Standard Price Book;QB-FLO-STRT;期間ベース（月間）;USD,USD,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（月間）;TermDefined,1500
+Standard Price Book;QB-FLO-STRT;エバーグリーン（月間）;JPY,JPY,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,エバーグリーン（月間）;Evergreen,300000
+Standard Price Book;QB-FLO-STRT;期間ベース（年間）;JPY,JPY,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（年間）;TermDefined,3600000
+Standard Price Book;QB-FLO-STRT;期間ベース（月間）;JPY,JPY,true,false,追加フロー - QB スターター,Standard Price Book;true,QB-FLO-STRT,期間ベース（月間）;TermDefined,225000
+Standard Price Book;QB-GEN-AI-LIC;期間ベース（年間）;USD,USD,true,false,QuantumBit 生成AIライセンス,Standard Price Book;true,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,149.99
+Standard Price Book;QB-GEN-AI-LIC;期間ベース（年間）;JPY,JPY,true,false,QuantumBit 生成AIライセンス,Standard Price Book;true,QB-GEN-AI-LIC,期間ベース（年間）;TermDefined,22499
+Standard Price Book;QB-HD 1.2TB;１回限り;USD,USD,true,false,1TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 1.2TB,１回限り;OneTime,250
+Standard Price Book;QB-HD 1.2TB;１回限り;JPY,JPY,true,false,1TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 1.2TB,１回限り;OneTime,37500
+Standard Price Book;QB-HD 1TB;１回限り;USD,USD,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,１回限り;OneTime,499
+Standard Price Book;QB-HD 1TB;１回限り;JPY,JPY,true,false,1TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 1TB,１回限り;OneTime,74850
+Standard Price Book;QB-HD 20TB;１回限り;USD,USD,true,false,20TB 7.2k RPM NLSAS (3.5インチ),Standard Price Book;true,QB-HD 20TB,１回限り;OneTime,1848
+Standard Price Book;QB-HD 20TB;１回限り;JPY,JPY,true,false,20TB 7.2k RPM NLSAS (3.5インチ),Standard Price Book;true,QB-HD 20TB,１回限り;OneTime,277200
+Standard Price Book;QB-HD 3TB;１回限り;USD,USD,true,false,3TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 3TB,１回限り;OneTime,450
+Standard Price Book;QB-HD 3TB;１回限り;JPY,JPY,true,false,3TB 10k RPM (2.5インチ),Standard Price Book;true,QB-HD 3TB,１回限り;OneTime,67500
+Standard Price Book;QB-HD 4TB;１回限り;USD,USD,true,false,4TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 4TB,１回限り;OneTime,799
+Standard Price Book;QB-HD 4TB;１回限り;JPY,JPY,true,false,4TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 4TB,１回限り;OneTime,119850
+Standard Price Book;QB-HD 8TB;１回限り;USD,USD,true,false,8TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 8TB,１回限り;OneTime,999
+Standard Price Book;QB-HD 8TB;１回限り;JPY,JPY,true,false,8TB 7.2k RPM NLSAS,Standard Price Book;true,QB-HD 8TB,１回限り;OneTime,149850
+Standard Price Book;QB-HD 8TBSE;１回限り;USD,USD,true,false,8TB 7.2k RPM 自己暗号化 NLSAS,Standard Price Book;true,QB-HD 8TBSE,１回限り;OneTime,1199
+Standard Price Book;QB-HD 8TBSE;１回限り;JPY,JPY,true,false,8TB 7.2k RPM 自己暗号化 NLSAS,Standard Price Book;true,QB-HD 8TBSE,１回限り;OneTime,179850
+Standard Price Book;QB-INTEL E5-2609;１回限り;USD,USD,true,false,インテル® Xeon® E5-2609 v4 1.7GHz,Standard Price Book;true,QB-INTEL E5-2609,１回限り;OneTime,1499
+Standard Price Book;QB-INTEL E5-2609;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2609 v4 1.7GHz,Standard Price Book;true,QB-INTEL E5-2609,１回限り;OneTime,224850
+Standard Price Book;QB-INTEL E5-2660;１回限り;USD,USD,true,false,インテル® Xeon® E5-2660 v4 2.0GHz,Standard Price Book;true,QB-INTEL E5-2660,１回限り;OneTime,1699
+Standard Price Book;QB-INTEL E5-2660;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2660 v4 2.0GHz,Standard Price Book;true,QB-INTEL E5-2660,１回限り;OneTime,254850
+Standard Price Book;QB-INTEL E5-2667;１回限り;USD,USD,true,false,インテル® Xeon® E5-2667 v4 3.2GHz,Standard Price Book;true,QB-INTEL E5-2667,１回限り;OneTime,2499
+Standard Price Book;QB-INTEL E5-2667;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2667 v4 3.2GHz,Standard Price Book;true,QB-INTEL E5-2667,１回限り;OneTime,374850
+Standard Price Book;QB-INTEL E5-2683;１回限り;USD,USD,true,false,インテル® Xeon® E5-2683 v4 2.1GHz,Standard Price Book;true,QB-INTEL E5-2683,１回限り;OneTime,1399
+Standard Price Book;QB-INTEL E5-2683;１回限り;JPY,JPY,true,false,インテル® Xeon® E5-2683 v4 2.1GHz,Standard Price Book;true,QB-INTEL E5-2683,１回限り;OneTime,209850
+Standard Price Book;QB-INTEL-GOLD-5318N;１回限り;USD,USD,true,false,"インテル® Xeon® Gold 5318N 2.1GHz, 24C/48T",Standard Price Book;true,QB-INTEL-GOLD-5318N,１回限り;OneTime,1999
+Standard Price Book;QB-INTEL-GOLD-5318N;１回限り;JPY,JPY,true,false,"インテル® Xeon® Gold 5318N 2.1GHz, 24C/48T",Standard Price Book;true,QB-INTEL-GOLD-5318N,１回限り;OneTime,299850
+Standard Price Book;QB-INTEL-GOLD-6330N;１回限り;USD,USD,true,false,インテル Xeon Gold 6330N 2.2GHz、28C/56T,Standard Price Book;true,QB-INTEL-GOLD-6330N,１回限り;OneTime,2149
+Standard Price Book;QB-INTEL-GOLD-6330N;１回限り;JPY,JPY,true,false,インテル Xeon Gold 6330N 2.2GHz、28C/56T,Standard Price Book;true,QB-INTEL-GOLD-6330N,１回限り;OneTime,322350
+Standard Price Book;QB-INTEL-GOLD-6354;１回限り;USD,USD,true,false,インテル Xeon Gold 6354 3GHz、18C/36T,Standard Price Book;true,QB-INTEL-GOLD-6354,１回限り;OneTime,3300
+Standard Price Book;QB-INTEL-GOLD-6354;１回限り;JPY,JPY,true,false,インテル Xeon Gold 6354 3GHz、18C/36T,Standard Price Book;true,QB-INTEL-GOLD-6354,１回限り;OneTime,495000
+Standard Price Book;QB-INTEL-PLAT-8352M;１回限り;USD,USD,true,false,インテル Xeon Platinum 8352M 2.3GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352M,１回限り;OneTime,2000
+Standard Price Book;QB-INTEL-PLAT-8352M;１回限り;JPY,JPY,true,false,インテル Xeon Platinum 8352M 2.3GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352M,１回限り;OneTime,300000
+Standard Price Book;QB-INTEL-PLAT-8352Y;１回限り;USD,USD,true,false,インテル Xeon Platinum 8352Y 2.2GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352Y,１回限り;OneTime,2500
+Standard Price Book;QB-INTEL-PLAT-8352Y;１回限り;JPY,JPY,true,false,インテル Xeon Platinum 8352Y 2.2GHz、32C/64T,Standard Price Book;true,QB-INTEL-PLAT-8352Y,１回限り;OneTime,375000
+Standard Price Book;QB-INTEL-PLAT-8360Y;１回限り;USD,USD,true,false,Intel Xeon Platinum 8360Y 2.4GHz、36C/72T,Standard Price Book;true,QB-INTEL-PLAT-8360Y,１回限り;OneTime,2800
+Standard Price Book;QB-INTEL-PLAT-8360Y;１回限り;JPY,JPY,true,false,Intel Xeon Platinum 8360Y 2.4GHz、36C/72T,Standard Price Book;true,QB-INTEL-PLAT-8360Y,１回限り;OneTime,420000
+Standard Price Book;QB-INTEL-PLAT-8368;１回限り;USD,USD,true,false,Intel Xeon Platinum 8368 2.4GHz、38C/76T,Standard Price Book;true,QB-INTEL-PLAT-8368,１回限り;OneTime,2950
+Standard Price Book;QB-INTEL-PLAT-8368;１回限り;JPY,JPY,true,false,Intel Xeon Platinum 8368 2.4GHz、38C/76T,Standard Price Book;true,QB-INTEL-PLAT-8368,１回限り;OneTime,442500
+Standard Price Book;QB-LIC-CLOUD;期間ベース（年間）;USD,USD,true,false,クラウドライセンス（月次）,Standard Price Book;true,QB-LIC-CLOUD,期間ベース（年間）;TermDefined,550
+Standard Price Book;QB-LIC-CLOUD;期間ベース（年間）;JPY,JPY,true,false,クラウドライセンス（月次）,Standard Price Book;true,QB-LIC-CLOUD,期間ベース（年間）;TermDefined,82500
+Standard Price Book;QB-LIQUIDCOOL;１回限り;USD,USD,true,false,QB液体冷却器,Standard Price Book;true,QB-LIQUIDCOOL,１回限り;OneTime,250
+Standard Price Book;QB-LIQUIDCOOL;１回限り;JPY,JPY,true,false,QB液体冷却器,Standard Price Book;true,QB-LIQUIDCOOL,１回限り;OneTime,37500
+Standard Price Book;QB-MEM 128GB;１回限り;USD,USD,true,false,128GB LRDIMM,Standard Price Book;true,QB-MEM 128GB,１回限り;OneTime,1989
+Standard Price Book;QB-MEM 128GB;１回限り;JPY,JPY,true,false,128GB LRDIMM,Standard Price Book;true,QB-MEM 128GB,１回限り;OneTime,298350
+Standard Price Book;QB-MEM 16GB;１回限り;USD,USD,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,１回限り;OneTime,599
+Standard Price Book;QB-MEM 16GB;１回限り;JPY,JPY,true,false,16GB RDIMM,Standard Price Book;true,QB-MEM 16GB,１回限り;OneTime,89850
+Standard Price Book;QB-MEM 32GB;１回限り;USD,USD,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,１回限り;OneTime,889
+Standard Price Book;QB-MEM 32GB;１回限り;JPY,JPY,true,false,32GB RDIMM,Standard Price Book;true,QB-MEM 32GB,１回限り;OneTime,133350
+Standard Price Book;QB-MEM 64GB;１回限り;USD,USD,true,false,64GB RDIMM,Standard Price Book;true,QB-MEM 64GB,１回限り;OneTime,999
+Standard Price Book;QB-MEM 64GB;１回限り;JPY,JPY,true,false,64GB RDIMM,Standard Price Book;true,QB-MEM 64GB,１回限り;OneTime,149850
+Standard Price Book;QB-MEM 8GB;１回限り;USD,USD,true,false,8GB RDIMM,Standard Price Book;true,QB-MEM 8GB,１回限り;OneTime,399
+Standard Price Book;QB-MEM 8GB;１回限り;JPY,JPY,true,false,8GB RDIMM,Standard Price Book;true,QB-MEM 8GB,１回限り;OneTime,59850
+Standard Price Book;QB-MSG-STRT;エバーグリーン（月間）;USD,USD,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,エバーグリーン（月間）;Evergreen,3500
+Standard Price Book;QB-MSG-STRT;期間ベース（年間）;USD,USD,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（年間）;TermDefined,30000
+Standard Price Book;QB-MSG-STRT;期間ベース（月間）;USD,USD,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（月間）;TermDefined,3000
+Standard Price Book;QB-MSG-STRT;エバーグリーン（月間）;JPY,JPY,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,エバーグリーン（月間）;Evergreen,525000
+Standard Price Book;QB-MSG-STRT;期間ベース（年間）;JPY,JPY,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（年間）;TermDefined,4500000
+Standard Price Book;QB-MSG-STRT;期間ベース（月間）;JPY,JPY,true,false,追加メッセージ - QB スターター,Standard Price Book;true,QB-MSG-STRT,期間ベース（月間）;TermDefined,450000
+Standard Price Book;QB-MTY-CMT;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（金額コミット）,Standard Price Book;true,QB-MTY-CMT,期間ベース（年間）;TermDefined,8000
+Standard Price Book;QB-MTY-CMT;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（金額コミット）,Standard Price Book;true,QB-MTY-CMT,期間ベース（年間）;TermDefined,1200000
+Standard Price Book;QB-NET X710;１回限り;USD,USD,true,false,Intel X710 デュアルポート 10Gb ダイレクトアタッチ,Standard Price Book;true,QB-NET X710,１回限り;OneTime,1599
+Standard Price Book;QB-NET X710;１回限り;JPY,JPY,true,false,Intel X710 デュアルポート 10Gb ダイレクトアタッチ,Standard Price Book;true,QB-NET X710,１回限り;OneTime,239850
+Standard Price Book;QB-NET-100G-ULTRA;１回限り;USD,USD,true,false,QB-NetLink 100G Ultra,Standard Price Book;true,QB-NET-100G-ULTRA,１回限り;OneTime,700
+Standard Price Book;QB-NET-100G-ULTRA;１回限り;JPY,JPY,true,false,QB-NetLink 100G Ultra,Standard Price Book;true,QB-NET-100G-ULTRA,１回限り;OneTime,105000
+Standard Price Book;QB-NET-10G;１回限り;USD,USD,true,false,QB-NetLink 10G,Standard Price Book;true,QB-NET-10G,１回限り;OneTime,220
+Standard Price Book;QB-NET-10G;１回限り;JPY,JPY,true,false,QB-NetLink 10G,Standard Price Book;true,QB-NET-10G,１回限り;OneTime,33000
+Standard Price Book;QB-NET-25G;１回限り;USD,USD,true,false,QB-NetLink 25G,Standard Price Book;true,QB-NET-25G,１回限り;OneTime,450
+Standard Price Book;QB-NET-25G;１回限り;JPY,JPY,true,false,QB-NetLink 25G,Standard Price Book;true,QB-NET-25G,１回限り;OneTime,67500
+Standard Price Book;QB-NETSECURE-10G;１回限り;USD,USD,true,false,QB-NetSecure 10G,Standard Price Book;true,QB-NETSECURE-10G,１回限り;OneTime,500
+Standard Price Book;QB-NETSECURE-10G;１回限り;JPY,JPY,true,false,QB-NetSecure 10G,Standard Price Book;true,QB-NETSECURE-10G,１回限り;OneTime,75000
+Standard Price Book;QB-NovaX150;１回限り;USD,USD,true,false,QB-Accel NovaX150,Standard Price Book;true,QB-NovaX150,１回限り;OneTime,9800
+Standard Price Book;QB-NovaX150;１回限り;JPY,JPY,true,false,QB-Accel NovaX150,Standard Price Book;true,QB-NovaX150,１回限り;OneTime,1470000
+Standard Price Book;QB-NVExpand-200;１回限り;USD,USD,true,false,QB-NVExpand 200,Standard Price Book;true,QB-NVExpand-200,１回限り;OneTime,475
+Standard Price Book;QB-NVExpand-200;１回限り;JPY,JPY,true,false,QB-NVExpand 200,Standard Price Book;true,QB-NVExpand-200,１回限り;OneTime,71250
+Standard Price Book;QB-PWRCORE-1600S;１回限り;USD,USD,true,false,QB-PowerCore 1600S,Standard Price Book;true,QB-PWRCORE-1600S,１回限り;OneTime,599
+Standard Price Book;QB-PWRCORE-1600S;１回限り;JPY,JPY,true,false,QB-PowerCore 1600S,Standard Price Book;true,QB-PWRCORE-1600S,１回限り;OneTime,89850
+Standard Price Book;QB-PWRCORE-500S;１回限り;USD,USD,true,false,QB-PowerCore 500S,Standard Price Book;true,QB-PWRCORE-500S,１回限り;OneTime,299
+Standard Price Book;QB-PWRCORE-500S;１回限り;JPY,JPY,true,false,QB-PowerCore 500S,Standard Price Book;true,QB-PWRCORE-500S,１回限り;OneTime,44850
+Standard Price Book;QB-PWRCORE-800S;１回限り;USD,USD,true,false,QB-PowerCore 800S,Standard Price Book;true,QB-PWRCORE-800S,１回限り;OneTime,489
+Standard Price Book;QB-PWRCORE-800S;１回限り;JPY,JPY,true,false,QB-PowerCore 800S,Standard Price Book;true,QB-PWRCORE-800S,１回限り;OneTime,73350
+Standard Price Book;QB-PWRSAFE-1000D;１回限り;USD,USD,true,false,QB-PowerSafe 1000D,Standard Price Book;true,QB-PWRSAFE-1000D,１回限り;OneTime,700
+Standard Price Book;QB-PWRSAFE-1000D;１回限り;JPY,JPY,true,false,QB-PowerSafe 1000D,Standard Price Book;true,QB-PWRSAFE-1000D,１回限り;OneTime,105000
+Standard Price Book;QB-PWRSAFE-2000D;１回限り;USD,USD,true,false,QB-PowerSafe 2000D,Standard Price Book;true,QB-PWRSAFE-2000D,１回限り;OneTime,1850
+Standard Price Book;QB-PWRSAFE-2000D;１回限り;JPY,JPY,true,false,QB-PowerSafe 2000D,Standard Price Book;true,QB-PWRSAFE-2000D,１回限り;OneTime,277500
+Standard Price Book;QB-PWRSAFE-600D;１回限り;USD,USD,true,false,QB-PowerSafe 600D,Standard Price Book;true,QB-PWRSAFE-600D,１回限り;OneTime,450
+Standard Price Book;QB-PWRSAFE-600D;１回限り;JPY,JPY,true,false,QB-PowerSafe 600D,Standard Price Book;true,QB-PWRSAFE-600D,１回限り;OneTime,67500
+Standard Price Book;QB-QRack-750;１回限り;USD,USD,true,false,QuantumBit Q-Rack 750,Standard Price Book;true,QB-QRack-750,１回限り;OneTime,3980
+Standard Price Book;QB-QRack-750;１回限り;JPY,JPY,true,false,QuantumBit Q-Rack 750,Standard Price Book;true,QB-QRack-750,１回限り;OneTime,597000
+Standard Price Book;QB-QTY-CMT;期間ベース（年間）;USD,USD,true,false,QuantumBit データベース（数量コミット）,Standard Price Book;true,QB-QTY-CMT,期間ベース（年間）;TermDefined,500
+Standard Price Book;QB-QTY-CMT;期間ベース（年間）;JPY,JPY,true,false,QuantumBit データベース（数量コミット）,Standard Price Book;true,QB-QTY-CMT,期間ベース（年間）;TermDefined,75000
+Standard Price Book;QB-RAID-500;１回限り;USD,USD,true,false,QB-RAIDForce 500,Standard Price Book;true,QB-RAID-500,１回限り;OneTime,620
+Standard Price Book;QB-RAID-500;１回限り;JPY,JPY,true,false,QB-RAIDForce 500,Standard Price Book;true,QB-RAID-500,１回限り;OneTime,93000
+Standard Price Book;QB-SRV-DNE;１回限り;USD,USD,true,false,データ正規化エキスパート,Standard Price Book;true,QB-SRV-DNE,１回限り;OneTime,300
+Standard Price Book;QB-SRV-DNE;１回限り;JPY,JPY,true,false,データ正規化エキスパート,Standard Price Book;true,QB-SRV-DNE,１回限り;OneTime,45000
+Standard Price Book;QB-SRV-IMP;１回限り;USD,USD,true,false,実装エンジニア,Standard Price Book;true,QB-SRV-IMP,１回限り;OneTime,300
+Standard Price Book;QB-SRV-IMP;１回限り;JPY,JPY,true,false,実装エンジニア,Standard Price Book;true,QB-SRV-IMP,１回限り;OneTime,45000
+Standard Price Book;QB-SRV-ISE;１回限り;USD,USD,true,false,統合スペシャリストエンジニア,Standard Price Book;true,QB-SRV-ISE,１回限り;OneTime,350
+Standard Price Book;QB-SRV-ISE;１回限り;JPY,JPY,true,false,統合スペシャリストエンジニア,Standard Price Book;true,QB-SRV-ISE,１回限り;OneTime,52500
+Standard Price Book;QB-SRV-MEE;１回限り;USD,USD,true,false,モジュール拡張エンジニア,Standard Price Book;true,QB-SRV-MEE,１回限り;OneTime,300
+Standard Price Book;QB-SRV-MEE;１回限り;JPY,JPY,true,false,モジュール拡張エンジニア,Standard Price Book;true,QB-SRV-MEE,１回限り;OneTime,45000
+Standard Price Book;QB-SRV-OG-PSH;１回限り;USD,USD,true,false,プロフェッショナルサービス 1日あたりの料金,Standard Price Book;true,QB-SRV-OG-PSH,１回限り;OneTime,250
+Standard Price Book;QB-SRV-OG-PSH;１回限り;JPY,JPY,true,false,プロフェッショナルサービス 1日あたりの料金,Standard Price Book;true,QB-SRV-OG-PSH,１回限り;OneTime,37500
+Standard Price Book;QB-SRV-PD;１回限り;USD,USD,true,false,プログラムディレクター,Standard Price Book;true,QB-SRV-PD,１回限り;OneTime,350
+Standard Price Book;QB-SRV-PD;１回限り;JPY,JPY,true,false,プログラムディレクター,Standard Price Book;true,QB-SRV-PD,１回限り;OneTime,52500
+Standard Price Book;QB-SRV-PMN;１回限り;USD,USD,true,false,プロジェクトマネージャー,Standard Price Book;true,QB-SRV-PMN,１回限り;OneTime,300
+Standard Price Book;QB-SRV-PMN;１回限り;JPY,JPY,true,false,プロジェクトマネージャー,Standard Price Book;true,QB-SRV-PMN,１回限り;OneTime,45000
+Standard Price Book;QB-SRV-QAE;１回限り;USD,USD,true,false,品質保証エンジニア,Standard Price Book;true,QB-SRV-QAE,１回限り;OneTime,300
+Standard Price Book;QB-SRV-QAE;１回限り;JPY,JPY,true,false,品質保証エンジニア,Standard Price Book;true,QB-SRV-QAE,１回限り;OneTime,45000
+Standard Price Book;QB-SRV-SAT;１回限り;USD,USD,true,false,ソリューションアーキテクト,Standard Price Book;true,QB-SRV-SAT,１回限り;OneTime,500
+Standard Price Book;QB-SRV-SAT;１回限り;JPY,JPY,true,false,ソリューションアーキテクト,Standard Price Book;true,QB-SRV-SAT,１回限り;OneTime,75000
+Standard Price Book;QB-SRV-SOW;１回限り;USD,USD,true,false,プロフェッショナルサービスの作業範囲,Standard Price Book;true,QB-SRV-SOW,１回限り;OneTime,25000
+Standard Price Book;QB-SRV-SOW;１回限り;JPY,JPY,true,false,プロフェッショナルサービスの作業範囲,Standard Price Book;true,QB-SRV-SOW,１回限り;OneTime,3750000
+Standard Price Book;QB-SSD 16TB;１回限り;USD,USD,true,false,Q-Drive NVX 16TB,Standard Price Book;true,QB-SSD 16TB,１回限り;OneTime,1200
+Standard Price Book;QB-SSD 16TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 16TB,Standard Price Book;true,QB-SSD 16TB,１回限り;OneTime,180000
+Standard Price Book;QB-SSD 2TB;１回限り;USD,USD,true,false,Q-Drive NVX 2TB,Standard Price Book;true,QB-SSD 2TB,１回限り;OneTime,150
+Standard Price Book;QB-SSD 2TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 2TB,Standard Price Book;true,QB-SSD 2TB,１回限り;OneTime,22500
+Standard Price Book;QB-SSD 30TB;１回限り;USD,USD,true,false,Q-Drive NVX Ultra 30TB,Standard Price Book;true,QB-SSD 30TB,１回限り;OneTime,2500
+Standard Price Book;QB-SSD 30TB;１回限り;JPY,JPY,true,false,Q-Drive NVX Ultra 30TB,Standard Price Book;true,QB-SSD 30TB,１回限り;OneTime,375000
+Standard Price Book;QB-SSD 4TB;１回限り;USD,USD,true,false,Q-Drive NVX 4TB,Standard Price Book;true,QB-SSD 4TB,１回限り;OneTime,225
+Standard Price Book;QB-SSD 4TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 4TB,Standard Price Book;true,QB-SSD 4TB,１回限り;OneTime,33750
+Standard Price Book;QB-SSD 8TB;１回限り;USD,USD,true,false,Q-Drive NVX 8TB,Standard Price Book;true,QB-SSD 8TB,１回限り;OneTime,580
+Standard Price Book;QB-SSD 8TB;１回限り;JPY,JPY,true,false,Q-Drive NVX 8TB,Standard Price Book;true,QB-SSD 8TB,１回限り;OneTime,87000
+Standard Price Book;QB-SUPP-1000;期間ベース（年間）;USD,USD,true,false,シルバーハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1000,期間ベース（年間）;TermDefined,25000
+Standard Price Book;QB-SUPP-1000;期間ベース（年間）;JPY,JPY,true,false,シルバーハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1000,期間ベース（年間）;TermDefined,3750000
+Standard Price Book;QB-SUPP-1005;期間ベース（年間）;USD,USD,true,false,ゴールドハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1005,期間ベース（年間）;TermDefined,30000
+Standard Price Book;QB-SUPP-1005;期間ベース（年間）;JPY,JPY,true,false,ゴールドハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1005,期間ベース（年間）;TermDefined,4500000
+Standard Price Book;QB-SUPP-2000;期間ベース（年間）;USD,USD,true,true,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-SUPP-2000;期間ベース（年間）;JPY,JPY,true,true,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-TOKENS-PACK;１回限り;USD,USD,true,false,QuantumBit トークンパック,Standard Price Book;true,QB-TOKENS-PACK,１回限り;OneTime,100
+Standard Price Book;QB-TOKENS-PACK;１回限り;JPY,JPY,true,false,QuantumBit トークンパック,Standard Price Book;true,QB-TOKENS-PACK,１回限り;OneTime,15000
+Standard Price Book;QB-TRN-ESSNTLS;１回限り;USD,USD,true,false,QuantumBit 基礎トレーニング,Standard Price Book;true,QB-TRN-ESSNTLS,１回限り;OneTime,8500
+Standard Price Book;QB-TRN-ESSNTLS;１回限り;JPY,JPY,true,false,QuantumBit 基礎トレーニング,Standard Price Book;true,QB-TRN-ESSNTLS,１回限り;OneTime,1275000
+Standard Price Book;QB-TRN-FUND;１回限り;USD,USD,true,false,QuantumBit 上級トレーニング,Standard Price Book;true,QB-TRN-FUND,１回限り;OneTime,6500
+Standard Price Book;QB-TRN-FUND;１回限り;JPY,JPY,true,false,QuantumBit 上級トレーニング,Standard Price Book;true,QB-TRN-FUND,１回限り;OneTime,975000
+Standard Price Book;QB-VegaX200;１回限り;USD,USD,true,false,QB-Accel VegaX200,Standard Price Book;true,QB-VegaX200,１回限り;OneTime,15000
+Standard Price Book;QB-VegaX200;１回限り;JPY,JPY,true,false,QB-Accel VegaX200,Standard Price Book;true,QB-VegaX200,１回限り;OneTime,2250000
+Standard Price Book;TEST-SUB;エバーグリーン（年間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（年間）;Evergreen,420
+Standard Price Book;TEST-SUB;エバーグリーン（月間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（月間）;Evergreen,35
+Standard Price Book;TEST-SUB;期間ベース（年間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（年間）;TermDefined,360
+Standard Price Book;TEST-SUB;期間ベース（月間）;USD,USD,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（月間）;TermDefined,30
+Standard Price Book;TEST-SUB;エバーグリーン（年間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（年間）;Evergreen,63000
+Standard Price Book;TEST-SUB;エバーグリーン（月間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,エバーグリーン（月間）;Evergreen,5250
+Standard Price Book;TEST-SUB;期間ベース（年間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（年間）;TermDefined,54000
+Standard Price Book;TEST-SUB;期間ベース（月間）;JPY,JPY,true,false,QuantumBit サブスクリプション,Standard Price Book;true,TEST-SUB,期間ベース（月間）;TermDefined,4500

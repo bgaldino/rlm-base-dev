@@ -1,6 +1,6 @@
 {
   "$comment_plan": "qb-rates SFDMU data plan - creates rate cards, rate card entries, rate adjustment tiers, and pricebook-rate card associations. Single pass inserts all objects while RateCardEntry is Draft (RABT requires Draft parent RCE). RateCardEntry activation happens externally after this load.",
-  "$comment_composite_keys": "IMPORTANT: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). Without this column, SFDMU inserts duplicates on re-runs instead of matching existing records.",
+  "$comment_composite_keys": "SFDMU v5: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). For objects with auto-number Names and all-relationship externalIds, use deleteOldData: true instead.",
   "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
@@ -22,20 +22,23 @@
       "query": "SELECT PriceBookId, PriceBook.Name, RateCardId, RateCard.Name, RateCard.Type, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
       "operation": "Upsert",
       "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
-      "excluded": false
+      "excluded": false,
+      "deleteOldData": true
     },
     {
       "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.Name, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, Rate, RateCardId, RateCard.Name, RateCard.Type, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureClass.Name, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, Status, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
       "operation": "Upsert",
       "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
-      "excluded": false
+      "excluded": false,
+      "deleteOldData": true
     },
     {
       "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key.",
       "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
       "operation": "Upsert",
       "externalId": "Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
-      "excluded": false
+      "excluded": false,
+      "deleteOldData": true
     }
   ],
   "orgs": []

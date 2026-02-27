@@ -1,4 +1,4 @@
-DisplaySequence,IsActive,Name,ObjectStateActionDefinition.$$Name$ReferenceObject.Name,ObjectStateDefinition.Name,ObjectStateTransition.Name
+DisplaySequence,IsActive,Name,ObjectStateActionDefinition.Name,ObjectStateDefinition.Name,ObjectStateTransition.Name
 1,true,Draft_To_InApproval,submitForApproval,Contract LifeCycle Management,Draft_To_InApproval
 2,true,Draft_To_Canceled,cancelContract,Contract LifeCycle Management,Draft_To_Canceled
 1,true,InApproval_To_Draft,cancelApproval,Contract LifeCycle Management,InApproval_To_Draft
@@ -33,7 +33,7 @@ DisplaySequence,IsActive,Name,ObjectStateActionDefinition.$$Name$ReferenceObject
 1,true,InApproval_To_Draft,re-draftContract,Legal,InApproval_To_Draft
 1,false,Negotiating_To_AwaitingSignature,sendForESign,Legal,Negotiating_To_AwaitingSignature
 3,true,Negotiating_To_Canceled,cancelContract,Legal,Negotiating_To_Canceled
-1,true,Negotiating_To_CustomLegalS2,legalS2;SalesforceContractsCustomAction,Legal,Negotiating_To_CustomLegalS2
+1,true,Negotiating_To_CustomLegalS2,legalS2,Legal,Negotiating_To_CustomLegalS2
 2,true,Negotiating_To_Draft,re-draftContract,Legal,Negotiating_To_Draft
 2,true,Rejected_To_Canceled,cancelContract,Legal,Rejected_To_Canceled
 1,true,Rejected_To_Draft,re-draftContract,Legal,Rejected_To_Draft

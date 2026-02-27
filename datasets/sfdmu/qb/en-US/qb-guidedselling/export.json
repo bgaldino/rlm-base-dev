@@ -38,7 +38,7 @@
         {
           "query": "SELECT AdditionalInformation, AssessmentQuestionId, CurrencyIsoCode, DataType, DeactivationDateTime, Description, ExternalAsmtContentVersion, GuidanceInformation, HelpText, IsActive, IsOptionSourceResponseValue, Name, QuestionText, ResponseValues, Status, VersionNumber FROM AssessmentQuestionVersion WHERE Status = 'Active'",
           "operation": "Upsert",
-          "externalId": "AssessmentQuestion.UniqueIndex;VersionNumber",
+          "externalId": "Name",
           "excluded": false
         },
         {

@@ -5,6 +5,7 @@ Library           Collections
 Library           String
 Library           Process
 Library           ${EXECDIR}/robot/rlm-base/resources/WebDriverManager.py    WITH NAME    WebDriverManager
+Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 
 *** Variables ***
 # Default timeout for waiting for setup page and toggle elements
@@ -12,11 +13,11 @@ ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
 
 *** Keywords ***
-Get Authenticated Revenue Settings Url
-    [Documentation]    Runs \`sf org open -o <org> --url-only -p /lightning/setup/RevenueSettings/home\` to get a one-time authenticated URL. Use this so the Selenium browser session logs in without manual steps. Requires Salesforce CLI and an authenticated org alias.
-    [Arguments]    ${org_alias}
+Get Authenticated Setup Page Url
+    [Documentation]    Runs \`sf org open -o <org> --url-only -p <setup_path>\` to get a one-time authenticated URL. Requires Salesforce CLI and an authenticated org alias.
+    [Arguments]    ${org_alias}    ${setup_path}=/lightning/setup/RevenueSettings/home
     Run Keyword If    """${org_alias}""" == ""    Fail    msg=ORG_ALIAS must be set (e.g. robot -v ORG_ALIAS:my-scratch ...)
-    ${result}=    Run Process    sf    org    open    -o    ${org_alias}    --url-only    -p    /lightning/setup/RevenueSettings/home    shell=False
+    ${result}=    Run Process    sf    org    open    -o    ${org_alias}    --url-only    -p    ${setup_path}    shell=False
     Run Keyword If    ${result.rc} != 0    Fail    msg=sf org open failed: ${result.stderr}
     ${raw}=    Strip String    ${result.stdout}
     ${raw}=    Evaluate    $raw.replace(chr(10), ' ').replace(chr(13), ' ').strip()
@@ -24,6 +25,12 @@ Get Authenticated Revenue Settings Url
     ${url}=    Evaluate    $raw.split('with the following URL:')[-1].strip() if 'with the following URL:' in $raw else $raw
     ${url}=    Strip String    ${url}
     Run Keyword If    """${url}""" == ""    Fail    msg=sf org open did not return a URL
+    RETURN    ${url}
+
+Get Authenticated Revenue Settings Url
+    [Documentation]    Convenience wrapper for Revenue Settings page.
+    [Arguments]    ${org_alias}
+    ${url}=    Get Authenticated Setup Page Url    ${org_alias}    /lightning/setup/RevenueSettings/home
     RETURN    ${url}
 
 _Get Revenue Settings Target Url
@@ -34,6 +41,18 @@ _Get Revenue Settings Target Url
     Return From Keyword If    """${ORG_ALIAS}""" != ""    ${auth}
     Run Keyword If    """${REVENUE_SETTINGS_URL}""" == ""    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or REVENUE_SETTINGS_URL
     RETURN    ${REVENUE_SETTINGS_URL}
+
+Open Setup Page
+    [Documentation]    Opens any Salesforce setup page by path. If \${ORG_ALIAS} is set, uses \`sf org open --url-only\` to get an authenticated URL. Otherwise falls back to the provided url argument.
+    [Arguments]    ${setup_path}=/lightning/setup/RevenueSettings/home    ${url}=${EMPTY}    ${wait_for_login}=${True}
+    ${target}=    Set Variable If    """${url}""" != ""    ${url}    ${EMPTY}
+    ${target}=    Run Keyword If    """${target}""" == "" and """${ORG_ALIAS}""" != ""    Get Authenticated Setup Page Url    ${ORG_ALIAS}    ${setup_path}
+    ...    ELSE    Set Variable    ${target}
+    Run Keyword If    """${target}""" == "" or """${target}""" == "None"    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or provide a url argument
+    Go To    ${target}
+    Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
+    Run Keyword If    ${wait_for_login}    _Wait For Login If Needed    ${target}
+    Sleep    2s    reason=Allow Lightning to finish rendering
 
 Open Revenue Settings Page
     [Documentation]    Opens the Revenue Settings setup page. If \${ORG_ALIAS} is set, uses \`sf org open --url-only\` to get an authenticated URL (recommended). Otherwise uses \${REVENUE_SETTINGS_URL} or url argument; if the page shows login, waits \${MANUAL_LOGIN_WAIT} for you to log in then reloads.
@@ -69,7 +88,10 @@ Disable Toggle By Label
     Sleep    1s    reason=Allow toggle state to persist
 
 _VerifyToggleState By Label
-    [Documentation]    Fails if the toggle for the given label is not in the expected on/off state. Document Builder uses section text (Enabled/Disabled) because the input is in shadow DOM.
+    [Documentation]    Fails if the toggle for the given label is not in the expected on/off state.
+    ...    For Document Builder, uses section-text verification (lenient warning).
+    ...    For other toggles, tries aria-checked/checked first, then falls back to
+    ...    JavaScript shadow-DOM inspection when attributes are inaccessible.
     [Arguments]    ${label}    ${expected_on}=True
     Run Keyword If    """${label}""" == "Document Builder"    Run Keywords    _VerifyToggleByEnabledText    ${label}    ${expected_on}    AND    Return From Keyword
     ${toggle_locator}=    _GetToggleLocatorForLabel    ${label}
@@ -77,15 +99,15 @@ _VerifyToggleState By Label
     ${checked}=    Get Element Attribute    ${toggle_locator}    checked
     ${no_attrs}=    Set Variable If    """${aria}""" == "" or """${aria}""" == "None"    ${True}    ${False}
     ${no_attrs}=    Set Variable If    ("""${checked}""" == "" or """${checked}""" == "None") and ${no_attrs}    ${True}    ${False}
-    Run Keyword If    ${no_attrs}    _VerifyToggleByEnabledText    ${label}    ${expected_on}
+    Run Keyword If    ${no_attrs}    _VerifyToggleViaShadowDOM    ${label}    ${expected_on}
     Return From Keyword If    ${no_attrs}
     ${is_on}=    Set Variable If    """${aria}""" == "true"    ${True}    ${False}
     ${ck}=    Convert To Lower Case    ${checked}
     ${is_on}=    Set Variable If    """${ck}""" == "true"    ${True}    ${is_on}
     ${expected_state}=    Set Variable If    ${expected_on}    ON    OFF
     Run Keyword If    ${is_on} != ${expected_on}    Run Keywords
-    ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
-    ...    AND    Fail    msg=Toggle "${label}" was not ${expected_state} (aria-checked=${aria}, checked=${checked}). See document_builder_toggle_verification_failed.png
+    ...    Capture Page Screenshot    filename=toggle_verification_failed_${label}.png
+    ...    AND    Fail    msg=Toggle "${label}" was not ${expected_state} (aria-checked=${aria}, checked=${checked}).
 
 _VerifyToggleByEnabledText
     [Documentation]    When toggle has no aria-checked/checked, look for "Enabled" or "Disabled" text in the section. For Document Builder, wait and retry (UI can update after JS click).
@@ -99,9 +121,13 @@ _VerifyToggleByEnabledTextOneCheck
     ${section_text}=    Get Text    ${section}
     ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
     Run Keyword If    ${expected_on} and ${has_enabled}    Log    Toggle "${label}" verified ON via section text.
-    Run Keyword If    ${expected_on} and not ${has_enabled}    Run Keywords
+    # Document Builder gets a lenient warning; all other toggles fail strictly
+    Run Keyword If    ${expected_on} and not ${has_enabled} and """${label}""" == "Document Builder"    Run Keywords
     ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
     ...    AND    Log    WARNING: Toggle "${label}" section still shows Disabled after click. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+    Run Keyword If    ${expected_on} and not ${has_enabled} and """${label}""" != "Document Builder"    Run Keywords
+    ...    Capture Page Screenshot    filename=toggle_verification_failed_${label}.png
+    ...    AND    Fail    msg=Toggle "${label}" section still shows Disabled after click. The toggle was not enabled.
     ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
     Run Keyword If    not ${expected_on} and not ${has_disabled}    Fail    msg=Toggle "${label}" section does not show "Disabled" after turning off.
 
@@ -117,6 +143,52 @@ _SectionShouldContainEnabled
     [Arguments]    ${section}
     ${section_text}=    Get Text    ${section}
     Should Contain    ${section_text}    Enabled
+
+_VerifyToggleViaShadowDOM
+    [Documentation]    Verify toggle state by piercing shadow DOM via JavaScript.
+    ...    Finds the label heading text, walks up to the parent container with a
+    ...    lightning-input toggle, reads the checked state from the shadow root.
+    [Arguments]    ${label}    ${expected_on}=True
+    ${state}=    Execute Javascript
+    ...    return (function(label) {
+    ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    ...        var headingEl = null;
+    ...        while (walker.nextNode()) {
+    ...            if (walker.currentNode.textContent.trim() === label) {
+    ...                headingEl = walker.currentNode.parentElement;
+    ...                break;
+    ...            }
+    ...        }
+    ...        if (!headingEl) return 'label_not_found';
+    ...        var section = headingEl;
+    ...        for (var depth = 0; depth < 10; depth++) {
+    ...            section = section.parentElement;
+    ...            if (!section || section === document.body) return 'section_not_found';
+    ...            var toggles = section.querySelectorAll('lightning-input');
+    ...            for (var j = 0; j < toggles.length; j++) {
+    ...                if (!toggles[j].shadowRoot) continue;
+    ...                var inp = toggles[j].shadowRoot.querySelector(
+    ...                    'input[role="switch"],input[type="checkbox"]');
+    ...                if (!inp) continue;
+    ...                return inp.checked ? 'on' : 'off';
+    ...            }
+    ...        }
+    ...        return 'not_found';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${label}
+    Log    Shadow DOM verify for "${label}": state=${state}, expected_on=${expected_on}
+    IF    "${state}" == "on" and ${expected_on}
+        Log    Toggle "${label}" verified ON via shadow DOM JS.
+    ELSE IF    "${state}" == "off" and not ${expected_on}
+        Log    Toggle "${label}" verified OFF via shadow DOM JS.
+    ELSE IF    "${state}" == "on" or "${state}" == "off"
+        ${expected_state}=    Set Variable If    ${expected_on}    ON    OFF
+        Capture Page Screenshot    filename=toggle_verification_failed_${label}.png
+        Fail    msg=Toggle "${label}" is ${state} but expected ${expected_state} (shadow DOM verification).
+    ELSE
+        Log    WARNING: Could not verify toggle "${label}" via shadow DOM (result: ${state}). Falling back to section text.    WARN
+        _VerifyToggleByEnabledText    ${label}    ${expected_on}
+    END
 
 _GetToggleLocatorForLabel
     [Documentation]    Returns a locator for the toggle control (switch or checkbox) in the row/section that contains the label.
@@ -180,8 +252,15 @@ _EnsureToggleByLabel
     Wait Until Element Is Visible    ${toggle_locator}    timeout=10s
     ${aria}=    Get Element Attribute    ${toggle_locator}    aria-checked
     ${checked}=    Get Element Attribute    ${toggle_locator}    checked
+    # Determine current state: aria-checked first, then section text fallback for LWC shadow-DOM toggles
+    ${attrs_missing}=    Evaluate    """${aria}""" in ("", "None") and """${checked}""" in ("", "None")
+    # LWC shadow-DOM toggles: attrs inaccessible — use section-text based detection and JS-only click
+    Run Keyword If    ${attrs_missing}    _EnsureShadowDOMToggle    ${label}    ${toggle_locator}    ${turn_on}
+    Return From Keyword If    ${attrs_missing}
+    # Standard toggles: use aria-checked / checked to decide
     ${is_on}=    Set Variable If    """${aria}""" == "true"    ${True}    ${False}
-    ${is_on}=    Set Variable If    """${aria}""" == "" and """${checked}""" == "true"    ${True}    ${is_on}
+    ${ck}=    Evaluate    """${checked}""".lower() if """${checked}""" not in ("", "None") else ""
+    ${is_on}=    Set Variable If    """${ck}""" == "true"    ${True}    ${is_on}
     Run Keyword If    ${turn_on} and not ${is_on}    _ClickToggleElement    ${toggle_locator}
     Run Keyword If    not ${turn_on} and ${is_on}    _ClickToggleElement    ${toggle_locator}
     Run Keyword If    ${turn_on} and not ${is_on}    Sleep    2s    reason=Allow toggle to update
@@ -206,11 +285,65 @@ _EnsureDocumentBuilderToggle
     Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
     Sleep    3s    reason=Allow toggle state to update after JS click
 
+_EnsureShadowDOMToggle
+    [Documentation]    For LWC shadow-DOM toggles where aria-checked/checked are inaccessible.
+    ...    Uses pure JavaScript to find the label heading, walk up to the nearest
+    ...    ancestor that contains a lightning-input toggle, pierce its shadow root,
+    ...    check the input's checked state, and click only if needed.
+    ...    This avoids XPath-based section scoping which cannot see into shadow DOM.
+    [Arguments]    ${label}    ${toggle_locator}    ${turn_on}=True
+    ${result}=    Execute Javascript
+    ...    return (function(label, shouldEnable) {
+    ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    ...        var headingEl = null;
+    ...        while (walker.nextNode()) {
+    ...            if (walker.currentNode.textContent.trim() === label) {
+    ...                headingEl = walker.currentNode.parentElement;
+    ...                break;
+    ...            }
+    ...        }
+    ...        if (!headingEl) return 'label_not_found';
+    ...        var section = headingEl;
+    ...        for (var depth = 0; depth < 10; depth++) {
+    ...            section = section.parentElement;
+    ...            if (!section || section === document.body) return 'section_not_found';
+    ...            var toggles = section.querySelectorAll('lightning-input');
+    ...            for (var j = 0; j < toggles.length; j++) {
+    ...                if (!toggles[j].shadowRoot) continue;
+    ...                var inp = toggles[j].shadowRoot.querySelector(
+    ...                    'input[role="switch"],input[type="checkbox"]');
+    ...                if (!inp) continue;
+    ...                if (shouldEnable && inp.checked) return 'already_enabled';
+    ...                if (!shouldEnable && !inp.checked) return 'already_disabled';
+    ...                inp.click();
+    ...                return 'clicked';
+    ...            }
+    ...        }
+    ...        return 'toggle_not_found';
+    ...    })(arguments[0], arguments[1])
+    ...    ARGUMENTS    ${label}    ${turn_on}
+    Log    Shadow DOM toggle JS result for "${label}": ${result}
+    IF    "${result}" == "already_enabled" or "${result}" == "already_disabled"
+        Log    Toggle "${label}" is already in desired state. No click needed.
+    ELSE IF    "${result}" == "clicked"
+        Sleep    3s    reason=Allow toggle state to update after JS click
+    ELSE IF    "${result}" == "label_not_found"
+        Log    WARNING: Label "${label}" not found on page via JS text walker.    WARN
+        Capture Page Screenshot
+        _ClickToggleElement    ${toggle_locator}
+        Sleep    3s
+    ELSE
+        Log    WARNING: Shadow DOM toggle not found for "${label}" (result: ${result}). Falling back to pre-computed locator.    WARN
+        Capture Page Screenshot
+        _ClickToggleElement    ${toggle_locator}
+        Sleep    3s
+    END
+
 _ClickToggleElement
-    [Documentation]    Clicks the toggle element. Tries Click Element and Double Click (JS click with xpath is avoided; it can break when xpath contains //).
+    [Documentation]    Clicks the toggle element via JavaScript. Native Selenium clicks can be intercepted by LWC shadow-DOM overlays, causing a double-toggle (ON then OFF). JS click avoids this by dispatching a single click directly on the element.
     [Arguments]    ${toggle_locator}
-    ${clicked}=    Run Keyword And Return Status    Click Element    ${toggle_locator}
-    Run Keyword If    not ${clicked}    Double Click Element    ${toggle_locator}
+    ${element}=    Get WebElement    ${toggle_locator}
+    Execute Javascript    arguments[0].click();    ARGUMENTS    ${element}
     Sleep    0.5s    reason=Allow click to register
 
 *** Keywords ***
@@ -222,14 +355,21 @@ Open Browser For Setup
     Maximize Browser Window
 
 _Open Chrome With Managed Driver
-    [Documentation]    Create Chrome driver. Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
+    [Documentation]    Create Chrome driver with headless options (default for CCI robot tasks). Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
     ${path}=    WebDriverManager.Get Chrome Driver Path
     Run Keyword If    """${path}""" != "None" and """${path}""" != ""    _Open Chrome With Explicit Path    ${path}
-    ...    ELSE    Open Browser    about:blank    chrome
+    ...    ELSE    _Open Chrome With Options Fallback
 
 _Open Chrome With Explicit Path
     [Arguments]    ${path}
-    Create Webdriver    Chrome    executable_path=${path}
+    ${options}=    Get Headless Chrome Options
+    Create Webdriver    Chrome    executable_path=${path}    options=${options}
+    Go To    about:blank
+
+_Open Chrome With Options Fallback
+    [Documentation]    Opens Chrome with headless options when no explicit ChromeDriver path is provided.
+    ${options}=    Get Headless Chrome Options
+    Create Webdriver    Chrome    options=${options}
     Go To    about:blank
 
 Close Browser After Setup

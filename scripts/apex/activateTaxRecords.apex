@@ -1,17 +1,34 @@
-// Step 1: Query TaxTreatment records that need to be updated
 List<TaxTreatment> taxTreatments = [SELECT Id, Status FROM TaxTreatment WHERE Status != 'Active'];
-
-// Step 2: Update TaxTreatment records to Active
 for (TaxTreatment tt : taxTreatments) {
     tt.Status = 'Active';
 }
-update taxTreatments;
-
-// Step 3: Query TaxPolicy records that need to be updated
-List<TaxPolicy> taxPolicies = [SELECT Id, Status FROM TaxPolicy WHERE Status != 'Active'];
-
-// Step 4: Update TaxPolicy records to Active
-for (TaxPolicy tp : taxPolicies) {
-    tp.Status = 'Active';
+if (!taxTreatments.isEmpty()) {
+    update taxTreatments;
 }
-update taxPolicies;
+
+Map<Id, Id> treatmentByPolicyId = new Map<Id, Id>();
+for (TaxTreatment tt : [SELECT Id, TaxPolicyId FROM TaxTreatment]) {
+    if (tt.TaxPolicyId != null) {
+        treatmentByPolicyId.put(tt.TaxPolicyId, tt.Id);
+    }
+}
+
+List<TaxPolicy> taxPolicies = [SELECT Id, Name, Status, DefaultTaxTreatmentId FROM TaxPolicy];
+List<TaxPolicy> toUpdate = new List<TaxPolicy>();
+for (TaxPolicy tp : taxPolicies) {
+    Boolean changed = false;
+    if (tp.DefaultTaxTreatmentId == null && treatmentByPolicyId.containsKey(tp.Id)) {
+        tp.DefaultTaxTreatmentId = treatmentByPolicyId.get(tp.Id);
+        changed = true;
+    }
+    if (tp.Status != 'Active') {
+        tp.Status = 'Active';
+        changed = true;
+    }
+    if (changed) {
+        toUpdate.add(tp);
+    }
+}
+if (!toUpdate.isEmpty()) {
+    update toUpdate;
+}
