@@ -105,7 +105,7 @@ class ValidateSetup(BaseTask):
             self._check_robot(),
             self._check_selenium_library(),
             self._check_webdriver_manager(),
-            self._check_urllib3(),
+            self._check_urllib3(auto_fix),
         ]
 
         self._log_summary(results)
@@ -261,21 +261,63 @@ class ValidateSetup(BaseTask):
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
 
-    def _check_urllib3(self) -> Dict[str, str]:
+    def _check_urllib3(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "urllib3"
+        MIN_URLLIB3 = (2, 6, 3)
+        min_str = "2.6.3"
         try:
             import urllib3  # noqa: PLC0415
 
             ver_str = getattr(urllib3, "__version__", "unknown")
-            if _parse_version(ver_str) >= (2, 6, 3):
+            if _parse_version(ver_str) >= MIN_URLLIB3:
                 return self._ok(label, ver_str)
-            return self._warn(
+
+            if auto_fix:
+                self.logger.info(
+                    f"[urllib3] {ver_str} is below {min_str}. Running pipx inject --force..."
+                )
+                return self._fix_urllib3(label, old_ver=ver_str)
+
+            return self._fail(
                 label,
-                f"{ver_str} is below the minimum 2.6.3 — older versions have known security vulnerabilities.\n"
+                f"{ver_str} is below the minimum {min_str} — known security vulnerabilities (CVE-2026-21441).\n"
                 '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
             )
         except ImportError:
-            return self._warn(label, "not found in the CCI Python env")
+            if auto_fix:
+                self.logger.info("[urllib3] Not found in CCI env. Running pipx inject...")
+                return self._fix_urllib3(label)
+            return self._fail(
+                label,
+                "not found in the CCI Python env.\n"
+                '  Fix: pipx inject cumulusci "urllib3>=2.6.3"',
+            )
+
+    def _fix_urllib3(self, label: str, old_ver: Optional[str] = None) -> Dict[str, str]:
+        try:
+            result = subprocess.run(
+                ["pipx", "inject", "--force", "cumulusci", "urllib3>=2.6.3"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode != 0:
+                return self._fail(
+                    label,
+                    f"auto-fix failed: {result.stderr.strip() or result.stdout.strip()}",
+                )
+            # Re-import to read the newly installed version
+            try:
+                import importlib  # noqa: PLC0415
+                import urllib3  # noqa: PLC0415
+                importlib.reload(urllib3)
+                new_ver = getattr(urllib3, "__version__", "unknown")
+            except Exception:
+                new_ver = "unknown"
+            detail = f"updated {old_ver} → {new_ver}" if old_ver else f"installed {new_ver}"
+            return self._fixed(label, detail)
+        except Exception as exc:
+            return self._fail(label, f"auto-fix failed: {exc}")
 
     # ── SFDMU helpers ─────────────────────────────────────────────────────────
 
