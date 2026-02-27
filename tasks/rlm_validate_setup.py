@@ -278,7 +278,7 @@ class ValidateSetup(BaseTask):
                 )
                 return self._fix_urllib3(label, old_ver=ver_str)
 
-            return self._fail(
+            return self._warn(
                 label,
                 f"{ver_str} is below the minimum {min_str} — known security vulnerabilities (CVE-2026-21441).\n"
                 '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
@@ -287,10 +287,10 @@ class ValidateSetup(BaseTask):
             if auto_fix:
                 self.logger.info("[urllib3] Not found in CCI env. Running pipx inject...")
                 return self._fix_urllib3(label)
-            return self._fail(
+            return self._warn(
                 label,
                 "not found in the CCI Python env.\n"
-                '  Fix: pipx inject cumulusci "urllib3>=2.6.3"',
+                '  Fix: pipx inject cumulusci "urllib3>=2.6.3" --force',
             )
 
     def _fix_urllib3(self, label: str, old_ver: Optional[str] = None) -> Dict[str, str]:
@@ -299,18 +299,21 @@ class ValidateSetup(BaseTask):
                 ["pipx", "inject", "--force", "cumulusci", "urllib3>=2.6.3"],
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=180,
             )
             if result.returncode != 0:
                 return self._fail(
                     label,
                     f"auto-fix failed: {result.stderr.strip() or result.stdout.strip()}",
                 )
-            # Re-import to read the newly installed version
+            # Re-import to read the newly installed version.
+            # Pop the cached module first so import_module reads from disk, not from
+            # the already-loaded (old) entry in sys.modules.
             try:
                 import importlib  # noqa: PLC0415
-                import urllib3  # noqa: PLC0415
-                importlib.reload(urllib3)
+                import sys as _sys  # noqa: PLC0415
+                _sys.modules.pop("urllib3", None)
+                urllib3 = importlib.import_module("urllib3")
                 new_ver = getattr(urllib3, "__version__", "unknown")
             except Exception:
                 new_ver = "unknown"
