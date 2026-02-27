@@ -5,6 +5,7 @@ Library           Collections
 Library           String
 Library           Process
 Library           ${EXECDIR}/robot/rlm-base/resources/WebDriverManager.py    WITH NAME    WebDriverManager
+Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 
 *** Variables ***
 # Default timeout for waiting for setup page and toggle elements
@@ -354,14 +355,21 @@ Open Browser For Setup
     Maximize Browser Window
 
 _Open Chrome With Managed Driver
-    [Documentation]    Create Chrome driver. Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
+    [Documentation]    Create Chrome driver with headless options (default for CCI robot tasks). Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
     ${path}=    WebDriverManager.Get Chrome Driver Path
     Run Keyword If    """${path}""" != "None" and """${path}""" != ""    _Open Chrome With Explicit Path    ${path}
-    ...    ELSE    Open Browser    about:blank    chrome
+    ...    ELSE    _Open Chrome With Options Fallback
 
 _Open Chrome With Explicit Path
     [Arguments]    ${path}
-    Create Webdriver    Chrome    executable_path=${path}
+    ${options}=    Get Headless Chrome Options
+    Create Webdriver    Chrome    executable_path=${path}    options=${options}
+    Go To    about:blank
+
+_Open Chrome With Options Fallback
+    [Documentation]    Opens Chrome with headless options when no explicit ChromeDriver path is provided.
+    ${options}=    Get Headless Chrome Options
+    Create Webdriver    Chrome    options=${options}
     Go To    about:blank
 
 Close Browser After Setup
