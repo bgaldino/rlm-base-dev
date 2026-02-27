@@ -323,12 +323,13 @@ class ValidateSetup(BaseTask):
                     f"auto-fix failed: {err}\n"
                     f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
                 )
-            # Re-import to read the newly installed version.
-            # Pop the cached module first so import_module reads from disk, not from
-            # the already-loaded (old) entry in sys.modules.
+            # Clear cached urllib3 modules so import_module reads from disk, not from
+            # the already-loaded (old) entries in sys.modules.
             try:
                 import importlib  # noqa: PLC0415
-                sys.modules.pop("urllib3", None)
+                for name in list(sys.modules):
+                    if name == "urllib3" or name.startswith("urllib3."):
+                        sys.modules.pop(name, None)
                 urllib3 = importlib.import_module("urllib3")
                 new_ver = getattr(urllib3, "__version__", "unknown")
             except Exception:
