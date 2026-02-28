@@ -3,7 +3,8 @@ CumulusCI task to validate the local developer setup for rlm-base-dev.
 
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, SeleniumLibrary, webdriver-manager,
-urllib3). Optionally auto-fixes an outdated or missing SFDMU plugin (auto_fix),
+Chrome/Chromium, ChromeDriver, urllib3). Optionally auto-fixes an outdated or
+missing SFDMU plugin (auto_fix),
 and optionally installs/upgrades urllib3 via pipx (auto_fix_urllib3, off by default).
 
 Run without an org:
@@ -16,7 +17,9 @@ Options:
     fail_on_error           Raise on required check failures (default: true)
 """
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
@@ -122,6 +125,8 @@ class ValidateSetup(BaseTask):
             self._check_robot(),
             self._check_selenium_library(),
             self._check_webdriver_manager(),
+            self._check_chrome_chromium(),
+            self._check_chromedriver(),
             self._check_urllib3(auto_fix_urllib3),
         ]
 
@@ -277,6 +282,58 @@ class ValidateSetup(BaseTask):
                 "not installed — ChromeDriver must be on PATH when this is absent.\n"
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
+
+    def _check_chrome_chromium(self) -> Dict[str, str]:
+        """Check for Chrome or Chromium browser (required for headless robot tasks)."""
+        label = "Chrome/Chromium"
+        # Check CHROME_BIN env (used in CI/Docker)
+        env_bin = os.environ.get("CHROME_BIN")
+        if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
+            return self._ok(label, env_bin)
+        # Common paths
+        candidates = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/usr/bin/chrome",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ]
+        for path in candidates:
+            if os.path.isfile(path) and os.access(path, os.X_OK):
+                return self._ok(label, path)
+        # Try PATH
+        for name in ("google-chrome", "chromium", "chromium-browser", "chrome"):
+            found = shutil.which(name)
+            if found:
+                return self._ok(label, found)
+        return self._warn(
+            label,
+            "not found — required for headless robot tasks (enable_document_builder_toggle, etc.).\n"
+            "  Install Chrome from https://www.google.com/chrome/ or Chromium from your package manager.",
+        )
+
+    def _check_chromedriver(self) -> Dict[str, str]:
+        """Check for ChromeDriver (required for headless robot tasks)."""
+        label = "ChromeDriver"
+        # System chromedriver
+        if os.path.isfile("/usr/bin/chromedriver") and os.access("/usr/bin/chromedriver", os.X_OK):
+            return self._ok(label, "/usr/bin/chromedriver")
+        # PATH
+        path_chromedriver = shutil.which("chromedriver")
+        if path_chromedriver:
+            return self._ok(label, path_chromedriver)
+        # webdriver-manager can download at runtime
+        try:
+            import webdriver_manager  # noqa: PLC0415
+            return self._ok(label, "via webdriver-manager (downloads at runtime)")
+        except ImportError:
+            pass
+        return self._warn(
+            label,
+            "not found — required for headless robot tasks.\n"
+            "  Fix: pipx inject cumulusci webdriver-manager (downloads ChromeDriver at runtime)\n"
+            "  Or install chromedriver on PATH: https://chromedriver.chromium.org/",
+        )
 
     def _check_urllib3(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "urllib3"

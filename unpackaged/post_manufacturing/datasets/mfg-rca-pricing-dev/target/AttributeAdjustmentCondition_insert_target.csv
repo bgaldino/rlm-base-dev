@@ -1,3 +1,0 @@
-﻿"BooleanValue","DateValue","DateTimeValue","DoubleValue","IntegerValue","Operator","StringValue","ProductId","AttributeDefinitionId","AttributeBasedAdjRuleId","Errors"
-"#N/A","#N/A","#N/A","#N/A","#N/A","equals","90 Hp","01tdi000009qvIAAAY","0tjdi0000000DGnAAM","12Hdi000000WdRGEA0","Ensure that the relationship between the Product, the Attribute Definition, and an adjustment rule is unique."
-"#N/A","#N/A","#N/A","#N/A","#N/A","equals","Data Center Continuous (DCC)","01tdi000009qvMDAAY","0tjdi0000000DGmAAM","12Hdi000000WdRHEA0","Ensure that the relationship between the Product, the Attribute Definition, and an adjustment rule is unique."
