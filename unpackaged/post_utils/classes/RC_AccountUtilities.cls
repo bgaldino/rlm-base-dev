@@ -234,20 +234,23 @@ public class RC_AccountUtilities {
         try {
             // Get Order data once
             OrderData orderData = new OrderData(accountId);
-            deleteUsageResourcePoliciesForAccount(accountId);
+            deleteUsageResourcePoliciesForAccount(accountId); // BindingObjUsageRsrcPlcy
+            deleteBindingObjRateCardEntriesForAccount(accountId); // BindingObjectRateCardEntry
             
             // First handle all usage entitlements and their related records
             deleteTransactionUsageEntitlement(accountId);
-            deleteUsageEntitlementAccount(accountId);
+            deleteUsageEntitlementAccount(accountId); // UsageEntitlementAccount & UsageEntitlementBucket
             
             // Delete additional usage-related records that might reference assets
             deleteAllTransactionUsageEntitlements(accountId); // More comprehensive TUE deletion
-            deleteUsageLiableSummaries(accountId);
+            deleteUsageLiableSummaries(accountId); // UsageBillingPeriodItem
             deleteUsageRatableSummaries(accountId);
             
             // Then handle other usage and billing related records
             deleteTransactionJournal(accountId);
             deleteUsageSummaries(accountId);
+
+            // Delete Billing information
             deleteBillingScheduleGroups(accountId);
             if (deleteBilling) {
                 deleteInvoices(accountId);
@@ -2080,6 +2083,60 @@ public class RC_AccountUtilities {
         List<BindingObjUsageRsrcPlcy> batch = new List<BindingObjUsageRsrcPlcy>();
 
         for (BindingObjUsageRsrcPlcy p : uniquePolicies.values()) {
+            batch.add(p);
+            if (batch.size() == BATCH_SIZE) {
+                results.addAll(Database.delete(batch, /* allOrNone */ false));
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            results.addAll(Database.delete(batch, /* allOrNone */ false));
+        }
+        return results;
+    }
+
+    /**
+     * Deletes BindingObjectRateCardEntry records whose polymorphic BindingObjectId
+     * is tied to the given Account via any of these targets:
+     *  - the Account itself
+     *  - a Contract with Contract.AccountId = accountId
+     *
+     * Returns all per-row DeleteResults so callers can inspect failures.
+     */
+    public static List<Database.DeleteResult> deleteBindingObjRateCardEntriesForAccount(String accountId) {
+        if (accountId == null) {
+            return new List<Database.DeleteResult>();
+        }
+
+        // Collect unique policies across multiple constraint-compliant queries.
+        Map<Id, BindingObjectRateCardEntry> uniquePolicies = new Map<Id, BindingObjectRateCardEntry>();
+
+        // Q1: Direct Account
+        for (BindingObjectRateCardEntry p : [
+            SELECT Id
+            FROM BindingObjectRateCardEntry
+            WHERE BindingObjectId = :accountId
+        ]) uniquePolicies.put(p.Id, p);
+
+        // Q3: Contract -> Account
+        for (BindingObjectRateCardEntry p : [
+            SELECT Id
+            FROM BindingObjectRateCardEntry
+            WHERE BindingObjectId IN (
+                SELECT Id FROM Contract WHERE AccountId = :accountId
+            )
+        ]) uniquePolicies.put(p.Id, p);
+
+        // Nothing to do?
+        if (uniquePolicies.isEmpty()) {
+            return new List<Database.DeleteResult>();
+        }
+
+        // Delete in safe 200-row batches; allOrNone=false to continue past partial failures.
+        List<Database.DeleteResult> results = new List<Database.DeleteResult>();
+        List<BindingObjectRateCardEntry> batch = new List<BindingObjectRateCardEntry>();
+
+        for (BindingObjectRateCardEntry p : uniquePolicies.values()) {
             batch.add(p);
             if (batch.size() == BATCH_SIZE) {
                 results.addAll(Database.delete(batch, /* allOrNone */ false));
