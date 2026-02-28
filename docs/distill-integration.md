@@ -45,20 +45,24 @@ An enterprise CumulusCI automation framework for standing up Salesforce Revenue 
 
 ### 1.2 Distill (`sf-industries/distill`)
 
-An AI-powered Salesforce customization migration and analysis platform built on the Claude Agent SDK. Its core job: *"What customizations exist in a codebase, how do they relate to each other, and what do they mean for the business?"*
+An AI-powered Salesforce customization migration platform built exclusively on the Claude Agent SDK. Its core job: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
-**Integration-relevant engines:**
+**LLM access:** Vertex AI via GCP/Embark (not direct Anthropic API). Models: `claude-sonnet-4-5@20250929` (orchestration), `claude-haiku-4-5@20251001` (agents).
 
-| Engine | Used For Integration? | Purpose |
-|---|---|---|
-| **Insights** (10-stage) | ✅ Primary — Phase 1 | Scan retrieved org metadata → structured feature/capability inventory |
-| **DataMapper** | ✅ Phase 3 | Field-level drift detection against shape object footprint |
-| **CodeSuggestion** | Future | Apex/trigger migration (not in current integration scope) |
-| **Metadata Migration** | Future | Flow/LWC migration (not in current integration scope) |
+**Integration-relevant agents — current status:**
 
-**REST API:** Full HTTP API at `serve_api.py` (default port 8000) with OpenAPI spec at `/openapi.json` and Swagger UI at `/docs`.
+| Agent | Status | Purpose | Integration Phase |
+|---|---|---|---|
+| **CodeSuggestionAgent** | ✅ Implemented | `run_file_migration(file_path)` — migrates a `.cls`/`.trigger` to target org structure | **Phase 1 (available now)** |
+| **DataMapperAgent** | ✅ Implemented | Interactive entity/field mapping (1:1, 1:N, N:M); human-driven, not automatable today | Phase 5 (future automation) |
+| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce | Supports Phase 1 |
+| **IngestionAgent** | 🔲 Not yet built | Ingests retrieved org metadata for analysis | **Required for Phase 3** |
+| **AnalysisAgent** | 🔲 Not yet built | Feature/capability extraction, drift detection, impact analysis | **Required for Phase 4** |
+| **REST API (Web mode)** | 🔲 Future | FastAPI HTTP interface for programmatic integration | **Required for Phase 4** |
 
-**Known gap:** No `POST /api/projects` endpoint — projects must be pre-created via Distill CLI (`/configure`). See §4.3.
+**Today's integration entry point:** `CodeSuggestionAgent.run_file_migration` — invoked via Distill CLI (`./distill start`). Takes an Apex file path, returns migrated code. Engineer-triggered, not automated.
+
+**Full automated drift detection** (the round-trip workflow in §3) requires IngestionAgent + AnalysisAgent + REST API — all planned but not yet built. See §8 for the phased roadmap.
 
 ---
 
@@ -152,9 +156,13 @@ Distill's capability clustering output provides the semantic signal to make this
 
 ---
 
-## 4. Distill REST API: Relevant Endpoints
+## 4. Distill REST API: Integration Contract *(Future — Web Mode Not Yet Built)*
 
-### 4.1 Full API Reference (Complete Contract)
+> ⚠️ **Status:** The Distill REST API (Web mode / FastAPI) is planned but not yet implemented. The endpoints below represent the **target integration contract** — the API surface that Phase 4 of the integration will call once Distill's Web mode is built. This section should be treated as a forward-looking specification, not current capability.
+>
+> **Today's integration path** is CLI-based (Phase 1 — CodeSuggestionAgent via `./distill start`). See §8 for the phased roadmap.
+
+### 4.1 Full API Reference (Target Contract)
 
 Base URL: configurable (default `http://localhost:8000`)
 OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
@@ -1102,13 +1110,15 @@ env:
 
 ## 8. Implementation Roadmap
 
-### Phase 0: Datasets Reorganization (Prerequisite)
+> **How this roadmap is structured:** Phases 0–2 are buildable today using what's currently available in both Foundations and Distill. Phases 3–5 are forward-looking — each requires specific Distill agents or infrastructure that are planned but not yet built. Phase gates are noted explicitly.
+
+---
+
+### Phase 0: Datasets Reorganization *(No Distill dependency)*
 
 > **Full proposal and migration steps:** [datasets-reorganization.md](datasets-reorganization.md)
 >
-> This phase must be completed (or at minimum reviewed and approved) before Phase 1 begins.
-> The Phase 1 manifest paths (`datasets/sfdmu/qb/en-US/shape_manifest.json`) and the `shapes.json`
-> registry both depend on the reorganized folder structure.
+> Parallelizable with Phase 1 and 2. The manifest paths (`datasets/sfdmu/qb/en-US/shape_manifest.json`) and `shapes.json` registry depend on the reorganized structure, but Phase 1–2 work can use current paths during development.
 
 | # | Task | Owner | Status |
 |---|---|---|---|
@@ -1121,50 +1131,92 @@ env:
 
 ---
 
-### Phase 1: Foundation *(parallelizable with Phase 0)*
+### Phase 1: CodeSuggestion Integration — Apex Promotion *(Available now)*
 
-> **Phase 0 is not a hard blocker for Phase 1.** The manifest generator and capture task can use the current `qb/en-US` paths during development. Path defaults are updated to the reorganized structure once Phase 0 is complete.
+> **Distill requirement:** `CodeSuggestionAgent` — ✅ implemented.
 >
-> **Minimal viable demo path (no Phase 0 required):**
-> 1. Run `generate_baseline_manifest` against the current `datasets/sfdmu/qb/en-US/` layout
-> 2. Point `baseline_manifest_path` at the generated file's current location
-> 3. Run `capture_org_customizations` against a customized dev org
-> 4. Show `output/distill_drift_report.json` — new entities, domain classification, promotion hints
+> This phase delivers the first live integration point: an engineer who has identified an Apex customization worth promoting can invoke Distill's CodeSuggestion agent from a Foundations CCI task to translate that file for the target org structure. This is **engineer-triggered**, not automated — the drift detection step is still manual at this phase.
+>
+> **How it works today:** `./distill start` launches the interactive CLI. The `CodeSuggestionAgent` accepts a `.cls` or `.trigger` file path and calls `run_file_migration`, producing migrated code ready for the target platform. A CCI task wraps this via subprocess invocation.
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 1.1 | Write `scripts/generate_baseline_manifest.py` | | 🔲 TODO |
-| 1.2 | Generate and commit `datasets/sfdmu/qb/en-US/shape_manifest.json` | | 🔲 TODO |
-| 1.3 | Add `generate_baseline_manifest` CCI task | | 🔲 TODO |
-| 1.4 | Write `tasks/rlm_distill_capture.py` with full guard logic and tiered model design | | 🔲 TODO |
-| 1.5 | Add `capture_org_customizations` and `analyze_org_drift` to `cumulusci.yml` | | 🔲 TODO |
-| 1.6 | Test graceful skip when Distill not configured | | 🔲 TODO |
-| 1.7 | Test full round-trip with a real customized org | | 🔲 TODO |
-| 1.8 | Register `shape_manifest.json` as a prompt-cache candidate once caching infrastructure is available | | 🔲 TODO |
+| 1.1 | Write `tasks/rlm_distill_migrate.py` — CCI Python task that invokes `./distill start` + CodeSuggestion via subprocess | | 🔲 TODO |
+| 1.2 | Add `migrate_apex_customization` task to `cumulusci.yml` with `file_path` option | | 🔲 TODO |
+| 1.3 | Add guard logic: Distill installed? CLI reachable? File path valid? | | 🔲 TODO |
+| 1.4 | Test with a real Apex class from a customized qb/en-US dev org | | 🔲 TODO |
+| 1.5 | Document the engineer-triggered promote workflow (retrieve → identify → migrate → review → merge) | | 🔲 TODO |
 
-### Phase 2: REST API Gap (Contribute to Distill)
+---
 
-| # | Task | Owner | Status |
-|---|---|---|---|
-| 2.1 | Add `POST /api/projects` endpoint to Distill (`serve_api.py`) | | 🔲 TODO |
-| 2.2 | Update `capture_org_customizations` task to create project programmatically | | 🔲 TODO |
-| 2.3 | Remove pre-configuration requirement from user docs | | 🔲 TODO |
+### Phase 2: Shape Manifest + CCI Scaffold *(Available now — pre-wires Phase 4)*
 
-### Phase 3: Field-Level Drift (DataMapper Integration)
-
-| # | Task | Owner | Status |
-|---|---|---|---|
-| 3.1 | Run Distill DataMapper against retrieved metadata to detect field-level changes | | 🔲 TODO |
-| 3.2 | Extend drift report with per-object field additions | | 🔲 TODO |
-| 3.3 | Suggest SFDMU export.json query additions for new fields | | 🔲 TODO |
-
-### Phase 4: Context Extension Discovery
+> **Distill requirement:** None — this phase is entirely on the Foundations side.
+>
+> Build the shape manifest and the `capture_org_customizations` task skeleton with full guard logic. The task will be wired to call Distill's REST API in Phase 4 — for now it validates its inputs and produces a stub report. This lets the full workflow be tested end-to-end without a live Distill API, and establishes the drift report schema that Phase 4 will populate.
+>
+> **Minimal viable demo path (Phases 0–2 only, no Distill API required):**
+> 1. Run `generate_baseline_manifest` against `datasets/sfdmu/qb/en-US/`
+> 2. Run `capture_org_customizations` against a customized dev org
+> 3. Show `output/distill_drift_report.json` — stub structure with guard logic and schema validated
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 4.1 | Include context definition XML in retrieved metadata | | 🔲 TODO |
-| 4.2 | Use Distill to diff context attributes against `force-app/main/default/contextDefinitions/` | | 🔲 TODO |
-| 4.3 | Suggest additions to `datasets/context_plans/` | | 🔲 TODO |
+| 2.1 | Write `scripts/generate_baseline_manifest.py` — reads SFDMU plans, generates `shape_manifest.json` | | 🔲 TODO |
+| 2.2 | Generate and commit `datasets/sfdmu/qb/en-US/shape_manifest.json` | | 🔲 TODO |
+| 2.3 | Add `generate_baseline_manifest` CCI task | | 🔲 TODO |
+| 2.4 | Write `tasks/rlm_distill_capture.py` — full guard logic, `drift_report.json` schema, stub Distill call | | 🔲 TODO |
+| 2.5 | Add `capture_org_customizations` and `analyze_org_drift` to `cumulusci.yml` | | 🔲 TODO |
+| 2.6 | Test graceful skip when Distill not configured | | 🔲 TODO |
+| 2.7 | Register `shape_manifest.json` as a prompt-cache candidate once caching infrastructure is available | | 🔲 TODO |
+
+---
+
+### Phase 3: Automated Org Ingestion *(Requires Distill IngestionAgent — not yet built)*
+
+> **Distill requirement:** `IngestionAgent` — 🔲 planned, not yet implemented.
+>
+> Once Distill's IngestionAgent is built, `capture_org_customizations` can feed the `retrieved/` directory to Distill for automated metadata ingestion — replacing the manual file selection in Phase 1.
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 3.1 | Confirm IngestionAgent API surface with Distill team (input: directory path, output: ingestion record ID) | | 🔲 TODO |
+| 3.2 | Update `capture_org_customizations` to call IngestionAgent (CLI or API, TBD) with `retrieved/` path | | 🔲 TODO |
+| 3.3 | Define `sf project retrieve start` filter — likely `ApexClass,Flow,LightningComponentBundle,CustomObject` | | 🔲 TODO |
+| 3.4 | Test automated ingestion with a real customized dev org | | 🔲 TODO |
+
+---
+
+### Phase 4: Automated Drift Detection *(Requires Distill AnalysisAgent + REST API — not yet built)*
+
+> **Distill requirement:** `AnalysisAgent` + REST API (Web mode) — 🔲 planned, not yet implemented.
+>
+> This is the full round-trip workflow designed in §3. Once Distill's AnalysisAgent and REST API are available, `capture_org_customizations` calls `POST /api/analysis/run`, diffs the results against `shape_manifest.json`, and produces `distill_drift_report.json` with domain classification and promotion hints.
+>
+> The Phase 2 task skeleton and guard logic slot directly into this phase — the stub Distill call is replaced with the real API call.
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 4.1 | Confirm REST API contract with Distill team (endpoints, auth, response schema) | | 🔲 TODO |
+| 4.2 | Replace stub Distill call in `capture_org_customizations` with `POST /api/analysis/run` | | 🔲 TODO |
+| 4.3 | Implement diff logic: Distill feature inventory vs `shape_manifest.json` | | 🔲 TODO |
+| 4.4 | Populate `drift_report.json` with new entities, features, domain classification, promotion hints | | 🔲 TODO |
+| 4.5 | Handle `POST /api/projects` (or project pre-creation CLI equivalent) | | 🔲 TODO |
+| 4.6 | Test full round-trip: retrieve → ingest → analyze → diff → report | | 🔲 TODO |
+
+---
+
+### Phase 5: Field-Level Drift + Cross-Platform Integration *(Future)*
+
+> **Distill requirement:** DataMapper automation API + stable REST API from Phase 4.
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 5.1 | Run DataMapper programmatically against retrieved metadata for field-level drift detection | | 🔲 TODO |
+| 5.2 | Extend drift report with per-object field additions and SFDMU export.json suggestions | | 🔲 TODO |
+| 5.3 | Include context definition XML in retrieved metadata; diff against `force-app/main/default/contextDefinitions/` | | 🔲 TODO |
+| 5.4 | Evaluate `shapes.json` as a cross-platform contract for Aegis test-scenario selection (see O9) | | 🔲 TODO |
+| 5.5 | Register `shape_manifest.json` prompt-cache once caching infrastructure is confirmed | | 🔲 TODO |
 
 ---
 

@@ -114,53 +114,58 @@ revenue-cloud-foundations/
 
 ## 3. Distill
 
-**Repository:** `sf-industries/distill` (Salesforce enterprise — requires SSO)
-**Technology:** Python 3.10+ · Claude Agent SDK (Anthropic) · ChromaDB · DuckDB · NetworkX · SQLite
-**Interface:** REST API (port 8000) · Interactive CLI · Flask dashboard
+**Repository:** `sf-industries/distill` (Salesforce enterprise — requires SSO + GCP/Embark setup)
+**Technology:** Python 3.10–3.12 · Claude Agent SDK · Vertex AI (GCP/Embark) · SQLite · Textual TUI
+**Interface:** Interactive CLI (`./distill start`) · Textual TUI · REST API (Web mode — planned)
 
-Distill is an AI-powered Salesforce customization analysis platform built on the Claude Agent SDK. It answers: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and what should we do with them?"*
+Distill is an AI-powered Salesforce customization migration platform built **exclusively on the Claude Agent SDK**. It answers: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
-### 3.1 The Four Engines
+### 3.1 Agent Architecture
 
-| Engine | Purpose | Used In Integration |
+Six specialized agents; three currently implemented, three planned:
+
+| Agent | Status | Purpose |
 |---|---|---|
-| **Insights** (10-stage pipeline) | Scans code/metadata → entry points → business flows → capability clusters → structured feature inventory | ✅ Phase 1 (active focus) |
-| **DataMapper** | Semantically maps entities and fields between schemas; detects field-level drift against known baselines | ✅ Phase 3 |
-| **CodeSuggestion** | Migrates Apex/triggers using RAG + knowledge graph for context-aware LLM translation | Future |
-| **Metadata Migration** | Type-specific LLM migration of Flows, LWC, Aura, Visualforce | Future |
+| **CodeSuggestionAgent** | ✅ Implemented | Migrates Apex/trigger files to target org via `run_file_migration` |
+| **DataMapperAgent** | ✅ Implemented | Interactive entity/field mapping (1:1, 1:N, N:M cardinalities) |
+| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce |
+| **IngestionAgent** | 🔲 Planned | Ingests org metadata from a retrieved codebase for analysis |
+| **AnalysisAgent** | 🔲 Planned | Feature/capability extraction, drift detection, impact analysis |
+| **ProjectAgent** | 🔲 Planned | Project lifecycle and workspace management |
 
 ### 3.2 AI Architecture
 
-Distill uses the **Claude Agent SDK sub-agent pattern** — each agent owns only the tools it needs, with explicit handoffs between stages. This prevents context bleed between analysis phases and keeps each stage's reasoning focused.
-
-- **RAG-first discovery:** Semantic vector search (ChromaDB) + knowledge graph (NetworkX) before any LLM call — reduces hallucination by grounding generation in actual code artifacts
-- **LLM providers:** Claude Sonnet 4.5 (primary), Claude Haiku 4.5 (fast paths), Gemini 2.5 Pro (adapter), OpenAI (fallback)
-- **Storage:** SQLite (projects, migration records), ChromaDB (embeddings), DuckDB (Insights analytics), NetworkX (dependency graph)
+- **Claude Agent SDK exclusively** — no custom Anthropic client wrapper; all LLM calls go through `ClaudeSDKClient`
+- **Clean Architecture:** Core (domain/services) → Controllers → UI — zero UI dependencies in business logic
+- **LLM access:** Vertex AI via GCP/Embark (`claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`) — requires Embark-provisioned GCP project
+- **Storage:** SQLite (primary), ChromaDB + NetworkX (planned)
 
 ### 3.3 How It Plugs Into Foundations
 
+Integration is **phased** based on what's available today vs. what Distill's roadmap delivers:
+
+**Today (Phase 1 — CodeSuggestion CLI):**
 ```
-1. Foundations deploys baseline org via prepare_rlm_org
-2. Org accumulates customizations (Apex, Flows, LWC, context attributes, new objects)
-3. sf project retrieve start → retrieved/ (metadata on local filesystem)
-4. cci task run capture_org_customizations  [new optional CCI task]
-     │
-     ├── Guard: distill_api_url configured? → skip if not
-     ├── Guard: API reachable? → skip if not
-     ├── Guard: retrieved/ exists? → skip if not
-     └── Guard: shape_manifest.json exists? → skip if not
-         │
-         ▼
-5. POST /api/analysis/run → Distill Insights engine (10-stage scan)
-6. GET /api/analysis/{id}/features → structured feature inventory
-7. Diff against shape_manifest.json (the known Foundations baseline)
-8. Output: output/distill_drift_report.json
-             ├── new_entities[]       (SObjects not in baseline)
-             ├── features[]           (with inferred_domain, suggested_bundle)
-             └── promotion_hint       (Apex / Flow / LWC / manual)
+Engineer identifies Apex customization worth promoting
+→ cci task run migrate_apex_customization  file_path=<path/to/Custom.cls>
+     └── Invokes ./distill start + CodeSuggestionAgent.run_file_migration
+         └── Output: migrated code ready for force-app/ or unpackaged/ bundle
 ```
 
-**Key design principle:** The `capture_org_customizations` task is **optional and non-blocking**. Users without Distill access experience zero disruption to existing Foundations flows.
+**Future (Phase 4 — full drift detection, requires Distill AnalysisAgent + REST API):**
+```
+1. prepare_rlm_org → baseline org
+2. Org accumulates customizations
+3. sf project retrieve start → retrieved/
+4. cci task run capture_org_customizations  [optional, non-blocking]
+     └── POST /api/analysis/run → Distill AnalysisAgent
+         └── Diff vs shape_manifest.json → distill_drift_report.json
+                ├── new_entities[]  (SObjects not in baseline)
+                ├── features[]      (with inferred_domain, promotion_hint)
+                └── decision: PROMOTE / OVERLAY / DISCARD
+```
+
+**Key design principle:** All Distill integration tasks are **optional and non-blocking**. Users without Distill access experience zero disruption to existing Foundations flows. See [distill-integration.md](distill-integration.md) for the full phased roadmap.
 
 ---
 

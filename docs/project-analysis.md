@@ -598,18 +598,19 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 
 ## 2.1 Overview & Positioning
 
-**Distill** (`sf-industries/distill`) is an AI-powered Salesforce customization migration and analysis platform built on the Claude Agent SDK. It answers the question: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
+**Distill** (`sf-industries/distill`) is an AI-powered Salesforce customization migration platform built exclusively on the Claude Agent SDK. It answers the question: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
-- **Python:** 3.10+
-- **LLM:** Claude Sonnet 4.5 (primary), Claude Haiku 4.5 (fast), Gemini 2.5 Pro (adapter), OpenAI (fallback)
-- **Storage:** SQLite (relational), ChromaDB (vector), DuckDB (analytics), NetworkX (graph)
-- **Interface:** Interactive CLI, REST HTTP API, Flask web dashboard
+- **Python:** 3.10–3.12
+- **LLM:** Claude Sonnet 4.5 / Haiku 4.5 — accessed via **Vertex AI on GCP** (provisioned through Embark). No direct Anthropic API or Bedrock.
+- **Storage:** SQLite (primary — relational project/migration data), ChromaDB (vector, planned), NetworkX (graph, planned)
+- **Interface:** Interactive CLI (`./distill start`), TUI (Textual), REST API (Web mode — future)
 
 **What makes it distinctive:**
-- Sub-agent architecture with explicit tool ownership — each agent only has access to the tools it needs
-- RAG-first code discovery: semantic vector search + knowledge graph before LLM generation
-- 10-stage Insights pipeline that extracts business-level features from low-level code artifacts
-- Support for multi-entity schema mappings (1:1, 1:N, N:1, N:M)
+- Clean Architecture: Core (domain/services) → Controllers → UI — core has zero UI dependencies
+- Claude Agent SDK used exclusively — no custom Anthropic client wrapper
+- Six specialized agents, each owning only the tools it needs; three are currently implemented
+- Support for multi-entity schema mappings (1:1, 1:N, N:1, N:M) via DataMapperAgent
+- Pluggable storage, event bus, and plugin system for extensibility
 
 ---
 
@@ -618,40 +619,28 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 ### Core
 | Package | Version | Role |
 |---|---|---|
-| `anthropic` (Claude Agent SDK) | Latest | LLM orchestration and MCP tool management |
-| `pydantic` | 2.9+ | Type-safe configuration (v2 with validators) |
+| `claude-agent-sdk` | Latest | LLM orchestration and MCP tool management (exclusive LLM interface) |
+| `pydantic` | 2.x+ | Type-safe configuration (v2 with validators) |
 | `sqlalchemy` | 2.0+ | ORM for SQLite relational data |
-| `chromadb` | 0.5+ | Vector embeddings for RAG |
-| `duckdb` | 0.9+ | Columnar analytics for Insights pipeline |
-| `networkx` | 3.4+ | Dependency graph construction |
+| `chromadb` | Planned | Vector embeddings (planned — not yet integrated) |
+| `networkx` | Planned | Dependency graph (planned — not yet integrated) |
 
-### ML / Embeddings
+### LLM Access
+| Model | Access Path | Used By |
+|---|---|---|
+| `claude-sonnet-4-5@20250929` | Vertex AI via GCP/Embark | Orchestration |
+| `claude-haiku-4-5@20251001` | Vertex AI via GCP/Embark | CodeSuggestion, DataMapper agents |
+| `GEMINI_API_KEY` | Google AI direct | Gemini adapter (optional) |
+
+> **Note:** LLM access requires a GCP project provisioned via [Embark](https://embark.sfdcbt.net/). No direct Anthropic API key or AWS Bedrock configuration is used.
+
+### UI & CLI
 | Package | Role |
 |---|---|
-| `sentence-transformers` | Code embeddings (`all-MiniLM-L6-v2`) |
-| `transformers` | Transformer model support |
-| `tree-sitter` | Code parsing (Apex, Java, JavaScript, Python) |
-| `numpy`, `scipy`, `scikit-learn` | Numerical and ML operations |
-
-### LLM Adapters
-| Package | Provider |
-|---|---|
-| `anthropic` | Anthropic (Claude on Vertex AI) |
-| `google-genai` | Google Gemini 2.5 Pro |
-| `openai` | OpenAI GPT-4 (fallback) |
-
-### Web & API
-| Package | Role |
-|---|---|
-| `flask` | Web dashboard |
-| `httpx` | Async HTTP client |
-| `aiohttp` | Async HTTP/WebSockets |
-
-### CLI
-| Package | Role |
-|---|---|
-| `rich` | Terminal UI (colors, panels, progress bars) |
-| `prompt_toolkit` | Interactive prompts and autocomplete |
+| `textual` | TUI framework (Salesforce-themed terminal app) |
+| `typer` | CLI framework |
+| `rich` | Console output formatting |
+| `prompt_toolkit` | Interactive prompts |
 
 ### Optional Salesforce
 | Package | Role |
@@ -663,142 +652,123 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 
 ## 2.3 Architecture Overview
 
+Distill follows **Clean Architecture** — dependencies point inward only; core has zero UI dependencies.
+
 ```
-distill/src/distill/
-├── agents/                     # Multi-agent layer (Claude Agent SDK)
-│   ├── base_agent.py           # BaseAgent protocol
-│   ├── codesuggestion/         # Code migration agents
-│   │   ├── codesuggestion_main_agent.py
-│   │   ├── file_migration_agent.py
-│   │   ├── feature_migration_agent.py
-│   │   └── modification_sub_agent.py
-│   ├── datamapper/             # Schema mapping agents
-│   │   ├── datamapper_agent.py
-│   │   ├── ingest_agent.py
-│   │   ├── match_agent.py
-│   │   ├── mapping_agent.py
-│   │   └── pipeline_agent.py
-│   └── deployment/
-│       └── deployment_agent.py
-│
-├── tools/                      # MCP Tool definitions
-│   ├── codesuggestion/         # migration_tools, context_tools, output_tools
-│   └── datamapper/             # ingest_tools, match_tools, mapping_tools, chain_tools
-│
-├── services/                   # Business logic layer
-├── orchestrator/               # AgentOrchestrator (Claude SDK management)
-├── config/                     # Layered configuration system
-│
-├── insights/                   # 10-stage pipeline (standalone module)
-├── codesuggestion/             # Code migration core logic + LLM client
-├── datamapper/                 # Schema mapping core logic
-├── metadata_migration/         # Salesforce metadata migration
-│
-├── db/                         # SQLAlchemy ORM layer
-│   ├── models/                 # project, migration, workspace, analysis, insights, feature_mapping
-│   └── crud/
-│
-├── ui/cli/                     # Interactive CLI
-│   ├── __main__.py
-│   ├── interactive.py
-│   ├── command_handler.py
-│   └── progress_display.py
-│
-├── dashboard/                  # Flask web dashboard
-├── semantic_search/            # Semantic code discovery
-├── vectorization/              # Code vectorization for RAG
-└── logging/                    # loguru + structlog + Rich
+distill/
+├── main.py                         # Entry point (./distill start)
+├── src/distill/
+│   ├── core/                       # Pure business logic — NO UI imports
+│   │   ├── domain/
+│   │   │   ├── models.py           # Domain models (Project, ExecutionPlan, etc.)
+│   │   │   └── protocols.py        # Service/repository interfaces
+│   │   └── services/               # Service implementations
+│   │       ├── project_service.py
+│   │       ├── llm_service.py
+│   │       ├── ingestion_service.py    # (planned)
+│   │       └── analysis_service.py     # (planned)
+│   │
+│   ├── infrastructure/             # Data persistence
+│   │   └── repositories/
+│   │       ├── sqlite_repository.py    # Production storage
+│   │       └── in_memory_repository.py # Test storage
+│   │
+│   ├── controllers/                # Adapters: UI ↔ core services
+│   │   ├── project_controller.py
+│   │   └── migration_controller.py
+│   │
+│   ├── agents/                     # Claude Agent SDK agent implementations
+│   │   ├── base_agent.py           # BaseAgent protocol
+│   │   ├── codesuggestion/         # ✅ Implemented
+│   │   │   ├── codesuggestion_main_agent.py
+│   │   │   ├── file_migration_agent.py
+│   │   │   ├── feature_migration_agent.py
+│   │   │   └── modification_sub_agent.py
+│   │   ├── datamapper/             # ✅ Implemented
+│   │   │   └── datamapper_agent.py
+│   │   └── deployment/             # ✅ Implemented
+│   │       ├── deployment_agent.py
+│   │       └── deployment_agent_datamapper.py
+│   │
+│   ├── ui/                         # Presentation layer only
+│   │   ├── tui/                    # Textual TUI (Salesforce-themed)
+│   │   ├── cli/                    # Typer CLI
+│   │   └── web/                    # FastAPI REST (future)
+│   │
+│   ├── orchestrator/               # AgentOrchestrator (Claude SDK management)
+│   ├── config/                     # Layered YAML config (base/dev/prod/test)
+│   ├── storage/                    # Storage abstraction + factory
+│   ├── llm/                        # Claude SDK client (config accessor only)
+│   ├── logging/                    # Loguru + Rich output
+│   ├── plugins/                    # Plugin system
+│   └── events/                     # Event bus
+└── tests/
+    ├── unit/
+    ├── integration/
+    └── fixtures/
 ```
 
 ---
 
-## 2.4 The Four Engines
+## 2.4 Agent Architecture
 
-### Engine 1: Insights (10-Stage Pipeline)
+Distill's six specialized agents are registered with the `AgentOrchestrator`, which manages Claude SDK sessions, tool aggregation, and routing. Three agents are currently implemented; three are planned.
 
-Scans a codebase to extract a structured inventory of business capabilities and features.
+### Implemented Agents
 
-| Stage | Name | What It Does |
+#### CodeSuggestionAgent ✅
+
+Migrates Apex classes and triggers from a source org to a target platform.
+
+**Model:** `claude-haiku-4-5@20251001` (Vertex AI)
+**Pattern:** Single-tier — agent calls tools directly with no sub-agents
+
+**Primary tool:** `run_file_migration(file_path)`
+- Takes a `.cls` or `.trigger` file path
+- Outputs migrated code ready for the target org
+
+**Sub-agents (supporting):**
+- `file_migration_agent` — per-file migration
+- `feature_migration_agent` — feature-wide migration via dependency traversal
+- `modification_sub_agent` — human-in-loop modification requests
+
+**Integration note:** This is the only Distill agent available for integration with Foundations today. See Phase 1 in [distill-integration.md](distill-integration.md).
+
+---
+
+#### DataMapperAgent ✅
+
+Interactive entity and field-level mapping between source and target schemas. Supports all cardinalities (1:1, 1:N, N:1, N:M).
+
+**Model:** `claude-haiku-4-5` (Vertex AI)
+**Pattern:** Single-tier — conversational, human-driven
+
+**Tools:**
+- `update_entity_mapping(legacy_entity, modern_entity, column_mappings)` — simple 1:1 mapping
+- `create_advanced_mapping(legacy_entities, modern_entities, column_mappings)` — multi-entity (1:N, N:1, N:M)
+- `update_column_mapping(legacy_entity, legacy_column, modern_mappings)` — per-field updates
+
+**Usage:** User says "map `AML_Vehicle__c` to `Vehicle, Asset, Product2`" — agent calls the appropriate tool. Interactive only; not designed for programmatic automation.
+
+---
+
+#### DeploymentAgent ✅
+
+Deploys migrated code and schema changes to a Salesforce org. Includes a DataMapper-aware variant for deployment of mapped entities.
+
+**Files:** `deployment_agent.py`, `deployment_agent_datamapper.py`
+
+---
+
+### Planned Agents (Not Yet Implemented)
+
+| Agent | Purpose | Required For |
 |---|---|---|
-| 1 | Ingestion | Scan repo, detect code artifacts (classes, triggers, flows, controllers) |
-| 2 | Parsing | Extract metadata — method names, entry points, SOQL queries |
-| 3 | Schema | Initialize DuckDB tables for analysis |
-| 4 | Graph | Build dependency graph (file→file, class→class) |
-| 5 | Flows | Trace execution paths from entry points (REST, batch, triggers) |
-| 6 | Classification | Categorize entry points (REST_RESOURCE, AURA_ENABLED, BATCH_APEX, etc.) |
-| 7 | UI | Extract UI components (LWC, Aura, VF) and link to backend |
-| 8 | Capabilities | Group flows by entity + operation (e.g., "Account CRUD") |
-| 9 | Features | Cluster capabilities into coherent business features |
-| 10 | Business Features | LLM-powered extraction of business use cases from flows |
+| **IngestionAgent** | Ingest org metadata from a retrieved codebase | Automated org analysis (Phase 3 of Foundations integration) |
+| **AnalysisAgent** | Feature/capability extraction, drift detection, impact analysis | Automated drift reporting (Phase 4 of Foundations integration) |
+| **ProjectAgent** | Project initialization, workspace setup, configuration management | Full project lifecycle management |
 
-**Outputs:** Entry points (with confidence tiers), business flows, capabilities, features, UI-backend linkage map, `use_cases_hybrid.json`
-
-**Modes:** `fast` (stages 1–9) | `thorough` (all 10 stages with LLM validation)
-
----
-
-### Engine 2: DataMapper (Schema/Entity Mapping)
-
-Maps entities and fields between source and target schemas. Supports 1:1, 1:N, N:1, N:M cardinalities.
-
-| Stage | Agent | Purpose |
-|---|---|---|
-| 1 | `ingest_agent` | Parse source/target schemas (JSON, SFDX, XSD) |
-| 2 | — | Classify entity types |
-| 3 | `match_agent` | LLM-powered semantic entity matching |
-| 4 | `mapping_agent` | Generate field-level mappings |
-| 5 | Human review | Present mappings for approval/modification |
-
-**Input formats:** JSON schema, SFDX metadata format, XSD, custom legacy formats
-**Tools exposed:**
-- `parse_legacy_schema(file_path)`, `parse_modern_schema(file_path)`
-- `generate_schema_matches()`
-- `generate_initial_map(min_confidence)`
-- `update_entity_mapping(legacy_entity, modern_entity, column_mappings?)`
-- `create_advanced_mapping(legacy_entities, modern_entities)`
-- `update_column_mapping(legacy_entity, legacy_column, modern_mappings)`
-- `run_complete_mapping_pipeline()`
-
----
-
-### Engine 3: CodeSuggestion (Apex/Trigger Migration)
-
-Migrates Apex classes and triggers from source to target using RAG + knowledge graph for context-aware translation.
-
-**Workflow:**
-1. User provides file path (e.g., `/path/AccountService.cls`)
-2. **RAG-first discovery:** Vector DB semantically searches similar code in source/target repos
-3. **Knowledge graph:** Extracts dependencies and function calls
-4. **Context merge:** Combines RAG results with DataMapper field mappings
-5. **LLM generation:** Claude generates migration-ready code with correct API names and field mappings
-
-**Sub-agents:**
-- `file_migration_agent` — Single file with RAG + migration
-- `feature_migration_agent` — Feature-wide via dependency graph traversal
-- `modification_sub_agent` — Human-in-loop modification requests
-
-**Tools exposed:**
-- `run_file_migration(file_path, project_id?, user_request?)`
-- `run_feature_migration(feature_name)`
-
----
-
-### Engine 4: Metadata Migration (Flows, LWC, Aura)
-
-Type-specific LLM migration of Salesforce metadata with dependency resolution.
-
-**Supported types:**
-- Flows (visual workflows, Process Builder)
-- Lightning Web Components (JS/HTML/CSS)
-- Aura Components
-- Visualforce Pages
-- Custom Objects and Fields
-
-**Strategy:**
-1. Dependency analysis — extract full metadata dependency chains
-2. RAG context — retrieve similar examples from source and target
-3. Type-specific prompts — `flow_prompts.py`, `lwc_prompts.py`, `datamapper_prompts.py`
-4. Output — migrated metadata XML ready for deployment
+> When IngestionAgent and AnalysisAgent are built, the Foundations integration can move from manually-triggered Apex migration to fully automated drift detection. See [distill-integration.md](distill-integration.md) §8 for the phased roadmap.
 
 ---
 
