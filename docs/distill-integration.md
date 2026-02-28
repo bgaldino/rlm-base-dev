@@ -31,7 +31,7 @@
 
 > Full technical detail for both projects is in [project-analysis.md](project-analysis.md). This section captures the integration-relevant summary.
 
-### 1.1 rlm-base-dev
+### 1.1 Revenue Cloud Foundations
 
 An enterprise CumulusCI automation framework for standing up Salesforce Revenue Cloud (RLM) orgs from scratch. Its core job: *"How do I deploy and configure a correctly structured Revenue Cloud org?"*
 
@@ -73,16 +73,16 @@ These tools function at different layers of the implementation lifecycle:
 | Analysis | Source org feature discovery | Distill (Insights) |
 | Analysis | Schema & entity mapping | Distill (DataMapper) |
 | Migration | Apex / Flows / LWC translation | Distill (CodeSuggestion + Metadata Migration) |
-| **Capture** | **Detect post-deployment customization drift** | **Distill → rlm-base-dev (new integration)** |
-| Deployment | Org provisioning, scratch org creation | rlm-base-dev (CumulusCI) |
-| Deployment | Metadata deployment (conditional bundles) | rlm-base-dev |
-| Deployment | Reference data loading (SFDMU) | rlm-base-dev |
-| Configuration | Context extensions, DT lifecycle, PSL/PSG | rlm-base-dev |
-| Validation | Environment validation, idempotency tests | rlm-base-dev |
+| **Capture** | **Detect post-deployment customization drift** | **Distill → Revenue Cloud Foundations (new integration)** |
+| Deployment | Org provisioning, scratch org creation | Revenue Cloud Foundations (CumulusCI) |
+| Deployment | Metadata deployment (conditional bundles) | Revenue Cloud Foundations |
+| Deployment | Reference data loading (SFDMU) | Revenue Cloud Foundations |
+| Configuration | Context extensions, DT lifecycle, PSL/PSG | Revenue Cloud Foundations |
+| Validation | Environment validation, idempotency tests | Revenue Cloud Foundations |
 
 ### 2.2 The Integration Opportunity (This Document's Focus)
 
-**The scenario:** Orgs created by `rlm-base-dev` accumulate customizations over time — new Apex classes, modified Flows, extended LWC components, additional context attributes, new product-related objects. Currently there's no structured pipeline to:
+**The scenario:** Orgs created by Revenue Cloud Foundations accumulate customizations over time — new Apex classes, modified Flows, extended LWC components, additional context attributes, new product-related objects. Currently there's no structured pipeline to:
 1. Detect what has diverged from the project baseline
 2. Understand what those changes mean semantically (are they billing-related? PCM-related?)
 3. Decide whether to promote them back into the project
@@ -95,7 +95,7 @@ Distill's Insights engine provides the semantic analysis layer. The integration 
 - **Non-blocking.** The integration never fails the main `prepare_rlm_org` flow.
 - **Scoped to qb/en-US.** Only the 9 plans in `datasets/sfdmu/qb/en-US/` are in scope. Other plan folders are excluded until they are updated for SFDMU v5 composite key patterns.
 - **No custom fields.** The baseline manifest only tracks standard RLM fields. Custom field drift is out of scope.
-- **Read-only from rlm-base-dev's perspective.** The integration produces a report; no automatic merging or promotion happens.
+- **Read-only from Revenue Cloud Foundations' perspective.** The integration produces a report; no automatic merging or promotion happens.
 
 ---
 
@@ -105,7 +105,7 @@ Distill's Insights engine provides the semantic analysis layer. The integration 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ROUND-TRIP WORKFLOW                           │
 │                                                                  │
-│  rlm-base-dev            Running Org             Distill         │
+│  Foundations             Running Org             Distill         │
 │  ─────────────           ──────────              ──────────      │
 │                                                                  │
 │  prepare_rlm_org ──────► Baseline org state                      │
@@ -145,7 +145,7 @@ Distill's Insights engine provides the semantic analysis layer. The integration 
 | Decision | Meaning | Where It Goes |
 |---|---|---|
 | **Promote** | Generic improvement to the reference implementation | Merged into `force-app/` or appropriate `unpackaged/post_*/` bundle; new feature flag if needed |
-| **Overlay** | Customer/org-specific, not appropriate for the base | New downstream CCI project that extends `rlm-base-dev` as a dependency |
+| **Overlay** | Customer/org-specific, not appropriate for the base | New downstream CCI project that extends `revenue-cloud-foundations` as a dependency |
 | **Discard** | Experimental, broken, or org-specific workaround | Documented but not promoted |
 
 Distill's capability clustering output provides the semantic signal to make this decision consistently — it tells you *what domain* each change belongs to (billing capability, PCM feature, etc.) rather than just "this file is different."
@@ -932,7 +932,7 @@ class DistillCaptureDrift(BaseTask):
         }
 
     def _classify_domain(self, feature, baseline) -> str:
-        """Map a Distill feature to the closest rlm-base-dev domain."""
+        """Map a Distill feature to the closest Revenue Cloud Foundations domain."""
         DOMAIN_ENTITY_MAP = {
             "pcm":      {"Product2", "ProductCatalog", "ProductCategory",
                           "ProductClassification", "ProductRelatedComponent"},

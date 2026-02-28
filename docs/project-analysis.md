@@ -10,7 +10,7 @@
 
 ## Table of Contents
 
-### Part 1 — rlm-base-dev
+### Part 1 — Revenue Cloud Foundations
 1. [Overview & Positioning](#11-overview--positioning)
 2. [Tech Stack & Prerequisites](#12-tech-stack--prerequisites)
 3. [Project Structure](#13-project-structure)
@@ -40,11 +40,11 @@
 
 ---
 
-# Part 1 — rlm-base-dev
+# Part 1 — Revenue Cloud Foundations
 
 ## 1.1 Overview & Positioning
 
-**rlm-base-dev** is an enterprise CumulusCI automation framework for building and configuring Salesforce Revenue Cloud (Revenue Lifecycle Management) orgs from scratch. It answers the question: *"How do I stand up a correctly configured Revenue Cloud org, with the right data, permissions, and settings, repeatably across any org type?"*
+**Revenue Cloud Foundations** is an enterprise CumulusCI automation framework for building and configuring Salesforce Revenue Cloud (Revenue Lifecycle Management) orgs from scratch. It answers the question: *"How do I stand up a correctly configured Revenue Cloud org, with the right data, permissions, and settings, repeatably across any org type?"*
 
 - **Salesforce Release:** 260 (Spring '26 GA)
 - **API Version:** 66.0
@@ -92,7 +92,7 @@ cci task run validate_setup   # checks all prerequisites, auto-fixes SFDMU if ne
 ## 1.3 Project Structure
 
 ```
-rlm-base-dev/
+revenue-cloud-foundations/
 ├── force-app/main/default/         # Core Salesforce metadata (125 XML files)
 │   ├── classes/                    # 8 Apex classes
 │   ├── lwc/                        # Lightning Web Components

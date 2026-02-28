@@ -8,7 +8,7 @@
 >
 > | Platform | Identity | Core Phase |
 > |---|---|---|
-> | **[Revenue Cloud Foundations](#revenue-cloud-foundations)** | `rlm-base-dev` | Build |
+> | **[Revenue Cloud Foundations](#revenue-cloud-foundations)** | `salesforce-internal/revenue-cloud-foundations` | Build |
 > | **[Distill](#distill)** | `sf-industries/distill` | Evolve |
 > | **[Aegis](#aegis)** | `sf-industries/aegis` | Verify |
 
@@ -44,7 +44,7 @@ Foundations builds the baseline → the org evolves through real use → Distill
 
 ## 2. Revenue Cloud Foundations
 
-**Repository:** [`bgaldino/rlm-base-dev`](../README.md)
+**Repository:** [`salesforce-internal/revenue-cloud-foundations`](../README.md)
 **Technology:** CumulusCI 4.x · SFDMU v5 · Python 3.8+ · Robot Framework · Salesforce CLI
 **Salesforce Release:** 260 (Spring '26) · API 66.0
 
@@ -94,7 +94,7 @@ All QB/en-US data plans support load-twice-no-change semantics via SFDMU v5 comp
 ### 2.2 Architecture Summary
 
 ```
-rlm-base-dev/
+revenue-cloud-foundations/
 ├── cumulusci.yml           (2,386 lines — flags, flows, tasks, orgs)
 ├── tasks/                  (28 custom Python task modules)
 ├── force-app/              (Salesforce metadata — Apex, LWC, Flows, Objects)
@@ -339,4 +339,4 @@ The integrated platform — specifically the combination of (1) CCI feature-flag
 ---
 
 *Revenue Cloud Engineering Platform — Living Document*
-*Branch: `distill-integration` · Repo: `bgaldino/rlm-base-dev`*
+*Branch: `distill-integration` · Repo: `salesforce-internal/revenue-cloud-foundations`*
