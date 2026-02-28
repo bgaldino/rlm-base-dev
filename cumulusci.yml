@@ -1566,7 +1566,7 @@ tasks:
 
   test_qb_dro_idempotency:
     group: Data Management - Idempotency
-    description: Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ).
+    description: "Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ)."
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_dro_dataset
