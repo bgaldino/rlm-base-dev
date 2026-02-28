@@ -37,7 +37,7 @@ An enterprise CumulusCI automation framework for standing up Salesforce Revenue 
 
 **Integration-relevant facts:**
 - 3 data shape families: **QB** (en-US + ja), **Q3** (en-US, pending v5 migration), **MFG** (en-US, draft)
-- 29 flows / sub-flows, 28 custom Python tasks, 50+ feature flags drive conditional deployment
+- 28 named flows (including `prepare_rlm_org`, a 29-step primary orchestration flow), 24 custom Python task modules, 50+ feature flags drive conditional deployment
 - All data plans are target-org-agnostic (standard RLM fields only, no custom fields)
 - SFDMU v5 composite key patterns throughout qb/en-US; q3 pending migration
 - CML constraint models are QB-shape-specific (moving into shape folder — see [datasets-reorganization.md](datasets-reorganization.md))
@@ -55,14 +55,20 @@ An AI-powered Salesforce customization migration platform built exclusively on t
 |---|---|---|---|
 | **CodeSuggestionAgent** | ✅ Implemented | `run_file_migration(file_path)` — migrates a `.cls`/`.trigger` to target org structure | **Phase 1 (available now)** |
 | **DataMapperAgent** | ✅ Implemented | Interactive entity/field mapping (1:1, 1:N, N:M); human-driven, not automatable today | Phase 5 (future automation) |
-| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce | Supports Phase 1 |
-| **IngestionAgent** | 🔲 Not yet built | Ingests retrieved org metadata for analysis | **Required for Phase 3** |
-| **AnalysisAgent** | 🔲 Not yet built | Feature/capability extraction, drift detection, impact analysis | **Required for Phase 4** |
+| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce *(requires Claude Code context — not invocable from CCI subprocess)* | Supports Phase 1 (with constraint) |
+| **DeploymentAgentDataMapper** | ✅ Implemented | DataMapper-aware deployment variant for mapped entities | Supports Phase 1 (with constraint) |
+| **IngestionAgent** | 🔲 Not registered | Ingests retrieved org metadata for analysis; `src/distill/insights/` module exists — agent registration pending | **Required for Phase 3** |
+| **AnalysisAgent** | 🔲 Not registered | Feature/capability extraction, drift detection, impact analysis; `src/distill/analysis/` module exists — agent registration pending | **Required for Phase 4** |
 | **REST API (Web mode)** | 🔲 Future | FastAPI HTTP interface for programmatic integration | **Required for Phase 4** |
 
-**Today's integration entry point:** `CodeSuggestionAgent.run_file_migration` — invoked via Distill CLI (`./distill start`). Takes an Apex file path, returns migrated code. Engineer-triggered, not automated.
+**Today's integration entry point:** `CodeSuggestionAgent.run_file_migration` — importable as a Python API (`from distill.codesuggestion.api import run_file_migration`). Takes an Apex file path, returns migrated code. Engineer-triggered, not automated.
 
-**Full automated drift detection** (the round-trip workflow in §3) requires IngestionAgent + AnalysisAgent + REST API — all planned but not yet built. See §8 for the phased roadmap.
+> ⚠️ **Integration constraints:**
+> - `./distill start` is an interactive, menu-driven CLI — it cannot be driven non-interactively from a CCI subprocess. The correct integration path is a **direct Python package import**.
+> - `run_file_migration` internally routes through **Gemini** (hardcoded), not Claude. The orchestration shell runs on Haiku, but the actual code translation is Gemini-powered.
+> - `DeploymentAgent` uses Claude Code built-in tools (`Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash`) and is only operable within a Claude Code session — it cannot be invoked from CCI.
+
+**Full automated drift detection** (the round-trip workflow in §3) requires formal IngestionAgent + AnalysisAgent agent registration + REST API. The underlying `insights/` and `analysis/` modules exist in the repo; agent registration is pending. See §8 for the phased roadmap.
 
 ---
 
@@ -1137,11 +1143,15 @@ env:
 >
 > This phase delivers the first live integration point: an engineer who has identified an Apex customization worth promoting can invoke Distill's CodeSuggestion agent from a Foundations CCI task to translate that file for the target org structure. This is **engineer-triggered**, not automated — the drift detection step is still manual at this phase.
 >
-> **How it works today:** `./distill start` launches the interactive CLI. The `CodeSuggestionAgent` accepts a `.cls` or `.trigger` file path and calls `run_file_migration`, producing migrated code ready for the target platform. A CCI task wraps this via subprocess invocation.
+> **How it works today:** A CCI Python task imports `run_file_migration` directly from Distill's Python package (`from distill.codesuggestion.api import run_file_migration`). The task passes a `.cls` or `.trigger` file path and captures the migrated code output.
+>
+> **Why not subprocess?** `./distill start` is an interactive, menu-driven CLI that cannot be driven non-interactively from a CCI subprocess. Additionally, `DeploymentAgent` uses Claude Code built-in tools (`Read`, `Grep`, `Glob`, etc.) that only exist inside a Claude Code session. The direct Python import bypasses both limitations and integrates cleanly with CumulusCI's Python task system.
+>
+> **LLM note:** `run_file_migration` internally routes through Gemini (hardcoded), not Claude. The orchestration wrapper runs on Haiku, but the actual code translation is Gemini-powered. Integration consumers should account for this.
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 1.1 | Write `tasks/rlm_distill_migrate.py` — CCI Python task that invokes `./distill start` + CodeSuggestion via subprocess | | 🔲 TODO |
+| 1.1 | Write `tasks/rlm_distill_migrate.py` — CCI Python task that imports `distill.codesuggestion.api.run_file_migration` directly (Python package import, not subprocess) | | 🔲 TODO |
 | 1.2 | Add `migrate_apex_customization` task to `cumulusci.yml` with `file_path` option | | 🔲 TODO |
 | 1.3 | Add guard logic: Distill installed? CLI reachable? File path valid? | | 🔲 TODO |
 | 1.4 | Test with a real Apex class from a customized qb/en-US dev org | | 🔲 TODO |
@@ -1174,9 +1184,9 @@ env:
 
 ### Phase 3: Automated Org Ingestion *(Requires Distill IngestionAgent — not yet built)*
 
-> **Distill requirement:** `IngestionAgent` — 🔲 planned, not yet implemented.
+> **Distill requirement:** `IngestionAgent` — 🔲 not yet registered as an agent, though `src/distill/insights/` module exists with `api.py`, `pipeline.py`, and full pipeline subdirectories. Direct Python import from `distill.insights.api` may be viable before formal agent registration.
 >
-> Once Distill's IngestionAgent is built, `capture_org_customizations` can feed the `retrieved/` directory to Distill for automated metadata ingestion — replacing the manual file selection in Phase 1.
+> Once Distill's IngestionAgent is formally registered (or `distill.insights.api` is confirmed stable for direct invocation), `capture_org_customizations` can feed the `retrieved/` directory to Distill for automated metadata ingestion — replacing the manual file selection in Phase 1.
 
 | # | Task | Owner | Status |
 |---|---|---|---|
@@ -1189,7 +1199,7 @@ env:
 
 ### Phase 4: Automated Drift Detection *(Requires Distill AnalysisAgent + REST API — not yet built)*
 
-> **Distill requirement:** `AnalysisAgent` + REST API (Web mode) — 🔲 planned, not yet implemented.
+> **Distill requirement:** `AnalysisAgent` + REST API (Web mode) — 🔲 not yet registered as an agent, though `src/distill/analysis/` module exists. REST API is planned but not yet built.
 >
 > This is the full round-trip workflow designed in §3. Once Distill's AnalysisAgent and REST API are available, `capture_org_customizations` calls `POST /api/analysis/run`, diffs the results against `shape_manifest.json`, and produces `distill_drift_report.json` with domain classification and promotion hints.
 >

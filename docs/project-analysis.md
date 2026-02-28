@@ -123,7 +123,7 @@ revenue-cloud-foundations/
 │       ├── post_sharing/          ├── post_tso/           ├── post_utils/
 │       └── post_visualization/
 │
-├── tasks/                          # 28 custom CumulusCI Python task modules
+├── tasks/                          # 24 custom CumulusCI Python task modules
 ├── robot/rlm-base/                 # Robot Framework automation
 │   ├── tests/setup/                # 3 test suites
 │   ├── resources/                  # Shared keywords + WebDriverManager patch
@@ -281,7 +281,7 @@ All flags are set under `project.custom` in `cumulusci.yml` and drive conditiona
 
 ## 1.7 Custom Python Tasks
 
-All 28 modules in `tasks/`:
+All 24 modules in `tasks/`:
 
 ### Data Management
 | Task Class | Module | Purpose |
@@ -602,7 +602,7 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 
 - **Python:** 3.10–3.12
 - **LLM:** Claude Sonnet 4.5 / Haiku 4.5 — accessed via **Vertex AI on GCP** (provisioned through Embark). No direct Anthropic API or Bedrock.
-- **Storage:** SQLite (primary — relational project/migration data), ChromaDB (vector, planned), NetworkX (graph, planned)
+- **Storage:** SQLite (primary — relational project/migration data), ChromaDB (vector — configured in `base.yaml`), NetworkX (graph — configured in `base.yaml`)
 - **Interface:** Interactive CLI (`./distill start`), TUI (Textual), REST API (Web mode — future)
 
 **What makes it distinctive:**
@@ -622,8 +622,8 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 | `claude-agent-sdk` | Latest | LLM orchestration and MCP tool management (exclusive LLM interface) |
 | `pydantic` | 2.x+ | Type-safe configuration (v2 with validators) |
 | `sqlalchemy` | 2.0+ | ORM for SQLite relational data |
-| `chromadb` | Planned | Vector embeddings (planned — not yet integrated) |
-| `networkx` | Planned | Dependency graph (planned — not yet integrated) |
+| `chromadb` | Configured | Vector embeddings — configured in `base.yaml` with `sentence-transformers/all-MiniLM-L6-v2`; code path integration in progress |
+| `networkx` | Configured | Dependency graph — configured in `base.yaml` as graph backend; code path integration in progress |
 
 ### LLM Access
 | Model | Access Path | Used By |
@@ -712,7 +712,7 @@ distill/
 
 ## 2.4 Agent Architecture
 
-Distill's six specialized agents are registered with the `AgentOrchestrator`, which manages Claude SDK sessions, tool aggregation, and routing. Three agents are currently implemented; three are planned.
+Distill's agent layer registers **four agents** with the `AgentOrchestrator`, which manages Claude SDK sessions, tool aggregation, and routing. Three are full standalone agents; a fourth (`DeploymentAgentDataMapper`) is a DataMapper-aware deployment variant. Three additional agents are planned.
 
 ### Implemented Agents
 
@@ -726,6 +726,8 @@ Migrates Apex classes and triggers from a source org to a target platform.
 **Primary tool:** `run_file_migration(file_path)`
 - Takes a `.cls` or `.trigger` file path
 - Outputs migrated code ready for the target org
+
+> ⚠️ **Implementation note:** `run_file_migration` internally uses **Gemini** (hardcoded), not Claude. The orchestration shell runs on `claude-haiku-4-5@20251001`, but the actual code translation logs `"⚠️ Anthropic/Claude Vertex DISABLED - Gemini is HARDCODED for all migrations"`. The `llm_provider` defaults to `"gemini"` regardless of config. Integration consumers should account for Gemini being the effective translation engine at the tool layer.
 
 **Sub-agents (supporting):**
 - `file_migration_agent` — per-file migration
@@ -754,21 +756,30 @@ Interactive entity and field-level mapping between source and target schemas. Su
 
 #### DeploymentAgent ✅
 
-Deploys migrated code and schema changes to a Salesforce org. Includes a DataMapper-aware variant for deployment of mapped entities.
+Deploys migrated code and schema changes to a Salesforce org.
+
+**Model:** `claude-sonnet-4-5@20250929` (Vertex AI)
+**Tools:** `Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash` (Claude Code built-in tools)
+
+> ⚠️ **Context requirement:** DeploymentAgent relies exclusively on Claude Code built-in tools. It is only operable within an active **Claude Code session** — it cannot be invoked from a CCI subprocess, standard Python process, or any non-Claude Code runtime. Supports Apex only; requires interactive org path/URL input from the user.
+
+#### DeploymentAgentDataMapper ✅
+
+A DataMapper-aware deployment variant registered alongside DeploymentAgent in `main_agents.py`. Handles deployment of mapped entities after schema mapping has been completed via DataMapperAgent.
 
 **Files:** `deployment_agent.py`, `deployment_agent_datamapper.py`
 
 ---
 
-### Planned Agents (Not Yet Implemented)
+### Planned Agents (Not Yet Registered)
 
-| Agent | Purpose | Required For |
-|---|---|---|
-| **IngestionAgent** | Ingest org metadata from a retrieved codebase | Automated org analysis (Phase 3 of Foundations integration) |
-| **AnalysisAgent** | Feature/capability extraction, drift detection, impact analysis | Automated drift reporting (Phase 4 of Foundations integration) |
-| **ProjectAgent** | Project initialization, workspace setup, configuration management | Full project lifecycle management |
+| Agent | Purpose | Module Status | Required For |
+|---|---|---|---|
+| **IngestionAgent** | Ingest org metadata from a retrieved codebase | `src/distill/insights/` exists (with `api.py`, `pipeline.py`, full pipeline subdirs) — agent registration pending | Automated org analysis (Phase 3 of Foundations integration) |
+| **AnalysisAgent** | Feature/capability extraction, drift detection, impact analysis | `src/distill/analysis/` exists (with `ingestion/`, `parsing/`, `llm/`, `models.py`) — agent registration pending | Automated drift reporting (Phase 4 of Foundations integration) |
+| **ProjectAgent** | Project initialization, workspace setup, configuration management | Not yet present | Full project lifecycle management |
 
-> When IngestionAgent and AnalysisAgent are built, the Foundations integration can move from manually-triggered Apex migration to fully automated drift detection. See [distill-integration.md](distill-integration.md) §8 for the phased roadmap.
+> **Note:** `AnalyseFeature` tools are available in the current build via slash commands (per `main_agents.py` comment), suggesting partial analysis functionality exists even before a formal AnalysisAgent registration. When formal agent registration is complete, the Foundations integration can move from manually-triggered Apex migration to fully automated drift detection. See [distill-integration.md](distill-integration.md) §8 for the phased roadmap.
 
 ---
 
@@ -867,6 +878,8 @@ Spec: `GET /openapi.json` | UI: `GET /docs`
 
 ### DuckDB Tables (Insights Pipeline — per-project)
 
+> ⚠️ **Validation note:** `base.yaml` configures `sqlite` as the primary storage backend with no DuckDB section present. The `src/distill/insights/` module exists and is active (`enable_insights: true` in config), but its specific storage backend requires verification. The table below reflects the originally designed schema and may not reflect current implementation.
+
 | Table | Key Fields | Purpose |
 |---|---|---|
 | `insights_artifacts` | `artifact_id`, `type`, `name`, `file_path`, `is_entry_point`, `entry_point_tier` | Code artifact inventory |
@@ -952,8 +965,9 @@ logging:
 
 | Use Case | Model | Rationale |
 |---|---|---|
-| Complex migration tasks | `claude-sonnet-4-5` | High accuracy for code translation |
-| Fast classification/routing | `claude-haiku-4-5` | Low latency for high-volume decisions |
+| Complex migration tasks / orchestration | `claude-sonnet-4-5` | High accuracy for code translation and agent coordination |
+| Fast classification/routing | `claude-haiku-4-5` | Low latency for high-volume decisions; wraps `run_file_migration` tool call |
+| **Code migration tool (`run_file_migration`)** | **Gemini (hardcoded)** | **`run_file_migration` always routes through Gemini regardless of config — see §2.4 note** |
 | Large context analysis | `gemini-2.5-pro` | Large context window for big codebases |
 
 ### RAG Pipeline (CodeSuggestion)
@@ -971,4 +985,4 @@ Merged context prompt      → Claude Sonnet → migrated code
 ```
 
 ### Vertex AI Support
-Distill runs Claude models through Google Vertex AI (`claude_vertex_adapter.py`) as well as directly through the Anthropic API, enabling deployment in GCP-hosted environments.
+Distill runs Claude orchestration models through Google Vertex AI (`claude_vertex_adapter.py`). Note that `run_file_migration` — the primary CodeSuggestion tool — uses Gemini (hardcoded), not Claude Vertex. See §2.4 for the implementation note.

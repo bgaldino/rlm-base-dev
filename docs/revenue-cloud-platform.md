@@ -53,7 +53,7 @@ Revenue Cloud Foundations is an enterprise CumulusCI automation framework for bu
 ### 2.1 What It Does
 
 **Org Provisioning**
-- 29 automation flows — including `prepare_rlm_org`, the 29-step primary flow — manage scratch orgs and sandbox environments from first command to a fully configured state
+- 28 automation flows — including `prepare_rlm_org`, the 29-step primary orchestration flow — manage scratch orgs and sandbox environments from first command to a fully configured state
 - 20 scratch org definitions covering dev, QA, test, CI, and environment-specific variants
 - ~95% of org setup is fully automated; only Salesforce CLI authentication and Dev Hub setup remain manual
 
@@ -74,7 +74,7 @@ Three product shape families, each representing a distinct Revenue Cloud product
 
 All plans are target-org-agnostic (standard RLM fields only, no custom fields), enabling deployment to any correctly licensed org.
 
-**Custom Python Task Library (28 tasks)**
+**Custom Python Task Library (24 task modules)**
 | Category | Tasks |
 |---|---|
 | Data loading | `load_sfdmu_data`, `post_process_extraction`, 9 extract tasks, 9 idempotency test tasks |
@@ -96,7 +96,7 @@ All QB/en-US data plans support load-twice-no-change semantics via SFDMU v5 comp
 ```
 revenue-cloud-foundations/
 ├── cumulusci.yml           (2,386 lines — flags, flows, tasks, orgs)
-├── tasks/                  (28 custom Python task modules)
+├── tasks/                  (24 custom Python task modules)
 ├── force-app/              (Salesforce metadata — Apex, LWC, Flows, Objects)
 ├── unpackaged/             (conditional deployment bundles, post_* folders)
 ├── robot/                  (3 Robot Framework test suites for UI automation)
@@ -122,15 +122,16 @@ Distill is an AI-powered Salesforce customization migration platform built **exc
 
 ### 3.1 Agent Architecture
 
-Six specialized agents; three currently implemented, three planned:
+Four agents currently registered; three additional planned:
 
 | Agent | Status | Purpose |
 |---|---|---|
-| **CodeSuggestionAgent** | ✅ Implemented | Migrates Apex/trigger files to target org via `run_file_migration` |
-| **DataMapperAgent** | ✅ Implemented | Interactive entity/field mapping (1:1, 1:N, N:M cardinalities) |
-| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce |
-| **IngestionAgent** | 🔲 Planned | Ingests org metadata from a retrieved codebase for analysis |
-| **AnalysisAgent** | 🔲 Planned | Feature/capability extraction, drift detection, impact analysis |
+| **CodeSuggestionAgent** | ✅ Registered | Migrates Apex/trigger files to target org via `run_file_migration` *(translation via Gemini — hardcoded)* |
+| **DataMapperAgent** | ✅ Registered | Interactive entity/field mapping (1:1, 1:N, N:M cardinalities) |
+| **DeploymentAgent** | ✅ Registered | Deploys migrated code to Salesforce *(requires Claude Code session context)* |
+| **DeploymentAgentDataMapper** | ✅ Registered | DataMapper-aware deployment variant for mapped entities *(requires Claude Code context)* |
+| **IngestionAgent** | 🔲 Not registered | Ingests org metadata from a retrieved codebase; `insights/` module exists, agent pending |
+| **AnalysisAgent** | 🔲 Not registered | Feature/capability extraction, drift detection; `analysis/` module exists, agent pending |
 | **ProjectAgent** | 🔲 Planned | Project lifecycle and workspace management |
 
 ### 3.2 AI Architecture
@@ -138,19 +139,20 @@ Six specialized agents; three currently implemented, three planned:
 - **Claude Agent SDK exclusively** — no custom Anthropic client wrapper; all LLM calls go through `ClaudeSDKClient`
 - **Clean Architecture:** Core (domain/services) → Controllers → UI — zero UI dependencies in business logic
 - **LLM access:** Vertex AI via GCP/Embark (`claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`) — requires Embark-provisioned GCP project
-- **Storage:** SQLite (primary), ChromaDB + NetworkX (planned)
+- **Storage:** SQLite (primary), ChromaDB + NetworkX (configured in `base.yaml` — active integration in progress)
 
 ### 3.3 How It Plugs Into Foundations
 
 Integration is **phased** based on what's available today vs. what Distill's roadmap delivers:
 
-**Today (Phase 1 — CodeSuggestion CLI):**
+**Today (Phase 1 — CodeSuggestion Python API):**
 ```
 Engineer identifies Apex customization worth promoting
 → cci task run migrate_apex_customization  file_path=<path/to/Custom.cls>
-     └── Invokes ./distill start + CodeSuggestionAgent.run_file_migration
-         └── Output: migrated code ready for force-app/ or unpackaged/ bundle
+     └── Imports distill.codesuggestion.api.run_file_migration (Python package, not subprocess)
+         └── Output: migrated code (translated via Gemini) ready for force-app/ or unpackaged/ bundle
 ```
+> ⚠️ `./distill start` CLI is interactive and cannot be subprocess-driven from CCI. Direct Python import is the correct integration path. `run_file_migration` uses Gemini internally (hardcoded).
 
 **Future (Phase 4 — full drift detection, requires Distill AnalysisAgent + REST API):**
 ```
