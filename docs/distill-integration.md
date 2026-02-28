@@ -674,6 +674,18 @@ tasks:
 | **Side effects** | None — read-only from org and Distill perspective |
 | **Fails flow** | Never — on any error, logs warning and exits cleanly |
 
+### 6.1.1 Multi-Tier Agent Model
+
+The task is designed for execution by a **tiered agent model** rather than a single monolithic LLM call. This keeps reasoning cost proportional to reasoning complexity:
+
+| Step | Model Tier | Rationale |
+|---|---|---|
+| Determine analysis scope; interpret final drift report | High-capability (e.g. Opus) | Requires strong contextual reasoning and cross-domain synthesis |
+| API calls, status polling, JSON parsing, manifest loading | Fast/efficient (e.g. Haiku) | Deterministic, low-reasoning work — cost optimization opportunity |
+| Domain classification, bundle suggestion, promotion hints | Balanced (e.g. Sonnet) | Moderate reasoning; runs once per drift item so model selection has high leverage |
+
+This mirrors the sub-agent pattern already used inside Distill, and positions the task to benefit immediately from **prompt caching** when that becomes available — the shape manifest is cached as a system-prompt prefix, with only the variable metadata summary and Distill feature list processed fresh per run (estimated 80% cost reduction at scale).
+
 ### 6.2 Task Options
 
 ```yaml
@@ -1109,17 +1121,26 @@ env:
 
 ---
 
-### Phase 1: Foundation (Current Focus)
+### Phase 1: Foundation *(parallelizable with Phase 0)*
+
+> **Phase 0 is not a hard blocker for Phase 1.** The manifest generator and capture task can use the current `qb/en-US` paths during development. Path defaults are updated to the reorganized structure once Phase 0 is complete.
+>
+> **Minimal viable demo path (no Phase 0 required):**
+> 1. Run `generate_baseline_manifest` against the current `datasets/sfdmu/qb/en-US/` layout
+> 2. Point `baseline_manifest_path` at the generated file's current location
+> 3. Run `capture_org_customizations` against a customized dev org
+> 4. Show `output/distill_drift_report.json` — new entities, domain classification, promotion hints
 
 | # | Task | Owner | Status |
 |---|---|---|---|
 | 1.1 | Write `scripts/generate_baseline_manifest.py` | | 🔲 TODO |
-| 1.2 | Generate and commit `datasets/sfdmu/qb/en-US/baseline_manifest.json` | | 🔲 TODO |
+| 1.2 | Generate and commit `datasets/sfdmu/qb/en-US/shape_manifest.json` | | 🔲 TODO |
 | 1.3 | Add `generate_baseline_manifest` CCI task | | 🔲 TODO |
-| 1.4 | Write `tasks/rlm_distill_capture.py` with full guard logic | | 🔲 TODO |
-| 1.5 | Add `capture_org_customizations` and `analyze_org_drift` to cumulusci.yml | | 🔲 TODO |
+| 1.4 | Write `tasks/rlm_distill_capture.py` with full guard logic and tiered model design | | 🔲 TODO |
+| 1.5 | Add `capture_org_customizations` and `analyze_org_drift` to `cumulusci.yml` | | 🔲 TODO |
 | 1.6 | Test graceful skip when Distill not configured | | 🔲 TODO |
 | 1.7 | Test full round-trip with a real customized org | | 🔲 TODO |
+| 1.8 | Register `shape_manifest.json` as a prompt-cache candidate once caching infrastructure is available | | 🔲 TODO |
 
 ### Phase 2: REST API Gap (Contribute to Distill)
 
@@ -1174,3 +1195,5 @@ env:
 | O6 | Does Distill `repo_type: "Source"` vs `"Target"` affect output for the drift use case? | Needs testing | Hypothesis: use `"Source"` for org-state snapshots (retrieved metadata looks like a source project). Needs an end-to-end test run to confirm. |
 | O7 | Should `generate_baseline_manifest` automatically update `shapes.json` when a new shape manifest is created? | Open | Natural fit — the script already knows the shape name and locale. Would keep `shapes.json` as a derived artifact rather than manually maintained. |
 | O8 | How should `active_flags` be passed in CI scenarios? | Open | Options: (a) hardcoded in `cumulusci.yml` per environment, (b) env var mapped in CI YAML, (c) read from a `shapes.json` `"default_flags"` field. |
+| O9 | Should `shapes.json` become the shared protocol for Aegis test-scenario selection as well as Distill drift detection? | Open | If Aegis consumes `shapes.json` to determine which test scenarios are applicable for a given data shape and flag combination, the manifest becomes a true cross-platform contract rather than a Distill-specific artifact. This would make the manifest format a foundational design decision that should be finalized before Phase 5. |
+| O10 | What is the correct open-source/IP sequencing for this platform? | Open | The workflow (feature-flag-aware manifest generation + AI drift detection + Promote/Overlay/Discard classification) may be patentable. Legal review and patent filing — if pursued — must precede any open-source publication. Internal distribution (sfLabs) may be possible before external publication depending on licensing strategy. |

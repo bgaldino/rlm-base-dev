@@ -227,6 +227,54 @@ The **shape manifest** (`datasets/sfdmu/<shape>/<locale>/shape_manifest.json`) i
 
 When Distill detects a new entity or feature, it is checked against the shape manifest. If the entity is absent → drift. If the feature flag for that entity was disabled → expected absence, not drift.
 
+### 5.2 Multi-Tier Agent Model
+
+The integration is designed around a **tiered agent architecture** that concentrates reasoning cost where it matters:
+
+| Role | Model Tier | Responsibilities |
+|---|---|---|
+| **Orchestrator** | High-capability (e.g. Opus) | Determine analysis scope, interpret drift findings, generate promotion recommendations |
+| **Executor** | Fast/efficient (e.g. Haiku) | API calls, status polling, manifest comparison, JSON parsing |
+| **Reasoner** | Balanced (e.g. Sonnet) | Domain classification, bundle suggestion, promotion hint generation per drift item |
+
+This mirrors the sub-agent pattern already used inside Distill, and maps naturally to the `capture_org_customizations` task structure — heavy reasoning is concentrated at the orchestration layer while deterministic execution steps use cost-efficient models.
+
+### 5.3 Prompt Caching & Cost Optimization
+
+The `shape_manifest.json` is a large (~10–20K token), **stable** artifact — identical across every run for a given data shape. It is an ideal candidate for **prompt caching**: registering the manifest as a system-prompt prefix so repeated calls do not retokenize it on every invocation.
+
+An internal research effort is under way to apply context payload caching across agent workflows, targeting an estimated **80% reduction in per-run token cost**. The manifest design (pre-rendered flat JSON, not computed at analysis time) is already optimized for this pattern.
+
+**When context caching becomes available, the priority artifacts to register are:**
+1. `shape_manifest.json` — largest stable context, primary caching target
+2. Distill API schema description — stable across minor versions
+3. CCI feature flag list — changes only on major releases
+
+Only the variable portion of each run (retrieved metadata summary + Distill feature inventory) is processed fresh. Everything else hits the cache.
+
+### 5.4 Access Model
+
+| Access Path | Suitable For |
+|---|---|
+| **Direct Anthropic API** (via Cursor / Claude Code) | Individual contributors; subject to personal spending limits |
+| **AWS Bedrock via Embark** | Salesforce teams without direct API access; Embark provides temporary sandbox cloud accounts with no personal billing |
+| **Enterprise license** | Org-wide access; enables higher model tiers (Opus) and increased rate limits; under evaluation |
+
+Distill's provider configuration already supports multiple LLM backends (Anthropic direct, Bedrock adapter, OpenAI fallback), so switching the underlying access model requires no changes to integration code.
+
+### 5.5 Open Source & IP Strategy
+
+The integrated platform — specifically the combination of (1) CCI feature-flag-aware shape manifest generation, (2) AI-powered semantic drift detection, and (3) automated Promote/Overlay/Discard classification — represents a novel engineering workflow without a clear prior art equivalent in the Salesforce ecosystem.
+
+**Recommended sequencing:**
+1. Consult legal on patentability of the core workflow before any public publication
+2. File patent application (or provisional) if proceeding — public disclosure prior to filing forfeits most patent rights
+3. Collaborate with legal on open-source licensing strategy
+4. Publish to an appropriate internal open-source forum per open-source policies
+5. Engage broader engineering community as contributors
+
+> ⚠️ **Open-source publication must follow, not precede, any patent filing.**
+
 ---
 
 ## 6. Implementation Roadmap
@@ -234,11 +282,14 @@ When Distill detects a new entity or feature, it is checked against the shape ma
 | Phase | Name | Status | Key Deliverable |
 |---|---|---|---|
 | **Phase 0** | Datasets Reorganization | 🔲 Pending approval | Restructured `datasets/` folder with `shapes.json` registry |
-| **Phase 1** | Foundation Integration | 🔲 TODO (after Phase 0) | `generate_baseline_manifest` + `capture_org_customizations` CCI tasks |
+| **Phase 1** | Foundation Integration | 🔲 TODO *(parallelizable with Phase 0)* | `generate_baseline_manifest` + `capture_org_customizations` CCI tasks |
 | **Phase 2** | Distill API Gap | 🔲 TODO | `POST /api/projects` endpoint in Distill (eliminates pre-config step) |
-| **Phase 3** | Field-Level Drift | 🔲 TODO | DataMapper integration — field additions detected, export.json updates suggested |
+| **Phase 3** | Field-Level Drift | 🔲 TODO | DataMapper integration — field additions detected, `export.json` updates suggested |
 | **Phase 4** | Context Extension Discovery | 🔲 TODO | Context definition XML diffed against deployed baseline |
-| **Phase 5** | Aegis Integration | 🔲 TBD | Aegis suite triggered as part of post-promote validation |
+| **Phase 5** | Aegis Integration | 🔲 TBD | Aegis suite triggered as part of post-promote validation; shapes.json as shared test-scenario protocol |
+
+> **Minimal viable demo (Phase 1 only, no Phase 0 required):**
+> Generate a `shape_manifest.json` from the current `qb/en-US` plans → point `baseline_manifest_path` at its current location → run `capture_org_customizations` against a customized dev org → show `distill_drift_report.json` output. Phase 0 folder restructuring can proceed in parallel without blocking the demo path.
 
 → *Full technical roadmap:* [distill-integration.md §8](distill-integration.md#8-implementation-roadmap)
 
