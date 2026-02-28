@@ -1,0 +1,925 @@
+# rlm-base-dev × Distill: Integration Living Document
+
+> **Status:** In Progress
+> **Last Updated:** 2026-02-27
+> **Scope:** Round-trip customization capture for qb/en-US data plans (no custom fields, target-org-agnostic)
+
+---
+
+## Table of Contents
+
+1. [Project Overviews](#1-project-overviews)
+2. [Strategic Integration POV](#2-strategic-integration-pov)
+3. [The Round-Trip Workflow](#3-the-round-trip-workflow)
+4. [Distill REST API: Relevant Endpoints](#4-distill-rest-api-relevant-endpoints)
+5. [Baseline Manifest: Data Model Design](#5-baseline-manifest-data-model-design)
+6. [Integration Task Design: `capture_org_customizations`](#6-integration-task-design-capture_org_customizations)
+7. [CumulusCI Configuration](#7-cumulusci-configuration)
+8. [Implementation Roadmap](#8-implementation-roadmap)
+9. [Open Questions & Decisions](#9-open-questions--decisions)
+
+---
+
+## 1. Project Overviews
+
+### 1.1 rlm-base-dev
+
+An enterprise CumulusCI automation framework for standing up Salesforce Revenue Cloud (RLM) orgs from scratch. Its core job: *"How do I deploy and configure a correctly structured Revenue Cloud org?"*
+
+**Key facts:**
+- CumulusCI 4.x, API 66.0, Release 260 (Spring '26)
+- 29 flows / sub-flows, 28 custom Python tasks, 50+ feature flags
+- 11 SFDMU data plans (qb/en-US), 2 CML constraint models, 24 Apex scripts
+- 3 Robot Framework test suites for UI toggle automation
+- ~95% of org setup is fully automated
+- Intentionally **target-org-agnostic**: data plans use only standard RLM fields, no custom fields, all external IDs via composite key patterns
+
+**What it does NOT do today:**
+- Detect what has changed in an org after deployment
+- Ingest customizations back from running orgs
+- Determine which post-deployment changes should be promoted back to the project
+
+### 1.2 Distill (`sf-industries/distill`)
+
+An AI-powered Salesforce customization migration and analysis platform built on the Claude Agent SDK. Its core job: *"What customizations exist in a codebase, how do they relate to each other, and what do they mean for the business?"*
+
+**Four engines:**
+
+| Engine | Purpose | Key Output |
+|---|---|---|
+| **Insights** (10-stage pipeline) | Scans a codebase to extract entry points, business flows, capability clusters, and feature inventory | Structured feature/capability manifest |
+| **DataMapper** | Semantically maps entities and fields between source and target schema | Field-level mapping artifacts |
+| **CodeSuggestion** | Migrates Apex/triggers using RAG + knowledge graph for context-aware translation | Migration-ready code |
+| **Metadata Migration** | Type-specific LLM migration of Flows, LWC, Aura, Visualforce | Migrated metadata XML |
+
+**REST API:** Full HTTP API at `serve_api.py` (default port 8000) with OpenAPI spec at `/openapi.json` and Swagger UI at `/docs`.
+
+**Storage:** SQLite (project/migration records), ChromaDB (vector embeddings), DuckDB (Insights analysis), NetworkX (dependency graph).
+
+---
+
+## 2. Strategic Integration POV
+
+### 2.1 Where They Operate
+
+These tools function at different layers of the implementation lifecycle:
+
+| Phase | Activity | Tool |
+|---|---|---|
+| Analysis | Source org feature discovery | Distill (Insights) |
+| Analysis | Schema & entity mapping | Distill (DataMapper) |
+| Migration | Apex / Flows / LWC translation | Distill (CodeSuggestion + Metadata Migration) |
+| **Capture** | **Detect post-deployment customization drift** | **Distill → rlm-base-dev (new integration)** |
+| Deployment | Org provisioning, scratch org creation | rlm-base-dev (CumulusCI) |
+| Deployment | Metadata deployment (conditional bundles) | rlm-base-dev |
+| Deployment | Reference data loading (SFDMU) | rlm-base-dev |
+| Configuration | Context extensions, DT lifecycle, PSL/PSG | rlm-base-dev |
+| Validation | Environment validation, idempotency tests | rlm-base-dev |
+
+### 2.2 The Integration Opportunity (This Document's Focus)
+
+**The scenario:** Orgs created by `rlm-base-dev` accumulate customizations over time — new Apex classes, modified Flows, extended LWC components, additional context attributes, new product-related objects. Currently there's no structured pipeline to:
+1. Detect what has diverged from the project baseline
+2. Understand what those changes mean semantically (are they billing-related? PCM-related?)
+3. Decide whether to promote them back into the project
+
+Distill's Insights engine provides the semantic analysis layer. The integration creates a **round-trip feedback loop** from running org back to the project.
+
+### 2.3 Design Principles for This Integration
+
+- **Optional, not mandatory.** Users without Distill access should experience no change to existing flows.
+- **Non-blocking.** The integration never fails the main `prepare_rlm_org` flow.
+- **Scoped to qb/en-US.** Only the 9 plans in `datasets/sfdmu/qb/en-US/` are in scope. Other plan folders are excluded until they are updated for SFDMU v5 composite key patterns.
+- **No custom fields.** The baseline manifest only tracks standard RLM fields. Custom field drift is out of scope.
+- **Read-only from rlm-base-dev's perspective.** The integration produces a report; no automatic merging or promotion happens.
+
+---
+
+## 3. The Round-Trip Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ROUND-TRIP WORKFLOW                           │
+│                                                                  │
+│  rlm-base-dev            Running Org             Distill         │
+│  ─────────────           ──────────              ──────────      │
+│                                                                  │
+│  prepare_rlm_org ──────► Baseline org state                      │
+│                          (known, from project)                   │
+│                                │                                 │
+│                          Customization                           │
+│                          by admins/devs                          │
+│                                │                                 │
+│                          Customized org                          │
+│                          (unknown delta)                         │
+│                                │                                 │
+│                    sf project retrieve start                     │
+│                                │                                 │
+│                          Retrieved metadata                      │
+│                          on local filesystem                     │
+│                                │                                 │
+│                                └──────────────► Insights engine  │
+│                                                 (10-stage scan)  │
+│                                                       │          │
+│                                                 Feature/         │
+│                                                 capability       │
+│                                                 inventory        │
+│                                                       │          │
+│  baseline_manifest.json ◄─────────────────────── diff()         │
+│                                                       │          │
+│  drift_report.json ◄──────────────────────────────── │          │
+│  (new objects, fields,                                           │
+│   features, LWC, Apex)                                           │
+│                                                                  │
+│  Human decision:                                                 │
+│  PROMOTE / OVERLAY / DISCARD                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.1 The Three Outcomes for Each Drift Item
+
+| Decision | Meaning | Where It Goes |
+|---|---|---|
+| **Promote** | Generic improvement to the reference implementation | Merged into `force-app/` or appropriate `unpackaged/post_*/` bundle; new feature flag if needed |
+| **Overlay** | Customer/org-specific, not appropriate for the base | New downstream CCI project that extends `rlm-base-dev` as a dependency |
+| **Discard** | Experimental, broken, or org-specific workaround | Documented but not promoted |
+
+Distill's capability clustering output provides the semantic signal to make this decision consistently — it tells you *what domain* each change belongs to (billing capability, PCM feature, etc.) rather than just "this file is different."
+
+---
+
+## 4. Distill REST API: Relevant Endpoints
+
+### 4.1 Full API Reference (Complete Contract)
+
+Base URL: configurable (default `http://localhost:8000`)
+OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
+
+#### Health & Discovery
+
+| Method | Path | Purpose | Response |
+|---|---|---|---|
+| `GET` | `/health` | Connectivity check | `{"status": "ok"}` |
+| `GET` | `/api/projects` | List all projects | Array of project objects |
+| `GET` | `/api/projects/{id}` | Get single project | Project object |
+| `GET` | `/api/workspace/active` | Get active project | `{active_project_id, project}` |
+
+**Project object schema:**
+```json
+{
+  "id": "<uuid>",
+  "project_name": "<string>",
+  "domain": "<string>",
+  "status": "active|in_progress|completed|failed|archived",
+  "vectorization_complete": false,
+  "created_at": "<datetime>",
+  "source_folder_location": "<string>",
+  "target_folder_location": "<string>",
+  "customization_folder_location": "<string|null>"
+}
+```
+
+#### Analysis (Insights Pipeline)
+
+| Method | Path | Purpose | Key Body / Query Params |
+|---|---|---|---|
+| `POST` | `/api/analysis/run` | Trigger Insights pipeline | `project_id`, `source_path`, `repo_type` (default: `"Source"`), `skip_stages[]` |
+| `GET` | `/api/analysis/{id}/summary` | Poll for completion / get stats | `mode` (`fast`\|`thorough`), `repo_type` |
+| `GET` | `/api/analysis/{id}/features` | Get extracted business features | `mode`, `repo_type` |
+
+**`POST /api/analysis/run` request:**
+```json
+{
+  "project_id": "<uuid>",
+  "source_path": "/path/to/retrieved/metadata",
+  "repo_type": "Source",
+  "skip_stages": []
+}
+```
+
+**`GET /api/analysis/{id}/summary` response:**
+```json
+{
+  "total_artifacts": 142,
+  "entry_points": 23,
+  "entry_point_tiers": { "TIER_1_DEFINITIVE": 12, "TIER_2_PROBABLE": 11 },
+  "unique_entities_accessed": 31,
+  "total_flows": 87,
+  "total_capabilities": 19,
+  "total_features": 8
+}
+```
+
+**`GET /api/analysis/{id}/features` response (array):**
+```json
+[
+  {
+    "business_feature_id": "<string>",
+    "name": "<string>",
+    "description": "<string>",
+    "flows": ["<flow_id>"],
+    "entities": ["Product2", "PricebookEntry"],
+    "operations": ["C", "R", "U", "D"],
+    "files": ["<file_path>"],
+    "artifacts": ["<artifact_id>"],
+    "ui_components": ["<component_id>"],
+    "mode": "fast|thorough"
+  }
+]
+```
+
+#### DataMapper (for future phase)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/datamapper/run` | Run schema mapping pipeline |
+| `GET` | `/api/datamapper/{id}/schema/{type}` | Get schema (`source`\|`target`\|`mapping`) |
+
+#### Feature Mapping (for future phase)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/feature-mapping/run` | Map features between source and target inventories |
+
+**`POST /api/feature-mapping/run` request:**
+```json
+{
+  "source": "/path/to/source_features.json",
+  "target": "/path/to/target_features.json",
+  "entity_map": "/path/to/entity_map.json",
+  "top_n": 3,
+  "min_confidence": 0.3,
+  "use_llm": true
+}
+```
+
+### 4.2 API Call Sequence for `capture_org_customizations`
+
+```
+1. GET  /health                              → confirm reachable
+2. GET  /api/projects                        → find project by name
+   (or) GET /api/workspace/active            → use active project
+3. POST /api/analysis/run                    → trigger Insights on retrieved/ path
+         body: { project_id, source_path, repo_type: "Source" }
+4. POLL GET /api/analysis/{id}/summary       → check total_features > 0
+         repeat every poll_interval until complete or timeout
+5. GET  /api/analysis/{id}/features          → get full feature inventory
+6. [local] diff(features, baseline_manifest) → compute drift report
+7. [local] write drift_report.json           → output artifact
+```
+
+### 4.3 Known Gap: Project Creation via REST API
+
+**Current state:** Projects must be created via the Distill CLI (`/configure` slash command). There is no `POST /api/projects` endpoint.
+
+**Impact:** The CCI task requires a Distill project to be pre-configured before first use.
+
+**Workaround (Phase 1):**
+- Users run `./distill start` once, use `/configure` to create a named project pointing at their retrieved metadata directory
+- Record the project UUID in `cumulusci.yml` as the `distill_project_id` option
+
+**Future enhancement (Phase 2):**
+Contribute a `POST /api/projects` endpoint to Distill that accepts `{project_name, domain, source_folder_location}` and returns a project object with UUID. This removes the manual pre-configuration step.
+
+---
+
+## 5. Baseline Manifest: Data Model Design
+
+### 5.1 Design Goals
+
+The baseline manifest captures the **expected schema state** of the 9 qb/en-US data plans as defined by their `export.json` files. It is:
+
+- **Derived, not hand-authored.** Generated by a script that reads existing `export.json` files.
+- **Standard fields only.** No custom fields (`__c` suffix objects/fields are excluded from scope).
+- **Source of truth for diff.** When Distill returns a feature/artifact inventory, the manifest defines what's "expected" so anything additional is "drift."
+- **Versioned with the project.** Committed to git; updated when data plans change.
+
+### 5.2 Manifest Schema
+
+**File location:** `datasets/sfdmu/qb/en-US/baseline_manifest.json`
+
+```json
+{
+  "$schema": "https://rlm-base.schema/baseline-manifest/v1",
+  "version": "1.0.0",
+  "generated_at": "<ISO-8601 datetime>",
+  "generator_script": "scripts/generate_baseline_manifest.py",
+  "release": "260",
+  "api_version": "66.0",
+  "scope": "qb/en-US",
+
+  "plans": {
+    "<plan-name>": {
+      "path": "datasets/sfdmu/qb/en-US/<plan-name>",
+      "feature_flags": ["<flag>"],
+      "multi_pass": true | false,
+      "pass_count": 1 | 2 | 3,
+      "passes": [
+        {
+          "pass_index": 0,
+          "label": "<human label from export.json objectSet name>",
+          "objects": [
+            {
+              "api_name": "<SObject API name>",
+              "operation": "Upsert | Update | Insert | Readonly | default",
+              "external_id": "<field or composite expression>",
+              "external_id_type": "single | composite | composite_dollar",
+              "external_id_fields": ["<field1>", "<field2>"],
+              "fields": ["<field1>", "<field2>"],
+              "field_fingerprint": "<sha256 of sorted field list>",
+              "skip_existing_records": false,
+              "delete_old_data": false,
+              "excluded": false,
+              "query_filter": "<WHERE clause if present | null>"
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "object_index": {
+    "<SObject API name>": {
+      "plans": ["<plan-name>"],
+      "operations": ["Upsert"],
+      "all_fields": ["<field1>"],
+      "primary_external_id": "<field or expression>"
+    }
+  },
+
+  "composite_key_registry": {
+    "<plan-name>.<SObject>": {
+      "type": "standard | dollar_notation",
+      "fields": ["<field1>", "<field2>"],
+      "expression": "<external_id string as written in export.json>"
+    }
+  },
+
+  "metadata": {
+    "total_plans": 9,
+    "total_objects": 95,
+    "total_composite_keys": 29,
+    "dollar_notation_keys": 13,
+    "multi_pass_plans": ["qb-billing", "qb-tax", "qb-rating"]
+  }
+}
+```
+
+### 5.3 Composite Key Notation Reference
+
+The manifest distinguishes three composite key types found in the qb/en-US plans:
+
+| Type | Example | Notation in export.json | Field in manifest |
+|---|---|---|---|
+| **Single** | `StockKeepingUnit` | Plain field name | `"single"` |
+| **Standard composite** | `Name;SellingModelType` | Semicolon-separated field names | `"composite"` |
+| **Dollar composite** | `$$Name$BillingTreatment.Name` | `$$` prefix with `$` separator | `"composite_dollar"` |
+
+Dollar notation composites (`$$`) are particularly important — these are SFDMU v5-specific and represent computed columns in the CSV that concatenate multiple traversal paths. The manifest captures them verbatim so the diff logic knows to ignore standard-field changes within composite key components.
+
+### 5.4 Object Index: qb/en-US Plans
+
+The object index maps every SObject to the plans that include it. This is used during diff to understand which domain a new/modified object belongs to.
+
+| SObject | Plans | Primary External ID |
+|---|---|---|
+| `Product2` | pcm, pricing, product-images, billing, dro, rating, rates | `StockKeepingUnit` |
+| `ProductSellingModel` | pcm, pricing | `Name;SellingModelType` |
+| `Pricebook2` | pricing | `Name;IsStandard` |
+| `PricebookEntry` | pricing | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` |
+| `PriceAdjustmentSchedule` | pricing | `Name;CurrencyIsoCode` |
+| `PriceAdjustmentTier` | pricing | 9-field composite |
+| `LegalEntity` | billing, tax | `Name` |
+| `BillingPolicy` | billing | `Name` |
+| `BillingTreatment` | billing | `Name` |
+| `BillingTreatmentItem` | billing | `$$Name$BillingTreatment.Name` |
+| `PaymentTerm` | billing | `Name` |
+| `PaymentTermItem` | billing | `$$PaymentTerm.Name$Type` |
+| `GeneralLedgerAccount` | billing | `Name` |
+| `TaxPolicy` | tax | `Name` |
+| `TaxTreatment` | tax | `Name` |
+| `FulfillmentStepDefinitionGroup` | dro | `Name` |
+| `FulfillmentStepDefinition` | dro | `Name` |
+| `ProductFulfillmentScenario` | dro | `Name` |
+| `UnitOfMeasure` | pcm, rating | `UnitCode` |
+| `UnitOfMeasureClass` | pcm, rating | `Code` |
+| `UsageResource` | rating | `Code` |
+| `RateCard` | rates | `Name;Type` |
+| `RateCardEntry` | rates | 4-field composite |
+| `AttributeDefinition` | pcm | `Code` |
+| `ProductCatalog` | pcm | `Code` |
+| `ProductCategory` | pcm | `Code` |
+| `TransactionProcessingType` | transactionprocessingtypes | `DeveloperName` |
+
+> **Note:** This table lists key objects. The full manifest includes all 95 objects across all 9 plans.
+
+### 5.5 Manifest Generator Script
+
+**File:** `scripts/generate_baseline_manifest.py`
+
+This script reads all `export.json` files in `datasets/sfdmu/qb/en-US/` and produces `baseline_manifest.json`. It should be re-run whenever a data plan is updated.
+
+**Pseudocode:**
+
+```python
+PLANS = [
+    ("qb-pcm",                     ["qb"]),
+    ("qb-pricing",                 ["qb"]),
+    ("qb-product-images",          ["qb"]),
+    ("qb-billing",                 ["qb", "billing"]),
+    ("qb-tax",                     ["qb", "tax"]),
+    ("qb-dro",                     ["qb", "dro"]),
+    ("qb-rating",                  ["qb", "rating"]),
+    ("qb-rates",                   ["qb", "rates"]),
+    ("qb-transactionprocessingtypes", ["qb"]),
+]
+
+def generate():
+    manifest = { "plans": {}, "object_index": {}, "composite_key_registry": {} }
+
+    for plan_name, flags in PLANS:
+        export_json = load(f"datasets/sfdmu/qb/en-US/{plan_name}/export.json")
+        passes = extract_passes(export_json)  # handles objectSets[] and flat arrays
+
+        for pass_idx, pass_objects in enumerate(passes):
+            for obj in pass_objects:
+                # extract: api_name, operation, externalId, query fields
+                # classify external_id_type: single/composite/composite_dollar
+                # compute field_fingerprint: sha256(sorted(fields))
+                # update object_index
+                # register composite keys
+
+    manifest["metadata"] = compute_stats(manifest)
+    manifest["generated_at"] = datetime.utcnow().isoformat()
+    write("datasets/sfdmu/qb/en-US/baseline_manifest.json", manifest)
+```
+
+**CCI task to regenerate:**
+```yaml
+tasks:
+  generate_baseline_manifest:
+    description: "Regenerate the qb/en-US baseline manifest from export.json files"
+    class_path: tasks.rlm_generate_baseline_manifest.GenerateBaselineManifest
+```
+
+---
+
+## 6. Integration Task Design: `capture_org_customizations`
+
+### 6.1 Task Overview
+
+| Attribute | Value |
+|---|---|
+| **Class** | `tasks.rlm_distill_capture.DistillCaptureDrift` |
+| **CCI task name** | `capture_org_customizations` |
+| **Mandatory** | No — gracefully skips if Distill is not configured or unreachable |
+| **Inputs** | Retrieved metadata path, Distill project ID, API URL |
+| **Outputs** | `output/distill_drift_report.json` |
+| **Side effects** | None — read-only from org and Distill perspective |
+| **Fails flow** | Never — on any error, logs warning and exits cleanly |
+
+### 6.2 Task Options
+
+```yaml
+# In cumulusci.yml under tasks.capture_org_customizations
+options:
+  distill_api_url:
+    description: >
+      Base URL for Distill API server (e.g. http://localhost:8000).
+      If not set, the task skips gracefully. Set in local.cumulusci.yml
+      or CI environment to enable.
+    required: false
+    default: null
+
+  distill_project_id:
+    description: >
+      UUID of the pre-configured Distill project to use for analysis.
+      Create via Distill CLI: ./distill start → /configure
+      Run: cci task info capture_org_customizations to see current value.
+    required: false
+    default: null
+
+  distill_domain:
+    description: Domain hint for Distill analysis context.
+    required: false
+    default: "revenue-cloud"
+
+  metadata_path:
+    description: >
+      Path to retrieved org metadata (relative to project root).
+      Run 'sf project retrieve start --output-dir retrieved/' first.
+    required: false
+    default: "retrieved/"
+
+  baseline_manifest_path:
+    description: Path to the qb/en-US baseline manifest JSON file.
+    required: false
+    default: "datasets/sfdmu/qb/en-US/baseline_manifest.json"
+
+  output_path:
+    description: Where to write the drift report JSON.
+    required: false
+    default: "output/distill_drift_report.json"
+
+  analysis_mode:
+    description: "Distill analysis depth: 'fast' or 'thorough'."
+    required: false
+    default: "fast"
+
+  poll_interval_seconds:
+    description: Seconds between status polls while waiting for Distill.
+    required: false
+    default: 5
+
+  timeout_seconds:
+    description: Maximum seconds to wait for Distill analysis to complete.
+    required: false
+    default: 300
+```
+
+### 6.3 Task Logic (Pseudocode)
+
+```python
+class DistillCaptureDrift(BaseTask):
+
+    def _run(self):
+        # ── Guard: Distill configured? ──────────────────────────────────
+        api_url = self.options.get("distill_api_url")
+        if not api_url:
+            self.logger.warning(
+                "⏭  Distill capture skipped: distill_api_url not configured.\n"
+                "   To enable, add distill_api_url to task options or local.cumulusci.yml."
+            )
+            return
+
+        # ── Guard: Distill reachable? ────────────────────────────────────
+        if not self._health_check(api_url):
+            self.logger.warning(f"⏭  Distill capture skipped: API at {api_url} not reachable.")
+            return
+
+        # ── Guard: Metadata path exists? ────────────────────────────────
+        metadata_path = Path(self.options.get("metadata_path", "retrieved/"))
+        if not metadata_path.exists():
+            self.logger.warning(
+                f"⏭  Distill capture skipped: {metadata_path} not found.\n"
+                "   Run 'sf project retrieve start --output-dir retrieved/' first."
+            )
+            return
+
+        # ── Guard: Baseline manifest exists? ────────────────────────────
+        manifest_path = Path(self.options.get("baseline_manifest_path"))
+        if not manifest_path.exists():
+            self.logger.warning(
+                f"⏭  Distill capture skipped: {manifest_path} not found.\n"
+                "   Run 'cci task run generate_baseline_manifest' first."
+            )
+            return
+
+        # ── Core workflow ────────────────────────────────────────────────
+        try:
+            project_id  = self._resolve_project_id(api_url)
+            _           = self._run_analysis(api_url, project_id, str(metadata_path))
+            features    = self._poll_until_complete(api_url, project_id)
+            baseline    = self._load_baseline(manifest_path)
+            drift       = self._compute_drift(features, baseline)
+            self._write_report(drift)
+            self._log_summary(drift)
+
+        except Exception as e:
+            self.logger.warning(f"⏭  Distill capture failed with error: {e}\n"
+                                "   This is non-blocking — main flow will continue.")
+
+    # ── Helpers ──────────────────────────────────────────────────────────
+
+    def _health_check(self, api_url) -> bool:
+        resp = requests.get(f"{api_url}/health", timeout=5)
+        return resp.ok and resp.json().get("status") == "ok"
+
+    def _resolve_project_id(self, api_url) -> str:
+        """Use configured project_id, or find by domain in project list."""
+        project_id = self.options.get("distill_project_id")
+        if project_id:
+            return project_id
+        # Fall back to active workspace
+        workspace = requests.get(f"{api_url}/api/workspace/active").json()
+        if workspace.get("active_project_id"):
+            return workspace["active_project_id"]
+        raise ValueError(
+            "No distill_project_id configured and no active Distill workspace found.\n"
+            "Run: ./distill start → /configure to create a project."
+        )
+
+    def _run_analysis(self, api_url, project_id, source_path):
+        resp = requests.post(f"{api_url}/api/analysis/run", json={
+            "project_id": project_id,
+            "source_path": source_path,
+            "repo_type": "Source"
+        })
+        resp.raise_for_status()
+        return resp.json()
+
+    def _poll_until_complete(self, api_url, project_id) -> list:
+        mode     = self.options.get("analysis_mode", "fast")
+        interval = int(self.options.get("poll_interval_seconds", 5))
+        timeout  = int(self.options.get("timeout_seconds", 300))
+        elapsed  = 0
+
+        while elapsed < timeout:
+            summary = requests.get(
+                f"{api_url}/api/analysis/{project_id}/summary",
+                params={"mode": mode}
+            ).json()
+
+            if summary.get("total_features", 0) > 0:
+                self.logger.info(f"   Distill analysis complete: "
+                                 f"{summary['total_features']} features, "
+                                 f"{summary['total_artifacts']} artifacts")
+                break
+
+            time.sleep(interval)
+            elapsed += interval
+        else:
+            raise TimeoutError(f"Distill analysis timed out after {timeout}s")
+
+        features = requests.get(
+            f"{api_url}/api/analysis/{project_id}/features",
+            params={"mode": mode}
+        ).json()
+        return features
+
+    def _compute_drift(self, features: list, baseline: dict) -> dict:
+        """
+        Compare Distill's feature inventory against the baseline manifest.
+        Returns a structured drift report.
+        """
+        baseline_objects = set(baseline["object_index"].keys())
+        baseline_fields  = {
+            obj: set(data["all_fields"])
+            for obj, data in baseline["object_index"].items()
+        }
+
+        new_entities     = []
+        extended_entities = []
+        new_features     = []
+        new_artifacts    = []
+
+        for feature in features:
+            # Check entities (SObjects) referenced by this feature
+            for entity in feature.get("entities", []):
+                if entity not in baseline_objects:
+                    new_entities.append({
+                        "entity": entity,
+                        "feature": feature["name"],
+                        "operations": feature["operations"]
+                    })
+                # (Field-level diff would require DataMapper integration - Phase 2)
+
+            # Classify the feature by proximity to known plan domains
+            domain = self._classify_domain(feature, baseline)
+            new_features.append({
+                "feature_id":   feature["business_feature_id"],
+                "name":         feature["name"],
+                "description":  feature["description"],
+                "entities":     feature["entities"],
+                "operations":   feature["operations"],
+                "files":        feature["files"],
+                "ui_components": feature["ui_components"],
+                "inferred_domain": domain,
+                "suggested_bundle": self._suggest_bundle(domain),
+                "promotion_hint": self._promotion_hint(feature, domain)
+            })
+
+        return {
+            "generated_at":       datetime.utcnow().isoformat(),
+            "org_alias":          self.org_config.name,
+            "distill_project_id": self.options.get("distill_project_id"),
+            "analysis_mode":      self.options.get("analysis_mode", "fast"),
+            "baseline_version":   baseline["version"],
+            "summary": {
+                "total_features_detected": len(features),
+                "new_entities":           len(new_entities),
+                "total_drift_items":      len(new_features)
+            },
+            "new_entities":   new_entities,
+            "features":       new_features
+        }
+
+    def _classify_domain(self, feature, baseline) -> str:
+        """Map a Distill feature to the closest rlm-base-dev domain."""
+        DOMAIN_ENTITY_MAP = {
+            "pcm":      {"Product2", "ProductCatalog", "ProductCategory",
+                          "ProductClassification", "ProductRelatedComponent"},
+            "pricing":  {"PricebookEntry", "PriceAdjustmentSchedule",
+                          "PriceAdjustmentTier", "Pricebook2"},
+            "billing":  {"BillingPolicy", "BillingTreatment", "LegalEntity",
+                          "PaymentTerm", "GeneralLedgerAccount"},
+            "tax":      {"TaxPolicy", "TaxTreatment", "TaxEngine"},
+            "dro":      {"FulfillmentStepDefinition", "ProductFulfillmentScenario",
+                          "FulfillmentStepDefinitionGroup"},
+            "rating":   {"UsageResource", "RatingFrequencyPolicy",
+                          "ProductUsageResource"},
+            "rates":    {"RateCard", "RateCardEntry", "RateAdjustmentByTier"},
+        }
+        entities = set(feature.get("entities", []))
+        scores = {domain: len(entities & domain_entities)
+                  for domain, domain_entities in DOMAIN_ENTITY_MAP.items()}
+        best = max(scores, key=scores.get)
+        return best if scores[best] > 0 else "unknown"
+
+    def _suggest_bundle(self, domain) -> str:
+        BUNDLE_MAP = {
+            "pcm":     "unpackaged/post_quantumbit",
+            "pricing": "unpackaged/post_quantumbit",
+            "billing": "unpackaged/post_billing",
+            "tax":     "unpackaged/post_quantumbit",
+            "dro":     "unpackaged/post_quantumbit",
+            "rating":  "unpackaged/post_quantumbit",
+            "rates":   "unpackaged/post_quantumbit",
+        }
+        return BUNDLE_MAP.get(domain, "force-app/main/default")
+
+    def _promotion_hint(self, feature, domain) -> str:
+        """Generate a human-readable promotion hint."""
+        ops = feature.get("operations", [])
+        files = feature.get("files", [])
+        if any(f.endswith(".cls") for f in files):
+            return "Contains Apex — review for promotion to force-app/main/default/classes/"
+        if any(f.endswith(".flow-meta.xml") for f in files):
+            return f"Contains Flow — review for promotion to {self._suggest_bundle(domain)}"
+        if feature.get("ui_components"):
+            return "Contains LWC/UI component — review for promotion to force-app/main/default/lwc/"
+        return "Review manually"
+```
+
+### 6.4 Drift Report Output Schema
+
+**File:** `output/distill_drift_report.json`
+
+```json
+{
+  "generated_at": "2026-02-27T14:30:00Z",
+  "org_alias": "dev",
+  "distill_project_id": "<uuid>",
+  "analysis_mode": "fast",
+  "baseline_version": "1.0.0",
+
+  "summary": {
+    "total_features_detected": 12,
+    "new_entities": 3,
+    "total_drift_items": 7
+  },
+
+  "new_entities": [
+    {
+      "entity": "CustomBillingRule__c",
+      "feature": "Custom Billing Override",
+      "operations": ["C", "U"]
+    }
+  ],
+
+  "features": [
+    {
+      "feature_id": "feat-abc123",
+      "name": "Custom Product Bundling Logic",
+      "description": "Apex-driven bundle validation extending standard PCM behaviour",
+      "entities": ["Product2", "ProductRelatedComponent"],
+      "operations": ["R", "U"],
+      "files": ["force-app/main/default/classes/BundleValidator.cls"],
+      "ui_components": [],
+      "inferred_domain": "pcm",
+      "suggested_bundle": "unpackaged/post_quantumbit",
+      "promotion_hint": "Contains Apex — review for promotion to force-app/main/default/classes/"
+    }
+  ]
+}
+```
+
+---
+
+## 7. CumulusCI Configuration
+
+### 7.1 cumulusci.yml Additions
+
+```yaml
+# ── Feature flags ──────────────────────────────────────────────────────────
+project:
+  custom:
+    # ... existing flags ...
+    distill_enabled: false   # Set to true in local.cumulusci.yml if Distill is available
+
+# ── Tasks ─────────────────────────────────────────────────────────────────
+tasks:
+  generate_baseline_manifest:
+    description: >
+      Regenerate the qb/en-US baseline manifest from export.json files.
+      Run after any data plan update.
+    class_path: tasks.rlm_generate_baseline_manifest.GenerateBaselineManifest
+    options:
+      scope: "qb/en-US"
+      output_path: "datasets/sfdmu/qb/en-US/baseline_manifest.json"
+
+  capture_org_customizations:
+    description: >
+      [OPTIONAL] Analyze org customizations against the qb/en-US baseline using
+      Distill AI. Requires Distill API server running and distill_api_url configured.
+      Gracefully skips if Distill is not available.
+    class_path: tasks.rlm_distill_capture.DistillCaptureDrift
+    options:
+      distill_api_url: null                 # Override in local.cumulusci.yml
+      distill_project_id: null              # Override with your Distill project UUID
+      metadata_path: "retrieved/"
+      baseline_manifest_path: "datasets/sfdmu/qb/en-US/baseline_manifest.json"
+      output_path: "output/distill_drift_report.json"
+      analysis_mode: "fast"
+      poll_interval_seconds: 5
+      timeout_seconds: 300
+
+# ── Flows ──────────────────────────────────────────────────────────────────
+flows:
+  analyze_org_drift:
+    description: >
+      Retrieve org metadata and run Distill customization analysis.
+      Requires: sf CLI authenticated to target org, Distill API running.
+      Produces: output/distill_drift_report.json
+    steps:
+      1:
+        task: retrieve_changes
+        description: "Pull current org metadata to retrieved/"
+      2:
+        task: capture_org_customizations
+        description: "Analyze drift against qb/en-US baseline (optional - skips if Distill unavailable)"
+```
+
+### 7.2 Local Override (Not Committed)
+
+Users with Distill access add to `local.cumulusci.yml` (gitignored):
+
+```yaml
+tasks:
+  capture_org_customizations:
+    options:
+      distill_api_url: "http://localhost:8000"
+      distill_project_id: "<your-distill-project-uuid>"
+```
+
+### 7.3 CI/CD (Optional)
+
+```yaml
+# .github/workflows/analyze-drift.yml (future)
+env:
+  DISTILL_API_URL: ${{ secrets.DISTILL_API_URL }}
+  DISTILL_PROJECT_ID: ${{ secrets.DISTILL_PROJECT_ID }}
+```
+
+---
+
+## 8. Implementation Roadmap
+
+### Phase 1: Foundation (Current Focus)
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 1.1 | Write `scripts/generate_baseline_manifest.py` | | 🔲 TODO |
+| 1.2 | Generate and commit `datasets/sfdmu/qb/en-US/baseline_manifest.json` | | 🔲 TODO |
+| 1.3 | Add `generate_baseline_manifest` CCI task | | 🔲 TODO |
+| 1.4 | Write `tasks/rlm_distill_capture.py` with full guard logic | | 🔲 TODO |
+| 1.5 | Add `capture_org_customizations` and `analyze_org_drift` to cumulusci.yml | | 🔲 TODO |
+| 1.6 | Test graceful skip when Distill not configured | | 🔲 TODO |
+| 1.7 | Test full round-trip with a real customized org | | 🔲 TODO |
+
+### Phase 2: REST API Gap (Contribute to Distill)
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 2.1 | Add `POST /api/projects` endpoint to Distill (`serve_api.py`) | | 🔲 TODO |
+| 2.2 | Update `capture_org_customizations` task to create project programmatically | | 🔲 TODO |
+| 2.3 | Remove pre-configuration requirement from user docs | | 🔲 TODO |
+
+### Phase 3: Field-Level Drift (DataMapper Integration)
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 3.1 | Run Distill DataMapper against retrieved metadata to detect field-level changes | | 🔲 TODO |
+| 3.2 | Extend drift report with per-object field additions | | 🔲 TODO |
+| 3.3 | Suggest SFDMU export.json query additions for new fields | | 🔲 TODO |
+
+### Phase 4: Context Extension Discovery
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 4.1 | Include context definition XML in retrieved metadata | | 🔲 TODO |
+| 4.2 | Use Distill to diff context attributes against `force-app/main/default/contextDefinitions/` | | 🔲 TODO |
+| 4.3 | Suggest additions to `datasets/context_plans/` | | 🔲 TODO |
+
+---
+
+## 9. Open Questions & Decisions
+
+| # | Question | Status | Decision |
+|---|---|---|---|
+| 9.1 | Should `analyze_org_drift` be a sub-step of `prepare_rlm_org` or a standalone flow? | Open | — |
+| 9.2 | Should the drift report be human-readable (markdown) in addition to JSON? | Open | — |
+| 9.3 | Which `sf project retrieve start` filter to use — all metadata or just objects in the baseline? | Open | Likely: `--metadata ApexClass,Flow,LightningComponentBundle,CustomObject` |
+| 9.4 | How to handle multi-currency (q3) plans once they are updated for SFDMU v5? | Future | Out of scope for Phase 1 |
+| 9.5 | Should `generate_baseline_manifest` run automatically as a pre-commit hook? | Open | — |
+| 9.6 | Distill `POST /api/analysis/run` — does `repo_type: "Source"` vs `"Target"` affect output meaningfully for the drift use case? | Needs testing | Likely use `"Source"` for org-state snapshots |
