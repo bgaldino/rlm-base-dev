@@ -2,7 +2,11 @@
 
 > **Status:** In Progress
 > **Last Updated:** 2026-02-27
-> **Scope:** Round-trip customization capture for qb/en-US data plans (no custom fields, target-org-agnostic)
+> **Scope:** Round-trip customization capture across data shapes (no custom fields, target-org-agnostic)
+>
+> **Related documents:**
+> - `docs/project-analysis.md` — comprehensive capabilities reference for both projects
+> - `docs/datasets-reorganization.md` — prerequisite structural proposal (must be approved before Phase 1)
 
 ---
 
@@ -12,7 +16,7 @@
 2. [Strategic Integration POV](#2-strategic-integration-pov)
 3. [The Round-Trip Workflow](#3-the-round-trip-workflow)
 4. [Distill REST API: Relevant Endpoints](#4-distill-rest-api-relevant-endpoints)
-5. [Baseline Manifest: Data Model Design](#5-baseline-manifest-data-model-design)
+5. [Shape Manifest: Data Model Design](#5-shape-manifest-data-model-design)
 6. [Integration Task Design: `capture_org_customizations`](#6-integration-task-design-capture_org_customizations)
 7. [CumulusCI Configuration](#7-cumulusci-configuration)
 8. [Implementation Roadmap](#8-implementation-roadmap)
@@ -22,39 +26,36 @@
 
 ## 1. Project Overviews
 
+> Full technical detail for both projects is in `docs/project-analysis.md`. This section captures the integration-relevant summary.
+
 ### 1.1 rlm-base-dev
 
 An enterprise CumulusCI automation framework for standing up Salesforce Revenue Cloud (RLM) orgs from scratch. Its core job: *"How do I deploy and configure a correctly structured Revenue Cloud org?"*
 
-**Key facts:**
-- CumulusCI 4.x, API 66.0, Release 260 (Spring '26)
-- 29 flows / sub-flows, 28 custom Python tasks, 50+ feature flags
-- 11 SFDMU data plans (qb/en-US), 2 CML constraint models, 24 Apex scripts
-- 3 Robot Framework test suites for UI toggle automation
-- ~95% of org setup is fully automated
-- Intentionally **target-org-agnostic**: data plans use only standard RLM fields, no custom fields, all external IDs via composite key patterns
-
-**What it does NOT do today:**
-- Detect what has changed in an org after deployment
-- Ingest customizations back from running orgs
-- Determine which post-deployment changes should be promoted back to the project
+**Integration-relevant facts:**
+- 3 data shape families: **QB** (en-US + ja), **Q3** (en-US, pending v5 migration), **MFG** (en-US, draft)
+- 29 flows / sub-flows, 28 custom Python tasks, 50+ feature flags drive conditional deployment
+- All data plans are target-org-agnostic (standard RLM fields only, no custom fields)
+- SFDMU v5 composite key patterns throughout qb/en-US; q3 pending migration
+- CML constraint models are QB-shape-specific (moving into shape folder — see `docs/datasets-reorganization.md`)
+- **What it does NOT do today:** detect post-deployment org drift, ingest customizations back from running orgs
 
 ### 1.2 Distill (`sf-industries/distill`)
 
 An AI-powered Salesforce customization migration and analysis platform built on the Claude Agent SDK. Its core job: *"What customizations exist in a codebase, how do they relate to each other, and what do they mean for the business?"*
 
-**Four engines:**
+**Integration-relevant engines:**
 
-| Engine | Purpose | Key Output |
+| Engine | Used For Integration? | Purpose |
 |---|---|---|
-| **Insights** (10-stage pipeline) | Scans a codebase to extract entry points, business flows, capability clusters, and feature inventory | Structured feature/capability manifest |
-| **DataMapper** | Semantically maps entities and fields between source and target schema | Field-level mapping artifacts |
-| **CodeSuggestion** | Migrates Apex/triggers using RAG + knowledge graph for context-aware translation | Migration-ready code |
-| **Metadata Migration** | Type-specific LLM migration of Flows, LWC, Aura, Visualforce | Migrated metadata XML |
+| **Insights** (10-stage) | ✅ Primary — Phase 1 | Scan retrieved org metadata → structured feature/capability inventory |
+| **DataMapper** | ✅ Phase 3 | Field-level drift detection against shape object footprint |
+| **CodeSuggestion** | Future | Apex/trigger migration (not in current integration scope) |
+| **Metadata Migration** | Future | Flow/LWC migration (not in current integration scope) |
 
 **REST API:** Full HTTP API at `serve_api.py` (default port 8000) with OpenAPI spec at `/openapi.json` and Swagger UI at `/docs`.
 
-**Storage:** SQLite (project/migration records), ChromaDB (vector embeddings), DuckDB (Insights analysis), NetworkX (dependency graph).
+**Known gap:** No `POST /api/projects` endpoint — projects must be pre-created via Distill CLI (`/configure`). See §4.3.
 
 ---
 
@@ -283,20 +284,212 @@ Contribute a `POST /api/projects` endpoint to Distill that accepts `{project_nam
 
 ---
 
-## 5. Baseline Manifest: Data Model Design
+## 5. Shape Manifest: Data Model Design
+
+> **Prerequisite:** The datasets folder reorganization described in `docs/datasets-reorganization.md` must be completed before manifest generation. Specifically: `constraints/` must be co-located inside the shape folder, and `shapes.json` must exist at `datasets/`.
 
 ### 5.1 Design Goals
 
-The baseline manifest captures the **expected schema state** of the 9 qb/en-US data plans as defined by their `export.json` files. It is:
+Each data shape/locale has a `shape_manifest.json` that captures the **expected schema state** of all plans in that folder. It is:
 
-- **Derived, not hand-authored.** Generated by a script that reads existing `export.json` files.
-- **Standard fields only.** No custom fields (`__c` suffix objects/fields are excluded from scope).
-- **Source of truth for diff.** When Distill returns a feature/artifact inventory, the manifest defines what's "expected" so anything additional is "drift."
-- **Versioned with the project.** Committed to git; updated when data plans change.
+- **One manifest per shape/locale** — not per plan, not per object. `qb/en-US` gets one manifest covering all 13+ plans.
+- **Derived, not hand-authored.** Generated by the `generate_baseline_manifest` CCI task from existing `export.json` files.
+- **Feature-flag-aware.** Contains a `feature_matrix` mapping each CCI flag to the objects it introduces, so drift detection can be scoped to the flags that were active when the org was built.
+- **Standard fields only.** No custom fields (`__c` suffix) — plans are target-org-agnostic.
+- **Multi-shape aware.** Each shape registers in `datasets/shapes.json`. The `capture_org_customizations` task accepts a `data_shape` parameter to select which manifest to diff against.
+- **Versioned with the project.** Committed to git; regenerated when data plans change.
 
-### 5.2 Manifest Schema
+### 5.2 Shape Registry (`datasets/shapes.json`)
 
-**File location:** `datasets/sfdmu/qb/en-US/baseline_manifest.json`
+The registry is the single source of truth for all available shapes. See `docs/datasets-reorganization.md §9` for the full initial content.
+
+**Key fields per shape entry:**
+
+```json
+{
+  "id": "qb-en-US",
+  "path": "datasets/sfdmu/qb/en-US",
+  "status": "active | partial | pending | draft",
+  "source": "hand-authored | distill",
+  "sfdmu_version": "5",
+  "required_flags": ["qb"],
+  "optional_flags": ["billing", "tax", "dro", "rating", "rates", "clm"],
+  "includes_constraints": true,
+  "manifest": "datasets/sfdmu/qb/en-US/shape_manifest.json"
+}
+```
+
+**Status values:**
+- `active` — v5 plans, manifest generated, ready for drift detection
+- `partial` — incomplete plan coverage (e.g., `qb/ja` has pcm + pricing only)
+- `pending` — needs SFDMU v4→v5 migration before manifest can be generated (e.g., `q3/en-US`)
+- `draft` — in development (e.g., `mfg/en-US`)
+
+### 5.3 Shape Manifest Schema (`shape_manifest.json`)
+
+**File location:** `datasets/sfdmu/<shape>/<locale>/shape_manifest.json`
+
+```json
+{
+  "$schema": "https://rlm-base.schema/shape-manifest/v1",
+  "version": "1.0.0",
+  "generated_at": "<ISO-8601 datetime>",
+  "generator": "cci task run generate_baseline_manifest --option shape_id qb-en-US",
+  "shape_id": "qb-en-US",
+  "release": "260",
+  "api_version": "66.0",
+
+  "feature_matrix": {
+    "qb": {
+      "objects": ["Product2", "ProductCatalog", "ProductCategory",
+                  "AttributeDefinition", "ProductClassification",
+                  "ProductSellingModel", "Pricebook2", "PricebookEntry",
+                  "TransactionProcessingType"],
+      "plans": ["qb-pcm", "qb-pricing", "qb-product-images",
+                "qb-transactionprocessingtypes"]
+    },
+    "billing": {
+      "objects": ["BillingPolicy", "BillingTreatment", "BillingTreatmentItem",
+                  "LegalEntity", "PaymentTerm", "PaymentTermItem",
+                  "GeneralLedgerAccount", "AccountingPeriod"],
+      "plans": ["qb-billing"]
+    },
+    "tax": {
+      "objects": ["TaxPolicy", "TaxTreatment", "TaxEngine", "TaxEngineProvider"],
+      "plans": ["qb-tax"]
+    },
+    "dro": {
+      "objects": ["FulfillmentStepDefinition", "FulfillmentStepDefinitionGroup",
+                  "ProductFulfillmentScenario", "FulfillmentWorkspace"],
+      "plans": ["qb-dro"]
+    },
+    "rating": {
+      "objects": ["UsageResource", "UsageResourceBillingPolicy",
+                  "ProductUsageResource", "RatingFrequencyPolicy"],
+      "plans": ["qb-rating"]
+    },
+    "rates": {
+      "objects": ["RateCard", "RateCardEntry", "RateAdjustmentByTier"],
+      "plans": ["qb-rates"]
+    }
+  },
+
+  "plans": {
+    "<plan-name>": {
+      "path": "datasets/sfdmu/qb/en-US/<plan-name>",
+      "feature_flags": ["<flag>"],
+      "multi_pass": true,
+      "pass_count": 3,
+      "passes": [
+        {
+          "pass_index": 0,
+          "label": "<objectSet name from export.json>",
+          "objects": [
+            {
+              "api_name": "<SObject API name>",
+              "operation": "Upsert | Update | Insert | Readonly | default",
+              "external_id": "<field or composite expression>",
+              "external_id_type": "single | composite | composite_dollar",
+              "external_id_fields": ["<field1>", "<field2>"],
+              "fields": ["<field1>", "<field2>"],
+              "field_fingerprint": "<sha256 of sorted field list>",
+              "skip_existing_records": false,
+              "delete_old_data": false,
+              "excluded": false,
+              "query_filter": "<WHERE clause | null>"
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "object_index": {
+    "<SObject API name>": {
+      "plans": ["<plan-name>"],
+      "feature_flags": ["<flag>"],
+      "operations": ["Upsert"],
+      "all_fields": ["<field1>"],
+      "primary_external_id": "<field or expression>"
+    }
+  },
+
+  "composite_key_registry": {
+    "<plan-name>.<SObject>": {
+      "type": "standard | dollar_notation",
+      "fields": ["<field1>", "<field2>"],
+      "expression": "<external_id string as written in export.json>"
+    }
+  },
+
+  "metadata": {
+    "total_plans": 13,
+    "total_objects": 95,
+    "total_composite_keys": 29,
+    "dollar_notation_keys": 13,
+    "multi_pass_plans": ["qb-billing", "qb-tax", "qb-rating"]
+  }
+}
+```
+
+### 5.4 Composite Key Notation Reference
+
+Three composite key types exist in the qb/en-US plans:
+
+| Type | Example | Notation in export.json | `external_id_type` value |
+|---|---|---|---|
+| **Single** | `StockKeepingUnit` | Plain field name | `"single"` |
+| **Standard composite** | `Name;SellingModelType` | Semicolon-separated | `"composite"` |
+| **Dollar composite** | `$$Name$BillingTreatment.Name` | `$$` prefix, `$` separator | `"composite_dollar"` |
+
+Dollar notation (`$$`) is SFDMU v5-specific — computed columns in the CSV concatenating multiple traversal paths. The manifest captures them verbatim so diff logic can correctly identify field-level changes vs. key-structural changes.
+
+### 5.5 Key Object Index (qb/en-US)
+
+| SObject | Plans | Feature Flag | Primary External ID |
+|---|---|---|---|
+| `Product2` | pcm, pricing, product-images, billing, dro, rating, rates | `qb` | `StockKeepingUnit` |
+| `ProductSellingModel` | pcm, pricing | `qb` | `Name;SellingModelType` |
+| `Pricebook2` | pricing | `qb` | `Name;IsStandard` |
+| `PricebookEntry` | pricing | `qb` | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` |
+| `PriceAdjustmentTier` | pricing | `qb` | 9-field composite |
+| `LegalEntity` | billing, tax | `billing` / `tax` | `Name` |
+| `BillingPolicy` | billing | `billing` | `Name` |
+| `BillingTreatmentItem` | billing | `billing` | `$$Name$BillingTreatment.Name` |
+| `PaymentTermItem` | billing | `billing` | `$$PaymentTerm.Name$Type` |
+| `TaxPolicy` | tax | `tax` | `Name` |
+| `FulfillmentStepDefinition` | dro | `dro` | `Name` |
+| `ProductFulfillmentScenario` | dro | `dro` | `Name` |
+| `UsageResource` | rating | `rating` | `Code` |
+| `ProductUsageResourcePolicy` | rating | `rating` | `$$` composite |
+| `RateCard` | rates | `rates` | `Name;Type` |
+| `RateCardEntry` | rates | `rates` | 4-field composite |
+| `TransactionProcessingType` | transactionprocessingtypes | `qb` | `DeveloperName` |
+
+> Full object index (all 95 objects) is generated into `shape_manifest.json` by the generator task.
+
+### 5.6 Manifest Generator
+
+**CCI task:** `generate_baseline_manifest`
+**Script:** `scripts/generate_baseline_manifest.py` *(to be created — Phase 0)*
+
+**Usage:**
+```bash
+# Generate manifest for a specific shape
+cci task run generate_baseline_manifest --option shape_id qb-en-US
+
+# Regenerate all active shapes
+cci task run generate_baseline_manifest --option shape_id all
+```
+
+**What it does:**
+1. Reads `datasets/shapes.json` to find all shapes with `status: active`
+2. For each shape, reads every `export.json` in the shape folder
+3. Extracts: object API names, operations, external IDs (classifies single/composite/dollar), field lists from SELECT queries
+4. Computes `field_fingerprint` as SHA-256 of sorted field list per object
+5. Builds `feature_matrix` by cross-referencing plan `feature_flags`
+6. Writes `shape_manifest.json` into the shape folder
+7. Skips shapes with `status: pending` or `draft` (logs warning)
 
 ```json
 {
@@ -535,6 +728,25 @@ options:
     description: Maximum seconds to wait for Distill analysis to complete.
     required: false
     default: 300
+
+  data_shape:
+    description: >
+      Which data shape to target for baseline manifest comparison (e.g. 'qb', 'q3', 'mfg').
+      Determines which shape_manifest.json is loaded from
+      datasets/sfdmu/<data_shape>/en-US/shape_manifest.json.
+      Defaults to 'qb' (the only shape with a complete v5 manifest).
+    required: false
+    default: "qb"
+
+  active_flags:
+    description: >
+      Comma-separated list of active CCI feature flags for this org
+      (e.g. 'billing,tax,dro,rating'). Used to scope drift detection
+      to only those objects introduced by the enabled flags.
+      When null, all objects in the shape manifest are included.
+      Matches flag names from the manifest's feature_matrix section.
+    required: false
+    default: null
 ```
 
 ### 6.3 Task Logic (Pseudocode)
@@ -875,6 +1087,25 @@ env:
 
 ## 8. Implementation Roadmap
 
+### Phase 0: Datasets Reorganization (Prerequisite)
+
+> **Full proposal and migration steps:** `docs/datasets-reorganization.md`
+>
+> This phase must be completed (or at minimum reviewed and approved) before Phase 1 begins.
+> The Phase 1 manifest paths (`datasets/sfdmu/qb/en-US/shape_manifest.json`) and the `shapes.json`
+> registry both depend on the reorganized folder structure.
+
+| # | Task | Owner | Status |
+|---|---|---|---|
+| 0.1 | Review and approve `docs/datasets-reorganization.md` | | 🔲 TODO |
+| 0.2 | Execute folder restructure per migration script in that doc | | 🔲 TODO |
+| 0.3 | Update path defaults in `tasks/rlm_cml.py` (`import_cml`, `export_cml`, `validate_cml`) | | 🔲 TODO |
+| 0.4 | Update `cumulusci.yml` option defaults for `insert_scratch_data` and `insert_procedure_plans_data` | | 🔲 TODO |
+| 0.5 | Create initial `datasets/shapes.json` registry (4 shapes: qb-en-US active, qb-ja partial, q3-en-US pending, mfg-en-US draft) | | 🔲 TODO |
+| 0.6 | Verify all existing CCI flows pass with updated paths (`prepare_rlm_org` smoke test) | | 🔲 TODO |
+
+---
+
 ### Phase 1: Foundation (Current Focus)
 
 | # | Task | Owner | Status |
@@ -915,11 +1146,28 @@ env:
 
 ## 9. Open Questions & Decisions
 
+### 9.1 Resolved Decisions
+
 | # | Question | Status | Decision |
 |---|---|---|---|
-| 9.1 | Should `analyze_org_drift` be a sub-step of `prepare_rlm_org` or a standalone flow? | Open | — |
-| 9.2 | Should the drift report be human-readable (markdown) in addition to JSON? | Open | — |
-| 9.3 | Which `sf project retrieve start` filter to use — all metadata or just objects in the baseline? | Open | Likely: `--metadata ApexClass,Flow,LightningComponentBundle,CustomObject` |
-| 9.4 | How to handle multi-currency (q3) plans once they are updated for SFDMU v5? | Future | Out of scope for Phase 1 |
-| 9.5 | Should `generate_baseline_manifest` run automatically as a pre-commit hook? | Open | — |
-| 9.6 | Distill `POST /api/analysis/run` — does `repo_type: "Source"` vs `"Target"` affect output meaningfully for the drift use case? | Needs testing | Likely use `"Source"` for org-state snapshots |
+| R1 | One manifest per plan or one per shape? | ✅ Resolved | **Per shape/locale.** Multiple plans share objects; a per-plan manifest would create duplication and couldn't express cross-plan feature flag relationships. |
+| R2 | Where does the manifest live with multiple shapes? | ✅ Resolved | `datasets/sfdmu/<shape>/<locale>/shape_manifest.json` (e.g. `qb/en-US/shape_manifest.json`). Top-level `datasets/shapes.json` is the registry. |
+| R3 | How do feature flag combinations affect the manifest? | ✅ Resolved | `feature_matrix` block in the manifest maps each CCI flag to the objects it introduces. `capture_org_customizations` accepts `active_flags` option to scope the diff. |
+| R4 | How do Distill-generated new shapes slot in? | ✅ Resolved | New shape folder under `sfdmu/<shape-name>/en-US/`, `shape_manifest.json` generated with `"source": "distill"`, registered in `shapes.json` with `"status": "draft"`. No special-casing required. |
+| R5 | Where do QB CML constraint models live? | ✅ Resolved | Move `datasets/constraints/qb/` → `datasets/sfdmu/qb/en-US/constraints/`. Shape self-contained. See `docs/datasets-reorganization.md`. |
+| R6 | Where do `procedure-plans` and `scratch_data` live? | ✅ Resolved | `datasets/sfdmu/_shared/procedure-plans/` and `datasets/sfdmu/_shared/scratch_data/`. Both are multi-shape by nature. |
+| R7 | Is the integration mandatory? | ✅ Resolved | **No — optional and non-blocking.** `capture_org_customizations` guards on `distill_api_url`, API reachability, metadata path, and manifest existence. All failures log a warning and return cleanly. |
+| R8 | Which data shapes are in scope for Phase 1? | ✅ Resolved | **`qb/en-US` only.** Q3 and MFG are excluded until they are updated for SFDMU v5 composite key patterns. |
+
+### 9.2 Open Questions
+
+| # | Question | Status | Notes |
+|---|---|---|---|
+| O1 | Should `analyze_org_drift` be a sub-step of `prepare_rlm_org` or always a standalone flow? | Open | Standalone is safer (optional by design); sub-step would require wrapping in a `when:` condition. |
+| O2 | Should the drift report be human-readable (Markdown) in addition to JSON? | Open | A Markdown summary table would make it easier to review in PRs. Low effort — `_write_report()` could emit both. |
+| O3 | Which `sf project retrieve start` filter to use? | Open | Likely: `--metadata "ApexClass,Flow,LightningComponentBundle,CustomObject"` — scoped to what Distill's Insights engine analyzes. Full org retrieve is noisy. |
+| O4 | How to handle multi-currency (q3) plans once updated for SFDMU v5? | Deferred | Phase 3+. Requires completing v5 migration of q3/en-US plans first. When ready: add `q3` entry to `shapes.json` and set status to `active`. |
+| O5 | Should `generate_baseline_manifest` run as a pre-commit hook? | Open | Would ensure manifest is never stale. Risk: slow commit for minor changes. Alternative: document as a manual step after plan updates. |
+| O6 | Does Distill `repo_type: "Source"` vs `"Target"` affect output for the drift use case? | Needs testing | Hypothesis: use `"Source"` for org-state snapshots (retrieved metadata looks like a source project). Needs an end-to-end test run to confirm. |
+| O7 | Should `generate_baseline_manifest` automatically update `shapes.json` when a new shape manifest is created? | Open | Natural fit — the script already knows the shape name and locale. Would keep `shapes.json` as a derived artifact rather than manually maintained. |
+| O8 | How should `active_flags` be passed in CI scenarios? | Open | Options: (a) hardcoded in `cumulusci.yml` per environment, (b) env var mapped in CI YAML, (c) read from a `shapes.json` `"default_flags"` field. |
