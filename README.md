@@ -11,6 +11,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+  - [Setup for headless robot runs](#setup-for-headless-robot-runs)
 - [Quick Start](#quick-start)
 - [Feature Flags](#feature-flags)
 - [Custom Tasks](#custom-tasks)
@@ -70,15 +71,26 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    ```
    Prefer **pipx** so CumulusCI runs in an isolated environment and does not install into your global Python. If you don't use pipx, create a [virtual environment](https://docs.python.org/3/library/venv.html) first, then run `pip install cumulusci` inside it.
 
-   **Dependencies for Document Builder automation** (required if you use `prepare_docgen` or the `enable_document_builder_toggle` task):
-   - Python 3.8+
-   - Robot Framework, SeleniumLibrary, and webdriver-manager: keep them in the **same environment as CumulusCI** so the CCI task can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**; install in the same env as CCI (e.g. `pip install -r robot/requirements.txt` in your venv). If you use **pipx** for CumulusCI (recommended), inject into its environment (no global install):
+   #### Setup for headless robot runs
+
+   Required if you use `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, or `configure_revenue_settings`:
+
+   1. **Python packages** — Robot Framework, SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
      ```bash
      pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
      ```
-     webdriver-manager provides ChromeDriver automatically (no need to install ChromeDriver in PATH). If you previously installed these with `pip install` globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`. If you use a project virtual environment instead of pipx for CCI, install there: `pip install -r robot/requirements.txt` (or the packages above) inside the venv.
-   - Chrome (or set `BROWSER=firefox`). Robot tasks run headless by default. With webdriver-manager installed, ChromeDriver is downloaded automatically when the test runs. If webdriver-manager is **not** installed, the test falls back to the system ChromeDriver on `PATH`.
-   - The task uses `sf org open --url-only` to authenticate the browser; ensure the Salesforce CLI (`sf`) is installed and the org is logged in.
+     If you use a project virtual environment: `pip install -r robot/requirements.txt` inside the venv. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`.
+
+   2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
+     - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`
+     - **Linux:** `apt install chromium` (Debian/Ubuntu) or `dnf install chromium` (Fedora)
+     - **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`)
+
+   3. **ChromeDriver** — webdriver-manager downloads it automatically at runtime. If webdriver-manager is not installed, ChromeDriver must be on `PATH` or at `/usr/bin/chromedriver` (e.g. `apt install chromium-driver` on Debian/Ubuntu).
+
+   4. **Salesforce CLI** — The task uses `sf org open --url-only` to authenticate the browser; ensure `sf` is installed and the org is logged in.
+
+   5. **Verify** — Run `cci task run validate_setup` (no org required) to check all dependencies including Chrome/Chromium and ChromeDriver.
 
 3. **Install SFDMU (v5+):**
    ```bash
@@ -91,14 +103,11 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    cci version
    sf plugins list  # Should show sfdmu 5.x
    ```
-   **Document Builder (Robot) env only — no org or flow required:** To confirm Robot and SeleniumLibrary are in CCI's environment before running any flow or test:
+   **Headless robot env — no org or flow required:** To confirm all headless robot dependencies (Robot, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3), run:
    ```bash
-   # Robot CLI (pipx venv path; on Windows use ...\Scripts\robot.bat)
-   ~/.local/pipx/venvs/cumulusci/bin/robot --version
-   # SeleniumLibrary importable in same env
-   ~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
+   cci task run validate_setup
    ```
-   If both succeed, your env is ready for `prepare_docgen` / `enable_document_builder_toggle` when prerequisites are in place.
+   Or manually: `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"` (pipx path; on Windows use `...\Scripts\robot.bat`). If all checks pass, your env is ready for headless robot tasks when the org is configured.
 
 5. **Authenticate with Salesforce:**
    ```bash
@@ -322,7 +331,7 @@ Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>
 | `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
-| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
+| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
@@ -783,7 +792,7 @@ Decision table activate/deactivate and expression set version activation use CCI
 
 ## Troubleshooting
 
-### Fixing a global pip install (Robot / Document Builder)
+### Fixing a global pip install (headless robot tasks)
 
 If you installed Robot Framework or SeleniumLibrary with `pip install` and got a warning about modifying the global environment:
 
@@ -791,11 +800,19 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
    ```bash
    python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager
    ```
-2. Install them into CumulusCI's environment so the `enable_document_builder_toggle` task can run the `robot` command. If you use **pipx** for CumulusCI:
+2. Install them into CumulusCI's environment so headless robot tasks can run. If you use **pipx** for CumulusCI:
    ```bash
    pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
    ```
-3. Confirm with prerequisite-free checks (see [Verify installations](#4-verify-installations) — "Document Builder (Robot) env only"): `~/.local/pipx/venvs/cumulusci/bin/robot --version` and `~/.local/pipx/venvs/cumulusci/bin/python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"`. Once the org is ready, run the task to confirm end-to-end.
+3. Run `cci task run validate_setup` to confirm all headless robot dependencies (Robot, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver). Once the org is ready, run the task to confirm end-to-end.
+
+### Headless robot: Chrome/Chromium or ChromeDriver not found
+
+Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Run `cci task run validate_setup` to diagnose. Common fixes:
+
+- **Chrome/Chromium missing:** Install per [Setup for headless robot runs](#setup-for-headless-robot-runs) (macOS: `brew install chromium`; Linux: `apt install chromium`).
+- **ChromeDriver missing:** Install webdriver-manager (`pipx inject cumulusci webdriver-manager`) so it downloads ChromeDriver at runtime, or install chromedriver on PATH (e.g. `apt install chromium-driver` on Debian/Ubuntu).
+- **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`).
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
