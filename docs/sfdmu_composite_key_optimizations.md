@@ -106,3 +106,19 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 - Decision tables and expression sets: SFDMU data plans for activating/deactivating them have been removed; use CCI tasks `manage_decision_tables` and `manage_expression_sets` instead.
 - The separate **qb-dro_scratch** data plan has been removed; use the single **qb-dro** plan with dynamic AssignedTo user.
 - If you want similar composite key hardening for non-QB datasets (q3, multicurrency, accounting, etc.), call that out and the same approach can be extended.
+
+## Export → Re-import (roundtrip) without post-process?
+
+**Use the processed folder for re-import.** Raw SFDMU extraction writes one CSV per object with the columns from the SOQL query (including relationship traversals like `Product2.StockKeepingUnit`, `ProductSellingModel.Name`) but **does not** write the `$$` composite key column (e.g. `$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType`). In v5, Upsert uses that `$$` column to match existing records; without it, re-import creates duplicates. The post-process script builds the `$$` columns from the extracted relationship columns and aligns headers (including fixing BOM/quoted headers from extraction). So:
+
+- **Re-import as a new data plan:** Use the **processed** output (e.g. `extractions/qb-pcm/<timestamp>/processed/`), not the raw extraction folder. Point SFDMU at the processed directory (and its copy of `export.json`) as the plan path.
+- **Standard SFDMU only (no post-process):** There is no supported way in SFDMU v5 to get a roundtrip-safe export that can be re-imported as-is when the plan uses composite `externalId`s. Options are: (1) run post-process after extract (recommended), (2) change the plan to single-field externalIds where possible (loses composite uniqueness), or (3) use `deleteOldData: true` for that object so each run deletes and reinserts (no matching, not idempotent for record identity). SFDMU does not currently add the `$$` column during export.
+
+## Data Management tasks and flows
+
+Extract and idempotency tasks are grouped in CumulusCI for convenience:
+
+- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling). List with `cci task list --group "Data Management - Extract"`.
+- **Data Management - Idempotency:** Tasks `test_qb_*_idempotency` for the same plans. Each loads the plan twice and asserts no record count increase. List with `cci task list --group "Data Management - Idempotency"`.
+
+**Flows:** `cci flow run run_qb_extracts --org <org>` runs all extract tasks; `cci flow run run_qb_idempotency_tests --org <org>` runs all idempotency tests. See main [README](../README.md) Data Management Tasks and Flows sections.

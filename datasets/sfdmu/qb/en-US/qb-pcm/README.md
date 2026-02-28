@@ -46,7 +46,7 @@ Upsert all 28 objects in dependency order
 | 6  | AttributeCategory             | Upsert    | `Code`                                                                                                | 18      |
 | 7  | AttributeCategoryAttribute    | Upsert    | `AttributeCategory.Code;AttributeDefinition.Code`                                                     | 34      |
 | 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 16      |
-| 9  | ProductClassificationAttr     | Upsert    | `ProductClassification.Code;AttributeDefinition.Code;AttributeCategory.Code`                          | 36      |
+| 9  | ProductClassificationAttr     | Upsert    | `Name` (SFDMU v5: simplified from composite) | 36      |
 | 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 178     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
 | 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
@@ -274,9 +274,33 @@ qb-pcm/
 └── target/                              # SFDMU-generated target snapshots
 ```
 
+## Extraction
+
+```bash
+cci task run extract_qb_pcm_data --org <your-org>
+```
+
+This task is in the **Data Management - Extract** group. To run all QB extract tasks: `cci flow run run_qb_extracts --org <org>`. To run all idempotency tests (including qb-pcm): `cci flow run run_qb_idempotency_tests --org <org>`.
+
+Extracted CSVs are written to a timestamped directory under `datasets/sfdmu/extractions/qb-pcm/`. Raw SFDMU extraction does **not** include the `$$` composite key columns required for v5 re-import. To make extracted data import-ready, run the post-process script:
+
+```bash
+python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-pcm --output-dir <output-dir>
+```
+
+The idempotency task uses this flow (load → extract → post-process → load from processed) when run with `use_extraction_roundtrip: true` (the default for `test_qb_pcm_idempotency`) to validate that extracted data can be re-imported without creating duplicates.
+
 ## Idempotency
 
 This plan should be idempotent via SFDMU's Upsert operation with composite external IDs. Re-running on an org that already has the data should match all existing records and leave them untouched (zero new inserts).
+
+**SFDMU v5 composite key notation:** Objects with multi-component `externalId` (e.g. `Name;SellingModelType`) require a `$$` column in the CSV for idempotent matching: column name uses `$` between components (e.g. `$$Name$SellingModelType`), values use `;` (e.g. `Evergreen Monthly;Evergreen`). The qb-pcm source CSVs include these columns. To verify idempotency, run:
+
+```bash
+cci task run test_qb_pcm_idempotency --org <your-org>
+```
+
+That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false`.
 
 **Not yet validated** — idempotency testing against a 260 org is pending.
 
@@ -287,7 +311,6 @@ This plan should be idempotent via SFDMU's Upsert operation with composite exter
 - Objects 24-27 (Qualification/Disqualification) have no `operation` specified in `export.json` — should be verified that SFDMU handles the default behavior correctly for empty datasets
 - `ProductComponentGrpOverride` and `ProductRelComponentOverride` use polymorphic `OverrideContextId$Product2` syntax — should verify this works correctly in 260
 - Self-referencing objects (ProductComponentGroup, ProductClassification, ProductCategory) — verify SFDMU handles the internal multi-pass automatically in 260
-- No extraction CCI task exists yet — needs to be added for round-trip support
 
 ## External ID / Composite Key Analysis (Confirmed via Org Describe)
 
@@ -366,7 +389,6 @@ Schema describe revealed that `ProductAttributeDefinition` has a **polymorphic**
 4. **Validate self-referencing objects**: Test that SFDMU handles ProductComponentGroup's 2-level hierarchy in a single pass
 5. **Add Promotion polymorphic support**: `OverrideContextId` targets both Product2 and Promotion — see "Polymorphic Fields" section
 6. **Handle ProductAttributeDefinition polymorphic**: `OverrideContextId` also targets Product2 and Promotion on PAD
-7. **Add extraction support**: Create `extract_qb_pcm_data` CCI task for bidirectional operation
-8. **Verify empty-object behavior**: Confirm SFDMU handles objects 19-20 and 24-27 correctly when CSVs have no data rows
-9. **Add explicit operations**: Objects 24-28 should have explicit `operation` fields in `export.json` for clarity
-10. **Consider `excludeIdsFromCSVFiles`**: Already set to `"true"` — good for portability
+7. **Verify empty-object behavior**: Confirm SFDMU handles objects 19-20 and 24-27 correctly when CSVs have no data rows
+8. **Add explicit operations**: Objects 24-28 should have explicit `operation` fields in `export.json` for clarity
+9. **Consider `excludeIdsFromCSVFiles`**: Already set to `"true"` — good for portability

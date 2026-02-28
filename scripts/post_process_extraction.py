@@ -53,6 +53,20 @@ STATUS_REWRITE_MAP = {
 ACTIVE_STATUSES = {"Active", "Inactive"}
 
 
+def normalize_header(h: str) -> str:
+    """Normalize a CSV header for matching: strip BOM, whitespace, and surrounding quotes.
+
+    SFDMU extraction can write headers with BOM (\\ufeff) and/or quoted names (e.g. "Code"),
+    which would otherwise prevent matching plan columns like Code.
+    """
+    if not h:
+        return h
+    s = h.strip().lstrip("\ufeff").strip()
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1].strip()
+    return s
+
+
 def load_export_json(plan_dir: str) -> dict:
     """Load and return the export.json from the plan directory."""
     path = os.path.join(plan_dir, "export.json")
@@ -83,12 +97,20 @@ def parse_plan_structure(export_json: dict) -> dict:
       }
     For objects appearing in multiple passes, only the first pass entry
     is stored (the primary import record); later passes are tracked separately.
+
+    Supports both objectSets (multi-pass plans like qb-rating) and flat
+    "objects" (single-pass plans like qb-pcm).
     """
     result = {}
     passes = {}
     object_sets = export_json.get("objectSets", [])
+    if not object_sets and "objects" in export_json:
+        # Single-pass plan (e.g. qb-pcm): treat as one virtual object set
+        object_sets = [{"objects": export_json["objects"]}]
     for idx, obj_set in enumerate(object_sets):
         for obj in obj_set.get("objects", []):
+            if obj.get("excluded"):
+                continue
             query = obj.get("query", "")
             name = get_object_name_from_query(query)
             if not name:
@@ -120,25 +142,29 @@ def parse_select_fields(query: str) -> list:
 
 
 def load_plan_csv(plan_dir: str, object_name: str) -> tuple:
-    """Load an existing plan CSV and return (headers, rows)."""
+    """Load an existing plan CSV and return (headers, rows). Headers are normalized for matching."""
     path = os.path.join(plan_dir, f"{object_name}.csv")
     if not os.path.isfile(path):
         return None, None
     with open(path, "r", newline="", encoding="utf-8") as f:
         reader = csv.reader(f)
         headers = next(reader, None)
+        if headers:
+            headers = [normalize_header(h) for h in headers]
         rows = list(reader)
     return headers, rows
 
 
 def load_extracted_csv(extraction_dir: str, object_name: str) -> tuple:
-    """Load an extracted CSV and return (headers, rows)."""
+    """Load an extracted CSV and return (headers, rows). Headers are normalized for matching."""
     path = os.path.join(extraction_dir, f"{object_name}.csv")
     if not os.path.isfile(path):
         return None, None
-    with open(path, "r", newline="", encoding="utf-8") as f:
+    with open(path, "r", newline="", encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         headers = next(reader, None)
+        if headers:
+            headers = [normalize_header(h) for h in headers]
         rows = list(reader)
     return headers, rows
 

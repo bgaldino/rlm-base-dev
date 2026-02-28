@@ -220,16 +220,53 @@ This project includes custom Python task modules in the `tasks/` directory, each
 
 ### Data Management Tasks
 
-| Task Name | Module | Description | Documentation |
+Data management tasks are organized into two CCI groups so you can list or run by group:
+
+- **Data Management - Extract** — SFDMU extract tasks (org → CSV). Output in `datasets/sfdmu/extractions/<plan_name>/<timestamp>`.
+- **Data Management - Idempotency** — Idempotency test tasks (load twice, assert no record count increase; validates SFDMU v5 composite keys).
+
+**List tasks by group:**
+
+```bash
+cci task list --group "Data Management - Extract"
+cci task list --group "Data Management - Idempotency"
+```
+
+**Run all extract tasks or all idempotency tests (flows):**
+
+```bash
+cci flow run run_qb_extracts --org <org>
+cci flow run run_qb_idempotency_tests --org <org>
+```
+
+| Task Name | Group | Description | Documentation |
 |-----------|--------|-------------|---------------|
-| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (supports `simulation` dry-run mode, `object_sets` pass filtering, dynamic DRO user resolution) | See `cumulusci.yml` |
-| `export_cml` | `rlm_cml.py` | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `import_cml` | `rlm_cml.py` | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `validate_cml` | `rlm_cml.py` | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `extract_qb_rating_data` | `rlm_sfdmu.py` | Extract QuantumBit rating data from an org to CSV | See `cumulusci.yml` |
-| `extract_qb_rates_data` | `rlm_sfdmu.py` | Extract QuantumBit rates data from an org to CSV | See `cumulusci.yml` |
-| `post_process_extraction` | `rlm_sfdmu.py` | Post-process extracted CSV data | See `cumulusci.yml` |
-| `sync_pricing_data` | `rlm_sync_pricing_data.py` | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
+| `extract_qb_pcm_data` | Data Management - Extract | Extract qb-pcm (product catalog) from org to CSV | See `cumulusci.yml` |
+| `extract_qb_pricing_data` | Data Management - Extract | Extract qb-pricing from org to CSV | See `cumulusci.yml` |
+| `extract_qb_product_images_data` | Data Management - Extract | Extract qb-product-images from org to CSV | See `cumulusci.yml` |
+| `extract_qb_dro_data` | Data Management - Extract | Extract qb-dro from org to CSV | See `cumulusci.yml` |
+| `extract_qb_clm_data` | Data Management - Extract | Extract qb-clm from org to CSV | See `cumulusci.yml` |
+| `extract_qb_rating_data` | Data Management - Extract | Extract qb-rating from org to CSV | See `cumulusci.yml` |
+| `extract_qb_rates_data` | Data Management - Extract | Extract qb-rates from org to CSV | See `cumulusci.yml` |
+| `extract_qb_transactionprocessingtypes_data` | Data Management - Extract | Extract qb-transactionprocessingtypes from org to CSV | See `cumulusci.yml` |
+| `extract_qb_guidedselling_data` | Data Management - Extract | Extract qb-guidedselling from org to CSV | See `cumulusci.yml` |
+| `test_qb_pcm_idempotency` | Data Management - Idempotency | Idempotency test for qb-pcm (supports extraction roundtrip) | [qb-pcm README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
+| `test_qb_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-pricing | See `cumulusci.yml` |
+| `test_qb_product_images_idempotency` | Data Management - Idempotency | Idempotency test for qb-product-images | See `cumulusci.yml` |
+| `test_qb_dro_idempotency` | Data Management - Idempotency | Idempotency test for qb-dro | See `cumulusci.yml` |
+| `test_qb_clm_idempotency` | Data Management - Idempotency | Idempotency test for qb-clm | See `cumulusci.yml` |
+| `test_qb_rating_idempotency` | Data Management - Idempotency | Idempotency test for qb-rating | See `cumulusci.yml` |
+| `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
+| `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
+| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling | See `cumulusci.yml` |
+| `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
+| `load_sfdmu_data` | Revenue Lifecycle Management | Load SFDMU data plans (generic; supports simulation, object_sets, dynamic DRO user) | See `cumulusci.yml` |
+| `export_cml` | — | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `import_cml` | — | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `validate_cml` | — | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `sync_pricing_data` | — | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
+
+Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. Use `scripts/post_process_extraction.py` to make extracted CSVs re-import-ready (adds `$$` composite key columns). See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md).
 
 ### Metadata Management Tasks
 
@@ -413,6 +450,17 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 29 | `refresh_all_decision_tables` | Always |
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
+
+### Data Management flows
+
+Use these flows to run all QB extract tasks or all QB idempotency tests by group:
+
+| Flow | Description |
+|------|-------------|
+| `run_qb_extracts` | Runs all 9 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
+| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks (test_qb_*_idempotency for the same plans). Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
+
+See [Data Management Tasks](#data-management-tasks) for per-task details and group listing.
 
 ### Sub-Flows
 

@@ -329,7 +329,7 @@ Similarly, `ProductFulfillmentScenario` has `SourceIdentifier` and `SourceClassI
 2. **Add missing 260 fields to SOQL**: Add `RunAsUserId`, `ExecuteOnConditionData`, `ResumeOnConditionData`, `ExecuteOnRuleId` to FulfillmentStepDefinition; `ConditionData`, `UsageType` to FulfillmentTaskAssignmentRule; `ScenarioRuleId` to ProductFulfillmentScenario; `ExecuteOnRuleId` to ProductFulfillmentDecompRule
 3. **Handle polymorphic fields**: Implement `$ObjectType` suffix handling for ExpressionSet/Ruleset/DecisionMatrixDefinition polymorphic targets when these features are used
 4. **Add IntegrationProviderDef to export.json**: The CSV exists and is referenced by 3 objects — add as Readonly or Upsert
-5. **Add extraction support**: Create `extract_qb_dro_data` CCI task for bidirectional operation
+5. **Extraction available**: Use `extract_qb_dro_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_dro_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
 6. **Clean up extra CSVs**: Remove or document the CSV files that are not referenced in `export.json` (AttributeDefinition, AttributePicklistValue, ExpressionSet, FlowOrchestration, ProductClassification)
 7. **Populate placeholder objects**: Investigate whether ValTfrmGrp, ValTfrm, ProductDecompEnrichmentRule, and FulfillmentTaskAssignmentRule should have data for 260 DRO features
 8. **Review dynamic user resolution**: Ensure the `__DRO_ASSIGNED_TO_USER__` replacement mechanism works correctly in all target org types (scratch, sandbox, production)

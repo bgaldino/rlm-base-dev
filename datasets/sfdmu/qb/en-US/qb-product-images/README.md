@@ -113,6 +113,6 @@ This plan uses only 3 Product2 fields: `StockKeepingUnit` (externalId), `Name` (
 
 ## Optimization Opportunities
 
-1. **Add extraction support**: Create `extract_qb_product_image_data` CCI task
+1. **Extraction available**: Use `extract_qb_product_images_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_product_images_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
 2. **Static resource dependency**: Consider documenting which static resources must be deployed for images to render
 3. **Consistency**: Consider switching from `objectSets` to flat `objects` array for consistency with qb-pcm
