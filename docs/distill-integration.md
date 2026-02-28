@@ -1,12 +1,15 @@
-# rlm-base-dev × Distill: Integration Living Document
+# Revenue Cloud Foundations × Distill: Integration Living Document
 
 > **Status:** In Progress
 > **Last Updated:** 2026-02-27
 > **Scope:** Round-trip customization capture across data shapes (no custom fields, target-org-agnostic)
 >
+> **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
+>
 > **Related documents:**
-> - `docs/project-analysis.md` — comprehensive capabilities reference for both projects
-> - `docs/datasets-reorganization.md` — prerequisite structural proposal (must be approved before Phase 1)
+> - [revenue-cloud-platform.md](revenue-cloud-platform.md) — platform overview (start here)
+> - [project-analysis.md](project-analysis.md) — comprehensive capabilities reference for both projects
+> - [datasets-reorganization.md](datasets-reorganization.md) — prerequisite structural proposal (must be approved before Phase 1)
 
 ---
 
@@ -26,7 +29,7 @@
 
 ## 1. Project Overviews
 
-> Full technical detail for both projects is in `docs/project-analysis.md`. This section captures the integration-relevant summary.
+> Full technical detail for both projects is in [project-analysis.md](project-analysis.md). This section captures the integration-relevant summary.
 
 ### 1.1 rlm-base-dev
 
@@ -37,7 +40,7 @@ An enterprise CumulusCI automation framework for standing up Salesforce Revenue 
 - 29 flows / sub-flows, 28 custom Python tasks, 50+ feature flags drive conditional deployment
 - All data plans are target-org-agnostic (standard RLM fields only, no custom fields)
 - SFDMU v5 composite key patterns throughout qb/en-US; q3 pending migration
-- CML constraint models are QB-shape-specific (moving into shape folder — see `docs/datasets-reorganization.md`)
+- CML constraint models are QB-shape-specific (moving into shape folder — see [datasets-reorganization.md](datasets-reorganization.md))
 - **What it does NOT do today:** detect post-deployment org drift, ingest customizations back from running orgs
 
 ### 1.2 Distill (`sf-industries/distill`)
@@ -286,7 +289,7 @@ Contribute a `POST /api/projects` endpoint to Distill that accepts `{project_nam
 
 ## 5. Shape Manifest: Data Model Design
 
-> **Prerequisite:** The datasets folder reorganization described in `docs/datasets-reorganization.md` must be completed before manifest generation. Specifically: `constraints/` must be co-located inside the shape folder, and `shapes.json` must exist at `datasets/`.
+> **Prerequisite:** The datasets folder reorganization described in [datasets-reorganization.md](datasets-reorganization.md) must be completed before manifest generation. Specifically: `constraints/` must be co-located inside the shape folder, and `shapes.json` must exist at `datasets/`.
 
 ### 5.1 Design Goals
 
@@ -1089,7 +1092,7 @@ env:
 
 ### Phase 0: Datasets Reorganization (Prerequisite)
 
-> **Full proposal and migration steps:** `docs/datasets-reorganization.md`
+> **Full proposal and migration steps:** [datasets-reorganization.md](datasets-reorganization.md)
 >
 > This phase must be completed (or at minimum reviewed and approved) before Phase 1 begins.
 > The Phase 1 manifest paths (`datasets/sfdmu/qb/en-US/shape_manifest.json`) and the `shapes.json`
@@ -1097,7 +1100,7 @@ env:
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 0.1 | Review and approve `docs/datasets-reorganization.md` | | 🔲 TODO |
+| 0.1 | Review and approve [datasets-reorganization.md](datasets-reorganization.md) | | 🔲 TODO |
 | 0.2 | Execute folder restructure per migration script in that doc | | 🔲 TODO |
 | 0.3 | Update path defaults in `tasks/rlm_cml.py` (`import_cml`, `export_cml`, `validate_cml`) | | 🔲 TODO |
 | 0.4 | Update `cumulusci.yml` option defaults for `insert_scratch_data` and `insert_procedure_plans_data` | | 🔲 TODO |
@@ -1154,7 +1157,7 @@ env:
 | R2 | Where does the manifest live with multiple shapes? | ✅ Resolved | `datasets/sfdmu/<shape>/<locale>/shape_manifest.json` (e.g. `qb/en-US/shape_manifest.json`). Top-level `datasets/shapes.json` is the registry. |
 | R3 | How do feature flag combinations affect the manifest? | ✅ Resolved | `feature_matrix` block in the manifest maps each CCI flag to the objects it introduces. `capture_org_customizations` accepts `active_flags` option to scope the diff. |
 | R4 | How do Distill-generated new shapes slot in? | ✅ Resolved | New shape folder under `sfdmu/<shape-name>/en-US/`, `shape_manifest.json` generated with `"source": "distill"`, registered in `shapes.json` with `"status": "draft"`. No special-casing required. |
-| R5 | Where do QB CML constraint models live? | ✅ Resolved | Move `datasets/constraints/qb/` → `datasets/sfdmu/qb/en-US/constraints/`. Shape self-contained. See `docs/datasets-reorganization.md`. |
+| R5 | Where do QB CML constraint models live? | ✅ Resolved | Move `datasets/constraints/qb/` → `datasets/sfdmu/qb/en-US/constraints/`. Shape self-contained. See [datasets-reorganization.md](datasets-reorganization.md). |
 | R6 | Where do `procedure-plans` and `scratch_data` live? | ✅ Resolved | `datasets/sfdmu/_shared/procedure-plans/` and `datasets/sfdmu/_shared/scratch_data/`. Both are multi-shape by nature. |
 | R7 | Is the integration mandatory? | ✅ Resolved | **No — optional and non-blocking.** `capture_org_customizations` guards on `distill_api_url`, API reachability, metadata path, and manifest existence. All failures log a warning and return cleanly. |
 | R8 | Which data shapes are in scope for Phase 1? | ✅ Resolved | **`qb/en-US` only.** Q3 and MFG are excluded until they are updated for SFDMU v5 composite key patterns. |

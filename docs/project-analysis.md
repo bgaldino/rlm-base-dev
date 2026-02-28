@@ -1,8 +1,10 @@
-# Project Analysis: rlm-base-dev & Distill
+# Project Analysis: Revenue Cloud Foundations & Distill
 
 > **Document Type:** Living Reference
 > **Last Updated:** 2026-02-27
 > **Scope:** Comprehensive technical reference for both projects — capabilities, architecture, inventories
+>
+> **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
 
 ---
 
@@ -395,7 +397,7 @@ All 28 modules in `tasks/`:
 
 ## 1.9 Data Plans
 
-Full inventory of all SFDMU data plans. See `docs/datasets-reorganization.md` for folder structure proposal.
+Full inventory of all SFDMU data plans. See [datasets-reorganization.md](datasets-reorganization.md) for folder structure proposal.
 
 ### QB Shape — English US (`qb/en-US/`)
 
@@ -461,7 +463,7 @@ Full inventory of all SFDMU data plans. See `docs/datasets-reorganization.md` fo
 The Constraint Model Library (CML) pipeline is separate from SFDMU. It handles Expression Set definitions and their associated binary blobs (`.ffxblob` files).
 
 **Current location:** `datasets/constraints/qb/`
-**Proposed location:** `datasets/sfdmu/qb/en-US/constraints/` (see `docs/datasets-reorganization.md`)
+**Proposed location:** `datasets/sfdmu/qb/en-US/constraints/` (see [datasets-reorganization.md](datasets-reorganization.md))
 
 ### Constraint Datasets
 
@@ -572,18 +574,21 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 
 | File | Size | Contents |
 |---|---|---|
-| `README.md` | 48KB, 890 lines | Complete setup, prerequisites, quick start, feature flags, workflows |
-| `docs/constraints_setup.md` | — | `prepare_constraints` flow order and deployment phases |
-| `docs/DECISION_TABLE_EXAMPLES.md` | — | DT management task comprehensive examples |
-| `docs/TASK_EXAMPLES.md` | — | Flow and expression set task examples |
-| `docs/context_service_utility.md` | — | Context Service API usage and plan examples |
-| `docs/sfdmu_composite_key_optimizations.md` | — | SFDMU v5 migration, idempotency, composite key analysis |
-| `docs/rca_rcb_unique_id_fields.md` | — | Unique ID field analysis for RLM objects |
-| `docs/TOOLING_OPPORTUNITIES.md` | — | Spring '26 feature analysis and new tooling opportunities |
+| **[README.md](../README.md)** | 48KB, 890 lines | Complete setup, prerequisites, quick start, feature flags, workflows |
+| **[docs/constraints_setup.md](constraints_setup.md)** | — | `prepare_constraints` flow order and deployment phases |
+| **[docs/DECISION_TABLE_EXAMPLES.md](DECISION_TABLE_EXAMPLES.md)** | — | DT management task comprehensive examples |
+| **[docs/TASK_EXAMPLES.md](TASK_EXAMPLES.md)** | — | Flow and expression set task examples |
+| **[docs/context_service_utility.md](context_service_utility.md)** | — | Context Service API usage and plan examples |
+| **[docs/sfdmu_composite_key_optimizations.md](sfdmu_composite_key_optimizations.md)** | — | SFDMU v5 migration, idempotency, composite key analysis |
+| **[docs/rca_rcb_unique_id_fields.md](rca_rcb_unique_id_fields.md)** | — | Unique ID field analysis for RLM objects |
+| **[docs/TOOLING_OPPORTUNITIES.md](TOOLING_OPPORTUNITIES.md)** | — | Spring '26 feature analysis and new tooling opportunities |
 | `docs/CML_User_Guide.pdf` | 5.4MB | Salesforce CML documentation |
-| `datasets/constraints/README.md` | 417 lines | CML export/import/validate architecture |
-| `docs/distill-integration.md` | — | Distill integration specification (see Part 2) |
-| `docs/datasets-reorganization.md` | — | Datasets folder reorganization proposal |
+| **[datasets/constraints/README.md](../datasets/constraints/README.md)** | 417 lines | CML export/import/validate architecture |
+| **[robot/rlm-base/tests/setup/README.md](../robot/rlm-base/tests/setup/README.md)** | — | Robot Framework setup automation for UI toggles |
+| **[postman/README_V260_ANALYSIS.md](../postman/README_V260_ANALYSIS.md)** | — | v260 API analysis — 129 endpoints, implementation status |
+| **[docs/distill-integration.md](distill-integration.md)** | — | Distill integration specification (see Part 2) |
+| **[docs/datasets-reorganization.md](datasets-reorganization.md)** | — | Datasets folder reorganization proposal |
+| **[docs/revenue-cloud-platform.md](revenue-cloud-platform.md)** | — | Platform overview for Revenue Cloud Foundations + Distill + Aegis |
 
 ---
 

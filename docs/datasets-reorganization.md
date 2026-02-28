@@ -4,7 +4,8 @@
 > **Status:** Draft — Awaiting Approval
 > **Branch:** `distill-integration`
 > **Last Updated:** 2026-02-27
-> **Prerequisite for:** `docs/distill-integration.md` — shape manifest generation requires this structure
+> **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
+> **Prerequisite for:** [distill-integration.md](distill-integration.md) — shape manifest generation requires this structure
 
 ---
 
@@ -40,7 +41,7 @@ The current `datasets/` folder has accumulated structure organically as new shap
 3. Separate production data from tooling/operational data
 4. Introduce a `shapes.json` registry as the single source of truth for shape discovery
 5. Create a natural home for future Distill-generated shapes
-6. Enable `shape_manifest.json` generation per shape/locale (prerequisite for `docs/distill-integration.md`)
+6. Enable `shape_manifest.json` generation per shape/locale (prerequisite for [distill-integration.md](distill-integration.md))
 
 **Out of scope:** This reorganization does NOT change:
 - The content or structure of any `export.json` file
@@ -331,8 +332,8 @@ Any hardcoded paths in:
 - `scripts/post_process_extraction.py`
 - `scripts/compare_sfdmu_content.py`
 - `scripts/reconcile_detail_qb_tax_billing_rating_rates.py`
-- `docs/constraints_setup.md`
-- `README.md`
+- [docs/constraints_setup.md](constraints_setup.md)
+- [README.md](../README.md)
 
 ---
 
@@ -409,9 +410,9 @@ cci task run validate_cml
 ```
 
 ### Step 9: Update documentation
-- `README.md` — update any path references
-- `docs/constraints_setup.md` — update CML path references
-- `docs/project-analysis.md` — paths already reflect new structure
+- [README.md](../README.md) — update any path references
+- [docs/constraints_setup.md](constraints_setup.md) — update CML path references
+- [docs/project-analysis.md](project-analysis.md) — paths already reflect new structure
 
 ---
 
@@ -513,7 +514,7 @@ cci task run generate_baseline_manifest \
 
 This reads all `export.json` files under `datasets/sfdmu/qb/en-US/`, extracts the complete object/field/key inventory, and writes `datasets/sfdmu/qb/en-US/shape_manifest.json`.
 
-See `docs/distill-integration.md §5` for the full manifest schema design.
+See [distill-integration.md §5](distill-integration.md#5-shape-manifest-data-model-design) for the full manifest schema design.
 
 ---
 
