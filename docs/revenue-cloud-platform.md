@@ -154,13 +154,13 @@ Engineer identifies Apex customization worth promoting
 ```
 > ⚠️ `./distill start` CLI is interactive and cannot be subprocess-driven from CCI. Direct Python import is the correct integration path. `run_file_migration` uses Gemini internally (hardcoded).
 
-**Future (Phase 4 — full drift detection, requires Distill AnalysisAgent + REST API):**
+**Future (Phase 4 — full drift detection, gated on Phase 3 insights API spike):**
 ```
 1. prepare_rlm_org → baseline org
 2. Org accumulates customizations
 3. sf project retrieve start → retrieved/
 4. cci task run capture_org_customizations  [optional, non-blocking]
-     └── POST /api/analysis/run → Distill AnalysisAgent
+     └── distill.insights.api (Python import, not HTTP) → insights pipeline
          └── Diff vs shape_manifest.json → distill_drift_report.json
                 ├── new_entities[]  (SObjects not in baseline)
                 ├── features[]      (with inferred_domain, promotion_hint)
@@ -289,11 +289,11 @@ The integrated platform — specifically the combination of (1) CCI feature-flag
 | Phase | Name | Status | Key Deliverable |
 |---|---|---|---|
 | **Phase 0** | Datasets Reorganization | 🔲 Pending approval | Restructured `datasets/` folder with `shapes.json` registry |
-| **Phase 1** | Foundation Integration | 🔲 TODO *(parallelizable with Phase 0)* | `generate_baseline_manifest` + `capture_org_customizations` CCI tasks |
-| **Phase 2** | Distill API Gap | 🔲 TODO | `POST /api/projects` endpoint in Distill (eliminates pre-config step) |
-| **Phase 3** | Field-Level Drift | 🔲 TODO | DataMapper integration — field additions detected, `export.json` updates suggested |
-| **Phase 4** | Context Extension Discovery | 🔲 TODO | Context definition XML diffed against deployed baseline |
-| **Phase 5** | Aegis Integration | 🔲 TBD | Aegis suite triggered as part of post-promote validation; shapes.json as shared test-scenario protocol |
+| **Phase 1** | CodeSuggestion Integration | 🔲 TODO *(parallelizable with Phase 0)* | `migrate_apex_customization` CCI task — Apex translation via Python import (Gemini-powered) |
+| **Phase 2** | Shape Manifest + CCI Scaffold | 🔲 TODO *(parallelizable with Phase 0–1)* | `generate_baseline_manifest` + `capture_org_customizations` CCI tasks (stub) |
+| **Phase 3** | Insights API Spike | 🔲 TODO | Validate headless `distill.insights.api` invocation from CCI — critical path question |
+| **Phase 4** | Automated Drift Detection | 🔲 Gated on Phase 3 | Full round-trip: retrieve → insights API → diff vs manifest → `drift_report.json` |
+| **Phase 5** | Field-Level Drift + Cross-Platform | 🔲 TBD | DataMapper integration, context def diffing, Aegis test-scenario selection via `shapes.json` |
 
 > **Minimal viable demo (Phase 1 only, no Phase 0 required):**
 > Generate a `shape_manifest.json` from the current `qb/en-US` plans → point `baseline_manifest_path` at its current location → run `capture_org_customizations` against a customized dev org → show `distill_drift_report.json` output. Phase 0 folder restructuring can proceed in parallel without blocking the demo path.
