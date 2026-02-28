@@ -1,0 +1,10 @@
+# CODEOWNERS
+#
+# Salesforce Internal compliance — SFSS-043 / PES enforcement
+#   GUS Product Tag: TODO — update with your GUS product tag (check org dashboard)
+#   ECCN:            EAR99
+#
+# Repo:        salesforce-internal/revenue-cloud-foundations
+# Description: Revenue Cloud Engineering Platform — Foundations, Distill, and Aegis integration
+
+* @bgaldino_sfemu
