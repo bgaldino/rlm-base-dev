@@ -57,6 +57,8 @@ def run_post_process_script(
         if logger:
             logger.error(result.stderr or "")
         raise CommandException(f"Post-process failed with exit code {result.returncode}")
+    if logger and result.stderr:
+        logger.warning(result.stderr)
 
 
 class LoadSFDMUData(SFDXBaseTask):
@@ -392,7 +394,9 @@ def _sobjects_from_export_json(export_path: str) -> list:
             q = obj.get("query", "")
             m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", q, re.IGNORECASE)
             if m:
-                sobjects.append(m.group(1))
+                name = m.group(1)
+                if name not in sobjects:
+                    sobjects.append(name)
     for obj_set in data.get("objectSets", []):
         for obj in obj_set.get("objects", []):
             if obj.get("excluded"):

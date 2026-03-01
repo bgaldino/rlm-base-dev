@@ -1461,7 +1461,7 @@ tasks:
 #--------------------#
 # EXTRACTION TASKS   #
 #--------------------#
-# Extract tasks for each QB plan are under DATA MANAGEMENT TESTS (extract_qb_*_data).
+# Extract tasks for each QB plan are under the Data Management - Extract group (extract_qb_*_data).
 # Post-process script makes extracted CSVs re-import-ready (composite keys, header normalization).
 
   post_process_extraction:
