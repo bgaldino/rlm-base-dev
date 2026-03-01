@@ -46,7 +46,7 @@ Upsert all 28 objects in dependency order
 | 6  | AttributeCategory             | Upsert    | `Code`                                                                                                | 18      |
 | 7  | AttributeCategoryAttribute    | Upsert    | `AttributeCategory.Code;AttributeDefinition.Code`                                                     | 34      |
 | 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 16      |
-| 9  | ProductClassificationAttr     | Upsert    | `Name` (SFDMU v5: simplified from composite) | 36      |
+| 9  | ProductClassificationAttr     | Upsert    | `Name`¹                                                                                               | 36      |
 | 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 178     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
 | 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
@@ -66,6 +66,8 @@ Upsert all 28 objects in dependency order
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
 | 27 | ProductCategoryQualification  | (default) | `Name`                                                                                                | 0       |
 | 28 | ProdtAttrScope                | (default) | `Name`                                                                                                | 3       |
+
+¹ ProductClassificationAttr: SFDMU v5 uses simplified external ID from composite.
 
 **Note:** Objects 19-20 and 24-27 have empty CSVs (0 data records) and serve as placeholders for future data. Objects 24-27 do not specify an `operation` in `export.json`, so SFDMU uses the default behavior.
 

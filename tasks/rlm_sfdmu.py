@@ -591,6 +591,17 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 with open(export_dst, "w") as f:
                     json.dump(export_json, f, indent=2)
                 self._run_extract_once(work_dir)
+                # Scrub credentials immediately so they are not left on disk if we crash before finally
+                export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
+                if os.path.isfile(export_in_work):
+                    try:
+                        with open(export_in_work, "r") as f:
+                            ej = json.load(f)
+                        ej["orgs"] = []
+                        with open(export_in_work, "w") as f:
+                            json.dump(ej, f, indent=2)
+                    except Exception as e:
+                        self.logger.warning(f"Could not clear credentials from {export_in_work}: {e}")
                 processed_dir = os.path.join(work_dir, "processed")
                 os.makedirs(processed_dir, exist_ok=True)
                 run_post_process_script(
