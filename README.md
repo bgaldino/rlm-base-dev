@@ -231,7 +231,7 @@ This project includes custom Python task modules in the `tasks/` directory, each
 
 Data management tasks are organized into two CCI groups so you can list or run by group:
 
-- **Data Management - Extract** — SFDMU extract tasks (org → CSV). Output in `datasets/sfdmu/extractions/<plan_name>/<timestamp>`.
+- **Data Management - Extract** — SFDMU extract tasks (org → CSV). Output in `datasets/sfdmu/extractions/<plan_name>/<timestamp>`. **The same flow applies to every plan:** each task uses its plan directory from `cumulusci.yml`; post-process runs by default and writes re-import-ready CSVs to `<timestamp>/processed/`.
 - **Data Management - Idempotency** — Idempotency test tasks (load twice, assert no record count increase; validates SFDMU v5 composite keys).
 
 **List tasks by group:**
@@ -276,6 +276,8 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `sync_pricing_data` | — | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
 
 Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md).
+
+**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
 
 ### Metadata Management Tasks
 
@@ -520,6 +522,33 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
 
+#### Data plan directory structure
+
+Plans follow a **shape / locale / plan-name** tree so multiple data shapes (e.g. QuantumBit, Manufacturing) can coexist:
+
+```
+datasets/sfdmu/
+├── <shape>/           # e.g. qb, mfg, q3
+│   └── <locale>/      # e.g. en-US
+│       └── <plan-name>/   # e.g. qb-pcm, mfg-pcm
+│           ├── export.json
+│           ├── Object1.csv
+│           ├── Object2.csv
+│           └── (optional) objectset_source/   # for multi-pass plans
+├── procedure-plans/
+└── extractions/       # extract output: <plan-name>/<timestamp>/ and .../processed/
+```
+
+**Examples:** `datasets/sfdmu/qb/en-US/qb-pcm`, `datasets/sfdmu/mfg/en-US/mfg-pcm`. The same tooling (extract task, post-process script, idempotency task) works for any plan path: each task gets its plan directory from `cumulusci.yml` via a path anchor, and extraction output goes to `datasets/sfdmu/extractions/<plan-name>/<timestamp>/` (and `<timestamp>/processed/` after post-process).
+
+**Adding a new data shape (e.g. mfg):**
+
+1. Create the directory tree: `datasets/sfdmu/mfg/en-US/<plan-name>/` (e.g. `mfg-pcm`).
+2. Add `export.json` and CSV files following the same patterns as QB (single-pass with flat `objects`, or multi-pass with `objectSets`; see [qb-pcm](datasets/sfdmu/qb/en-US/qb-pcm/README.md) or [qb-rating](datasets/sfdmu/qb/en-US/qb-rating/README.md) as reference).
+3. In `cumulusci.yml`, under **DATA PLAN NAMES AND PATHS**, add an anchor (e.g. `mfg_pcm_dataset: &mfg_pcm_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"`).
+4. Add load, extract, and idempotency tasks that reference that anchor (`pathtoexportjson: *mfg_pcm_dataset`). Use the same task classes (`LoadSFDMUData`, `ExtractSFDMUData`, `TestSFDMUIdempotency`) and groups (Data Management - Extract / Idempotency) so extract runs post-process by default and output goes to `extractions/mfg-pcm/<timestamp>/processed/`.
+5. Add a README in the plan directory and, if desired, list the plan in the table below.
+
 #### QuantumBit (QB) Data Plans
 
 | Data Plan | Directory | Description | Documentation |
@@ -594,6 +623,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
+- [mfg README](datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 
 ### Robot Framework
 
@@ -659,7 +689,7 @@ rlm-base-dev/
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
-│   │   ├── qb/en-US/           # QuantumBit data plans (9 active plans)
+│   │   ├── qb/en-US/           # QuantumBit data shape (9 active plans)
 │   │   │   ├── qb-pcm/
 │   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
@@ -669,6 +699,7 @@ rlm-base-dev/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
 │   │   │   └── qb-rates/
+│   │   ├── mfg/en-US/          # Manufacturing data shape (e.g. mfg-pcm) — same patterns as qb
 │   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans
