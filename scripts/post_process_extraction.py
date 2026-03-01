@@ -84,7 +84,7 @@ def get_object_name_from_query(query: str) -> str:
     return rest.split()[0].strip()
 
 
-def parse_plan_structure(export_json: dict) -> tuple[dict, dict]:
+def parse_plan_structure(export_json: dict) -> tuple:
     """Parse export.json into a structure mapping object names to their config.
 
     Returns a tuple (plan_structure, passes) where:
