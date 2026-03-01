@@ -290,7 +290,7 @@ python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en
 
 To get only raw SFDMU output (no post-process), run the task with `-o run_post_process false`.
 
-The idempotency task uses this flow (load → extract → post-process → load from processed) when run with `use_extraction_roundtrip: true` (the default for `test_qb_pcm_idempotency`) to validate that extracted data can be re-imported without creating duplicates.
+The idempotency task uses this flow (load → extract → post-process → load from processed) when `use_extraction_roundtrip` is true (the default for `test_qb_pcm_idempotency`; from CLI use `-o use_extraction_roundtrip true`). With `persist_extraction_output: true` (default for qb-pcm), extraction and processed output are written to `datasets/sfdmu/extractions/qb-pcm/<timestamp>/` instead of a temp dir. To validate that extracted data can be re-imported without creating duplicates, run the idempotency task as-is.
 
 ## Idempotency
 
@@ -302,7 +302,7 @@ This plan should be idempotent via SFDMU's Upsert operation with composite exter
 cci task run test_qb_pcm_idempotency --org <your-org>
 ```
 
-That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false`.
+That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false` (e.g. `-o use_extraction_roundtrip false`).
 
 **Not yet validated** — idempotency testing against a 260 org is pending.
 

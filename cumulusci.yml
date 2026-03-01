@@ -1547,7 +1547,7 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_product_dataset
       use_extraction_roundtrip: true
-      extraction_output_dir: true
+      persist_extraction_output: true
 
   test_qb_pricing_idempotency:
     group: Data Management - Idempotency

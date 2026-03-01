@@ -8,7 +8,7 @@ import tempfile
 from abc import abstractmethod
 from typing import Dict, Any, Optional
 
-# Note: If CumulusCI is not installed, you'll need to install it or mock these imports for development, you'll need to install it or mock these imports for development
+# Note: If CumulusCI is not installed, you'll need to install it or mock these imports for development.
 try:
     from cumulusci.core.config import ScratchOrgConfig
     from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -30,6 +30,34 @@ EXTRACT_COMMAND = "sf sfdmu run --sourceusername {sourceusername} --targetuserna
 EXPORT_JSON_FILENAME = "export.json"
 DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
 DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "UserAndGroup.csv")
+
+
+def run_post_process_script(
+    extraction_dir: str,
+    plan_dir: str,
+    output_dir: str,
+    cwd: Optional[str] = None,
+    logger: Optional[Any] = None,
+) -> None:
+    """Run post_process_extraction.py to make extracted CSVs v5 import-ready ($$ columns, header normalization).
+    Shared by ExtractSFDMUData and TestSFDMUIdempotency.
+    """
+    cwd = cwd or os.getcwd()
+    script = os.path.join(cwd, "scripts", "post_process_extraction.py")
+    if not os.path.isfile(script):
+        raise FileNotFoundError(f"Post-process script not found: {script}")
+    cmd = [sys.executable, script, extraction_dir, plan_dir, "--output-dir", output_dir]
+    if logger:
+        logger.info(f"Running post-process: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
+    if logger:
+        for line in (result.stdout or "").splitlines():
+            logger.info(line)
+    if result.returncode != 0:
+        if logger:
+            logger.error(result.stderr or "")
+        raise CommandException(f"Post-process failed with exit code {result.returncode}")
+
 
 class LoadSFDMUData(SFDXBaseTask):
     keychain_class = BaseProjectKeychain
@@ -397,8 +425,8 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             "description": "If true, second load uses extract -> post_process -> load from processed dir (validates v5 re-import from extracted data)",
             "required": False,
         },
-        "extraction_output_dir": {
-            "description": "When use_extraction_roundtrip is true, write extract + processed CSVs here instead of a temp dir (e.g. datasets/sfdmu/extractions/qb-pcm/<timestamp>). Omit to use temp dir only.",
+        "persist_extraction_output": {
+            "description": "If true and use_extraction_roundtrip is true, write extraction and processed output to datasets/sfdmu/extractions/<plan>/<timestamp> instead of a temp dir. Omit or false to use temp dir only.",
             "required": False,
         },
     }
@@ -480,16 +508,22 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         trimmed = self.instanceurl.replace("https://", "").replace("http://", "")
         cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
         self.logger.info(f"Running SFDMU: {cmd}")
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
-        export_json["orgs"] = []
-        with open(export_path, "w") as f:
-            json.dump(export_json, f, indent=2)
-        if result.returncode != 0:
-            self.logger.error(result.stdout)
-            self.logger.error(result.stderr)
-            raise CommandException(f"SFDMU load failed with exit code {result.returncode}")
-        for line in result.stdout.splitlines():
-            self.logger.info(line)
+        result = None
+        try:
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir")
+            )
+            if result.returncode != 0:
+                self.logger.error(result.stdout)
+                self.logger.error(result.stderr)
+                raise CommandException(f"SFDMU load failed with exit code {result.returncode}")
+            for line in result.stdout.splitlines():
+                self.logger.info(line)
+        finally:
+            # Always clear injected org credentials from export.json
+            export_json["orgs"] = []
+            with open(export_path, "w") as f:
+                json.dump(export_json, f, indent=2)
 
     def _run_extract_once(self, work_dir: str) -> None:
         """Extract from org into work_dir (must contain export.json with orgs injected)."""
@@ -504,21 +538,6 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             raise CommandException(f"SFDMU extract failed with exit code {result.returncode}")
         for line in result.stdout.splitlines():
             self.logger.info(line)
-
-    def _run_post_process(self, extraction_dir: str, plan_dir: str, output_dir: str) -> None:
-        """Run post_process_extraction.py to make extracted CSVs v5 import-ready ($$ columns, etc.)."""
-        cwd = self.options.get("dir") or os.getcwd()
-        script = os.path.join(cwd, "scripts", "post_process_extraction.py")
-        if not os.path.isfile(script):
-            raise FileNotFoundError(f"Post-process script not found: {script}")
-        cmd = [sys.executable, script, extraction_dir, plan_dir, "--output-dir", output_dir]
-        self.logger.info(f"Running post-process: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
-        for line in (result.stdout or "").splitlines():
-            self.logger.info(line)
-        if result.returncode != 0:
-            self.logger.error(result.stderr or "")
-            raise CommandException(f"Post-process failed with exit code {result.returncode}")
 
     def _run_task(self) -> None:
         if "org" not in self.options or not self.options["org"]:
@@ -540,11 +559,11 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         self.logger.info("First run: load data into org")
         self._run_load_once()
         counts_after_first = self._get_record_counts(sobjects)
-        use_roundtrip = self.options.get("use_extraction_roundtrip") is True
+        use_roundtrip = str(self.options.get("use_extraction_roundtrip", "")).lower() in {"1", "true", "yes"}
         if use_roundtrip:
             self.logger.info("Extraction roundtrip: extract -> post-process -> load from processed (validates v5 re-import)")
-            extraction_output = self.options.get("extraction_output_dir")
-            if extraction_output:
+            persist_output = str(self.options.get("persist_extraction_output", "")).lower() in {"1", "true", "yes"}
+            if persist_output:
                 from datetime import datetime
                 plan_name = os.path.basename(os.path.normpath(plan_dir))
                 base = os.path.normpath(os.path.join(os.path.dirname(plan_dir), "..", "..", "extractions", plan_name))
@@ -568,7 +587,10 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 self._run_extract_once(work_dir)
                 processed_dir = os.path.join(work_dir, "processed")
                 os.makedirs(processed_dir, exist_ok=True)
-                self._run_post_process(work_dir, plan_dir, processed_dir)
+                run_post_process_script(
+                    work_dir, plan_dir, processed_dir,
+                    cwd=self.options.get("dir"), logger=self.logger,
+                )
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
                 self.logger.info("Second run: load from post-processed extraction (should not add records)")
                 self._run_load_once(processed_dir)
@@ -751,21 +773,6 @@ class ExtractSFDMUData(SFDXBaseTask):
         self.logger.info(f"Collected {csv_count} CSV files to {output_dir}")
         return output_dir
 
-    def _run_post_process(self, extraction_dir: str, plan_dir: str, processed_dir: str) -> None:
-        """Run post_process_extraction.py to make extracted CSVs v5 import-ready ($$ columns, header normalization)."""
-        cwd = self.options.get("dir") or os.getcwd()
-        script = os.path.join(cwd, "scripts", "post_process_extraction.py")
-        if not os.path.isfile(script):
-            raise FileNotFoundError(f"Post-process script not found: {script}")
-        cmd = [sys.executable, script, extraction_dir, plan_dir, "--output-dir", processed_dir]
-        self.logger.info(f"Running post-process: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
-        for line in (result.stdout or "").splitlines():
-            self.logger.info(line)
-        if result.returncode != 0:
-            self.logger.error(result.stderr or "")
-            raise CommandException(f"Post-process failed with exit code {result.returncode}")
-
     def _run_task(self) -> None:
         work_dir = None
         try:
@@ -816,11 +823,18 @@ class ExtractSFDMUData(SFDXBaseTask):
             self.return_values = {"output_dir": output_dir}
 
             # Optionally run post-process so output is re-import-ready ($$ columns, header normalization)
-            run_post_process = self.options.get("run_post_process")
-            if run_post_process is not False:  # default True
+            raw_run_post_process = self.options.get("run_post_process")
+            if raw_run_post_process is None:
+                run_post_process = True  # default when option is absent
+            else:
+                run_post_process = str(raw_run_post_process).strip().lower() not in {"0", "false", "no"}
+            if run_post_process:
                 processed_dir = os.path.join(output_dir, "processed")
                 os.makedirs(processed_dir, exist_ok=True)
-                self._run_post_process(output_dir, plan_dir, processed_dir)
+                run_post_process_script(
+                    output_dir, plan_dir, processed_dir,
+                    cwd=self.options.get("dir"), logger=self.logger,
+                )
                 export_src = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
                 self.return_values["processed_dir"] = processed_dir
