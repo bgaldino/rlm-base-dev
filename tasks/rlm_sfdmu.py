@@ -55,10 +55,12 @@ def run_post_process_script(
             logger.info(line)
     if result.returncode != 0:
         if logger:
-            logger.error(result.stderr or "")
+            for line in (result.stderr or "").splitlines():
+                logger.error(line)
         raise CommandException(f"Post-process failed with exit code {result.returncode}")
     if logger and result.stderr:
-        logger.warning(result.stderr)
+        for line in result.stderr.splitlines():
+            logger.warning(line)
 
 
 class LoadSFDMUData(SFDXBaseTask):

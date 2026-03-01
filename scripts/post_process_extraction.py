@@ -84,19 +84,21 @@ def get_object_name_from_query(query: str) -> str:
     return rest.split()[0].strip()
 
 
-def parse_plan_structure(export_json: dict) -> dict:
+def parse_plan_structure(export_json: dict) -> tuple[dict, dict]:
     """Parse export.json into a structure mapping object names to their config.
 
-    Returns dict of:
-      object_name -> {
+    Returns a tuple (plan_structure, passes) where:
+      plan_structure: object_name -> {
         "pass_index": int (0-based),
         "operation": str,
         "externalId": str,
         "query": str,
         "fields": list[str],  # fields from the SELECT clause
       }
+      passes: object_name -> list of (pass_index, entry) for all passes
+        (used for objectset_source generation; plan_structure keeps only first pass).
     For objects appearing in multiple passes, only the first pass entry
-    is stored (the primary import record); later passes are tracked separately.
+    is stored in plan_structure; later passes are in passes.
 
     Supports both objectSets (multi-pass plans like qb-rating) and flat
     "objects" (single-pass plans like qb-pcm).
