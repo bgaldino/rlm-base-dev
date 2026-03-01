@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -48,7 +49,7 @@ def run_post_process_script(
         raise FileNotFoundError(f"Post-process script not found: {script}")
     cmd = [sys.executable, script, extraction_dir, plan_dir, "--output-dir", output_dir]
     if logger:
-        logger.info(f"Running post-process: {' '.join(cmd)}")
+        logger.info(f"Running post-process: {shlex.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
     if logger:
         for line in (result.stdout or "").splitlines():
@@ -384,22 +385,19 @@ class LoadSFDMUData(SFDXBaseTask):
 
 
 def _sobjects_from_export_json(export_path: str) -> list:
-    """Parse export.json and return list of sobject API names (excluding excluded objects)."""
+    """Parse export.json and return list of sobject API names (excluding excluded objects).
+
+    Uses the same exclusive logic as parse_plan_structure in post_process_extraction.py:
+    objectSets if present, otherwise top-level objects (single virtual set).
+    """
     path = os.path.join(export_path, EXPORT_JSON_FILENAME)
     with open(path, "r") as f:
         data = json.load(f)
     sobjects = []
-    if "objects" in data:
-        for obj in data["objects"]:
-            if obj.get("excluded"):
-                continue
-            q = obj.get("query", "")
-            m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", q, re.IGNORECASE)
-            if m:
-                name = m.group(1)
-                if name not in sobjects:
-                    sobjects.append(name)
-    for obj_set in data.get("objectSets", []):
+    object_sets = data.get("objectSets", [])
+    if not object_sets and "objects" in data:
+        object_sets = [{"objects": data["objects"]}]
+    for obj_set in object_sets:
         for obj in obj_set.get("objects", []):
             if obj.get("excluded"):
                 continue
