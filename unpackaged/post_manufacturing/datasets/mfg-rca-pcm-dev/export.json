@@ -62,7 +62,7 @@
     },
     {
       "query": "SELECT ArePartialPeriodsAllowed, Id, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy",
-      "operation": "Readonly",
+      "operation": "Upsert",
       "externalId": "Name"
     },
     {
@@ -81,9 +81,9 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT MigrationKey__c, Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentProductId, Sequence FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
+      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentProductId, Sequence FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
       "operation": "Upsert",
-      "externalId": "MigrationKey__c"
+      "externalId": "Code;ParentProduct.StockKeepingUnit"
     },
     {
       "query": "SELECT ChildProductClassificationId, ChildProductId, ChildProductRole, ChildSellingModelId, DoesBundlePriceIncludeChild, Id, IsComponentRequired, IsDefaultComponent, IsQuantityEditable, MaxQuantity, MinQuantity, ParentProductId, ParentProductRole, ParentSellingModelId, ProductComponentGroupId, ProductRelationshipTypeId, Quantity, QuantityScaleMethod, QuoteVisibility, Sequence, UnitOfMeasureId FROM ProductRelatedComponent ORDER BY ChildProductClassification.Code ASC, ChildProduct.StockKeepingUnit ASC, ParentProduct.StockKeepingUnit ASC, ProductComponentGroup.Code ASC, ProductRelationshipType.Name ASC",

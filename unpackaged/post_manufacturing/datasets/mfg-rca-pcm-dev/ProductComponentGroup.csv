@@ -1,0 +1,54 @@
+$$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+Attachments;414LP-KAA-E-SSL,Attachments,#N/A,#N/A,1,Attachments,,414LP-KAA-E-SSL,20
+Cabin Options;414LP-KAA-E-SSL,Cabin Options,#N/A,#N/A,#N/A,Cabin Options,,414LP-KAA-E-SSL,30
+Warranty;414LP-KAA-E-SSL,Warranty,#N/A,1,#N/A,Warranty,,414LP-KAA-E-SSL,40
+Subscription;414LP-KAA-E-SSL,Subscription,#N/A,#N/A,#N/A,Subscription,,414LP-KAA-E-SSL,50
+Tire Options;414LP-KAA-E-SSL,Tire Options,#N/A,1,1,Tire Options,,414LP-KAA-E-SSL,10
+Accessories;FESBA-FRD,Accessories,#N/A,#N/A,#N/A,Accessories,,FESBA-FRD,6
+Accessories Main;FESBA-FRD,Accessories Main,#N/A,99,1,Accessories Main,Accessories;FESBA-FRD,FESBA-FRD,50
+Air Cleaner Duty Rating;FESBA-FRD,Air Cleaner Duty Rating,#N/A,1,1,Air Cleaner Duty Rating,Engine;FESBA-FRD,FESBA-FRD,18
+Alternator;FESBA-FRD,Alternator,#N/A,#N/A,#N/A,Alternator,,FESBA-FRD,2
+Battery Charging Alternator;FESBA-FRD,Battery Charging Alternator,#N/A,1,1,Battery Charging Alternator,Engine;FESBA-FRD,FESBA-FRD,20
+Bearing Hardened Cartridge;FESBA-FRD,Bearing Hardened Cartridge,#N/A,1,0,Bearing Hardened Cartridge,Alternator;FESBA-FRD,FESBA-FRD,31
+Circuit Breaker or Box Arrangement;FESBA-FRD,Circuit Breaker or Box Arrangement,#N/A,1,1,Circuit Breaker or Box Arrangement,Alternator;FESBA-FRD,FESBA-FRD,34
+Circuit Breaker or Terminal Box;FESBA-FRD,Circuit Breaker or Terminal Box,#N/A,2,0,Circuit Breaker or Terminal Box,Alternator;FESBA-FRD,FESBA-FRD,35
+Control;FESBA-FRD,Control,#N/A,#N/A,#N/A,Control,,FESBA-FRD,4
+Control Cabinet Heater;FESBA-FRD,Control Cabinet Heater,#N/A,1,0,Control Cabinet Heater,Control;FESBA-FRD,FESBA-FRD,43
+Control Main;FESBA-FRD,Control Main,#N/A,1,1,Control Main,Control;FESBA-FRD,FESBA-FRD,40
+Control Options;FESBA-FRD,Control Options,#N/A,99,0,Control Options,Control;FESBA-FRD,FESBA-FRD,44
+Coolant Heater;FESBA-FRD,Coolant Heater,#N/A,1,0,Coolant Heater,Engine;FESBA-FRD,FESBA-FRD,24
+Cooling System;FESBA-FRD,Cooling System,#N/A,1,1,Cooling System,Engine;FESBA-FRD,FESBA-FRD,25
+Cooling System Connection;FESBA-FRD,Cooling System Connection,#N/A,1,0,Cooling System Connection,Engine;FESBA-FRD,FESBA-FRD,26
+Cooling System Protection;FESBA-FRD,Cooling System Protection,#N/A,1,1,Cooling System Protection,Engine;FESBA-FRD,FESBA-FRD,27
+Differential CT's;FESBA-FRD,Differential CT's,#N/A,99,0,Differential CT's,Alternator;FESBA-FRD,FESBA-FRD,33
+Enclosure;FESBA-FRD,Enclosure,#N/A,1,1,Enclosure,Accessories;FESBA-FRD,FESBA-FRD,49
+Engine;FESBA-FRD,Engine,#N/A,#N/A,#N/A,Engine,,FESBA-FRD,3
+Engine Model;FESBA-FRD,Engine Model,#N/A,1,1,Engine Model,Engine;FESBA-FRD,FESBA-FRD,17
+Fuel Filter;FESBA-FRD,Fuel Filter,#N/A,1,1,Fuel Filter,Engine;FESBA-FRD,FESBA-FRD,23
+Fuel System Options;FESBA-FRD,Fuel System Options,#N/A,99,0,Fuel System Options,Engine;FESBA-FRD,FESBA-FRD,22
+General;FESBA-FRD,General,#N/A,#N/A,#N/A,General,,FESBA-FRD,1
+Heater;FESBA-FRD,Heater,#N/A,1,0,Heater,Alternator;FESBA-FRD,FESBA-FRD,28
+Install & Misc;FESBA-FRD,Install & Misc,#N/A,#N/A,#N/A,Install & Misc,,FESBA-FRD,7
+Installation;FESBA-FRD,Installation,#N/A,#N/A,#N/A,Installation,Install & Misc;FESBA-FRD,FESBA-FRD,7
+Literature Language;FESBA-FRD,Literature Language,#N/A,99,1,Literature Language,Services;FESBA-FRD,FESBA-FRD,47
+Load Connections;FESBA-FRD,Load Connections,#N/A,4,0,Load Connections,Alternator;FESBA-FRD,FESBA-FRD,36
+Main Alternator;FESBA-FRD,Main Alternator,#N/A,1,1,Main Alternator,Alternator;FESBA-FRD,FESBA-FRD,16
+Misc;FESBA-FRD,Misc,#N/A,#N/A,#N/A,Misc,Install & Misc;FESBA-FRD,FESBA-FRD,2
+Model;FESBA-FRD,Model,#N/A,1,1,Model,General;FESBA-FRD,FESBA-FRD,7
+Oil System Options;FESBA-FRD,Oil System Options,#N/A,99,0,Oil System Options,Engine;FESBA-FRD,FESBA-FRD,21
+Output Terminals;FESBA-FRD,Output Terminals,#N/A,1,0,Output Terminals,Alternator;FESBA-FRD,FESBA-FRD,31
+Packing for Shipment;FESBA-FRD,Packing for Shipment,#N/A,1,1,Packing for Shipment,Services;FESBA-FRD,FESBA-FRD,48
+PMG;FESBA-FRD,PMG,#N/A,1,1,PMG,Alternator;FESBA-FRD,FESBA-FRD,30
+Primary Electrical Isolation Device Options;FESBA-FRD,Primary Electrical Isolation Device Options,#N/A,99,0,Primary Electrical Isolation Device Options,Alternator;FESBA-FRD,FESBA-FRD,39
+Services;FESBA-FRD,Services,#N/A,#N/A,#N/A,Services,,FESBA-FRD,5
+Starter Motor;FESBA-FRD,Starter Motor,#N/A,1,1,Starter Motor,Engine;FESBA-FRD,FESBA-FRD,19
+Temperature Sensors;FESBA-FRD,Temperature Sensors,#N/A,2,0,Temperature Sensors,Alternator;FESBA-FRD,FESBA-FRD,29
+Testing;FESBA-FRD,Testing,#N/A,99,1,Testing,Services;FESBA-FRD,FESBA-FRD,46
+Voltage Connection;FESBA-FRD,Voltage Connection,#N/A,1,1,Voltage Connection,General;FESBA-FRD,FESBA-FRD,15
+Warranty;FESBA-FRD,Warranty,#N/A,1,1,Warranty,Services;FESBA-FRD,FESBA-FRD,45
+Cooling / Thermal Management;FUCEL,Cooling / Thermal Management,#N/A,#N/A,#N/A,Cooling / Thermal Management,,FUCEL,2
+Electrical / Control;FUCEL,Electrical / Control,#N/A,#N/A,#N/A,Electrical / Control,,FUCEL,3
+Fuel Supply / Storage;FUCEL,Fuel Supply / Storage,#N/A,#N/A,#N/A,Fuel Supply / Storage,,FUCEL,1
+Switchgear Bay;PCSWG,Switchgear Bay,#N/A,99,1,Switchgear Bay,,PCSWG,1
+Included Entitlements;SC-GOLD,Included Entitlements,#N/A,#N/A,#N/A,Included Entitlements,,SC-GOLD,10
+Optional Entitlements;SC-GOLD,Optional Entitlements,#N/A,#N/A,#N/A,Optional Entitlements,,SC-GOLD,20

@@ -112,13 +112,14 @@ project:
     #psg_debug: false          # Debug Permission Set Groups
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
-    constraints_data: true   # Use Constraint Builder Data
+    constraints_data: false   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: true    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     locale: en_US             # Default locale
     badger: true              #Badger Metadata & Dataset
+    badger_data: false        #Badger Data Insertion
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -1604,6 +1605,22 @@ tasks:
     class_path: cumulusci.tasks.command.Command
     options:
       command: "python3 scripts/post_process_extraction.py {extraction_dir} {plan_dir}"
+
+  # Badger Extraction Tasks
+
+  extract_badger_product_data:
+    group: Revenue Lifecycle Management
+    description: Extract QuantumBit Rating Data from org to CSV
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *badger_product_dataset
+
+  extract_badger_pricing_data:
+    group: Revenue Lifecycle Management
+    description: Extract Badger Pricing Data
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *badger_pricing_dataset
 
 #------------------#
 # PYTHON CCI TASKS #
