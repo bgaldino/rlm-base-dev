@@ -632,6 +632,10 @@ class ExtractSFDMUData(SFDXBaseTask):
         "object_sets": {
             "description": "Optional list of 0-based object set indices to extract (e.g. [0] for Pass 1 only).  If omitted, all object sets are extracted.",
             "required": False
+        },
+        "run_post_process": {
+            "description": "If True (default), run post_process_extraction.py after extraction so output is re-import-ready (adds $$ composite key columns, normalizes headers). Processed CSVs are written to <output_dir>/processed/.",
+            "required": False
         }
     }
 
@@ -747,6 +751,21 @@ class ExtractSFDMUData(SFDXBaseTask):
         self.logger.info(f"Collected {csv_count} CSV files to {output_dir}")
         return output_dir
 
+    def _run_post_process(self, extraction_dir: str, plan_dir: str, processed_dir: str) -> None:
+        """Run post_process_extraction.py to make extracted CSVs v5 import-ready ($$ columns, header normalization)."""
+        cwd = self.options.get("dir") or os.getcwd()
+        script = os.path.join(cwd, "scripts", "post_process_extraction.py")
+        if not os.path.isfile(script):
+            raise FileNotFoundError(f"Post-process script not found: {script}")
+        cmd = [sys.executable, script, extraction_dir, plan_dir, "--output-dir", processed_dir]
+        self.logger.info(f"Running post-process: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
+        for line in (result.stdout or "").splitlines():
+            self.logger.info(line)
+        if result.returncode != 0:
+            self.logger.error(result.stderr or "")
+            raise CommandException(f"Post-process failed with exit code {result.returncode}")
+
     def _run_task(self) -> None:
         work_dir = None
         try:
@@ -795,6 +814,17 @@ class ExtractSFDMUData(SFDXBaseTask):
             output_dir = self._collect_output(work_dir)
             self.logger.info(f"Extraction complete. Output: {output_dir}")
             self.return_values = {"output_dir": output_dir}
+
+            # Optionally run post-process so output is re-import-ready ($$ columns, header normalization)
+            run_post_process = self.options.get("run_post_process")
+            if run_post_process is not False:  # default True
+                processed_dir = os.path.join(output_dir, "processed")
+                os.makedirs(processed_dir, exist_ok=True)
+                self._run_post_process(output_dir, plan_dir, processed_dir)
+                export_src = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
+                shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
+                self.return_values["processed_dir"] = processed_dir
+                self.logger.info(f"Post-process complete. Re-import-ready CSVs: {processed_dir}")
 
         except Exception as e:
             self.logger.error(f"Extraction error: {e}")

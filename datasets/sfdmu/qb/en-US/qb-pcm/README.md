@@ -282,11 +282,13 @@ cci task run extract_qb_pcm_data --org <your-org>
 
 This task is in the **Data Management - Extract** group. To run all QB extract tasks: `cci flow run run_qb_extracts --org <org>`. To run all idempotency tests (including qb-pcm): `cci flow run run_qb_idempotency_tests --org <org>`.
 
-Extracted CSVs are written to a timestamped directory under `datasets/sfdmu/extractions/qb-pcm/`. Raw SFDMU extraction does **not** include the `$$` composite key columns required for v5 re-import. To make extracted data import-ready, run the post-process script:
+Extracted CSVs are written to a timestamped directory under `datasets/sfdmu/extractions/qb-pcm/`. **The extract task runs the post-processor by default**, so re-import-ready CSVs (with `$$` composite key columns) are in `<timestamp>/processed/`. To re-process an existing extraction manually:
 
 ```bash
 python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-pcm --output-dir <output-dir>
 ```
+
+To get only raw SFDMU output (no post-process), run the task with `-o run_post_process false`.
 
 The idempotency task uses this flow (load → extract → post-process → load from processed) when run with `use_extraction_roundtrip: true` (the default for `test_qb_pcm_idempotency`) to validate that extracted data can be re-imported without creating duplicates.
 

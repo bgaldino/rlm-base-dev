@@ -118,7 +118,7 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 
 Extract and idempotency tasks are grouped in CumulusCI for convenience:
 
-- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling). List with `cci task list --group "Data Management - Extract"`.
+- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, …). Each task runs the post-processor by default so output in `<timestamp>/processed/` is re-import-ready. List with `cci task list --group "Data Management - Extract"`.
 - **Data Management - Idempotency:** Tasks `test_qb_*_idempotency` for the same plans. Each loads the plan twice and asserts no record count increase. List with `cci task list --group "Data Management - Idempotency"`.
 
 **Flows:** `cci flow run run_qb_extracts --org <org>` runs all extract tasks; `cci flow run run_qb_idempotency_tests --org <org>` runs all idempotency tests. See main [README](../README.md) Data Management Tasks and Flows sections.
