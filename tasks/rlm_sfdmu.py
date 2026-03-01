@@ -595,9 +595,21 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 self.logger.info("Second run: load from post-processed extraction (should not add records)")
                 self._run_load_once(processed_dir)
             finally:
-                if use_roundtrip and use_temp and os.path.isdir(work_dir):
-                    shutil.rmtree(work_dir, ignore_errors=True)
-                    self.logger.info("Removed extraction roundtrip temp directory.")
+                # Always clear credentials from work_dir/export.json (persist mode leaves dir on disk)
+                if work_dir and os.path.isdir(work_dir):
+                    export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
+                    if os.path.isfile(export_in_work):
+                        try:
+                            with open(export_in_work, "r") as f:
+                                ej = json.load(f)
+                            ej["orgs"] = []
+                            with open(export_in_work, "w") as f:
+                                json.dump(ej, f, indent=2)
+                        except Exception as e:
+                            self.logger.warning(f"Could not clear credentials from {export_in_work}: {e}")
+                    if use_temp:
+                        shutil.rmtree(work_dir, ignore_errors=True)
+                        self.logger.info("Removed extraction roundtrip temp directory.")
         else:
             self.logger.info("Second run: idempotent re-run from source (should not add records)")
             self._run_load_once()

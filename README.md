@@ -270,10 +270,10 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling | See `cumulusci.yml` |
 | `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
 | `load_sfdmu_data` | Revenue Lifecycle Management | Load SFDMU data plans (generic; supports simulation, object_sets, dynamic DRO user) | See `cumulusci.yml` |
-| `export_cml` | — | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `import_cml` | — | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `validate_cml` | — | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `sync_pricing_data` | — | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
+| `export_cml` | Revenue Lifecycle Management | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `import_cml` | Revenue Lifecycle Management | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `validate_cml` | Revenue Lifecycle Management | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `sync_pricing_data` | Revenue Lifecycle Management | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
 
 Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md).
 
