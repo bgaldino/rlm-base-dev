@@ -1415,13 +1415,6 @@ tasks:
     options:
       path: scripts/apex/query_billing_state.apex
 
-  delete_draft_billing_records:
-    group: Revenue Lifecycle Management
-    description: Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates.
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-    options:
-      path: scripts/apex/deleteDraftBillingRecords.apex
-
   validate_billing_structure:
     group: Revenue Lifecycle Management
     description: Validate that every BillingTreatment has BillingPolicyId set. Run after data load to verify structure before activation.
@@ -1456,6 +1449,35 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateRateCardEntries.apex
+
+
+#--------------------#
+# DATA MAINTENANCE    #
+#--------------------#
+# Delete / reset data plan records in dependency order. Use before re-running
+# a data plan to avoid duplicates (e.g. before test_*_idempotency). Add tasks
+# here for each plan that has a delete script (rates, rating, billing, etc.).
+
+  delete_qb_rates_data:
+    group: Data Maintenance
+    description: Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatesData.apex
+
+  delete_qb_rating_data:
+    group: Data Maintenance
+    description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Use before re-running insert_qb_rating_data to clear duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatingData.apex
+
+  delete_draft_billing_records:
+    group: Data Maintenance
+    description: Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteDraftBillingRecords.apex
 
 
 #--------------------#

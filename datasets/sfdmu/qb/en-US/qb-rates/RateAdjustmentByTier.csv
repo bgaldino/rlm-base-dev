@@ -1,13 +1,13 @@
-$$Product.StockKeepingUnit$RateCard.Name$RateUnitOfMeasure.UnitCode$UsageResource.Code$LowerBound$UpperBound,AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,LowerBound,Product.StockKeepingUnit,ProductSellingModel.Name,RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode,RateCardEntryStatus,RateUnitOfMeasure.Name,RateUnitOfMeasureName,UpperBound,UsageResource.Name
-QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-CPUTIME,Percentage,5,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-CPUTIME;TOKEN-UOM,Active,Tokens,Tokens,,Compute Time
-QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-DATASTORAGE,Percentage,4,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-DATASTORAGE;TOKEN-UOM,Active,Tokens,Tokens,,Data Storage
-QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;QB-TOKEN,Percentage,6,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;QB-TOKEN;TOKEN-UOM,Active,Tokens,Tokens,,Quantum Tokens
-QB-CMT-TKN-FLAT;Tier Rate Card;TOKEN-UOM,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-FLAT,Term Annual,QB-CMT-TKN-FLAT;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,,
-QB-CMT-TKN-FLAT;Tier Rate Card;USD;QB-TOKEN,Percentage,0,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-FLAT,Term Annual,QB-CMT-TKN-FLAT;Tier Rate Card;QB-TOKEN;USD,Active,USD,USD,,Quantum Tokens
-QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM;1000,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,1000,
+$$Product.StockKeepingUnit$RateCardEntry.RateCard.Name$RateUnitOfMeasure.UnitCode$UsageResource.Code$LowerBound$UpperBound,AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,LowerBound,Product.StockKeepingUnit,ProductSellingModel.Name,RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode,RateCardEntryStatus,RateUnitOfMeasure.Name,RateUnitOfMeasureName,UpperBound,UsageResource.Name
+QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-CPUTIME;0;,Percentage,5,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-CPUTIME;TOKEN-UOM,Active,Tokens,Tokens,,Compute Time
+QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-DATASTORAGE;0;,Percentage,4,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-DATASTORAGE;TOKEN-UOM,Active,Tokens,Tokens,,Data Storage
+QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;QB-TOKEN;0;,Percentage,6,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;QB-TOKEN;TOKEN-UOM,Active,Tokens,Tokens,,Quantum Tokens
+QB-CMT-TKN-FLAT;Tier Rate Card;TOKEN-UOM;;0;,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-FLAT,Term Annual,QB-CMT-TKN-FLAT;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,,
+QB-CMT-TKN-FLAT;Tier Rate Card;USD;QB-TOKEN;0;,Percentage,0,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-FLAT,Term Annual,QB-CMT-TKN-FLAT;Tier Rate Card;QB-TOKEN;USD,Active,USD,USD,,Quantum Tokens
+QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM;1000;0;1000,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,1000,
 QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM;1000;5000,Percentage,20,2025-01-01T20:00:00.000+0000,,1000,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,5000,
-QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM;5000,Percentage,30,2025-01-01T20:00:00.000+0000,,5000,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,,
-QB-CMT-TKN-TIER;Tier Rate Card;USD;QB-TOKEN,Percentage,0,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;QB-TOKEN;USD,Active,USD,USD,,Quantum Tokens
+QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM;5000;,Percentage,30,2025-01-01T20:00:00.000+0000,,5000,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,,
+QB-CMT-TKN-TIER;Tier Rate Card;USD;QB-TOKEN;0;,Percentage,0,2025-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;QB-TOKEN;USD,Active,USD,USD,,Quantum Tokens
 QB-DB;Tier Rate Card;USD;UR-CPUTIME;1;100,Override,0.004,2024-10-01T19:00:00.000+0000,,1,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,100,Compute Time
 QB-DB;Tier Rate Card;USD;UR-CPUTIME;300;999999999,Override,0.006,2024-10-01T19:00:00.000+0000,,300,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,999999999,Compute Time
 QB-DB;Tier Rate Card;USD;UR-CPUTIME;200;300,Override,0.005,2024-10-01T19:00:00.000+0000,,200,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,300,Compute Time
@@ -16,7 +16,7 @@ QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;100;500,Override,12.5,2024-10-01T19:00:0
 QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;1;100,Percentage,0,2024-10-01T19:00:00.000+0000,,1,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,100,Data Storage
 QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;500;5000,Override,15,2024-10-01T19:00:00.000+0000,,500,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,5000,Data Storage
 QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;5000;999999999,Override,18,2024-10-01T19:00:00.000+0000,,5000,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,999999999,Data Storage
-QB-MTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,,Data Storage
-QB-MTY-CMT;Tier Rate Card;USD;UR-CPUTIME,Percentage,5,2025-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,,Compute Time
-QB-QTY-CMT;Tier Rate Card;USD;UR-CPUTIME,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-QTY-CMT,Term Annual,QB-QTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,,Compute Time
-QB-QTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE,Percentage,20,2025-01-01T20:00:00.000+0000,,0,QB-QTY-CMT,Term Annual,QB-QTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,,Data Storage
+QB-MTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE;0;,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,,Data Storage
+QB-MTY-CMT;Tier Rate Card;USD;UR-CPUTIME;0;,Percentage,5,2025-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,,Compute Time
+QB-QTY-CMT;Tier Rate Card;USD;UR-CPUTIME;0;,Percentage,10,2025-01-01T20:00:00.000+0000,,0,QB-QTY-CMT,Term Annual,QB-QTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,,Compute Time
+QB-QTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE;0;,Percentage,20,2025-01-01T20:00:00.000+0000,,0,QB-QTY-CMT,Term Annual,QB-QTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,,Data Storage

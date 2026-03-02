@@ -71,12 +71,13 @@ Only UoMClass and UsageResource are activated in SFDMU Pass 2. PUR and PUG activ
 
 **File:** `scripts/apex/activateRatingRecords.apex`
 
-PUR and PUG activation follows a strict 6-step dependency order:
+PUR and PUG activation follows a strict 7-step dependency order:
 
 | Step | What                                      | Why                                                                |
 |------|-------------------------------------------|--------------------------------------------------------------------|
 | 1    | UnitOfMeasureClass -> Active              | Safety net (Pass 2 should already do this)                         |
 | 2    | UsageResource -> Active                   | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
+| 2.5  | Remove duplicate PURs                     | Same Product+UsageResource+overlapping effective period — keeps one, deletes Draft dupes + PUG/PURP children. Overlap uses DateTime (not Date) so same-day different-time periods are not incorrectly treated as duplicates. Prevents "effective period overlaps" when re-running the flow. |
 | 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 5 (see below)                 |
 | 4    | Token PUR -> Active                       | Must precede Step 5; products with Token PURs require them Active before usage PURs can activate |
 | 5    | ALL non-Token PUR -> clear+activate       | TokenResourceId=null + Status='Active' in single DML               |
@@ -84,7 +85,7 @@ PUR and PUG activation follows a strict 6-step dependency order:
 
 **Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 5 only prevents auto-population when `TokenResourceId` changes from a non-null value to null -- a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 5's clear is a real change.
 
-The script is **idempotent** — all queries filter on `Status != 'Active'`, so re-running on an already-activated org is a safe no-op.
+The script is **idempotent** — Step 2.5 queries all PURs (Active + non-Active) to detect overlapping duplicates; all other steps and DML filter on `Status != 'Active'`. Re-running on an already-activated org is a safe no-op.
 
 ## Products and Usage Model Types
 

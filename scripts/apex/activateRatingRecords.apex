@@ -8,9 +8,10 @@
 //   cci task run activate_rating_records --org <alias>
 //   sf apex run --target-org <alias> --file scripts/apex/activateRatingRecords.apex
 //
-// Activation order (6 steps):
+// Activation order (7 steps):
 //   1. UnitOfMeasureClass > Active  (safety net; SFDMU Pass 2 handles this)
 //   2. UsageResource > Active       (safety net; SFDMU Pass 2 handles this)
+//   2.5. Remove duplicate PURs     (same Product+UsageResource+overlapping effective period; keeps one, deletes Draft dupes + their PUG/PURP children)
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
 //                                    require them Active before usage PURs can activate)
@@ -42,8 +43,9 @@
 //     optional PURs are excluded from the data plan (258>260 migration gap).
 //
 // Idempotency:
-//   All queries filter on Status != 'Active', so re-running this script on an
-//   already-activated org is a safe no-op.
+//   Step 2.5 queries all PURs (Active + non-Active) to detect overlaps; other steps and
+//   DML only touch non-Active records. Re-running on an already-activated org is still
+//   a safe no-op (no DML, no duplicate PURs to remove).
 // ============================================================================
 
 // Step 1: Activate UnitOfMeasureClass (safety net)
@@ -64,6 +66,64 @@ if (!urs.isEmpty()) {
     System.debug('Activated ' + urs.size() + ' UsageResource record(s).');
 } else {
     System.debug('All UsageResource records are already Active.');
+}
+
+// Step 2.5: Remove duplicate PURs (same Product + UsageResource + overlapping effective period).
+// Re-running the rating data plan or partial runs can leave duplicate Draft PURs; the platform
+// blocks activation with "effective period overlaps with an existing record". Keep one per
+// (ProductId, UsageResourceId) overlapping set, delete Draft duplicates. Child records
+// (ProductUsageResourcePolicy, ProductUsageGrant) must be deleted first.
+// We must query all PURs (Active + non-Active) so we can detect overlaps between new Draft
+// and existing Active; if we only queried non-Active we would never mark those Drafts as duplicates.
+List<ProductUsageResource> allPurs = [
+    SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
+    FROM ProductUsageResource
+];
+Set<Id> duplicatePurIds = new Set<Id>();
+// Pairwise overlap check within allPurs. O(n^2) is acceptable for typical QB PUR counts (dozens to low hundreds).
+for (Integer i = 0; i < allPurs.size(); i++) {
+    ProductUsageResource a = allPurs[i];
+    if (duplicatePurIds.contains(a.Id)) continue;
+    for (Integer j = i + 1; j < allPurs.size(); j++) {
+        ProductUsageResource b = allPurs[j];
+        if (duplicatePurIds.contains(b.Id)) continue;
+        if (a.ProductId != b.ProductId || a.UsageResourceId != b.UsageResourceId) continue;
+        // Overlap uses DateTime (not Date) so same-day different-time periods are not falsely treated as overlapping.
+        // TODO: If "effective period overlaps" is seen in an org with same-day different-time PURs, add a targeted test.
+        Datetime aStart = a.EffectiveStartDate != null ? (Datetime)a.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        Datetime aEnd   = a.EffectiveEndDate   != null ? (Datetime)a.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+        Datetime bStart = b.EffectiveStartDate != null ? (Datetime)b.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        Datetime bEnd   = b.EffectiveEndDate   != null ? (Datetime)b.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+        Boolean overlaps = (aStart <= bEnd) && (aEnd >= bStart);
+        if (!overlaps) continue;
+        if (a.Status == 'Active' && b.Status != 'Active') {
+            duplicatePurIds.add(b.Id);
+        } else if (b.Status == 'Active' && a.Status != 'Active') {
+            duplicatePurIds.add(a.Id);
+        } else if (a.Id < b.Id) {
+            duplicatePurIds.add(b.Id);
+        } else {
+            duplicatePurIds.add(a.Id);
+        }
+    }
+}
+if (!duplicatePurIds.isEmpty()) {
+    List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();
+    for (ProductUsageResource pur : allPurs) {
+        if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft') {
+            purToDelete.add(pur);
+        }
+    }
+    if (!purToDelete.isEmpty()) {
+        Set<Id> purIdsToDelete = new Set<Id>();
+        for (ProductUsageResource pur : purToDelete) purIdsToDelete.add(pur.Id);
+        List<ProductUsageGrant> pugDelete = [SELECT Id FROM ProductUsageGrant WHERE ProductUsageResourceId IN :purIdsToDelete];
+        List<ProductUsageResourcePolicy> purpDelete = [SELECT Id FROM ProductUsageResourcePolicy WHERE ProductUsageResourceId IN :purIdsToDelete];
+        if (!pugDelete.isEmpty()) { delete pugDelete; System.debug('Deleted ' + pugDelete.size() + ' ProductUsageGrant(s) for duplicate PUR(s).'); }
+        if (!purpDelete.isEmpty()) { delete purpDelete; System.debug('Deleted ' + purpDelete.size() + ' ProductUsageResourcePolicy(s) for duplicate PUR(s).'); }
+        delete purToDelete;
+        System.debug('Deleted ' + purToDelete.size() + ' duplicate Draft PUR(s) (overlapping effective period).');
+    }
 }
 
 // Step 3: Pre-populate TokenResourceId on Draft non-Token PURs where it's null.
