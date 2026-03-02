@@ -637,8 +637,9 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 # "extractions/<plan>" is appended. Example for qb-rating:
                 #   plan_dir=datasets/sfdmu/qb/en-US/qb-rating
                 #   dirname → datasets/sfdmu/qb/en-US
-                #   + ../.. → datasets/sfdmu
+                #   + ../.. → datasets/sfdmu   (each ".." resolves one level: en-US→qb, qb→sfdmu)
                 #   + extractions/qb-rating → datasets/sfdmu/extractions/qb-rating
+                # Note: three ".." would overshoot to datasets/extractions/qb-rating (verified).
                 base = os.path.normpath(os.path.join(os.path.dirname(plan_dir), "..", "..", "extractions", plan_name))
                 timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
                 work_dir = os.path.join(base, timestamp)

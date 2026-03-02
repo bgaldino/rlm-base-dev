@@ -85,15 +85,17 @@ if (!urs.isEmpty()) {
 // cleanup cycle and cannot participate in the activation-blocking overlap scenario.
 //
 // Preflight: aggregate by (ProductId, UsageResourceId) to find only groups with more than
-// one Draft/Active PUR. Groups with a single row cannot have overlapping periods, so they
-// are skipped entirely. Querying only candidate groups avoids loading the full PUR table on
-// large orgs, bounding SOQL row count and Apex heap consumption.
+// one Draft/Active PUR. Composite pair keys (productId:usageResourceId) are tracked so the
+// candidate scope is precise — using independent Id sets would form a cross-product and fetch
+// non-candidate pairs. All three SOQL queries below (PUG, PURP, PUR) are scoped to the
+// candidate pairs, bounding SOQL row count and Apex heap on large orgs.
 //
 // purIdsWithChildren is built BEFORE the scan so child-bearing status can be used as a
 // survivor-selection criterion — ensuring the record we intend to keep is always the one
 // that survives and that the deletion filter and the scan agree on the same record.
-Set<Id> candidateProductIds       = new Set<Id>();
-Set<Id> candidateUsageResourceIds = new Set<Id>();
+Set<String> candidatePairKeys    = new Set<String>();
+Set<Id>     candidateProductIds  = new Set<Id>();
+Set<Id>     candidateResourceIds = new Set<Id>();
 for (AggregateResult ar : [
     SELECT ProductId, UsageResourceId, COUNT(Id) cnt
     FROM ProductUsageResource
@@ -101,27 +103,50 @@ for (AggregateResult ar : [
     GROUP BY ProductId, UsageResourceId
     HAVING COUNT(Id) > 1
 ]) {
-    candidateProductIds.add((Id) ar.get('ProductId'));
-    candidateUsageResourceIds.add((Id) ar.get('UsageResourceId'));
+    Id pid = (Id) ar.get('ProductId');
+    Id rid = (Id) ar.get('UsageResourceId');
+    candidatePairKeys.add(pid + ':' + rid);
+    candidateProductIds.add(pid);
+    candidateResourceIds.add(rid);
 }
-if (candidateProductIds.isEmpty()) {
+if (candidatePairKeys.isEmpty()) {
     System.debug('Step 2.5: no (Product, UsageResource) group has more than one Draft/Active PUR — nothing to deduplicate.');
 } else {
     Set<Id> purIdsWithChildren = new Set<Id>();
-    for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageGrant GROUP BY ProductUsageResourceId]) {
+    for (AggregateResult ar : [
+        SELECT ProductUsageResourceId purId
+        FROM ProductUsageGrant
+        WHERE ProductUsageResource.ProductId IN :candidateProductIds
+        AND ProductUsageResource.UsageResourceId IN :candidateResourceIds
+        GROUP BY ProductUsageResourceId
+    ]) {
         purIdsWithChildren.add((Id)ar.get('purId'));
     }
-    for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy GROUP BY ProductUsageResourceId]) {
+    for (AggregateResult ar : [
+        SELECT ProductUsageResourceId purId
+        FROM ProductUsageResourcePolicy
+        WHERE ProductUsageResource.ProductId IN :candidateProductIds
+        AND ProductUsageResource.UsageResourceId IN :candidateResourceIds
+        GROUP BY ProductUsageResourceId
+    ]) {
         purIdsWithChildren.add((Id)ar.get('purId'));
     }
-    List<ProductUsageResource> allPurs = [
+    // Broad SOQL filter (ProductId IN + UsageResourceId IN) bounds the row count to the
+    // candidate scope. Apex post-filter on the exact composite pair key removes any
+    // cross-product non-candidate records while preserving ORDER BY sort for the scan.
+    List<ProductUsageResource> allPurs = new List<ProductUsageResource>();
+    for (ProductUsageResource pur : [
         SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
         FROM ProductUsageResource
         WHERE Status IN ('Draft', 'Active')
         AND ProductId IN :candidateProductIds
-        AND UsageResourceId IN :candidateUsageResourceIds
+        AND UsageResourceId IN :candidateResourceIds
         ORDER BY ProductId, UsageResourceId, EffectiveStartDate ASC NULLS FIRST, EffectiveEndDate ASC NULLS LAST
-    ];
+    ]) {
+        if (candidatePairKeys.contains(pur.ProductId + ':' + pur.UsageResourceId)) {
+            allPurs.add(pur);
+        }
+    }
     Set<Id> duplicatePurIds = new Set<Id>();
     ProductUsageResource currentPur = null;
     Datetime currentStart = null;
