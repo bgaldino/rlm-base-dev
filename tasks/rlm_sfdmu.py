@@ -471,11 +471,18 @@ class TestSFDMUIdempotency(SFDXBaseTask):
     def _get_org_for_cli(self) -> str:
         if isinstance(self.org_config, ScratchOrgConfig):
             return self.org_config.username
-        # Prefer username/alias over access_token: CLI commands (sf apex run, sf data query)
-        # expect an authorized org alias or username, not a raw token. The access_token is
-        # kept only in the export.json orgs block where SFDMU needs it. Logging a token as
-        # --target-org would both leak a secret and fail CLI auth.
-        return self.options.get("targetusername") or self.org_config.username or self.org_config.access_token
+        # CLI commands (sf apex run, sf data query) require an authorized org alias or username
+        # as --target-org. Never fall back to access_token: it fails CLI auth and leaks a
+        # secret via logs, shell history, and process listings. The access_token is kept
+        # exclusively in the export.json orgs block where SFDMU needs it.
+        org_alias = self.options.get("targetusername") or getattr(self.org_config, "username", None)
+        if not org_alias:
+            raise TaskOptionsError(
+                "No target username/alias available for Salesforce CLI invocation. "
+                "Provide a valid 'targetusername' option or ensure org_config.username is set. "
+                "Falling back to org_config.access_token is not supported for CLI calls."
+            )
+        return org_alias
 
     def _get_record_counts(self, sobjects: list) -> Dict[str, int]:
         org_alias = self._get_org_for_cli()
@@ -564,7 +571,15 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         org = self._get_org_for_cli()
         cmd = ["sf", "apex", "run", "--target-org", org, "--file", path]
         self.logger.info(f"Running post-load Apex: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=base, timeout=300)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=base, timeout=300)
+        except subprocess.TimeoutExpired as e:
+            self.logger.error(f"Post-load Apex timed out after 300s: {path}")
+            if e.stdout:
+                self.logger.error(e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout)
+            if e.stderr:
+                self.logger.error(e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr)
+            raise CommandException(f"Post-load Apex timed out after 300s: {path}") from e
         if result.returncode != 0:
             self.logger.error(result.stdout or "")
             self.logger.error(result.stderr or "")

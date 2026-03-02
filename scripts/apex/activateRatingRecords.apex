@@ -77,10 +77,13 @@ if (!urs.isEmpty()) {
 // The platform blocks activation with "effective period overlaps". We delete only duplicate PURs
 // that have zero ProductUsageGrant and zero ProductUsageResourcePolicy children — so we never
 // delete PUG or PURP. Duplicate PURs inserted on a second load have no children; the originals have them.
-// Query all PURs ordered by (ProductId, UsageResourceId, EffectiveStartDate) so overlapping
-// duplicates within each Product+UsageResource group are adjacent — enables O(n) linear scan
-// rather than O(n^2) nested loop. Active PURs are included because the selection rule requires
-// seeing all statuses in the same group.
+// Query Draft and Active PURs ordered by (ProductId, UsageResourceId, EffectiveStartDate) so
+// overlapping duplicates within each Product+UsageResource group are adjacent — enables O(n)
+// linear scan rather than O(n^2) nested loop. Both statuses are included because the survivor
+// selection rule (Active > has-children > lower Id) requires seeing both in the same group.
+// Inactive PURs are excluded: they only exist transiently during the delete-then-reinsert
+// cleanup cycle and cannot participate in the activation-blocking overlap scenario. Excluding
+// them also bounds query size on large orgs, avoiding SOQL row and Apex heap limits.
 //
 // purIdsWithChildren is built BEFORE the scan so child-bearing status can be used as a
 // survivor-selection criterion — ensuring the record we intend to keep is always the one
@@ -95,6 +98,7 @@ for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsage
 List<ProductUsageResource> allPurs = [
     SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
     FROM ProductUsageResource
+    WHERE Status IN ('Draft', 'Active')
     ORDER BY ProductId, UsageResourceId, EffectiveStartDate ASC NULLS FIRST, EffectiveEndDate ASC NULLS LAST
 ];
 Set<Id> duplicatePurIds = new Set<Id>();
