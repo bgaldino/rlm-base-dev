@@ -229,16 +229,55 @@ This project includes custom Python task modules in the `tasks/` directory, each
 
 ### Data Management Tasks
 
-| Task Name | Module | Description | Documentation |
+Data management tasks are organized into two CCI groups so you can list or run by group:
+
+- **Data Management - Extract** — SFDMU extract tasks (org → CSV). Output in `datasets/sfdmu/extractions/<plan_name>/<timestamp>`. **The same flow applies to every plan:** each task uses its plan directory from `cumulusci.yml`; post-process runs by default and writes re-import-ready CSVs to `<timestamp>/processed/`.
+- **Data Management - Idempotency** — Idempotency test tasks (load twice, assert no record count increase; validates SFDMU v5 composite keys).
+
+**List tasks by group:**
+
+```bash
+cci task list --group "Data Management - Extract"
+cci task list --group "Data Management - Idempotency"
+```
+
+**Run all extract tasks or all idempotency tests (flows):**
+
+```bash
+cci flow run run_qb_extracts --org <org>
+cci flow run run_qb_idempotency_tests --org <org>
+```
+
+| Task Name | Group | Description | Documentation |
 |-----------|--------|-------------|---------------|
-| `load_sfdmu_data` | `rlm_sfdmu.py` | Load SFDMU data plans (supports `simulation` dry-run mode, `object_sets` pass filtering, dynamic DRO user resolution) | See `cumulusci.yml` |
-| `export_cml` | `rlm_cml.py` | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `import_cml` | `rlm_cml.py` | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `validate_cml` | `rlm_cml.py` | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
-| `extract_qb_rating_data` | `rlm_sfdmu.py` | Extract QuantumBit rating data from an org to CSV | See `cumulusci.yml` |
-| `extract_qb_rates_data` | `rlm_sfdmu.py` | Extract QuantumBit rates data from an org to CSV | See `cumulusci.yml` |
-| `post_process_extraction` | `rlm_sfdmu.py` | Post-process extracted CSV data | See `cumulusci.yml` |
-| `sync_pricing_data` | `rlm_sync_pricing_data.py` | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
+| `extract_qb_pcm_data` | Data Management - Extract | Extract qb-pcm (product catalog) from org to CSV | See `cumulusci.yml` |
+| `extract_qb_pricing_data` | Data Management - Extract | Extract qb-pricing from org to CSV | See `cumulusci.yml` |
+| `extract_qb_product_images_data` | Data Management - Extract | Extract qb-product-images from org to CSV | See `cumulusci.yml` |
+| `extract_qb_dro_data` | Data Management - Extract | Extract qb-dro from org to CSV | See `cumulusci.yml` |
+| `extract_qb_clm_data` | Data Management - Extract | Extract qb-clm from org to CSV | See `cumulusci.yml` |
+| `extract_qb_rating_data` | Data Management - Extract | Extract qb-rating from org to CSV | See `cumulusci.yml` |
+| `extract_qb_rates_data` | Data Management - Extract | Extract qb-rates from org to CSV | See `cumulusci.yml` |
+| `extract_qb_transactionprocessingtypes_data` | Data Management - Extract | Extract qb-transactionprocessingtypes from org to CSV | See `cumulusci.yml` |
+| `extract_qb_guidedselling_data` | Data Management - Extract | Extract qb-guidedselling from org to CSV | See `cumulusci.yml` |
+| `test_qb_pcm_idempotency` | Data Management - Idempotency | Idempotency test for qb-pcm (supports extraction roundtrip) | [qb-pcm README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
+| `test_qb_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-pricing | See `cumulusci.yml` |
+| `test_qb_product_images_idempotency` | Data Management - Idempotency | Idempotency test for qb-product-images | See `cumulusci.yml` |
+| `test_qb_dro_idempotency` | Data Management - Idempotency | Idempotency test for qb-dro | See `cumulusci.yml` |
+| `test_qb_clm_idempotency` | Data Management - Idempotency | Idempotency test for qb-clm | See `cumulusci.yml` |
+| `test_qb_rating_idempotency` | Data Management - Idempotency | Idempotency test for qb-rating | See `cumulusci.yml` |
+| `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
+| `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
+| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling | See `cumulusci.yml` |
+| `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
+| `load_sfdmu_data` | Revenue Lifecycle Management | Load SFDMU data plans (generic; supports simulation, object_sets, dynamic DRO user) | See `cumulusci.yml` |
+| `export_cml` | Revenue Lifecycle Management | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `import_cml` | Revenue Lifecycle Management | Import constraint model data into an org (polymorphic resolution, dry run) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `validate_cml` | Revenue Lifecycle Management | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
+| `sync_pricing_data` | Revenue Lifecycle Management | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
+
+Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md).
+
+**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
 
 ### Metadata Management Tasks
 
@@ -423,6 +462,17 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
 
+### Data Management flows
+
+Use these flows to run all QB extract tasks or all QB idempotency tests by group:
+
+| Flow | Description |
+|------|-------------|
+| `run_qb_extracts` | Runs all 9 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
+| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks (test_qb_*_idempotency for the same plans). Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
+
+See [Data Management Tasks](#data-management-tasks) for per-task details and group listing.
+
 ### Sub-Flows
 
 | Flow | Description | Key Feature Flags |
@@ -471,6 +521,33 @@ Data plans provide the reference data loaded during org setup. This project uses
 > for the full migration details and known limitations.
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
+
+#### Data plan directory structure
+
+Plans follow a **shape / locale / plan-name** tree so multiple data shapes (e.g. QuantumBit, Manufacturing) can coexist:
+
+```
+datasets/sfdmu/
+├── <shape>/           # e.g. qb, mfg, q3
+│   └── <locale>/      # e.g. en-US
+│       └── <plan-name>/   # e.g. qb-pcm, mfg-pcm
+│           ├── export.json
+│           ├── Object1.csv
+│           ├── Object2.csv
+│           └── (optional) objectset_source/   # for multi-pass plans
+├── procedure-plans/
+└── extractions/       # extract output: <plan-name>/<timestamp>/ and .../processed/
+```
+
+**Examples:** `datasets/sfdmu/qb/en-US/qb-pcm`, `datasets/sfdmu/mfg/en-US/mfg-pcm`. The same tooling (extract task, post-process script, idempotency task) works for any plan path: each task gets its plan directory from `cumulusci.yml` via a path anchor, and extraction output goes to `datasets/sfdmu/extractions/<plan-name>/<timestamp>/` (and `<timestamp>/processed/` after post-process).
+
+**Adding a new data shape (e.g. mfg):**
+
+1. Create the directory tree: `datasets/sfdmu/mfg/en-US/<plan-name>/` (e.g. `mfg-pcm`).
+2. Add `export.json` and CSV files following the same patterns as QB (single-pass with flat `objects`, or multi-pass with `objectSets`; see [qb-pcm](datasets/sfdmu/qb/en-US/qb-pcm/README.md) or [qb-rating](datasets/sfdmu/qb/en-US/qb-rating/README.md) as reference).
+3. In `cumulusci.yml`, under **DATA PLAN NAMES AND PATHS**, add an anchor (e.g. `mfg_pcm_dataset: &mfg_pcm_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"`).
+4. Add load, extract, and idempotency tasks that reference that anchor (`pathtoexportjson: *mfg_pcm_dataset`). Use the same task classes (`LoadSFDMUData`, `ExtractSFDMUData`, `TestSFDMUIdempotency`) and groups (Data Management - Extract / Idempotency) so extract runs post-process by default and output goes to `extractions/mfg-pcm/<timestamp>/processed/`.
+5. Add a README in the plan directory and, if desired, list the plan in the table below.
 
 #### QuantumBit (QB) Data Plans
 
@@ -546,6 +623,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
+- [mfg README](datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 
 ### Robot Framework
 
@@ -611,7 +689,7 @@ rlm-base-dev/
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
-│   │   ├── qb/en-US/           # QuantumBit data plans (9 active plans)
+│   │   ├── qb/en-US/           # QuantumBit data shape (9 active plans)
 │   │   │   ├── qb-pcm/
 │   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
@@ -621,6 +699,7 @@ rlm-base-dev/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
 │   │   │   └── qb-rates/
+│   │   ├── mfg/en-US/          # Manufacturing data shape (e.g. mfg-pcm) — same patterns as qb
 │   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
 │   ├── constraints/            # CML constraint model data plans

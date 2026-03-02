@@ -1461,23 +1461,8 @@ tasks:
 #--------------------#
 # EXTRACTION TASKS   #
 #--------------------#
-# These tasks extract data from a Salesforce org into CSV files using SFDMU.
-# They reuse the same export.json as the import tasks but reverse the direction
-# (org → CSVFILE). Extracted CSVs include relationship traversal fields for portability.
-
-  extract_qb_rating_data:
-    group: Revenue Lifecycle Management
-    description: Extract QuantumBit Rating Data from org to CSV
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_rating_dataset
-
-  extract_qb_rates_data:
-    group: Revenue Lifecycle Management
-    description: Extract QuantumBit Rates Data from org to CSV
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_rates_dataset
+# Extract tasks for each QB plan are under the Data Management - Extract group (extract_qb_*_data).
+# Post-process script makes extracted CSVs re-import-ready (composite keys, header normalization).
 
   post_process_extraction:
     group: Revenue Lifecycle Management
@@ -1485,6 +1470,148 @@ tasks:
     class_path: cumulusci.tasks.command.Command
     options:
       command: "python3 scripts/post_process_extraction.py {extraction_dir} {plan_dir}"
+
+#-------------------------------------#
+# DATA MANAGEMENT: EXTRACT & TEST      #
+#-------------------------------------#
+# Extract tasks (group: Data Management - Extract): SFDMU org → CSV. Output in datasets/sfdmu/extractions/<plan_name>/<timestamp>. Post-process runs by default; re-import-ready CSVs in <timestamp>/processed/.
+# Idempotency tasks (group: Data Management - Idempotency): run plan load twice, assert no record count increase. Use --group to list or run by group.
+
+  extract_qb_pcm_data:
+    group: Data Management - Extract
+    description: "Extract qb-pcm (product catalog) from org to CSV. Output in datasets/sfdmu/extractions/qb-pcm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_product_dataset
+
+  extract_qb_pricing_data:
+    group: Data Management - Extract
+    description: "Extract qb-pricing from org to CSV. Output in datasets/sfdmu/extractions/qb-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+
+  extract_qb_product_images_data:
+    group: Data Management - Extract
+    description: "Extract qb-product-images from org to CSV. Output in datasets/sfdmu/extractions/qb-product-images/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_product_image_dataset
+
+  extract_qb_dro_data:
+    group: Data Management - Extract
+    description: "Extract qb-dro from org to CSV. Output in datasets/sfdmu/extractions/qb-dro/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_dro_dataset
+
+  extract_qb_clm_data:
+    group: Data Management - Extract
+    description: "Extract qb-clm from org to CSV. Output in datasets/sfdmu/extractions/qb-clm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_clm_dataset
+
+  extract_qb_rating_data:
+    group: Data Management - Extract
+    description: "Extract qb-rating from org to CSV. Output in datasets/sfdmu/extractions/qb-rating/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rating_dataset
+
+  extract_qb_rates_data:
+    group: Data Management - Extract
+    description: "Extract qb-rates from org to CSV. Output in datasets/sfdmu/extractions/qb-rates/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rates_dataset
+
+  extract_qb_transactionprocessingtypes_data:
+    group: Data Management - Extract
+    description: "Extract qb-transactionprocessingtypes from org to CSV. Output in datasets/sfdmu/extractions/qb-transactionprocessingtypes/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_transactionprocessingtypes_dataset
+
+  extract_qb_guidedselling_data:
+    group: Data Management - Extract
+    description: "Extract qb-guidedselling from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_guidedselling_dataset
+
+  test_qb_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_product_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_qb_pricing_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-pricing (load twice from source, assert no new records).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_product_images_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-product-images.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_product_image_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_dro_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ)."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_dro_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_clm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-clm.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_clm_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_rating_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-rating.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_rating_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_rates_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-rates.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_rates_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_transactionprocessingtypes_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-transactionprocessingtypes.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_transactionprocessingtypes_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_guidedselling_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-guidedselling.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_guidedselling_dataset
+      use_extraction_roundtrip: false
 
 #------------------#
 # PYTHON CCI TASKS #
@@ -2212,3 +2339,49 @@ flows:
       3:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+  run_qb_extracts:
+    group: Data Management - Extract
+    description: Run all QB data extract tasks (org → CSV). Use --org to specify source org.
+    steps:
+      1:
+        task: extract_qb_pcm_data
+      2:
+        task: extract_qb_pricing_data
+      3:
+        task: extract_qb_product_images_data
+      4:
+        task: extract_qb_dro_data
+      5:
+        task: extract_qb_clm_data
+      6:
+        task: extract_qb_rating_data
+      7:
+        task: extract_qb_rates_data
+      8:
+        task: extract_qb_transactionprocessingtypes_data
+      9:
+        task: extract_qb_guidedselling_data
+
+  run_qb_idempotency_tests:
+    group: Data Management - Idempotency
+    description: Run all QB data idempotency tests (load twice, assert no new records). Use --org to specify target org.
+    steps:
+      1:
+        task: test_qb_pcm_idempotency
+      2:
+        task: test_qb_pricing_idempotency
+      3:
+        task: test_qb_product_images_idempotency
+      4:
+        task: test_qb_dro_idempotency
+      5:
+        task: test_qb_clm_idempotency
+      6:
+        task: test_qb_rating_idempotency
+      7:
+        task: test_qb_rates_idempotency
+      8:
+        task: test_qb_transactionprocessingtypes_idempotency
+      9:
+        task: test_qb_guidedselling_idempotency

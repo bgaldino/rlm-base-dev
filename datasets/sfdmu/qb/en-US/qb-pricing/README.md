@@ -309,7 +309,7 @@ This timestamp Name cascades to 2 dependent objects:
 2. **Add `UsageType` to `AttributeBasedAdjRule` SOQL**: New 260 field not in current query
 3. **Investigate PriceAdjustmentTier key simplification**: Test whether a 4-5 field subset of the 9-field key is sufficient for uniqueness
 4. **Investigate PricebookEntryDerivedPrice key simplification**: Test whether fewer fields uniquely identify derived prices
-5. **Add extraction support**: Create `extract_qb_pricing_data` CCI task for bidirectional operation
+5. **Extraction available**: Use `extract_qb_pricing_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_pricing_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
 6. **Verify CostBook availability**: Confirm CostBook and CostBookEntry objects exist in 260 or remove the placeholders
 7. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
 8. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm
