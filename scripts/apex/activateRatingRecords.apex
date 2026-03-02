@@ -87,10 +87,12 @@ for (Integer i = 0; i < allPurs.size(); i++) {
         ProductUsageResource b = allPurs[j];
         if (duplicatePurIds.contains(b.Id)) continue;
         if (a.ProductId != b.ProductId || a.UsageResourceId != b.UsageResourceId) continue;
-        Date aStart = a.EffectiveStartDate != null ? ((Datetime)a.EffectiveStartDate).date() : Date.newInstance(1900, 1, 1);
-        Date aEnd   = a.EffectiveEndDate   != null ? ((Datetime)a.EffectiveEndDate).date()   : Date.newInstance(4000, 12, 31);
-        Date bStart = b.EffectiveStartDate != null ? ((Datetime)b.EffectiveStartDate).date() : Date.newInstance(1900, 1, 1);
-        Date bEnd   = b.EffectiveEndDate   != null ? ((Datetime)b.EffectiveEndDate).date()   : Date.newInstance(4000, 12, 31);
+        // Overlap uses DateTime (not Date) so same-day different-time periods are not falsely treated as overlapping.
+        // TODO: If "effective period overlaps" is seen in an org with same-day different-time PURs, add a targeted test.
+        Datetime aStart = a.EffectiveStartDate != null ? (Datetime)a.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        Datetime aEnd   = a.EffectiveEndDate   != null ? (Datetime)a.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+        Datetime bStart = b.EffectiveStartDate != null ? (Datetime)b.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        Datetime bEnd   = b.EffectiveEndDate   != null ? (Datetime)b.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
         Boolean overlaps = (aStart <= bEnd) && (aEnd >= bStart);
         if (!overlaps) continue;
         if (a.Status == 'Active' && b.Status != 'Active') {

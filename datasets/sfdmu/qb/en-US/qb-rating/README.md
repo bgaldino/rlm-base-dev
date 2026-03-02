@@ -77,7 +77,7 @@ PUR and PUG activation follows a strict 7-step dependency order:
 |------|-------------------------------------------|--------------------------------------------------------------------|
 | 1    | UnitOfMeasureClass -> Active              | Safety net (Pass 2 should already do this)                         |
 | 2    | UsageResource -> Active                   | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
-| 2.5  | Remove duplicate PURs                     | Same Product+UsageResource+overlapping effective period — keeps one, deletes Draft dupes + PUG/PURP children. Prevents "effective period overlaps" when re-running the flow. |
+| 2.5  | Remove duplicate PURs                     | Same Product+UsageResource+overlapping effective period — keeps one, deletes Draft dupes + PUG/PURP children. Overlap uses DateTime (not Date) so same-day different-time periods are not incorrectly treated as duplicates. Prevents "effective period overlaps" when re-running the flow. |
 | 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 5 (see below)                 |
 | 4    | Token PUR -> Active                       | Must precede Step 5; products with Token PURs require them Active before usage PURs can activate |
 | 5    | ALL non-Token PUR -> clear+activate       | TokenResourceId=null + Status='Active' in single DML               |
