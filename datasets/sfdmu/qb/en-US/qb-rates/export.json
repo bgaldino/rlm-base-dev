@@ -1,6 +1,6 @@
 {
   "$comment_plan": "qb-rates SFDMU data plan - creates rate cards, rate card entries, rate adjustment tiers, and pricebook-rate card associations. Single pass inserts all objects while RateCardEntry is Draft (RABT requires Draft parent RCE). RateCardEntry activation happens externally after this load.",
-  "$comment_composite_keys": "SFDMU v5: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). For objects with auto-number Names and all-relationship externalIds, use deleteOldData: true instead.",
+  "$comment_composite_keys": "SFDMU v5: For objects whose externalId is all-relationship paths (PriceBook.Name;RateCard.Name;RateCardType etc.), v5 cannot reliably match target records; deleteOldData: true is used so each run deletes then reinserts \u2014 record count is idempotent (same after second run).",
   "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
@@ -34,7 +34,7 @@
     },
     {
       "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key.",
-      "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
+      "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, Product.StockKeepingUnit, ProductSellingModelId, RateCardEntryId, RateCardEntry.RateCard.Name, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, UpperBound, UsageResourceId, UsageResource.Code FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
       "operation": "Upsert",
       "externalId": "Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
       "excluded": false,

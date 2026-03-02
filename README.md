@@ -325,6 +325,14 @@ Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>
 | `activate_rating_records` | `rlm_sfdmu.py` | Activate rating records |
 | `activate_rates` | `rlm_sfdmu.py` | Activate rates |
 
+### Data Maintenance Tasks
+
+| Task Name | Module | Description |
+|-----------|--------|-------------|
+| `delete_qb_rates_data` | `scripts/apex/deleteQbRatesData.apex` | Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running `insert_qb_rates_data` or `test_qb_rates_idempotency` when duplicates exist. |
+| `delete_qb_rating_data` | `scripts/apex/deleteQbRatingData.apex` | Delete all qb-rating data (PUG, PURP, PUR, rating policies, etc.) in dependency order. Use before re-running `insert_qb_rating_data` when duplicates exist. |
+| `delete_draft_billing_records` | `scripts/apex/deleteDraftBillingRecords.apex` | Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates. |
+
 ### Setup & Configuration Tasks
 
 | Task Name | Module | Description | Documentation |

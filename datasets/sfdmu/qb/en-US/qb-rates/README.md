@@ -204,6 +204,8 @@ cci flow run run_qb_extracts --org <org>
 
 To run the idempotency test for this plan: `cci task run test_qb_rates_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups.
 
+**When duplicates exist:** If the org has duplicate rates records from previous runs, run `cci task run delete_qb_rates_data --org <org>` first to clear them, then run the idempotency test or data load.
+
 ### Post-Processing
 
 ```bash

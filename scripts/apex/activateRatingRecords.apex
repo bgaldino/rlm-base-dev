@@ -8,9 +8,10 @@
 //   cci task run activate_rating_records --org <alias>
 //   sf apex run --target-org <alias> --file scripts/apex/activateRatingRecords.apex
 //
-// Activation order (6 steps):
+// Activation order (7 steps):
 //   1. UnitOfMeasureClass > Active  (safety net; SFDMU Pass 2 handles this)
 //   2. UsageResource > Active       (safety net; SFDMU Pass 2 handles this)
+//   2.5. Remove duplicate PURs     (same Product+UsageResource+overlapping effective period; keeps one, deletes Draft dupes + their PUG/PURP children)
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
 //                                    require them Active before usage PURs can activate)
@@ -64,6 +65,59 @@ if (!urs.isEmpty()) {
     System.debug('Activated ' + urs.size() + ' UsageResource record(s).');
 } else {
     System.debug('All UsageResource records are already Active.');
+}
+
+// Step 2.5: Remove duplicate PURs (same Product + UsageResource + overlapping effective period).
+// Re-running the rating data plan or partial runs can leave duplicate Draft PURs; the platform
+// blocks activation with "effective period overlaps with an existing record". Keep one per
+// (ProductId, UsageResourceId) overlapping set, delete Draft duplicates. Child records
+// (ProductUsageResourcePolicy, ProductUsageGrant) must be deleted first.
+List<ProductUsageResource> allPurs = [
+    SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
+    FROM ProductUsageResource
+];
+Set<Id> duplicatePurIds = new Set<Id>();
+for (Integer i = 0; i < allPurs.size(); i++) {
+    ProductUsageResource a = allPurs[i];
+    if (duplicatePurIds.contains(a.Id)) continue;
+    for (Integer j = i + 1; j < allPurs.size(); j++) {
+        ProductUsageResource b = allPurs[j];
+        if (duplicatePurIds.contains(b.Id)) continue;
+        if (a.ProductId != b.ProductId || a.UsageResourceId != b.UsageResourceId) continue;
+        Date aStart = a.EffectiveStartDate != null ? ((Datetime)a.EffectiveStartDate).date() : Date.newInstance(1900, 1, 1);
+        Date aEnd   = a.EffectiveEndDate   != null ? ((Datetime)a.EffectiveEndDate).date()   : Date.newInstance(4000, 12, 31);
+        Date bStart = b.EffectiveStartDate != null ? ((Datetime)b.EffectiveStartDate).date() : Date.newInstance(1900, 1, 1);
+        Date bEnd   = b.EffectiveEndDate   != null ? ((Datetime)b.EffectiveEndDate).date()   : Date.newInstance(4000, 12, 31);
+        Boolean overlaps = (aStart <= bEnd) && (aEnd >= bStart);
+        if (!overlaps) continue;
+        if (a.Status == 'Active' && b.Status != 'Active') {
+            duplicatePurIds.add(b.Id);
+        } else if (b.Status == 'Active' && a.Status != 'Active') {
+            duplicatePurIds.add(a.Id);
+        } else if (a.Id < b.Id) {
+            duplicatePurIds.add(b.Id);
+        } else {
+            duplicatePurIds.add(a.Id);
+        }
+    }
+}
+if (!duplicatePurIds.isEmpty()) {
+    List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();
+    for (ProductUsageResource pur : allPurs) {
+        if (duplicatePurIds.contains(pur.Id) && pur.Status != 'Active') {
+            purToDelete.add(pur);
+        }
+    }
+    if (!purToDelete.isEmpty()) {
+        Set<Id> purIdsToDelete = new Set<Id>();
+        for (ProductUsageResource pur : purToDelete) purIdsToDelete.add(pur.Id);
+        List<ProductUsageGrant> pugDelete = [SELECT Id FROM ProductUsageGrant WHERE ProductUsageResourceId IN :purIdsToDelete];
+        List<ProductUsageResourcePolicy> purpDelete = [SELECT Id FROM ProductUsageResourcePolicy WHERE ProductUsageResourceId IN :purIdsToDelete];
+        if (!pugDelete.isEmpty()) { delete pugDelete; System.debug('Deleted ' + pugDelete.size() + ' ProductUsageGrant(s) for duplicate PUR(s).'); }
+        if (!purpDelete.isEmpty()) { delete purpDelete; System.debug('Deleted ' + purpDelete.size() + ' ProductUsageResourcePolicy(s) for duplicate PUR(s).'); }
+        delete purToDelete;
+        System.debug('Deleted ' + purToDelete.size() + ' duplicate Draft PUR(s) (overlapping effective period).');
+    }
 }
 
 // Step 3: Pre-populate TokenResourceId on Draft non-Token PURs where it's null.
