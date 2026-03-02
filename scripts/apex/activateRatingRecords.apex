@@ -11,7 +11,7 @@
 // Activation order (7 steps):
 //   1. UnitOfMeasureClass > Active  (safety net; SFDMU Pass 2 handles this)
 //   2. UsageResource > Active       (safety net; SFDMU Pass 2 handles this)
-//   2.5. Remove only duplicate PURs that have NO PUG/PURP children (so activation can succeed; we never delete PUG or PURP)
+//   2.5. Remove duplicate PURs with NO PUG/PURP children (survivor priority: Active > has-children > lower Id)
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
 //                                    require them Active before usage PURs can activate)
@@ -45,7 +45,9 @@
 // Idempotency:
 //   Step 2.5 queries ALL PURs (including Active) so the overlap-detection logic can
 //   correctly prefer Active over Draft when both exist for the same Product+UsageResource.
-//   Only Draft PURs with no PUG/PURP children are deleted; Active records are never touched.
+//   purIdsWithChildren is built before the overlap scan so child-bearing status informs
+//   survivor selection (Active > has-children > lower Id). Only Draft PURs with no
+//   PUG/PURP children are deleted; Active records and child-bearing records are never touched.
 //   All other steps filter on Status != 'Active' and are safe no-ops when records are
 //   already Active.
 // ============================================================================
@@ -77,8 +79,19 @@ if (!urs.isEmpty()) {
 // delete PUG or PURP. Duplicate PURs inserted on a second load have no children; the originals have them.
 // Query all PURs ordered by (ProductId, UsageResourceId, EffectiveStartDate) so overlapping
 // duplicates within each Product+UsageResource group are adjacent — enables O(n) linear scan
-// rather than O(n^2) nested loop. Active PURs are included because the selection rule
-// (Active wins over Draft) requires seeing both statuses in the same group.
+// rather than O(n^2) nested loop. Active PURs are included because the selection rule requires
+// seeing all statuses in the same group.
+//
+// purIdsWithChildren is built BEFORE the scan so child-bearing status can be used as a
+// survivor-selection criterion — ensuring the record we intend to keep is always the one
+// that survives and that the deletion filter and the scan agree on the same record.
+Set<Id> purIdsWithChildren = new Set<Id>();
+for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageGrant GROUP BY ProductUsageResourceId]) {
+    purIdsWithChildren.add((Id)ar.get('purId'));
+}
+for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy GROUP BY ProductUsageResourceId]) {
+    purIdsWithChildren.add((Id)ar.get('purId'));
+}
 List<ProductUsageResource> allPurs = [
     SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
     FROM ProductUsageResource
@@ -111,29 +124,35 @@ for (ProductUsageResource pur : allPurs) {
         continue;
     }
     // Overlapping PURs in the same group: decide which is the duplicate.
-    // Rule: Active wins over Draft; ties broken by lower Id (earlier insert).
+    // Priority: (1) Active wins over Draft; (2) child-bearing (PUG/PURP) wins; (3) lower Id.
+    // When the survivor changes, currentEnd is reset to the NEW survivor's range only.
+    // Never extend currentEnd from the discarded record's range: doing so inflates the tracked
+    // window and can cause a genuinely non-overlapping subsequent PUR to be falsely flagged.
     if (currentPur.Status == 'Active' && pur.Status != 'Active') {
         duplicatePurIds.add(pur.Id);
+        // survivor unchanged: currentEnd already reflects survivor's range
     } else if (pur.Status == 'Active' && currentPur.Status != 'Active') {
         duplicatePurIds.add(currentPur.Id);
         currentPur   = pur;
         currentStart = purStart;
+        currentEnd   = purEnd;  // reset to new survivor's range
+    } else if (purIdsWithChildren.contains(currentPur.Id) && !purIdsWithChildren.contains(pur.Id)) {
+        duplicatePurIds.add(pur.Id);
+        // survivor unchanged: currentEnd already reflects survivor's range
+    } else if (purIdsWithChildren.contains(pur.Id) && !purIdsWithChildren.contains(currentPur.Id)) {
+        duplicatePurIds.add(currentPur.Id);
+        currentPur   = pur;
+        currentStart = purStart;
+        currentEnd   = purEnd;  // reset to new survivor's range
     } else if (currentPur.Id < pur.Id) {
         duplicatePurIds.add(pur.Id);
+        // survivor unchanged: currentEnd already reflects survivor's range
     } else {
         duplicatePurIds.add(currentPur.Id);
         currentPur   = pur;
         currentStart = purStart;
+        currentEnd   = purEnd;  // reset to new survivor's range
     }
-    // Extend the survivor's effective end to cover any chained overlaps.
-    if (purEnd > currentEnd) currentEnd = purEnd;
-}
-Set<Id> purIdsWithChildren = new Set<Id>();
-for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageGrant GROUP BY ProductUsageResourceId]) {
-    purIdsWithChildren.add((Id)ar.get('purId'));
-}
-for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy GROUP BY ProductUsageResourceId]) {
-    purIdsWithChildren.add((Id)ar.get('purId'));
 }
 if (!duplicatePurIds.isEmpty()) {
     List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();

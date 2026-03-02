@@ -471,7 +471,11 @@ class TestSFDMUIdempotency(SFDXBaseTask):
     def _get_org_for_cli(self) -> str:
         if isinstance(self.org_config, ScratchOrgConfig):
             return self.org_config.username
-        return self.options.get("targetusername") or self.org_config.access_token or self.org_config.username
+        # Prefer username/alias over access_token: CLI commands (sf apex run, sf data query)
+        # expect an authorized org alias or username, not a raw token. The access_token is
+        # kept only in the export.json orgs block where SFDMU needs it. Logging a token as
+        # --target-org would both leak a secret and fail CLI auth.
+        return self.options.get("targetusername") or self.org_config.username or self.org_config.access_token
 
     def _get_record_counts(self, sobjects: list) -> Dict[str, int]:
         org_alias = self._get_org_for_cli()
