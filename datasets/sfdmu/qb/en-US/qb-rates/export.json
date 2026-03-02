@@ -33,7 +33,7 @@
       "deleteOldData": true
     },
     {
-      "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key.",
+      "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCardEntry.RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key.",
       "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, Product.StockKeepingUnit, ProductSellingModelId, RateCardEntryId, RateCardEntry.RateCard.Name, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, UpperBound, UsageResourceId, UsageResource.Code FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
       "operation": "Upsert",
       "externalId": "Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",

@@ -43,8 +43,9 @@
 //     optional PURs are excluded from the data plan (258>260 migration gap).
 //
 // Idempotency:
-//   All queries filter on Status != 'Active', so re-running this script on an
-//   already-activated org is a safe no-op.
+//   Step 2.5 queries all PURs (Active + non-Active) to detect overlaps; other steps and
+//   DML only touch non-Active records. Re-running on an already-activated org is still
+//   a safe no-op (no DML, no duplicate PURs to remove).
 // ============================================================================
 
 // Step 1: Activate UnitOfMeasureClass (safety net)

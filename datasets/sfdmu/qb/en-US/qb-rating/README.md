@@ -85,7 +85,7 @@ PUR and PUG activation follows a strict 7-step dependency order:
 
 **Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 5 only prevents auto-population when `TokenResourceId` changes from a non-null value to null -- a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 5's clear is a real change.
 
-The script is **idempotent** — all queries filter on `Status != 'Active'`, so re-running on an already-activated org is a safe no-op.
+The script is **idempotent** — Step 2.5 queries all PURs (Active + non-Active) to detect overlapping duplicates; all other steps and DML filter on `Status != 'Active'`. Re-running on an already-activated org is a safe no-op.
 
 ## Products and Usage Model Types
 
