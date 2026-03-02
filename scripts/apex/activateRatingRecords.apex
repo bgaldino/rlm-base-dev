@@ -170,6 +170,17 @@ if (!duplicatePurIds.isEmpty()) {
     if (!purToDelete.isEmpty()) {
         delete purToDelete;
         System.debug('Deleted ' + purToDelete.size() + ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
+    } else {
+        // Overlapping PURs were detected but none could be auto-deleted: either the
+        // overlap involves Active PURs or Draft PURs that have PUG/PURP children.
+        // Activation will likely fail with an "effective period overlaps" platform error
+        // until these are resolved manually (deactivate or delete the overlapping PURs).
+        System.debug(
+            LoggingLevel.WARN,
+            'Step 2.5: detected ' + duplicatePurIds.size() + ' overlapping PUR(s) by effective period ' +
+            'but none were auto-deleted (overlapping record(s) are Active, or Draft with PUG/PURP children). ' +
+            'Manual review required — activation may fail with "effective period overlaps".'
+        );
     }
 }
 
