@@ -82,105 +82,127 @@ if (!urs.isEmpty()) {
 // linear scan rather than O(n^2) nested loop. Both statuses are included because the survivor
 // selection rule (Active > has-children > lower Id) requires seeing both in the same group.
 // Inactive PURs are excluded: they only exist transiently during the delete-then-reinsert
-// cleanup cycle and cannot participate in the activation-blocking overlap scenario. Excluding
-// them also bounds query size on large orgs, avoiding SOQL row and Apex heap limits.
+// cleanup cycle and cannot participate in the activation-blocking overlap scenario.
+//
+// Preflight: aggregate by (ProductId, UsageResourceId) to find only groups with more than
+// one Draft/Active PUR. Groups with a single row cannot have overlapping periods, so they
+// are skipped entirely. Querying only candidate groups avoids loading the full PUR table on
+// large orgs, bounding SOQL row count and Apex heap consumption.
 //
 // purIdsWithChildren is built BEFORE the scan so child-bearing status can be used as a
 // survivor-selection criterion — ensuring the record we intend to keep is always the one
 // that survives and that the deletion filter and the scan agree on the same record.
-Set<Id> purIdsWithChildren = new Set<Id>();
-for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageGrant GROUP BY ProductUsageResourceId]) {
-    purIdsWithChildren.add((Id)ar.get('purId'));
-}
-for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy GROUP BY ProductUsageResourceId]) {
-    purIdsWithChildren.add((Id)ar.get('purId'));
-}
-List<ProductUsageResource> allPurs = [
-    SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
+Set<Id> candidateProductIds       = new Set<Id>();
+Set<Id> candidateUsageResourceIds = new Set<Id>();
+for (AggregateResult ar : [
+    SELECT ProductId, UsageResourceId, COUNT(Id) cnt
     FROM ProductUsageResource
     WHERE Status IN ('Draft', 'Active')
-    ORDER BY ProductId, UsageResourceId, EffectiveStartDate ASC NULLS FIRST, EffectiveEndDate ASC NULLS LAST
-];
-Set<Id> duplicatePurIds = new Set<Id>();
-ProductUsageResource currentPur = null;
-Datetime currentStart = null;
-Datetime currentEnd = null;
-for (ProductUsageResource pur : allPurs) {
-    // Start a new (ProductId, UsageResourceId) group, or initialise on the first record.
-    if (currentPur == null ||
-        currentPur.ProductId != pur.ProductId ||
-        currentPur.UsageResourceId != pur.UsageResourceId) {
-        currentPur   = pur;
-        currentStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
-        currentEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
-        continue;
-    }
-    // Skip records already identified as duplicates.
-    if (duplicatePurIds.contains(pur.Id)) continue;
-    Datetime purStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
-    Datetime purEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
-    Boolean overlaps = (currentStart <= purEnd) && (currentEnd >= purStart);
-    if (!overlaps) {
-        // No overlap — this PUR starts a new non-overlapping period; it becomes the reference.
-        currentPur   = pur;
-        currentStart = purStart;
-        currentEnd   = purEnd;
-        continue;
-    }
-    // Overlapping PURs in the same group: decide which is the duplicate.
-    // Priority: (1) Active wins over Draft; (2) child-bearing (PUG/PURP) wins; (3) lower Id.
-    // When the survivor changes, currentEnd is reset to the NEW survivor's range only.
-    // Never extend currentEnd from the discarded record's range: doing so inflates the tracked
-    // window and can cause a genuinely non-overlapping subsequent PUR to be falsely flagged.
-    if (currentPur.Status == 'Active' && pur.Status != 'Active') {
-        duplicatePurIds.add(pur.Id);
-        // survivor unchanged: currentEnd already reflects survivor's range
-    } else if (pur.Status == 'Active' && currentPur.Status != 'Active') {
-        duplicatePurIds.add(currentPur.Id);
-        currentPur   = pur;
-        currentStart = purStart;
-        currentEnd   = purEnd;  // reset to new survivor's range
-    } else if (purIdsWithChildren.contains(currentPur.Id) && !purIdsWithChildren.contains(pur.Id)) {
-        duplicatePurIds.add(pur.Id);
-        // survivor unchanged: currentEnd already reflects survivor's range
-    } else if (purIdsWithChildren.contains(pur.Id) && !purIdsWithChildren.contains(currentPur.Id)) {
-        duplicatePurIds.add(currentPur.Id);
-        currentPur   = pur;
-        currentStart = purStart;
-        currentEnd   = purEnd;  // reset to new survivor's range
-    } else if (currentPur.Id < pur.Id) {
-        // Note: Apex Id supports relational operators (<, >, <=, >=) per the Apex Language
-        // Reference. This compiles and executes correctly — no String.compareTo() needed.
-        duplicatePurIds.add(pur.Id);
-        // survivor unchanged: currentEnd already reflects survivor's range
-    } else {
-        duplicatePurIds.add(currentPur.Id);
-        currentPur   = pur;
-        currentStart = purStart;
-        currentEnd   = purEnd;  // reset to new survivor's range
-    }
+    GROUP BY ProductId, UsageResourceId
+    HAVING COUNT(Id) > 1
+]) {
+    candidateProductIds.add((Id) ar.get('ProductId'));
+    candidateUsageResourceIds.add((Id) ar.get('UsageResourceId'));
 }
-if (!duplicatePurIds.isEmpty()) {
-    List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();
+if (candidateProductIds.isEmpty()) {
+    System.debug('Step 2.5: no (Product, UsageResource) group has more than one Draft/Active PUR — nothing to deduplicate.');
+} else {
+    Set<Id> purIdsWithChildren = new Set<Id>();
+    for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageGrant GROUP BY ProductUsageResourceId]) {
+        purIdsWithChildren.add((Id)ar.get('purId'));
+    }
+    for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy GROUP BY ProductUsageResourceId]) {
+        purIdsWithChildren.add((Id)ar.get('purId'));
+    }
+    List<ProductUsageResource> allPurs = [
+        SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
+        FROM ProductUsageResource
+        WHERE Status IN ('Draft', 'Active')
+        AND ProductId IN :candidateProductIds
+        AND UsageResourceId IN :candidateUsageResourceIds
+        ORDER BY ProductId, UsageResourceId, EffectiveStartDate ASC NULLS FIRST, EffectiveEndDate ASC NULLS LAST
+    ];
+    Set<Id> duplicatePurIds = new Set<Id>();
+    ProductUsageResource currentPur = null;
+    Datetime currentStart = null;
+    Datetime currentEnd = null;
     for (ProductUsageResource pur : allPurs) {
-        if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft' && !purIdsWithChildren.contains(pur.Id)) {
-            purToDelete.add(pur);
+        // Start a new (ProductId, UsageResourceId) group, or initialise on the first record.
+        if (currentPur == null ||
+            currentPur.ProductId != pur.ProductId ||
+            currentPur.UsageResourceId != pur.UsageResourceId) {
+            currentPur   = pur;
+            currentStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+            currentEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+            continue;
+        }
+        // Skip records already identified as duplicates.
+        if (duplicatePurIds.contains(pur.Id)) continue;
+        Datetime purStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        Datetime purEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+        Boolean overlaps = (currentStart <= purEnd) && (currentEnd >= purStart);
+        if (!overlaps) {
+            // No overlap — this PUR starts a new non-overlapping period; it becomes the reference.
+            currentPur   = pur;
+            currentStart = purStart;
+            currentEnd   = purEnd;
+            continue;
+        }
+        // Overlapping PURs in the same group: decide which is the duplicate.
+        // Priority: (1) Active wins over Draft; (2) child-bearing (PUG/PURP) wins; (3) lower Id.
+        // When the survivor changes, currentEnd is reset to the NEW survivor's range only.
+        // Never extend currentEnd from the discarded record's range: doing so inflates the tracked
+        // window and can cause a genuinely non-overlapping subsequent PUR to be falsely flagged.
+        if (currentPur.Status == 'Active' && pur.Status != 'Active') {
+            duplicatePurIds.add(pur.Id);
+            // survivor unchanged: currentEnd already reflects survivor's range
+        } else if (pur.Status == 'Active' && currentPur.Status != 'Active') {
+            duplicatePurIds.add(currentPur.Id);
+            currentPur   = pur;
+            currentStart = purStart;
+            currentEnd   = purEnd;  // reset to new survivor's range
+        } else if (purIdsWithChildren.contains(currentPur.Id) && !purIdsWithChildren.contains(pur.Id)) {
+            duplicatePurIds.add(pur.Id);
+            // survivor unchanged: currentEnd already reflects survivor's range
+        } else if (purIdsWithChildren.contains(pur.Id) && !purIdsWithChildren.contains(currentPur.Id)) {
+            duplicatePurIds.add(currentPur.Id);
+            currentPur   = pur;
+            currentStart = purStart;
+            currentEnd   = purEnd;  // reset to new survivor's range
+        } else if (currentPur.Id < pur.Id) {
+            // Note: Apex Id supports relational operators (<, >, <=, >=) per the Apex Language
+            // Reference. This compiles and executes correctly — no String.compareTo() needed.
+            duplicatePurIds.add(pur.Id);
+            // survivor unchanged: currentEnd already reflects survivor's range
+        } else {
+            duplicatePurIds.add(currentPur.Id);
+            currentPur   = pur;
+            currentStart = purStart;
+            currentEnd   = purEnd;  // reset to new survivor's range
         }
     }
-    if (!purToDelete.isEmpty()) {
-        delete purToDelete;
-        System.debug('Deleted ' + purToDelete.size() + ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
-    } else {
-        // Overlapping PURs were detected but none could be auto-deleted: either the
-        // overlap involves Active PURs or Draft PURs that have PUG/PURP children.
-        // Activation will likely fail with an "effective period overlaps" platform error
-        // until these are resolved manually (deactivate or delete the overlapping PURs).
-        System.debug(
-            LoggingLevel.WARN,
-            'Step 2.5: detected ' + duplicatePurIds.size() + ' overlapping PUR(s) by effective period ' +
-            'but none were auto-deleted (overlapping record(s) are Active, or Draft with PUG/PURP children). ' +
-            'Manual review required — activation may fail with "effective period overlaps".'
-        );
+    if (!duplicatePurIds.isEmpty()) {
+        List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();
+        for (ProductUsageResource pur : allPurs) {
+            if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft' && !purIdsWithChildren.contains(pur.Id)) {
+                purToDelete.add(pur);
+            }
+        }
+        if (!purToDelete.isEmpty()) {
+            delete purToDelete;
+            System.debug('Deleted ' + purToDelete.size() + ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
+        } else {
+            // Overlapping PURs were detected but none could be auto-deleted: either the
+            // overlap involves Active PURs or Draft PURs that have PUG/PURP children.
+            // Activation will likely fail with an "effective period overlaps" platform error
+            // until these are resolved manually (deactivate or delete the overlapping PURs).
+            System.debug(
+                LoggingLevel.WARN,
+                'Step 2.5: detected ' + duplicatePurIds.size() + ' overlapping PUR(s) by effective period ' +
+                'but none were auto-deleted (overlapping record(s) are Active, or Draft with PUG/PURP children). ' +
+                'Manual review required — activation may fail with "effective period overlaps".'
+            );
+        }
     }
 }
 

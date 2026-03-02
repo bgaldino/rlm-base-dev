@@ -242,13 +242,13 @@ This plan supports **bidirectional** operation: in addition to importing data (C
 ### Extraction via CCI
 
 ```bash
-# Extract rating data from the current default org
+# These commands use the CCI default org. To target a specific org, add --org <org>.
 cci task run extract_qb_rating_data
 
 # Or use the extract_rating flow to extract both rating and rates
 cci flow run extract_rating
 
-# Run all QB extract tasks (includes rating)
+# Or run all QB extract tasks (includes rating)
 cci flow run run_qb_extracts
 ```
 
