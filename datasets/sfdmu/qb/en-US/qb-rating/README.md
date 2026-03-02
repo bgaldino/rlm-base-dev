@@ -31,7 +31,7 @@ The plan uses **2 SFDMU object sets** (Pass 1 + Pass 2) followed by **Apex activ
 ```
 Pass 1 (SFDMU)                              Pass 2 (SFDMU)       Apex Activation
 ────────────────────────────────────────   ─────────────────     ─────────────────
-Upsert all (including PURP/PUG with composite keys)  Activate UoMClass  -> activateRatingRecords.apex
+Insert+deleteOldData (PUR/PURP/PUG); Upsert others  Activate UoMClass  -> activateRatingRecords.apex
                                             and UsageResource       (7-step PUR/PUG activation)
 ```
 
@@ -73,7 +73,7 @@ Only UoMClass and UsageResource are activated in SFDMU Pass 2. PUR and PUG activ
 
 ## Schema: ProductUsageResource (PUR) and product relationship
 
-Org describe confirms: on **ProductUsageResource**, `ProductId` has `relationshipName: Product` (not Product2). So in SOQL we use **Product.StockKeepingUnit** and **Product.UsageResource.Code** on PUR, and **ProductUsageResource.Product.StockKeepingUnit** when traversing from PURP/PUG. UsagePrdGrantBindingPolicy uses **Product2**.StockKeepingUnit (it has Product2Id). RatingFrequencyPolicy uses **Product**.StockKeepingUnit (relationshipName: Product).
+Org describe confirms: on **ProductUsageResource**, `ProductId` has `relationshipName: Product` (not Product2). So in SOQL we use **Product.StockKeepingUnit** and **UsageResource.Code** on PUR, and **ProductUsageResource.Product.StockKeepingUnit** when traversing from PURP/PUG. UsagePrdGrantBindingPolicy uses **Product2**.StockKeepingUnit (it has Product2Id). RatingFrequencyPolicy uses **Product**.StockKeepingUnit (relationshipName: Product).
 
 PUR, PURP, and PUG all use `operation: Insert` with `deleteOldData: true` (no WHERE clause). PURP uses `externalId: ProductUsageResourceId` (direct FK — avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs have two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code`) for FK resolution — no `$$` composite (which caused a SOQL injection bug in the deleteOldData DELETE phase).
 

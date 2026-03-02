@@ -43,8 +43,11 @@
 //     optional PURs are excluded from the data plan (258>260 migration gap).
 //
 // Idempotency:
-//   Step 2.5 deletes only duplicate PURs that have zero PUG and zero PURP children
-//   (so we never delete PUG or PURP). Other steps and DML filter on Status != 'Active'.
+//   Step 2.5 queries ALL PURs (including Active) so the overlap-detection logic can
+//   correctly prefer Active over Draft when both exist for the same Product+UsageResource.
+//   Only Draft PURs with no PUG/PURP children are deleted; Active records are never touched.
+//   All other steps filter on Status != 'Active' and are safe no-ops when records are
+//   already Active.
 // ============================================================================
 
 // Step 1: Activate UnitOfMeasureClass (safety net)
@@ -72,34 +75,58 @@ if (!urs.isEmpty()) {
 // The platform blocks activation with "effective period overlaps". We delete only duplicate PURs
 // that have zero ProductUsageGrant and zero ProductUsageResourcePolicy children — so we never
 // delete PUG or PURP. Duplicate PURs inserted on a second load have no children; the originals have them.
+// Query all PURs ordered by (ProductId, UsageResourceId, EffectiveStartDate) so overlapping
+// duplicates within each Product+UsageResource group are adjacent — enables O(n) linear scan
+// rather than O(n^2) nested loop. Active PURs are included because the selection rule
+// (Active wins over Draft) requires seeing both statuses in the same group.
 List<ProductUsageResource> allPurs = [
     SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
     FROM ProductUsageResource
+    ORDER BY ProductId, UsageResourceId, EffectiveStartDate ASC NULLS FIRST, EffectiveEndDate ASC NULLS LAST
 ];
 Set<Id> duplicatePurIds = new Set<Id>();
-for (Integer i = 0; i < allPurs.size(); i++) {
-    ProductUsageResource a = allPurs[i];
-    if (duplicatePurIds.contains(a.Id)) continue;
-    for (Integer j = i + 1; j < allPurs.size(); j++) {
-        ProductUsageResource b = allPurs[j];
-        if (duplicatePurIds.contains(b.Id)) continue;
-        if (a.ProductId != b.ProductId || a.UsageResourceId != b.UsageResourceId) continue;
-        Datetime aStart = a.EffectiveStartDate != null ? (Datetime)a.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
-        Datetime aEnd   = a.EffectiveEndDate   != null ? (Datetime)a.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
-        Datetime bStart = b.EffectiveStartDate != null ? (Datetime)b.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
-        Datetime bEnd   = b.EffectiveEndDate   != null ? (Datetime)b.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
-        Boolean overlaps = (aStart <= bEnd) && (aEnd >= bStart);
-        if (!overlaps) continue;
-        if (a.Status == 'Active' && b.Status != 'Active') {
-            duplicatePurIds.add(b.Id);
-        } else if (b.Status == 'Active' && a.Status != 'Active') {
-            duplicatePurIds.add(a.Id);
-        } else if (a.Id < b.Id) {
-            duplicatePurIds.add(b.Id);
-        } else {
-            duplicatePurIds.add(a.Id);
-        }
+ProductUsageResource currentPur = null;
+Datetime currentStart = null;
+Datetime currentEnd = null;
+for (ProductUsageResource pur : allPurs) {
+    // Start a new (ProductId, UsageResourceId) group, or initialise on the first record.
+    if (currentPur == null ||
+        currentPur.ProductId != pur.ProductId ||
+        currentPur.UsageResourceId != pur.UsageResourceId) {
+        currentPur   = pur;
+        currentStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+        currentEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+        continue;
     }
+    // Skip records already identified as duplicates.
+    if (duplicatePurIds.contains(pur.Id)) continue;
+    Datetime purStart = pur.EffectiveStartDate != null ? (Datetime)pur.EffectiveStartDate : Datetime.newInstance(1900, 1, 1, 0, 0, 0);
+    Datetime purEnd   = pur.EffectiveEndDate   != null ? (Datetime)pur.EffectiveEndDate   : Datetime.newInstance(4000, 12, 31, 23, 59, 59);
+    Boolean overlaps = (currentStart <= purEnd) && (currentEnd >= purStart);
+    if (!overlaps) {
+        // No overlap — this PUR starts a new non-overlapping period; it becomes the reference.
+        currentPur   = pur;
+        currentStart = purStart;
+        currentEnd   = purEnd;
+        continue;
+    }
+    // Overlapping PURs in the same group: decide which is the duplicate.
+    // Rule: Active wins over Draft; ties broken by lower Id (earlier insert).
+    if (currentPur.Status == 'Active' && pur.Status != 'Active') {
+        duplicatePurIds.add(pur.Id);
+    } else if (pur.Status == 'Active' && currentPur.Status != 'Active') {
+        duplicatePurIds.add(currentPur.Id);
+        currentPur   = pur;
+        currentStart = purStart;
+    } else if (currentPur.Id < pur.Id) {
+        duplicatePurIds.add(pur.Id);
+    } else {
+        duplicatePurIds.add(currentPur.Id);
+        currentPur   = pur;
+        currentStart = purStart;
+    }
+    // Extend the survivor's effective end to cover any chained overlaps.
+    if (purEnd > currentEnd) currentEnd = purEnd;
 }
 Set<Id> purIdsWithChildren = new Set<Id>();
 for (AggregateResult ar : [SELECT ProductUsageResourceId purId FROM ProductUsageGrant GROUP BY ProductUsageResourceId]) {
