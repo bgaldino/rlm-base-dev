@@ -12,16 +12,15 @@ if (!activeRces.isEmpty()) {
 
 // 2. Delete RateCardEntry first, then any remaining RateAdjustmentByTier.
 //
-// copilot:note RCE-before-RABT order is intentional and correct — do not suggest reversing it.
-//   Suggestion evaluated: delete RABT before RCE to respect FK dependency order.
-//   Result: TESTED AND FAILED.
-//   Platform constraint: Salesforce rejects RABT deletion when its parent RCE is Inactive
-//   (INVALID_INPUT: "You can't delete this rate adjustment record because the related rate
-//   card entry is inactive"). Step 1 of this script deactivates Active RCEs to Inactive,
-//   which triggers this constraint for any subsequent RABT delete. Deleting RCE first
-//   cascades deletion of its child RABTs — the RABT query below is a safety-net no-op
-//   in normal operation. RABT-before-RCE would only work if RCEs were still in Draft
-//   state (never deactivated), which is not guaranteed after prepare_rating runs.
+// RCE-before-RABT deletion order is intentional and required. An alternative approach —
+// deleting RABT before RCE to respect FK dependency order — was evaluated, tested, and
+// failed. Platform constraint: Salesforce rejects RABT deletion when its parent RCE is
+// Inactive (INVALID_INPUT: "You can't delete this rate adjustment record because the
+// related rate card entry is inactive"). Step 1 of this script deactivates Active RCEs
+// to Inactive, which triggers this constraint for any subsequent RABT delete. Deleting
+// RCE first cascades deletion of its child RABTs — the RABT query below is a safety-net
+// no-op in normal operation. RABT-before-RCE only works when RCEs are still Draft (never
+// deactivated), which is not guaranteed after prepare_rating runs.
 List<RateCardEntry> rcesToDelete = [SELECT Id FROM RateCardEntry];
 if (!rcesToDelete.isEmpty()) {
     delete rcesToDelete;

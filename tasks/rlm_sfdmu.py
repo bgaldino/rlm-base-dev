@@ -434,7 +434,15 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             "required": False,
         },
         "run_after_each_load_apex": {
-            "description": "Optional path to an Apex script (e.g. scripts/apex/activateRatingRecords.apex) to run after each load. Use for plans that create duplicate Draft records on re-run (e.g. qb-rating PURs); the script can dedupe/activate so counts are stable before comparison.",
+            "description": (
+                "Optional path to an Apex script to run after each load, for deduplication only. "
+                "The script MUST NOT activate PUR, PUG, or any other records. Plans using "
+                "deleteOldData require all records to remain in Draft state between loads: "
+                "activating after the first load causes the second SFDMU run to fail because "
+                "Salesforce rejects REST DELETE of Active records, doubling counts instead of "
+                "replacing them. Example use: a script that removes duplicate Draft PURs created "
+                "by a re-run before counts are compared."
+            ),
             "required": False,
         },
     }
@@ -559,15 +567,18 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             self.logger.info(line)
 
     def _run_post_load_apex_if_configured(self) -> None:
-        """If run_after_each_load_apex is set, run that Apex script against the target org (e.g. to dedupe/activate before taking counts)."""
+        """If run_after_each_load_apex is set, run that Apex script against the target org for deduplication only (must not activate records)."""
         apex_path = self.options.get("run_after_each_load_apex")
         if not apex_path:
             return
         base = self.options.get("dir") or os.getcwd()
         path = os.path.join(base, apex_path) if not os.path.isabs(apex_path) else apex_path
         if not os.path.isfile(path):
-            self.logger.warning(f"run_after_each_load_apex path not found: {path}, skipping")
-            return
+            raise TaskOptionsError(
+                f"Configured run_after_each_load_apex path does not exist: {path}. "
+                "Fix the path or remove the option. Silently skipping would produce "
+                "misleading test results."
+            )
         org = self._get_org_for_cli()
         cmd = ["sf", "apex", "run", "--target-org", org, "--file", path]
         self.logger.info(f"Running post-load Apex: {' '.join(cmd)}")
