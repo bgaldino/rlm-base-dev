@@ -72,11 +72,14 @@ if (!urs.isEmpty()) {
 // blocks activation with "effective period overlaps with an existing record". Keep one per
 // (ProductId, UsageResourceId) overlapping set, delete Draft duplicates. Child records
 // (ProductUsageResourcePolicy, ProductUsageGrant) must be deleted first.
+// We must query all PURs (Active + non-Active) so we can detect overlaps between new Draft
+// and existing Active; if we only queried non-Active we would never mark those Drafts as duplicates.
 List<ProductUsageResource> allPurs = [
     SELECT Id, ProductId, UsageResourceId, EffectiveStartDate, EffectiveEndDate, Status
     FROM ProductUsageResource
 ];
 Set<Id> duplicatePurIds = new Set<Id>();
+// Pairwise overlap check within allPurs. O(n^2) is acceptable for typical QB PUR counts (dozens to low hundreds).
 for (Integer i = 0; i < allPurs.size(); i++) {
     ProductUsageResource a = allPurs[i];
     if (duplicatePurIds.contains(a.Id)) continue;
@@ -104,7 +107,7 @@ for (Integer i = 0; i < allPurs.size(); i++) {
 if (!duplicatePurIds.isEmpty()) {
     List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();
     for (ProductUsageResource pur : allPurs) {
-        if (duplicatePurIds.contains(pur.Id) && pur.Status != 'Active') {
+        if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft') {
             purToDelete.add(pur);
         }
     }
