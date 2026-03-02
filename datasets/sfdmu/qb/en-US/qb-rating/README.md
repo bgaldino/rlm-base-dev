@@ -252,7 +252,7 @@ cci flow run extract_rating
 cci flow run run_qb_extracts
 ```
 
-To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests`. (Both use the CCI default org.) Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — requiring a Draft-only org state. See [Idempotency](#idempotency) for prerequisites.
+To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — requiring a Draft-only org state. See [Idempotency](#idempotency) for prerequisites.
 
 ### Extraction via SFDMU Directly
 

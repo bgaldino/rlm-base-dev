@@ -430,7 +430,13 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             "required": False,
         },
         "persist_extraction_output": {
-            "description": "If true and use_extraction_roundtrip is true, write extraction and processed output to datasets/sfdmu/extractions/<plan>/<timestamp> instead of a temp dir. Omit or false to use temp dir only.",
+            "description": (
+                "If true and use_extraction_roundtrip is true, write extraction and processed "
+                "output to datasets/sfdmu/extractions/<plan>/<timestamp>/ instead of a temp dir "
+                "(e.g. datasets/sfdmu/extractions/qb-rating/2026-03-02T120000/). Path is derived "
+                "from pathtoexportjson: two directories up from the locale dir reaches the sfdmu "
+                "root, then extractions/<plan>/ is appended. Omit or false to use temp dir only."
+            ),
             "required": False,
         },
         "run_after_each_load_apex": {
@@ -626,6 +632,13 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             if persist_output:
                 from datetime import datetime
                 plan_name = os.path.basename(os.path.normpath(plan_dir))
+                # Path calculation: dirname(plan_dir) goes up to the locale dir (e.g. en-US),
+                # then two ".." steps reach the sfdmu root (e.g. datasets/sfdmu), then
+                # "extractions/<plan>" is appended. Example for qb-rating:
+                #   plan_dir=datasets/sfdmu/qb/en-US/qb-rating
+                #   dirname → datasets/sfdmu/qb/en-US
+                #   + ../.. → datasets/sfdmu
+                #   + extractions/qb-rating → datasets/sfdmu/extractions/qb-rating
                 base = os.path.normpath(os.path.join(os.path.dirname(plan_dir), "..", "..", "extractions", plan_name))
                 timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
                 work_dir = os.path.join(base, timestamp)
