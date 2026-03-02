@@ -13,7 +13,7 @@
       "excluded": false
     },
     {
-      "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Status, Type FROM RateCard ORDER BY Name ASC",
+      "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
       "operation": "Upsert",
       "externalId": "Name;Type",
       "excluded": false

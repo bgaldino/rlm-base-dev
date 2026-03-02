@@ -433,6 +433,10 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             "description": "If true and use_extraction_roundtrip is true, write extraction and processed output to datasets/sfdmu/extractions/<plan>/<timestamp> instead of a temp dir. Omit or false to use temp dir only.",
             "required": False,
         },
+        "run_after_each_load_apex": {
+            "description": "Optional path to an Apex script (e.g. scripts/apex/activateRatingRecords.apex) to run after each load. Use for plans that create duplicate Draft records on re-run (e.g. qb-rating PURs); the script can dedupe/activate so counts are stable before comparison.",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs: Dict[str, Any]) -> None:
@@ -543,6 +547,27 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         for line in result.stdout.splitlines():
             self.logger.info(line)
 
+    def _run_post_load_apex_if_configured(self) -> None:
+        """If run_after_each_load_apex is set, run that Apex script against the target org (e.g. to dedupe/activate before taking counts)."""
+        apex_path = self.options.get("run_after_each_load_apex")
+        if not apex_path:
+            return
+        base = self.options.get("dir") or os.getcwd()
+        path = os.path.join(base, apex_path) if not os.path.isabs(apex_path) else apex_path
+        if not os.path.isfile(path):
+            self.logger.warning(f"run_after_each_load_apex path not found: {path}, skipping")
+            return
+        org = self._get_org_for_cli()
+        cmd = ["sf", "apex", "run", "--target-org", org, "--file", path]
+        self.logger.info(f"Running post-load Apex: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=base, timeout=300)
+        if result.returncode != 0:
+            self.logger.error(result.stdout or "")
+            self.logger.error(result.stderr or "")
+            raise CommandException(f"Post-load Apex failed with exit code {result.returncode}")
+        for line in (result.stdout or "").splitlines():
+            self.logger.info(line)
+
     def _run_task(self) -> None:
         if "org" not in self.options or not self.options["org"]:
             self._load_keychain()
@@ -562,6 +587,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             raise TaskOptionsError("No sobjects found in export.json")
         self.logger.info("First run: load data into org")
         self._run_load_once()
+        self._run_post_load_apex_if_configured()
         counts_after_first = self._get_record_counts(sobjects)
         use_roundtrip = str(self.options.get("use_extraction_roundtrip", "")).lower() in {"1", "true", "yes"}
         if use_roundtrip:
@@ -609,6 +635,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
                 self.logger.info("Second run: load from post-processed extraction (should not add records)")
                 self._run_load_once(processed_dir)
+                self._run_post_load_apex_if_configured()
             finally:
                 # Always clear credentials from work_dir/export.json (persist mode leaves dir on disk)
                 if work_dir and os.path.isdir(work_dir):
@@ -628,6 +655,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         else:
             self.logger.info("Second run: idempotent re-run from source (should not add records)")
             self._run_load_once()
+            self._run_post_load_apex_if_configured()
         counts_after_second = self._get_record_counts(sobjects)
         failures = []
         for sobject in sobjects:
