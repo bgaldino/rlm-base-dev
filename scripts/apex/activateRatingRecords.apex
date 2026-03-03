@@ -194,9 +194,8 @@ if (candidatePairKeys.isEmpty()) {
             currentPur   = pur;
             currentStart = purStart;
             currentEnd   = purEnd;  // reset to new survivor's range
-        } else if (currentPur.Id < pur.Id) {
-            // Note: Apex Id supports relational operators (<, >, <=, >=) per the Apex Language
-            // Reference. This compiles and executes correctly — no String.compareTo() needed.
+        } else if (String.valueOf(currentPur.Id).compareTo(String.valueOf(pur.Id)) < 0) {
+            // Lower Id wins — compare as strings for deterministic, universally safe ordering.
             duplicatePurIds.add(pur.Id);
             // survivor unchanged: currentEnd already reflects survivor's range
         } else {

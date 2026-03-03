@@ -616,7 +616,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         if isinstance(self.org_config, ScratchOrgConfig):
             self.targetusername = self.org_config.username
         else:
-            self.targetusername = self.options.get("targetusername") or self.org_config.access_token or getattr(self.org_config, "username", None)
+            self.targetusername = self.options.get("targetusername") or getattr(self.org_config, "username", None)
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
         org_identifier = self.options.get("org") or getattr(self.org_config, "name", None) or self._get_org_for_cli()
