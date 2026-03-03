@@ -175,34 +175,50 @@ if (candidatePairKeys.isEmpty()) {
         }
         // Overlapping PURs in the same group: decide which is the duplicate.
         // Priority: (1) Active wins over Draft; (2) child-bearing (PUG/PURP) wins; (3) lower Id.
-        // When the survivor changes, currentEnd is reset to the NEW survivor's range only.
-        // Never extend currentEnd from the discarded record's range: doing so inflates the tracked
-        // window and can cause a genuinely non-overlapping subsequent PUR to be falsely flagged.
+        // currentEnd normally tracks the survivor's range. Exception: when the LOSER is
+        // non-deletable (Active or Draft-with-children), it stays in the org after cleanup,
+        // so its effective period must be included in the tracking window. Without this,
+        // a transitive overlap (A-B overlap, B-C overlap, A not directly overlapping C)
+        // could go undetected when B is the non-deletable loser — C would escape detection
+        // because it is compared only to A's (narrower) range.
         if (currentPur.Status == 'Active' && pur.Status != 'Active') {
             duplicatePurIds.add(pur.Id);
-            // survivor unchanged: currentEnd already reflects survivor's range
+            // Loser is pur (Draft). If it has children it stays in the org: widen window.
+            if (purIdsWithChildren.contains(pur.Id) && purEnd > currentEnd) currentEnd = purEnd;
         } else if (pur.Status == 'Active' && currentPur.Status != 'Active') {
+            Datetime loserEnd        = currentEnd;
+            Boolean  loserHasChildren = purIdsWithChildren.contains(currentPur.Id);
             duplicatePurIds.add(currentPur.Id);
             currentPur   = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;  // reset to new survivor's range
+            currentEnd   = purEnd;
+            // Loser is old currentPur (Draft). If it has children it stays: widen window.
+            if (loserHasChildren && loserEnd > currentEnd) currentEnd = loserEnd;
         } else if (purIdsWithChildren.contains(currentPur.Id) && !purIdsWithChildren.contains(pur.Id)) {
             duplicatePurIds.add(pur.Id);
-            // survivor unchanged: currentEnd already reflects survivor's range
+            // Loser is pur (Draft, no children) — always deletable; no window expansion needed.
         } else if (purIdsWithChildren.contains(pur.Id) && !purIdsWithChildren.contains(currentPur.Id)) {
+            Datetime loserEnd = currentEnd;
             duplicatePurIds.add(currentPur.Id);
             currentPur   = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;  // reset to new survivor's range
+            currentEnd   = purEnd;
+            // Loser is old currentPur (Draft, no children) — always deletable; no window expansion.
         } else if (String.valueOf(currentPur.Id).compareTo(String.valueOf(pur.Id)) < 0) {
             // Lower Id wins — compare as strings for deterministic, universally safe ordering.
+            // Both have the same status and child-bearing; loser is non-deletable iff Active or has children.
             duplicatePurIds.add(pur.Id);
-            // survivor unchanged: currentEnd already reflects survivor's range
+            Boolean loserNonDeletable = (pur.Status == 'Active') || purIdsWithChildren.contains(pur.Id);
+            if (loserNonDeletable && purEnd > currentEnd) currentEnd = purEnd;
         } else {
+            Datetime loserEnd         = currentEnd;
+            Boolean  loserNonDeletable = (currentPur.Status == 'Active') || purIdsWithChildren.contains(currentPur.Id);
             duplicatePurIds.add(currentPur.Id);
             currentPur   = pur;
             currentStart = purStart;
-            currentEnd   = purEnd;  // reset to new survivor's range
+            currentEnd   = purEnd;
+            // Widen window if old survivor (loser) is non-deletable and had a wider range.
+            if (loserNonDeletable && loserEnd > currentEnd) currentEnd = loserEnd;
         }
     }
     if (!duplicatePurIds.isEmpty()) {
@@ -230,6 +246,21 @@ if (candidatePairKeys.isEmpty()) {
             }
             System.debug('Deleted ' + deletedCount + '/' + purToDelete.size() +
                 ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
+            // Warn when cleanup is incomplete: some detected overlaps are non-deletable
+            // (Active or Draft-with-children) or some delete attempts failed.
+            // Activation may still fail with "effective period overlaps" until resolved manually.
+            Integer nonDeletableCount = duplicatePurIds.size() - purToDelete.size();
+            Boolean someDeletesFailed = (deletedCount < purToDelete.size());
+            if (nonDeletableCount > 0 || someDeletesFailed) {
+                System.debug(
+                    LoggingLevel.WARN,
+                    'Step 2.5: cleanup incomplete — ' +
+                    (nonDeletableCount > 0 ? nonDeletableCount + ' overlapping PUR(s) could not be attempted ' +
+                        '(Active or Draft with PUG/PURP children); ' : '') +
+                    (someDeletesFailed ? (purToDelete.size() - deletedCount) + ' delete attempt(s) failed (see ERROR logs); ' : '') +
+                    'manual review required — activation may still fail with "effective period overlaps".'
+                );
+            }
         } else {
             // Overlapping PURs were detected but none could be auto-deleted: either the
             // overlap involves Active PURs or Draft PURs that have PUG/PURP children.
