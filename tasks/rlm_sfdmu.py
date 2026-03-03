@@ -432,10 +432,13 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         "persist_extraction_output": {
             "description": (
                 "If true and use_extraction_roundtrip is true, write extraction and processed "
-                "output to datasets/sfdmu/extractions/<plan>/<timestamp>/ instead of a temp dir "
-                "(e.g. datasets/sfdmu/extractions/qb-rating/2026-03-02T120000/). Path is derived "
-                "from pathtoexportjson: two directories up from the locale dir reaches the sfdmu "
-                "root, then extractions/<plan>/ is appended. Omit or false to use temp dir only."
+                "output to a persistent directory derived from the plan directory, rather than "
+                "a temp dir. The base path is computed by going two levels up from the plan "
+                "directory's parent, then appending extractions/<plan>/<timestamp>/. For the "
+                "standard layout (<root>/<dataset>/<locale>/<plan>), this places output at "
+                "<root>/extractions/<plan>/<timestamp>/ (e.g. "
+                "datasets/sfdmu/extractions/qb-rating/2026-03-02T120000/). "
+                "Omit or false to use a temp dir only."
             ),
             "required": False,
         },
