@@ -1,9 +1,9 @@
 {
   "$comment_plan": "qb-rating SFDMU data plan - creates and activates rating/usage objects",
-  "$comment_pass1": "Pass 1: Upsert all objects in Draft status. Objects with composite externalId use semicolon-separated relationship traversal fields (Field1;Field2) for matching.",
+  "$comment_pass1": "Pass 1: Upsert most objects in Draft status. PUR, PURP, and PUG all use Insert+deleteOldData (no WHERE \u2014 deletes ALL records of each type, portable). SFDMU v5 processes deleteOldData in reverse array order, so PUG and PURP are deleted before PUR, satisfying FK constraints.",
   "$comment_pass2": "Pass 2: Activate UnitOfMeasureClass and UsageResource (Status > Active). PUR/PUG activation is handled by the Apex script (activateRatingRecords.apex) due to complex API 260 ordering constraints.",
   "$comment_260": "API 260 notes: QB-DB;QB-TOKEN (Token PUR for Anchor product) is required before QB-DB Usage PURs can activate. CommitmentSpend optional PURs (QB-MTY-CMT;UR-CPUTIME/UR-DATASTORAGE) are excluded due to platform TokenResourceId auto-population conflict.",
-  "$comment_composite_keys": "SFDMU v5: Multi-component composite externalIds require a $$ column in the CSV for idempotent matching. Column name uses $ between components ($$Field1$Field2), values use ; between values (val1;val2). For objects with auto-number Names and all-relationship externalIds, use deleteOldData: true instead. Single-component externalIds do not need a $$ column.",
+  "$comment_composite_keys": "SFDMU v5 bugs: (1) Objects whose externalId contains ONLY multi-hop traversal components get 'no mandatory external Id field definition' at validation. Fix: use a direct FK field as externalId + deleteOldData:true (PURP uses ProductUsageResourceId). (2) Upsert TARGET SELECT strips parent-relationship prefixes from traversal CSV columns and adds sub-fields as direct SObject fields \u2014 invalid SOQL for 2-hop traversals. Fix: use Insert+deleteOldData instead of Upsert for PURP and PUG. (3) Upsert cannot match records by relationship-traversal externalId components (even 1-hop: Product.StockKeepingUnit, UsageResource.Code) \u2014 v5 always inserts instead of updating, causing duplicates. Fix: use Insert+deleteOldData for PUR too. deleteOldData runs in reverse array order (PUG \u2192 PURP \u2192 PUR), satisfying FK constraints before PUR deletion.",
   "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, UsageResource.Code) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
@@ -67,9 +67,11 @@
           "excluded": false
         },
         {
-          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UsageResourceId, UsageResource.Code FROM ProductUsageResource",
-          "operation": "Upsert",
+          "$comment": "SFDMU v5 cannot match PUR via relationship-traversal externalId components (Product.StockKeepingUnit;UsageResource.Code) even for 1-hop traversals \u2014 always inserts instead of updating, causing duplicates on re-run. Fix: Insert+deleteOldData (no WHERE). deleteOldData runs in reverse array order so PUG and PURP (later in array) are deleted before PUR, satisfying FK constraints.",
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UsageResourceId, UsageResource.Code FROM ProductUsageResource ORDER BY Product.StockKeepingUnit ASC, UsageResource.Code ASC",
+          "operation": "Insert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "deleteOldData": true,
           "excluded": false
         },
         {
@@ -85,16 +87,20 @@
           "excluded": false
         },
         {
-          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy",
-          "operation": "Upsert",
-          "externalId": "ProductUsageResource.Product.StockKeepingUnit;ProductUsageResource.UsageResource.Code",
-          "excluded": true
+          "$comment": "PURP is 1:1 with PUR. SFDMU v5 cannot validate composite externalIds where ALL components are multi-hop traversals (ProductUsageResource.Product.StockKeepingUnit = 2 hops from PURP). Solution: externalId=ProductUsageResourceId (direct FK field on PURP, unique 1:1 with PUR) + deleteOldData:true (no WHERE \u2014 deletes ALL PURP, fully portable for drift extraction). CSV has two separate columns (ProductUsageResource.Product.StockKeepingUnit and ProductUsageResource.UsageResource.Code) for FK resolution \u2014 no $$ composite (which caused SOQL injection in deleteOldData DELETE phase).",
+          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
+          "operation": "Insert",
+          "externalId": "ProductUsageResourceId",
+          "deleteOldData": true,
+          "excluded": false
         },
         {
+          "$comment": "Status is required for PUG insert (Salesforce INVALID_INPUT if omitted). CSV always inserts as Draft; activation is re-applied by activateRatingRecords.apex. deleteOldData (no WHERE) removes Active PUGs then re-inserts as Draft \u2014 fully portable for drift extraction. Insert+deleteOldData avoids SFDMU v5 Upsert TARGET-SELECT SOQL injection: 2-hop externalId components (ProductUsageResource.Product.StockKeepingUnit) get prefix-stripped to 'Product.StockKeepingUnit' in the TARGET SELECT, which is invalid on PUG. Insert has no TARGET SELECT phase. CSV has two separate traversal columns for PUR FK resolution; no $$ composite columns. externalId uniqueness: the triplet (UsageDefinitionProduct.StockKeepingUnit; UnitOfMeasureClass.Code; UnitOfMeasure.UnitCode) is intentionally not unique across parent PURs \u2014 16 of 17 rows share 3 triplets distinguished only by their parent PUR FK. This is harmless for Insert+deleteOldData: Insert does not use externalId to deduplicate incoming rows (all 17 are inserted unconditionally, confirmed by consistent PUG=17 test results), and PUG is a leaf node so no downstream object resolves FKs to PUG by externalId. If this ever moves to Upsert, the externalId must include a PUR component; ProductUsageResourceId (a direct FK field) would be the correct addition, following PURP's pattern, as adding traversal components would trigger SFDMU v5 Bug 1 (all-multi-hop externalId validation error).",
           "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
-          "operation": "Upsert",
-          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;ProductUsageResource.Product.StockKeepingUnit;ProductUsageResource.UsageResource.Code",
-          "excluded": true
+          "operation": "Insert",
+          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
+          "deleteOldData": true,
+          "excluded": false
         }
       ]
     },

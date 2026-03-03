@@ -1415,13 +1415,6 @@ tasks:
     options:
       path: scripts/apex/query_billing_state.apex
 
-  delete_draft_billing_records:
-    group: Revenue Lifecycle Management
-    description: Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates.
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-    options:
-      path: scripts/apex/deleteDraftBillingRecords.apex
-
   validate_billing_structure:
     group: Revenue Lifecycle Management
     description: Validate that every BillingTreatment has BillingPolicyId set. Run after data load to verify structure before activation.
@@ -1456,6 +1449,35 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateRateCardEntries.apex
+
+
+#--------------------#
+# DATA MAINTENANCE    #
+#--------------------#
+# Delete / reset data plan records in dependency order. Use before re-running
+# a data plan to avoid duplicates (e.g. before test_*_idempotency). Add tasks
+# here for each plan that has a delete script (rates, rating, billing, etc.).
+
+  delete_qb_rates_data:
+    group: Data Maintenance
+    description: Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatesData.apex
+
+  delete_qb_rating_data:
+    group: Data Maintenance
+    description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Use before re-running insert_qb_rating_data to clear duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatingData.apex
+
+  delete_draft_billing_records:
+    group: Data Maintenance
+    description: Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteDraftBillingRecords.apex
 
 
 #--------------------#
@@ -1583,15 +1605,16 @@ tasks:
 
   test_qb_rating_idempotency:
     group: Data Management - Idempotency
-    description: Idempotency test for qb-rating.
+    description: "Idempotency test for qb-rating. Uses extraction roundtrip (extract -> post-process -> load from processed dir) to validate that extracted CSVs can be re-imported without adding records. Persists extraction output to datasets/sfdmu/extractions/qb-rating/<timestamp>."
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_rating_dataset
-      use_extraction_roundtrip: false
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
 
   test_qb_rates_idempotency:
     group: Data Management - Idempotency
-    description: Idempotency test for qb-rates.
+    description: "Idempotency test for qb-rates. Runs the plan twice from source CSVs and asserts no record count increase. NOTE: extraction roundtrip is not supported for qb-rates because SFDMU v5 cannot properly extract 2-hop traversal fields in RABT composite keys (RateCardEntry.RateCard.Name extracts as #N/A), breaking FK resolution on re-import."
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_rates_dataset

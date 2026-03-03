@@ -430,7 +430,28 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             "required": False,
         },
         "persist_extraction_output": {
-            "description": "If true and use_extraction_roundtrip is true, write extraction and processed output to datasets/sfdmu/extractions/<plan>/<timestamp> instead of a temp dir. Omit or false to use temp dir only.",
+            "description": (
+                "If true and use_extraction_roundtrip is true, write extraction and processed "
+                "output to a persistent directory derived from the plan directory, rather than "
+                "a temp dir. The base path is computed by going two levels up from the plan "
+                "directory's parent, then appending extractions/<plan>/<timestamp>/. For the "
+                "standard layout (<root>/<dataset>/<locale>/<plan>), this places output at "
+                "<root>/extractions/<plan>/<timestamp>/ (e.g. "
+                "datasets/sfdmu/extractions/qb-rating/2026-03-02T120000/). "
+                "Omit or false to use a temp dir only."
+            ),
+            "required": False,
+        },
+        "run_after_each_load_apex": {
+            "description": (
+                "Optional path to an Apex script to run after each load, for deduplication only. "
+                "The script MUST NOT activate PUR, PUG, or any other records. Plans using "
+                "deleteOldData require all records to remain in Draft state between loads: "
+                "activating after the first load causes the second SFDMU run to fail because "
+                "Salesforce rejects REST DELETE of Active records, doubling counts instead of "
+                "replacing them. Example use: a script that removes duplicate Draft PURs created "
+                "by a re-run before counts are compared."
+            ),
             "required": False,
         },
     }
@@ -467,7 +488,18 @@ class TestSFDMUIdempotency(SFDXBaseTask):
     def _get_org_for_cli(self) -> str:
         if isinstance(self.org_config, ScratchOrgConfig):
             return self.org_config.username
-        return self.options.get("targetusername") or self.org_config.access_token or self.org_config.username
+        # CLI commands (sf apex run, sf data query) require an authorized org alias or username
+        # as --target-org. Never fall back to access_token: it fails CLI auth and leaks a
+        # secret via logs, shell history, and process listings. The access_token is kept
+        # exclusively in the export.json orgs block where SFDMU needs it.
+        org_alias = self.options.get("targetusername") or getattr(self.org_config, "username", None)
+        if not org_alias:
+            raise TaskOptionsError(
+                "No target username/alias available for Salesforce CLI invocation. "
+                "Provide a valid 'targetusername' option or ensure org_config.username is set. "
+                "Falling back to org_config.access_token is not supported for CLI calls."
+            )
+        return org_alias
 
     def _get_record_counts(self, sobjects: list) -> Dict[str, int]:
         org_alias = self._get_org_for_cli()
@@ -543,6 +575,38 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         for line in result.stdout.splitlines():
             self.logger.info(line)
 
+    def _run_post_load_apex_if_configured(self) -> None:
+        """If run_after_each_load_apex is set, run that Apex script against the target org for deduplication only (must not activate records)."""
+        apex_path = self.options.get("run_after_each_load_apex")
+        if not apex_path:
+            return
+        base = self.options.get("dir") or os.getcwd()
+        path = os.path.join(base, apex_path) if not os.path.isabs(apex_path) else apex_path
+        if not os.path.isfile(path):
+            raise TaskOptionsError(
+                f"Configured run_after_each_load_apex path does not exist: {path}. "
+                "Fix the path or remove the option. Silently skipping would produce "
+                "misleading test results."
+            )
+        org = self._get_org_for_cli()
+        cmd = ["sf", "apex", "run", "--target-org", org, "--file", path]
+        self.logger.info(f"Running post-load Apex: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=base, timeout=300)
+        except subprocess.TimeoutExpired as e:
+            self.logger.error(f"Post-load Apex timed out after 300s: {path}")
+            if e.stdout:
+                self.logger.error(e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout)
+            if e.stderr:
+                self.logger.error(e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr)
+            raise CommandException(f"Post-load Apex timed out after 300s: {path}") from e
+        if result.returncode != 0:
+            self.logger.error(result.stdout or "")
+            self.logger.error(result.stderr or "")
+            raise CommandException(f"Post-load Apex failed with exit code {result.returncode}")
+        for line in (result.stdout or "").splitlines():
+            self.logger.info(line)
+
     def _run_task(self) -> None:
         if "org" not in self.options or not self.options["org"]:
             self._load_keychain()
@@ -552,7 +616,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         if isinstance(self.org_config, ScratchOrgConfig):
             self.targetusername = self.org_config.username
         else:
-            self.targetusername = self.options.get("targetusername") or self.org_config.access_token or getattr(self.org_config, "username", None)
+            self.targetusername = self.options.get("targetusername") or getattr(self.org_config, "username", None)
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
         org_identifier = self.options.get("org") or getattr(self.org_config, "name", None) or self._get_org_for_cli()
@@ -562,6 +626,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             raise TaskOptionsError("No sobjects found in export.json")
         self.logger.info("First run: load data into org")
         self._run_load_once()
+        self._run_post_load_apex_if_configured()
         counts_after_first = self._get_record_counts(sobjects)
         use_roundtrip = str(self.options.get("use_extraction_roundtrip", "")).lower() in {"1", "true", "yes"}
         if use_roundtrip:
@@ -570,6 +635,14 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             if persist_output:
                 from datetime import datetime
                 plan_name = os.path.basename(os.path.normpath(plan_dir))
+                # Path calculation: dirname(plan_dir) goes up to the locale dir (e.g. en-US),
+                # then two ".." steps reach the sfdmu root (e.g. datasets/sfdmu), then
+                # "extractions/<plan>" is appended. Example for qb-rating:
+                #   plan_dir=datasets/sfdmu/qb/en-US/qb-rating
+                #   dirname → datasets/sfdmu/qb/en-US
+                #   + ../.. → datasets/sfdmu   (each ".." resolves one level: en-US→qb, qb→sfdmu)
+                #   + extractions/qb-rating → datasets/sfdmu/extractions/qb-rating
+                # Note: three ".." would overshoot to datasets/extractions/qb-rating (verified).
                 base = os.path.normpath(os.path.join(os.path.dirname(plan_dir), "..", "..", "extractions", plan_name))
                 timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
                 work_dir = os.path.join(base, timestamp)
@@ -609,6 +682,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
                 self.logger.info("Second run: load from post-processed extraction (should not add records)")
                 self._run_load_once(processed_dir)
+                self._run_post_load_apex_if_configured()
             finally:
                 # Always clear credentials from work_dir/export.json (persist mode leaves dir on disk)
                 if work_dir and os.path.isdir(work_dir):
@@ -628,6 +702,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         else:
             self.logger.info("Second run: idempotent re-run from source (should not add records)")
             self._run_load_once()
+            self._run_post_load_apex_if_configured()
         counts_after_second = self._get_record_counts(sobjects)
         failures = []
         for sobject in sobjects:
