@@ -1439,7 +1439,7 @@ tasks:
   activate_rating_records:
     group: Revenue Lifecycle Management
     description: Activate Rating Records
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
     options:
       path: scripts/apex/activateRatingRecords.apex
 
