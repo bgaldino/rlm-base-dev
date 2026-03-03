@@ -62,7 +62,7 @@ class ValidationResult:
     def add_issue(self, issue: Issue):
         """Add an issue to the result."""
         self.issues.append(issue)
-        if issue.severity in (Severity.CRITICAL, Severity.HIGH):
+        if issue.severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM):
             self.passed = False
 
 
