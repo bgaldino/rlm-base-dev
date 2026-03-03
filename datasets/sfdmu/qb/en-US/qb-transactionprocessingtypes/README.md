@@ -180,5 +180,5 @@ Single-field key (`DeveloperName`) — no composite keys, no simplification need
 2. **Add new preference fields**: Add `PricingPreference`, `TaxPreference`, `RatingPreference` to the SOQL query and CSV
 3. **Fix idempotency**: Change `operation` from `"Insert"` to `"Upsert"` using `DeveloperName` as the external ID
 4. **Fix `excludeIdsFromCSVFiles`**: Change from `"false"` to `"true"` for portability
-5. **Add extraction support**: Create `extract_qb_transactionprocessingtypes_data` CCI task
+5. **Extraction available**: Use `extract_qb_transactionprocessingtypes_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_transactionprocessingtypes_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
 6. **Consistency**: Uses `objectSets` wrapper with a misleading name "First Pass - Insert/Upsert with Draft Status" (there is no second pass and no Draft status involved) — simplify to flat `objects` array and remove the misleading name

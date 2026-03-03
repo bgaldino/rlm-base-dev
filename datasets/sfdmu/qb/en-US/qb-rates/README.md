@@ -197,7 +197,12 @@ cci task run extract_qb_rates_data
 
 # Or use the extract_rating flow to extract both rating and rates
 cci flow run extract_rating
+
+# Run all QB extract tasks (includes rates)
+cci flow run run_qb_extracts --org <org>
 ```
+
+To run the idempotency test for this plan: `cci task run test_qb_rates_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups.
 
 ### Post-Processing
 
