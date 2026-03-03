@@ -856,8 +856,15 @@ class SFDMUValidator:
         # Check if all component fields exist
         missing_fields = [f for f in fields if f not in headers]
         if missing_fields:
-            self.log(f"  ⚠️  Warning: Missing component fields for {obj_name}: {', '.join(missing_fields)}", level="WARN")
-            # Continue anyway - we'll use empty values for missing fields
+            self.log(
+                f"  ❌ Error: Missing component fields for {obj_name}: {', '.join(missing_fields)}",
+                level="ERROR",
+            )
+            self.log(
+                f"  ❌ Cannot generate composite key column {composite_col_name} because required component field(s) are missing.",
+                level="ERROR",
+            )
+            return False
 
         if self.dry_run:
             print(f"  [DRY-RUN] Would add composite key column to: {csv_path.name}")
