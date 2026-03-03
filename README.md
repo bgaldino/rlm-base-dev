@@ -563,7 +563,15 @@ The validator checks for:
 - Empty CSV files without headers
 - Nested relationship paths that cause v5 flattening errors
 
-See [SFDMU v5 Validation Report](docs/sfdmu_v5_validation_report.md) for current validation status.
+To generate a validation report:
+
+```bash
+# Console output
+python scripts/validate_sfdmu_v5_datasets.py
+
+# Save to file
+python scripts/validate_sfdmu_v5_datasets.py --output validation_report.md
+```
 
 #### Data plan directory structure
 

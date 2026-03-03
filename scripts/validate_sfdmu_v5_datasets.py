@@ -257,10 +257,10 @@ class SFDMUValidator:
                             if self._fix_empty_csv_header(csv_path, headers, obj_name):
                                 headers_fixed += 1
 
-                        # Apply composite key fix if needed
+                        # Apply composite key fix if needed (skip deleteOldData objects)
                         if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                             external_id = obj_config.get("externalId", "")
-                            if ";" in external_id and not external_id.startswith("$$"):
+                            if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
                                 fields = [f.strip() for f in external_id.split(";")]
                                 composite_col_name = self._build_composite_key_column_name(fields)
 
@@ -673,8 +673,9 @@ class SFDMUValidator:
                     self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
 
                 # Validate composite key columns for objects with multi-field externalId
+                # Skip objects with deleteOldData: true (delete-then-insert strategy doesn't need composite key)
                 external_id = obj_config.get("externalId", "")
-                if ";" in external_id and not external_id.startswith("$$"):
+                if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
                     # This is a composite key - check if CSV has the $$ column
                     expected_composite_col = "$$" + "$".join(external_id.split(";"))
 
@@ -924,10 +925,10 @@ class SFDMUValidator:
                 if self._fix_empty_csv_header(csv_path, headers, obj_name):
                     headers_fixed += 1
 
-            # Fix missing composite keys (only if CSV is not empty)
+            # Fix missing composite keys (only if CSV is not empty, skip deleteOldData objects)
             if self.fix_composite_keys and not self._is_csv_empty(csv_path):
                 external_id = obj_config.get("externalId", "")
-                if ";" in external_id and not external_id.startswith("$$"):
+                if ";" in external_id and not external_id.startswith("$$") and not obj_config.get("deleteOldData"):
                     fields = [f.strip() for f in external_id.split(";")]
                     composite_col_name = self._build_composite_key_column_name(fields)
 
