@@ -530,6 +530,57 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
 
+#### Validating SFDMU Data Plans
+
+The project includes `scripts/validate_sfdmu_v5_datasets.py` for validating SFDMU v5 compliance:
+
+**Validation:**
+
+```bash
+# Validate all SFDMU datasets
+python scripts/validate_sfdmu_v5_datasets.py
+
+# Validate specific dataset
+python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb/en-US/qb-billing
+
+# Validate all QB datasets
+python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb
+
+# Generate report file
+python scripts/validate_sfdmu_v5_datasets.py --output docs/sfdmu_v5_validation_report.md
+```
+
+**Automatic Fixes:**
+
+```bash
+# Fix empty CSV headers
+python scripts/validate_sfdmu_v5_datasets.py --fix-headers
+
+# Fix missing composite key columns
+python scripts/validate_sfdmu_v5_datasets.py --fix-composite-keys
+
+# Fix all issues (dry-run first recommended)
+python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
+python scripts/validate_sfdmu_v5_datasets.py --fix-all
+```
+
+The validator checks for:
+
+- Legacy `$$` notation in externalId definitions (v5 requires semicolon format)
+- Missing composite key columns in CSVs
+- Empty CSV files without headers
+- Nested relationship paths that cause v5 flattening errors
+
+To generate a validation report:
+
+```bash
+# Console output
+python scripts/validate_sfdmu_v5_datasets.py
+
+# Save to file
+python scripts/validate_sfdmu_v5_datasets.py --output validation_report.md
+```
+
 #### Data plan directory structure
 
 Plans follow a **shape / locale / plan-name** tree so multiple data shapes (e.g. QuantumBit, Manufacturing) can coexist:
