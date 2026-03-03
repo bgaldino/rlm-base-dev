@@ -116,7 +116,7 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
 - **qb-billing/export.json**: PaymentTermItem externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
 - **qb-billing/GeneralLedgerAcctAsgntRule.csv**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
 - **qb-billing/objectset_source/object-set-3/**: Updated Pass 3 CSVs to use simplified BillingTreatment externalId (`Name` only, not composite)
-- **Empty CSV headers added**: GeneralLedgerJrnlEntryRule, ProductQualification, ProductDisqualification, ProductCategoryQual, ProductCategoryDisqual, CostBook, CostBookEntry
+- **Empty CSV headers added**: GeneralLedgerJrnlEntryRule, ProductQualification, ProductDisqualification, ProductCategoryQualification, ProductCategoryDisqualification, CostBook, CostBookEntry
 
 ## Original composite key optimizations
 

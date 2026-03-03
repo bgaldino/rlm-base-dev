@@ -24,7 +24,6 @@ Options:
 import argparse
 import csv
 import json
-import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -121,6 +120,9 @@ class SFDMUValidator:
             dry_run: If True, show what would be fixed without making changes
         """
         self.base_dir = Path(base_dir)
+        if not self.base_dir.exists():
+            raise ValueError(f"Base directory does not exist: {base_dir}")
+
         self.strict = strict
         self.verbose = verbose
         self.fix_headers = fix_headers
@@ -134,6 +136,21 @@ class SFDMUValidator:
         if self.verbose:
             prefix = f"[{level}]" if level != "INFO" else ""
             print(f"{prefix} {message}")
+
+    def _make_relative_path(self, path: Path) -> str:
+        """Convert path to relative from base_dir for portability.
+
+        Args:
+            path: Path to convert
+
+        Returns:
+            Relative path string, or filename if conversion fails
+        """
+        try:
+            return str(path.relative_to(self.base_dir))
+        except ValueError:
+            # If not under base_dir, just use filename
+            return path.name
 
     def find_sfdmu_datasets(self) -> List[Path]:
         """Find all SFDMU dataset directories.
@@ -181,8 +198,17 @@ class SFDMUValidator:
             ValidationResult with all issues found
         """
         dataset_name = self.get_dataset_name(dataset_path)
+
+        # Store dataset path relative to base_dir for portability
+        # Use full path from repo root (e.g., datasets/sfdmu/qb/en-US/qb-pcm)
+        try:
+            display_dataset_path = dataset_path.relative_to(self.base_dir)
+        except ValueError:
+            # Fall back to absolute if not under base_dir
+            display_dataset_path = dataset_path
+
         result = ValidationResult(
-            dataset_path=str(dataset_path),
+            dataset_path=str(display_dataset_path),
             dataset_name=dataset_name
         )
 
@@ -196,7 +222,7 @@ class SFDMUValidator:
                 severity=Severity.CRITICAL,
                 object_name="N/A",
                 message="export.json file not found",
-                file_path=str(export_json_path)
+                file_path=self._make_relative_path(export_json_path)
             ))
             return result
 
@@ -209,18 +235,61 @@ class SFDMUValidator:
         object_configs = self._parse_object_configs(export_data)
         result.objects_validated = len(object_configs)
 
+        # Find per-pass CSV overrides
+        objectset_source_overrides = self._find_objectset_source_overrides(dataset_path, export_data)
+
         # Apply fixes if requested (before validation)
         if self.fix_headers or self.fix_composite_keys:
             self.log(f"\n{'='*60}")
             self.log(f"Applying fixes to: {dataset_name}")
             self.log(f"{'='*60}")
             headers_fixed, composite_keys_fixed = self.fix_dataset_issues(dataset_path, object_configs)
+
+            # Also fix per-pass CSVs
+            if objectset_source_overrides:
+                self.log(f"Fixing {len(objectset_source_overrides)} per-pass CSV(s)")
+                for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
+                    obj_config = self._get_object_config_for_pass(export_data, obj_name, pass_index)
+                    if obj_config:
+                        # Apply header fix if needed
+                        if self.fix_headers and self._is_csv_empty(csv_path):
+                            headers = obj_config.get("fields", [])
+                            if self._fix_empty_csv_header(csv_path, headers, obj_name):
+                                headers_fixed += 1
+
+                        # Apply composite key fix if needed
+                        if self.fix_composite_keys and not self._is_csv_empty(csv_path):
+                            external_id = obj_config.get("externalId", "")
+                            if ";" in external_id and not external_id.startswith("$$"):
+                                fields = [f.strip() for f in external_id.split(";")]
+                                composite_col_name = self._build_composite_key_column_name(fields)
+
+                                # Check if column is missing using helper method
+                                if self._csv_missing_composite_key(csv_path, composite_col_name):
+                                    if self._fix_missing_composite_key(csv_path, fields, obj_name):
+                                        composite_keys_fixed += 1
+
             if headers_fixed > 0 or composite_keys_fixed > 0:
                 print(f"\n  Fixed {headers_fixed} header(s) and {composite_keys_fixed} composite key column(s)")
 
         # Validate each object's CSV and composite key configuration
         for obj_name, obj_config in object_configs.items():
             self._validate_object(dataset_path, obj_name, obj_config, result)
+
+        # Validate per-pass CSV overrides
+        if objectset_source_overrides:
+            self.log(f"\nValidating {len(objectset_source_overrides)} per-pass CSV override(s)")
+            for (obj_name, pass_index), (csv_path, _) in objectset_source_overrides.items():
+                obj_config = self._get_object_config_for_pass(export_data, obj_name, pass_index)
+                if obj_config:
+                    self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
+                else:
+                    result.add_issue(Issue(
+                        severity=Severity.HIGH,
+                        object_name=obj_name,
+                        message=f"Per-pass CSV found but no matching object in pass {pass_index + 1}",
+                        file_path=self._make_relative_path(csv_path)
+                    ))
 
         self.log(f"\nValidation complete for {dataset_name}")
         self.log(f"Objects validated: {result.objects_validated}")
@@ -248,7 +317,7 @@ class SFDMUValidator:
                 severity=Severity.CRITICAL,
                 object_name="N/A",
                 message=f"Invalid JSON: {e}",
-                file_path=str(export_json_path),
+                file_path=self._make_relative_path(export_json_path),
                 line_number=getattr(e, 'lineno', None)
             ))
             return None
@@ -257,7 +326,7 @@ class SFDMUValidator:
                 severity=Severity.CRITICAL,
                 object_name="N/A",
                 message=f"Error reading export.json: {e}",
-                file_path=str(export_json_path)
+                file_path=self._make_relative_path(export_json_path)
             ))
             return None
 
@@ -267,7 +336,7 @@ class SFDMUValidator:
                 severity=Severity.HIGH,
                 object_name="N/A",
                 message="Missing 'apiVersion' field in export.json",
-                file_path=str(export_json_path)
+                file_path=self._make_relative_path(export_json_path)
             ))
 
         # Must have either objects or objectSets
@@ -279,11 +348,11 @@ class SFDMUValidator:
                 severity=Severity.CRITICAL,
                 object_name="N/A",
                 message="export.json must have either 'objects' or 'objectSets' array",
-                file_path=str(export_json_path)
+                file_path=self._make_relative_path(export_json_path)
             ))
             return None
 
-        self.log(f"export.json structure valid, contains {len(data.get('objects', [])) + sum(len(os.get('objects', [])) for os in data.get('objectSets', []))} object configurations")
+        self.log(f"export.json structure valid, contains {len(data.get('objects', [])) + sum(len(obj_set.get('objects', [])) for obj_set in data.get('objectSets', []))} object configurations")
 
         return data
 
@@ -355,6 +424,108 @@ class SFDMUValidator:
         # Split by comma, strip whitespace
         fields = [f.strip() for f in fields_str.split(',')]
         return fields
+
+    def _find_objectset_source_overrides(self, dataset_path: Path, export_data: dict) -> Dict[Tuple[str, int], Tuple[Path, int]]:
+        """Find per-pass CSV overrides in objectset_source/object-set-N/.
+
+        Args:
+            dataset_path: Path to dataset directory
+            export_data: Parsed export.json data
+
+        Returns:
+            Dictionary mapping (object_name, pass_index) -> (csv_path, pass_index)
+            Example: {("BillingTreatmentItem", 1): (Path(".../object-set-2/BillingTreatmentItem.csv"), 1)}
+        """
+        overrides = {}
+        objectset_source_dir = dataset_path / "objectset_source"
+
+        if not objectset_source_dir.exists():
+            return overrides
+
+        # Find all object-set-N directories
+        for obj_set_dir in sorted(objectset_source_dir.glob("object-set-*")):
+            if not obj_set_dir.is_dir():
+                continue
+
+            # Extract pass number from directory name (object-set-2 -> pass_index 1)
+            match = re.match(r"object-set-(\d+)", obj_set_dir.name)
+            if not match:
+                continue
+
+            pass_number = int(match.group(1))  # 1-based
+            pass_index = pass_number - 1  # Convert to 0-based index for objectSets array
+
+            # Check if this pass exists in export.json
+            object_sets = export_data.get("objectSets", [])
+            if pass_index >= len(object_sets):
+                self.log(f"Warning: {obj_set_dir.name} has no corresponding pass in export.json", level="WARN")
+                continue
+
+            # Find all CSVs in this directory
+            for csv_path in obj_set_dir.glob("*.csv"):
+                obj_name = csv_path.stem  # Remove .csv extension
+                overrides[(obj_name, pass_index)] = (csv_path, pass_index)
+                self.log(f"Found override: {obj_name} in pass {pass_number} (index {pass_index})", level="DEBUG")
+
+        return overrides
+
+    def _get_object_config_for_pass(self, export_data: dict, obj_name: str, pass_index: int) -> Optional[dict]:
+        """Get object configuration for a specific pass.
+
+        Args:
+            export_data: Parsed export.json data
+            obj_name: Object API name
+            pass_index: 0-based pass index
+
+        Returns:
+            Object configuration dict, or None if not found
+        """
+        object_sets = export_data.get("objectSets", [])
+        if pass_index >= len(object_sets):
+            return None
+
+        for obj in object_sets[pass_index].get("objects", []):
+            query = obj.get("query", "")
+            if self._extract_object_name(query) == obj_name:
+                # Parse the config similar to _parse_object_configs
+                return {
+                    "pass_index": pass_index,
+                    "operation": obj.get("operation", "Upsert"),
+                    "externalId": obj.get("externalId", "Id"),
+                    "query": query,
+                    "fields": self._parse_select_fields(query),
+                    "excluded": obj.get("excluded", False),
+                    "deleteOldData": obj.get("deleteOldData", False),
+                    "skipExistingRecords": obj.get("skipExistingRecords", False),
+                }
+
+        return None
+
+    def _validate_per_pass_csv(self, csv_path: Path, obj_name: str, pass_index: int,
+                               obj_config: dict, result: ValidationResult):
+        """Validate a per-pass CSV override in objectset_source/object-set-N/.
+
+        Args:
+            csv_path: Path to the CSV file
+            obj_name: Object API name
+            pass_index: 0-based pass index
+            obj_config: Object configuration for this pass
+            result: ValidationResult to add issues to
+        """
+        pass_name = f"Pass {pass_index + 1}"
+        self.log(f"\nValidating {pass_name} override: {obj_name} ({csv_path.name})", level="DEBUG")
+
+        # Skip excluded objects
+        if obj_config.get("excluded"):
+            self.log(f"  Skipping excluded object in {pass_name}: {obj_name}", level="DEBUG")
+            return
+
+        # Validate externalId format (reuse existing method)
+        external_id = obj_config.get("externalId", "")
+        self._validate_external_id(obj_name, external_id, obj_config, result)
+
+        # Validate CSV file with pass context
+        self._validate_csv_file(csv_path, obj_name, obj_config, result, pass_index=pass_index)
 
     def _validate_object(self, dataset_path: Path, obj_name: str, obj_config: dict, result: ValidationResult):
         """Validate a single object's CSV and configuration.
@@ -442,7 +613,7 @@ class SFDMUValidator:
                             message=f"externalId component '{field}' not found in query SELECT clause"
                         ))
 
-    def _validate_csv_file(self, csv_path: Path, obj_name: str, obj_config: dict, result: ValidationResult):
+    def _validate_csv_file(self, csv_path: Path, obj_name: str, obj_config: dict, result: ValidationResult, pass_index: Optional[int] = None):
         """Validate CSV file existence, headers, and composite key columns.
 
         Args:
@@ -450,14 +621,18 @@ class SFDMUValidator:
             obj_name: Object API name
             obj_config: Object configuration
             result: ValidationResult to add issues to
+            pass_index: Optional 0-based pass index for per-pass CSV context
         """
+        # Create pass prefix for issue messages
+        pass_prefix = f"Pass {pass_index + 1}: " if pass_index is not None else ""
+
         # Check if CSV file exists
         if not csv_path.exists():
             result.add_issue(Issue(
                 severity=Severity.CRITICAL,
                 object_name=obj_name,
-                message=f"CSV file not found: {csv_path.name}",
-                file_path=str(csv_path)
+                message=f"{pass_prefix}CSV file not found: {csv_path.name}",
+                file_path=self._make_relative_path(csv_path)
             ))
             return
 
@@ -473,15 +648,15 @@ class SFDMUValidator:
                         result.add_issue(Issue(
                             severity=Severity.HIGH,
                             object_name=obj_name,
-                            message=f"CSV file is completely empty (no header row). Add header row with fields from query.",
-                            file_path=str(csv_path)
+                            message=f"{pass_prefix}CSV file is completely empty (no header row). Add header row with fields from query.",
+                            file_path=self._make_relative_path(csv_path)
                         ))
                     else:
                         result.add_issue(Issue(
                             severity=Severity.CRITICAL,
                             object_name=obj_name,
-                            message=f"CSV file is completely empty (no header row)",
-                            file_path=str(csv_path)
+                            message=f"{pass_prefix}CSV file is completely empty (no header row)",
+                            file_path=self._make_relative_path(csv_path)
                         ))
                     return
 
@@ -507,8 +682,8 @@ class SFDMUValidator:
                         result.add_issue(Issue(
                             severity=Severity.HIGH,
                             object_name=obj_name,
-                            message=f"CSV missing composite key column '{expected_composite_col}' for externalId '{external_id}'. This will break re-import idempotency in SFDMU v5.",
-                            file_path=str(csv_path)
+                            message=f"{pass_prefix}CSV missing composite key column '{expected_composite_col}' for externalId '{external_id}'. This will break re-import idempotency in SFDMU v5.",
+                            file_path=self._make_relative_path(csv_path)
                         ))
                     else:
                         self.log(f"  Composite key column '{expected_composite_col}' found", level="DEBUG")
@@ -517,8 +692,8 @@ class SFDMUValidator:
             result.add_issue(Issue(
                 severity=Severity.HIGH,
                 object_name=obj_name,
-                message=f"Error reading CSV: {e}",
-                file_path=str(csv_path)
+                message=f"{pass_prefix}Error reading CSV: {type(e).__name__}: {e}",
+                file_path=self._make_relative_path(csv_path)
             ))
 
     def _normalize_header(self, header: str) -> str:
@@ -533,8 +708,8 @@ class SFDMUValidator:
         if not header:
             return header
 
-        # Strip BOM, whitespace
-        h = header.strip().lstrip("\ufeff").strip()
+        # Strip BOM and whitespace
+        h = header.lstrip("\ufeff").strip()
 
         # Strip surrounding quotes
         if len(h) >= 2 and h[0] == '"' and h[-1] == '"':
@@ -566,6 +741,25 @@ class SFDMUValidator:
         except Exception:
             return False
 
+    def _csv_missing_composite_key(self, csv_path: Path, composite_col_name: str) -> bool:
+        """Check if CSV is missing the composite key column.
+
+        Args:
+            csv_path: Path to CSV file
+            composite_col_name: Name of composite key column to check
+
+        Returns:
+            True if column is missing, False if present or on error
+        """
+        try:
+            with open(csv_path, 'r', encoding='utf-8-sig', newline='') as f:
+                reader = csv.reader(f)
+                headers = next(reader, [])
+                normalized_headers = [self._normalize_header(h) for h in headers]
+                return composite_col_name not in normalized_headers
+        except Exception:
+            return False
+
     def _fix_empty_csv_header(self, csv_path: Path, headers: List[str], obj_name: str) -> bool:
         """Add header row to an empty CSV file.
 
@@ -592,8 +786,11 @@ class SFDMUValidator:
             print(f"  ✅ Added header to: {csv_path.name} ({len(headers)} columns)")
             self.fixes_applied["headers"] += 1
             return True
+        except PermissionError:
+            print(f"  ❌ Permission denied writing {csv_path.name}", file=sys.stderr)
+            return False
         except Exception as e:
-            print(f"  ❌ Error writing {csv_path.name}: {e}", file=sys.stderr)
+            print(f"  ❌ Error writing {csv_path.name}: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
     def _build_composite_key_column_name(self, fields: List[str]) -> str:
@@ -642,8 +839,11 @@ class SFDMUValidator:
                 reader = csv.DictReader(f)
                 headers = list(reader.fieldnames) if reader.fieldnames else []
                 rows = list(reader)
+        except PermissionError:
+            print(f"  ❌ Permission denied reading {csv_path.name}", file=sys.stderr)
+            return False
         except Exception as e:
-            print(f"  ❌ Error reading {csv_path.name}: {e}", file=sys.stderr)
+            print(f"  ❌ Error reading {csv_path.name}: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
         if not headers:
@@ -683,8 +883,11 @@ class SFDMUValidator:
             print(f"  ✅ Added composite key column to: {csv_path.name} ({len(new_rows)} rows)")
             self.fixes_applied["composite_keys"] += 1
             return True
+        except PermissionError:
+            print(f"  ❌ Permission denied writing {csv_path.name}", file=sys.stderr)
+            return False
         except Exception as e:
-            print(f"  ❌ Error writing {csv_path.name}: {e}", file=sys.stderr)
+            print(f"  ❌ Error writing {csv_path.name}: {type(e).__name__}: {e}", file=sys.stderr)
             return False
 
     def fix_dataset_issues(self, dataset_path: Path, object_configs: Dict[str, dict]) -> Tuple[int, int]:
@@ -721,18 +924,10 @@ class SFDMUValidator:
                     fields = [f.strip() for f in external_id.split(";")]
                     composite_col_name = self._build_composite_key_column_name(fields)
 
-                    # Check if column is missing
-                    try:
-                        with open(csv_path, 'r', encoding='utf-8-sig', newline='') as f:
-                            reader = csv.reader(f)
-                            headers = next(reader, [])
-                            normalized_headers = [self._normalize_header(h) for h in headers]
-
-                            if composite_col_name not in normalized_headers:
-                                if self._fix_missing_composite_key(csv_path, fields, obj_name):
-                                    composite_keys_fixed += 1
-                    except Exception:
-                        pass
+                    # Check if column is missing using helper method
+                    if self._csv_missing_composite_key(csv_path, composite_col_name):
+                        if self._fix_missing_composite_key(csv_path, fields, obj_name):
+                            composite_keys_fixed += 1
 
         return headers_fixed, composite_keys_fixed
 
@@ -777,6 +972,7 @@ class SFDMUValidator:
         for result in results:
             status = "✅ PASS" if result.passed else "❌ FAIL"
             lines.append(f"### {status} {result.dataset_name}\n")
+            # Dataset path is already stored as relative, use as-is
             lines.append(f"- **Path:** `{result.dataset_path}`")
             lines.append(f"- **Objects validated:** {result.objects_validated}")
             lines.append(f"- **Issues found:** {len(result.issues)}\n")
@@ -788,6 +984,7 @@ class SFDMUValidator:
                     if severity_issues:
                         lines.append(f"#### {severity.value} Issues ({len(severity_issues)})\n")
                         for issue in severity_issues:
+                            # File path is already stored as relative, use as-is
                             location = f" ({issue.file_path})" if issue.file_path else ""
                             lines.append(f"- **{issue.object_name}**: {issue.message}{location}")
                         lines.append("")
@@ -820,7 +1017,7 @@ Examples:
     parser.add_argument(
         "--dataset",
         type=str,
-        help="Path to a single dataset directory (default: validate all SFDMU datasets)"
+        help="Path to a dataset directory or parent directory (recursively finds all datasets within)"
     )
     parser.add_argument(
         "--strict",
@@ -883,10 +1080,29 @@ Examples:
         dataset_path = Path(args.dataset)
         if not dataset_path.is_absolute():
             dataset_path = base_dir / dataset_path
-        datasets = [dataset_path] if dataset_path.exists() else []
-        if not datasets:
-            print(f"Error: Dataset not found: {args.dataset}", file=sys.stderr)
+
+        if not dataset_path.exists():
+            print(f"Error: Dataset path not found: {args.dataset}", file=sys.stderr)
             return 1
+
+        # Check if this is a single dataset or a parent directory
+        if (dataset_path / "export.json").exists():
+            # Single dataset
+            datasets = [dataset_path]
+        else:
+            # Parent directory - find all datasets recursively
+            datasets = []
+            for export_json in dataset_path.rglob("export.json"):
+                dataset_dir = export_json.parent
+                # Skip if it's in a subdirectory like objectset_source or processed
+                if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+                    continue
+                datasets.append(dataset_dir)
+            datasets = sorted(datasets)
+
+            if not datasets:
+                print(f"Error: No SFDMU datasets found in: {args.dataset}", file=sys.stderr)
+                return 1
     else:
         datasets = validator.find_sfdmu_datasets()
         if not datasets:
