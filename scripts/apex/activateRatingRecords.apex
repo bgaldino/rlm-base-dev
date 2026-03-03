@@ -214,8 +214,23 @@ if (candidatePairKeys.isEmpty()) {
             }
         }
         if (!purToDelete.isEmpty()) {
-            delete purToDelete;
-            System.debug('Deleted ' + purToDelete.size() + ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
+            Database.DeleteResult[] deleteResults = Database.delete(purToDelete, false);
+            Integer deletedCount = 0;
+            for (Integer i = 0; i < deleteResults.size(); i++) {
+                if (deleteResults[i].isSuccess()) {
+                    deletedCount++;
+                } else {
+                    for (Database.Error err : deleteResults[i].getErrors()) {
+                        System.debug(LoggingLevel.ERROR,
+                            'Step 2.5: failed to delete duplicate Draft PUR ' +
+                            purToDelete[i].Id + ' (Status=' + purToDelete[i].Status + '): ' +
+                            err.getMessage()
+                        );
+                    }
+                }
+            }
+            System.debug('Deleted ' + deletedCount + '/' + purToDelete.size() +
+                ' duplicate Draft PUR(s) with no PUG/PURP children (effective period overlap).');
         } else {
             // Overlapping PURs were detected but none could be auto-deleted: either the
             // overlap involves Active PURs or Draft PURs that have PUG/PURP children.
