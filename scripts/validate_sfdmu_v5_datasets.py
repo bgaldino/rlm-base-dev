@@ -602,16 +602,16 @@ class SFDMUValidator:
         if ";" in external_id:
             query_fields = set(obj_config.get("fields", []))
             for field in fields:
-                # Check if the field or its base is in the query
+                # Require that each externalId component is explicitly present in the query
                 if field not in query_fields:
-                    # For relationship fields like Parent.Name, check if it's in query
-                    base_match = any(qf.startswith(field.split(".")[0]) for qf in query_fields)
-                    if not base_match:
-                        result.add_issue(Issue(
-                            severity=Severity.HIGH,
-                            object_name=obj_name,
-                            message=f"externalId component '{field}' not found in query SELECT clause"
-                        ))
+                    # For relationship fields like Parent.Name, require an exact match in the
+                    # SELECT clause to avoid incorrectly treating similarly prefixed fields
+                    # (e.g., ParentId) as satisfying the externalId component.
+                    result.add_issue(Issue(
+                        severity=Severity.HIGH,
+                        object_name=obj_name,
+                        message=f"externalId component '{field}' not found in query SELECT clause"
+                    ))
 
     def _validate_csv_file(self, csv_path: Path, obj_name: str, obj_config: dict, result: ValidationResult, pass_index: Optional[int] = None):
         """Validate CSV file existence, headers, and composite key columns.
