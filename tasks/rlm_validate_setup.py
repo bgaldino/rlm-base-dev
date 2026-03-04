@@ -3,10 +3,13 @@ CumulusCI task to validate the local developer setup for rlm-base-dev.
 
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, selenium, SeleniumLibrary,
-webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3). Optionally
+webdriver-manager, Chrome/Chromium 109+, ChromeDriver, urllib3). Optionally
 auto-fixes an outdated or missing SFDMU plugin (auto_fix), robot
 dependencies via pipx inject (auto_fix_robot, on by default), and urllib3
 via pipx inject (auto_fix_urllib3, off by default).
+
+Chrome/Chromium version 109+ (December 2022) is required for the --headless=new flag
+used by Robot Framework setup tasks (enable_document_builder_toggle, etc.).
 
 Run without an org:
     cci task run validate_setup
@@ -42,6 +45,8 @@ MIN_URLLIB3: Tuple[int, ...] = (2, 6, 3)
 MIN_URLLIB3_STR: str = "2.6.3"
 MIN_SELENIUM: Tuple[int, ...] = (4, 10)
 MIN_SELENIUM_STR: str = "4.10"
+MIN_CHROME: Tuple[int, ...] = (109, 0, 0)
+MIN_CHROME_STR: str = "109.0"
 
 # ── status tokens ────────────────────────────────────────────────────────────
 PASS = "PASS"
@@ -376,33 +381,65 @@ class ValidateSetup(BaseTask):
             )
 
     def _check_chrome_chromium(self) -> Dict[str, str]:
-        """Check for Chrome or Chromium browser (required for headless robot tasks)."""
+        """Check for Chrome or Chromium browser (required for headless robot tasks).
+
+        Requires Chrome/Chromium 109+ (December 2022) for --headless=new flag used
+        by Robot Framework setup tasks.
+        """
         label = "Chrome/Chromium"
+        chrome_path = None
+
         # Check CHROME_BIN env (used in CI/Docker)
         env_bin = os.environ.get("CHROME_BIN")
         if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
-            return self._ok(label, env_bin)
+            chrome_path = env_bin
+
         # Common paths
-        candidates = [
-            "/usr/bin/google-chrome",
-            "/usr/bin/chromium",
-            "/usr/bin/chromium-browser",
-            "/usr/bin/chrome",
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        ]
-        for path in candidates:
-            if os.path.isfile(path) and os.access(path, os.X_OK):
-                return self._ok(label, path)
+        if not chrome_path:
+            candidates = [
+                "/usr/bin/google-chrome",
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser",
+                "/usr/bin/chrome",
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            ]
+            for path in candidates:
+                if os.path.isfile(path) and os.access(path, os.X_OK):
+                    chrome_path = path
+                    break
+
         # Try PATH
-        for name in ("google-chrome", "chromium", "chromium-browser", "chrome"):
-            found = shutil.which(name)
-            if found:
-                return self._ok(label, found)
-        return self._fail(
+        if not chrome_path:
+            for name in ("google-chrome", "chromium", "chromium-browser", "chrome"):
+                found = shutil.which(name)
+                if found:
+                    chrome_path = found
+                    break
+
+        if not chrome_path:
+            return self._fail(
+                label,
+                f"not found — required for all robot tasks (headless mode via --headless=new).\n"
+                f"  Requires version {MIN_CHROME_STR}+ for --headless=new flag.\n"
+                "  Install (macOS): brew install --cask google-chrome\n"
+                "  Or (Linux): install your distribution's chromium or google-chrome package",
+            )
+
+        # Check version
+        chrome_version = self._get_chrome_version(chrome_path)
+        if chrome_version is None:
+            # Found but couldn't get version
+            return self._ok(label, f"{chrome_path} (version check failed)")
+
+        ver_tuple = _parse_version(chrome_version)
+        if ver_tuple >= MIN_CHROME:
+            return self._ok(label, f"{chrome_version} at {chrome_path}")
+
+        return self._warn(
             label,
-            "not found — Chrome or Chromium is required for all robot tasks (headless mode via --headless=new).\n"
-            "  Install (macOS): brew install --cask google-chrome\n"
-            "  Or (Linux): install your distribution's chromium or google-chrome package",
+            f"{chrome_version} at {chrome_path} — requires {MIN_CHROME_STR}+ for --headless=new flag.\n"
+            f"  Upgrade Chrome/Chromium to version {MIN_CHROME_STR} or later.\n"
+            "  Robot Framework setup tasks may fail with 'Unrecognized option: --headless=new' on older versions.",
         )
 
     def _check_chromedriver(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -558,6 +595,31 @@ class ValidateSetup(BaseTask):
         except Exception as exc:
             self.logger.error(f"[Robot] pipx inject failed: {exc}")
             return False
+
+    # ── Chrome/Chromium helpers ───────────────────────────────────────────────
+
+    def _get_chrome_version(self, chrome_path: str) -> Optional[str]:
+        """Extract Chrome/Chromium version from the binary.
+
+        Returns version string like "109.0.5414.87" or None if unable to determine.
+        """
+        try:
+            result = subprocess.run(
+                [chrome_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                # Output typically: "Google Chrome 109.0.5414.87" or "Chromium 109.0.5414.87"
+                output = result.stdout.strip()
+                # Extract version number (major.minor.build.patch)
+                match = re.search(r"(\d+\.\d+\.\d+(?:\.\d+)?)", output)
+                if match:
+                    return match.group(1)
+        except Exception:
+            pass
+        return None
 
     # ── SFDMU helpers ─────────────────────────────────────────────────────────
 

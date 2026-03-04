@@ -11,6 +11,10 @@ Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 # Default timeout for waiting for setup page and toggle elements
 ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
+# Run browser headless (default True for CI). Set HEADLESS:false for visible browser when debugging.
+${HEADLESS}                   ${True}
+# JavaScript function for finding elements in shadow DOM (reusable across keywords)
+${FIND_IN_SHADOWS_JS}         function findInShadows(root) { var el = root.querySelector("input[name=documentBuilderEnabled]"); if (el) return el; var list = root.querySelectorAll("*"); for (var i = 0; i < list.length; i++) { if (list[i].shadowRoot) { var r = findInShadows(list[i].shadowRoot); if (r) return r; } } return null; }
 
 *** Keywords ***
 Get Authenticated Setup Page Url
@@ -89,11 +93,9 @@ Disable Toggle By Label
 
 _VerifyToggleState By Label
     [Documentation]    Fails if the toggle for the given label is not in the expected on/off state.
-    ...    For Document Builder, uses section-text verification (lenient warning).
-    ...    For other toggles, tries aria-checked/checked first, then falls back to
-    ...    JavaScript shadow-DOM inspection when attributes are inaccessible.
+    ...    Uses JavaScript shadow-DOM inspection when XPath/attributes are inaccessible (Document Builder, etc.).
     [Arguments]    ${label}    ${expected_on}=True
-    Run Keyword If    """${label}""" == "Document Builder"    Run Keywords    _VerifyToggleByEnabledText    ${label}    ${expected_on}    AND    Return From Keyword
+    Run Keyword If    """${label}""" == "Document Builder"    Run Keywords    _VerifyDocumentBuilderViaShadowDOM    ${label}    ${expected_on}    AND    Return From Keyword
     ${toggle_locator}=    _GetToggleLocatorForLabel    ${label}
     ${aria}=    Get Element Attribute    ${toggle_locator}    aria-checked
     ${checked}=    Get Element Attribute    ${toggle_locator}    checked
@@ -110,39 +112,45 @@ _VerifyToggleState By Label
     ...    AND    Fail    msg=Toggle "${label}" was not ${expected_state} (aria-checked=${aria}, checked=${checked}).
 
 _VerifyToggleByEnabledText
-    [Documentation]    When toggle has no aria-checked/checked, look for "Enabled" or "Disabled" text in the section. For Document Builder, wait and retry (UI can update after JS click).
+    [Documentation]    Fallback: when shadow DOM verify fails, look for "Enabled" or "Disabled" text in the section (XPath; may fail for shadow DOM).
     [Arguments]    ${label}    ${expected_on}
     ${section}=    Set Variable    xpath=//*[normalize-space(.)='${label}']/ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]
-    Run Keyword If    """${label}""" == "Document Builder" and ${expected_on}    _VerifyDocumentBuilderEnabled    ${section}    ${label}
-    Run Keyword If    """${label}""" != "Document Builder" or not ${expected_on}    _VerifyToggleByEnabledTextOneCheck    ${label}    ${expected_on}    ${section}
+    _VerifyToggleByEnabledTextOneCheck    ${label}    ${expected_on}    ${section}
 
 _VerifyToggleByEnabledTextOneCheck
     [Arguments]    ${label}    ${expected_on}    ${section}
     ${section_text}=    Get Text    ${section}
     ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
     Run Keyword If    ${expected_on} and ${has_enabled}    Log    Toggle "${label}" verified ON via section text.
-    # Document Builder gets a lenient warning; all other toggles fail strictly
-    Run Keyword If    ${expected_on} and not ${has_enabled} and """${label}""" == "Document Builder"    Run Keywords
-    ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
-    ...    AND    Log    WARNING: Toggle "${label}" section still shows Disabled after click. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
-    Run Keyword If    ${expected_on} and not ${has_enabled} and """${label}""" != "Document Builder"    Run Keywords
+    Run Keyword If    ${expected_on} and not ${has_enabled}    Run Keywords
     ...    Capture Page Screenshot    filename=toggle_verification_failed_${label}.png
     ...    AND    Fail    msg=Toggle "${label}" section still shows Disabled after click. The toggle was not enabled.
     ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
     Run Keyword If    not ${expected_on} and not ${has_disabled}    Fail    msg=Toggle "${label}" section does not show "Disabled" after turning off.
 
-_VerifyDocumentBuilderEnabled
-    [Arguments]    ${section}    ${label}
-    ${ok}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    6s    2s    _SectionShouldContainEnabled    ${section}
-    Run Keyword If    ${ok}    Log    Toggle "${label}" verified ON via section text.
-    Run Keyword If    not ${ok}    Run Keywords
-    ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
-    ...    AND    Log    WARNING: Toggle "${label}" section still shows Disabled after click. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
-
-_SectionShouldContainEnabled
-    [Arguments]    ${section}
-    ${section_text}=    Get Text    ${section}
-    Should Contain    ${section_text}    Enabled
+_VerifyDocumentBuilderViaShadowDOM
+    [Documentation]    Verifies Document Builder toggle state via JS findInShadows (no XPath; element is in shadow DOM).
+    [Arguments]    ${label}    ${expected_on}=True
+    ${state}=    Execute Javascript
+    ...    return (function() {
+    ...        ${FIND_IN_SHADOWS_JS}
+    ...        var el = document.querySelector("input[name=documentBuilderEnabled]") || findInShadows(document.body);
+    ...        if (!el) return 'not_found';
+    ...        return el.checked ? 'on' : 'off';
+    ...    })()
+    Log    Document Builder shadow DOM verify: state=${state}, expected_on=${expected_on}
+    IF    "${state}" == "on" and ${expected_on}
+        Log    Toggle "${label}" verified ON via shadow DOM.
+    ELSE IF    "${state}" == "off" and not ${expected_on}
+        Log    Toggle "${label}" verified OFF via shadow DOM.
+    ELSE IF    "${state}" == "on" or "${state}" == "off"
+        ${expected_state}=    Set Variable If    ${expected_on}    ON    OFF
+        Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
+        Fail    msg=Toggle "${label}" is ${state} but expected ${expected_state} (shadow DOM verification).
+    ELSE
+        Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
+        Log    WARNING: Could not verify Document Builder via shadow DOM (result: ${state}). If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+    END
 
 _VerifyToggleViaShadowDOM
     [Documentation]    Verify toggle state by piercing shadow DOM via JavaScript.
@@ -193,10 +201,8 @@ _VerifyToggleViaShadowDOM
 _GetToggleLocatorForLabel
     [Documentation]    Returns a locator for the toggle control (switch or checkbox) in the row/section that contains the label.
     [Arguments]    ${label}
-    # Strategy 0: Revenue Settings uses input name="documentBuilderEnabled" for the Document Builder toggle (lightning-primitive-input-toggle). Target it directly.
-    ${doc_builder_css}=    Set Variable    css:input[name=documentBuilderEnabled]
-    ${found}=    Run Keyword And Return Status    Get WebElement    ${doc_builder_css}
-    Return From Keyword If    ${found} and """${label}""" == "Document Builder"    ${doc_builder_css}
+    # Strategy 0: Document Builder uses input name="documentBuilderEnabled" (often in shadow DOM). Return this locator for fallback; JS path in _EnsureShadowDOMToggle handles the actual toggle.
+    Return From Keyword If    """${label}""" == "Document Builder"    css:input[name=documentBuilderEnabled]
     # Strategy 1: First switch/input that follows the exact title in document order (same row on Revenue Settings).
     ${following_switch}=    Set Variable    xpath=(//*[normalize-space(.)='${label}']/following::*[@role='switch'])[1]
     ${found}=    Run Keyword And Return Status    Get WebElement    ${following_switch}
@@ -240,14 +246,15 @@ _GetToggleLocatorForLabel
     RETURN    ${fallback2}
 
 _EnsureToggleByLabel
-    [Documentation]    Clicks the toggle for the label only if current state does not match desired state (turn_on True/False). For Document Builder the toggle input is in shadow DOM so aria-checked/checked are inaccessible; we use section text ("Enabled"/"Disabled") to detect current state.
+    [Documentation]    Clicks the toggle for the label only if current state does not match desired state (turn_on True/False). Uses JS shadow-DOM piercing when XPath cannot find the element (LWC toggles).
     [Arguments]    ${label}    ${turn_on}=True
-    # For Document Builder, detect state via section text (shadow DOM hides attrs)
-    Run Keyword If    """${label}""" == "Document Builder"    _EnsureDocumentBuilderToggle    ${turn_on}
-    Run Keyword If    """${label}""" == "Document Builder"    Return From Keyword
-    # For other toggles, use aria-checked / checked attributes
     ${toggle_locator}=    _GetToggleLocatorForLabel    ${label}
-    Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${toggle_locator}
+    # Try XPath/locator first; if element is in shadow DOM, fall back to JS-based _EnsureShadowDOMToggle
+    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    5s    1s    Get WebElement    ${toggle_locator}
+    Run Keyword If    not ${found}    Run Keywords
+    ...    Log    Toggle "${label}" not found via locator (likely in shadow DOM). Using JS shadow-DOM path.
+    ...    AND    _EnsureShadowDOMToggle    ${label}    ${toggle_locator}    ${turn_on}
+    ...    AND    Return From Keyword
     Scroll Element Into View    ${toggle_locator}
     Wait Until Element Is Visible    ${toggle_locator}    timeout=10s
     ${aria}=    Get Element Attribute    ${toggle_locator}    aria-checked
@@ -266,34 +273,23 @@ _EnsureToggleByLabel
     Run Keyword If    ${turn_on} and not ${is_on}    Sleep    2s    reason=Allow toggle to update
     Run Keyword If    not ${turn_on} and ${is_on}    Sleep    1s    reason=Allow toggle to update
 
-_EnsureDocumentBuilderToggle
-    [Documentation]    For Document Builder: check section text to see if already Enabled/Disabled, then click ONCE via JS only if needed. Avoids the multiple-click problem that toggles it back off.
-    [Arguments]    ${turn_on}=True
-    ${section}=    Set Variable    xpath=//*[normalize-space(.)='Document Builder']/ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]
-    Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${section}
-    Sleep    1s    reason=Allow section to render
-    ${section_text}=    Get Text    ${section}
-    ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
-    ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
-    # Already in desired state -- do nothing
-    Run Keyword If    ${turn_on} and ${has_enabled}    Log    Document Builder is already Enabled. No click needed.
-    Return From Keyword If    ${turn_on} and ${has_enabled}
-    Run Keyword If    not ${turn_on} and ${has_disabled}    Log    Document Builder is already Disabled. No click needed.
-    Return From Keyword If    not ${turn_on} and ${has_disabled}
-    # Need to toggle -- click exactly once via JS (pierces shadow DOM)
-    Log    Document Builder is currently ${{" Enabled" if ${has_enabled} else "Disabled"}}. Clicking once to toggle.
-    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
-    Sleep    3s    reason=Allow toggle state to update after JS click
-
 _EnsureShadowDOMToggle
     [Documentation]    For LWC shadow-DOM toggles where aria-checked/checked are inaccessible.
-    ...    Uses pure JavaScript to find the label heading, walk up to the nearest
-    ...    ancestor that contains a lightning-input toggle, pierce its shadow root,
-    ...    check the input's checked state, and click only if needed.
-    ...    This avoids XPath-based section scoping which cannot see into shadow DOM.
+    ...    Uses pure JavaScript to find and click toggles. For Document Builder, uses findInShadows
+    ...    to locate input[name=documentBuilderEnabled]. For other toggles, uses TreeWalker to find
+    ...    the label and lightning-input in the section. This avoids XPath which cannot see into shadow DOM.
     [Arguments]    ${label}    ${toggle_locator}    ${turn_on}=True
     ${result}=    Execute Javascript
     ...    return (function(label, shouldEnable) {
+    ...        ${FIND_IN_SHADOWS_JS}
+    ...        if (label === "Document Builder") {
+    ...            var docEl = document.querySelector("input[name=documentBuilderEnabled]") || findInShadows(document.body);
+    ...            if (!docEl) return 'toggle_not_found';
+    ...            if (shouldEnable && docEl.checked) return 'already_enabled';
+    ...            if (!shouldEnable && !docEl.checked) return 'already_disabled';
+    ...            docEl.click();
+    ...            return 'clicked';
+    ...        }
     ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     ...        var headingEl = null;
     ...        while (walker.nextNode()) {
@@ -348,7 +344,7 @@ _ClickToggleElement
 
 *** Keywords ***
 Open Browser For Setup
-    [Documentation]    Opens a browser (Chrome by default). If webdriver-manager is installed it manages ChromeDriver automatically; otherwise falls back to the system ChromeDriver on PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
+    [Documentation]    Opens a browser (Chrome by default). If webdriver-manager is installed it manages ChromeDriver automatically; otherwise falls back to the system ChromeDriver on PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox). Set \${HEADLESS} to false for visible browser when debugging (e.g. robot -v HEADLESS:false ...).
     [Arguments]    ${browser}=chrome
     Run Keyword If    """${browser}""" == "chrome"    _Open Chrome With Managed Driver
     ...    ELSE    Open Browser    about:blank    ${browser}
@@ -362,14 +358,14 @@ _Open Chrome With Managed Driver
 
 _Open Chrome With Explicit Path
     [Arguments]    ${path}
-    ${options}=    Get Headless Chrome Options
+    ${options}=    Get Chrome Options    ${HEADLESS}
     ${service}=    Evaluate    selenium.webdriver.chrome.service.Service(executable_path=$path)    selenium.webdriver.chrome.service
     Create Webdriver    Chrome    service=${service}    options=${options}
     Go To    about:blank
 
 _Open Chrome With Options Fallback
     [Documentation]    Opens Chrome with headless options when no explicit ChromeDriver path is provided.
-    ${options}=    Get Headless Chrome Options
+    ${options}=    Get Chrome Options    ${HEADLESS}
     Create Webdriver    Chrome    options=${options}
     Go To    about:blank
 

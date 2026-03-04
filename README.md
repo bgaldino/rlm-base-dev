@@ -380,10 +380,11 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
      > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.10,<5`. If you have an older selenium installed, `cci task run validate_setup` will detect and auto-upgrade it.
 
-   2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
+   2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium **version 109+** (December 2022) for `--headless=new` flag. (Use `BROWSER=firefox` to run with Firefox instead.)
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`
      - **Linux:** `apt install chromium` (Debian/Ubuntu) or `dnf install chromium` (Fedora)
      - **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`)
+     - **Verify version:** Run `google-chrome --version` or `chromium --version` to confirm version 109 or later
 
    3. **ChromeDriver** — webdriver-manager downloads it automatically at runtime. If webdriver-manager is not installed, ChromeDriver must be on `PATH` or at `/usr/bin/chromedriver` (e.g. `apt install chromium-driver` on Debian/Ubuntu).
 

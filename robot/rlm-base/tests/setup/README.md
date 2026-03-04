@@ -15,7 +15,7 @@ Robot Framework tests that configure Salesforce Revenue Settings page options th
 Install and verify prerequisites in the **main README**: [Setup for headless robot runs](../../../README.md#setup-for-headless-robot-runs). The main README is the single source of truth for:
 
 - **Python packages:** Robot Framework, SeleniumLibrary, webdriver-manager, urllib3 ≥ 2.6.3
-- **Chrome or Chromium:** Required for headless runs (macOS, Linux, CI install steps in main README)
+- **Chrome or Chromium:** Required for headless runs, version **109+** (December 2022) required for `--headless=new` flag. Check version: `google-chrome --version` or `chromium --version`
 - **ChromeDriver:** Provided by webdriver-manager at runtime, or install on PATH
 - **Salesforce CLI:** For `sf org open --url-only` authenticated sessions
 
@@ -43,6 +43,9 @@ cci flow run prepare_rlm_org --org my-scratch
 # Document Builder
 robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/enable_document_builder.robot
 
+# Debug with visible browser (see page load and element interactions)
+robot -v ORG_ALIAS:my-scratch -v HEADLESS:false robot/rlm-base/tests/setup/enable_document_builder.robot
+
 # Constraints prerequisites
 robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/enable_constraints_settings.robot
 
@@ -61,6 +64,7 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 | `ORG_ALIAS` | **Recommended.** Org username or alias for authenticated browser session via `sf org open --url-only`. |
 | `REVENUE_SETTINGS_URL` | Full URL to Revenue Settings when not using ORG_ALIAS. |
 | `MANUAL_LOGIN_WAIT` | Wait time for manual login if no org alias (default: `90s`). |
+| `HEADLESS` | Run browser headless (default: `true`). Set to `false` for visible browser when debugging (e.g. `robot -v HEADLESS:false ...`). |
 
 ### enable_document_builder.robot
 
@@ -92,10 +96,8 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 
 Many LWC toggles on Setup pages (Constraints Engine, Instant Pricing, Document Templates Export, Design Document Templates, etc.) are inside Lightning Web Component Shadow DOM boundaries, making them inaccessible to standard Selenium XPath locators. The `SetupToggles.robot` resource library handles this in two ways:
 
-1. **`_EnsureShadowDOMToggle`** — Uses pure JavaScript to find the label heading via a text-node tree walker, walks up to the nearest ancestor containing a `lightning-input` toggle, pierces its shadow root, reads the `checked` state, and clicks only if needed. This avoids the cross-section interference caused by XPath `following::*[@role='switch']` which cannot see into shadow roots and may match the wrong toggle.
-2. **`_VerifyToggleViaShadowDOM`** — Uses the same JS approach to verify the toggle's actual `checked` state after clicking, replacing the previous section-text ("Enabled"/"Disabled") heuristic which was unreliable when the section XPath itself couldn't scope correctly.
-
-For Document Builder specifically, a dedicated `_EnsureDocumentBuilderToggle` keyword uses `findInShadows` to locate the `input[name=documentBuilderEnabled]` element.
+1. **`_EnsureShadowDOMToggle`** — Uses pure JavaScript to find and click toggles. For Document Builder, uses `findInShadows` to locate `input[name=documentBuilderEnabled]`. For other toggles, uses a text-node tree walker to find the label, walks up to the nearest ancestor containing a `lightning-input` toggle, pierces its shadow root, reads the `checked` state, and clicks only if needed. When XPath cannot find the element (shadow DOM), the flow falls back to this JS path automatically.
+2. **`_VerifyToggleViaShadowDOM`** and **`_VerifyDocumentBuilderViaShadowDOM`** — Use JS to verify the toggle's actual `checked` state after clicking, avoiding XPath which cannot see into shadow roots.
 
 ### Combobox-Recipe Fields (Pricing, Usage Rating, Asset Context)
 
