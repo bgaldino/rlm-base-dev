@@ -279,6 +279,25 @@ Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>
 
 **Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
 
+### Apex Execution Tasks
+
+| Task Class                      | Module               | Purpose                                              | Use Case                                                                 |
+|---------------------------------|----------------------|------------------------------------------------------|--------------------------------------------------------------------------|
+| `FileBasedAnonymousApexTask`    | `rlm_apex_file.py`   | Execute large Apex scripts without URI limitations  | Fixes HTTP 414 errors for scripts >8KB; fully compatible with `AnonymousApexTask` |
+
+**Why FileBasedAnonymousApexTask?**
+
+CumulusCI's built-in `AnonymousApexTask` uses the Salesforce Tooling API's `executeAnonymous` endpoint with GET requests, which pass Apex code as URI parameters. This hits HTTP 414 URI Too Long errors for scripts exceeding ~8KB.
+
+`FileBasedAnonymousApexTask` solves this by using `sf apex run --file`, which has no practical size limits and can handle scripts >100KB. It maintains full compatibility with all `AnonymousApexTask` options (path, apex, managed, namespaced, param1, param2) while providing:
+
+- No URI length limitations
+- Secure file handling with restricted permissions
+- Comprehensive error handling (compilation/runtime errors)
+- Support for namespace injection and parameter replacement
+
+Currently used by `activate_rating_records` task for the large [activateRatingRecords.apex](scripts/apex/activateRatingRecords.apex) script (382 lines).
+
 ### Metadata Management Tasks
 
 | Task Name | Module | Description | Documentation |
@@ -322,7 +341,7 @@ Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>
 | `activate_billing_records` | `rlm_sfdmu.py` | Activate billing records |
 | `activate_tax_records` | `rlm_sfdmu.py` | Activate tax records |
 | `activate_price_adjustment_schedules` | `rlm_repair_pricing_schedules.py` | Activate price adjustment schedules |
-| `activate_rating_records` | `rlm_sfdmu.py` | Activate rating records |
+| `activate_rating_records` | `rlm_apex_file.py` | Activate rating records (uses file-based Apex execution) |
 | `activate_rates` | `rlm_sfdmu.py` | Activate rates |
 
 ### Data Maintenance Tasks
