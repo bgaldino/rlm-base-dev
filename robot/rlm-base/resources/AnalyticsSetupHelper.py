@@ -225,7 +225,16 @@ class AnalyticsSetupHelper:
             lbl_el = driver.find_element(By.XPATH, f"//*[contains(text(),'{self.TARGET_LABEL}')]")
             lbl_for = lbl_el.get_attribute("for")
             if lbl_for:
-                return driver.find_element(By.ID, lbl_for)
+                try:
+                    return driver.find_element(
+                        By.XPATH,
+                        f"//input[@type='checkbox' and @id='{lbl_for}']",
+                    )
+                except NoSuchElementException:
+                    log(
+                        "Label 'for' attribute did not resolve to a checkbox; "
+                        "falling back to row-based checkbox lookup."
+                    )
             return driver.find_element(
                 By.XPATH,
                 f"//*[contains(text(),'{self.TARGET_LABEL}')]/ancestor::tr[1]//input[@type='checkbox']",
