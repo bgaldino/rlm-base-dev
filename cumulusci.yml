@@ -112,7 +112,7 @@ project:
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
-    analytics: true          # Enable CRM Analytics (enableWaveReplication)
+    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
 
 #------------------------------#

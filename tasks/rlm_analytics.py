@@ -57,7 +57,12 @@ class EnableAnalyticsReplication(BaseTask):
         suite = self.options.get("suite") or DEFAULT_SUITE
         suite_path = repo_root / suite
         if not suite_path.exists():
-            raise FileNotFoundError(f"Robot suite not found: {suite_path}")
+            raise TaskOptionsError(
+                f"Robot suite not found at expected path: {suite_path}. "
+                f"Path is resolved relative to the repo root ({repo_root}). "
+                "Override with the 'suite' task option, e.g.: "
+                "cci task run deploy_post_analytics --suite path/to/enable_analytics.robot"
+            )
 
         outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR
         out_path = repo_root / outputdir
@@ -79,15 +84,8 @@ class EnableAnalyticsReplication(BaseTask):
             org_name,
             " ".join(cmd),
         )
-        result = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess.run(cmd, cwd=str(repo_root))
         if result.returncode != 0:
-            self.logger.error("Robot stdout: %s", result.stdout)
-            self.logger.error("Robot stderr: %s", result.stderr)
             raise RuntimeError(
                 f"Enable Data Sync and Connections test failed (exit code {result.returncode}). "
                 f"Check {out_path / 'log.html'} for details."
