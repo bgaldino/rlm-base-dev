@@ -167,7 +167,11 @@ class AnalyticsSetupHelper:
             WebDriverWait(driver, self.SAVE_WAIT_S).until(EC.staleness_of(save_btn))
             log("Save completed (button became stale); setting persisted")
         except TimeoutException:
-            log(f"Save button did not become stale within {self.SAVE_WAIT_S} s; may have saved via AJAX")
+            raise AssertionError(
+                f"Save button did not become stale within {self.SAVE_WAIT_S} s. "
+                "Analytics Settings uses a full-page submit; button staleness is expected. "
+                "The setting may not have been persisted."
+            )
 
         return "clicked"
 

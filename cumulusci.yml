@@ -925,6 +925,9 @@ tasks:
   deploy_post_analytics:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
+    options:
+      suite: robot/rlm-base/tests/setup/enable_analytics.robot
+      outputdir: robot/rlm-base/results
 
   deploy_post_payments:
     description: Deploy Payments Metadata
