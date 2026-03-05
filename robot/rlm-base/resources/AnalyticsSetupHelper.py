@@ -55,12 +55,13 @@ class AnalyticsSetupHelper:
 
         The Analytics Settings page embeds a Visualforce page (waveSetupSettings.apexp)
         in a child iframe.  This keyword:
-          1. Waits for the VF iframe to appear (up to IFRAME_WAIT_S seconds).
-          2. Switches Selenium into the VF iframe.
-          3. Waits for checkboxes to appear in the VF page (up to CHECKBOX_WAIT_S seconds).
-          4. Finds the checkbox associated with the 'Enable Data Sync and Connections' label.
-          5. Clicks the checkbox if not already enabled.
-          6. Clicks the Save button and waits for page reload to persist the setting.
+          1. Ensures Selenium starts in the default (main) frame.
+          2. Waits for the VF iframe to appear (up to IFRAME_WAIT_S seconds).
+          3. Switches Selenium into the VF iframe.
+          4. Waits for checkboxes to appear in the VF page (up to CHECKBOX_WAIT_S seconds).
+          5. Finds the checkbox associated with the 'Enable Data Sync and Connections' label.
+          6. Clicks the checkbox if not already enabled.
+          7. Clicks the Save button and waits for page reload to persist the setting.
 
         Always restores Selenium to the default (main) frame via try/finally.
 

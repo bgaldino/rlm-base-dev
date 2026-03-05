@@ -1882,27 +1882,27 @@ flows:
       16:
         flow: prepare_billing
       17:
-        flow: prepare_clm
-      18:
-        flow: prepare_rating
-      19:
-        task: activate_and_deploy_expression_sets
-      20:
-        flow: prepare_tso
-      21:
-        flow: prepare_procedureplans
-      22:
-        flow: prepare_prm
-      23:
-        flow: prepare_agents
-      24:
-        flow: prepare_constraints
-      25:
-        flow: prepare_guidedselling
-      26:
-        flow: prepare_visualization
-      27:
         flow: prepare_analytics
+      18:
+        flow: prepare_clm
+      19:
+        flow: prepare_rating
+      20:
+        task: activate_and_deploy_expression_sets
+      21:
+        flow: prepare_tso
+      22:
+        flow: prepare_procedureplans
+      23:
+        flow: prepare_prm
+      24:
+        flow: prepare_agents
+      25:
+        flow: prepare_constraints
+      26:
+        flow: prepare_guidedselling
+      27:
+        flow: prepare_visualization
       28:
         task: configure_revenue_settings
       29:
