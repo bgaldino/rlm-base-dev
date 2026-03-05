@@ -89,7 +89,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
+          "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, ProductSellingModel.Name ASC",
           "operation": "Insert",
           "externalId": "Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
@@ -98,7 +98,7 @@
           "query": "SELECT Cost, CostBookId, EffectiveFrom, EffectiveTo, ProductId, Description, CurrencyIsoCode FROM CostBookEntry ORDER BY CostBook.Name ASC, CurrencyIsoCode DESC, Name ASC",
           "operation": "Insert",
           "externalId": "CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode",
-          "excluded": false
+          "excluded": true
         }
       ]
     }

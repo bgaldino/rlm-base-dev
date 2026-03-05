@@ -555,9 +555,10 @@ class DeleteSFDMUData(BaseSalesforceTask):
                 return 0
             body = resp.json()
             records.extend(body.get("records", []))
-            if body.get("done", True):
+            next_url = body.get("nextRecordsUrl")
+            if body.get("done", True) or not next_url:
                 break
-            url = f"{self._instance_url}{body['nextRecordsUrl']}"
+            url = f"{self._instance_url}{next_url}"
             params = None
 
         count = len(records)
@@ -581,7 +582,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
                 headers=self._auth_headers,
                 params={"ids": ",".join(batch), "allOrNone": "false"},
             )
-            if resp.status_code not in (200, 204):
+            if resp.status_code != 200:
                 self.logger.error(
                     f"{sobject_name}: Batch delete failed ({resp.status_code}): {resp.text}"
                 )
