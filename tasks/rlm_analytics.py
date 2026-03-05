@@ -86,9 +86,15 @@ class EnableAnalyticsReplication(BaseTask):
         )
         result = subprocess.run(cmd, cwd=str(repo_root))
         if result.returncode != 0:
+            log_file = out_path / "log.html"
+            detail = (
+                f"Check {log_file} for details."
+                if log_file.exists()
+                else "Robot log not generated — check console output above for details."
+            )
             raise RuntimeError(
                 f"Enable Data Sync and Connections test failed (exit code {result.returncode}). "
-                f"Check {out_path / 'log.html'} for details."
+                + detail
             )
         self.logger.info(
             "Data Sync and Connections (enableWaveReplication) enabled successfully."

@@ -14,7 +14,12 @@ Usage in robot file:
     Library    ../../resources/AnalyticsSetupHelper.py
 """
 
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    ElementClickInterceptedException,
+    ElementNotInteractableException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -114,9 +119,15 @@ class AnalyticsSetupHelper:
             return "already_enabled"
 
         # ── Step 6: enable the checkbox ────────────────────────────────
+        _CLICK_EXCEPTIONS = (
+            ElementClickInterceptedException,
+            ElementNotInteractableException,
+            WebDriverException,
+        )
         try:
             checkbox.click()
-        except Exception:
+        except _CLICK_EXCEPTIONS as exc:
+            log(f"Direct checkbox click failed ({type(exc).__name__}); falling back to JS click")
             driver.execute_script("arguments[0].click();", checkbox)
         log(f"Checkbox clicked; is_selected now: {checkbox.is_selected()}")
 
@@ -129,7 +140,8 @@ class AnalyticsSetupHelper:
             )
         try:
             save_btn.click()
-        except Exception:
+        except _CLICK_EXCEPTIONS as exc:
+            log(f"Direct Save click failed ({type(exc).__name__}); falling back to JS click")
             driver.execute_script("arguments[0].click();", save_btn)
 
         # Staleness of the Save button indicates the page reloaded after submission.
