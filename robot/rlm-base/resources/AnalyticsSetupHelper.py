@@ -4,11 +4,14 @@ The "Enable Data Sync and Connections" setting lives in a Visualforce iframe
 (waveSetupSettings.apexp) embedded inside the Lightning setup shell at
 /lightning/setup/InsightsSetupSettings/home.
 
-The outer Lightning shell is protected by Lightning Web Security (LWS), which
-blocks all standard querySelectorAll / XPath DOM queries from Selenium.  The
-VF iframe content is NOT included in CDP DOM.getDocument (which only returns
-the main frame's DOM).  Selenium's switch_to.frame + native WebDriver element
-finding works correctly inside the VF page, which is standard HTML.
+The outer Lightning shell is protected by Lightning Web Security (LWS) and
+uses shadow DOM, which prevents reliably locating Lightning components (such
+as the setup checkbox) via standard Selenium XPath / querySelectorAll.  This
+helper uses XPath only in the outer shell to locate the Visualforce iframe
+element itself (a plain HTML iframe); after switch_to.frame the VF page is
+standard HTML and not subject to LWS, so native WebDriver element finding
+works correctly inside it.  The VF iframe content is also NOT included in CDP
+DOM.getDocument, which only returns the main frame's DOM.
 
 Usage in robot file:
     Library    ../../resources/AnalyticsSetupHelper.py
