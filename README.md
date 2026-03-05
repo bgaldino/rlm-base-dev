@@ -279,6 +279,25 @@ Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>
 
 **Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
 
+### Apex Execution Tasks
+
+| Task Class                      | Module               | Purpose                                              | Use Case                                                                 |
+|---------------------------------|----------------------|------------------------------------------------------|--------------------------------------------------------------------------|
+| `FileBasedAnonymousApexTask`    | `rlm_apex_file.py`   | Execute large Apex scripts without URI limitations  | Fixes HTTP 414 errors for scripts >8KB; fully compatible with `AnonymousApexTask` |
+
+**Why FileBasedAnonymousApexTask?**
+
+CumulusCI's built-in `AnonymousApexTask` uses the Salesforce Tooling API's `executeAnonymous` endpoint with GET requests, which pass Apex code as URI parameters. This hits HTTP 414 URI Too Long errors for scripts exceeding ~8KB.
+
+`FileBasedAnonymousApexTask` solves this by using `sf apex run --file`, which has no practical size limits and can handle scripts >100KB. It maintains full compatibility with all `AnonymousApexTask` options (path, apex, managed, namespaced, param1, param2) while providing:
+
+- No URI length limitations
+- Secure file handling with restricted permissions
+- Comprehensive error handling (compilation/runtime errors)
+- Support for namespace injection and parameter replacement
+
+Currently used by `activate_rating_records` task for the large [activateRatingRecords.apex](scripts/apex/activateRatingRecords.apex) script (382 lines).
+
 ### Metadata Management Tasks
 
 | Task Name | Module | Description | Documentation |
@@ -322,8 +341,17 @@ Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>
 | `activate_billing_records` | `rlm_sfdmu.py` | Activate billing records |
 | `activate_tax_records` | `rlm_sfdmu.py` | Activate tax records |
 | `activate_price_adjustment_schedules` | `rlm_repair_pricing_schedules.py` | Activate price adjustment schedules |
-| `activate_rating_records` | `rlm_sfdmu.py` | Activate rating records |
+| `activate_rating_records` | `rlm_apex_file.py` | Activate rating records (uses file-based Apex execution) |
 | `activate_rates` | `rlm_sfdmu.py` | Activate rates |
+
+### Data Maintenance Tasks
+
+| Task Name | Module | Description |
+|-----------|--------|-------------|
+| `delete_quantumbit_pricing_data` | `tasks.rlm_sfdmu.DeleteSFDMUData` | Delete all Insert-operation records from the qb-pricing plan (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice) in reverse plan order (children first). Shape-agnostic — reads `export.json` at runtime. Runs automatically as step 1 of `prepare_pricing_data`. |
+| `delete_qb_rates_data` | `scripts/apex/deleteQbRatesData.apex` | Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running `insert_qb_rates_data` or `test_qb_rates_idempotency` when duplicates exist. |
+| `delete_qb_rating_data` | `scripts/apex/deleteQbRatingData.apex` | Delete all qb-rating data (PUG, PURP, PUR, rating policies, etc.) in dependency order. Use before re-running `insert_qb_rating_data` when duplicates exist. |
+| `delete_draft_billing_records` | `scripts/apex/deleteDraftBillingRecords.apex` | Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates. |
 
 ### Setup & Configuration Tasks
 
@@ -485,7 +513,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_scratch` | Insert scratch-only data | Scratch only, not `tso` |
 | `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
 | `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
-| `prepare_dro` | Load DRO data (dynamic user resolution) | `dro`, `qb`, `q3` |
+| `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
@@ -521,6 +549,57 @@ Data plans provide the reference data loaded during org setup. This project uses
 > for the full migration details and known limitations.
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
+
+#### Validating SFDMU Data Plans
+
+The project includes `scripts/validate_sfdmu_v5_datasets.py` for validating SFDMU v5 compliance:
+
+**Validation:**
+
+```bash
+# Validate all SFDMU datasets
+python scripts/validate_sfdmu_v5_datasets.py
+
+# Validate specific dataset
+python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb/en-US/qb-billing
+
+# Validate all QB datasets
+python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb
+
+# Generate report file
+python scripts/validate_sfdmu_v5_datasets.py --output docs/sfdmu_v5_validation_report.md
+```
+
+**Automatic Fixes:**
+
+```bash
+# Fix empty CSV headers
+python scripts/validate_sfdmu_v5_datasets.py --fix-headers
+
+# Fix missing composite key columns
+python scripts/validate_sfdmu_v5_datasets.py --fix-composite-keys
+
+# Fix all issues (dry-run first recommended)
+python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
+python scripts/validate_sfdmu_v5_datasets.py --fix-all
+```
+
+The validator checks for:
+
+- Legacy `$$` notation in externalId definitions (v5 requires semicolon format)
+- Missing composite key columns in CSVs
+- Empty CSV files without headers
+- Nested relationship paths that cause v5 flattening errors
+
+To generate a validation report:
+
+```bash
+# Console output
+python scripts/validate_sfdmu_v5_datasets.py
+
+# Save to file
+python scripts/validate_sfdmu_v5_datasets.py --output validation_report.md
+```
 
 #### Data plan directory structure
 
@@ -797,7 +876,7 @@ The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properl
 
 The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 6 (before step 7) because `billingContextSourceMapping` requires it to already be persisted.
 
-DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
+DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs. The task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv`, `User.csv`, and `UserAndGroup.csv` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. Step 4 runs `update_product_fulfillment_decomp_rules` (Apex) as a temporary fix for a 260 bug: ExecuteOnRuleId is not generated on INSERT and must be triggered by an UPDATE. No separate scratch-specific DRO plan is required.
 
 ### Extract Rating Data
 

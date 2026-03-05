@@ -34,7 +34,7 @@
         {
           "query": "SELECT Description, PaymentTermId, PaymentTerm.Name, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem",
           "operation": "Upsert",
-          "externalId": "$$PaymentTerm.Name$Type",
+          "externalId": "PaymentTerm.Name;Type",
           "skipExistingRecords": true,
           "excluded": false
         },
