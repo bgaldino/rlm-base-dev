@@ -1468,12 +1468,13 @@ tasks:
   delete_quantumbit_pricing_data:
     group: Data Maintenance
     description: >
-      Delete all Insert-operation records from the qb-pricing plan (CostBookEntry,
-      PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
-      AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
+      Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice,
+      PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment,
+      AttributeAdjustmentCondition, PriceAdjustmentTier)
       in reverse plan order (children first). Shape-agnostic: clears all records of
       each type regardless of which data shape populated them. Run before
       insert_quantumbit_pricing_data when layering multiple pricing shapes.
+      Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
     class_path: tasks.rlm_sfdmu.DeleteSFDMUData
     options:
       pathtoexportjson: *quantumbit_pricing_dataset

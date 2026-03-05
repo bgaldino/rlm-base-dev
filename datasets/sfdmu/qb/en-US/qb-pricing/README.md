@@ -67,7 +67,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
 | 16 | CostBookEntry                | Insert    | ✓²           | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 0 (excluded) |
 
-¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CostBookEntry → PEDP → PBE → BBA → ABA → AAC → PAT). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
+¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: PEDP → PBE → BBA → ABA → AAC → PAT; `CostBookEntry` is excluded and therefore not deleted). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
 
 ² **CostBookEntry** is `excluded: true` — the CSV is header-only (no data rows). Enabling it while `DeleteSFDMUData` is in the pipeline would destructively wipe any existing cost entries and insert nothing. Tracked in [#52](https://github.com/bgaldino/rlm-base-dev/issues/52) — enable when cost data is ready.
 

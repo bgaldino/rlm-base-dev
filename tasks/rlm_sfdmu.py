@@ -500,7 +500,10 @@ class DeleteSFDMUData(BaseSalesforceTask):
 
         selected = self.options.get("object_sets")
         if selected is not None:
-            object_sets = [object_sets[i] for i in selected if i < len(object_sets)]
+            if isinstance(selected, str):
+                selected = json.loads(selected)
+            selected = [int(i) for i in selected]
+            object_sets = [object_sets[i] for i in selected if 0 <= i < len(object_sets)]
 
         # Collect Insert-operation objects in plan array order.
         # Duplicates are preserved so that the deletion order mirrors the plan exactly.
