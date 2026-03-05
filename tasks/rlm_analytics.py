@@ -1,53 +1,97 @@
-import json
-import requests
+"""Enable the Data Sync and Connections toggle (enableWaveReplication) via Robot Framework.
 
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.exceptions import TaskOptionsError
+Runs the enable_analytics Robot test with the flow's org so the browser
+session is authenticated via sf org open --url-only. Enables the
+"Enable Data Sync and Connections" checkbox on the Analytics/Insights Settings
+page. Required before rating-related data loads that depend on the Wave
+replication engine. Does not require enabling the full CRM Analytics feature.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+try:
+    from cumulusci.core.tasks import BaseTask
+    from cumulusci.core.exceptions import TaskOptionsError
+except ImportError:
+    BaseTask = object  # type: ignore
+    TaskOptionsError = Exception  # type: ignore
+
+from tasks.robot_utils import check_urllib3_for_robot
+
+# Relative to repo root (project_config.repo_root when running under CCI)
+DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_analytics.robot"
+DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 
 
 class EnableAnalyticsReplication(BaseTask):
-    """
-    Enables CRM Analytics data replication via the Wave REST API.
+    """Run the Robot test that enables the Data Sync and Connections toggle (enableWaveReplication)."""
 
-    PATCH /services/data/v{api_version}/wave/settings
-          { "enableWaveReplication": true }
-
-    MDAPI deployment of AnalyticsSettings raises AutoInstallException
-    (setCommitAllowed=false) in scratch orgs, so this task calls the
-    Wave API directly instead.
-    """
-
-    task_docs = (
-        "Enable CRM Analytics data replication by patching the Wave REST API "
-        "settings endpoint. Equivalent to toggling 'Enable Replication' in "
-        "Setup → CRM Analytics → Settings."
-    )
+    task_options = {
+        "suite": {
+            "description": "Path to the Robot test suite (enable_analytics).",
+            "required": False,
+        },
+        "outputdir": {
+            "description": "Directory for Robot output (log.html, report.html, output.xml).",
+            "required": False,
+        },
+    }
 
     def _run_task(self):
-        access_token = self.org_config.access_token
-        instance_url = self.org_config.instance_url
-        api_version = (
-            getattr(self.org_config, "api_version", None)
-            or self.project_config.project__package__api_version
-            or "66.0"
-        )
-
-        url = f"{instance_url}/services/data/v{api_version}/wave/settings"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-        }
-        payload = {"enableWaveReplication": True}
-
-        self.logger.info("Enabling CRM Analytics replication via Wave REST API...")
-        self.logger.info(f"PATCH {url}")
-
-        response = requests.patch(url, headers=headers, json=payload)
-
-        if response.status_code in (200, 204):
-            self.logger.info("CRM Analytics replication enabled successfully.")
-        else:
-            raise TaskOptionsError(
-                f"Failed to enable CRM Analytics replication: "
-                f"{response.status_code} {response.text}"
+        check_urllib3_for_robot(task_name="EnableAnalyticsReplication")
+        # sf org open -o requires a value the CLI knows: username or CLI alias.
+        # CCI org name (e.g. beta) is not always in the CLI; username is.
+        org_name = getattr(self.org_config, "username", None)
+        if not org_name:
+            org_name = getattr(self.org_config, "name", None) or getattr(
+                self.org_config, "alias", None
             )
+        if not org_name:
+            raise TaskOptionsError(
+                "EnableAnalyticsReplication requires an org (run as part of a flow with --org, or set org_config)."
+            )
+
+        repo_root = Path(self.project_config.repo_root)
+        suite = self.options.get("suite") or DEFAULT_SUITE
+        suite_path = repo_root / suite
+        if not suite_path.exists():
+            raise FileNotFoundError(f"Robot suite not found: {suite_path}")
+
+        outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR
+        out_path = repo_root / outputdir
+        out_path.mkdir(parents=True, exist_ok=True)
+
+        # Use same Python as CCI (e.g. pipx venv) so injected robot package is found
+        cmd = [
+            sys.executable,
+            "-m",
+            "robot",
+            "--variable",
+            f"ORG_ALIAS:{org_name}",
+            "--outputdir",
+            str(out_path),
+            str(suite_path),
+        ]
+        self.logger.info(
+            "Running Enable Data Sync and Connections (enableWaveReplication) test for org %s: %s",
+            org_name,
+            " ".join(cmd),
+        )
+        result = subprocess.run(
+            cmd,
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            self.logger.error("Robot stdout: %s", result.stdout)
+            self.logger.error("Robot stderr: %s", result.stderr)
+            raise RuntimeError(
+                f"Enable Data Sync and Connections test failed (exit code {result.returncode}). "
+                f"Check {out_path / 'log.html'} for details."
+            )
+        self.logger.info(
+            "Data Sync and Connections (enableWaveReplication) enabled successfully."
+        )
