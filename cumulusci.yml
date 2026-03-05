@@ -1100,6 +1100,13 @@ tasks:
       pathtoexportjson: *quantumbit_dro_dataset
       dynamic_assigned_to_user: true
 
+  update_product_fulfillment_decomp_rules:
+    group: Revenue Lifecycle Management
+    description: Update ProductFulfillmentDecompRule after DRO load. TEMPORARY FIX (260 bug) ExecuteOnRuleId not created on INSERT; re-save triggers ruleset generation. See scripts/apex/updateProductFulfillmentDecompRules.apex.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/updateProductFulfillmentDecompRules.apex
+
   insert_q3_dro_data_scratch:
     group: Revenue Lifecycle Management
     description: Insert Q3 DRO Data to Scratch
@@ -2100,6 +2107,9 @@ flows:
       3:
         task: insert_q3_dro_data_prod
         when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
+      4:
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__dro
 
   prepare_clm:
     group: Revenue Lifecycle Management
