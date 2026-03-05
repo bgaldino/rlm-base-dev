@@ -26,7 +26,6 @@ jobs:
       contents: write        # required if Claude makes code changes
       pull-requests: write   # required to post review comments
       issues: write          # required to post issue comments
-      id-token: write
       actions: read          # required to read CI results on PRs
 
     steps:

@@ -14,7 +14,6 @@ jobs:
       contents: read
       pull-requests: write   # required to post review comments
       issues: read
-      id-token: write
 
     steps:
       - name: Checkout repository
