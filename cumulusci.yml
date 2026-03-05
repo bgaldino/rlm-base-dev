@@ -112,6 +112,7 @@ project:
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
+    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -920,6 +921,13 @@ tasks:
     options:
       path: unpackaged/post_visualization
       collision_check: False
+
+  enable_analytics_replication:
+    description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
+    class_path: tasks.rlm_analytics.EnableAnalyticsReplication
+    options:
+      suite: robot/rlm-base/tests/setup/enable_analytics.robot
+      outputdir: robot/rlm-base/results
 
   deploy_post_payments:
     description: Deploy Payments Metadata
@@ -1874,31 +1882,33 @@ flows:
       16:
         flow: prepare_billing
       17:
-        flow: prepare_clm
+        flow: prepare_analytics
       18:
-        flow: prepare_rating
+        flow: prepare_clm
       19:
-        task: activate_and_deploy_expression_sets
+        flow: prepare_rating
       20:
-        flow: prepare_tso
+        task: activate_and_deploy_expression_sets
       21:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       22:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       23:
-        flow: prepare_agents
+        flow: prepare_prm
       24:
-        flow: prepare_constraints
+        flow: prepare_agents
       25:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       26:
-        flow: prepare_visualization
+        flow: prepare_guidedselling
       27:
-        task: configure_revenue_settings
+        flow: prepare_visualization
       28:
+        task: configure_revenue_settings
+      29:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
-      29:
+      30:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2374,6 +2384,13 @@ flows:
       1:
         task: deploy_post_visualization
         when: project_config.project__custom__visualization
+
+  prepare_analytics:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: enable_analytics_replication
+        when: project_config.project__custom__analytics
 
   prepare_payments:
     group: Revenue Lifecycle Management
