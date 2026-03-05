@@ -112,7 +112,7 @@ project:
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
-    analytics: false          # Enable CRM Analytics (enableWaveReplication)
+    analytics: true          # Enable CRM Analytics (enableWaveReplication)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -923,10 +923,8 @@ tasks:
       collision_check: False
 
   deploy_post_analytics:
-    description: Deploy CRM Analytics Settings (enableWaveReplication)
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_analytics
+    description: Enable CRM Analytics replication via Wave REST API (enableWaveReplication)
+    class_path: tasks.rlm_analytics.EnableAnalyticsReplication
 
   deploy_post_payments:
     description: Deploy Payments Metadata
