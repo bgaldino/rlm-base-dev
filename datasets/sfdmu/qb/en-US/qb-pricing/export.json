@@ -12,7 +12,7 @@
         },
         {
           "query": "SELECT ArePartialPeriodsAllowed, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy",
-          "operation": "Upsert",
+          "operation": "Update",
           "externalId": "Name",
           "excluded": false
         },
@@ -35,21 +35,22 @@
           "excluded": false
         },
         {
-          "query": "SELECT Name, IsActive, IsStandard, CostBookId, ValidFrom, ValidTo, Description FROM Pricebook2",
-          "operation": "Upsert",
-          "externalId": "Name;IsStandard",
-          "excluded": false
-        },
-        {
           "query": "SELECT Name, IsDefault, EffectiveFrom, EffectiveTo FROM CostBook",
           "operation": "Upsert",
           "externalId": "Name;IsDefault",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
+          "query": "SELECT Name, IsActive, IsStandard, CostBookId, ValidFrom, ValidTo, Description FROM Pricebook2",
           "operation": "Upsert",
+          "externalId": "Name;IsStandard",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
+          "operation": "Insert",
           "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
+          "deleteOldData": true,
           "excluded": false
         },
         {
@@ -66,38 +67,44 @@
         },
         {
           "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit",
+          "deleteOldData": true,
           "excluded": false
         },
         {
           "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment ORDER BY AttributeBasedAdjRule.Name ASC, PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "deleteOldData": true,
           "excluded": false
         },
         {
           "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType, CurrencyIsoCode FROM BundleBasedAdjustment ORDER BY PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode",
+          "deleteOldData": true,
           "excluded": false
         },
         {
           "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode FROM PricebookEntry ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "deleteOldData": true,
           "excluded": false
         },
         {
           "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
-          "excluded": true
+          "deleteOldData": true,
+          "excluded": false
         },
         {
           "query": "SELECT Cost, CostBookId, EffectiveFrom, EffectiveTo, ProductId, Description, CurrencyIsoCode FROM CostBookEntry ORDER BY CostBook.Name ASC, CurrencyIsoCode DESC, Name ASC",
-          "operation": "Upsert",
+          "operation": "Insert",
           "externalId": "CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode",
+          "deleteOldData": true,
           "excluded": false
         }
       ]
