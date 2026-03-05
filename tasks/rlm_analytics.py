@@ -42,12 +42,10 @@ class EnableAnalyticsReplication(BaseTask):
     def _run_task(self):
         check_urllib3_for_robot(task_name="EnableAnalyticsReplication")
         # sf org open -o requires a value the CLI knows: username or CLI alias.
-        # CCI org name (e.g. beta) is not always in the CLI; username is.
+        # CCI org name (e.g. beta) is not always registered in the CLI; username is.
         org_name = getattr(self.org_config, "username", None)
         if not org_name:
-            org_name = getattr(self.org_config, "name", None) or getattr(
-                self.org_config, "alias", None
-            )
+            org_name = getattr(self.org_config, "alias", None)
         if not org_name:
             raise TaskOptionsError(
                 "EnableAnalyticsReplication requires an org (run as part of a flow with --org, or set org_config)."

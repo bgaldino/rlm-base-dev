@@ -136,7 +136,12 @@ class AnalyticsSetupHelper:
             checkbox.click()
         except click_exceptions as exc:
             log(f"Direct checkbox click failed ({type(exc).__name__}); falling back to JS click")
-            driver.execute_script("arguments[0].click();", checkbox)
+            try:
+                driver.execute_script("arguments[0].click();", checkbox)
+            except JavascriptException as js_exc:
+                raise AssertionError(
+                    f"Both direct and JS click failed for '{self.TARGET_LABEL}' checkbox."
+                ) from js_exc
         log(f"Checkbox clicked; is_selected now: {checkbox.is_selected()}")
 
         # ── Step 7: click Save to persist the setting ──────────────────
@@ -150,7 +155,12 @@ class AnalyticsSetupHelper:
             save_btn.click()
         except click_exceptions as exc:
             log(f"Direct Save click failed ({type(exc).__name__}); falling back to JS click")
-            driver.execute_script("arguments[0].click();", save_btn)
+            try:
+                driver.execute_script("arguments[0].click();", save_btn)
+            except JavascriptException as js_exc:
+                raise AssertionError(
+                    "Both direct and JS click failed for the Save button."
+                ) from js_exc
 
         # Staleness of the Save button indicates the page reloaded after submission.
         try:
