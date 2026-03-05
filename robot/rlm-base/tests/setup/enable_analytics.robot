@@ -1,18 +1,23 @@
 *** Settings ***
-Documentation     Enable the "Enable Data Sync and Connections" checkbox (enableWaveReplication) on the Analytics/Insights Settings page. Required for the rating data processing engine. Does not require enabling the full CRM Analytics feature.
+Documentation     Enable the "Enable Data Sync and Connections" checkbox (enableWaveReplication) on the Analytics Settings page. Required for the rating data processing engine. Does not require enabling the full CRM Analytics feature.
+Library           ../../resources/AnalyticsSetupHelper.py
 Resource          ../../resources/SetupToggles.robot
 Suite Setup       Open Browser For Setup
 Suite Teardown    Close Browser After Setup
 
 *** Variables ***
-# Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended). Example: robot -v ORG_ALIAS:my-scratch ...
+# Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended).
 ${ORG_ALIAS}                   ${EMPTY}
-${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupGettingStarted/home
-${DATA_SYNC_TOGGLE_LABEL}      Enable Data Sync and Connections
+${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupSettings/home
 
 *** Test Cases ***
 Enable Data Sync And Connections Toggle
-    [Documentation]    Navigate to Analytics/Insights Settings and enable the "Enable Data Sync and Connections" checkbox (enableWaveReplication). Required for the rating data processing engine flow.
+    [Documentation]    Enable the "Enable Data Sync and Connections" checkbox in the CRM Analytics
+    ...    Settings Visualforce iframe (waveSetupSettings.apexp). The setting lives inside a VF
+    ...    child frame — the Lightning Web Security proxy blocks all standard DOM queries on the
+    ...    outer shell, but Selenium can access the VF page directly after switching frames.
+    ...    Idempotent: if already enabled, returns 'already_enabled' without clicking Save.
     Open Setup Page    ${ANALYTICS_SETUP_PATH}
-    Enable Toggle By Label    ${DATA_SYNC_TOGGLE_LABEL}
-    Log    Enable Data Sync and Connections (enableWaveReplication) enabled.
+    Sleep    15s    reason=Allow Lightning setup shell and VF iframe to fully render
+    ${result}=    Enable Data Sync And Connections Via CDP
+    Log    Enable Data Sync and Connections (enableWaveReplication): ${result}
