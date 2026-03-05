@@ -1,13 +1,14 @@
 import json
 import os
 import re
+import requests
 import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
 from abc import abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 # ANSI escape code pattern for stripping color codes from subprocess output.
 # SFDMU and other CLI tools emit color codes; stripping them improves log readability.
@@ -16,6 +17,7 @@ ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
 # Note: If CumulusCI is not installed, you'll need to install it or mock these imports for development.
 try:
     from cumulusci.core.config import ScratchOrgConfig
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
     from cumulusci.core.keychain import BaseProjectKeychain
@@ -417,6 +419,193 @@ def _sobjects_from_export_json(export_path: str) -> list:
                 if name not in sobjects:
                     sobjects.append(name)
     return sobjects
+
+
+class DeleteSFDMUData(BaseSalesforceTask):
+    """Delete all records for Insert-operation objects defined in an SFDMU plan.
+
+    Reads the plan's export.json, identifies all non-excluded objects with
+    operation=Insert (in array order), and deletes ALL records of those types
+    in REVERSE array order — children first, matching SFDMU's deleteOldData
+    deletion sequence.
+
+    Shape-agnostic: no WHERE-clause filtering is applied. The full type is
+    cleared regardless of which data shape populated it. The plan file is the
+    authoritative definition of which object types are managed.
+
+    Intended as the cleanup step before running LoadSFDMUData on a plan that
+    uses operation=Insert (without deleteOldData) to support layered data
+    shapes: run DeleteSFDMUData once, then run each layered plan in sequence.
+    """
+
+    keychain_class = BaseProjectKeychain
+    task_options: Dict[str, Dict[str, Any]] = {
+        "pathtoexportjson": {
+            "description": (
+                "Directory path to the SFDMU plan (same value used by LoadSFDMUData). "
+                "export.json is read from this directory to determine which object types "
+                "to delete."
+            ),
+            "required": True,
+        },
+        "api_version": {
+            "description": "Salesforce API version override (e.g. '66.0'). Defaults to org or project version.",
+            "required": False,
+        },
+        "object_sets": {
+            "description": (
+                "Optional list of 0-based object set indices to include "
+                "(e.g. [0] for the first objectSet only). Omit to process all objectSets."
+            ),
+            "required": False,
+        },
+    }
+
+    _BATCH_SIZE = 200  # REST composite sobjects delete limit
+
+    @property
+    def _access_token(self) -> str:
+        return self.org_config.access_token
+
+    @property
+    def _instance_url(self) -> str:
+        return self.org_config.instance_url.rstrip("/")
+
+    @property
+    def _api_version(self) -> str:
+        if self.options.get("api_version"):
+            return str(self.options["api_version"])
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "66.0")
+        )
+
+    @property
+    def _auth_headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self._access_token}",
+            "Content-Type": "application/json",
+        }
+
+    def _run_task(self) -> None:
+        plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        export_json_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
+
+        with open(export_json_path) as f:
+            plan = json.load(f)
+
+        object_sets = plan.get("objectSets", [])
+        if not object_sets and "objects" in plan:
+            object_sets = [{"objects": plan["objects"]}]
+
+        selected = self.options.get("object_sets")
+        if selected is not None:
+            if isinstance(selected, str):
+                selected = json.loads(selected)
+            selected = [int(i) for i in selected]
+            object_sets = [object_sets[i] for i in selected if 0 <= i < len(object_sets)]
+
+        # Collect Insert-operation objects in plan array order.
+        # Duplicates are preserved so that the deletion order mirrors the plan exactly.
+        insert_sobjects: List[str] = []
+        for obj_set in object_sets:
+            for obj in obj_set.get("objects", []):
+                if obj.get("excluded", False):
+                    continue
+                if obj.get("operation", "").lower() != "insert":
+                    continue
+                m = re.search(r"\s+FROM\s+(\w+)(?:\s|$)", obj.get("query", ""), re.IGNORECASE)
+                if m:
+                    insert_sobjects.append(m.group(1))
+
+        if not insert_sobjects:
+            self.logger.info("No Insert-operation objects found in plan. Nothing to delete.")
+            return
+
+        # Reverse = children first, matching SFDMU's deleteOldData sequence.
+        deletion_order = list(reversed(insert_sobjects))
+        self.logger.info(
+            f"Deleting {len(deletion_order)} Insert-operation object type(s) "
+            f"in reverse plan order:"
+        )
+        for i, name in enumerate(deletion_order, 1):
+            self.logger.info(f"  {i}. {name}")
+
+        total_deleted = 0
+        for sobject_name in deletion_order:
+            total_deleted += self._delete_all_records(sobject_name)
+
+        self.logger.info(f"Done. Total records deleted: {total_deleted}")
+
+    def _delete_all_records(self, sobject_name: str) -> int:
+        """Query all records of sobject_name and delete via REST composite endpoint.
+
+        Uses allOrNone=false for partial-success semantics: individual failures
+        are logged as errors but do not abort deletion of remaining records.
+        Returns the count of successfully deleted records.
+        """
+        query_url = f"{self._instance_url}/services/data/v{self._api_version}/query"
+        records: List[dict] = []
+        url = query_url
+        params: Optional[Dict] = {"q": f"SELECT Id FROM {sobject_name}"}
+
+        while True:
+            resp = requests.get(url, headers=self._auth_headers, params=params)
+            if resp.status_code != 200:
+                self.logger.error(
+                    f"{sobject_name}: SOQL query failed ({resp.status_code}): {resp.text}"
+                )
+                return 0
+            body = resp.json()
+            records.extend(body.get("records", []))
+            next_url = body.get("nextRecordsUrl")
+            if body.get("done", False) or not next_url:
+                break
+            url = f"{self._instance_url}{next_url}"
+            params = None
+
+        count = len(records)
+        if count == 0:
+            self.logger.info(f"{sobject_name}: 0 records found. Skipping.")
+            return 0
+
+        self.logger.info(f"{sobject_name}: Deleting {count} record(s)...")
+
+        ids = [r["Id"] for r in records]
+        delete_url = (
+            f"{self._instance_url}/services/data/v{self._api_version}/composite/sobjects"
+        )
+        deleted = 0
+        failed = 0
+
+        for i in range(0, len(ids), self._BATCH_SIZE):
+            batch = ids[i : i + self._BATCH_SIZE]
+            resp = requests.delete(
+                delete_url,
+                headers=self._auth_headers,
+                params={"ids": ",".join(batch), "allOrNone": "false"},
+            )
+            if resp.status_code != 200:
+                self.logger.error(
+                    f"{sobject_name}: Batch delete failed ({resp.status_code}): {resp.text}"
+                )
+                failed += len(batch)
+                continue
+
+            for result in resp.json():
+                if result.get("success"):
+                    deleted += 1
+                else:
+                    failed += 1
+                    for err in result.get("errors", []):
+                        self.logger.error(
+                            f"{sobject_name}: Failed to delete {result.get('id', '?')}: "
+                            f"{err.get('message', err)}"
+                        )
+
+        suffix = f" ({failed} failed)" if failed else ""
+        self.logger.info(f"{sobject_name}: Deleted {deleted}/{count}{suffix}")
+        return deleted
 
 
 class TestSFDMUIdempotency(SFDXBaseTask):

@@ -348,6 +348,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 | Task Name | Module | Description |
 |-----------|--------|-------------|
+| `delete_quantumbit_pricing_data` | `tasks.rlm_sfdmu.DeleteSFDMUData` | Delete all Insert-operation records from the qb-pricing plan (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice) in reverse plan order (children first). Shape-agnostic — reads `export.json` at runtime. Runs automatically as step 1 of `prepare_pricing_data`. |
 | `delete_qb_rates_data` | `scripts/apex/deleteQbRatesData.apex` | Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running `insert_qb_rates_data` or `test_qb_rates_idempotency` when duplicates exist. |
 | `delete_qb_rating_data` | `scripts/apex/deleteQbRatingData.apex` | Delete all qb-rating data (PUG, PURP, PUR, rating policies, etc.) in dependency order. Use before re-running `insert_qb_rating_data` when duplicates exist. |
 | `delete_draft_billing_records` | `scripts/apex/deleteDraftBillingRecords.apex` | Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates. |
