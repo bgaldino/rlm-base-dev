@@ -923,7 +923,7 @@ tasks:
       collision_check: False
 
   deploy_post_analytics:
-    description: Enable CRM Analytics replication via Wave REST API (enableWaveReplication)
+    description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
 
   deploy_post_payments:

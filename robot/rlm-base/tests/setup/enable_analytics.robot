@@ -17,7 +17,7 @@ Enable Data Sync And Connections Toggle
     ...    child frame — the Lightning Web Security proxy blocks all standard DOM queries on the
     ...    outer shell, but Selenium can access the VF page directly after switching frames.
     ...    Idempotent: if already enabled, returns 'already_enabled' without clicking Save.
+    ...    No explicit sleep is needed — the keyword polls for the iframe and checkboxes.
     Open Setup Page    ${ANALYTICS_SETUP_PATH}
-    Sleep    15s    reason=Allow Lightning setup shell and VF iframe to fully render
-    ${result}=    Enable Data Sync And Connections Via CDP
+    ${result}=    Enable Data Sync And Connections Via VF Iframe
     Log    Enable Data Sync and Connections (enableWaveReplication): ${result}

@@ -34,7 +34,7 @@ class AnalyticsSetupHelper:
         return selib.driver
 
     @keyword
-    def enable_data_sync_and_connections_via_cdp(self):
+    def enable_data_sync_and_connections_via_vf_iframe(self):
         """Enable the 'Enable Data Sync and Connections' checkbox in the VF iframe.
 
         The Analytics Settings page embeds a Visualforce page (waveSetupSettings.apexp)
@@ -171,8 +171,10 @@ class AnalyticsSetupHelper:
         except Exception as e:
             log(f"Label text fallback failed: {e}")
 
-        log(f"Could not match to '{self.TARGET_LABEL}'; using first checkbox as fallback")
-        return checkboxes[0]
+        raise AssertionError(
+            f"Unable to locate checkbox for '{self.TARGET_LABEL}'. "
+            f"Checked {len(checkboxes)} candidate checkbox(es) without a confident match."
+        )
 
     @staticmethod
     def _find_save_button(driver, log):
