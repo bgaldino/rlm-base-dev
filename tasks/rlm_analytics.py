@@ -45,7 +45,9 @@ class EnableAnalyticsReplication(BaseTask):
         # CCI org name (e.g. beta) is not always registered in the CLI; username is.
         org_name = getattr(self.org_config, "username", None)
         if not org_name:
-            org_name = getattr(self.org_config, "alias", None)
+            org_name = getattr(self.org_config, "name", None) or getattr(
+                self.org_config, "alias", None
+            )
         if not org_name:
             raise TaskOptionsError(
                 "EnableAnalyticsReplication requires an org (run as part of a flow with --org, or set org_config)."
@@ -82,8 +84,10 @@ class EnableAnalyticsReplication(BaseTask):
             org_name,
             " ".join(cmd),
         )
-        result = subprocess.run(cmd, cwd=str(repo_root))
+        result = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
         if result.returncode != 0:
+            self.logger.error("Robot stdout: %s", result.stdout)
+            self.logger.error("Robot stderr: %s", result.stderr)
             log_file = out_path / "log.html"
             detail = (
                 f"Check {log_file} for details."

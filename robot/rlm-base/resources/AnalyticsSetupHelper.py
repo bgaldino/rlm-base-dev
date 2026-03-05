@@ -214,13 +214,13 @@ class AnalyticsSetupHelper:
 
         # 4. Find label element by text content, then resolve to checkbox
         try:
-            lbl_el = driver.find_element(By.XPATH, "//*[contains(text(),'Enable Data Sync')]")
+            lbl_el = driver.find_element(By.XPATH, f"//*[contains(text(),'{self.TARGET_LABEL}')]")
             lbl_for = lbl_el.get_attribute("for")
             if lbl_for:
                 return driver.find_element(By.ID, lbl_for)
             return driver.find_element(
                 By.XPATH,
-                "//*[contains(text(),'Enable Data Sync')]/ancestor::tr[1]//input[@type='checkbox']",
+                f"//*[contains(text(),'{self.TARGET_LABEL}')]/ancestor::tr[1]//input[@type='checkbox']",
             )
         except (NoSuchElementException, StaleElementReferenceException) as e:
             log(f"Label text fallback failed: {e}")
