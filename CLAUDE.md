@@ -185,7 +185,7 @@ When reviewing `export.json` changes:
 
 ```bash
 # Load a data plan
-cci task run insert_qb_pricing_data --org beta
+cci task run insert_quantumbit_pricing_data --org beta
 
 # Delete a data plan (before re-loading to avoid duplicates)
 cci task run delete_quantumbit_pricing_data --org beta
