@@ -79,7 +79,7 @@ class AnalyticsSetupHelper:
         # ── Step 2: wait for the VF iframe ─────────────────────────────
         # vfFrameId is the deterministic name prefix assigned by Salesforce to
         # the Analytics settings VF iframe (e.g. vfFrameId_1772739916061).
-        log("Waiting for VF iframe (waveSetupSettings.apexp) to appear...")
+        log("Waiting for VF iframe (name attribute containing 'vfFrameId') to appear...")
         iframe_xpath = "//iframe[contains(@name, 'vfFrameId')]"
         try:
             iframe_el = WebDriverWait(driver, self.IFRAME_WAIT_S).until(
