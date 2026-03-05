@@ -55,7 +55,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
 | 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
 | 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 164     |
-| 6  | CostBook                     | Upsert    |              | `Name;IsDefault`                                                                                        | 1       |
+| 6  | CostBook                     | Upsert    |              | `Name;IsDefault`                                                                                        | 0       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentTier          | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 3 |
 | 9  | PriceAdjustmentSchedule      | Update    |              | `Name;CurrencyIsoCode`                                                                                  | 3       |
