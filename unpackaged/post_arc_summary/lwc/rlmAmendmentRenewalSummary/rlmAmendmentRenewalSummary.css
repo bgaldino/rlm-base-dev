@@ -1,0 +1,154 @@
+.summary-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+}
+
+.summary-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.summary-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.summary-row.total {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.summary-row.net-change {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.summary-row.total-price {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.summary-row.discount .value {
+    color: #c23934;
+}
+
+.summary-row.expansion .value {
+    color: #04844b;
+    font-weight: 600;
+}
+
+.summary-row.attrition .value {
+    color: #c23934;
+    font-weight: 600;
+}
+
+.summary-row.net-new-adds .value {
+    color: #04844b;
+    font-weight: 600;
+}
+
+.summary-row.net-expansion .value {
+    color: #04844b;
+    font-weight: 700;
+}
+
+.summary-row.net-attrition .value {
+    color: #c23934;
+    font-weight: 700;
+}
+
+/* Divider between sections */
+.segments-divider {
+    margin: 16px 0 12px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.segments-header {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.segment-card {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.segment-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-type-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.segment-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.segment-row.total {
+    font-weight: 700;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 6px;
+}
+
+.segment-row.discount span:last-child {
+    color: #c23934;
+}
+
+.segment-row.expansion span:last-child {
+    color: #04844b;
+    font-weight: 600;
+}
+
+.segment-row.attrition span:last-child {
+    color: #c23934;
+    font-weight: 600;
+}
+
+.change-type-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    text-transform: uppercase;
+}
+
+.expansion-badge {
+    background: #e8f5e9;
+    color: #04844b;
+}
+
+.attrition-badge {
+    background: #ffebee;
+    color: #c23934;
+}

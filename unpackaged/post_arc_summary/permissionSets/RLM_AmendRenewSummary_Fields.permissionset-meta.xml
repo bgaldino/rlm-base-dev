@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_AmendRenewSummary_Fields</fullName>
+    <description>Grants read and edit access to custom fields used by the Amendment/Renewal Summary component.</description>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Quote.RLM_OriginalActionType__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.RLM_PreviousAmount__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <label>RC AmendRenewSummary fields</label>
+</PermissionSet>

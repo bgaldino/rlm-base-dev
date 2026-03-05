@@ -112,6 +112,8 @@ project:
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
+    quote_summary: true       # Deploy Quote Summary LWC and segment breakdown components
+    arc_summary: true         # Deploy Amendment/Renewal Summary LWC and asset comparison components (requires quote_summary: true)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -874,6 +876,18 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_procedureplans/permissionsets
+
+  deploy_post_quote_summary:
+    description: Deploy Quote Summary Metadata (rlmQuoteSummary LWC, segment breakdown fields, permset)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_quote_summary
+
+  deploy_post_arc_summary:
+    description: Deploy Amendment/Renewal Summary Metadata (rlmAmendmentRenewalSummary LWC, Quote Record Page, asset comparison fields, permset)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_arc_summary
 
   deploy_post_billing:
     description: Deploy Billing Metadata
@@ -1882,23 +1896,27 @@ flows:
       20:
         flow: prepare_tso
       21:
-        flow: prepare_procedureplans
+        flow: prepare_quote_summary
       22:
-        flow: prepare_prm
+        flow: prepare_arc_summary
       23:
-        flow: prepare_agents
+        flow: prepare_procedureplans
       24:
-        flow: prepare_constraints
+        flow: prepare_prm
       25:
-        flow: prepare_guidedselling
+        flow: prepare_agents
       26:
-        flow: prepare_visualization
+        flow: prepare_constraints
       27:
-        task: configure_revenue_settings
+        flow: prepare_guidedselling
       28:
+        flow: prepare_visualization
+      29:
+        task: configure_revenue_settings
+      30:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
-      29:
+      31:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2293,6 +2311,35 @@ flows:
       1:
         task: activate_price_adjustment_schedules
         when: org_config.scratch
+
+  prepare_quote_summary:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_quote_summary
+        when: project_config.project__custom__quote_summary
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__quote_summary
+        options:
+          api_names:
+            - RLM_QuoteSummary_Fields
+
+  # NOTE: arc_summary depends on quote_summary. post_arc_summary owns RLM_Quote_Record_Page,
+  # which embeds the rlmQuoteSummary LWC from post_quote_summary. Both modules must be deployed
+  # together — enabling arc_summary without quote_summary will cause the flexipage deploy to fail.
+  prepare_arc_summary:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_arc_summary
+        when: project_config.project__custom__arc_summary and project_config.project__custom__quote_summary
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__arc_summary and project_config.project__custom__quote_summary
+        options:
+          api_names:
+            - RLM_AmendRenewSummary_Fields
 
   prepare_procedureplans:
     group: Revenue Lifecycle Management

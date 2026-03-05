@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Used to set readable values for the Quote Summary LWC</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM_QLISegmentFieldsforSummary {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM_QLISegmentFieldsforSummary</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Update_QuoteLineItem_Segment_fields</name>
+        <label>Update QuoteLineItem Segment fields</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <inputAssignments>
+            <field>RLM_RampKey__c</field>
+            <value>
+                <elementReference>$Record.RampIdentifier</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>RLM_SegmentKey__c</field>
+            <value>
+                <elementReference>$Record.SegmentIdentifier</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>RLM_SegmentLabel__c</field>
+            <value>
+                <elementReference>$Record.SegmentName</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_QuoteLineItem_Segment_fields</targetReference>
+        </connector>
+        <object>QuoteLineItem</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

@@ -1,0 +1,76 @@
+.summary-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+}
+
+.summary-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.summary-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.summary-row.total {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.summary-row.discount .value {
+    color: #c23934;
+}
+
+/* Divider between totals and segments */
+.segments-divider {
+    margin: 16px 0 12px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.segments-header {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.segment-card {
+    background: #f9fafb;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.segment-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.segment-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.segment-row.total {
+    font-weight: 700;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 6px;
+}
+
+.segment-row.discount span:last-child {
+    color: #c23934;
+}

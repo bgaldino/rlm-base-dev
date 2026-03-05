@@ -1,0 +1,68 @@
+<template>
+    <template if:true={hasQuote}>
+        <div class="summary-card">
+
+            <!-- ========================= -->
+            <!-- Quote Summary Header -->
+            <!-- ========================= -->
+            <div class="summary-header">
+                Quote Summary
+            </div>
+
+            <!-- ========================= -->
+            <!-- Quote Totals -->
+            <!-- ========================= -->
+            <div class="summary-body">
+                <div class="summary-row">
+                    <span class="label">List Price</span>
+                    <span class="value">{formattedSubtotal}</span>
+                </div>
+
+                <div class="summary-row discount">
+                    <span class="label">Total Discount</span>
+                    <span class="value">{formattedDiscount}</span>
+                </div>
+
+                <div class="summary-row total">
+                    <span class="label">Total Price</span>
+                    <span class="value">{formattedTotal}</span>
+                </div>
+            </div>
+
+            <!-- ========================= -->
+            <!-- Segment Breakdown (NESTED) -->
+            <!-- ========================= -->
+            <template if:true={hasSegments}>
+                <div class="segments-divider"></div>
+
+                <div class="segments-header">
+                    Segments
+                </div>
+
+                <template for:each={segments} for:item="seg">
+                    <div key={seg.key} class="segment-card">
+                        <div class="segment-title">
+                            {seg.segmentLabel}
+                        </div>
+
+                        <div class="segment-row">
+                            <span>List</span>
+                            <span>{seg.subtotal}</span>
+                        </div>
+
+                        <div class="segment-row discount">
+                            <span>Discount</span>
+                            <span>{seg.discount}</span>
+                        </div>
+
+                        <div class="segment-row total">
+                            <span>Total</span>
+                            <span>{seg.total}</span>
+                        </div>
+                    </div>
+                </template>
+            </template>
+
+        </div>
+    </template>
+</template>

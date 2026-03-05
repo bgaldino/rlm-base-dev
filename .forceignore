@@ -42,8 +42,6 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 # contextDefinitions (extended at runtime via extend_context_* tasks)
 force-app/main/default/contextDefinitions
 
-# RC_TSO - storage only, never deployed (preserves permission sets not available in dev orgs)
-unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
 #unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
@@ -85,3 +83,6 @@ force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
 unpackaged/post_approvals/flows/RC_Quote_Smart_Approval.flow-meta.xml
 unpackaged/post_approvals/flows/RC_Quote_Transfer_Approval.flow-meta.xml
 unpackaged/post_approvals/flows/RC_AA_Quote_Approval.flow-meta.xml
+
+# RC_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
+unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml

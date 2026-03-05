@@ -1,0 +1,104 @@
+<template>
+    <template if:true={hasQuote}>
+        <template if:true={isAmendmentOrRenewal}>
+            <div class="summary-card">
+
+                <!-- ========================= -->
+                <!-- Quote Summary Header -->
+                <!-- ========================= -->
+                <div class="summary-header">
+                    {displayActionType} Summary
+                </div>
+
+                <!-- ========================= -->
+                <!-- Expansion/Attrition Summary -->
+                <!-- ========================= -->
+                <div class="summary-body">
+                    <div class="summary-row renewal">
+                        <span class="label">Renewal Amount</span>
+                        <span class="value">{formattedRenewalAmount}</span>
+                    </div>
+
+                    <div class="summary-row expansion">
+                        <span class="label">Total Expansion</span>
+                        <span class="value">{formattedExpansionAmount}</span>
+                    </div>
+
+                    <div class="summary-row attrition">
+                        <span class="label">Total Attrition</span>
+                        <span class="value">{formattedAttritionAmount}</span>
+                    </div>
+
+                    <div class="summary-row net-new-adds">
+                        <span class="label">Net New Adds</span>
+                        <span class="value">{formattedNetNewAddsAmount}</span>
+                    </div>
+
+                    <div class="summary-row net-change" class:net-expansion={isNetExpansion} class:net-attrition={isNetAttrition}>
+                        <span class="label">Net Change</span>
+                        <span class="value">{formattedNetChange}</span>
+                    </div>
+
+                    <div class="summary-row total-price">
+                        <span class="label">Total Price</span>
+                        <span class="value">{formattedTotal}</span>
+                    </div>
+                </div>
+
+                <!-- ========================= -->
+                <!-- Expansion/Attrition Details -->
+                <!-- ========================= -->
+                <template if:true={hasExpansionAttritionDetails}>
+                    <div class="segments-divider"></div>
+
+                    <div class="segments-header">
+                        Asset Details
+                    </div>
+
+                    <template for:each={expansionAttritionDetails} for:item="detail">
+                        <div key={detail.key} class="segment-card">
+                            <div class="segment-title">
+                                {detail.assetName}
+                                <template if:true={detail.assetActionType}>
+                                    <span class="action-type-badge">{detail.assetActionType}</span>
+                                </template>
+                            </div>
+
+                            <div class="segment-row">
+                                <span>Previous Amount</span>
+                                <span>{detail.previousAmount}</span>
+                            </div>
+
+                            <div class="segment-row">
+                                <span>Current Amount</span>
+                                <span>{detail.currentAmount}</span>
+                            </div>
+
+                            <div class="segment-row" class:expansion={detail.isExpansion} class:attrition={detail.isAttrition}>
+                                <span>Change</span>
+                                <span>
+                                    <template if:true={detail.isExpansion}>+</template>
+                                    {detail.changeAmount}
+                                    <span class="change-type-badge" class:expansion-badge={detail.isExpansion} class:attrition-badge={detail.isAttrition}>
+                                        {detail.changeType}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+
+            </div>
+        </template>
+        <template if:false={isAmendmentOrRenewal}>
+            <div class="summary-card">
+                <div class="summary-header">
+                    Amendment/Renewal Summary
+                </div>
+                <div class="summary-body">
+                    <p>This component is only available for Amendment or Renewal quotes.</p>
+                </div>
+            </div>
+        </template>
+    </template>
+</template>

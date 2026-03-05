@@ -679,6 +679,8 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/TASK_EXAMPLES.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/context_service_utility.md) | Context Service utility usage and plan examples |
+| [Quote Summary Module](docs/post_quote_summary.md) | `rlmQuoteSummary` LWC — quote header totals and per-segment breakdown (`post_quote_summary`) |
+| [Amendment/Renewal Summary Module](docs/post_arc_summary.md) | `rlmAmendmentRenewalSummary` LWC — renewal/expansion/attrition buckets and asset detail (`post_arc_summary`) |
 
 ### Analysis & Planning
 
