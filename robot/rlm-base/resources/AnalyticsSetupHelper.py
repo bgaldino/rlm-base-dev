@@ -17,6 +17,9 @@ Usage in robot file:
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
     ElementNotInteractableException,
+    JavascriptException,
+    NoSuchElementException,
+    StaleElementReferenceException,
     TimeoutException,
     WebDriverException,
 )
@@ -33,6 +36,11 @@ class AnalyticsSetupHelper:
     ROBOT_LIBRARY_SCOPE = "TEST"
     TARGET_LABEL = "Enable Data Sync and Connections"
 
+    # Centralised timeout constants (seconds) — tune here if org load times differ.
+    IFRAME_WAIT_S = 30
+    CHECKBOX_WAIT_S = 30
+    SAVE_WAIT_S = 10
+
     @property
     def _driver(self):
         selib = BuiltIn().get_library_instance("SeleniumLibrary")
@@ -44,9 +52,9 @@ class AnalyticsSetupHelper:
 
         The Analytics Settings page embeds a Visualforce page (waveSetupSettings.apexp)
         in a child iframe.  This keyword:
-          1. Waits for the VF iframe to appear (up to 30 s).
+          1. Waits for the VF iframe to appear (up to IFRAME_WAIT_S seconds).
           2. Switches Selenium into the VF iframe.
-          3. Waits for checkboxes to appear in the VF page (up to 30 s).
+          3. Waits for checkboxes to appear in the VF page (up to CHECKBOX_WAIT_S seconds).
           4. Finds the checkbox associated with the 'Enable Data Sync and Connections' label.
           5. Clicks the checkbox if not already enabled.
           6. Clicks the Save button and waits for page reload to persist the setting.
@@ -71,12 +79,12 @@ class AnalyticsSetupHelper:
         log("Waiting for VF iframe (waveSetupSettings.apexp) to appear...")
         iframe_xpath = "//iframe[contains(@name, 'vfFrameId')]"
         try:
-            iframe_el = WebDriverWait(driver, 30).until(
+            iframe_el = WebDriverWait(driver, self.IFRAME_WAIT_S).until(
                 EC.presence_of_element_located((By.XPATH, iframe_xpath))
             )
         except TimeoutException:
             raise AssertionError(
-                "Analytics Settings VF iframe not found after 30 s. "
+                f"Analytics Settings VF iframe not found after {self.IFRAME_WAIT_S} s. "
                 "Expected iframe with name attribute containing 'vfFrameId'."
             )
         log(f"VF iframe found: title={iframe_el.get_attribute('title')!r}")
@@ -96,12 +104,12 @@ class AnalyticsSetupHelper:
         # ── Step 3: wait for checkboxes to appear ──────────────────────
         log("Waiting for checkboxes in VF page to appear...")
         try:
-            WebDriverWait(driver, 30).until(
+            WebDriverWait(driver, self.CHECKBOX_WAIT_S).until(
                 EC.presence_of_element_located((By.XPATH, "//input[@type='checkbox']"))
             )
         except TimeoutException:
             raise AssertionError(
-                f"No checkboxes appeared in VF iframe after 30 s. "
+                f"No checkboxes appeared in VF iframe after {self.CHECKBOX_WAIT_S} s. "
                 f"Cannot locate '{self.TARGET_LABEL}'."
             )
         cbs = driver.find_elements(By.XPATH, "//input[@type='checkbox']")
@@ -144,10 +152,10 @@ class AnalyticsSetupHelper:
 
         # Staleness of the Save button indicates the page reloaded after submission.
         try:
-            WebDriverWait(driver, 10).until(EC.staleness_of(save_btn))
+            WebDriverWait(driver, self.SAVE_WAIT_S).until(EC.staleness_of(save_btn))
             log("Save completed (button became stale); setting persisted")
         except TimeoutException:
-            log("Save button did not become stale within 10 s; may have saved via AJAX")
+            log(f"Save button did not become stale within {self.SAVE_WAIT_S} s; may have saved via AJAX")
 
         return "clicked"
 
@@ -168,7 +176,7 @@ class AnalyticsSetupHelper:
                     if target in (lbl.text or "").lower():
                         log(f"Found checkbox via label[@for='{cb_id}']: {lbl.text!r}")
                         return cb
-                except Exception:
+                except (NoSuchElementException, StaleElementReferenceException):
                     pass
             # 2. Row text match
             try:
@@ -176,7 +184,7 @@ class AnalyticsSetupHelper:
                 if target in row_text:
                     log("Found checkbox by row text match")
                     return cb
-            except Exception:
+            except (NoSuchElementException, StaleElementReferenceException):
                 pass
             # 3. JS closest container text
             try:
@@ -189,7 +197,7 @@ class AnalyticsSetupHelper:
                 if target in parent_text:
                     log("Found checkbox via JS closest container")
                     return cb
-            except Exception:
+            except (JavascriptException, StaleElementReferenceException):
                 pass
 
         # 4. Find label element by text content, then resolve to checkbox
@@ -202,7 +210,7 @@ class AnalyticsSetupHelper:
                 By.XPATH,
                 "//*[contains(text(),'Enable Data Sync')]/ancestor::tr[1]//input[@type='checkbox']",
             )
-        except Exception as e:
+        except (NoSuchElementException, StaleElementReferenceException) as e:
             log(f"Label text fallback failed: {e}")
 
         raise AssertionError(
