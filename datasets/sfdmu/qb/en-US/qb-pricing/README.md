@@ -6,11 +6,12 @@ SFDMU data plan for QuantumBit (QB) pricing configuration. Creates pricebook ent
 
 ### Flow: `prepare_pricing_data`
 
-This plan is executed as **step 1** of the `prepare_pricing_data` flow (when `qb=true`).
+This plan runs as two steps in the `prepare_pricing_data` flow (when `qb=true`). The delete step runs first to clear all Insert-operation records, enabling idempotent re-runs and support for layered data shapes.
 
-| Step | Task                              | Description                                    |
-|------|-----------------------------------|------------------------------------------------|
-| 1    | `insert_quantumbit_pricing_data`  | Runs this SFDMU plan (single pass)             |
+| Step | Task                                | Description                                                |
+|------|-------------------------------------|------------------------------------------------------------|
+| 1    | `delete_quantumbit_pricing_data`    | Deletes all Insert-operation records (shape-agnostic, reverse plan order) |
+| 2    | `insert_quantumbit_pricing_data`    | Runs this SFDMU plan                                       |
 
 A separate flow, `prepare_price_adjustment_schedules`, activates PriceAdjustmentSchedule records via Apex on scratch orgs:
 
@@ -18,48 +19,62 @@ A separate flow, `prepare_price_adjustment_schedules`, activates PriceAdjustment
 |------|----------------------------------------|----------------------------------------------------|
 | 1    | `activate_price_adjustment_schedules`  | Runs `activatePriceAdjustmentSchedules.apex` (scratch only) |
 
-### Task Definition
+### Task Definitions
 
 ```yaml
+delete_quantumbit_pricing_data:
+  class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+  options:
+    pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-pricing"
+
 insert_quantumbit_pricing_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-pricing"
 ```
 
+`DeleteSFDMUData` reads `export.json` at runtime, identifies all non-excluded `operation: Insert` objects, and deletes **all records** of those types in **reverse array order** (children first). No WHERE-clause filtering — shape-agnostic. See `tasks/rlm_sfdmu.py`.
+
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** with 16 objects. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `PriceAdjustmentSchedule` uses an `Update` operation (not Upsert), meaning the records must already exist (auto-created by the platform when the pricebook is created).
+The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds — they are pre-cleared by `delete_quantumbit_pricing_data` before each load. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` and `PriceAdjustmentSchedule` use `Update` (not Upsert) because those records are always pre-provisioned by the platform.
 
 ```
-Single Pass (SFDMU)                             Apex Activation (scratch only)
-────────────────────────────────────            ─────────────────────────────────
-Upsert/Update pricing objects            ->     activatePriceAdjustmentSchedules.apex
-(Readonly parents for lookup resolution)        (activates 5 standard schedules)
+Pre-Delete (DeleteSFDMUData)                    SFDMU Pass                              Apex Activation (scratch only)
+─────────────────────────────────           ────────────────────────────────────        ─────────────────────────────────
+Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly        ->     activatePriceAdjustmentSchedules.apex
+(reverse plan order, children first)        (Readonly parents for lookup context)       (activates 5 standard schedules)
 ```
 
 ### Objects
 
-| #  | Object                       | Operation | External ID                                                                                             | Records |
-|----|------------------------------|-----------|---------------------------------------------------------------------------------------------------------|---------|
-| 1  | CurrencyType                 | Upsert    | `IsoCode`                                                                                               | 7       |
-| 2  | ProrationPolicy              | Upsert    | `Name`                                                                                                  | 1       |
-| 3  | ProductSellingModel          | Readonly  | `Name;SellingModelType`                                                                                 | 9       |
-| 4  | AttributeDefinition          | Readonly  | `Code`                                                                                                  | 39      |
-| 5  | Product2                     | Readonly  | `StockKeepingUnit`                                                                                      | 164     |
-| 6  | Pricebook2                   | Upsert    | `Name;IsStandard`                                                                                       | 1       |
-| 7  | CostBook                     | Upsert    | `Name;IsDefault`                                                                                        | 0       |
-| 8  | PriceAdjustmentTier          | Upsert    | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 3 |
-| 9  | PriceAdjustmentSchedule      | Update    | `Name;CurrencyIsoCode;Pricebook2.Name`                                                                 | 3       |
-| 10 | AttributeBasedAdjRule        | Upsert    | `Name`                                                                                                  | 4       |
-| 11 | AttributeAdjustmentCondition | Upsert    | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
-| 12 | AttributeBasedAdjustment     | Upsert    | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 4 |
-| 13 | BundleBasedAdjustment        | Upsert    | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 14 | PricebookEntry               | Upsert    | `Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                   | 114     |
-| 15 | PricebookEntryDerivedPrice   | Upsert    | `Pricebook.Name;PricebookEntry.Pricebook2.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 16 | CostBookEntry                | Upsert    | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 0       |
+| #  | Object                       | Operation | Pre-Deleted¹ | External ID                                                                                             | Records |
+|----|------------------------------|-----------|--------------|---------------------------------------------------------------------------------------------------------|---------|
+| 1  | CurrencyType                 | Upsert    |              | `IsoCode`                                                                                               | 7       |
+| 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
+| 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
+| 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
+| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 164     |
+| 6  | CostBook                     | Upsert    |              | `Name;IsDefault`                                                                                        | 1       |
+| 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
+| 8  | PriceAdjustmentTier          | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 3 |
+| 9  | PriceAdjustmentSchedule      | Update    |              | `Name;CurrencyIsoCode`                                                                                  | 3       |
+| 10 | AttributeBasedAdjRule        | Upsert    |              | `Name`                                                                                                  | 4       |
+| 11 | AttributeAdjustmentCondition | Insert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
+| 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 4 |
+| 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 2 |
+| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 114     |
+| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
+| 16 | CostBookEntry                | Insert    | ✓²           | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 0 (excluded) |
 
-**Note:** CostBook and CostBookEntry have empty CSVs (0 data records) — placeholders for future cost data. `PriceAdjustmentSchedule` is an `Update` operation with a `WHERE ContractId = NULL` filter, meaning it only updates non-contract schedules that were auto-created by the platform.
+¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CostBookEntry → PEDP → PBE → BBA → ABA → AAC → PAT). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
+
+² **CostBookEntry** is `excluded: true` — the CSV is header-only (no data rows). Enabling it while `DeleteSFDMUData` is in the pipeline would destructively wipe any existing cost entries and insert nothing. Tracked in [#52](https://github.com/bgaldino/rlm-base-dev/issues/52) — enable when cost data is ready.
+
+**Other notes:**
+- `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
+- `PriceAdjustmentSchedule`: `Update` with `WHERE ContractId = NULL` — only updates non-contract schedules auto-created by the platform when the pricebook is provisioned
+- `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
 
 ## Apex Activation Script
 
@@ -196,11 +211,15 @@ qb-pricing/
 
 ## Idempotency
 
-This plan should be idempotent via SFDMU's Upsert/Update operations with composite external IDs. The `Readonly` objects ensure parent lookup resolution without modification.
+**Validated ✅** — consecutive runs of `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce identical record counts (129 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE, 2 PEDP).
 
-**Potential issue:** `PriceAdjustmentSchedule` uses `Update` operation — if the schedules don't exist yet (e.g., fresh org before pricebook creation), the update will find no matching records. Verify that platform auto-creates these schedules when the pricebook is created.
+The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 
-**Not yet validated** — idempotency testing against a 260 org is pending.
+**Expected partial failures on orgs with active quotes:**
+- `PricebookEntry`: up to 7 records per run may fail deletion ("Products will not be deleted from quote lines") if QuoteLineItems reference them — the records remain and are not re-inserted, causing no count change
+- `AttributeAdjustmentCondition`: up to 4 records may show "insufficient access rights on object id" (same cause — QuoteLineItem lock bleed); resolves cleanly on scratch orgs or orgs without active quotes referencing this pricing data
+
+**Note on `PriceAdjustmentSchedule`:** Uses `Update` — if schedules don't exist yet (e.g., fresh org before pricebook provisioning), the update finds no matching records. Platform auto-creates these schedules when the pricebook is provisioned.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
