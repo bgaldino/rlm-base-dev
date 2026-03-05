@@ -112,6 +112,7 @@ project:
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
+    analytics: false          # Enable CRM Analytics (enableWaveReplication)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -920,6 +921,12 @@ tasks:
     options:
       path: unpackaged/post_visualization
       collision_check: False
+
+  deploy_post_analytics:
+    description: Deploy CRM Analytics Settings (enableWaveReplication)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_analytics
 
   deploy_post_payments:
     description: Deploy Payments Metadata
@@ -1894,11 +1901,13 @@ flows:
       26:
         flow: prepare_visualization
       27:
-        task: configure_revenue_settings
+        flow: prepare_analytics
       28:
+        task: configure_revenue_settings
+      29:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
-      29:
+      30:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2374,6 +2383,13 @@ flows:
       1:
         task: deploy_post_visualization
         when: project_config.project__custom__visualization
+
+  prepare_analytics:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_analytics
+        when: project_config.project__custom__analytics
 
   prepare_payments:
     group: Revenue Lifecycle Management
