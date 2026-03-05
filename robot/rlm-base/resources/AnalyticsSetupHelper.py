@@ -82,18 +82,17 @@ class AnalyticsSetupHelper:
         log("Waiting for VF iframe (name attribute containing 'vfFrameId') to appear...")
         iframe_xpath = "//iframe[contains(@name, 'vfFrameId')]"
         try:
-            iframe_el = WebDriverWait(driver, self.IFRAME_WAIT_S).until(
-                EC.presence_of_element_located((By.XPATH, iframe_xpath))
+            WebDriverWait(driver, self.IFRAME_WAIT_S).until(
+                EC.frame_to_be_available_and_switch_to_it((By.XPATH, iframe_xpath))
             )
         except TimeoutException:
             raise AssertionError(
                 f"Analytics Settings VF iframe not found after {self.IFRAME_WAIT_S} s. "
                 "Expected iframe with name attribute containing 'vfFrameId'."
             )
-        log(f"VF iframe found: title={iframe_el.get_attribute('title')!r}")
+        log("VF iframe found; WebDriver context switched into frame.")
 
-        # ── Steps 3-7: switch frame; always restore context on exit ────
-        driver.switch_to.frame(iframe_el)
+        # ── Steps 3-7: already in VF frame; always restore context on exit ────
         try:
             return self._interact_with_vf_page(driver, log)
         finally:
