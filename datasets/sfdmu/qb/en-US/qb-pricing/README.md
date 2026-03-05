@@ -37,7 +37,7 @@ insert_quantumbit_pricing_data:
 
 ## Data Plan Overview
 
-The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds — they are pre-cleared by `delete_quantumbit_pricing_data` before each load. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` and `PriceAdjustmentSchedule` use `Update` (not Upsert) because those records are always pre-provisioned by the platform.
+The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds; six active Insert objects are pre-cleared by `delete_quantumbit_pricing_data` before each load (`CostBookEntry` is excluded from deletion via `excluded: true`). Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` and `PriceAdjustmentSchedule` use `Update` (not Upsert) because those records are always pre-provisioned by the platform.
 
 ```
 Pre-Delete (DeleteSFDMUData)                    SFDMU Pass                              Apex Activation (scratch only)

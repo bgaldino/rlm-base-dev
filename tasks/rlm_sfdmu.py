@@ -559,7 +559,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             body = resp.json()
             records.extend(body.get("records", []))
             next_url = body.get("nextRecordsUrl")
-            if body.get("done", True) or not next_url:
+            if body.get("done", False) or not next_url:
                 break
             url = f"{self._instance_url}{next_url}"
             params = None
