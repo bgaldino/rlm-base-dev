@@ -54,7 +54,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **ProductFulfillmentScenario**: externalId simplified to `Name`; `$$` column removed
 - **FulfillmentWorkspaceItem**: `deleteOldData: true` added (auto-number Names make direct-field matching impossible); `$$` column removed
 - **ProductDecompEnrichmentRule**: excluded (0 records)
-- **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name) and `UserAndGroup.csv` (Name). The tasks `insert_qb_dro_data_scratch` and `insert_qb_dro_data_prod` run with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
+- **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name), `User.csv`, and `UserAndGroup.csv` (Name). The task `insert_qb_dro_data` runs with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
 
 #### qb-rates
 - **PriceBookRateCard**: `deleteOldData: true` added (auto-number Name, all-relationship externalId `PriceBook.Name;RateCard.Name;RateCardType`)

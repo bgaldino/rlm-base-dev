@@ -512,7 +512,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_scratch` | Insert scratch-only data | Scratch only, not `tso` |
 | `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
 | `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
-| `prepare_dro` | Load DRO data (dynamic user resolution) | `dro`, `qb`, `q3` |
+| `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
@@ -875,7 +875,7 @@ The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properl
 
 The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 6 (before step 7) because `billingContextSourceMapping` requires it to already be persisted.
 
-DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs: the task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. No separate scratch-specific DRO plan is required.
+DRO data (prepare_dro flow) uses a single **qb-dro** data plan for both scratch and non-scratch orgs. The task replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv`, `User.csv`, and `UserAndGroup.csv` with the target org's default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO) before loading. Step 4 runs `update_product_fulfillment_decomp_rules` (Apex) as a temporary fix for a 260 bug: ExecuteOnRuleId is not generated on INSERT and must be triggered by an UPDATE. No separate scratch-specific DRO plan is required.
 
 ### Extract Rating Data
 

@@ -9,6 +9,10 @@ import tempfile
 from abc import abstractmethod
 from typing import Dict, Any, Optional
 
+# ANSI escape code pattern for stripping color codes from subprocess output.
+# SFDMU and other CLI tools emit color codes; stripping them improves log readability.
+ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
+
 # Note: If CumulusCI is not installed, you'll need to install it or mock these imports for development.
 try:
     from cumulusci.core.config import ScratchOrgConfig
@@ -30,7 +34,12 @@ SCRATCHORG_LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusernam
 EXTRACT_COMMAND = "sf sfdmu run --sourceusername {sourceusername} --targetusername CSVFILE -p {pathtoexportjson} --noprompt --verbose"
 EXPORT_JSON_FILENAME = "export.json"
 DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
-DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "UserAndGroup.csv")
+DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv", "UserAndGroup.csv")
+
+
+def strip_ansi_codes(text: str) -> str:
+    """Strip ANSI escape codes from subprocess output for readable logs."""
+    return ANSI_ESCAPE_PATTERN.sub('', text)
 
 
 def run_post_process_script(
@@ -53,15 +62,15 @@ def run_post_process_script(
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
     if logger:
         for line in (result.stdout or "").splitlines():
-            logger.info(line)
+            logger.info(strip_ansi_codes(line))
     if result.returncode != 0:
         if logger:
             for line in (result.stderr or "").splitlines():
-                logger.error(line)
+                logger.error(strip_ansi_codes(line))
         raise CommandException(f"Post-process failed with exit code {result.returncode}")
     if logger and result.stderr:
         for line in result.stderr.splitlines():
-            logger.warning(line)
+            logger.warning(strip_ansi_codes(line))
 
 
 class LoadSFDMUData(SFDXBaseTask):
@@ -88,7 +97,7 @@ class LoadSFDMUData(SFDXBaseTask):
             "required": False
         },
         "dynamic_assigned_to_user": {
-            "description": "If true, query the target org for the default user's Name and replace the placeholder in DRO CSVs (FulfillmentStepDefinition.csv, UserAndGroup.csv) so one plan works for both scratch (User User) and TSO (Admin User).",
+            "description": "If true, query the target org for the default user's Name and replace the placeholder in DRO CSVs (FulfillmentStepDefinition.csv, User.csv, UserAndGroup.csv) so one plan works for both scratch (User User) and TSO (Admin User).",
             "required": False
         },
         "sync_objectset_source_to_source": {
@@ -228,8 +237,8 @@ class LoadSFDMUData(SFDXBaseTask):
             text=True,
         )
         if result.returncode != 0:
-            self.logger.error(f"sf data query STDERR: {result.stderr}")
-            raise CommandException(f"Failed to query User Name: {result.stderr or result.stdout}")
+            self.logger.error(f"sf data query STDERR: {strip_ansi_codes(result.stderr)}")
+            raise CommandException(f"Failed to query User Name: {strip_ansi_codes(result.stderr or result.stdout)}")
         out = json.loads(result.stdout)
         records = out.get("result", {}).get("records") or []
         if not records:
@@ -346,12 +355,12 @@ class LoadSFDMUData(SFDXBaseTask):
             
             if result.returncode != 0:
                 self.logger.error(f"Command failed with exit code {result.returncode}")
-                self.logger.error(f"STDOUT: {result.stdout}")
-                self.logger.error(f"STDERR: {result.stderr}")
+                self.logger.error(f"STDOUT: {strip_ansi_codes(result.stdout)}")
+                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
                 raise CommandException(f"Command failed with exit code {result.returncode}")
-            
+
             for line in result.stdout.splitlines():
-                self.logger.info(line)
+                self.logger.info(strip_ansi_codes(line))
             
         except Exception as e:
             self.logger.error(f"An error occurred: {str(e)}")
@@ -517,7 +526,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 self.logger.warning(f"Timeout querying {sobject}, skipping")
                 continue
             if result.returncode != 0:
-                self.logger.warning(f"Query {sobject} failed: {result.stderr or result.stdout}, skipping")
+                self.logger.warning(f"Query {sobject} failed: {strip_ansi_codes(result.stderr or result.stdout)}, skipping")
                 continue
             try:
                 out = json.loads(result.stdout)
@@ -550,11 +559,11 @@ class TestSFDMUIdempotency(SFDXBaseTask):
                 cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir")
             )
             if result.returncode != 0:
-                self.logger.error(result.stdout)
-                self.logger.error(result.stderr)
+                self.logger.error(strip_ansi_codes(result.stdout))
+                self.logger.error(strip_ansi_codes(result.stderr))
                 raise CommandException(f"SFDMU load failed with exit code {result.returncode}")
             for line in result.stdout.splitlines():
-                self.logger.info(line)
+                self.logger.info(strip_ansi_codes(line))
         finally:
             # Always clear injected org credentials from export.json
             export_json["orgs"] = []
@@ -569,11 +578,11 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"),
         )
         if result.returncode != 0:
-            self.logger.error(result.stdout)
-            self.logger.error(result.stderr)
+            self.logger.error(strip_ansi_codes(result.stdout))
+            self.logger.error(strip_ansi_codes(result.stderr))
             raise CommandException(f"SFDMU extract failed with exit code {result.returncode}")
         for line in result.stdout.splitlines():
-            self.logger.info(line)
+            self.logger.info(strip_ansi_codes(line))
 
     def _run_post_load_apex_if_configured(self) -> None:
         """If run_after_each_load_apex is set, run that Apex script against the target org for deduplication only (must not activate records)."""
@@ -596,16 +605,18 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         except subprocess.TimeoutExpired as e:
             self.logger.error(f"Post-load Apex timed out after 300s: {path}")
             if e.stdout:
-                self.logger.error(e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout)
+                stdout_text = e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout
+                self.logger.error(strip_ansi_codes(stdout_text))
             if e.stderr:
-                self.logger.error(e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr)
+                stderr_text = e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr
+                self.logger.error(strip_ansi_codes(stderr_text))
             raise CommandException(f"Post-load Apex timed out after 300s: {path}") from e
         if result.returncode != 0:
-            self.logger.error(result.stdout or "")
-            self.logger.error(result.stderr or "")
+            self.logger.error(strip_ansi_codes(result.stdout or ""))
+            self.logger.error(strip_ansi_codes(result.stderr or ""))
             raise CommandException(f"Post-load Apex failed with exit code {result.returncode}")
         for line in (result.stdout or "").splitlines():
-            self.logger.info(line)
+            self.logger.info(strip_ansi_codes(line))
 
     def _run_task(self) -> None:
         if "org" not in self.options or not self.options["org"]:
@@ -910,11 +921,11 @@ class ExtractSFDMUData(SFDXBaseTask):
             )
 
             for line in result.stdout.splitlines():
-                self.logger.info(line)
+                self.logger.info(strip_ansi_codes(line))
 
             if result.returncode != 0:
                 self.logger.error(f"SFDMU extraction failed (exit {result.returncode})")
-                self.logger.error(f"STDERR: {result.stderr}")
+                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
                 raise CommandException(
                     f"SFDMU extraction failed with exit code {result.returncode}"
                 )

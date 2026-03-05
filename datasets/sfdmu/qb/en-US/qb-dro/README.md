@@ -8,11 +8,14 @@ SFDMU data plan for QuantumBit (QB) Dynamic Revenue Orchestrator (DRO) configura
 
 This plan is executed as **step 1** of the `prepare_dro` flow (when `dro=true`, `qb=true`).
 
-| Step | Task                     | Description                                            |
-|------|--------------------------|--------------------------------------------------------|
-| 1    | `insert_qb_dro_data`    | Runs this SFDMU plan (single pass, dynamic user)       |
+| Step | Task                             | Description                                            |
+|------|----------------------------------|--------------------------------------------------------|
+| 1    | `insert_qb_dro_data`            | Runs this SFDMU plan (single pass, dynamic user)       |
+| 4    | `update_product_fulfillment_decomp_rules` | **Temporary fix (260 bug)** — see below |
 
-**Note:** Unlike billing and tax, `prepare_dro` has no Apex activation step. DRO records do not have a status lifecycle. A separate `create_dro_rule_library` task (in `prepare_core`) creates the DRO Rule Library record.
+**Note:** Unlike billing and tax, DRO records do not have a status lifecycle. Step 4 runs an Apex update as a temporary fix for a 260 bug (see below). A separate `create_dro_rule_library` task (in `prepare_core`) creates the DRO Rule Library record.
+
+**Step 4 — Missing ExecuteOnRuleId (Known 260 Bug):** Rule is created on UPDATE of ProductFulfillmentDecompRule via Platform APIs and is NOT created on INSERT (same applies for ProductFulfillmentScenario, FulfillmentStepDefinition, FulfillmentTaskAssignmentRule). If a condition was set at creation time, ExecuteOnRuleId (the ruleset) is not generated — the rule fires in decomposition but the orchestration plan won't pick it up properly. Fix: Edit and re-save the PFDR record after creation to trigger ruleset generation. (Confirmed in #rlm-office-hours)
 
 ### Task Definition
 
@@ -42,7 +45,7 @@ Upsert all DRO objects in dependency order
 | #  | Object                          | Operation | External ID                                                        | Records | v5 Notes |
 |----|---------------------------------|-----------|--------------------------------------------------------------------|---------|----------|
 | 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 164     | |
-| 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 28      | Simplified from `Name;SourceProduct.SKU;DestinationProduct.SKU`; 1 duplicate Name disambiguated |
+| 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 28      | Disambiguated 2 duplicate "Training to Finance" → "Essentials Training to Finance", "Fundamentals Training to Finance" |
 | 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       | |
 | 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       | |
 | 5  | FulfillmentStepDefinitionGroup  | Upsert    | `Name`                                                             | 10      | |
@@ -62,7 +65,7 @@ Upsert all DRO objects in dependency order
 The plan uses a **runtime placeholder** `__DRO_ASSIGNED_TO_USER__` for the `AssignedTo.Name` field on `FulfillmentStepDefinition` records. At load time, the CCI task (`dynamic_assigned_to_user: true`) resolves this placeholder to the target org's default user name.
 
 Supporting files:
-- `UserAndGroup.csv` contains the placeholder value `__DRO_ASSIGNED_TO_USER__` — SFDMU uses this to resolve the User record for the `AssignedToId` lookup
+- `User.csv` and `UserAndGroup.csv` contain the placeholder value `__DRO_ASSIGNED_TO_USER__` — SFDMU requires these for User/Group lookup resolution
 - `FulfillmentStepDefinition.csv` references `AssignedTo.Name` with the same placeholder
 
 This ensures the plan works across any org without hardcoded user references.
@@ -103,7 +106,7 @@ With the SFDMU v5 migration, most composite externalIds were simplified to just 
 
 | Object                        | v5 ExternalId | Previous (v4) | Change |
 |-------------------------------|---------------|----------------|--------|
-| ProductFulfillmentDecompRule  | `Name` | `Name;SourceProduct.SKU;DestinationProduct.SKU` | Disambiguated 1 duplicate Name |
+| ProductFulfillmentDecompRule  | `Name` | `Name` | Disambiguated 2 duplicate "Training to Finance" → "Essentials Training to Finance", "Fundamentals Training to Finance" |
 | FulfillmentStepDefinition     | `Name` | `Name;StepDefinitionGroup.Name` | Disambiguated 2 duplicate Names (appended group context) |
 | FulfillmentStepDependencyDef  | `Name` | `Name;DependsOn.Name;FSD.Name` | Updated parent refs to match renamed FSDs |
 | ProductFulfillmentScenario    | `Name` | `Name;Product.StockKeepingUnit` | Names already unique |
@@ -125,6 +128,7 @@ All external IDs use portable, human-readable fields:
 Several CSV files exist in the directory but are **not referenced** in `export.json`:
 
 - `IntegrationProviderDef.csv` (1 record — `DeveloperName`)
+- `User.csv` (1 record — placeholder for dynamic user resolution; required for AssignedTo lookup)
 - `UserAndGroup.csv` (1 record — placeholder for dynamic user resolution)
 - `AttributeDefinition.csv` (empty)
 - `AttributePicklistValue.csv` (empty)
@@ -176,6 +180,7 @@ qb-dro/
 │
 │  Source CSVs — Supporting (not in export.json)
 ├── IntegrationProviderDef.csv           # 1 record (reference)
+├── User.csv                             # 1 record (dynamic user placeholder; required for AssignedTo)
 ├── UserAndGroup.csv                     # 1 record (dynamic user placeholder)
 ├── AttributeDefinition.csv              # 0 records (placeholder)
 ├── AttributePicklistValue.csv           # 0 records (placeholder)
@@ -200,8 +205,7 @@ This plan is idempotent — re-running on an org that already has the data produ
 
 ### Known limitations
 
-- **FulfillmentStepDefinition**: 9/17 records fail to insert due to unresolved polymorphic `AssignedTo` references (`User`/`Group`) and missing `IntegrationProviderDef` records. These are data dependency issues, not SFDMU bugs.
-- **FulfillmentStepDependencyDef**: 10/13 records depend on the missing FSD records above.
+- **FulfillmentStepDefinition**: All 17 records insert successfully when `User.csv` and `UserAndGroup.csv` are present with the resolved user Name (via `dynamic_assigned_to_user: true`). The CSV must use `AssignedTo.Name` (not `AssignedToId$User.Name`) for SFDMU to resolve the lookup correctly.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
@@ -308,7 +312,7 @@ When DRO features are enhanced for 260, the following polymorphic handling will 
 | Object                        | Current ExternalId                               | Assessment |
 |-------------------------------|--------------------------------------------------|------------|
 | Product2                      | `StockKeepingUnit`                               | ✅ OK — platform-enforced unique when RLM enabled |
-| ProductFulfillmentDecompRule  | `Name;SourceProduct.SKU;DestinationProduct.SKU`  | ✅ Good — also has `SourceIdentifier`/`SourceClassIdentifier` as idLookup |
+| ProductFulfillmentDecompRule  | `Name`                                           | ✅ OK — disambiguated duplicate Names |
 | ValTfrmGrp                    | `Name`                                           | ✅ OK — human-readable |
 | FulfillmentStepDefinitionGroup| `Name`                                           | ✅ OK — human-readable |
 | FulfillmentStepDefinition     | `Name;StepDefinitionGroup.Name`                  | ✅ OK — 2-field composite |
@@ -319,7 +323,7 @@ When DRO features are enhanced for 260, the following polymorphic handling will 
 
 ### Note: ProductFulfillmentDecompRule idLookup Fields
 
-The schema shows `SourceIdentifier`, `DestinationIdentifier`, and `SourceClassIdentifier` as `isIdLookup=true` on ProductFulfillmentDecompRule. These could provide alternative portable matching, but the current composite key (`Name;SourceProduct.SKU;DestinationProduct.SKU`) is already good.
+The schema shows `SourceIdentifier`, `DestinationIdentifier`, and `SourceClassIdentifier` as `isIdLookup=true` on ProductFulfillmentDecompRule. These could provide alternative portable matching, but the current `Name` externalId with disambiguated Names is sufficient.
 
 Similarly, `ProductFulfillmentScenario` has `SourceIdentifier` and `SourceClassIdentifier` as `isIdLookup=true`.
 

@@ -11,7 +11,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceClassIdentifier, SourceIdentifier FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
+          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceClassIdentifier, SourceIdentifier, SourceProduct.StockKeepingUnit, DestinationProduct.StockKeepingUnit FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -41,7 +41,25 @@
           "excluded": false
         },
         {
-          "query": "SELECT AssignedToId, CustomBaseExecutionDate, CustomFulfillmentScope, DelayUnit, DelayOf, ExecuteOn, FlowDefinitionName, ForcePlanFreezeDuringExecution, StepDefinitionGroupId, AmendGroupId, CancelledGroupId, IntegrationDefinitionNameId, Id, Name, OmniscriptName, PointOfNoReturn, ResumeOnRuleId, Scope, IsSkipBranch, TaskAllocationType, StepType, UsageType FROM FulfillmentStepDefinition",
+          "query": "SELECT Id, Name FROM User",
+          "operation": "ReadOnly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name FROM Group WHERE Type = 'Queue'",
+          "operation": "ReadOnly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, DeveloperName FROM IntegrationProviderDef",
+          "operation": "ReadOnly",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssignedToId$User, CustomBaseExecutionDate, CustomFulfillmentScope, DelayUnit, DelayOf, ExecuteOn, FlowDefinitionName, ForcePlanFreezeDuringExecution, StepDefinitionGroupId, AmendGroupId, CancelledGroupId, IntegrationDefinitionNameId, Id, Name, OmniscriptName, PointOfNoReturn, ResumeOnRuleId, Scope, IsSkipBranch, TaskAllocationType, StepType, UsageType FROM FulfillmentStepDefinition",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
