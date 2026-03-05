@@ -107,14 +107,15 @@ columns, making outputs re-import-ready. Always use processed extraction output 
 ### `LoadSFDMUData`
 Wraps `sf sfdmu run --sourceusername CSVFILE`. Key option: `pathtoexportjson` (directory).
 
-### `DeleteSFDMUData`
-Shape-agnostic delete: reads `export.json`, finds all non-excluded `operation: Insert` objects,
-deletes ALL records in reverse array order via REST composite sobjects API.
+### Deleting data plans
 
-**Patterns to verify in `DeleteSFDMUData`:**
-- `object_sets` option: normalize from YAML string to `list[int]` (JSON parse + int cast)
-- Pagination loop: use `body.get("done", False)` (default `False`, not `True`) and `body.get("nextRecordsUrl")`
-- Batch delete response: composite DELETE always returns HTTP 200 (never 204); check `resp.status_code != 200`
+Deletes are implemented as Apex scripts (not a Python task class). Each plan has a dedicated
+`delete_qb_<plan>_data` CCI task that runs an Apex script to deactivate and delete records in
+dependency order. Key scripts:
+- `scripts/apex/deleteQbRatingData.apex` — deactivates then deletes PUG → PURP → PUR
+- `scripts/apex/deleteQbRatesData.apex` — deletes rate card data (must run before deleteQbRatingData; rates FK to PURs)
+
+Always run `delete_qb_rates_data` before `delete_qb_rating_data` to satisfy FK constraints.
 
 ### `TestSFDMUIdempotency`
 Runs an SFDMU load twice and asserts record counts don't increase. Supports `use_extraction_roundtrip`
