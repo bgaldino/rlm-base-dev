@@ -1465,6 +1465,19 @@ tasks:
 # a data plan to avoid duplicates (e.g. before test_*_idempotency). Add tasks
 # here for each plan that has a delete script (rates, rating, billing, etc.).
 
+  delete_quantumbit_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all Insert-operation records from the qb-pricing plan (CostBookEntry,
+      PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
+      AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
+      in reverse plan order (children first). Shape-agnostic: clears all records of
+      each type regardless of which data shape populated them. Run before
+      insert_quantumbit_pricing_data when layering multiple pricing shapes.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+
   delete_qb_rates_data:
     group: Data Maintenance
     description: Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
@@ -2029,6 +2042,9 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: delete_quantumbit_pricing_data
+        when: project_config.project__custom__qb
+      2:
         task: insert_quantumbit_pricing_data
         when: project_config.project__custom__qb
 
