@@ -67,11 +67,9 @@ class AnalyticsSetupHelper:
 
         # ── Step 2: wait for the VF iframe ─────────────────────────────
         # vfFrameId is the deterministic name prefix assigned by Salesforce to
-        # the Analytics settings VF iframe.
+        # the Analytics settings VF iframe (e.g. vfFrameId_1772739916061).
         log("Waiting for VF iframe (waveSetupSettings.apexp) to appear...")
-        iframe_xpath = (
-            "//iframe[contains(@name, 'vfFrameId') or contains(@title, 'Salesforce')]"
-        )
+        iframe_xpath = "//iframe[contains(@name, 'vfFrameId')]"
         try:
             iframe_el = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, iframe_xpath))
@@ -79,7 +77,7 @@ class AnalyticsSetupHelper:
         except TimeoutException:
             raise AssertionError(
                 "Analytics Settings VF iframe not found after 30 s. "
-                "Expected iframe with name containing 'vfFrameId' or title containing 'Salesforce'."
+                "Expected iframe with name attribute containing 'vfFrameId'."
             )
         log(f"VF iframe found: title={iframe_el.get_attribute('title')!r}")
 
@@ -119,14 +117,14 @@ class AnalyticsSetupHelper:
             return "already_enabled"
 
         # ── Step 6: enable the checkbox ────────────────────────────────
-        _CLICK_EXCEPTIONS = (
+        click_exceptions = (
             ElementClickInterceptedException,
             ElementNotInteractableException,
             WebDriverException,
         )
         try:
             checkbox.click()
-        except _CLICK_EXCEPTIONS as exc:
+        except click_exceptions as exc:
             log(f"Direct checkbox click failed ({type(exc).__name__}); falling back to JS click")
             driver.execute_script("arguments[0].click();", checkbox)
         log(f"Checkbox clicked; is_selected now: {checkbox.is_selected()}")
@@ -140,7 +138,7 @@ class AnalyticsSetupHelper:
             )
         try:
             save_btn.click()
-        except _CLICK_EXCEPTIONS as exc:
+        except click_exceptions as exc:
             log(f"Direct Save click failed ({type(exc).__name__}); falling back to JS click")
             driver.execute_script("arguments[0].click();", save_btn)
 
@@ -214,20 +212,23 @@ class AnalyticsSetupHelper:
 
     @staticmethod
     def _find_save_button(driver, log):
-        """Return the Save button element, or None if not found."""
+        """Return the Save button element, or None if not found.
+
+        Selectors are constrained to elements that are confidently Save actions
+        (by value, name, or id) to avoid accidentally matching Cancel or other
+        submit buttons on Visualforce pages.
+        """
         for sel in [
             "input[value='Save']",
-            "input[type='submit']",
             "input[name$='saveBtn']",
             "input[name$='save']",
-            ".pbButton input[type='submit']",
-            ".pbButton input",
+            ".pbButton input[value='Save']",
         ]:
             els = driver.find_elements(By.CSS_SELECTOR, sel)
             if els:
                 log(f"Found Save button via CSS '{sel}'")
                 return els[0]
-        for xp in ["//input[@value='Save']", "//input[@type='submit']"]:
+        for xp in ["//input[@value='Save']", "//input[contains(@name,'save')]"]:
             els = driver.find_elements(By.XPATH, xp)
             if els:
                 log(f"Found Save button via XPath '{xp}'")
