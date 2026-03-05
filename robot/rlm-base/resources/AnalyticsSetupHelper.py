@@ -42,7 +42,7 @@ class AnalyticsSetupHelper:
     # Centralised timeout constants (seconds) — tune here if org load times differ.
     IFRAME_WAIT_S = 30
     CHECKBOX_WAIT_S = 30
-    SAVE_WAIT_S = 10
+    SAVE_WAIT_S = 30
 
     @property
     def _driver(self):
@@ -143,7 +143,10 @@ class AnalyticsSetupHelper:
                 raise AssertionError(
                     f"Both direct and JS click failed for '{self.TARGET_LABEL}' checkbox."
                 ) from js_exc
-        log(f"Checkbox clicked; is_selected now: {checkbox.is_selected()}")
+        try:
+            log(f"Checkbox clicked; is_selected now: {checkbox.is_selected()}")
+        except StaleElementReferenceException:
+            log("Checkbox clicked; is_selected now cannot be determined (stale element).")
 
         # ── Step 7: click Save to persist the setting ──────────────────
         save_btn = self._find_save_button(driver, log)
@@ -253,7 +256,7 @@ class AnalyticsSetupHelper:
             if els:
                 log(f"Found Save button via CSS '{sel}'")
                 return els[0]
-        for xp in ["//input[@value='Save']", "//input[contains(@name,'save')]"]:
+        for xp in ["//input[@value='Save']", "//input[@name='save' or @name='saveBtn']"]:
             els = driver.find_elements(By.XPATH, xp)
             if els:
                 log(f"Found Save button via XPath '{xp}'")
