@@ -922,7 +922,7 @@ tasks:
       path: unpackaged/post_visualization
       collision_check: False
 
-  deploy_post_analytics:
+  enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
     options:
@@ -2389,7 +2389,7 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_analytics
+        task: enable_analytics_replication
         when: project_config.project__custom__analytics
 
   prepare_payments:

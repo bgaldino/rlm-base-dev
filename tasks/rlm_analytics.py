@@ -61,7 +61,7 @@ class EnableAnalyticsReplication(BaseTask):
                 f"Robot suite not found at expected path: {suite_path}. "
                 f"Path is resolved relative to the repo root ({repo_root}). "
                 "Override with the 'suite' task option, e.g.: "
-                "cci task run deploy_post_analytics --suite path/to/enable_analytics.robot"
+                "cci task run enable_analytics_replication --suite path/to/enable_analytics.robot"
             )
 
         outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR

@@ -9,6 +9,7 @@ Suite Teardown    Close Browser After Setup
 # Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended).
 ${ORG_ALIAS}                   ${EMPTY}
 ${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupSettings/home
+${MANUAL_LOGIN_WAIT}           90s
 
 *** Test Cases ***
 Enable Data Sync And Connections Toggle
