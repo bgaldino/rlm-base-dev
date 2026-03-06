@@ -1,11 +1,11 @@
 {
   "cmsSettings" : { },
-  "currentThemeId" : "46a902a4-ea17-4ed3-a5f9-004f0ecdbaa6",
+  "currentThemeId" : "75438db6-cdaa-43c7-bc8c-d874c822d0d3",
   "headMarkup" : null,
-  "id" : "dda6100b-c839-4550-b692-a7d3d6030bf4",
+  "id" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
   "isLockerServiceEnabled" : true,
   "isRelaxedCSPLevel" : false,
   "label" : "main",
-  "templateName" : "Starter Template",
+  "templateName" : "Partner Central Enhanced Template",
   "type" : "appPage"
 }
