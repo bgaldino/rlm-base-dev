@@ -1,6 +1,0 @@
-﻿"AdjustmentMethod","CurrencyIsoCode","Description","EffectiveFrom","EffectiveTo","IsActive","Name","ScheduleType","Pricebook2.Name","Pricebook2.IsStandard"
-"Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","true","Standard Attribute Based Adjustment","Attribute","Standard Price Book","true"
-"Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","true","Standard Bundle Based Adjustment","Bundle","Standard Price Book","true"
-"Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","false","Standard Price Adjustment Tier","Volume","Standard Price Book","true"
-"Slab","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","false","Standard Tier Based Adjustment","Volume","Standard Price Book","true"
-"Range","USD","#N/A","2024-01-01T00:00:00.000+0000","#N/A","false","Standard Volume Based Adjustment","Volume","Standard Price Book","true"

@@ -90,7 +90,7 @@ project:
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
     tax: true                 # Use Tax engine
-    billing: true             # Use Billing
+    billing: false             # Use Billing
     payments: true            # Use Payments
     approvals: true           # Use Approvals
     clm: true                # Use Contract Lifecycle Management
@@ -99,8 +99,8 @@ project:
     rating: true              # Insert Rating Design Time Data
     rates: true               # Insert Rates
     ramps: true               # Insert and configure ramps
-    einstein: true            # Use Einstein AI
-    product_dataset: badger       # Default product dataset to use=
+    einstein: false            # Use Einstein AI
+    product_dataset: qb       # Default product dataset to use=
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: true                # Use Partner Relationship Management
@@ -115,7 +115,7 @@ project:
     constraints_data: false   # Use Constraint Builder Data
     guidedselling: false      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
-    sharingsettings: true    # Deploy Sharing Settings
+    sharingsettings: false    # Deploy Sharing Settings
     visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     locale: en_US             # Default locale
     badger: true              #Badger Metadata & Dataset
@@ -507,7 +507,7 @@ project:
     q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3/en-US/q3-rates"                                           # Q3 rates data
 
 # Badger MFG Datasets
-    badger_product_dataset: &badger_product_dataset "unpackaged/post_manufacturing/datasets/mfg-rca-pcm-dev"         # Badger product data
+    badger_product_dataset: &badger_product_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"         # Badger product data
     badger_pricing_dataset: &badger_pricing_dataset "unpackaged/post_manufacturing/datasets/mfg-rca-pricing-dev"     # Badger pricing data
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
@@ -1634,6 +1634,14 @@ tasks:
     options:
       command: "python3 scripts/post_process_extraction.py {extraction_dir} {plan_dir}"
 
+  #Badger Post Processing Tasks
+  post_process_extraction_badger_pcm:
+    group: Revenue Lifecycle Management
+    description: Post-process extracted CSVs into import-ready format
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: "python3 scripts/post_process_extraction.py datasets/sfdmu/extractions/mfg-pcm/2026-03-05T165417 datasets/sfdmu/mfg/en-US/mfg-pcm"
+
 #-------------------------------------#
 # DATA MANAGEMENT: EXTRACT & TEST      #
 #-------------------------------------#
@@ -1642,11 +1650,20 @@ tasks:
 
   # Badger Extraction Tasks
   extract_badger_product_data:
-    group: Revenue Lifecycle Management
+    group: Data Management - Extract
     description: Extract Badger product data from org to CSV
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *badger_product_dataset
+
+  test_mfg_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for mfg-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *badger_product_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
 
   extract_badger_pricing_data:
     group: Revenue Lifecycle Management
@@ -1660,7 +1677,7 @@ tasks:
     description: "Extract qb-pcm (product catalog) from org to CSV. Output in datasets/sfdmu/extractions/qb-pcm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
-      pathtoexportjson: *quantumbit_product_dataset
+      pathtoexportjson: *badger_product_dataset
 
   extract_qb_pricing_data:
     group: Data Management - Extract

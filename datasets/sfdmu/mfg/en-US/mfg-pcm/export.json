@@ -1,0 +1,144 @@
+{
+  "objects": [
+    {
+      "query": "SELECT Code, DataType, Description, Id, Name, Status, UnitOfMeasureId FROM AttributePicklist ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Abbreviation, Code, DisplayValue, Id, IsDefault, Name, PicklistId, Sequence, Status, Value FROM AttributePicklistValue ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT BaseUnitOfMeasureId, Code, DefaultUnitOfMeasureId, Description, Id, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT ConversionFactor, Description, Id, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure ORDER BY UnitCode ASC",
+      "operation": "Upsert",
+      "externalId": "UnitCode"
+    },
+    {
+      "query": "SELECT Code, DataType, DefaultHelpText, DefaultValue, Description, DeveloperName, Id, IsActive, IsRequired, Label, Name, PicklistId, SourceSystemIdentifier, UnitOfMeasureId, ValueDescription FROM AttributeDefinition ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT Code, Description, Id, Name FROM AttributeCategory ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT AttributeCategoryId, AttributeDefinitionId, Id FROM AttributeCategoryAttribute ORDER BY AttributeCategory.Code ASC, AttributeDefinition.Code ASC",
+      "operation": "Upsert",
+      "externalId": "AttributeCategory.Code;AttributeDefinition.Code"
+    },
+    {
+      "query": "SELECT Code, Id, Name, ParentProductClassificationId, Status FROM ProductClassification ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, DefaultValue, Description, DisplayType, HelpText, Id, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, ProductClassificationId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductClassificationAttr ORDER BY ProductClassification.Code ASC, AttributeDefinition.Code ASC, AttributeCategory.Code ASC, Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT BasedOnId, CanRamp, ConfigureDuringSale, Description, DisplayUrl, Family, Id, IsActive, IsAssetizable, IsSoldOnlyWithOtherProds, Name, ProductCode, QuantityUnitOfMeasure, SpecificationType, StockKeepingUnit, Type, UnitOfMeasureId FROM Product2 ORDER BY StockKeepingUnit ASC",
+      "operation": "Upsert",
+      "externalId": "StockKeepingUnit"
+    },
+    {
+      "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, DefaultValue, Description, DisplayType, HelpText, Id, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, OverriddenProductAttributeDefinitionId, Product2Id, ProductClassificationAttributeId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription FROM ProductAttributeDefinition ORDER BY Product2.StockKeepingUnit ASC, AttributeCategory.Code ASC, AttributeDefinition.Code ASC, ProductClassificationAttribute.Name ASC",
+      "operation": "Upsert",
+      "externalId": "AttributeDefinition.Code;Product2.StockKeepingUnit"
+    },
+    {
+      "query": "SELECT DoesAutoRenewAssetByDefault, Id, Name, PricingTerm, PricingTermUnit, SellingModelType, Status FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
+      "operation": "Upsert",
+      "externalId": "Name;SellingModelType"
+    },
+    {
+      "query": "SELECT ArePartialPeriodsAllowed, Id, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy",
+      "operation": "Upsert",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, ProductSellingModel.SellingModelType ASC",
+      "operation": "Upsert",
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
+    },
+    {
+      "query": "SELECT DurationType, Id, Name, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
+      "operation": "Upsert",
+      "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType"
+    },
+    {
+      "query": "SELECT AssociatedProductRoleCat, Id, MainProductRoleCat, Name FROM ProductRelationshipType ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentProductId, Sequence FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code;ParentProduct.StockKeepingUnit"
+    },
+    {
+      "query": "SELECT ChildProductClassificationId, ChildProductId, ChildProductRole, ChildSellingModelId, DoesBundlePriceIncludeChild, Id, IsComponentRequired, IsDefaultComponent, IsQuantityEditable, MaxQuantity, MinQuantity, ParentProductId, ParentProductRole, ParentSellingModelId, ProductComponentGroupId, ProductRelationshipTypeId, Quantity, QuantityScaleMethod, QuoteVisibility, Sequence, UnitOfMeasureId FROM ProductRelatedComponent ORDER BY ChildProductClassification.Code ASC, ChildProduct.StockKeepingUnit ASC, ParentProduct.StockKeepingUnit ASC, ProductComponentGroup.Code ASC, ProductRelationshipType.Name ASC",
+      "operation": "Upsert",
+      "externalId": "ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name"
+    },
+    {
+      "query": "SELECT Id, IsExcluded, MaxBundleComponents, MinBundleComponents, Name, OverrideContextId$Product2 FROM ProductComponentGrpOverride WHERE OverrideContext.Type = 'Product2'",
+      "operation": "Upsert",
+      "externalId": "Name",
+      "excluded": true
+    },
+    {
+      "query": "SELECT DoesBundlePriceIncludeChild, Id, IsComponentRequired, IsDefaultComponent, IsExcluded, IsQuantityEditable, MaxQuantity, MinQuantity, Name, OverrideContextId$Product2, ProductRelatedComponentId, Quantity, QuantityScaleMethod, UnitOfMeasureId FROM ProductRelComponentOverride WHERE OverrideContext.Type = 'Product2'",
+      "operation": "Upsert",
+      "externalId": "Name",
+      "excluded": true
+    },
+    {
+      "query": "SELECT CatalogType, Code, Description, EffectiveEndDate, EffectiveStartDate, Id, Name FROM ProductCatalog ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT CatalogId, Code, Description, Id, IsNavigational, Name, ParentCategoryId, SortOrder FROM ProductCategory ORDER BY Catalog.Code ASC, ParentCategory.Code ASC, Name ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT CatalogId, Id, IsPrimaryCategory, ProductCategoryId, ProductId FROM ProductCategoryProduct ORDER BY ProductCategory.Code ASC, Product.StockKeepingUnit ASC, Catalog.Code ASC",
+      "operation": "Upsert",
+      "externalId": "ProductCategory.Code;Product.StockKeepingUnit"
+    },
+    {
+      "query": "SELECT EffectiveFromDate, EffectiveToDate, Id, IsQualified, Name, ParentProductId, ProductId, RootProductId FROM ProductQualification",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Id, EffectiveFromDate, EffectiveToDate, IsDisqualified, Name, ParentProductId, ProductId, Reason, RootProductId FROM ProductDisqualification",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Id, CategoryId, EffectiveFromDate, EffectiveToDate, IsDisqualified, Name, Reason FROM ProductCategoryDisqual",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Id, CategoryId, EffectiveFromDate, EffectiveToDate, IsQualified, Name FROM ProductCategoryQualification",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT Id, Name, Scope, UsageType FROM ProdtAttrScope",
+      "externalId": "Name"
+    }
+  ],
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "orgs": []
+}
