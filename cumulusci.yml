@@ -1648,23 +1648,6 @@ tasks:
 # Extract tasks (group: Data Management - Extract): SFDMU org → CSV. Output in datasets/sfdmu/extractions/<plan_name>/<timestamp>. Post-process runs by default; re-import-ready CSVs in <timestamp>/processed/.
 # Idempotency tasks (group: Data Management - Idempotency): run plan load twice, assert no record count increase. Use --group to list or run by group.
 
-  # Badger Extraction Tasks
-  extract_badger_product_data:
-    group: Data Management - Extract
-    description: Extract Badger product data from org to CSV
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: *badger_product_dataset
-
-  test_mfg_pcm_idempotency:
-    group: Data Management - Idempotency
-    description: Idempotency test for mfg-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<timestamp>.
-    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
-    options:
-      pathtoexportjson: *badger_product_dataset
-      use_extraction_roundtrip: true
-      persist_extraction_output: true
-
   extract_badger_pricing_data:
     group: Revenue Lifecycle Management
     description: Extract Badger Pricing Data
