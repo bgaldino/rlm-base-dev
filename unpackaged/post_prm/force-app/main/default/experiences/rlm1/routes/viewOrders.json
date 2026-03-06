@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "5292f11a-dbf2-4e2e-87a7-6bbf24605dae",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "9a084c92-04bb-47a0-9401-60128de21453",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "View_Order_List",
-  "id" : "bd0cd989-c93b-4e23-a3ec-dcd004f805d5",
+  "id" : "39c072cd-2556-4025-ba60-dbf63a7e38f5",
   "label" : "View Orders",
   "routeType" : "order-list",
   "type" : "route",

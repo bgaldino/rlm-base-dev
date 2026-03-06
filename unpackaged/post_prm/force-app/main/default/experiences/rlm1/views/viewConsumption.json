@@ -1,0 +1,76 @@
+{
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "bc748f2d-27d1-4b22-a905-f3b0fb97368b",
+  "label" : "View Consumption",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "0402acce-69b1-4e42-8908-c7ba324b26fd",
+          "columns" : [ {
+            "UUID" : "94ec2f27-e349-4c20-95bc-1e7dbcda57e4",
+            "columnKey" : "1",
+            "columnName" : "Column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ ]
+          } ]
+        },
+        "sectionHeight" : 300
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "0402acce-69b1-4e42-8908-c7ba324b26fd",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "customQueryParameters" : "",
+            "debugMode" : false,
+            "forceRefresh" : false,
+            "height" : "1000",
+            "showTabs" : false,
+            "showToolbar" : false,
+            "vizUrl" : "https://public.tableau.com/views/AccountandUsageStory/Story1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link"
+          },
+          "componentName" : "tableau:tableauViz",
+          "id" : "95e87662-2027-45a0-b775-2b0506f633ec",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "94ec2f27-e349-4c20-95bc-1e7dbcda57e4",
+        "regionLabel" : "Column 1",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "9357628d-6a16-4a9c-8456-c0a1b2a1885e",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "View Consumption"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "7a3820ee-b6c9-4981-87a9-46644896ebb4",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "588eee30-e747-47e3-ac7f-e493f14c86f5",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "custom-view-consumption"
+}

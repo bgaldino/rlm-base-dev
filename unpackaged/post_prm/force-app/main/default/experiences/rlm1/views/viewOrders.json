@@ -1,8 +1,8 @@
 {
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:dynamicLayout",
   "dataProviders" : [ ],
-  "id" : "5292f11a-dbf2-4e2e-87a7-6bbf24605dae",
+  "id" : "9a084c92-04bb-47a0-9401-60128de21453",
   "label" : "View Orders",
   "regions" : [ {
     "components" : [ {
@@ -11,9 +11,9 @@
         "backgroundOverlay" : "rgba(0,0,0,0.5)",
         "contentAreaWidth" : 100,
         "sectionConfig" : {
-          "UUID" : "c2c85906-6558-4ae1-9d9f-342985bac970",
+          "UUID" : "f257a5d9-23da-4fcf-95cb-00acbe18e0a6",
           "columns" : [ {
-            "UUID" : "ebc73699-66c5-4178-ac15-f6e8ce266c15",
+            "UUID" : "07ddbe17-abbc-4d79-b01c-b98b4096364d",
             "columnKey" : "col1",
             "columnName" : "Order List Column",
             "columnWidth" : "12",
@@ -30,7 +30,7 @@
         "sectionHeight" : 32
       },
       "componentName" : "forceCommunity:section",
-      "id" : "c2c85906-6558-4ae1-9d9f-342985bac970",
+      "id" : "f257a5d9-23da-4fcf-95cb-00acbe18e0a6",
       "regions" : [ {
         "components" : [ {
           "componentAttributes" : {
@@ -50,12 +50,12 @@
             "showSearchBar" : true
           },
           "componentName" : "forceCommunity:objectHome",
-          "id" : "d3818a80-a18e-4a00-ada2-39c3f0da43f6",
+          "id" : "b01f83a7-c02c-4018-b4ee-83b2f35a0437",
           "renderPriority" : "NEUTRAL",
           "renditionMap" : { },
           "type" : "component"
         } ],
-        "id" : "ebc73699-66c5-4178-ac15-f6e8ce266c15",
+        "id" : "07ddbe17-abbc-4d79-b01c-b98b4096364d",
         "regionLabel" : "Order List Column",
         "regionName" : "col1",
         "renditionMap" : { },
@@ -65,7 +65,7 @@
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "6507c305-8b22-44ff-8c46-09fa5e4101e7",
+    "id" : "6149a472-cef5-4ae0-8027-2438a8eb12c2",
     "regionName" : "content",
     "type" : "region"
   } ],

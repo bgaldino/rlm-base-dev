@@ -1,11 +1,11 @@
 {
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:sldsOneColLayout",
   "dataProviders" : [ ],
-  "id" : "0b887569-cae8-4844-a8dc-28d5366353d0",
+  "id" : "08aa94b6-ed17-44d9-b8d5-cc5ebdca622a",
   "label" : "Error",
   "regions" : [ {
-    "id" : "5f8d0886-b9e8-478b-8d59-7fbc731df197",
+    "id" : "9357971b-632c-45bf-8c8b-b0e0bf22a6b8",
     "regionName" : "header",
     "type" : "region"
   }, {
@@ -14,16 +14,16 @@
         "richTextValue" : " <div class='slds-grid slds-grid--vertical slds-align--absolute-center slds-container--large'>   <div class='slds-align-middle slds-m-bottom--xx-large slds-m-top--xx-large' alt='Page not available'>      <img src='/sfsites/c/img/community/slds/messaging/illustration-page-not-found.png' class='slds-p-horizontal--large'/>   </div>   <h4 class='slds-text-align--center slds-text-heading--large slds-text-color--weak slds-m-bottom--small'>Page not available</h4>    <p class='slds-text-align--center slds-text-heading--medium slds-text-color--weak'>Maybe the page was deleted, the URL is incorrect, or something else went wrong. If you know the page exists but you still can’t get to it, please ask the community administrator for help.</p>  </div>"
       },
       "componentName" : "forceCommunity:htmlBlock",
-      "id" : "6c726f0e-ec05-45da-a95c-5ebd40a1e07b",
+      "id" : "a46bc977-60f9-4331-9d27-6a9ea691b232",
       "renderPriority" : "NEUTRAL",
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "032674fd-8a1e-4952-a61a-d488cc7e7a5d",
+    "id" : "a8234c24-78b5-44ec-9c67-3b9b23f5bc26",
     "regionName" : "content",
     "type" : "region"
   }, {
-    "id" : "245bc1ee-cf59-4260-ac23-9f9f25dc6fb0",
+    "id" : "fd75f022-cb22-49fb-8e91-113c15ae5273",
     "regionName" : "footer",
     "type" : "region"
   }, {
@@ -34,11 +34,11 @@
         "title" : "Error"
       },
       "componentName" : "forceCommunity:seoAssistant",
-      "id" : "2fd50ed5-b9a2-4607-8a6c-8cfd1ad1a831",
+      "id" : "3fc0ecfa-d44e-4a7c-8464-a4a272a6d1e5",
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "d53a5b73-812a-4f48-8a61-b52b8bb1813c",
+    "id" : "43687718-fd9a-4d2f-8252-b1ca66139142",
     "regionName" : "sfdcHiddenRegion",
     "type" : "region"
   } ],

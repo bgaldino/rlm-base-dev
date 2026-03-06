@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "e3f309f2-7f46-48ef-b1f6-a76ddd81c003",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "a40ed72c-0338-49db-bad6-587dfc848501",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "View_Contact_list",
-  "id" : "4ea06e26-e6a2-4809-9887-042c3c8b1e14",
+  "id" : "cf51167a-7e95-46e4-8874-d72df48792f6",
   "label" : "View Contacts",
   "routeType" : "contact-list",
   "type" : "route",

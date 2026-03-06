@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "0504d011-f9eb-4dcd-a44d-461b32054fc4",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "d5d9ef81-8476-4ea4-a120-230a9d9f23a9",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "Report_Related_List",
-  "id" : "1515de98-b5f6-4099-a946-72539e2215d8",
+  "id" : "f088b026-28ee-450d-98e1-93373eba9e06",
   "label" : "Report Related List",
   "routeType" : "relatedlist-00O",
   "type" : "route",

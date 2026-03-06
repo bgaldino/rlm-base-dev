@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "3ce6d07e-0865-4d1b-83d9-608aae20e238",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "1bed3ab8-fed7-4d6a-aee4-8622d06c6271",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "My_Account",
-  "id" : "fd81bbc7-928d-4678-9851-a10420eafcec",
+  "id" : "f530933e-a4ae-406b-bd5e-820fc382dc7a",
   "label" : "Account Information",
   "routeType" : "my-account",
   "type" : "route",

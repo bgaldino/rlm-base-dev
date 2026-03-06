@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "2f91d378-8c2c-4335-9d24-883b38d4c5af",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "1dd5242c-dbe5-4ecc-8b9b-f87f6df502db",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "Report_Detail",
-  "id" : "e385f22a-4672-43f5-8911-70ebbf6a140e",
+  "id" : "3f340cf9-34d4-4a87-9ff1-7c6de639eb15",
   "label" : "Report Detail",
   "routeType" : "detail-00O",
   "type" : "route",

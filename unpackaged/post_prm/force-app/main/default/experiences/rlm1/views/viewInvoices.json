@@ -1,0 +1,83 @@
+{
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "ab7c113c-39c2-4ca5-9e63-9eac6a5e59c4",
+  "label" : "View Invoices",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "48bd9c2a-f667-4d1c-8835-640c7b816d2d",
+          "columns" : [ {
+            "UUID" : "824e2cd1-97bc-48fd-908c-c51e48c17c72",
+            "columnKey" : "1",
+            "columnName" : "Column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ ]
+          } ]
+        },
+        "sectionHeight" : 300
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "48bd9c2a-f667-4d1c-8835-640c7b816d2d",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : true,
+            "filterName" : "All",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Invoice",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "showall",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : false,
+            "showObjectName" : false,
+            "showPinnedList" : true,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "3efe1f06-d668-4f68-a4e1-6966ba2d8429",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "824e2cd1-97bc-48fd-908c-c51e48c17c72",
+        "regionLabel" : "Column 1",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "7b7341e6-925d-43a2-a152-012ad38ae450",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "View Invoices"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "40fb73c1-c26b-40b7-a2f3-53c782b713fa",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "ff7a9dbe-a57f-4bee-ac26-2a21dfb5dc5f",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "custom-view-invoices"
+}

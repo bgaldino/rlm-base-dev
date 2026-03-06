@@ -1026,6 +1026,15 @@ tasks:
       required. Must run before deploy_post_prm.
     class_path: tasks.rlm_community.SetupPrmOrgEmail
 
+  patch_network_email_for_deploy:
+    group: Partner Relationship Management
+    description: >
+      Read the rlm Network's current emailSenderAddress from the org and patch
+      the network-meta.xml file on disk with that value before deploy_post_prm
+      runs. Required because Salesforce mandates emailSenderAddress in Network
+      metadata but the field is immutable after Network creation.
+    class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
+
   deploy_post_prm_tso:
     group: Partner Relationship Management
     description: >
@@ -2200,16 +2209,16 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: setup_prm_org_email
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
-      2:
-        task: deploy_post_prm
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
-      3:
         task: create_partner_central
         when: project_config.project__custom__prm
+      2:
+        task: patch_network_email_for_deploy
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
+      3:
+        task: setup_prm_org_email
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       4:
-        task: deploy_post_prm_tso
+        task: deploy_post_prm
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       5:
         task: publish_community

@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "2804ecde-dd25-416f-a3ab-194312f1507c",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "11e84174-4818-4048-b632-16f9900332fa",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "View_Campaign_List",
-  "id" : "b9ebcb0c-310c-4c4d-9178-b12fb8794ef2",
+  "id" : "e1c9f379-48e2-4a98-a989-25767fd7ac6b",
   "label" : "View Campaigns",
   "routeType" : "campaign-list",
   "type" : "route",

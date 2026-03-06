@@ -1,11 +1,11 @@
 {
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:sldsOneColLayout",
   "dataProviders" : [ ],
-  "id" : "55cb4571-ddb4-4e12-b781-98db3f996d5f",
+  "id" : "da209b7a-17c2-4778-8f31-39d8ce2c70c1",
   "label" : "Account Management",
   "regions" : [ {
-    "id" : "c0b3b697-a395-454e-a6b1-f119515fcacc",
+    "id" : "38518bf2-09b7-4e4c-8f46-a343a304c6eb",
     "regionName" : "header",
     "type" : "region"
   }, {
@@ -14,17 +14,17 @@
         "richTextValue" : "             <h1 style=\"text-align: center;\">                 <b style=\"font-size: 20px; color: #1e2443;\">Account Management</b>             </h1>             "
       },
       "componentName" : "forceCommunity:richTextInline",
-      "id" : "39ba1c1e-11e8-4c1e-b4e0-5c04b063eef4",
+      "id" : "11af21bd-3967-4f02-8de5-1f5151f04f73",
       "renderPriority" : "NEUTRAL",
       "renditionMap" : { },
       "type" : "component"
     }, {
       "componentAttributes" : {
         "tabsetConfig" : {
-          "UUID" : "efa722bb-f5d0-42ca-be40-a26d35c25a2a",
+          "UUID" : "6ce76e8e-76ac-428a-bffc-89d001d5648e",
           "activeTab" : "tab1",
           "tabs" : [ {
-            "UUID" : "bf584771-61f6-48a0-98a8-b4b6035389a3",
+            "UUID" : "95aaa974-6609-4e9a-9100-93a505e675d8",
             "allowGuestUser" : false,
             "locked" : false,
             "seedComponents" : [ {
@@ -42,7 +42,7 @@
             "tabKey" : "tab1",
             "tabName" : "Members"
           }, {
-            "UUID" : "89e3971a-1453-4f77-a2b5-a1dc180d5629",
+            "UUID" : "d877c708-91bf-4893-b374-438e199bd11f",
             "allowGuestUser" : false,
             "locked" : false,
             "seedComponents" : [ {
@@ -58,7 +58,7 @@
         }
       },
       "componentName" : "forceCommunity:tabLayout",
-      "id" : "efa722bb-f5d0-42ca-be40-a26d35c25a2a",
+      "id" : "6ce76e8e-76ac-428a-bffc-89d001d5648e",
       "regions" : [ {
         "components" : [ {
           "componentAttributes" : {
@@ -71,12 +71,12 @@
             "showRowNumbers" : false
           },
           "componentName" : "forceCommunity:relatedList",
-          "id" : "f32af201-4932-4ff9-a657-ead4951c81b6",
+          "id" : "90279647-b3b0-4d4a-acb9-1e8e8e025e03",
           "renderPriority" : "NEUTRAL",
           "renditionMap" : { },
           "type" : "component"
         } ],
-        "id" : "bf584771-61f6-48a0-98a8-b4b6035389a3",
+        "id" : "95aaa974-6609-4e9a-9100-93a505e675d8",
         "regionLabel" : "Members",
         "regionName" : "tab1",
         "renditionMap" : { },
@@ -87,12 +87,12 @@
             "recordId" : "{!CurrentUser.accountId}"
           },
           "componentName" : "forceCommunity:accountBrandRecord",
-          "id" : "1bbe8b88-2036-4c17-9479-1a6b868b367b",
+          "id" : "aacec8ba-8b87-48c4-8c48-7fea97fd37fd",
           "renderPriority" : "NEUTRAL",
           "renditionMap" : { },
           "type" : "component"
         } ],
-        "id" : "89e3971a-1453-4f77-a2b5-a1dc180d5629",
+        "id" : "d877c708-91bf-4893-b374-438e199bd11f",
         "regionLabel" : "Branding",
         "regionName" : "tab2",
         "renditionMap" : { },
@@ -102,11 +102,11 @@
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "335187a4-f38a-4a21-a807-68e390bdae30",
+    "id" : "1ca97ffd-a82f-4519-82cf-b185d04b6a71",
     "regionName" : "content",
     "type" : "region"
   }, {
-    "id" : "18b68458-ea8c-49a4-838b-e900fe74bfdb",
+    "id" : "18bbdea3-00b2-485c-a269-6c1ae17af94a",
     "regionName" : "footer",
     "type" : "region"
   }, {
@@ -117,11 +117,11 @@
         "title" : "Account Management"
       },
       "componentName" : "forceCommunity:seoAssistant",
-      "id" : "0e03f7a2-e609-4fef-b8bc-4048eb2c673c",
+      "id" : "726f5ced-dfcc-4b36-89a1-7cd27c7b2e23",
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "af0e53c1-0e76-4af0-b7bb-434ab5ed76b8",
+    "id" : "927bcc52-9898-421a-9e9d-6d63124c7fcf",
     "regionName" : "sfdcHiddenRegion",
     "type" : "region"
   } ],

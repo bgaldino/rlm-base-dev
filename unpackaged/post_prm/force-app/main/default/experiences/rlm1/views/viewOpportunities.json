@@ -1,8 +1,8 @@
 {
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:dynamicLayout",
   "dataProviders" : [ ],
-  "id" : "5ac8be56-adea-4086-a755-97c38df0c1c0",
+  "id" : "ea4825be-ce3e-498b-9d7d-7a4845f744b1",
   "label" : "View Opportunities",
   "regions" : [ {
     "components" : [ {
@@ -11,9 +11,9 @@
         "backgroundOverlay" : "rgba(0,0,0,0.5)",
         "contentAreaWidth" : 100,
         "sectionConfig" : {
-          "UUID" : "f6b33831-c2f8-412c-a05b-4ddd65d59cbf",
+          "UUID" : "5e83e569-ef6f-43ed-acf7-e9fa566b0dcb",
           "columns" : [ {
-            "UUID" : "0fb1bdf8-be8d-4a5c-b8f8-9c2daecada5b",
+            "UUID" : "93b56ca0-09f1-4ebf-b9f8-90f2d2331d89",
             "columnKey" : "col1",
             "columnName" : "Opportunity List Column",
             "columnWidth" : "12",
@@ -29,19 +29,19 @@
         "sectionHeight" : 32
       },
       "componentName" : "forceCommunity:section",
-      "id" : "f6b33831-c2f8-412c-a05b-4ddd65d59cbf",
+      "id" : "5e83e569-ef6f-43ed-acf7-e9fa566b0dcb",
       "regions" : [ {
         "components" : [ {
           "componentAttributes" : {
             "objectApiName" : "Opportunity"
           },
           "componentName" : "runtime_pipeline_inspector:pipelineInspectorHomeExperienceContainer",
-          "id" : "99fdb551-fdce-4db1-8d8e-3ecd30253b61",
+          "id" : "e5fe969c-a390-43e4-a4c4-6f2e61a00894",
           "renderPriority" : "NEUTRAL",
           "renditionMap" : { },
           "type" : "component"
         } ],
-        "id" : "0fb1bdf8-be8d-4a5c-b8f8-9c2daecada5b",
+        "id" : "93b56ca0-09f1-4ebf-b9f8-90f2d2331d89",
         "regionLabel" : "Opportunity List Column",
         "regionName" : "col1",
         "renditionMap" : { },
@@ -51,7 +51,7 @@
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "b1b1fc5f-ca54-4b01-8184-5bc5f35a3219",
+    "id" : "e9150d30-47d9-422b-b3a5-cb9a20f14e8e",
     "regionName" : "content",
     "type" : "region"
   } ],

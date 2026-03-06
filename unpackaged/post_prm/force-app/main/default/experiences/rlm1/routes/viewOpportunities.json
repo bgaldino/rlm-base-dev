@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "5ac8be56-adea-4086-a755-97c38df0c1c0",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "ea4825be-ce3e-498b-9d7d-7a4845f744b1",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "View_Opportunity_list",
-  "id" : "82b3b21f-c7e1-4273-816a-f9e46e0ea708",
+  "id" : "ca0ba242-c03d-480a-a3d8-de5b3b6e084d",
   "label" : "View Opportunities",
   "routeType" : "opportunity-list",
   "type" : "route",

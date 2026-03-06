@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "19299cb1-900e-4a17-8b66-1738d9b2dbfb",
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "activeViewId" : "180dfa89-dd32-4fcb-be87-525c821a4fd4",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "View_Lead_list",
-  "id" : "91eaf805-6cc9-4c7b-b901-96db7583b1d6",
+  "id" : "988440ac-a615-4f74-ac6b-6b92787dd486",
   "label" : "View Leads",
   "routeType" : "lead-list",
   "type" : "route",

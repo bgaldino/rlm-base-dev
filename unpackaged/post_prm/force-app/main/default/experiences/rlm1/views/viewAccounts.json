@@ -1,8 +1,8 @@
 {
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:dynamicLayout",
   "dataProviders" : [ ],
-  "id" : "1af290c3-9128-4af4-8db0-48179fdd58ba",
+  "id" : "8b4988be-b670-4812-a271-08cf125a5027",
   "label" : "View Accounts",
   "regions" : [ {
     "components" : [ {
@@ -11,9 +11,9 @@
         "backgroundOverlay" : "rgba(0,0,0,0.5)",
         "contentAreaWidth" : 100,
         "sectionConfig" : {
-          "UUID" : "e4c6b830-06bf-4a61-97f8-897a661017be",
+          "UUID" : "ca7ab6e6-66b2-4e49-83a4-fe2e6f389c82",
           "columns" : [ {
-            "UUID" : "1d471768-7290-40c7-9dab-7ab2b89b4bf7",
+            "UUID" : "753eae05-1e4f-48ce-a330-e934e184bd22",
             "columnKey" : "col1",
             "columnName" : "Account List Column",
             "columnWidth" : "12",
@@ -30,7 +30,7 @@
         "sectionHeight" : 32
       },
       "componentName" : "forceCommunity:section",
-      "id" : "e4c6b830-06bf-4a61-97f8-897a661017be",
+      "id" : "ca7ab6e6-66b2-4e49-83a4-fe2e6f389c82",
       "regions" : [ {
         "components" : [ {
           "componentAttributes" : {
@@ -50,12 +50,12 @@
             "showSearchBar" : true
           },
           "componentName" : "forceCommunity:objectHome",
-          "id" : "a7467887-65b5-4f1f-b20d-ca7657508999",
+          "id" : "82de6c10-bc83-44cd-b292-1994ece5ba6d",
           "renderPriority" : "NEUTRAL",
           "renditionMap" : { },
           "type" : "component"
         } ],
-        "id" : "1d471768-7290-40c7-9dab-7ab2b89b4bf7",
+        "id" : "753eae05-1e4f-48ce-a330-e934e184bd22",
         "regionLabel" : "Account List Column",
         "regionName" : "col1",
         "renditionMap" : { },
@@ -65,7 +65,7 @@
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "fb4f60c1-6c4f-4e67-a3f4-fb466e4819bf",
+    "id" : "3627c4f8-3c41-4f91-98e3-37e26be2edce",
     "regionName" : "content",
     "type" : "region"
   } ],

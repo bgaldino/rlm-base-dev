@@ -1,8 +1,8 @@
 {
-  "appPageId" : "45a0921c-6e64-4909-b826-22f71cb06dd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:dynamicLayout",
   "dataProviders" : [ ],
-  "id" : "19299cb1-900e-4a17-8b66-1738d9b2dbfb",
+  "id" : "180dfa89-dd32-4fcb-be87-525c821a4fd4",
   "label" : "View Leads",
   "regions" : [ {
     "components" : [ {
@@ -11,9 +11,9 @@
         "backgroundOverlay" : "rgba(0,0,0,0.5)",
         "contentAreaWidth" : 100,
         "sectionConfig" : {
-          "UUID" : "689ef791-f58c-450f-a3f1-8584e0dc105e",
+          "UUID" : "fef02d1a-048f-4104-8484-430df36952df",
           "columns" : [ {
-            "UUID" : "f8376141-7c15-48f0-8879-42cf7d90423c",
+            "UUID" : "520c826b-9bc6-46b2-984a-316d7adc9ea9",
             "columnKey" : "col1",
             "columnName" : "Lead List Column",
             "columnWidth" : "12",
@@ -29,19 +29,19 @@
         "sectionHeight" : 32
       },
       "componentName" : "forceCommunity:section",
-      "id" : "689ef791-f58c-450f-a3f1-8584e0dc105e",
+      "id" : "fef02d1a-048f-4104-8484-430df36952df",
       "regions" : [ {
         "components" : [ {
           "componentAttributes" : {
             "objectApiName" : "Lead"
           },
           "componentName" : "runtime_pipeline_inspector:pipelineInspectorHomeExperienceContainer",
-          "id" : "5ee632f6-f86a-4c8e-9b8b-9de162fdacf6",
+          "id" : "b67a079f-1419-4c29-9639-6e82865b4e1a",
           "renderPriority" : "NEUTRAL",
           "renditionMap" : { },
           "type" : "component"
         } ],
-        "id" : "f8376141-7c15-48f0-8879-42cf7d90423c",
+        "id" : "520c826b-9bc6-46b2-984a-316d7adc9ea9",
         "regionLabel" : "Lead List Column",
         "regionName" : "col1",
         "renditionMap" : { },
@@ -51,7 +51,7 @@
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "078becb0-2773-438e-8262-1333d660f1f0",
+    "id" : "77de47b1-1473-4e8a-8553-f745113616e8",
     "regionName" : "content",
     "type" : "region"
   } ],
