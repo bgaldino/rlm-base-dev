@@ -48,10 +48,6 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>emptyStateImage</name>
-                    <value>/projRes/ui-home-private/emptyStates/noAssistant.svg</value>
-                </componentInstanceProperties>
                 <componentName>home:assistant</componentName>
                 <identifier>home_assistant</identifier>
             </componentInstance>
