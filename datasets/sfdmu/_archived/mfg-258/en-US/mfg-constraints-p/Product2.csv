@@ -1,0 +1,232 @@
+Name
+FESBA 900kW
+FESBA 1200kW
+FESBA 1500kW
+FESBA 1750kW
+FESBA 2500kW
+"220/380,3 Phase,Wye,4 Wire"
+"240/416,3 Phase,Wye,4 Wire"
+"255/440,3 Phase,Wye,4 Wire"
+"277/480,3 Phase,Wye,4 Wire"
+"347/600,3 Phase,Wye,4 Wire"
+"2400/4160,3 Phase,Wye,4Wire"
+"7200/12470,3 Ph,Wye,4 Wire"
+"7621/13200,3 Ph,Wye,4 Wire"
+"7976/13800,3 Ph,Wye,4 Wire"
+"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm"
+"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C)"
+"ALT-60Hz,2400/4160V,125/105/80C (S/P/C)"
+"ALT-60Hz,Wye,12.47kV,105/80C (S/P)"
+"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb"
+"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont"
+"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm"
+"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm"
+"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby"
+"Alt-60Hz,347/600V,125/105/80C-SPC"
+"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm"
+"Alternator-60Hz, 347/600Volt, 80C-Stby"
+"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby"
+"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm"
+"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby"
+"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby"
+"Alt-60Hz,Wye,440V,125-80C-SPC"
+"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm"
+"Alternator-60Hz, Wye, 440 Volt,80C-Stby"
+"Alt-60Hz,Wye,440V,150/125SP,40C amb"
+"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm"
+"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont"
+"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb"
+"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb"
+"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart"
+"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart"
+"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart"
+"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart"
+"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart"
+"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart"
+"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb"
+"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb"
+Engine - QSK60-G6
+Normal Duty Air Cleaner
+Heavy Duty Air Cleaner
+Electric Starter Motor - 24V DC
+Battery Charging Alternator
+"Filters-Eng Oil,Full Flow/Bypass"
+Oil Sampling Valve
+Oil Pan-High Capacity
+Separator-Fuel/Water
+"Fuel Filters-Engine, Standard"
+"Fuel Filters-Engine, Duplex"
+"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp"
+"Coolant Heater-208/240/480V, Below 40F Ambient Temp"
+None Supplied (Remote Cooling)
+Engine Cooling-High Ambient Air Temperature
+Engine Cooling-Enhanced High Ambient Air Temperature
+"Eng Cooling-High Ambient Air Temp, Ship Loose"
+(Remote Cooling) Flanged Connectors ASA
+Shutdown-Low Coolant Level
+Warning-Low Coolant Level
+"Temp Sens-Stator, 2 RTD/Ph"
+"Bearing,1 RTD NDE"
+"Heater-Alternator, 120 Volt AC"
+"Heater-Alternator, 240 Volt AC"
+"Heater-Alternator, 110/220 (120/240) Volt AC"
+PMG
+Hardened Bearing Cartridge
+"Output Terminals-2-Hole Lug, NEMA"
+Differential CT's P7
+Differential CT's P80
+Circuit Breaker or Entrance Box-None
+Housing Arrangement - Left Entry
+Housing Arrangement - Right Entry
+Housing Arrangement - Left & Right Entry
+"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn"
+"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn"
+"Terminal Housing-Bottom Entrance,Medium/High Volts"
+"Terminal Housing-Top Entrance,Medium/High Volts"
+"Entrance Box-Low Voltage,Left"
+"Terminal Box-Low Voltage,Left"
+"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%"
+"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%"
+"Top Entry, Left"
+"Bottom Entry, Left"
+"Bottom Entry Chute, Left"
+Entrance Box-Right
+"Entrance Box-Low Voltage,Right"
+"Terminal Box-Low Voltage,Right"
+"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%"
+"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%"
+"Top Entry, Right"
+"Bottom Entry, Right"
+"Bottom Entry Chute, Right"
+"Indication-Ground Fault,3-PoleXfrSw"
+"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left"
+"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right"
+Ckt Brkr Access-Right Side
+Ckt Brkr Access-Left Side
+"Ckt Brkr Lugs-Mechanical, Left Side"
+"Ckt Brkr Lugs-Mechanical, Right Side"
+Ground Fault Indication Relay - None
+PowerCommand 3.3
+PowerCommand 3.3 with MLD
+120/240VAC compatible
+"Meters-AC Output,Analog"
+Display - Control LCD
+AmpSentryTM Protective Relay
+"Display, Running Time"
+"Alarm-Audible, Engine Shutdown"
+RELAYS-USER CONFIGURED
+"Signals - Auxiliary, 8 Inputs/8 Outputs"
+"Signals - Auxiliary 2, 8 Inputs/8 Outputs"
+Gauge-Exhaust Gas Temperature
+Test - Standard Factory
+Test Record-Certified
+Test - Witness
+"Test-Extended, Prime Load, 1Hr"
+"Test-Extnd, Prime Ld,2Hr"
+"Test-Extnd, Prime Ld,4Hr"
+0155-2342-10
+0155-2696-07
+0300-5929-01
+0300-5929-02
+0416-0439
+0416-0527
+0541-1204
+A030S169
+A035K427
+A046D218
+A048N280
+A051H785
+A051K118
+A052X578
+A052X580
+A052X582
+A052X584
+A052X586
+0402-0750-01
+No Enclosure
+Weather Protected Enclosure
+Level 1 Sound Attenuated Enclosure
+Level 2 Sound Attenuated Enclosure
+Level 3 Sound Attenuated Enclosure
+Electrical Engineer
+Mechanical Engineer
+Civil Engineer
+Installation Fee
+Mounting Hardware
+Wiring & Cables
+Conduits and Fittings
+FESBA Generator Set
+"Test-Extended, Prime Load, 8Hr"
+"Test-Extended, Standby Load, 1"
+"Test-Extended, Standby Load, 2"
+"Test-Extended, Standby Load, 4"
+"Test-Extnd,Stndby Ld,8Hr"
+"Test-Varied Load,1 Hour,2 Step"
+"Test-Varied Load,2Hr,2 Step"
+"Test-Varied Load, 4Hr, 2Step"
+"Test-Varied Ld,6Hr,3 Step"
+Test-Independent Laboratory
+Test Record-Strip Chart
+Test Record-Safety Shutdowns
+Test Record-Amb Temp/Pres
+Test Record-Exhaust Temp
+Genset Warranty Base
+ST 3YR 1500HR PARTS
+ST 5YR 2500HR PARTS
+ST 10YR 5000HR PARTS
+ST 3YR 1500HR Parts + Labor
+ST 5YR 2500HR Parts + Labor
+ST 10YR 5000HR Parts + Labor
+ST 3YR 1500HR Parts + Labor + Travel
+ST 5YR 2500HR Parts + Labor + Travel
+ST 10YR 5000HR Parts + Labor + Travel
+PR 2YR 4000HR P + L + T
+PR 3YR 6000HR P + L + T
+DCC 3YR UNLIMITED HR PARTS
+DCC 5YR UNLIMITED HR PARTS
+DCC 10YR UNLIMITED HR PARTS
+DCC 3YR UNLIMITED HR P + L
+DCC 5YR UNLIMITED HR P + L
+DCC 10YR UNLIMITED HR P + L
+DCC 3YR UNLIMITED HR P + L + T
+DCC 5YR UNLIMITED HR P + L + T
+DCC 10YR UNLIMITED HR P + L + T
+Literature-Chinese
+Literature-Danish
+Literature-Dutch
+Literature-English
+Literature-Finnish
+Literature-French
+Literature-German
+Literature-Greek
+Literature-Italian
+Literature-Norwegian
+Literature-Portuguese
+Literature-Brazilian Portuguese
+Literature-Russian
+Literature-Spanish
+Literature-Swedish
+Packing-None
+0155-2341-10

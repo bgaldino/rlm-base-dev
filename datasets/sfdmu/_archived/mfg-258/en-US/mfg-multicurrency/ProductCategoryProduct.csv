@@ -1,0 +1,5 @@
+$$ProductCategory.Name$Product.StockKeepingUnit$Catalog.Code,Catalog.Name,CurrencyIsoCode,Product.StockKeepingUnit,ProductCategory.$$Name$Catalog.Code$ParentCategory.Name
+Generators;AMEL-FRD;GeneratorCatalog,Power Management,USD,AMEL-FRD,Generators;GeneratorCatalog
+Generators;CUGR-FRD;GeneratorCatalog,Power Management,USD,CUGR-FRD,Generators;GeneratorCatalog
+Generators;FESBA-FRD;GeneratorCatalog,Power Management,USD,FESBA-FRD,Generators;GeneratorCatalog
+Generators;GAMD-FRD;GeneratorCatalog,Power Management,USD,GAMD-FRD,Generators;GeneratorCatalog

@@ -1,0 +1,5 @@
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status
+EACH,CAS01,EACH,Support Cases,Case,Active
+USD,CURRENCY,USD,,Currency,Active
+GB,DATAVOL,GB,,Data Volume,Active
+m,TIME,m,,Time,Active

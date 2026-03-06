@@ -1,0 +1,12 @@
+ConversionFactor,CurrencyIsoCode,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
+1000000000,USD,,Byte,,,1,Active,Data,B,DATAVOL
+1,USD,Support Cases,Each,,,1,Active,Count,EACH,CAS01
+1,USD,,Gigabyte,,,4,Active,Data,GB,DATAVOL
+60,USD,,Hour,,,3,Active,Time,h,TIME
+1000000,USD,,Kilobyte,,,2,Active,Data,KB,DATAVOL
+1,USD,,Minutes,,,2,Active,Time,m,TIME
+1000,USD,,Megabyte,,,3,Active,Data,MB,DATAVOL
+0.000001,USD,,Petabyte,,,6,Active,Data,PB,DATAVOL
+0.016667,USD,,Seconds,,,1,Active,Time,s,TIME
+0.001,USD,,Terabyte,,,5,Active,Data,TB,DATAVOL
+1,USD,,USD,,,1,Active,Cost,USD,CURRENCY
