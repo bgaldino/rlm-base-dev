@@ -804,12 +804,6 @@ tasks:
     options:
       path: unpackaged/post_quantumbit
 
-  deploy_post_scratch:
-    description: Deploy Scratch Metadata
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_scratch
-
   deploy_post_tso:
     description: Deploy Trialforce Source Org Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
