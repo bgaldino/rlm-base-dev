@@ -1,0 +1,76 @@
+<!-- rcUsageDataTable: FieldSet-driven datatable for usage data on Account record pages.
+     Displays TransactionJournal, UsageSummary, or UsageBillingPeriodItem records
+     with dynamic columns, sorting, and pagination. -->
+<template>
+    <lightning-card title={displayTitle} icon-name="standard:usage_summary">
+        <template if:true={isConfigured}>
+            <lightning-button-icon
+                slot="actions"
+                icon-name="utility:refresh"
+                alternative-text="Refresh"
+                onclick={handleRefresh}
+            ></lightning-button-icon>
+
+            <!-- Loading state -->
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <!-- Data state: sortable datatable with pagination -->
+            <template if:true={hasData}>
+                <lightning-datatable
+                    key-field="Id"
+                    data={tableData}
+                    columns={columns}
+                    hide-checkbox-column
+                    show-row-number-column
+                    sorted-by={sortedBy}
+                    sorted-direction={sortDirection}
+                    onsort={handleSort}
+                ></lightning-datatable>
+
+                <!-- Pagination controls: only shown when data spans multiple pages -->
+                <template if:true={showPagination}>
+                    <div class="slds-grid slds-grid_align-center slds-p-around_small">
+                        <lightning-button-icon
+                            icon-name="utility:chevronleft"
+                            alternative-text="Previous"
+                            onclick={handlePrevious}
+                            disabled={isFirstPage}
+                            class="slds-m-right_x-small"
+                        ></lightning-button-icon>
+                        <span class="slds-align-middle slds-p-horizontal_small">{pageInfo}</span>
+                        <lightning-button-icon
+                            icon-name="utility:chevronright"
+                            alternative-text="Next"
+                            onclick={handleNext}
+                            disabled={isLastPage}
+                            class="slds-m-left_x-small"
+                        ></lightning-button-icon>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Empty state -->
+            <template if:true={isEmpty}>
+                <div class="slds-align_absolute-center slds-p-around_medium">
+                    <p>No records found.</p>
+                </div>
+            </template>
+
+            <!-- Error state -->
+            <template if:true={error}>
+                <div class="slds-p-around_medium slds-text-color_error">
+                    <p>{errorMessage}</p>
+                </div>
+            </template>
+        </template>
+
+        <!-- Setup required state: shown when usageObject or fieldSetName is not configured -->
+        <template if:false={isConfigured}>
+            <div class="slds-align_absolute-center slds-p-around_medium">
+                <p class="slds-text-color_weak">Setup required: configure Usage Object and Field Set Name in the component properties.</p>
+            </div>
+        </template>
+    </lightning-card>
+</template>
