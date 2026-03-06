@@ -268,6 +268,8 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
 | `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
 | `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling | See `cumulusci.yml` |
+| `extract_qb_prm_data` | Data Management - Extract | Extract qb-prm (partner relationship management) from org to CSV | See `cumulusci.yml` |
+| `test_qb_prm_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm | See `cumulusci.yml` |
 | `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
 | `load_sfdmu_data` | Revenue Lifecycle Management | Load SFDMU data plans (generic; supports simulation, object_sets, dynamic DRO user) | See `cumulusci.yml` |
 | `export_cml` | Revenue Lifecycle Management | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
@@ -517,7 +519,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Deploy PRM metadata, publish community, sharing rules | `prm`, `prm_exp_bundle`, `sharingsettings` |
+| `prepare_prm` | Deploy PRM metadata, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
@@ -641,6 +643,7 @@ datasets/sfdmu/
 | qb-transactionprocessingtypes | `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/` | Transaction Processing Type records | [README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) |
 | qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](datasets/sfdmu/qb/en-US/qb-rating/README.md) |
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](datasets/sfdmu/qb/en-US/qb-rates/README.md) |
+| qb-prm | `datasets/sfdmu/qb/en-US/qb-prm/` | Partner Relationship Management (channel programs, levels, members) | [README](datasets/sfdmu/qb/en-US/qb-prm/README.md) |
 
 #### Procedure Plans Data Plan
 
@@ -701,6 +704,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-transactionprocessingtypes README](datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) -- Transaction Processing Types
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
+- [qb-prm README](datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
 - [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 - [mfg README](datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 
@@ -768,7 +772,7 @@ rlm-base-dev/
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
-│   │   ├── qb/en-US/           # QuantumBit data shape (9 active plans)
+│   │   ├── qb/en-US/           # QuantumBit data shape (10 active plans)
 │   │   │   ├── qb-pcm/
 │   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
@@ -777,7 +781,8 @@ rlm-base-dev/
 │   │   │   ├── qb-dro/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
-│   │   │   └── qb-rates/
+│   │   │   ├── qb-rates/
+│   │   │   └── qb-prm/
 │   │   ├── mfg/en-US/          # Manufacturing data shape (e.g. mfg-pcm) — same patterns as qb
 │   │   ├── procedure-plans/    # Procedure Plans data plan (sections + options)
 │   │   └── _archived/          # Deprecated SFDMU plans (constraints attempts)
