@@ -101,7 +101,7 @@ project:
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: true                # Use Partner Relationship Management
-    prm_exp_bundle: false     # Use PRM Experience Bundle
+    prm_exp_bundle: true      # Use PRM Experience Bundle
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
@@ -1018,6 +1018,23 @@ tasks:
     options:
       path: force-app/main/default/settings
 
+  setup_prm_org_email:
+    group: Partner Relationship Management
+    description: >
+      Create the steelbrick_demo@salesforce.com org-wide email address used as
+      the PRM community email sender. In scratch orgs no email verification is
+      required. Must run before deploy_post_prm.
+    class_path: tasks.rlm_community.SetupPrmOrgEmail
+
+  deploy_post_prm_tso:
+    group: Partner Relationship Management
+    description: >
+      Deploy TSO-only PRM experience overlay containing the View Vouchers page
+      (requires Referral and Voucher objects enabled in TSO orgs).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_prm_tso
+
   create_partner_central:
     description: Create Partner Central Community
     class_path: cumulusci.tasks.salesforce.CreateCommunity
@@ -1848,61 +1865,58 @@ flows:
       3:
         flow: prepare_expression_sets
       4:
-        task: create_partner_central
-        when: project_config.project__custom__prm
-      5:
         task: create_payments_webhook
         when: project_config.project__custom__payments
-      6:
+      5:
         task: deploy_full
-      7:
+      6:
         flow: prepare_price_adjustment_schedules
-      8:
+      7:
         flow: prepare_scratch
-      9:
+      8:
         flow: prepare_payments
-      10:
+      9:
         flow: prepare_quantumbit
-      11:
+      10:
         flow: prepare_product_data
-      12:
+      11:
         flow: prepare_pricing_data
-      13:
+      12:
         flow: prepare_docgen
-      14:
+      13:
         flow: prepare_dro
-      15:
+      14:
         flow: prepare_tax
-      16:
+      15:
         flow: prepare_billing
-      17:
+      16:
         flow: prepare_analytics
-      18:
+      17:
         flow: prepare_clm
-      19:
+      18:
         flow: prepare_rating
-      20:
+      19:
         task: activate_and_deploy_expression_sets
-      21:
+      20:
         flow: prepare_tso
-      22:
+      21:
         flow: prepare_procedureplans
-      23:
+      22:
         flow: prepare_prm
-      24:
+      23:
         flow: prepare_agents
-      25:
+      24:
         flow: prepare_constraints
-      26:
+      25:
         flow: prepare_guidedselling
-      27:
+      26:
         flow: prepare_visualization
-      28:
+      27:
         task: configure_revenue_settings
-      29:
+      28:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
-      30:
+      29:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2186,14 +2200,23 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_prm
+        task: setup_prm_org_email
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
       2:
+        task: deploy_post_prm
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
+      3:
+        task: create_partner_central
+        when: project_config.project__custom__prm
+      4:
+        task: deploy_post_prm_tso
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
+      5:
         task: publish_community
         when: project_config.project__custom__prm
         options:
           name: rlm
-      3:
+      6:
         task: deploy_sharing_rules
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
 
