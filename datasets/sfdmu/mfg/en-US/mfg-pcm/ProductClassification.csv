@@ -1,0 +1,12 @@
+Code,Name,ParentProductClassification.Code,Status
+Buckets PC,Buckets PC,,Active
+Control PC,Control PC,,Active
+Fuel Cell PC,Fuel Cell,,Active
+Generator Set PC,Generator Set PC,,Active
+MainAlternator,Main Alternator,,Active
+MiscGen,Generator Misc,,Active
+Model PC,Model PC,,Active
+Skid Steer PC,Skid Steer PC,,Active
+SWG,Switchgear,,Active
+Switchgear Bay,Switchgear Bay,,Active
+Voltage PC,Voltage PC,,Active

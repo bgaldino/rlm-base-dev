@@ -1,0 +1,62 @@
+$$ProductCategory.Code$Product.StockKeepingUnit,Catalog.Code,IsPrimaryCategory,Product.StockKeepingUnit,ProductCategory.Code
+Additives & Catalysts;AO-1000-25KG,Badger Chemicals,false,AO-1000-25KG,Additives & Catalysts
+Additives & Catalysts;AO-1000-50KG,Badger Chemicals,false,AO-1000-50KG,Additives & Catalysts
+Additives & Catalysts;PC-500-5KG,Badger Chemicals,false,PC-500-5KG,Additives & Catalysts
+Additives & Catalysts;TiO2-500-1000KG,Badger Chemicals,false,TiO2-500-1000KG,Additives & Catalysts
+Additives & Catalysts;TiO2-500-25KG,Badger Chemicals,false,TiO2-500-25KG,Additives & Catalysts
+Attachments;DIRT-BUCKET,Badger Equipment Catalog,false,DIRT-BUCKET,Attachments
+Attachments;GP-Bucket,Badger Equipment Catalog,false,GP-Bucket,Attachments
+Attachments;TRENCHING-BUCKET,Badger Equipment Catalog,false,TRENCHING-BUCKET,Attachments
+Base Chemicals;H2SO4-1000L-IBC,Badger Chemicals,false,H2SO4-1000L-IBC,Base Chemicals
+Base Chemicals;H2SO4-200L-DR,Badger Chemicals,false,H2SO4-200L-DR,Base Chemicals
+Base Chemicals;NaOH-25KG,Badger Chemicals,false,NaOH-25KG,Base Chemicals
+Base Chemicals;NaOH-50KG,Badger Chemicals,false,NaOH-50KG,Base Chemicals
+Base Chemicals;NH3-CYL,Badger Chemicals,false,NH3-CYL,Base Chemicals
+Bearings & Bushings;BG-BRG-7001,Badger Industrials,false,BG-BRG-7001,Bearings & Bushings
+Bearings & Bushings;BG-BRG-7002,Badger Industrials,false,BG-BRG-7002,Bearings & Bushings
+Bearings & Bushings;BG-BRG-7003,Badger Industrials,false,BG-BRG-7003,Bearings & Bushings
+Chains & Sprockets;BG-CHS-8001,Badger Industrials,false,BG-CHS-8001,Chains & Sprockets
+Chains & Sprockets;BG-CHS-8002,Badger Industrials,false,BG-CHS-8002,Chains & Sprockets
+Couplings;BG-CPL-6001,Badger Industrials,false,BG-CPL-6001,Couplings
+Couplings;BG-CPL-6002,Badger Industrials,false,BG-CPL-6002,Couplings
+Couplings;BG-CPL-6003,Badger Industrials,false,BG-CPL-6003,Couplings
+Couplings;BG-KIT-CPL95,Badger Industrials,false,BG-KIT-CPL95,Couplings
+Equipment;414LP-KAA-E-SSL,Badger Equipment Catalog,false,414LP-KAA-E-SSL,Equipment
+Fuel Cells;FUCEL,GeneratorCatalog,false,FUCEL,Fuel Cells
+Generators;AMEL-FRD,GeneratorCatalog,false,AMEL-FRD,Generators
+Generators;CUGR-FRD,GeneratorCatalog,false,CUGR-FRD,Generators
+Generators;FESBA-FRD,GeneratorCatalog,false,FESBA-FRD,Generators
+Generators;GAMD-FRD,GeneratorCatalog,false,GAMD-FRD,Generators
+Industrial Motors & Controls;BG-KIT-MTR1,Badger Industrials,false,BG-KIT-MTR1,Industrial Motors & Controls
+Industrial Motors & Controls;BG-MTR-1201,Badger Industrials,false,BG-MTR-1201,Industrial Motors & Controls
+Industrial Motors & Controls;BG-MTR-1202,Badger Industrials,false,BG-MTR-1202,Industrial Motors & Controls
+Industrial Solvents;ACET-50-200L,Badger Chemicals,false,ACET-50-200L,Industrial Solvents
+Industrial Solvents;ACET-50-20L,Badger Chemicals,false,ACET-50-20L,Industrial Solvents
+Industrial Solvents;TOL-100-1000L,Badger Chemicals,false,TOL-100-1000L,Industrial Solvents
+Industrial Solvents;TOL-100-200L,Badger Chemicals,false,TOL-100-200L,Industrial Solvents
+Industrial Solvents;XYL-200-1000L,Badger Chemicals,false,XYL-200-1000L,Industrial Solvents
+Industrial Solvents;XYL-200-200L,Badger Chemicals,false,XYL-200-200L,Industrial Solvents
+Kits;BG-KIT-CPL95,Badger Industrials,false,BG-KIT-CPL95,Kits
+Kits;BG-KIT-MTR1,Badger Industrials,false,BG-KIT-MTR1,Kits
+Lubricants;RLM-SW-40,Badger Equipment Catalog,false,RLM-SW-40,Lubricants
+Pneumatics & Hydraulics;BG-PNH-9001,Badger Industrials,false,BG-PNH-9001,Pneumatics & Hydraulics
+Pneumatics & Hydraulics;BG-PNH-9002,Badger Industrials,false,BG-PNH-9002,Pneumatics & Hydraulics
+Polymers & Resins;AR-300-1000KG,Badger Chemicals,false,AR-300-1000KG,Polymers & Resins
+Polymers & Resins;AR-300-200KG-DR,Badger Chemicals,false,AR-300-200KG-DR,Polymers & Resins
+Polymers & Resins;EPX-500-200KG,Badger Chemicals,false,EPX-500-200KG,Polymers & Resins
+Polymers & Resins;EPX-500-20KG,Badger Chemicals,false,EPX-500-20KG,Polymers & Resins
+Polymers & Resins;PE-1000-25KG,Badger Chemicals,false,PE-1000-25KG,Polymers & Resins
+Replacement Parts;414LP-KAA-TT1,Badger Equipment Catalog,false,414LP-KAA-TT1,Replacement Parts
+Replacement Parts;414LP-KAA-TT2,Badger Equipment Catalog,false,414LP-KAA-TT2,Replacement Parts
+Replacement Parts;EP-43253,Badger Equipment Catalog,false,EP-43253,Replacement Parts
+Replacement Parts;RHO-ENG-022,Badger Equipment Catalog,false,RHO-ENG-022,Replacement Parts
+Service Contracts;SC-GOLD,Badger Equipment Catalog,false,SC-GOLD,Service Contracts
+Skid Steers;414LP-KAA-E-SSL,Badger Equipment Catalog,false,414LP-KAA-E-SSL,Skid Steers
+Specialty Chemicals;CI-3000-200L,Badger Chemicals,false,CI-3000-200L,Specialty Chemicals
+Specialty Chemicals;CI-3000-20L,Badger Chemicals,false,CI-3000-20L,Specialty Chemicals
+Specialty Chemicals;DF-4000-200L,Badger Chemicals,false,DF-4000-200L,Specialty Chemicals
+Specialty Chemicals;DF-4000-20L,Badger Chemicals,false,DF-4000-20L,Specialty Chemicals
+Specialty Chemicals;UV-2000-25KG,Badger Chemicals,false,UV-2000-25KG,Specialty Chemicals
+Switchgears;PCSWG,GeneratorCatalog,false,PCSWG,Switchgears
+Tiers;SC-GOLD,Service Contracts,false,SC-GOLD,Tiers
+Warranty;EW,Service Contracts,false,EW,Warranty

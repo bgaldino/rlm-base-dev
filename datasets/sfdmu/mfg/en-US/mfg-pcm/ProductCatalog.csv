@@ -1,0 +1,6 @@
+CatalogType,Code,Description,EffectiveEndDate,EffectiveStartDate,Name
+Sales,Badger Chemicals,,,2025-02-01T20:00:00.000+0000,Badger Chemicals
+Sales,Badger Equipment Catalog,,,,Badger Equipment
+Sales,Badger Industrials,,,,Badger Industrials
+Sales,GeneratorCatalog,,,,Power Management
+Sales,Service Contracts,,,,Service Contracts
