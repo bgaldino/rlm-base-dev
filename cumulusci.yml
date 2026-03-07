@@ -515,6 +515,7 @@ project:
 # Badger MFG Datasets
     badger_product_dataset: &badger_product_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"         # Badger product data
     badger_pricing_dataset: &badger_pricing_dataset "unpackaged/post_manufacturing/datasets/mfg-rca-pricing-dev"     # Badger pricing data
+    badger_dro_dataset: &badger_dro_dataset "datasets/sfdmu/mfg/en-US/mfg-dro"     # Badger DRO dataset
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -1177,6 +1178,13 @@ tasks:
     options:
       pathtoexportjson: *badger_pricing_dataset
 
+  insert_badger_dro_data:
+    group: Badger RCA
+    description: Insert Badger Pricing Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_dro_dataset
+
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data
@@ -1603,6 +1611,21 @@ tasks:
 # a data plan to avoid duplicates (e.g. before test_*_idempotency). Add tasks
 # here for each plan that has a delete script (rates, rating, billing, etc.).
 
+  # Badger Delete Tasks
+  delete_badger_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice,
+      PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment,
+      AttributeAdjustmentCondition, PriceAdjustmentTier)
+      in reverse plan order (children first). Shape-agnostic: clears all records of
+      each type regardless of which data shape populated them. Run before
+      insert_quantumbit_pricing_data when layering multiple pricing shapes.
+      Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *badger_pricing_dataset
+
   delete_quantumbit_pricing_data:
     group: Data Maintenance
     description: >
@@ -1678,7 +1701,7 @@ tasks:
     description: "Extract qb-pcm (product catalog) from org to CSV. Output in datasets/sfdmu/extractions/qb-pcm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
-      pathtoexportjson: *badger_product_dataset
+      pathtoexportjson: *quantumbit_product_dataset
 
   extract_qb_pricing_data:
     group: Data Management - Extract
@@ -1742,6 +1765,25 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_dataset
+
+# Badger Idempotency Tasks
+  test_badger_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pcm/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *badger_product_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_badger_pricing_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *badger_pricing_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
 
   test_qb_pcm_idempotency:
     group: Data Management - Idempotency
