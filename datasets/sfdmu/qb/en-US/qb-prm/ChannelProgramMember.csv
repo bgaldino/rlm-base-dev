@@ -1,0 +1,2 @@
+RLM_Adjustment_Type__c,RLM_Adjustment_Value__c,RLM_Discount_Rate__c,Level.Name,Partner.Name,Program.Name,$$Partner.Name$Program.Name
+Percentage,0,15,Gold,Robot Resellers,Reseller Program,Robot Resellers;Reseller Program
