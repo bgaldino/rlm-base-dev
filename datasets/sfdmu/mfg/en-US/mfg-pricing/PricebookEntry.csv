@@ -1,0 +1,345 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+0155-2341-10-FRD;One-Time;USD,USD,true,false,0155-2341-10,Standard Price Book;true,0155-2341-10-FRD,One-Time;OneTime,2350
+0155-2342-10-FRD;One-Time;USD,USD,true,false,0155-2342-10,Standard Price Book;true,0155-2342-10-FRD,One-Time;OneTime,1260
+0155-2696-07-FRD;One-Time;USD,USD,true,false,0155-2696-07,Standard Price Book;true,0155-2696-07-FRD,One-Time;OneTime,2130
+0300-5929-01-FRD;One-Time;USD,USD,true,false,0300-5929-01,Standard Price Book;true,0300-5929-01-FRD,One-Time;OneTime,410
+0300-5929-02-FRD;One-Time;USD,USD,true,false,0300-5929-02,Standard Price Book;true,0300-5929-02-FRD,One-Time;OneTime,750
+0402-0750-01-FRD;One-Time;USD,USD,true,false,0402-0750-01,Standard Price Book;true,0402-0750-01-FRD,One-Time;OneTime,500
+0416-0439-FRD;One-Time;USD,USD,true,false,0416-0439,Standard Price Book;true,0416-0439-FRD,One-Time;OneTime,360
+0416-0527-FRD;One-Time;USD,USD,true,false,0416-0527,Standard Price Book;true,0416-0527-FRD,One-Time;OneTime,300
+0541-1204-FRD;One-Time;USD,USD,true,false,0541-1204,Standard Price Book;true,0541-1204-FRD,One-Time;OneTime,2160
+10-DL;Term Annual;USD,USD,true,false,10% Discount on Labor,Standard Price Book;true,10-DL,Term Annual;TermDefined,0
+20-DP;Term Annual;USD,USD,true,false,20% Discount on Parts,Standard Price Book;true,20-DP,Term Annual;TermDefined,0
+414LP-KAA-CAB2;One-Time;USD,USD,true,false,Sound Reduction Option,Standard Price Book;true,414LP-KAA-CAB2,One-Time;OneTime,800
+414LP-KAA-CAB3;One-Time;USD,USD,true,false,Suspension Seat,Standard Price Book;true,414LP-KAA-CAB3,One-Time;OneTime,380
+414LP-KAA-E-SSL;One-Time;USD,USD,true,false,414LP KAA Skid Steer Loader,Standard Price Book;true,414LP-KAA-E-SSL,One-Time;OneTime,43800
+414LP-KAA-TT1;One-Time;USD,USD,true,false,Standard Duty Tires,Standard Price Book;true,414LP-KAA-TT1,One-Time;OneTime,450
+414LP-KAA-TT2;One-Time;USD,USD,true,false,Heavy Duty Tires,Standard Price Book;true,414LP-KAA-TT2,One-Time;OneTime,950
+A030S169-FRD;One-Time;USD,USD,true,false,A030S169,Standard Price Book;true,A030S169-FRD,One-Time;OneTime,100
+A035K427-FRD;One-Time;USD,USD,true,false,A035K427,Standard Price Book;true,A035K427-FRD,One-Time;OneTime,940
+A046D218-FRD;One-Time;USD,USD,true,false,A046D218,Standard Price Book;true,A046D218-FRD,One-Time;OneTime,1170
+A048N280-FRD;One-Time;USD,USD,true,false,A048N280,Standard Price Book;true,A048N280-FRD,One-Time;OneTime,760
+A051H785-FRD;One-Time;USD,USD,true,false,A051H785,Standard Price Book;true,A051H785-FRD,One-Time;OneTime,540
+A051K118-FRD;One-Time;USD,USD,true,false,A051K118,Standard Price Book;true,A051K118-FRD,One-Time;OneTime,1150
+A052X578-FRD;One-Time;USD,USD,true,false,A052X578,Standard Price Book;true,A052X578-FRD,One-Time;OneTime,2010
+A052X580-FRD;One-Time;USD,USD,true,false,A052X580,Standard Price Book;true,A052X580-FRD,One-Time;OneTime,2210
+A052X582-FRD;One-Time;USD,USD,true,false,A052X582,Standard Price Book;true,A052X582-FRD,One-Time;OneTime,1880
+A052X584-FRD;One-Time;USD,USD,true,false,A052X584,Standard Price Book;true,A052X584-FRD,One-Time;OneTime,2310
+A052X586-FRD;One-Time;USD,USD,true,false,A052X586,Standard Price Book;true,A052X586-FRD,One-Time;OneTime,450
+ACET-50-200L;One-Time;USD,USD,true,false,Acetone (ACET-50) - 200L Drum,Standard Price Book;true,ACET-50-200L,One-Time;OneTime,1100
+ACET-50-20L;One-Time;USD,USD,true,false,Acetone (ACET-50) - 20L Pail,Standard Price Book;true,ACET-50-20L,One-Time;OneTime,160
+AMEL-FRD;One-Time;USD,USD,true,false,AMEL Generator Set,Standard Price Book;true,AMEL-FRD,One-Time;OneTime,23699
+AO-1000-25KG;One-Time;USD,USD,true,false,Antioxidant (AO-1000) - 25KG Bag,Standard Price Book;true,AO-1000-25KG,One-Time;OneTime,350
+AO-1000-50KG;One-Time;USD,USD,true,false,Antioxidant (AO-1000) - 50KG Bag,Standard Price Book;true,AO-1000-50KG,One-Time;OneTime,600
+AR-300-1000KG;One-Time;USD,USD,true,false,Acrylic Resin (AR-300) - 1000KG Tote,Standard Price Book;true,AR-300-1000KG,One-Time;OneTime,3500
+AR-300-200KG-DR;One-Time;USD,USD,true,false,Acrylic Resin (AR-300) - 200KG Drum,Standard Price Book;true,AR-300-200KG-DR,One-Time;OneTime,800
+BG-BRG-7001;One-Time;USD,USD,true,false,"Deep Groove Ball Bearing, 6205-2RS, 25mm Bore",Standard Price Book;true,BG-BRG-7001,One-Time;OneTime,15
+BG-BRG-7002;One-Time;USD,USD,true,false,"Pillow Block Bearing, UCP207-20, Cast Iron, 1-1/4"" Bore",Standard Price Book;true,BG-BRG-7002,One-Time;OneTime,53
+BG-BRG-7003;One-Time;USD,USD,true,false,"SAE 841 Sintered Bronze Sleeve Bushing, 1"" ID",Standard Price Book;true,BG-BRG-7003,One-Time;OneTime,9
+BG-CHS-8001;One-Time;USD,USD,true,false,"Double Strand Roller Chain, ANSI #60-2, 10 ft.",Standard Price Book;true,BG-CHS-8001,One-Time;OneTime,143
+BG-CHS-8002;One-Time;USD,USD,true,false,"Type B Sprocket, #60 Chain, 24 Tooth, 1"" Bore",Standard Price Book;true,BG-CHS-8002,One-Time;OneTime,78.5
+BG-CPL-6001;One-Time;USD,USD,true,false,"L095 Jaw Coupling Hub, Sintered Iron, 1/2"" Bore",Standard Price Book;true,BG-CPL-6001,One-Time;OneTime,25
+BG-CPL-6002;One-Time;USD,USD,true,false,"Jaw Coupling Spider, Buna-N Rubber",Standard Price Book;true,BG-CPL-6002,One-Time;OneTime,6.5
+BG-CPL-6003;One-Time;USD,USD,true,false,"Rigid Clamp Coupling, One-Piece, Steel, 3/4"" Bore",Standard Price Book;true,BG-CPL-6003,One-Time;OneTime,48
+BG-KIT-CPL95;One-Time;USD,USD,true,false,"L095 Jaw Coupling Assembly Kit, 1/2"" Bore",Standard Price Book;true,BG-KIT-CPL95,One-Time;OneTime,52
+BG-KIT-MTR1;One-Time;USD,USD,true,false,1HP Motor & VFD Control System,Standard Price Book;true,BG-KIT-MTR1,One-Time;OneTime,900
+BG-MTR-1201;One-Time;USD,USD,true,false,"Three-Phase AC Motor, 1 HP, 1800 RPM, 145T Frame, TEFC",Standard Price Book;true,BG-MTR-1201,One-Time;OneTime,425
+BG-MTR-1202;One-Time;USD,USD,true,false,"Variable Frequency Drive (VFD), 1 HP, 240V Input",Standard Price Book;true,BG-MTR-1202,One-Time;OneTime,511
+BG-PNH-9001;One-Time;USD,USD,true,false,"Pneumatic Air Cylinder, Double-Acting, 2"" Bore, 6"" Stroke",Standard Price Book;true,BG-PNH-9001,One-Time;OneTime,115
+BG-PNH-9002;One-Time;USD,USD,true,false,"5-Port 2-Position Solenoid Valve, 1/4"" NPT",Standard Price Book;true,BG-PNH-9002,One-Time;OneTime,65
+CI-3000-200L;One-Time;USD,USD,true,false,Corrosion Inhibitor (CI-3000) - 200L Drum,Standard Price Book;true,CI-3000-200L,One-Time;OneTime,1500
+CI-3000-20L;One-Time;USD,USD,true,false,Corrosion Inhibitor (CI-3000) - 20L Pail,Standard Price Book;true,CI-3000-20L,One-Time;OneTime,200
+Civil-Engineer;One-Time;USD,USD,true,false,Civil Engineer,Standard Price Book;true,Civil-Engineer,One-Time;OneTime,520
+CUGR-FRD;One-Time;USD,USD,true,false,CUGR Generator Set,Standard Price Book;true,CUGR-FRD,One-Time;OneTime,32999
+DF-4000-200L;One-Time;USD,USD,true,false,Defoamer (DF-4000) - 200L Drum,Standard Price Book;true,DF-4000-200L,One-Time;OneTime,1300
+DF-4000-20L;One-Time;USD,USD,true,false,Defoamer (DF-4000) - 20L Pail,Standard Price Book;true,DF-4000-20L,One-Time;OneTime,250
+DIRT-BUCKET;One-Time;USD,USD,true,false,Dirt Bucket,Standard Price Book;true,DIRT-BUCKET,One-Time;OneTime,700
+Electrical-Engineer;One-Time;USD,USD,true,false,Electrical Engineer,Standard Price Book;true,Electrical-Engineer,One-Time;OneTime,550
+EP-43253;One-Time;USD,USD,true,false,Spark Plugs,Standard Price Book;true,EP-43253,One-Time;OneTime,5.75
+EPX-500-200KG;One-Time;USD,USD,true,false,Epoxy Resin (EPX-500) - 200KG Drum,Standard Price Book;true,EPX-500-200KG,One-Time;OneTime,900
+EPX-500-20KG;One-Time;USD,USD,true,false,Epoxy Resin (EPX-500) - 20KG PAIL,Standard Price Book;true,EPX-500-20KG,One-Time;OneTime,200
+EW;Term Annual;USD,USD,true,false,Extended Warranty,Standard Price Book;true,EW,Term Annual;TermDefined,1000
+FA-Entitlement;Term Annual;USD,USD,true,false,Fluid Analysis,Standard Price Book;true,FA-Entitlement,Term Annual;TermDefined,600
+FESBA_1200;One-Time;USD,USD,true,false,FESBA 1200kW,Standard Price Book;true,FESBA_1200,One-Time;OneTime,2100
+FESBA_1500;One-Time;USD,USD,true,false,FESBA 1500kW,Standard Price Book;true,FESBA_1500,One-Time;OneTime,2500
+FESBA_1750;One-Time;USD,USD,true,false,FESBA 1750kW,Standard Price Book;true,FESBA_1750,One-Time;OneTime,3100
+FESBA_2500;One-Time;USD,USD,true,false,FESBA 2500kW,Standard Price Book;true,FESBA_2500,One-Time;OneTime,4200
+FESBA_2940;One-Time;USD,USD,true,false,Engine - QSK60-G6,Standard Price Book;true,FESBA_2940,One-Time;OneTime,1060
+FESBA_3090;One-Time;USD,USD,true,false,"Fuel Filters-Engine, Standard",Standard Price Book;true,FESBA_3090,One-Time;OneTime,1190
+FESBA_3750;One-Time;USD,USD,true,false,PMG,Standard Price Book;true,FESBA_3750,One-Time;OneTime,600
+FESBA_5860;One-Time;USD,USD,true,false,Test - Standard Factory,Standard Price Book;true,FESBA_5860,One-Time;OneTime,2090
+FESBA_900;One-Time;USD,USD,true,false,FESBA 900kW,Standard Price Book;true,FESBA_900,One-Time;OneTime,1100
+FESBA_A292-2;One-Time;USD,USD,true,false,"Heater-Alternator, 120 Volt AC",Standard Price Book;true,FESBA_A292-2,One-Time;OneTime,1240
+FESBA_A293-2;One-Time;USD,USD,true,false,"Heater-Alternator, 240 Volt AC",Standard Price Book;true,FESBA_A293-2,One-Time;OneTime,1910
+FESBA_A333-2;One-Time;USD,USD,true,false,Battery Charging Alternator,Standard Price Book;true,FESBA_A333-2,One-Time;OneTime,1210
+FESBA_A334-2;One-Time;USD,USD,true,false,Electric Starter Motor - 24V DC,Standard Price Book;true,FESBA_A334-2,One-Time;OneTime,1540
+FESBA_A358-2;One-Time;USD,USD,true,false,Packing-None,Standard Price Book;true,FESBA_A358-2,One-Time;OneTime,2440
+FESBA_A416-2;One-Time;USD,USD,true,false,"Heater-Alternator, 110/220 (120/240) Volt AC",Standard Price Book;true,FESBA_A416-2,One-Time;OneTime,1020
+FESBA_A460-2;One-Time;USD,USD,true,false,120/240VAC compatible,Standard Price Book;true,FESBA_A460-2,One-Time;OneTime,1700
+FESBA_B225-2;One-Time;USD,USD,true,false,"Temp Sens-Stator, 2 RTD/Ph",Standard Price Book;true,FESBA_B225-2,One-Time;OneTime,800
+FESBA_B244-2;One-Time;USD,USD,true,false,"Bearing,1 RTD NDE",Standard Price Book;true,FESBA_B244-2,One-Time;OneTime,550
+FESBA_B313-2;One-Time;USD,USD,true,false,"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm",Standard Price Book;true,FESBA_B313-2,One-Time;OneTime,940
+FESBA_B448-2;One-Time;USD,USD,true,false,"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C)",Standard Price Book;true,FESBA_B448-2,One-Time;OneTime,1450
+FESBA_B467-2;One-Time;USD,USD,true,false,"ALT-60Hz,2400/4160V,125/105/80C (S/P/C)",Standard Price Book;true,FESBA_B467-2,One-Time;OneTime,1230
+FESBA_B567-2;One-Time;USD,USD,true,false,"ALT-60Hz,Wye,12.47kV,105/80C (S/P)",Standard Price Book;true,FESBA_B567-2,One-Time;OneTime,1860
+FESBA_B595-2;One-Time;USD,USD,true,false,"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb",Standard Price Book;true,FESBA_B595-2,One-Time;OneTime,1240
+FESBA_B598-2;One-Time;USD,USD,true,false,"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont",Standard Price Book;true,FESBA_B598-2,One-Time;OneTime,600
+FESBA_B599-2;One-Time;USD,USD,true,false,"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm",Standard Price Book;true,FESBA_B599-2,One-Time;OneTime,1370
+FESBA_B600-2;One-Time;USD,USD,true,false,"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm",Standard Price Book;true,FESBA_B600-2,One-Time;OneTime,1170
+FESBA_B601-2;One-Time;USD,USD,true,false,"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby",Standard Price Book;true,FESBA_B601-2,One-Time;OneTime,2310
+FESBA_B602-2;One-Time;USD,USD,true,false,"Alt-60Hz,347/600V,125/105/80C-SPC",Standard Price Book;true,FESBA_B602-2,One-Time;OneTime,470
+FESBA_B603-2;One-Time;USD,USD,true,false,"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm",Standard Price Book;true,FESBA_B603-2,One-Time;OneTime,1270
+FESBA_B604-2;One-Time;USD,USD,true,false,"Alternator-60Hz, 347/600Volt, 80C-Stby",Standard Price Book;true,FESBA_B604-2,One-Time;OneTime,960
+FESBA_B607-2;One-Time;USD,USD,true,false,"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby",Standard Price Book;true,FESBA_B607-2,One-Time;OneTime,1990
+FESBA_B612-2;One-Time;USD,USD,true,false,"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm",Standard Price Book;true,FESBA_B612-2,One-Time;OneTime,620
+FESBA_B628-2;One-Time;USD,USD,true,false,"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby",Standard Price Book;true,FESBA_B628-2,One-Time;OneTime,120
+FESBA_B660-2;One-Time;USD,USD,true,false,"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby",Standard Price Book;true,FESBA_B660-2,One-Time;OneTime,2370
+FESBA_B663-2;One-Time;USD,USD,true,false,"Alt-60Hz,Wye,440V,125-80C-SPC",Standard Price Book;true,FESBA_B663-2,One-Time;OneTime,600
+FESBA_B664-2;One-Time;USD,USD,true,false,"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm",Standard Price Book;true,FESBA_B664-2,One-Time;OneTime,1780
+FESBA_B688-2;One-Time;USD,USD,true,false,"Alternator-60Hz, Wye, 440 Volt,80C-Stby",Standard Price Book;true,FESBA_B688-2,One-Time;OneTime,2100
+FESBA_B691-2;One-Time;USD,USD,true,false,"Alt-60Hz,Wye,440V,150/125SP,40C amb",Standard Price Book;true,FESBA_B691-2,One-Time;OneTime,870
+FESBA_B715-2;One-Time;USD,USD,true,false,"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm",Standard Price Book;true,FESBA_B715-2,One-Time;OneTime,1500
+FESBA_B791-2;One-Time;USD,USD,true,false,Hardened Bearing Cartridge,Standard Price Book;true,FESBA_B791-2,One-Time;OneTime,1450
+FESBA_B801-2;One-Time;USD,USD,true,false,"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont",Standard Price Book;true,FESBA_B801-2,One-Time;OneTime,2340
+FESBA_B816-2;One-Time;USD,USD,true,false,"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb",Standard Price Book;true,FESBA_B816-2,One-Time;OneTime,2010
+FESBA_B817-2;One-Time;USD,USD,true,false,"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb",Standard Price Book;true,FESBA_B817-2,One-Time;OneTime,2350
+FESBA_B903-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,FESBA_B903-2,One-Time;OneTime,510
+FESBA_B904-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,FESBA_B904-2,One-Time;OneTime,2200
+FESBA_B905-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,FESBA_B905-2,One-Time;OneTime,1630
+FESBA_B906-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,FESBA_B906-2,One-Time;OneTime,2350
+FESBA_B907-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,FESBA_B907-2,One-Time;OneTime,1050
+FESBA_B909-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart",Standard Price Book;true,FESBA_B909-2,One-Time;OneTime,800
+FESBA_BB08-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb",Standard Price Book;true,FESBA_BB08-2,One-Time;OneTime,2310
+FESBA_BB10-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb",Standard Price Book;true,FESBA_BB10-2,One-Time;OneTime,570
+FESBA_BB12-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb",Standard Price Book;true,FESBA_BB12-2,One-Time;OneTime,780
+FESBA_BB14-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BB14-2,One-Time;OneTime,1290
+FESBA_BB15-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb",Standard Price Book;true,FESBA_BB15-2,One-Time;OneTime,1450
+FESBA_BB17-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BB17-2,One-Time;OneTime,610
+FESBA_BB18-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb",Standard Price Book;true,FESBA_BB18-2,One-Time;OneTime,2410
+FESBA_BB20-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BB20-2,One-Time;OneTime,480
+FESBA_BB23-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BB23-2,One-Time;OneTime,1790
+FESBA_BB26-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BB26-2,One-Time;OneTime,1300
+FESBA_BB29-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BB29-2,One-Time;OneTime,2340
+FESBA_BC03-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BC03-2,One-Time;OneTime,830
+FESBA_BC04-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BC04-2,One-Time;OneTime,1450
+FESBA_BC05-2;One-Time;USD,USD,true,false,"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb",Standard Price Book;true,FESBA_BC05-2,One-Time;OneTime,690
+FESBA_C127-2;One-Time;USD,USD,true,false,Separator-Fuel/Water,Standard Price Book;true,FESBA_C127-2,One-Time;OneTime,1070
+FESBA_C278-2;One-Time;USD,USD,true,false,"Fuel Filters-Engine, Duplex",Standard Price Book;true,FESBA_C278-2,One-Time;OneTime,810
+FESBA_D036-2;One-Time;USD,USD,true,false,Heavy Duty Air Cleaner,Standard Price Book;true,FESBA_D036-2,One-Time;OneTime,1650
+FESBA_D041-2;One-Time;USD,USD,true,false,Normal Duty Air Cleaner,Standard Price Book;true,FESBA_D041-2,One-Time;OneTime,1820
+FESBA_E043-2;One-Time;USD,USD,true,false,None Supplied (Remote Cooling),Standard Price Book;true,FESBA_E043-2,One-Time;OneTime,130
+FESBA_E080-2;One-Time;USD,USD,true,false,(Remote Cooling) Flanged Connectors ASA,Standard Price Book;true,FESBA_E080-2,One-Time;OneTime,2460
+FESBA_E125-2;One-Time;USD,USD,true,false,Engine Cooling-High Ambient Air Temperature,Standard Price Book;true,FESBA_E125-2,One-Time;OneTime,690
+FESBA_E126-2;One-Time;USD,USD,true,false,Engine Cooling-Enhanced High Ambient Air Temperature,Standard Price Book;true,FESBA_E126-2,One-Time;OneTime,290
+FESBA_E128-2;One-Time;USD,USD,true,false,"Eng Cooling-High Ambient Air Temp, Ship Loose",Standard Price Book;true,FESBA_E128-2,One-Time;OneTime,1770
+FESBA_F258-2;One-Time;USD,USD,true,false,"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn",Standard Price Book;true,FESBA_F258-2,One-Time;OneTime,1940
+FESBA_F259-2;One-Time;USD,USD,true,false,"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn",Standard Price Book;true,FESBA_F259-2,One-Time;OneTime,710
+FESBA_H110-2;One-Time;USD,USD,true,false,Oil Pan-High Capacity,Standard Price Book;true,FESBA_H110-2,One-Time;OneTime,1910
+FESBA_H244-2;One-Time;USD,USD,true,false,Gauge-Exhaust Gas Temperature,Standard Price Book;true,FESBA_H244-2,One-Time;OneTime,850
+FESBA_H389-2;One-Time;USD,USD,true,false,Shutdown-Low Coolant Level,Standard Price Book;true,FESBA_H389-2,One-Time;OneTime,150
+FESBA_H527-2;One-Time;USD,USD,true,false,Warning-Low Coolant Level,Standard Price Book;true,FESBA_H527-2,One-Time;OneTime,1920
+FESBA_H556-2;One-Time;USD,USD,true,false,"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp",Standard Price Book;true,FESBA_H556-2,One-Time;OneTime,380
+FESBA_H557-2;One-Time;USD,USD,true,false,"Coolant Heater-208/240/480V, Below 40F Ambient Temp",Standard Price Book;true,FESBA_H557-2,One-Time;OneTime,900
+FESBA_H606-2;One-Time;USD,USD,true,false,"Meters-AC Output,Analog",Standard Price Book;true,FESBA_H606-2,One-Time;OneTime,1630
+FESBA_H607-2;One-Time;USD,USD,true,false,"Filters-Eng Oil,Full Flow/Bypass",Standard Price Book;true,FESBA_H607-2,One-Time;OneTime,1590
+FESBA_H666-2;One-Time;USD,USD,true,false,"Indication-Ground Fault,3-PoleXfrSw",Standard Price Book;true,FESBA_H666-2,One-Time;OneTime,2390
+FESBA_H678-2;One-Time;USD,USD,true,false,Display - Control LCD,Standard Price Book;true,FESBA_H678-2,One-Time;OneTime,880
+FESBA_H704-2;One-Time;USD,USD,true,false,PowerCommand 3.3,Standard Price Book;true,FESBA_H704-2,One-Time;OneTime,2050
+FESBA_H720-2;One-Time;USD,USD,true,false,AmpSentryTM Protective Relay,Standard Price Book;true,FESBA_H720-2,One-Time;OneTime,1900
+FESBA_H723-2;One-Time;USD,USD,true,false,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left",Standard Price Book;true,FESBA_H723-2,One-Time;OneTime,2070
+FESBA_H724-2;One-Time;USD,USD,true,false,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right",Standard Price Book;true,FESBA_H724-2,One-Time;OneTime,930
+FESBA_H734-2;One-Time;USD,USD,true,false,Oil Sampling Valve,Standard Price Book;true,FESBA_H734-2,One-Time;OneTime,1240
+FESBA_K020-2;One-Time;USD,USD,true,false,"Display, Running Time",Standard Price Book;true,FESBA_K020-2,One-Time;OneTime,2470
+FESBA_K993-2;One-Time;USD,USD,true,false,Differential CT's P80,Standard Price Book;true,FESBA_K993-2,One-Time;OneTime,610
+FESBA_KA08-2;One-Time;USD,USD,true,false,"Alarm-Audible, Engine Shutdown",Standard Price Book;true,FESBA_KA08-2,One-Time;OneTime,2060
+FESBA_KB70-2;One-Time;USD,USD,true,false,"Top Entry, Right",Standard Price Book;true,FESBA_KB70-2,One-Time;OneTime,500
+FESBA_KB71-2;One-Time;USD,USD,true,false,"Top Entry, Left",Standard Price Book;true,FESBA_KB71-2,One-Time;OneTime,170
+FESBA_KB72-2;One-Time;USD,USD,true,false,"Bottom Entry, Right",Standard Price Book;true,FESBA_KB72-2,One-Time;OneTime,1440
+FESBA_KB73-2;One-Time;USD,USD,true,false,"Bottom Entry, Left",Standard Price Book;true,FESBA_KB73-2,One-Time;OneTime,980
+FESBA_KC52-2;One-Time;USD,USD,true,false,"Terminal Box-Low Voltage,Right",Standard Price Book;true,FESBA_KC52-2,One-Time;OneTime,620
+FESBA_KC53-2;One-Time;USD,USD,true,false,"Terminal Box-Low Voltage,Left",Standard Price Book;true,FESBA_KC53-2,One-Time;OneTime,1650
+FESBA_KP78-2;One-Time;USD,USD,true,false,Circuit Breaker or Entrance Box-None,Standard Price Book;true,FESBA_KP78-2,One-Time;OneTime,1030
+FESBA_KP82-2;One-Time;USD,USD,true,false,"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP82-2,One-Time;OneTime,660
+FESBA_KP83-2;One-Time;USD,USD,true,false,"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP83-2,One-Time;OneTime,1100
+FESBA_KP84-2;One-Time;USD,USD,true,false,"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP84-2,One-Time;OneTime,1850
+FESBA_KP85-2;One-Time;USD,USD,true,false,"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP85-2,One-Time;OneTime,2000
+FESBA_KP86-2;One-Time;USD,USD,true,false,"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP86-2,One-Time;OneTime,540
+FESBA_KP87-2;One-Time;USD,USD,true,false,"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP87-2,One-Time;OneTime,1700
+FESBA_KP88-2;One-Time;USD,USD,true,false,"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP88-2,One-Time;OneTime,740
+FESBA_KP89-2;One-Time;USD,USD,true,false,"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP89-2,One-Time;OneTime,1460
+FESBA_KP90-2;One-Time;USD,USD,true,false,"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP90-2,One-Time;OneTime,1530
+FESBA_KP91-2;One-Time;USD,USD,true,false,"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP91-2,One-Time;OneTime,830
+FESBA_KP92-2;One-Time;USD,USD,true,false,"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP92-2,One-Time;OneTime,820
+FESBA_KP93-2;One-Time;USD,USD,true,false,"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,FESBA_KP93-2,One-Time;OneTime,1140
+FESBA_KP94-2;One-Time;USD,USD,true,false,Entrance Box-Right,Standard Price Book;true,FESBA_KP94-2,One-Time;OneTime,1840
+FESBA_KP98-2;One-Time;USD,USD,true,false,Ckt Brkr Access-Right Side,Standard Price Book;true,FESBA_KP98-2,One-Time;OneTime,1490
+FESBA_KP99-2;One-Time;USD,USD,true,false,Ckt Brkr Access-Left Side,Standard Price Book;true,FESBA_KP99-2,One-Time;OneTime,1970
+FESBA_KR01-2;One-Time;USD,USD,true,false,"Ckt Brkr Lugs-Mechanical, Left Side",Standard Price Book;true,FESBA_KR01-2,One-Time;OneTime,1170
+FESBA_KR02-2;One-Time;USD,USD,true,false,"Ckt Brkr Lugs-Mechanical, Right Side",Standard Price Book;true,FESBA_KR02-2,One-Time;OneTime,1170
+FESBA_KR08-2;One-Time;USD,USD,true,false,Differential CT's P7,Standard Price Book;true,FESBA_KR08-2,One-Time;OneTime,2310
+FESBA_KR78-2;One-Time;USD,USD,true,false,"Output Terminals-2-Hole Lug, NEMA",Standard Price Book;true,FESBA_KR78-2,One-Time;OneTime,270
+FESBA_KS53-2;One-Time;USD,USD,true,false,"Signals - Auxiliary, 8 Inputs/8 Outputs",Standard Price Book;true,FESBA_KS53-2,One-Time;OneTime,1660
+FESBA_KS57-2;One-Time;USD,USD,true,false,"Terminal Housing-Bottom Entrance,Medium/High Volts",Standard Price Book;true,FESBA_KS57-2,One-Time;OneTime,1570
+FESBA_KS58-2;One-Time;USD,USD,true,false,"Terminal Housing-Top Entrance,Medium/High Volts",Standard Price Book;true,FESBA_KS58-2,One-Time;OneTime,1870
+FESBA_KU62-2;One-Time;USD,USD,true,false,"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,FESBA_KU62-2,One-Time;OneTime,2320
+FESBA_KU68-2;One-Time;USD,USD,true,false,"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%",Standard Price Book;true,FESBA_KU68-2,One-Time;OneTime,1800
+FESBA_KU70-2;One-Time;USD,USD,true,false,"Entrance Box-Low Voltage,Right",Standard Price Book;true,FESBA_KU70-2,One-Time;OneTime,1340
+FESBA_KU71-2;One-Time;USD,USD,true,false,"Entrance Box-Low Voltage,Left",Standard Price Book;true,FESBA_KU71-2,One-Time;OneTime,2400
+FESBA_KU83-2;One-Time;USD,USD,true,false,"Bottom Entry Chute, Left",Standard Price Book;true,FESBA_KU83-2,One-Time;OneTime,1670
+FESBA_KU84-2;One-Time;USD,USD,true,false,"Bottom Entry Chute, Right",Standard Price Book;true,FESBA_KU84-2,One-Time;OneTime,1270
+FESBA_KU93-2;One-Time;USD,USD,true,false,Housing Arrangement - Left Entry,Standard Price Book;true,FESBA_KU93-2,One-Time;OneTime,1170
+FESBA_KU94-2;One-Time;USD,USD,true,false,Housing Arrangement - Right Entry,Standard Price Book;true,FESBA_KU94-2,One-Time;OneTime,2230
+FESBA_KU95-2;One-Time;USD,USD,true,false,Housing Arrangement - Left & Right Entry,Standard Price Book;true,FESBA_KU95-2,One-Time;OneTime,2420
+FESBA_KU99-2;One-Time;USD,USD,true,false,Ground Fault Indication Relay - None,Standard Price Book;true,FESBA_KU99-2,One-Time;OneTime,270
+FESBA_KX21-2;One-Time;USD,USD,true,false,PowerCommand 3.3 with MLD,Standard Price Book;true,FESBA_KX21-2,One-Time;OneTime,1770
+FESBA_KX24-2;One-Time;USD,USD,true,false,RELAYS-USER CONFIGURED,Standard Price Book;true,FESBA_KX24-2,One-Time;OneTime,2090
+FESBA_KY01-2;One-Time;USD,USD,true,false,"Signals - Auxiliary 2, 8 Inputs/8 Outputs",Standard Price Book;true,FESBA_KY01-2,One-Time;OneTime,860
+FESBA_L010-2;One-Time;USD,USD,true,false,Test Record-Strip Chart,Standard Price Book;true,FESBA_L010-2,One-Time;OneTime,770
+FESBA_L011-2;One-Time;USD,USD,true,false,"Test-Extended, Prime Load, 1Hr",Standard Price Book;true,FESBA_L011-2,One-Time;OneTime,2480
+FESBA_L012-2;One-Time;USD,USD,true,false,"Test-Extnd, Prime Ld,2Hr",Standard Price Book;true,FESBA_L012-2,One-Time;OneTime,1400
+FESBA_L013-2;One-Time;USD,USD,true,false,"Test-Extnd, Prime Ld,4Hr",Standard Price Book;true,FESBA_L013-2,One-Time;OneTime,930
+FESBA_L014-2;One-Time;USD,USD,true,false,"Test-Extended, Prime Load, 8Hr",Standard Price Book;true,FESBA_L014-2,One-Time;OneTime,2420
+FESBA_L015-2;One-Time;USD,USD,true,false,"Test-Extended, Standby Load, 1",Standard Price Book;true,FESBA_L015-2,One-Time;OneTime,1650
+FESBA_L016-2;One-Time;USD,USD,true,false,"Test-Extended, Standby Load, 2",Standard Price Book;true,FESBA_L016-2,One-Time;OneTime,1190
+FESBA_L017-2;One-Time;USD,USD,true,false,"Test-Extended, Standby Load, 4",Standard Price Book;true,FESBA_L017-2,One-Time;OneTime,2470
+FESBA_L018-2;One-Time;USD,USD,true,false,"Test-Extnd,Stndby Ld,8Hr",Standard Price Book;true,FESBA_L018-2,One-Time;OneTime,1980
+FESBA_L019-2;One-Time;USD,USD,true,false,"Test-Varied Load,1 Hour,2 Step",Standard Price Book;true,FESBA_L019-2,One-Time;OneTime,290
+FESBA_L020-2;One-Time;USD,USD,true,false,"Test-Varied Load,2Hr,2 Step",Standard Price Book;true,FESBA_L020-2,One-Time;OneTime,2300
+FESBA_L021-2;One-Time;USD,USD,true,false,"Test-Varied Load, 4Hr, 2Step",Standard Price Book;true,FESBA_L021-2,One-Time;OneTime,2390
+FESBA_L022-2;One-Time;USD,USD,true,false,"Test-Varied Ld,6Hr,3 Step",Standard Price Book;true,FESBA_L022-2,One-Time;OneTime,1310
+FESBA_L023-2;One-Time;USD,USD,true,false,Test Record-Safety Shutdowns,Standard Price Book;true,FESBA_L023-2,One-Time;OneTime,1530
+FESBA_L024-2;One-Time;USD,USD,true,false,Test Record-Exhaust Temp,Standard Price Book;true,FESBA_L024-2,One-Time;OneTime,1990
+FESBA_L025-2;One-Time;USD,USD,true,false,Test Record-Amb Temp/Pres,Standard Price Book;true,FESBA_L025-2,One-Time;OneTime,2280
+FESBA_L026-2;One-Time;USD,USD,true,false,Test Record-Certified,Standard Price Book;true,FESBA_L026-2,One-Time;OneTime,660
+FESBA_L027-2;One-Time;USD,USD,true,false,Test - Witness,Standard Price Book;true,FESBA_L027-2,One-Time;OneTime,710
+FESBA_L028-2;One-Time;USD,USD,true,false,Genset Warranty Base,Standard Price Book;true,FESBA_L028-2,One-Time;OneTime,360
+FESBA_L038-2;One-Time;USD,USD,true,false,Test-Independent Laboratory,Standard Price Book;true,FESBA_L038-2,One-Time;OneTime,370
+FESBA_L050-2;One-Time;USD,USD,true,false,Literature-English,Standard Price Book;true,FESBA_L050-2,One-Time;OneTime,0
+FESBA_L051-2;One-Time;USD,USD,true,false,Literature-Spanish,Standard Price Book;true,FESBA_L051-2,One-Time;OneTime,0
+FESBA_L052-2;One-Time;USD,USD,true,false,Literature-French,Standard Price Book;true,FESBA_L052-2,One-Time;OneTime,0
+FESBA_L057-2;One-Time;USD,USD,true,false,Literature-Chinese,Standard Price Book;true,FESBA_L057-2,One-Time;OneTime,0
+FESBA_L068-2;One-Time;USD,USD,true,false,Literature-German,Standard Price Book;true,FESBA_L068-2,One-Time;OneTime,0
+FESBA_L069-2;One-Time;USD,USD,true,false,Literature-Italian,Standard Price Book;true,FESBA_L069-2,One-Time;OneTime,0
+FESBA_L070-2;One-Time;USD,USD,true,false,Literature-Swedish,Standard Price Book;true,FESBA_L070-2,One-Time;OneTime,0
+FESBA_L071-2;One-Time;USD,USD,true,false,Literature-Portuguese,Standard Price Book;true,FESBA_L071-2,One-Time;OneTime,0
+FESBA_L072-2;One-Time;USD,USD,true,false,Literature-Dutch,Standard Price Book;true,FESBA_L072-2,One-Time;OneTime,0
+FESBA_L073-2;One-Time;USD,USD,true,false,Literature-Russian,Standard Price Book;true,FESBA_L073-2,One-Time;OneTime,0
+FESBA_L074-2;One-Time;USD,USD,true,false,Literature-Greek,Standard Price Book;true,FESBA_L074-2,One-Time;OneTime,0
+FESBA_L114-2;One-Time;USD,USD,true,false,Literature-Finnish,Standard Price Book;true,FESBA_L114-2,One-Time;OneTime,0
+FESBA_L115-2;One-Time;USD,USD,true,false,Literature-Danish,Standard Price Book;true,FESBA_L115-2,One-Time;OneTime,0
+FESBA_L136-2;One-Time;USD,USD,true,false,Literature-Norwegian,Standard Price Book;true,FESBA_L136-2,One-Time;OneTime,0
+FESBA_L182-2;One-Time;USD,USD,true,false,ST 3YR 1500HR PARTS,Standard Price Book;true,FESBA_L182-2,One-Time;OneTime,880
+FESBA_L183-2;One-Time;USD,USD,true,false,ST 5YR 2500HR PARTS,Standard Price Book;true,FESBA_L183-2,One-Time;OneTime,1050
+FESBA_L184-2;One-Time;USD,USD,true,false,ST 10YR 5000HR PARTS,Standard Price Book;true,FESBA_L184-2,One-Time;OneTime,1270
+FESBA_L185-2;One-Time;USD,USD,true,false,ST 3YR 1500HR Parts + Labor,Standard Price Book;true,FESBA_L185-2,One-Time;OneTime,2490
+FESBA_L186-2;One-Time;USD,USD,true,false,ST 5YR 2500HR Parts + Labor,Standard Price Book;true,FESBA_L186-2,One-Time;OneTime,620
+FESBA_L187-2;One-Time;USD,USD,true,false,ST 10YR 5000HR Parts + Labor,Standard Price Book;true,FESBA_L187-2,One-Time;OneTime,510
+FESBA_L188-2;One-Time;USD,USD,true,false,ST 3YR 1500HR Parts + Labor + Travel,Standard Price Book;true,FESBA_L188-2,One-Time;OneTime,2310
+FESBA_L189-2;One-Time;USD,USD,true,false,ST 5YR 2500HR Parts + Labor + Travel,Standard Price Book;true,FESBA_L189-2,One-Time;OneTime,1790
+FESBA_L190-2;One-Time;USD,USD,true,false,ST 10YR 5000HR Parts + Labor + Travel,Standard Price Book;true,FESBA_L190-2,One-Time;OneTime,1770
+FESBA_L191-2;One-Time;USD,USD,true,false,PR 2YR 4000HR P + L + T,Standard Price Book;true,FESBA_L191-2,One-Time;OneTime,2160
+FESBA_L192-2;One-Time;USD,USD,true,false,PR 3YR 6000HR P + L + T,Standard Price Book;true,FESBA_L192-2,One-Time;OneTime,590
+FESBA_L245-2;One-Time;USD,USD,true,false,Literature-Brazilian Portuguese,Standard Price Book;true,FESBA_L245-2,One-Time;OneTime,0
+FESBA_L250-2;One-Time;USD,USD,true,false,DCC 3YR UNLIMITED HR PARTS,Standard Price Book;true,FESBA_L250-2,One-Time;OneTime,1920
+FESBA_L251-2;One-Time;USD,USD,true,false,DCC 5YR UNLIMITED HR PARTS,Standard Price Book;true,FESBA_L251-2,One-Time;OneTime,2120
+FESBA_L252-2;One-Time;USD,USD,true,false,DCC 10YR UNLIMITED HR PARTS,Standard Price Book;true,FESBA_L252-2,One-Time;OneTime,1260
+FESBA_L253-2;One-Time;USD,USD,true,false,DCC 3YR UNLIMITED HR P + L,Standard Price Book;true,FESBA_L253-2,One-Time;OneTime,920
+FESBA_L254-2;One-Time;USD,USD,true,false,DCC 5YR UNLIMITED HR P + L,Standard Price Book;true,FESBA_L254-2,One-Time;OneTime,2450
+FESBA_L255-2;One-Time;USD,USD,true,false,DCC 10YR UNLIMITED HR P + L,Standard Price Book;true,FESBA_L255-2,One-Time;OneTime,600
+FESBA_L256-2;One-Time;USD,USD,true,false,DCC 3YR UNLIMITED HR P + L + T,Standard Price Book;true,FESBA_L256-2,One-Time;OneTime,1270
+FESBA_L257-2;One-Time;USD,USD,true,false,DCC 5YR UNLIMITED HR P + L + T,Standard Price Book;true,FESBA_L257-2,One-Time;OneTime,1130
+FESBA_L258-2;One-Time;USD,USD,true,false,DCC 10YR UNLIMITED HR P + L + T,Standard Price Book;true,FESBA_L258-2,One-Time;OneTime,680
+FESBA_NOENC;One-Time;USD,USD,true,false,No Enclosure,Standard Price Book;true,FESBA_NOENC,One-Time;OneTime,0
+FESBA_R002-2;One-Time;USD,USD,true,false,"277/480,3 Phase,Wye,4 Wire",Standard Price Book;true,FESBA_R002-2,One-Time;OneTime,540
+FESBA_R003-2;One-Time;USD,USD,true,false,"240/416,3 Phase,Wye,4 Wire",Standard Price Book;true,FESBA_R003-2,One-Time;OneTime,1770
+FESBA_R023-2;One-Time;USD,USD,true,false,"255/440,3 Phase,Wye,4 Wire",Standard Price Book;true,FESBA_R023-2,One-Time;OneTime,2340
+FESBA_R099-2;One-Time;USD,USD,true,false,"220/380,3 Phase,Wye,4 Wire",Standard Price Book;true,FESBA_R099-2,One-Time;OneTime,1110
+FESBA_R107-2;One-Time;USD,USD,true,false,"2400/4160,3 Phase,Wye,4Wire",Standard Price Book;true,FESBA_R107-2,One-Time;OneTime,2280
+FESBA_R114-2;One-Time;USD,USD,true,false,"347/600,3 Phase,Wye,4 Wire",Standard Price Book;true,FESBA_R114-2,One-Time;OneTime,1160
+FESBA_R130-2;One-Time;USD,USD,true,false,"7976/13800,3 Ph,Wye,4 Wire",Standard Price Book;true,FESBA_R130-2,One-Time;OneTime,1330
+FESBA_R132-2;One-Time;USD,USD,true,false,"7621/13200,3 Ph,Wye,4 Wire",Standard Price Book;true,FESBA_R132-2,One-Time;OneTime,800
+FESBA_R144-2;One-Time;USD,USD,true,false,"7200/12470,3 Ph,Wye,4 Wire",Standard Price Book;true,FESBA_R144-2,One-Time;OneTime,1180
+FESBA_S1ENC;One-Time;USD,USD,true,false,Level 1 Sound Attenuated Enclosure,Standard Price Book;true,FESBA_S1ENC,One-Time;OneTime,4599
+FESBA_S2ENC;One-Time;USD,USD,true,false,Level 2 Sound Attenuated Enclosure,Standard Price Book;true,FESBA_S2ENC,One-Time;OneTime,6799
+FESBA_S3ENC;One-Time;USD,USD,true,false,Level 3 Sound Attenuated Enclosure,Standard Price Book;true,FESBA_S3ENC,One-Time;OneTime,8999
+FESBA_WHENC;One-Time;USD,USD,true,false,Weather Protected Enclosure,Standard Price Book;true,FESBA_WHENC,One-Time;OneTime,2399
+FESBA-FRD;One-Time;USD,USD,true,false,FESBA Generator Set,Standard Price Book;true,FESBA-FRD,One-Time;OneTime,49450
+FUCEL;One-Time;USD,USD,true,false,Fuel Cell Power Module 700,Standard Price Book;true,FUCEL,One-Time;OneTime,2390
+GAMD-FRD;One-Time;USD,USD,true,false,GAMD Generator Set,Standard Price Book;true,GAMD-FRD,One-Time;OneTime,17599
+Generator-Conduit;One-Time;USD,USD,true,false,Conduits and Fittings,Standard Price Book;true,Generator-Conduit,One-Time;OneTime,300
+Generator-Wiring;One-Time;USD,USD,true,false,Wiring & Cables,Standard Price Book;true,Generator-Wiring,One-Time;OneTime,450
+GP-Bucket;One-Time;USD,USD,true,false,General Purpose Bucket,Standard Price Book;true,GP-Bucket,One-Time;OneTime,600
+GPST;Evergreen Annual;USD,USD,true,false,GPS Tracker Subscription,Standard Price Book;true,GPST,Evergreen Annual;Evergreen,2800
+GPST;Evergreen Monthly;USD,USD,true,false,GPS Tracker Subscription,Standard Price Book;true,GPST,Evergreen Monthly;Evergreen,250
+GPST;Term Annual;USD,USD,true,false,GPS Tracker Subscription,Standard Price Book;true,GPST,Term Annual;TermDefined,2200
+GPST;Term Monthly;USD,USD,true,false,GPS Tracker Subscription,Standard Price Book;true,GPST,Term Monthly;TermDefined,200
+H2SO4-1000L-IBC;One-Time;USD,USD,true,false,Sulfuric Acid (H2SO4) - 1000L IBC,Standard Price Book;true,H2SO4-1000L-IBC,One-Time;OneTime,1500
+H2SO4-200L-DR;One-Time;USD,USD,true,false,Sulfuric Acid (H2SO4) - 200L Drum,Standard Price Book;true,H2SO4-200L-DR,One-Time;OneTime,400
+Install-Fee;One-Time;USD,USD,true,true,Installation Fee,Standard Price Book;true,Install-Fee,One-Time;OneTime,0
+LBRK;One-Time;USD,USD,true,false,Load Breaker,Standard Price Book;true,LBRK,One-Time;OneTime,4190
+LVGBRK;One-Time;USD,USD,true,false,Low Voltage - Generator Breaker,Standard Price Book;true,LVGBRK,One-Time;OneTime,6780
+Mechanical-Engineer;One-Time;USD,USD,true,false,Mechanical Engineer,Standard Price Book;true,Mechanical-Engineer,One-Time;OneTime,500
+Mounting-Hardware;One-Time;USD,USD,true,false,Mounting Hardware,Standard Price Book;true,Mounting-Hardware,One-Time;OneTime,200
+MV;Term Annual;USD,USD,true,false,Maintenance Visit,Standard Price Book;true,MV,Term Annual;TermDefined,250
+MVGBRK;One-Time;USD,USD,true,false,Medium Voltage - Generator Breaker,Standard Price Book;true,MVGBRK,One-Time;OneTime,7860
+NaOH-25KG;One-Time;USD,USD,true,false,Sodium Hydroxide (NaOH) - 25KG Bag,Standard Price Book;true,NaOH-25KG,One-Time;OneTime,80
+NaOH-50KG;One-Time;USD,USD,true,false,Sodium Hydroxide (NaOH) - 50KG Bag,Standard Price Book;true,NaOH-50KG,One-Time;OneTime,150
+NH3-CYL;One-Time;USD,USD,true,false,Ammonia (NH3) - CYL,Standard Price Book;true,NH3-CYL,One-Time;OneTime,250
+OPT-100;One-Time;USD,USD,true,false,DC-DC Converter,Standard Price Book;true,OPT-100,One-Time;OneTime,320
+OPT-101;One-Time;USD,USD,true,false,DC-AC Inverter,Standard Price Book;true,OPT-101,One-Time;OneTime,450
+OPT-102;One-Time;USD,USD,true,false,Power Management System,Standard Price Book;true,OPT-102,One-Time;OneTime,780
+OPT-103;One-Time;USD,USD,true,false,Remote Monitoring Module,Standard Price Book;true,OPT-103,One-Time;OneTime,620
+OPT-104;One-Time;USD,USD,true,false,Data Logging Unit,Standard Price Book;true,OPT-104,One-Time;OneTime,290
+OPT-105;One-Time;USD,USD,true,false,Startup Battery,Standard Price Book;true,OPT-105,One-Time;OneTime,180
+OPT-106;One-Time;USD,USD,true,false,Hydrogen Storage Tank - 350 bar,Standard Price Book;true,OPT-106,One-Time;OneTime,1200
+OPT-107;One-Time;USD,USD,true,false,Hydrogen Storage Tank - 700 bar,Standard Price Book;true,OPT-107,One-Time;OneTime,1600
+OPT-108;One-Time;USD,USD,true,false,Natural Gas Reformer,Standard Price Book;true,OPT-108,One-Time;OneTime,2350
+OPT-109;One-Time;USD,USD,true,false,Fuel Quality Filtration Kit,Standard Price Book;true,OPT-109,One-Time;OneTime,210
+OPT-110;One-Time;USD,USD,true,false,Automatic Purge Valves,Standard Price Book;true,OPT-110,One-Time;OneTime,160
+OPT-111;One-Time;USD,USD,true,false,Radiator + Fan Assembly,Standard Price Book;true,OPT-111,One-Time;OneTime,540
+OPT-112;One-Time;USD,USD,true,false,Coolant Circulation System,Standard Price Book;true,OPT-112,One-Time;OneTime,890
+OPT-113;One-Time;USD,USD,true,false,Coolant Preheater,Standard Price Book;true,OPT-113,One-Time;OneTime,310
+PC-500-5KG;One-Time;USD,USD,true,false,Polymerization Catalyst (PC-500) - 5KG Pail,Standard Price Book;true,PC-500-5KG,One-Time;OneTime,250
+PCSWG;One-Time;USD,USD,true,false,PowerControl - Paralleling Switchgear,Standard Price Book;true,PCSWG,One-Time;OneTime,19920
+PE-1000-25KG;One-Time;USD,USD,true,false,Polyethylene (PE-1000) - 25KG Bag,Standard Price Book;true,PE-1000-25KG,One-Time;OneTime,150
+Remote-Monitoring;Term Annual;USD,USD,true,false,Remote Monitoring Services,Standard Price Book;true,Remote-Monitoring,Term Annual;TermDefined,1500
+RHO-ENG-022;One-Time;USD,USD,true,false,Oil Filter,Standard Price Book;true,RHO-ENG-022,One-Time;OneTime,21
+RLM-SW-40;One-Time;USD,USD,true,false,Synthetic Engine Oil,Standard Price Book;true,RLM-SW-40,One-Time;OneTime,30
+SC-GOLD;Term Annual;USD,USD,true,false,Service Contract,Standard Price Book;true,SC-GOLD,Term Annual;TermDefined,15000
+SUB;Evergreen Annual;USD,USD,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,420
+SUB;Evergreen Monthly;USD,USD,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,35
+SUB;Term Annual;USD,USD,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,360
+SUB;Term Monthly;USD,USD,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,30
+SUB;Evergreen Annual;JPY,JPY,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,63500
+SUB;Evergreen Monthly;JPY,JPY,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,5300
+SUB;Term Annual;JPY,JPY,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,54470
+SUB;Term Monthly;JPY,JPY,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,4540
+SUB;Evergreen Annual;GBP,GBP,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,330
+SUB;Evergreen Monthly;GBP,GBP,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,30
+SUB;Term Annual;GBP,GBP,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,280
+SUB;Term Monthly;GBP,GBP,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,20
+SUB;Evergreen Annual;EUR,EUR,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,390
+SUB;Evergreen Monthly;EUR,EUR,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,30
+SUB;Term Annual;EUR,EUR,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,330
+SUB;Term Monthly;EUR,EUR,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,30
+SUB;Evergreen Annual;CHF,CHF,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,370
+SUB;Evergreen Monthly;CHF,CHF,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,30
+SUB;Term Annual;CHF,CHF,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,320
+SUB;Term Monthly;CHF,CHF,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,30
+SUB;Evergreen Annual;CAD,CAD,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,570
+SUB;Evergreen Monthly;CAD,CAD,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,50
+SUB;Term Annual;CAD,CAD,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,490
+SUB;Term Monthly;CAD,CAD,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,40
+SUB;Evergreen Annual;AUD,AUD,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Annual;Evergreen,640
+SUB;Evergreen Monthly;AUD,AUD,true,false,Subscription,Standard Price Book;true,SUB,Evergreen Monthly;Evergreen,50
+SUB;Term Annual;AUD,AUD,true,false,Subscription,Standard Price Book;true,SUB,Term Annual;TermDefined,550
+SUB;Term Monthly;AUD,AUD,true,false,Subscription,Standard Price Book;true,SUB,Term Monthly;TermDefined,50
+TiO2-500-1000KG;One-Time;USD,USD,true,false,Titanium Dioxide (TiO2-500) - 1000KG Sack,Standard Price Book;true,TiO2-500-1000KG,One-Time;OneTime,2000
+TiO2-500-25KG;One-Time;USD,USD,true,false,Titanium Dioxide (TiO2-500) - 25KG Bag,Standard Price Book;true,TiO2-500-25KG,One-Time;OneTime,120
+TOL-100-1000L;One-Time;USD,USD,true,false,Toluene (TOL-100) - 1000L IBC,Standard Price Book;true,TOL-100-1000L,One-Time;OneTime,1000
+TOL-100-200L;One-Time;USD,USD,true,false,Toluene (TOL-100) - 200L Drum,Standard Price Book;true,TOL-100-200L,One-Time;OneTime,300
+TRENCHING-BUCKET;One-Time;USD,USD,true,false,Trenching Bucket,Standard Price Book;true,TRENCHING-BUCKET,One-Time;OneTime,900
+UV-2000-25KG;One-Time;USD,USD,true,false,UV Stabilizer (UV-2000) - 25KG Bag,Standard Price Book;true,UV-2000-25KG,One-Time;OneTime,450
+WARR-STD-1YR;Term Annual;USD,USD,true,false,Standard Year Warranty,Standard Price Book;true,WARR-STD-1YR,Term Annual;TermDefined,0
+XYL-200-1000L;One-Time;USD,USD,true,false,Xylene (XYL-200) - 1000L IBC,Standard Price Book;true,XYL-200-1000L,One-Time;OneTime,900
+XYL-200-200L;One-Time;USD,USD,true,false,Xylene (XYL-200) - 200L Drum,Standard Price Book;true,XYL-200-200L,One-Time;OneTime,350
