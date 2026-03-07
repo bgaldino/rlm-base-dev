@@ -1,6 +1,6 @@
 # QB-DRO Scratch Data File Validation (Retired)
 
-**Deprecated:** The `qb-dro_scratch` data plan has been removed. DRO data is now loaded from the single **qb-dro** plan with dynamic AssignedTo user resolution: the task `insert_qb_dro_data_scratch` / `insert_qb_dro_data_prod` uses the option `dynamic_assigned_to_user: true` and replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` and `UserAndGroup.csv` with the target org’s default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO). See `tasks/rlm_sfdmu.py` and `cumulusci.yml` (prepare_dro flow, quantumbit_dro_dataset).
+**Deprecated:** The `qb-dro_scratch` data plan has been removed. DRO data is now loaded from the single **qb-dro** plan with dynamic AssignedTo user resolution: the task `insert_qb_dro_data_scratch` / `insert_qb_dro_data_prod` uses the option `dynamic_assigned_to_user: true` and replaces the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` and `User.csv` with the target org’s default user Name (e.g. "User User" in scratch orgs, "Admin User" in TSO). See `tasks/rlm_sfdmu.py` and `cumulusci.yml` (prepare_dro flow, quantumbit_dro_dataset).
 
 ---
 

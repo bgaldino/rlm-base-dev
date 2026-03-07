@@ -36,7 +36,7 @@ SCRATCHORG_LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusernam
 EXTRACT_COMMAND = "sf sfdmu run --sourceusername {sourceusername} --targetusername CSVFILE -p {pathtoexportjson} --noprompt --verbose"
 EXPORT_JSON_FILENAME = "export.json"
 DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
-DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv", "UserAndGroup.csv")
+DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv")
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -99,7 +99,7 @@ class LoadSFDMUData(SFDXBaseTask):
             "required": False
         },
         "dynamic_assigned_to_user": {
-            "description": "If true, query the target org for the default user's Name and replace the placeholder in DRO CSVs (FulfillmentStepDefinition.csv, User.csv, UserAndGroup.csv) so one plan works for both scratch (User User) and TSO (Admin User).",
+            "description": "If true, query the target org for the default user's Name and replace the placeholder in DRO CSVs (FulfillmentStepDefinition.csv, User.csv) so one plan works for both scratch (User User) and TSO (Admin User).",
             "required": False
         },
         "sync_objectset_source_to_source": {

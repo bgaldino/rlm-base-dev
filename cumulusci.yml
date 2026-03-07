@@ -53,7 +53,7 @@ orgs:
       config_file: orgs/dev_previous.json
       days: 30
     dev_datacloud:
-      config_file: orgs/dev_datacloud.json
+      config_file: orgs/dev-datacloud.json
       days: 30
     dev:
       config_file: orgs/dev.json
@@ -81,41 +81,43 @@ project:
 # Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-    qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
-    qb: true                  # Is QuantumBit?
-    q3: false                 # Include Q3 data
-    calmdelete: true          # Use CALM Delete
-    tax: true                 # Use Tax engine
-    billing: true             # Use Billing
-    payments: true            # Use Payments
-    approvals: true           # Use Approvals
-    clm: true                # Use Contract Lifecycle Management
-    clm_data: false           # Use Contract Lifecycle Management Data
-    dro: true                 # Use Dynamic Revenue Orchestration
-    rating: true              # Insert Rating Design Time Data
-    rates: true               # Insert Rates
-    ramps: true               # Insert and configure ramps
-    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
-    einstein: true            # Use Einstein AI
-    product_dataset: qb       # Default product dataset to use=
-    agents: false             # Deploy Agentforce Agent Configurations
-    refresh: false            # Data refresh flag
-    prm: true                # Use Partner Relationship Management
-    prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
-    billing_portal: false     # Use Self-Service Billing Portal community
-    billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
-    commerce: false           # Use Commerce
-    quantumbit: true          # Use QuantumBit
-    breconfig: false          # Business Rules Engine configuration
-    docgen: true              # Use Document Generation
-    constraints: true         # Use Constraint Builder
-    constraints_data: true   # Use Constraint Builder Data
-    guidedselling: false      # Use Guided Selling
-    procedureplans: true     # Use Procedure Plans
-    sharingsettings: false    # Deploy Sharing Settings
-    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
-    locale: en_US             # Default locale
+    qbrix: false               # [unused] Use xDO base (false for dev scratch orgs without xDO licenses)
+    tso: false                 # [metadata] Trialforce Source Org — PSG/PSL assignments, deploy_post_tso; suppresses scratch-only steps
+    qb: true                  # [data] Load QuantumBit data plans (PCM, pricing, billing, tax, rating, rates, DRO, constraints, PRM, guided selling)
+    q3: false                 # [data] Load Q3 data plans (billing, tax, rating, rates, DRO)
+    calmdelete: true          # [metadata] Assign CALM delete permission set (with quantumbit)
+    tax: true                 # [both] Create tax engine (metadata), insert tax data, activate tax records
+    billing: true             # [both] Insert billing data, activate billing records/flows, deploy billing settings/templates (requires tax: true)
+    payments: true            # [metadata] Create payments webhook, deploy payments site/settings, publish community
+    approvals: true           # [metadata] Deploy post-approvals metadata (with quantumbit)
+    clm: true                 # [metadata] Assign CLM PSLs, extend context definitions for contracts
+    clm_data: false           # [data] Insert CLM data (requires clm: true)
+    dro: true                 # [both] Insert DRO data, update fulfillment decomp rules, extend context, create DRO rule library (with breconfig)
+    rating: true              # [both] Insert rating data, activate rating/rates records, extend context, refresh decision tables
+    rates: true               # [data] Insert rates data, activate rating/rates records (requires rating: true)
+    ramps: true               # [unused] Insert and configure ramps
+    ux: true                  # [metadata] Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely.
+    einstein: true            # [metadata] Assign Einstein AI PSLs and permission sets
+    product_dataset: qb       # [unused] Default product dataset (valid values: qb, q3, mfg)
+    agents: false             # [metadata] Deploy Agentforce agent configs, assign PSGs and permission sets
+    refresh: false            # [modifier] Suppresses data inserts for billing, tax, rating, rates
+    prm: true                 # [both] Create partner central (metadata), deploy PRM metadata, publish community, assign PSs, insert PRM data
+    prm_exp_bundle: true      # [metadata] Deploy PRM experience bundle (requires prm: true)
+    billing_portal: false     # [metadata] Use Self-Service Billing Portal community
+    billing_portal_deploy: true   # [metadata] Deploy post_billing_portal site content when billing_portal is true
+    commerce: false           # [metadata] Extend cart context, refresh commerce decision tables
+    quantumbit: true          # [metadata] Deploy QB metadata (utils, billing, approvals), assign QB/CALM permission sets
+    breconfig: false          # [metadata] Create BRE rule libraries (with dro for DRO rule library)
+    docgen: true              # [metadata] Create docgen library, enable document builder, deploy post-docgen metadata
+    constraints: true         # [both] Deploy constraints metadata, assign PSs, insert transaction processing types data
+    constraints_data: true    # [data] Enable constraints settings, validate/import CML, activate expression sets (requires constraints: true)
+    guidedselling: false      # [data] Insert guided selling data
+    procedureplans: true      # [both] Deploy procedure plans metadata, activate expression sets, create/insert/activate procedure plan data
+    sharingsettings: false    # [metadata] Deploy sharing rules (requires prm: true)
+    visualization: false      # [metadata] Deploy visualization components (Flow with Visuals, LWC styling)
+    analytics: true           # [metadata] Enable Data Sync/Connections replication (enableWaveReplication)
+    psg_debug: false          # [metadata] Debug: assign individual PCM/billing permission sets (normally handled by PSGs)
+    locale: en_US             # [unused] Default locale (valid values: en_US)
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -213,14 +215,14 @@ project:
       - SalesEngagementBasicPsl
 
     rlm_tso_psg_api_names: &rlm_tso_psg_api_names
-      # Territory Sales Operations permission set groups
+      # Trialforce Source Org (TSO) permission set groups
       - CopilotSalesforceUserPSG
       - CopilotSalesforceAdminPSG
       - UnifiedCatalogAdminPsl
       - UnifiedCatalogDesignerPsl
 
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
-      # Territory Sales Operations permission sets
+      # Trialforce Source Org (TSO) permission sets
       - ERIBasic
       - RLM_UtilitiesPermset
       - OrchestrationProcessManagerPermissionSet
@@ -492,8 +494,6 @@ project:
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
-    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
-    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
     quantumbit_constraints_data_dir: &quantumbit_constraints_data_dir "datasets/constraints/qb/QuantumBitComplete"  # CML constraint model data (CSVs + blob)
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
@@ -1438,19 +1438,6 @@ tasks:
     options:
       pathtoexportjson: "datasets/sfdmu/scratch_data"
 
-  insert_qb_constraints_product_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Constraints Product Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_constraints_product_dataset
-
-  insert_qb_constraints_component_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Constraints Product Related Component Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_constraints_component_dataset
 
   # --- CML Constraint Model Tasks ---
   export_cml:
@@ -2686,28 +2673,28 @@ flows:
         when: project_config.project__custom__constraints
       5:
         task: enable_constraints_settings
-        when: project_config.project__custom__constraints_data
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data
       6:
         task: validate_cml
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           cml_dir: scripts/cml
           data_dir: *quantumbit_constraints_data_dir
       7:
         task: import_cml
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           data_dir: *quantumbit_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
       8:
         task: import_cml
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           data_dir: *server2_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
       9:
         task: manage_expression_sets
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           operation: activate_versions
           version_full_names: "QuantumBitComplete_V1,Server2_V1"
