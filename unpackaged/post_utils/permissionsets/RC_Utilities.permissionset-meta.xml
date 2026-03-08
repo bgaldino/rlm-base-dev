@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <classAccesses>
-        <apexClass>RC_AccountUtilities</apexClass>
+        <apexClass>RLM_ARC_AssetValidator</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_Utils_AccountReset</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <flowAccesses>
+        <enabled>true</enabled>
+        <flow>RLM_ARC_Assets</flow>
+    </flowAccesses>
+    <flowAccesses>
+        <enabled>true</enabled>
+        <flow>RLM_Utils_AccountReset</flow>
+    </flowAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RC Utilities</label>
 </PermissionSet>

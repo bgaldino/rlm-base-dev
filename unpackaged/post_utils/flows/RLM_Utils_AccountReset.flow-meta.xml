@@ -5,7 +5,7 @@
         <label>Reset Account</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>RC_AccountUtilities</actionName>
+        <actionName>RLM_Utils_AccountReset</actionName>
         <actionType>apex</actionType>
         <connector>
             <targetReference>isResetSuccessful</targetReference>
@@ -35,7 +35,31 @@
                 <elementReference>Delete_Fulfillment</elementReference>
             </value>
         </inputParameters>
-        <nameSegment>RC_AccountUtilities</nameSegment>
+        <inputParameters>
+            <name>DeleteOrders</name>
+            <value>
+                <elementReference>Delete_Orders</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>DeleteContracts</name>
+            <value>
+                <elementReference>Delete_Contracts</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>DeleteOpportunities</name>
+            <value>
+                <elementReference>Delete_Opportunities</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>DeleteQuotes</name>
+            <value>
+                <elementReference>Delete_Quotes</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>RLM_Utils_AccountReset</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <apiVersion>66.0</apiVersion>
@@ -69,8 +93,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Account Utilities</label>
+    <interviewLabel>RLM Utils Account Reset {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Utils Account Reset</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -146,6 +170,82 @@
                 <booleanValue>true</booleanValue>
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Orders</name>
+            <dataType>Boolean</dataType>
+            <defaultValue>
+                <booleanValue>true</booleanValue>
+            </defaultValue>
+            <fieldText>Delete Orders</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Contracts</name>
+            <dataType>Boolean</dataType>
+            <defaultValue>
+                <booleanValue>true</booleanValue>
+            </defaultValue>
+            <fieldText>Delete Contracts</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Opportunities</name>
+            <dataType>Boolean</dataType>
+            <defaultValue>
+                <booleanValue>true</booleanValue>
+            </defaultValue>
+            <fieldText>Delete Opportunities</fieldText>
+            <fieldType>InputField</fieldType>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Quotes</name>
+            <dataType>Boolean</dataType>
+            <defaultValue>
+                <booleanValue>true</booleanValue>
+            </defaultValue>
+            <fieldText>Delete Quotes</fieldText>
             <fieldType>InputField</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
