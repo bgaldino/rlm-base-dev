@@ -95,7 +95,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Cost, CostBookId, EffectiveFrom, EffectiveTo, ProductId, Description, CurrencyIsoCode, CostBook.Name, Product.StockKeepingUnit FROM CostBookEntry ORDER BY CostBook.Name ASC, Product.StockKeepingUnit ASC, CurrencyIsoCode DESC",
+          "query": "SELECT Cost, CostBookId, EffectiveFrom, EffectiveTo, ProductId, Description, CurrencyIsoCode FROM CostBookEntry ORDER BY CostBook.Name ASC, CurrencyIsoCode DESC, Name ASC",
           "operation": "Insert",
           "externalId": "CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode",
           "excluded": false

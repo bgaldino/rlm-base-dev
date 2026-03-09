@@ -1,34 +1,34 @@
 Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
-Application/Emission Certification,Picklist,,,,applicationEmissionCertification,true,false,Application/Emission Certification,Application/Emission Certification,applicationEmissionCertification,,,
-Assetized Low Voltage Generators,Number,,,,Assetized_Low_Voltage_Generators,true,false,Assetized Low Voltage Generators,Assetized Low Voltage Generators,,,,
-Assetized Medium Voltage Generators,Number,,,,Assetized_Medium_Voltage_Generators,true,false,Assetized Medium Voltage Generators,Assetized Medium Voltage Generators,,,,
-Bay Number,Number,,,,Bay_Number,true,false,Bay Number,Bay Number,,,,
-Cabin_Enclosure_AD,Checkbox,,false,,Cabin_Enclosure,true,false,Cabin_Enclosure,Cabin_Enclosure,,,,
-Control Language,Picklist,,English,,controlLanguage,true,false,Control Language,Control Language,Languages,,,
-Control Placement,Picklist,,,,controlPlacement,true,false,Control Placement,Control Placement,Entrance Types,,,
-Cooling Method AD,Picklist,,,,Cooling_Method,true,false,Cooling Method,Cooling Method,Cooling Method,,,
-Desired Noise Level (dB),Number,,,,gc_desiredDb,true,false,Desired Noise Level (dB),Desired Noise Level (dB),,,,
-Desired Power Output (kW),Number,,,,gc_desiredKw,true,false,Desired Power Output (kW),Desired Power Output (kW),,,,
-Desired Running Hours,Number,,,,gc_desiredRunningHours,true,false,Desired Running Hours,Desired Running Hours,,,,
-Duty Rating,Picklist,,,,DutyRating,true,false,Duty Rating,Duty Rating,DutyRating,,,
-Engine_AD,Picklist,,50 Hp,,Engine,true,false,Engine,Engine,Power,,,
-FB_Full Load Required (kW),Number,,,,requiredKW,true,false,Full Load Required (kW),FB_Full Load Required (kW),,,,
-FB_max dB level,Number,,,,dBMax,true,false,max dB level,FB_max dB level,,,,
-FB_Voltage,Picklist,,,,Voltage,true,false,Voltage,FB_Voltage,Voltage,,,
-Fuel Type AD,Picklist,,Hydrogen (H2),,Fuel_Type,true,false,Fuel Type,Fuel Type,Fuel Type,,,
-gc_certificate,Picklist,,,,gc_certificate,true,false,Certificate,Certificate,gc_certificate,,,
-Nominal Power Output AD,Picklist,,,,Nominal_Power_Output,true,false,Nominal Power Output,Nominal Power Output,Power Output Picklist,,,
-Operating Voltage AD,Picklist,,12V,,Operating_Voltage,true,false,Operating Voltage,Operating Voltage,DC_Voltage,,,
-powerkW,Picklist,,,,powerkW,true,false,powerkW,powerkW,Power,,,
-Quoted Low Voltage Generators,Number,,,,Quoted_Low_Voltage_Generators,true,false,Quoted Low Voltage Generators,Quoted Low Voltage Generators,,,,
-Quoted Medium Voltage Generators,Number,,,,Quoted_Medium_Voltage_Generators,true,false,Quoted Medium Voltage Generators,Quoted Medium Voltage Generators,,,,
-Reserve Capacity (kW),Number,,,,reserveCapacityKW,true,false,Reserve Capacity (kW),Reserve Capacity (kW),,,,
-Running Power Output (kW),Number,,,,gc_runningKw,true,false,Running Power Output (kW),Running Power Output (kW),,,,
-Seismic Certification,Picklist,,,,seismicCertification,true,false,Seismic Certification,Seismic Certification,seismicCertification,,,
-Size_AD,Picklist,,"36""",Bucket Size,Size,true,false,Size,Size,Bucket_Size,,,
-Special Application,Picklist,,None - Standard,,specialApplication,true,false,Special Application,Special Application,SpecialApplication,,,
-Standards and Compliance,Picklist,,,,standardsAndCompliance,true,false,Standards and Compliance,Standards and Compliance,standardsAndCompliance,,,
-Surge Load (kW),Number,,,,surgeLoadKW,true,false,Surge Load (kW),Surge Load (kW),,,,
-Total Power Required (kW),Number,,,,Total_Power_Required_kW,true,false,Total Power Required (kW),Total Power Required (kW),,,,
-Transmission_AD,Picklist,,One-Speed,,Transmission,true,false,Transmission,Transmission,Transmission,,,
-Use Assets,Checkbox,,false,,UseAssets,true,false,Use Assets,Use Assets,,,,
+Application/Emission Certification,Picklist,#N/A,#N/A,#N/A,applicationEmissionCertification,true,false,Application/Emission Certification,Application/Emission Certification,applicationEmissionCertification,#N/A,#N/A,#N/A
+Assetized Low Voltage Generators,Number,#N/A,#N/A,#N/A,Assetized_Low_Voltage_Generators,true,false,Assetized Low Voltage Generators,Assetized Low Voltage Generators,#N/A,#N/A,#N/A,#N/A
+Assetized Medium Voltage Generators,Number,#N/A,#N/A,#N/A,Assetized_Medium_Voltage_Generators,true,false,Assetized Medium Voltage Generators,Assetized Medium Voltage Generators,#N/A,#N/A,#N/A,#N/A
+Bay Number,Number,#N/A,#N/A,#N/A,Bay_Number,true,false,Bay Number,Bay Number,#N/A,#N/A,#N/A,#N/A
+Cabin_Enclosure_AD,Checkbox,#N/A,false,#N/A,Cabin_Enclosure,true,false,Cabin_Enclosure,Cabin_Enclosure,#N/A,#N/A,#N/A,#N/A
+Control Language,Picklist,#N/A,English,#N/A,controlLanguage,true,false,Control Language,Control Language,Languages,#N/A,#N/A,#N/A
+Control Placement,Picklist,#N/A,#N/A,#N/A,controlPlacement,true,false,Control Placement,Control Placement,Entrance Types,#N/A,#N/A,#N/A
+Cooling Method AD,Picklist,#N/A,#N/A,#N/A,Cooling_Method,true,false,Cooling Method,Cooling Method,Cooling Method,#N/A,#N/A,#N/A
+Desired Noise Level (dB),Number,#N/A,#N/A,#N/A,gc_desiredDb,true,false,Desired Noise Level (dB),Desired Noise Level (dB),#N/A,#N/A,#N/A,#N/A
+Desired Power Output (kW),Number,#N/A,#N/A,#N/A,gc_desiredKw,true,false,Desired Power Output (kW),Desired Power Output (kW),#N/A,#N/A,#N/A,#N/A
+Desired Running Hours,Number,#N/A,#N/A,#N/A,gc_desiredRunningHours,true,false,Desired Running Hours,Desired Running Hours,#N/A,#N/A,#N/A,#N/A
+Duty Rating,Picklist,#N/A,#N/A,#N/A,DutyRating,true,false,Duty Rating,Duty Rating,DutyRating,#N/A,#N/A,#N/A
+Engine_AD,Picklist,#N/A,50 Hp,#N/A,Engine,true,false,Engine,Engine,Power,#N/A,#N/A,#N/A
+FB_Full Load Required (kW),Number,#N/A,#N/A,#N/A,requiredKW,true,false,Full Load Required (kW),FB_Full Load Required (kW),#N/A,#N/A,#N/A,#N/A
+FB_max dB level,Number,#N/A,#N/A,#N/A,dBMax,true,false,max dB level,FB_max dB level,#N/A,#N/A,#N/A,#N/A
+FB_Voltage,Picklist,#N/A,#N/A,#N/A,Voltage,true,false,Voltage,FB_Voltage,Voltage,#N/A,#N/A,#N/A
+Fuel Type AD,Picklist,#N/A,Hydrogen (H2),#N/A,Fuel_Type,true,false,Fuel Type,Fuel Type,Fuel Type,#N/A,#N/A,#N/A
+gc_certificate,Picklist,#N/A,#N/A,#N/A,gc_certificate,true,false,Certificate,Certificate,gc_certificate,#N/A,#N/A,#N/A
+Nominal Power Output AD,Picklist,#N/A,#N/A,#N/A,Nominal_Power_Output,true,false,Nominal Power Output,Nominal Power Output,Power Output Picklist,#N/A,#N/A,#N/A
+Operating Voltage AD,Picklist,#N/A,12V,#N/A,Operating_Voltage,true,false,Operating Voltage,Operating Voltage,DC_Voltage,#N/A,#N/A,#N/A
+powerkW,Picklist,#N/A,#N/A,#N/A,powerkW,true,false,powerkW,powerkW,Power,#N/A,#N/A,#N/A
+Quoted Low Voltage Generators,Number,#N/A,#N/A,#N/A,Quoted_Low_Voltage_Generators,true,false,Quoted Low Voltage Generators,Quoted Low Voltage Generators,#N/A,#N/A,#N/A,#N/A
+Quoted Medium Voltage Generators,Number,#N/A,#N/A,#N/A,Quoted_Medium_Voltage_Generators,true,false,Quoted Medium Voltage Generators,Quoted Medium Voltage Generators,#N/A,#N/A,#N/A,#N/A
+Reserve Capacity (kW),Number,#N/A,#N/A,#N/A,reserveCapacityKW,true,false,Reserve Capacity (kW),Reserve Capacity (kW),#N/A,#N/A,#N/A,#N/A
+Running Power Output (kW),Number,#N/A,#N/A,#N/A,gc_runningKw,true,false,Running Power Output (kW),Running Power Output (kW),#N/A,#N/A,#N/A,#N/A
+Seismic Certification,Picklist,#N/A,#N/A,#N/A,seismicCertification,true,false,Seismic Certification,Seismic Certification,seismicCertification,#N/A,#N/A,#N/A
+Size_AD,Picklist,#N/A,"36""",Bucket Size,Size,true,false,Size,Size,Bucket_Size,#N/A,#N/A,#N/A
+Special Application,Picklist,#N/A,None - Standard,#N/A,specialApplication,true,false,Special Application,Special Application,SpecialApplication,#N/A,#N/A,#N/A
+Standards and Compliance,Picklist,#N/A,#N/A,#N/A,standardsAndCompliance,true,false,Standards and Compliance,Standards and Compliance,standardsAndCompliance,#N/A,#N/A,#N/A
+Surge Load (kW),Number,#N/A,#N/A,#N/A,surgeLoadKW,true,false,Surge Load (kW),Surge Load (kW),#N/A,#N/A,#N/A,#N/A
+Total Power Required (kW),Number,#N/A,#N/A,#N/A,Total_Power_Required_kW,true,false,Total Power Required (kW),Total Power Required (kW),#N/A,#N/A,#N/A,#N/A
+Transmission_AD,Picklist,#N/A,One-Speed,#N/A,Transmission,true,false,Transmission,Transmission,Transmission,#N/A,#N/A,#N/A
+Use Assets,Checkbox,#N/A,false,#N/A,UseAssets,true,false,Use Assets,Use Assets,#N/A,#N/A,#N/A,#N/A

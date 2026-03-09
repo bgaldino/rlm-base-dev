@@ -1,30 +1,30 @@
 Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
-Badger Chemicals,Additives & Catalysts,Substances added in small amounts to enhance or modify chemical reactions or product properties.,true,Additives & Catalysts,,50
-Badger Chemicals,Base Chemicals,Fundamental chemical compounds used as building blocks in various industrial processes.,true,Base Chemicals,,10
-Badger Chemicals,Industrial Solvents,"Liquids used to dissolve, suspend, or extract materials.",true,Industrial Solvents,,40
-Badger Chemicals,Polymers & Resins,"Materials used in plastics, coatings, and adhesives.",true,Polymers & Resins,,30
-Badger Chemicals,Specialty Chemicals,"High-value, custom-formulated chemicals tailored for specific applications.",true,Specialty Chemicals,,20
-Badger Equipment Catalog,Attachments,,true,Attachments,,60
-Badger Equipment Catalog,Equipment,,true,Equipment,,20
-Badger Equipment Catalog,Lubricants,,true,Lubricants,,10
-Badger Equipment Catalog,Replacement Parts,,true,Replacement Parts,,50
-Badger Equipment Catalog,Rippers,,true,Rippers,,70
-Badger Equipment Catalog,Service Contracts,,true,Service Contracts,,90
-Badger Equipment Catalog,Trenchers,,true,Trenchers,,80
-Badger Equipment Catalog,Excavators,,true,Excavators,Equipment,40
-Badger Equipment Catalog,Skid Steers,,true,Skid Steers,Equipment,30
-Badger Industrials,"Adhesives, Sealants & Tapes",,true,"Adhesives, Sealants & Tapes",,5
-Badger Industrials,Bearings & Bushings,,true,Bearings & Bushings,,2
-Badger Industrials,Chains & Sprockets,,true,Chains & Sprockets,,3
-Badger Industrials,Couplings,,true,Couplings,,1
-Badger Industrials,Industrial Motors & Controls,,true,Industrial Motors & Controls,,6
-Badger Industrials,Kits,,true,Kits,,7
-Badger Industrials,Pneumatics & Hydraulics,,true,Pneumatics & Hydraulics,,4
-GeneratorCatalog,Batteries,,true,Batteries,,40
-GeneratorCatalog,Connectivity,,true,Connectivity,,50
-GeneratorCatalog,Fuel Cells,,true,Fuel Cells,,30
-GeneratorCatalog,Generators,,true,Generators,,10
-GeneratorCatalog,Solar Panels,,true,Solar Panels,,20
-GeneratorCatalog,Switchgears,,true,Switchgears,,6
-Service Contracts,Tiers,,true,Tiers,,1
-Service Contracts,Warranty,,true,Warranty,,2
+Badger Chemicals,Additives & Catalysts,Substances added in small amounts to enhance or modify chemical reactions or product properties.,true,Additives & Catalysts,#N/A,50
+Badger Chemicals,Base Chemicals,Fundamental chemical compounds used as building blocks in various industrial processes.,true,Base Chemicals,#N/A,10
+Badger Chemicals,Industrial Solvents,"Liquids used to dissolve, suspend, or extract materials.",true,Industrial Solvents,#N/A,40
+Badger Chemicals,Polymers & Resins,"Materials used in plastics, coatings, and adhesives.",true,Polymers & Resins,#N/A,30
+Badger Chemicals,Specialty Chemicals,"High-value, custom-formulated chemicals tailored for specific applications.",true,Specialty Chemicals,#N/A,20
+Badger Equipment Catalog,Attachments,#N/A,true,Attachments,#N/A,60
+Badger Equipment Catalog,Equipment,#N/A,true,Equipment,#N/A,20
+Badger Equipment Catalog,Lubricants,#N/A,true,Lubricants,#N/A,10
+Badger Equipment Catalog,Replacement Parts,#N/A,true,Replacement Parts,#N/A,50
+Badger Equipment Catalog,Rippers,#N/A,true,Rippers,#N/A,70
+Badger Equipment Catalog,Service Contracts,#N/A,true,Service Contracts,#N/A,90
+Badger Equipment Catalog,Trenchers,#N/A,true,Trenchers,#N/A,80
+Badger Equipment Catalog,Excavators,#N/A,true,Excavators,Equipment,40
+Badger Equipment Catalog,Skid Steers,#N/A,true,Skid Steers,Equipment,30
+Badger Industrials,"Adhesives, Sealants & Tapes",#N/A,true,"Adhesives, Sealants & Tapes",#N/A,5
+Badger Industrials,Bearings & Bushings,#N/A,true,Bearings & Bushings,#N/A,2
+Badger Industrials,Chains & Sprockets,#N/A,true,Chains & Sprockets,#N/A,3
+Badger Industrials,Couplings,#N/A,true,Couplings,#N/A,1
+Badger Industrials,Industrial Motors & Controls,#N/A,true,Industrial Motors & Controls,#N/A,6
+Badger Industrials,Kits,#N/A,true,Kits,#N/A,7
+Badger Industrials,Pneumatics & Hydraulics,#N/A,true,Pneumatics & Hydraulics,#N/A,4
+GeneratorCatalog,Batteries,#N/A,true,Batteries,#N/A,40
+GeneratorCatalog,Connectivity,#N/A,true,Connectivity,#N/A,50
+GeneratorCatalog,Fuel Cells,#N/A,true,Fuel Cells,#N/A,30
+GeneratorCatalog,Generators,#N/A,true,Generators,#N/A,10
+GeneratorCatalog,Solar Panels,#N/A,true,Solar Panels,#N/A,20
+GeneratorCatalog,Switchgears,#N/A,true,Switchgears,#N/A,6
+Service Contracts,Tiers,#N/A,true,Tiers,#N/A,1
+Service Contracts,Warranty,#N/A,true,Warranty,#N/A,2

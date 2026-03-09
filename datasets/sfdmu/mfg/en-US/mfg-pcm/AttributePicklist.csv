@@ -1,19 +1,19 @@
 DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
-Text,,applicationEmissionCertification,,Active,
-Text,,Bucket_Size,,Active,
-Text,,Cooling Method,,Active,
-Text,,DC_Voltage,,Active,
-Text,,DutyRating,,Active,
-Text,,Entrance Types,,Active,
-Text,,Equipment Power,,Active,
-Text,,Fuel Type,,Active,
-Text,,gc_certificate,,Active,
-Text,,Languages,,Active,
-Text,,Power,,Active,
-Text,,Power Output Picklist,,Active,
-Text,,Ripper_Size,,Active,
-Text,,seismicCertification,,Active,
-Text,,SpecialApplication,,Active,
-Text,,standardsAndCompliance,,Active,
-Text,,Transmission,,Active,
-Text,,Voltage,,Active,
+Text,#N/A,applicationEmissionCertification,applicationEmissionCertification,Active,#N/A
+Text,#N/A,Bucket_Size,Bucket_Size,Active,#N/A
+Text,#N/A,Cooling Method,Cooling Method PL,Active,#N/A
+Text,#N/A,DC_Voltage,DC_Voltage,Active,#N/A
+Text,#N/A,DutyRating,DutyRating,Active,#N/A
+Text,#N/A,Entrance Types,Entrance Types,Active,#N/A
+Text,#N/A,Equipment Power,Equipment Power,Active,#N/A
+Text,#N/A,Fuel Type,Fuel Type,Active,#N/A
+Text,#N/A,gc_certificate,gc_certificate,Active,#N/A
+Text,#N/A,Languages,Languages,Active,#N/A
+Text,#N/A,Power,Power,Active,#N/A
+Text,#N/A,Power Output Picklist,Power Output Picklist,Active,#N/A
+Text,#N/A,Ripper_Size,Ripper_Size,Active,#N/A
+Text,#N/A,seismicCertification,seismicCertification,Active,#N/A
+Text,#N/A,SpecialApplication,SpecialApplication,Active,#N/A
+Text,#N/A,standardsAndCompliance,standardsAndCompliance,Active,#N/A
+Text,#N/A,Transmission,Transmission,Active,#N/A
+Text,#N/A,Voltage,Voltage,Active,#N/A

@@ -1,33 +1,33 @@
 AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
-Bucket Size_AC,Size_AD,Size,"36""",Bucket Size,,,false,false,false,false,,,,,Size,Buckets PC,,Active,,,
-,Control Language,Control Language,English,,,,false,false,false,false,,,,,Control Language,Control PC,,Active,,,
-,Control Placement,Control Placement,Right,,,,false,false,true,false,,,,,Control Placement,Control PC,,Active,,,
-,Cooling Method AD,Cooling Method,,,,,false,false,false,false,,,,,Cooling Method,Fuel Cell PC,,Active,,,
-Fuel Cell AC,Fuel Type AD,Fuel Type,Hydrogen (H2),,,,false,false,false,false,,,,,Fuel Type,Fuel Cell PC,,Active,,,
-Fuel Cell AC,gc_certificate,Certificate,,,,,false,false,false,false,,,,,Certificate,Fuel Cell PC,,Active,,,
-,Nominal Power Output AD,Nominal Power Output,,,,,false,false,false,false,,,,,Nominal Power Output,Fuel Cell PC,,Active,,,
-,Operating Voltage AD,Operating Voltage,12V,,,,false,false,false,false,,,,,Operating Voltage,Fuel Cell PC,,Active,,,
-Environment,Application/Emission Certification,Application/Emission Certification,,,,,false,false,false,false,,,,,Application/Emission Certification,Generator Set PC,,Active,,,
-Application,Duty Rating,Duty Rating,,,,,false,false,false,false,,,,,Duty Rating,Generator Set PC,,Active,,,
-Application,FB_Full Load Required (kW),FB_Full Load Required (kW),500,,,,false,false,false,false,,,,,Full Load Required (kW),Generator Set PC,,Active,,,
-Application,FB_max dB level,FB_max dB level,,,,,false,false,false,false,,,,,max dB level,Generator Set PC,,Active,,,
-Application,FB_Voltage,FB_Voltage,,,,,false,false,false,false,,,,,Voltage,Generator Set PC,,Active,,,
-Application,Reserve Capacity (kW),Reserve Capacity (kW),125,,,,false,false,true,false,,,,,Reserve Capacity (kW),Generator Set PC,,Active,,,
-Environment,Seismic Certification,Seismic Certification,,,,,false,false,false,false,,,,,Seismic Certification,Generator Set PC,,Active,,,
-Environment,Special Application,Special Application,None - Standard,,,,false,false,false,false,,,,,Special Application,Generator Set PC,,Active,,,
-Environment,Standards and Compliance,Standards and Compliance,,,,,false,false,false,false,,,,,Standards and Compliance,Generator Set PC,,Active,,,
-Application,Surge Load (kW),Surge Load (kW),625,,,,false,false,true,false,,,,,Surge Load (kW),Generator Set PC,,Active,,,
-Application,FB_Voltage,FB_Voltage,,,,,false,false,false,false,,,,,FB_Voltage,MainAlternator,,Active,,,
-,powerkW,powerkW,,,,,false,false,false,false,,,,,powerkW,Model PC,,Active,,,
-Cabin_AC,Cabin_Enclosure_AD,Cabin_Enclosure,false,,,,false,false,false,false,,,,,Cabin_Enclosure,Skid Steer PC,,Active,,,
-Power Train_AC,Engine_AD,Engine,50 Hp,,,,false,false,false,false,,,,,Engine,Skid Steer PC,,Active,,,
-Power Train_AC,Transmission_AD,Transmission,One-Speed,,,,false,false,false,false,,,,,Transmission,Skid Steer PC,,Active,,,
-Switchgear AC,Assetized Low Voltage Generators,Assetized Low Voltage Generators,,,,,false,false,false,false,,,,,Assetized Low Voltage Generators,SWG,,Active,,,
-Switchgear AC,Assetized Medium Voltage Generators,Assetized Medium Voltage Generators,,,,,false,false,false,false,,,,,Assetized Medium Voltage Generators,SWG,,Active,,,
-Switchgear AC,Quoted Low Voltage Generators,Quoted Low Voltage Generators,,,,,false,false,false,false,,,,,Quoted Low Voltage Generators,SWG,,Active,,,
-Switchgear AC,Quoted Medium Voltage Generators,Quoted Medium Voltage Generators,,,,,false,false,false,false,,,,,Quoted Medium Voltage Generators,SWG,,Active,,,
-Switchgear AC,Total Power Required (kW),Total Power Required (kW),,,,,false,false,false,false,,,,,Total Power Required (kW),SWG,,Active,,,
-Switchgear AC,Use Assets,Use Assets,false,,,,false,false,false,false,,,,,Use Assets,SWG,,Active,,,
-Bay AC,Bay Number,Bay Number,,,,,false,false,false,false,,,,,Bay Number,Switchgear Bay,,Active,,,
-Switchgear AC,Total Power Required (kW),Total Power Required (kW),,,,,false,false,false,false,,,,,Total Power Required (kW),Switchgear Bay,,Active,,,
-Application,FB_Voltage,FB_Voltage,,,,,false,false,false,false,,,,,Voltage,Voltage PC,,Active,,,
+Bucket Size_AC,Size_AD,Size,"36""",Bucket Size,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Size,Buckets PC,#N/A,Active,#N/A,#N/A,#N/A
+#N/A,Control Language,Control Language,English,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Control Language,Control PC,#N/A,Active,#N/A,#N/A,#N/A
+#N/A,Control Placement,Control Placement,Right,#N/A,#N/A,#N/A,false,false,true,false,#N/A,#N/A,#N/A,#N/A,Control Placement,Control PC,#N/A,Active,#N/A,#N/A,#N/A
+#N/A,Cooling Method AD,Cooling Method,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Cooling Method,Fuel Cell PC,#N/A,Active,#N/A,#N/A,#N/A
+Fuel Cell AC,Fuel Type AD,Fuel Type,Hydrogen (H2),#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Fuel Type,Fuel Cell PC,#N/A,Active,#N/A,#N/A,#N/A
+Fuel Cell AC,gc_certificate,Certificate,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Certificate,Fuel Cell PC,#N/A,Active,#N/A,#N/A,#N/A
+#N/A,Nominal Power Output AD,Nominal Power Output,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Nominal Power Output,Fuel Cell PC,#N/A,Active,#N/A,#N/A,#N/A
+#N/A,Operating Voltage AD,Operating Voltage,12V,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Operating Voltage,Fuel Cell PC,#N/A,Active,#N/A,#N/A,#N/A
+Environment,Application/Emission Certification,Application/Emission Certification,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Application/Emission Certification,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,Duty Rating,Duty Rating,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Duty Rating,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,FB_Full Load Required (kW),FB_Full Load Required (kW),500,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Full Load Required (kW),Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,FB_max dB level,FB_max dB level,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,max dB level,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,FB_Voltage,FB_Voltage,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Voltage,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,Reserve Capacity (kW),Reserve Capacity (kW),125,#N/A,#N/A,#N/A,false,false,true,false,#N/A,#N/A,#N/A,#N/A,Reserve Capacity (kW),Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Environment,Seismic Certification,Seismic Certification,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Seismic Certification,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Environment,Special Application,Special Application,None - Standard,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Special Application,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Environment,Standards and Compliance,Standards and Compliance,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Standards and Compliance,Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,Surge Load (kW),Surge Load (kW),625,#N/A,#N/A,#N/A,false,false,true,false,#N/A,#N/A,#N/A,#N/A,Surge Load (kW),Generator Set PC,#N/A,Active,#N/A,#N/A,#N/A
+Application,FB_Voltage,FB_Voltage,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,FB_Voltage,MainAlternator,#N/A,Active,#N/A,#N/A,#N/A
+#N/A,powerkW,powerkW,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,powerkW,Model PC,#N/A,Active,#N/A,#N/A,#N/A
+Cabin_AC,Cabin_Enclosure_AD,Cabin_Enclosure,false,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Cabin_Enclosure,Skid Steer PC,#N/A,Active,#N/A,#N/A,#N/A
+Power Train_AC,Engine_AD,Engine,50 Hp,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Engine,Skid Steer PC,#N/A,Active,#N/A,#N/A,#N/A
+Power Train_AC,Transmission_AD,Transmission,One-Speed,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Transmission,Skid Steer PC,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Assetized Low Voltage Generators,Assetized Low Voltage Generators,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Assetized Low Voltage Generators,SWG,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Assetized Medium Voltage Generators,Assetized Medium Voltage Generators,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Assetized Medium Voltage Generators,SWG,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Quoted Low Voltage Generators,Quoted Low Voltage Generators,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Quoted Low Voltage Generators,SWG,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Quoted Medium Voltage Generators,Quoted Medium Voltage Generators,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Quoted Medium Voltage Generators,SWG,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Total Power Required (kW),Total Power Required (kW),#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Total Power Required (kW),SWG,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Use Assets,Use Assets,false,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Use Assets,SWG,#N/A,Active,#N/A,#N/A,#N/A
+Bay AC,Bay Number,Bay Number,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Bay Number,Switchgear Bay,#N/A,Active,#N/A,#N/A,#N/A
+Switchgear AC,Total Power Required (kW),Total Power Required (kW),#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Total Power Required (kW),Switchgear Bay,#N/A,Active,#N/A,#N/A,#N/A
+Application,FB_Voltage,FB_Voltage,#N/A,#N/A,#N/A,#N/A,false,false,false,false,#N/A,#N/A,#N/A,#N/A,Voltage,Voltage PC,#N/A,Active,#N/A,#N/A,#N/A
