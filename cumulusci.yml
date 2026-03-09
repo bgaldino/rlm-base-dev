@@ -418,6 +418,8 @@ project:
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
     sales_transaction_context_base_reference: &sales_transaction_context_base_reference SalesTransactionContext__stdctx
+    #Badger MFG Sales Transaction Context
+    mfg_sales_transaction_context_name: &mfg_sales_transaction_context_name MFG_SalesTransactionContext
 
     product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
     product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
@@ -514,8 +516,10 @@ project:
 
 # Badger MFG Datasets
     badger_product_dataset: &badger_product_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"         # Badger product data
-    badger_pricing_dataset: &badger_pricing_dataset "unpackaged/post_manufacturing/datasets/mfg-rca-pricing-dev"     # Badger pricing data
+    badger_pricing_dataset: &badger_pricing_dataset "datasets/sfdmu/mfg/en-US/mfg-pricing"     # Badger pricing data
     badger_dro_dataset: &badger_dro_dataset "datasets/sfdmu/mfg/en-US/mfg-dro"     # Badger DRO dataset
+    genSet_mfg_cml: &genSet_mfg_cml "datasets/constraints/mfg/genSet" #Badger MFG Generator Set
+    fuelCell_mfg_cml: &fuelCell_mfg_cml "datasets/constraints/mfg/fuelCell" #Badger MFG Fuel Cell
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -596,6 +600,33 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *sales_transaction_context_default_mapping
       activate: true
+
+#MFG Sales Transaction Context
+  extend_context_sales_transaction_mfg:
+    group: Revenue Lifecycle Management
+    description: Extend Standard Sales Transaction Context
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *mfg_sales_transaction_context_name
+      description: "Extension of Standard Sales Transaction Context Definition"
+      developerName: *mfg_sales_transaction_context_name
+      baseReference: *sales_transaction_context_base_reference
+      startDate: *default_context_start_date
+      contextTtl: *default_context_ttl
+      defaultMapping: *sales_transaction_context_default_mapping
+      activate: true
+
+  apply_mfg_SalesTransactionContext:
+    group: Revenue Lifecycle Management
+    description: Apply ConstraintEngineNodeStatus mappings to Sales Transaction context for MFG
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *mfg_sales_transaction_context_name
+      plan_file: datasets/context_plans/mfg/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
 
   apply_context_constraint_engine_node_status:
     group: Revenue Lifecycle Management
@@ -1062,6 +1093,33 @@ tasks:
     options:
       path: unpackaged/post_manufacturing/5_initial_setup
 
+  deploy_badger_pricing_1:
+    description: deploy badger pricing recipe
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_pricingsetup/1_pricing
+
+  deploy_badger_pricing_2:
+    description: Deploy Badger Pricing Procedure
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_pricingsetup/2_pricing
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__ATTRIBUTEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Price Adjustment Tier' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+
   #Badger Omniscript Tasks
 
   deploy_badger_omniscripts_1:
@@ -1164,6 +1222,13 @@ tasks:
 
   # Badger Load Data Tasks
 
+  insert_test_data:
+    group: Badger RCA
+    description: Insert Test Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: "datasets/sfdmu/test"
+
   insert_badger_pcm_data:
     group: Badger RCA
     description: Insert Badger PCM Data
@@ -1184,6 +1249,7 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_dro_dataset
+      dynamic_assigned_to_user: true
 
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
@@ -1355,6 +1421,25 @@ tasks:
       pathtoexportjson: *quantumbit_constraints_component_dataset
 
   # --- CML Constraint Model Tasks ---
+
+# Badger MFG CML Tasks
+  export_cml_genSet:
+    group: Revenue Lifecycle Management
+    description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+    class_path: tasks.rlm_cml.ExportCML
+    options:
+      developer_name: "GeneratorSet"
+      version: 1
+      output_dir: "datasets/constraints/mfg/genSet"
+  export_cml_fuelCell:
+    group: Revenue Lifecycle Management
+    description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+    class_path: tasks.rlm_cml.ExportCML
+    options:
+      developer_name: "Fuel_Cell"
+      version: 1
+      output_dir: "datasets/constraints/mfg/fuelCell"
+
   export_cml:
     group: Revenue Lifecycle Management
     description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
@@ -1776,12 +1861,30 @@ tasks:
       use_extraction_roundtrip: true
       persist_extraction_output: true
 
+  test_badger_testdata_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pcm/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: "datasets/sfdmu/test"
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
   test_badger_pricing_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *badger_pricing_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_badger_dro_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *badger_dro_dataset
       use_extraction_roundtrip: true
       persist_extraction_output: true
 
@@ -2696,6 +2799,47 @@ flows:
       2:
         task: insert_badger_pricing_data
         when: project_config.project__custom__badger
+
+# Badger Context Plan Flow
+
+  prepare_badger_context_plan:
+    group: Badger
+    steps:
+      1:
+        task: extend_context_sales_transaction_mfg
+        when: project_config.project__custom__badger
+      2:
+        task: apply_mfg_SalesTransactionContext
+        when: project_config.project__custom__badger
+      3:
+        task: apply_mfg_SalesTransactionContext
+        when: project_config.project__custom__badger
+
+  # Badger Pricing Flow - deploy metadata
+
+  prepare_badger_pricing:
+    group: Badger
+    steps:
+      1:
+        task: deploy_badger_pricing_1
+        when: project_config.project__custom__badger
+      2:
+        task: deploy_badger_pricing_2
+        when: project_config.project__custom__badger
+
+  import_mfg_cml:
+    group: Badger
+    steps:
+      1:
+        task: import_cml
+        when: project_config.project__custom__badger
+        options:
+          data_dir: *genSet_mfg_cml
+      2:
+        task: import_cml
+        when: project_config.project__custom__badger
+        options:
+          data_dir: *fuelCell_mfg_cml
 
   run_qb_extracts:
     group: Data Management - Extract
