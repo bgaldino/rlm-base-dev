@@ -220,6 +220,88 @@ def parse_composite_key_header(header: str) -> list:
     return inner.split("$")
 
 
+def build_lookup_map(extracted_headers: list, extracted_rows: list,
+                      key_field: str, value_field: str) -> dict:
+    """Build a lookup map from extracted data for resolving 2-hop traversals.
+
+    SFDMU v5 has a bug where 2-hop relationship traversals return #N/A even though
+    Salesforce API returns the correct data. This function builds a map to reconstruct
+    those values from 1-hop data.
+
+    Args:
+        extracted_headers: CSV headers from extraction
+        extracted_rows: CSV rows from extraction
+        key_field: Field name to use as lookup key (e.g., "Code")
+        value_field: Field name to use as lookup value (e.g., "ParentProduct.StockKeepingUnit")
+
+    Returns:
+        dict mapping key_field values to value_field values
+    """
+    if key_field not in extracted_headers or value_field not in extracted_headers:
+        return {}
+
+    key_idx = extracted_headers.index(key_field)
+    val_idx = extracted_headers.index(value_field)
+
+    lookup = {}
+    for row in extracted_rows:
+        if key_idx < len(row) and val_idx < len(row):
+            key = row[key_idx]
+            val = row[val_idx]
+            if key and val and val not in ("#N/A", ""):
+                lookup[key] = val
+
+    return lookup
+
+
+def build_composite_key_with_lookup(row_dict: dict, components: list,
+                                      lookup_map: dict = None) -> str:
+    """Build a composite key value, using lookup map to resolve 2-hop traversals.
+
+    This is an enhanced version of build_composite_key_column that handles the
+    SFDMU v5 bug where 2-hop relationship traversals return #N/A.
+
+    For nested composite keys like ParentGroup.$$Code$ParentProduct.StockKeepingUnit:
+    - If ParentGroup.ParentProduct.StockKeepingUnit is #N/A (SFDMU bug)
+    - And we have ParentGroup.Code (e.g., "Accessories")
+    - Look up "Accessories" in the lookup_map to find its ParentProduct.StockKeepingUnit
+
+    Args:
+        row_dict: Row data as dict
+        components: List of field names (e.g., ["ParentGroup.Code", "ParentGroup.ParentProduct.StockKeepingUnit"])
+        lookup_map: Optional dict for resolving 2-hop traversals
+
+    Returns:
+        Composite key string with semicolon-separated values
+    """
+    values = []
+    for component in components:
+        val = str(row_dict.get(component, ""))
+
+        # Handle SFDMU 2-hop traversal bug: if value is #N/A and component is a 2-hop
+        # traversal, try to resolve it via lookup map
+        if val in ("#N/A", "") and lookup_map and "." in component:
+            # Check if this is a 2-hop traversal (e.g., ParentGroup.ParentProduct.StockKeepingUnit)
+            parts = component.split(".")
+            if len(parts) == 3:  # 2-hop: Relationship1.Relationship2.Field
+                # Try to get the 1-hop relationship field (e.g., ParentGroup.Code)
+                relationship_prefix = parts[0]  # e.g., "ParentGroup"
+                # Look for a simple field on the parent relationship (typically Code or Name)
+                for key_field in ["Code", "Name"]:
+                    lookup_key_field = f"{relationship_prefix}.{key_field}"
+                    lookup_key_val = row_dict.get(lookup_key_field, "")
+                    if lookup_key_val and lookup_key_val != "#N/A":
+                        # Found a lookup key, try to resolve via map
+                        resolved_val = lookup_map.get(lookup_key_val, "")
+                        if resolved_val:
+                            val = resolved_val
+                            break
+
+        values.append(val)
+
+    return ";".join(values)
+
+
 def align_columns(extracted_headers: list, extracted_rows: list,
                    plan_headers: list, object_name: str, verbose: bool = False) -> tuple:
     """Align extracted CSV columns to match the plan CSV column order.
@@ -234,6 +316,15 @@ def align_columns(extracted_headers: list, extracted_rows: list,
 
     # Build index map for extracted data
     ext_idx = {h: i for i, h in enumerate(extracted_headers)}
+
+    # Build lookup map for resolving 2-hop traversals (SFDMU v5 bug workaround)
+    # For self-referencing objects like ProductComponentGroup, map Code -> ParentProduct.StockKeepingUnit
+    lookup_map = {}
+    if "Code" in extracted_headers and "ParentProduct.StockKeepingUnit" in extracted_headers:
+        lookup_map = build_lookup_map(extracted_headers, extracted_rows,
+                                       "Code", "ParentProduct.StockKeepingUnit")
+        if verbose and lookup_map:
+            print(f"    Built lookup map with {len(lookup_map)} entries for 2-hop traversal resolution")
 
     aligned_headers = list(plan_headers)
     aligned_rows = []
@@ -251,16 +342,16 @@ def align_columns(extracted_headers: list, extracted_rows: list,
             elif h.startswith("$$"):
                 # Composite key column not in extraction -- build from components
                 components = parse_composite_key_header(h)
-                aligned_row.append(build_composite_key_column(row_dict, components))
+                aligned_row.append(build_composite_key_with_lookup(row_dict, components, lookup_map))
             elif "." in h and "$$" in h:
                 # Nested composite reference not in extraction -- build from
-                # parent relationship + component fields
+                # parent relationship + component fields (with 2-hop lookup support)
                 dot_idx = h.index(".")
                 parent = h[:dot_idx]
                 composite = h[dot_idx + 1:]
                 components = parse_composite_key_header(composite)
                 full_components = [f"{parent}.{c}" for c in components]
-                aligned_row.append(build_composite_key_column(row_dict, full_components))
+                aligned_row.append(build_composite_key_with_lookup(row_dict, full_components, lookup_map))
             else:
                 if verbose:
                     print(f"    WARNING: Plan column '{h}' not found in extraction for {object_name}")
