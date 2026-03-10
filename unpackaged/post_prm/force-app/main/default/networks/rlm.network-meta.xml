@@ -75,5 +75,6 @@
         <defaultTab>home</defaultTab>
         <standardTab>Chatter</standardTab>
     </tabs>
+    <urlPathPrefix>partners</urlPathPrefix>
     <welcomeTemplate>unfiled$public/CommunityWelcomeEmailTemplate</welcomeTemplate>
 </Network>

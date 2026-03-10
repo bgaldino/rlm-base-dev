@@ -1,0 +1,13 @@
+{
+  "componentVariants" : [ {
+    "id" : "a40cc372-4ebd-4463-ad9c-8a8495f4df5f",
+    "propertyOverrides" : {
+      "activeViewId" : "c6f9d0c3-f980-4770-af83-8ccdf91a763d"
+    },
+    "targetId" : "6dec860e-1fe9-4730-b976-f837f9f67910",
+    "type" : "componentVariant"
+  } ],
+  "developerName" : "Quote_Detail_PRM_User_Quote_Detail_Flex_Page",
+  "id" : "d951ad50-0f22-4a0a-9a26-0c114a7f60ed",
+  "type" : "experienceVariation"
+}

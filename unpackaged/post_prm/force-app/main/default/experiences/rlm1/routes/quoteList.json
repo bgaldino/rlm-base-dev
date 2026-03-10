@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "0b400fab-19fa-48df-beaf-696705f911dd",
-  "appPageId" : "dda6100b-c839-4550-b692-a7d3d6030bf4",
+  "activeViewId" : "67214a9d-b79c-499a-8d70-77cea30aadd8",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "Quote_List__c",
-  "id" : "43a41936-ade8-4a55-9c6b-01438114036d",
+  "id" : "effae67f-eed2-497d-8f1b-9079bad72b4b",
   "label" : "Quote List",
   "routeType" : "list-0Q0",
   "type" : "route",

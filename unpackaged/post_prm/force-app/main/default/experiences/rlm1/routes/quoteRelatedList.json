@@ -1,9 +1,9 @@
 {
-  "activeViewId" : "cf183820-44ae-4adb-ad5a-6b08a8b1e085",
-  "appPageId" : "dda6100b-c839-4550-b692-a7d3d6030bf4",
+  "activeViewId" : "e5236781-908b-4104-afb2-67b13c299b9c",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "configurationTags" : [ ],
   "devName" : "Quote_Related_List__c",
-  "id" : "647a5bc2-4624-4398-b809-e270012616eb",
+  "id" : "fc898909-890b-4525-acf6-06ecb039a7e2",
   "label" : "Quote Related List",
   "routeType" : "relatedlist-0Q0",
   "type" : "route",

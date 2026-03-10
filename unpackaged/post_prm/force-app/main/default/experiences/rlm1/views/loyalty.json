@@ -1,0 +1,70 @@
+{
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "cc890bf8-c5db-48ab-9f56-107287345f77",
+  "label" : "Loyalty",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "b38b9699-3b12-4c79-8803-6683f26c8cfa",
+          "columns" : [ {
+            "UUID" : "d0910472-f5fe-4058-bed9-74525bbda706",
+            "columnKey" : "1",
+            "columnName" : "Column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ ]
+          } ]
+        },
+        "sectionHeight" : 300
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "b38b9699-3b12-4c79-8803-6683f26c8cfa",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "richTextValue" : "<div style=\"max-width:1100px;margin:24px auto;font-family:Arial,Helvetica,sans-serif;color:#0f172a;\">\n  <!-- Header -->\n  <div style=\"text-align:center;margin-bottom:16px;background:#ECF3FE;border-radius:14px;padding:14px;\">\n    <h2 style=\"margin:0;font-size:28px;\">Partner Loyalty Program</h2>\n    <p style=\"margin:6px 0 0;color:#6b7280;font-size:14px;\">Track your tier, points, promos, and rewards.</p>\n  </div>\n\n  <!-- Tier / Points Banner (single continuous gradient) -->\n  <div style=\"\n    position:relative;\n    background:linear-gradient(90deg,#0b63e5 0%, #0e1a2f 100%);\n    border-radius:14px; overflow:hidden; color:#fff;\n    margin-bottom:16px; border:1px solid #dbeafe;\n  \">\n    <div style=\"display:grid;grid-template-columns:1fr 2fr;gap:0;\">\n      <!-- Points Column -->\n      <div style=\"padding:18px 20px;\">\n        <div style=\"opacity:.9;font-size:13px;margin-bottom:6px;\">Reward Points</div>\n        <div style=\"font-size:36px;font-weight:800;line-height:1;\">970</div>\n        <div style=\"opacity:.85;font-size:12px;margin-top:4px;\">Point Balance</div>\n      </div>\n\n      <!-- Tier Meter Column (transparent background so no blue patch) -->\n      <div style=\"padding:16px 20px;background:transparent;\">\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;\">\n          <div>\n            <span style=\"background:#cbd5e1;color:#0f172a;font-weight:700;font-size:11px;border-radius:999px;padding:6px 10px;\">SILVER</span>\n            <span style=\"margin-left:10px;opacity:.9;font-size:12px;\">Your Tier</span>\n          </div>\n          <div style=\"font-size:12px;opacity:.95;\">Tier Points : <b>970</b></div>\n        </div>\n\n        <!-- Labels -->\n        <div style=\"display:flex;justify-content:space-between;font-size:12px;opacity:.95;margin:2px 0 8px;\">\n          <span>SILVER</span><span>GOLD</span><span>PLATINUM</span>\n        </div>\n\n        <!-- Track -->\n        <div style=\"position:relative;height:8px;background:rgba(255,255,255,.28);border-radius:999px;\">\n          <!-- Fill to current progress (970/5000 ≈ 19.4%) -->\n          <div style=\"position:absolute;left:0;top:0;height:8px;border-radius:999px;\n            width:19.4%; background:#60a5fa;\"></div>\n\n          <!-- Milestones (0, 2500, 5000) -->\n          <div style=\"position:absolute;left:0;top:-6px;width:2px;height:20px;background:#fff;opacity:.9;\"></div>\n          <div style=\"position:absolute;left:50%;top:-6px;width:2px;height:20px;background:#fff;opacity:.85;\"></div>\n          <div style=\"position:absolute;right:0;top:-6px;width:2px;height:20px;background:#fff;opacity:.9;\"></div>\n        </div>\n\n        <!-- Scale text -->\n        <div style=\"display:flex;justify-content:space-between;font-size:11px;opacity:.95;margin-top:6px;\">\n          <span>0 pts</span><span>2500 pts</span><span>5000 pts</span>\n        </div>\n      </div>\n    </div>\n  </div>\n\n  <!-- Promotions (3 cards) -->\n  <div style=\"display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;\">\n    <div style=\"background:#ECF3FE;border-radius:14px;color:#0f172a;padding:16px;min-height:140px;border:1px solid #0ea5e9;\">\n      <div style=\"font-size:12px;opacity:.9;margin-bottom:6px;\">10% Bonus</div>\n      <div style=\"font-weight:800;font-size:18px;line-height:1.2;\">Earn 10% Bonus on AI Sales through December!</div>\n      <button style=\"margin-top:10px;background:#0062E0;border:none;color:#fff;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer;\">\n        Join Challenge\n      </button>\n    </div>\n    <div style=\"background:#ECF3FE;border-radius:14px;color:#0f172a;padding:16px;min-height:140px;border:1px solid #0ea5e9;\">\n      <div style=\"font-size:12px;opacity:.9;margin-bottom:6px;\">1,000 Points</div>\n      <div style=\"font-weight:800;font-size:18px;line-height:1.2;\">Refer a Partner, Get a Certification, &amp; Sell a Deal</div>\n      <button style=\"margin-top:10px;background:#0062E0;border:none;color:#fff;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer;\">\n        Join Challenge\n      </button>\n    </div>\n    <div style=\"background:#ECF3FE;border-radius:14px;color:#0f172a;padding:16px;min-height:140px;border:1px solid #0ea5e9;\">\n      <div style=\"font-size:12px;opacity:.9;margin-bottom:6px;\">Club Tickets</div>\n      <div style=\"font-weight:800;font-size:18px;line-height:1.2;\">Sell Deal &gt; $1M, Get Club Tickets!</div><br>\n      <button style=\"margin-top:10px;background:#0062E0;border:none;color:#fff;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer;\">\n        Join Challenge\n      </button>\n    </div>\n  </div>\n\n  <!-- Partner Benefits -->\n  <div style=\"background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 4px 14px rgba(2,6,23,0.06);margin-bottom:14px;\">\n    <div style=\"background:#ECF3FE;color:#0f172a;font-weight:700;border-radius:14px 14px 0 0;padding:10px 14px;font-size:14px;\">\n      Partner Benefits\n    </div>\n    <div style=\"padding:14px;display:flex;gap:18px;flex-wrap:wrap;\">\n      <div style=\"display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;\">💵 <span>10% Earn</span></div>\n      <div style=\"display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;\">🏷️ <span>Discounted Certifications</span></div>\n      <div style=\"display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;\">🔗 <span>Referral Benefits</span></div>\n      <div style=\"display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;\">🎟️ <span>Free Event Tickets</span></div>\n      <div style=\"display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;\">🌐 <span>Bonuses for AI Products</span></div>\n      <div style=\"display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;\">👤 <span>Access to Exec Leadership</span></div>\n    </div>\n  </div>\n\n  <!-- Transaction History -->\n  <div style=\"background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 4px 14px rgba(2,6,23,0.06);\">\n    <div style=\"background:#ECF3FE;color:#0f172a;font-weight:700;border-radius:14px 14px 0 0;padding:10px 14px;font-size:14px;\">\n      Transaction History\n    </div>\n    <div style=\"padding:6px 12px;\">\n      <div style=\"display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid #f1f5f9;\">\n        <div>\n          <div style=\"font-weight:700;\">Closed Deal – UlyssesNet - Welo Guard 2.0 Add-On</div>\n          <div style=\"font-size:12px;color:#64748b;\">10/15/2025</div>\n        </div>\n        <div style=\"font-weight:700;color:#10b981;\">+200 Closed/Won Dollars</div>\n      </div>\n      <div style=\"display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid #f1f5f9;\">\n        <div>\n          <div style=\"font-weight:700;\">Closed Deal – Verde - Welo Guard 1.0 New</div>\n          <div style=\"font-size:12px;color:#64748b;\">9/10/2025</div>\n        </div>\n        <div style=\"font-weight:700;color:#10b981;\">+100 Closed/Won Dollars</div>\n      </div>\n      <div style=\"display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid #f1f5f9;\">\n        <div>\n          <div style=\"font-weight:700;\">Referral</div>\n          <div style=\"font-size:12px;color:#64748b;\">8/10/2025</div>\n        </div>\n        <div style=\"font-weight:700;color:#10b981;\">+1 Referral</div>\n      </div>\n      <div style=\"display:flex;justify-content:space-between;padding:12px 4px;border-bottom:1px solid #f1f5f9;\">\n        <div>\n          <div style=\"font-weight:700;\">Certification</div>\n          <div style=\"font-size:12px;color:#64748b;\">7/2/2025</div>\n        </div>\n        <div style=\"font-weight:700;color:#10b981;\">+1 Certification</div>\n      </div>\n      <div style=\"display:flex;justify-content:space-between;padding:12px 4px;\">\n        <div>\n          <div style=\"font-weight:700;\">Closed Deal – Omega - Welo Guard 1.0 New</div>\n          <div style=\"font-size:12px;color:#64748b;\">6/1/2025</div>\n        </div>\n        <div style=\"font-weight:700;color:#10b981;\">+100 Closed/Won Dollars</div>\n      </div>\n      <div style=\"text-align:right;padding:8px 4px 12px;\">\n        <a href=\"#\" style=\"font-size:12px;color:#2563eb;text-decoration:none;font-weight:700;\">View All Transactions</a>\n      </div>\n    </div>\n  </div>\n</div>"
+          },
+          "componentName" : "forceCommunity:htmlBlock",
+          "id" : "55979ed6-69a3-4066-b61c-1c997d157e76",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "d0910472-f5fe-4058-bed9-74525bbda706",
+        "regionLabel" : "Column 1",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "4da15925-c50d-439d-b534-72c7cc845d5d",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "Loyalty"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "94458faf-68ae-42f9-9292-d29447553d02",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "d7a6a6da-098a-4b25-bfea-2b68ace37487",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "custom-loyalty"
+}
