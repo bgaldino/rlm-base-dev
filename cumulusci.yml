@@ -2259,14 +2259,22 @@ flows:
       6:
         task: deploy_sharing_rules
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
-      4:
+      7:
         task: assign_permission_sets
         when: project_config.project__custom__prm
         options:
           api_names: *ps_prm
-      5:
+      8:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
+      9:
+        task: manage_context_definition
+        when: project_config.project__custom__prm
+        options:
+          plan_file: datasets/context_plans/PartnerAccount/manifest.json
+          developer_name: RLM_SalesTransactionContext
+          translate_plan: true
+          activate: true
 
   prepare_tax:
     group: Revenue Lifecycle Management
