@@ -1,0 +1,43 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "First Pass - Upsert Accounts and Channel Programs",
+      "objects": [
+        {
+          "query": "SELECT Id, Industry, Name, Phone, Type, BillingCity, BillingCountry, BillingState FROM Account WHERE Type = 'Partner' ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT Category, Description, Id, IsActive, Name FROM ChannelProgram ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT BenefitsInformation, Description, Id, Name, Program.Name, ProgramId, Rank, RLM_Deal_Expiration_Days__c, RLM_Discount_Rate__c, RLM_Minimum_Deal_Size__c FROM ChannelProgramLevel ORDER BY Program.Name ASC, Rank ASC",
+          "operation": "Upsert",
+          "externalId": "Name;Rank"
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Enable Partner Accounts and Link Members",
+      "objects": [
+        {
+          "query": "SELECT Id, IsPartner, Name FROM Account WHERE Type = 'Partner' ORDER BY Name ASC",
+          "operation": "Update",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT RLM_Adjustment_Type__c, RLM_Adjustment_Value__c, RLM_Discount_Rate__c, Id, Level.Name, LevelId, Name, Partner.Name, PartnerId, Program.Name, ProgramId FROM ChannelProgramMember ORDER BY Program.Name ASC, Partner.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Partner.Name;Program.Name",
+          "skipExistingRecords": true
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

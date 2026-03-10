@@ -295,6 +295,10 @@ project:
       # Constraints-specific permission sets
       - RLM_Constraints
 
+    ps_prm: &ps_prm
+      # PRM-specific permission sets
+      - RLM_PRM
+
 #-----------------#
 # DECISION TABLES #
 #-----------------#
@@ -480,6 +484,7 @@ project:
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
+    quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
 
@@ -1106,6 +1111,17 @@ tasks:
     options:
       pathtoexportjson: *q3_product_dataset
 
+  insert_quantumbit_prm_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert QuantumBit PRM data using a 2-pass SFDMU plan. Pass 1 upserts partner
+      Accounts, ChannelProgram, and ChannelProgramLevel. Pass 2 enables IsPartner on
+      Accounts (not createable, only updateable) and upserts ChannelProgramMember
+      linking partners to program levels.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_prm_dataset
+
   insert_clm_data:
     group: Revenue Lifecycle Management
     description: Insert CLM Data
@@ -1611,6 +1627,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
 
+  extract_qb_prm_data:
+    group: Data Management - Extract
+    description: "Extract qb-prm (partner relationship management) from org to CSV. Output in datasets/sfdmu/extractions/qb-prm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_prm_dataset
+
   test_qb_pcm_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for qb-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<timestamp>.
@@ -1683,6 +1706,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_prm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-prm (partner relationship management).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_prm_dataset
       use_extraction_roundtrip: false
 
 #------------------#
@@ -2228,6 +2259,14 @@ flows:
       6:
         task: deploy_sharing_rules
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
+      4:
+        task: assign_permission_sets
+        when: project_config.project__custom__prm
+        options:
+          api_names: *ps_prm
+      5:
+        task: insert_quantumbit_prm_data
+        when: project_config.project__custom__prm and project_config.project__custom__qb
 
   prepare_tax:
     group: Revenue Lifecycle Management
