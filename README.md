@@ -93,7 +93,9 @@ echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --pr
 echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
 echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
 echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
-echo '  [ -s "$NVM_PREFIX/nvm.sh" ] && \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
+echo '  if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then' >> ~/.zshenv
+echo '    \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
+echo '  fi' >> ~/.zshenv
 echo 'fi' >> ~/.zshenv
 
 # Reload your shell
