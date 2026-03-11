@@ -140,17 +140,13 @@ echo 'eval "$(pyenv init -)"' >> ~/.zshenv
 # Reload your shell
 source ~/.zshrc
 
-# Find the latest available 3.12.x or 3.13.x patch (both work well with CCI)
-pyenv install --list | grep -E "^[[:space:]]*3\.(12|13)\." | tail -5
-
-# Install the patch version you chose from the list above, for example:
-pyenv install 3.13.12   # replace 3.13.12 with the exact 3.12.x or 3.13.x patch you selected
-
-# Set it as your global default (must match the exact patch version you installed)
-pyenv global 3.13.12    # must match the exact patch version you installed above
+# Install the latest 3.13.x patch automatically
+PYTHON_VERSION=$(pyenv install --list | grep -E "^[[:space:]]*3\.13\." | grep -v dev | tail -1 | tr -d '[:space:]')
+pyenv install "$PYTHON_VERSION"
+pyenv global "$PYTHON_VERSION"
 
 # Verify
-python --version   # Should show the patch version you installed
+python --version   # Should show the latest 3.13.x patch
 ```
 
 > **Using multiple Python versions?** You can install additional versions alongside (for example, another 3.12.x or 3.13.x patch) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
