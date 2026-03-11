@@ -2261,7 +2261,7 @@ flows:
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
       7:
         task: assign_permission_sets
-        when: project_config.project__custom__prm
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
       8:
