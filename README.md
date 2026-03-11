@@ -10,6 +10,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 ## Table of Contents
 
 - [macOS Environment Setup (Homebrew + pyenv + nvm)](#macos-environment-setup-homebrew--pyenv--nvm)
+  - [Using Claude Code with this project](#using-claude-code-with-this-project)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
   - [Setup for headless robot runs](#setup-for-headless-robot-runs)
@@ -270,12 +271,23 @@ cci task run validate_setup
 
 This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and optional Robot Framework dependencies. It auto-fixes an outdated SFDMU plugin by default. A passing summary confirms your environment is ready.
 
-> **Headless robot deps (optional):** If you need `enable_document_builder_toggle`, `enable_constraints_settings`, or `configure_revenue_settings`, also inject the Robot Framework packages:
-> ```bash
-> pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
-> # Or: pipx inject cumulusci -r robot/requirements.txt
-> brew install --cask google-chrome   # or: brew install chromium
-> ```
+> **Robot deps are auto-installed:** `validate_setup` now auto-installs Robot Framework, SeleniumLibrary, and webdriver-manager via `pipx inject` when they are missing (default behaviour). Chrome/Chromium must still be installed manually: `brew install --cask google-chrome`.
+
+### Using Claude Code with this project
+
+[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells** (it does not source `~/.zshrc`). Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Steps 3 and 4 above add the required init blocks to `~/.zshenv` — if you skipped those additions, add them now.
+
+**Verify Claude Code can see your tools** by asking it to run:
+
+```bash
+node --version && sf --version && cci version && python --version
+```
+
+If any command returns "not found", check that `~/.zshenv` contains the nvm and pyenv init blocks (see Steps 3 and 4), then **restart Claude Code** so it picks up the updated PATH.
+
+**After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
+
+**Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and auto-fixes missing robot deps, SFDMU version, and urllib3 — no org connection needed. It is the fastest way to confirm your environment is ready before running flows.
 
 ---
 
