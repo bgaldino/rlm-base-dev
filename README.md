@@ -89,8 +89,12 @@ echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --pr
 
 # Also add nvm to ~/.zshenv so non-interactive shells see it
 # (required for IDE tools, CI runners, and Claude Code which spawn non-interactive shells)
+# Guard brew call so the line works even if brew is not yet on PATH in non-interactive shells
 echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
-echo '[ -s "$(brew --prefix nvm)/nvm.sh" ] && \. "$(brew --prefix nvm)/nvm.sh"' >> ~/.zshenv
+echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
+echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
+echo '  [ -s "$NVM_PREFIX/nvm.sh" ] && \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
+echo 'fi' >> ~/.zshenv
 
 # Reload your shell
 source ~/.zshrc
@@ -137,7 +141,7 @@ echo 'eval "$(pyenv init -)"' >> ~/.zshenv
 source ~/.zshrc
 
 # Find the latest available 3.12.x or 3.13.x patch (both work well with CCI)
-pyenv install --list | grep -E "^\s+3\.(12|13)\." | tail -5
+pyenv install --list | grep -E "^[[:space:]]*3\.(12|13)\." | tail -5
 
 # Install the patch version you chose from the list above, for example:
 pyenv install 3.13.12   # replace 3.13.12 with the exact 3.12.x or 3.13.x patch you selected
@@ -322,7 +326,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
 5. **CumulusCI** (CCI)
    - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
-   - Installation: **prefer** `pipx install cumulusci --python $(pyenv prefix 3.13)/bin/python3.13` then `pipx inject cumulusci "setuptools<71"` (substitute `3.12` if using Python 3.12). If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
+   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` then `pipx inject cumulusci "setuptools<71"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
