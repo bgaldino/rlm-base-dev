@@ -141,7 +141,7 @@ echo 'eval "$(pyenv init -)"' >> ~/.zshenv
 source ~/.zshrc
 
 # Install the latest 3.13.x patch automatically
-PYTHON_VERSION=$(pyenv install --list | grep -E "^[[:space:]]*3\.13\." | grep -v dev | tail -1 | tr -d '[:space:]')
+PYTHON_VERSION=$(pyenv install --list | grep -E "^[[:space:]]*3\.13\.[0-9]+$" | tail -1 | tr -d '[:space:]')
 pyenv install "$PYTHON_VERSION"
 pyenv global "$PYTHON_VERSION"
 
