@@ -193,7 +193,8 @@ class ValidateSetup(BaseTask):
             return self._warn(
                 label,
                 "not found — Node.js is required if you install sf CLI and SFDMU via npm. "
-                "Install via nvm: brew install nvm && nvm install --lts",
+                "Download from https://nodejs.org or use a version manager such as nvm "
+                "(on macOS: brew install nvm && nvm install --lts).",
             )
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
