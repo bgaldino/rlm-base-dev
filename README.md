@@ -139,17 +139,17 @@ source ~/.zshrc
 # Find the latest available 3.12.x or 3.13.x patch (both work well with CCI)
 pyenv install --list | grep -E "^\s+3\.(12|13)\." | tail -5
 
-# Install the patch version you chose from the list above, e.g.:
-pyenv install 3.13.<latest>   # replace <latest> with the exact patch shown
+# Install the patch version you chose from the list above, for example:
+pyenv install 3.13.12   # replace 3.13.12 with the exact 3.12.x or 3.13.x patch you selected
 
-# Set it as your global default (must match the patch version you installed)
-pyenv global 3.13.<latest>
+# Set it as your global default (must match the exact patch version you installed)
+pyenv global 3.13.12    # must match the exact patch version you installed above
 
 # Verify
 python --version   # Should show the patch version you installed
 ```
 
-> **Using multiple Python versions?** You can install additional versions alongside (e.g. `pyenv install 3.12 3.14`) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
+> **Using multiple Python versions?** You can install additional versions alongside (for example, another 3.12.x or 3.13.x patch) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
 
 > **Non-interactive shell note:** The `~/.zshenv` additions above ensure that IDE tools, CI runners, and Claude Code (which spawn non-interactive shells) can find your pyenv-managed Python. Without `~/.zshenv`, only interactive terminal sessions see pyenv.
 
@@ -274,7 +274,7 @@ cci task run validate_setup
 
 This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing Robot Framework pieces and `webdriver-manager` are auto-installed via `pipx inject`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
 
-> **Chrome/Chromium is the primary manual step:** Most other missing deps are auto-fixed on first run, and `webdriver-manager` is installed automatically when needed (unless you already have a compatible `chromedriver` on your PATH). Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
+> **Chrome/Chromium is the primary manual step:** Most other missing deps are auto-fixed on first run, and with `auto_fix_robot` enabled, `webdriver-manager` will be installed automatically whenever it is missing (regardless of any existing `chromedriver` on your PATH). Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
 
 ### Using Claude Code with this project
 
