@@ -136,11 +136,14 @@ echo 'eval "$(pyenv init -)"' >> ~/.zshenv
 # Reload your shell
 source ~/.zshrc
 
-# Install Python 3.13 (or 3.12 — both work well with CCI)
-pyenv install 3.13.12   # or the latest 3.12.x / 3.13.x patch — check `pyenv install --list`
+# Find the latest available 3.12.x or 3.13.x patch (both work well with CCI)
+pyenv install --list | grep -E "^\s+3\.(12|13)\." | tail -5
 
-# Set it as your global default (use the same patch version you installed)
-pyenv global 3.13.12
+# Install the patch version you chose from the list above, e.g.:
+pyenv install 3.13.<latest>   # replace <latest> with the exact patch shown
+
+# Set it as your global default (must match the patch version you installed)
+pyenv global 3.13.<latest>
 
 # Verify
 python --version   # Should show the patch version you installed
