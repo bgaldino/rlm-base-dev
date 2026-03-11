@@ -126,8 +126,9 @@ class ValidateSetup(BaseTask):
         fail_on_error = self._bool_option("fail_on_error", default=True)
         required_sfdmu = self.options.get("required_sfdmu_version") or MIN_SFDMU_DEFAULT
 
-        # Tracks whether _install_robot_deps() has already run this session.
-        self._robot_deps_fixed: bool = False
+        # Tracks whether _install_robot_deps() has already been attempted/succeeded.
+        self._robot_deps_fixed: bool = False    # True → inject succeeded
+        self._robot_deps_attempted: bool = False  # True → inject ran (success or failure)
 
         self.logger.info("=" * 60)
         self.logger.info("Validating developer setup for rlm-base-dev...")
@@ -191,7 +192,7 @@ class ValidateSetup(BaseTask):
         except FileNotFoundError:
             return self._warn(
                 label,
-                "not found — Node.js is required by sf CLI and SFDMU. "
+                "not found — Node.js is required if you install sf CLI and SFDMU via npm. "
                 "Install via nvm: brew install nvm && nvm install --lts",
             )
         except Exception as exc:
@@ -323,7 +324,7 @@ class ValidateSetup(BaseTask):
                     pass
             return self._warn(
                 label,
-                "not installed — ChromeDriver will be resolved from PATH instead. "
+                "not installed (optional) — ChromeDriver will be resolved from PATH instead. "
                 "Install to enable automatic ChromeDriver management.\n"
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
@@ -353,8 +354,9 @@ class ValidateSetup(BaseTask):
                 return self._ok(label, found)
         return self._fail(
             label,
-            "not found — Chrome is required for all robot tasks (headless mode via --headless=new).\n"
-            "  Install: brew install --cask google-chrome",
+            "not found — Chrome or Chromium is required for all robot tasks (headless mode via --headless=new).\n"
+            "  Install (macOS): brew install --cask google-chrome\n"
+            "  Or (Linux): install your distribution's chromium or google-chrome package",
         )
 
     def _check_chromedriver(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -460,13 +462,15 @@ class ValidateSetup(BaseTask):
     # ── Robot helpers ─────────────────────────────────────────────────────────
 
     def _install_robot_deps(self) -> bool:
-        """Run ``pipx inject cumulusci -r robot/requirements.txt`` once per session.
+        """Run ``pipx inject cumulusci -r robot/requirements.txt`` at most once per session.
 
-        Returns True if the install succeeded (or had already run), False on failure.
-        Sets ``self._robot_deps_fixed = True`` so subsequent calls are a no-op.
+        Returns True if the install succeeded (or had already succeeded), False on failure.
+        After the first attempt (success or failure) ``self._robot_deps_attempted`` is set so
+        subsequent check methods skip a redundant retry and log consistently.
         """
-        if self._robot_deps_fixed:
-            return True
+        if self._robot_deps_attempted:
+            return self._robot_deps_fixed
+        self._robot_deps_attempted = True
 
         requirements_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -495,9 +499,10 @@ class ValidateSetup(BaseTask):
                 self.logger.error(f"[Robot] pipx inject failed: {err}")
                 return False
 
-            # Evict cached robot/selenium/webdriver module entries so subsequent
-            # imports resolve from the freshly installed packages.
-            prefixes = ("robot", "SeleniumLibrary", "webdriver_manager")
+            # Evict cached module entries so subsequent imports resolve from the
+            # freshly installed packages. Include urllib3 because robot/requirements.txt
+            # pins urllib3>=2.6.3 and the in-memory version may be stale.
+            prefixes = ("robot", "SeleniumLibrary", "webdriver_manager", "urllib3")
             for name in list(sys.modules):
                 if any(name == p or name.startswith(p + ".") for p in prefixes):
                     sys.modules.pop(name, None)

@@ -269,9 +269,9 @@ Run the built-in setup validator (no org connection required):
 cci task run validate_setup
 ```
 
-This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and optional Robot Framework dependencies. It auto-fixes an outdated SFDMU plugin by default. A passing summary confirms your environment is ready.
+This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework, SeleniumLibrary, and webdriver-manager are **required** and are auto-installed via `pipx inject` when missing (controlled by `auto_fix_robot`, default true). Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if it is not found. A passing summary confirms your environment is ready.
 
-> **Robot deps are auto-installed:** `validate_setup` now auto-installs Robot Framework, SeleniumLibrary, and webdriver-manager via `pipx inject` when they are missing (default behaviour). Chrome/Chromium must still be installed manually: `brew install --cask google-chrome`.
+> **Chrome/Chromium is the only manual step:** All other missing deps are auto-fixed on first run. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
 
 ### Using Claude Code with this project
 
