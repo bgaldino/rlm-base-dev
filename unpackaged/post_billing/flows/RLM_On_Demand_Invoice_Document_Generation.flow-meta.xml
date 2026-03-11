@@ -180,7 +180,7 @@
             <field>Name</field>
             <operator>EqualTo</operator>
             <value>
-                <stringValue>RLM_InvoiceTemplate</stringValue>
+                <stringValue>DefaultInvoiceTemplate</stringValue>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
