@@ -4,14 +4,16 @@ CumulusCI task to validate the local developer setup for rlm-base-dev.
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, SeleniumLibrary, webdriver-manager,
 Chrome/Chromium, ChromeDriver, urllib3). Optionally auto-fixes an outdated or
-missing SFDMU plugin (auto_fix),
-and optionally installs/upgrades urllib3 via pipx (auto_fix_urllib3, off by default).
+missing SFDMU plugin (auto_fix), robot dependencies via pipx inject
+(auto_fix_robot, on by default), and urllib3 via pipx inject
+(auto_fix_urllib3, off by default).
 
 Run without an org:
     cci task run validate_setup
 
 Options:
     auto_fix                Auto-update SFDMU if outdated (default: true)
+    auto_fix_robot          Auto-install robot deps via pipx inject if missing (default: true)
     auto_fix_urllib3        Auto-install/upgrade urllib3 if missing or outdated (default: false)
     required_sfdmu_version  Minimum SFDMU version (default: 5.0.0)
     fail_on_error           Raise on required check failures (default: true)
@@ -63,10 +65,11 @@ class ValidateSetup(BaseTask):
     Checks each required tool and version, logs a clear pass/warn/fail result
     for each, and prints a summary. When auto_fix=true the SFDMU plugin is
     automatically installed or updated if it is absent or below the required
-    version. When auto_fix_urllib3=true, urllib3 may also be installed or
-    upgraded via pipx inject (default false). Other Robot Framework
-    dependencies are never auto-installed (the required pipx inject command
-    is logged instead).
+    version. When auto_fix_robot=true (default), missing Robot Framework
+    dependencies are automatically installed via ``pipx inject cumulusci -r
+    robot/requirements.txt``. When auto_fix_urllib3=true, urllib3 may also be
+    installed or upgraded via pipx inject (default false). Chrome/Chromium is
+    never auto-installed (requires a manual ``brew install --cask google-chrome``).
     """
 
     task_options: Dict[str, Dict[str, Any]] = {
@@ -74,6 +77,16 @@ class ValidateSetup(BaseTask):
             "description": (
                 "Automatically install or update the SFDMU plugin when it is "
                 "missing or below required_sfdmu_version. Default: true."
+            ),
+            "required": False,
+        },
+        "auto_fix_robot": {
+            "description": (
+                "When true, run pipx inject cumulusci -r robot/requirements.txt "
+                "to install missing Robot Framework dependencies (robotframework, "
+                "robotframework-seleniumlibrary, webdriver-manager, urllib3). "
+                "Default: true — robot tasks are required and deps are auto-installed "
+                "on first run."
             ),
             "required": False,
         },
@@ -108,9 +121,13 @@ class ValidateSetup(BaseTask):
 
     def _run_task(self) -> None:
         auto_fix = self._bool_option("auto_fix", default=True)
+        auto_fix_robot = self._bool_option("auto_fix_robot", default=True)
         auto_fix_urllib3 = self._bool_option("auto_fix_urllib3", default=False)
         fail_on_error = self._bool_option("fail_on_error", default=True)
         required_sfdmu = self.options.get("required_sfdmu_version") or MIN_SFDMU_DEFAULT
+
+        # Tracks whether _install_robot_deps() has already run this session.
+        self._robot_deps_fixed: bool = False
 
         self.logger.info("=" * 60)
         self.logger.info("Validating developer setup for rlm-base-dev...")
@@ -122,11 +139,11 @@ class ValidateSetup(BaseTask):
             self._check_node(),
             self._check_sf_cli(),
             self._check_sfdmu(required_sfdmu, auto_fix),
-            self._check_robot(),
-            self._check_selenium_library(),
-            self._check_webdriver_manager(),
+            self._check_robot(auto_fix_robot),
+            self._check_selenium_library(auto_fix_robot),
+            self._check_webdriver_manager(auto_fix_robot),
             self._check_chrome_chromium(),
-            self._check_chromedriver(),
+            self._check_chromedriver(auto_fix_robot),
             self._check_urllib3(auto_fix_urllib3),
         ]
 
@@ -174,8 +191,8 @@ class ValidateSetup(BaseTask):
         except FileNotFoundError:
             return self._warn(
                 label,
-                "not found — Node.js is required if you install SFDMU via npm. "
-                "Install from https://nodejs.org/",
+                "not found — Node.js is required by sf CLI and SFDMU. "
+                "Install via nvm: brew install nvm && nvm install --lts",
             )
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
@@ -238,7 +255,7 @@ class ValidateSetup(BaseTask):
             "Run: sf plugins install sfdmu",
         )
 
-    def _check_robot(self) -> Dict[str, str]:
+    def _check_robot(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "Robot Framework"
         try:
             import robot  # noqa: PLC0415
@@ -248,14 +265,25 @@ class ValidateSetup(BaseTask):
             ) or getattr(robot, "__version__", "unknown")
             return self._ok(label, ver_str)
         except ImportError:
-            return self._warn(
+            if auto_fix and self._install_robot_deps():
+                try:
+                    import importlib  # noqa: PLC0415
+                    robot_mod = importlib.import_module("robot")
+                    ver_str = getattr(
+                        getattr(robot_mod, "version", None), "VERSION", None
+                    ) or getattr(robot_mod, "__version__", "unknown")
+                    return self._fixed(label, ver_str)
+                except ImportError:
+                    pass
+            return self._fail(
                 label,
-                "not found in the CCI Python env — required for Document Builder automation.\n"
-                "  Fix: pipx inject cumulusci robotframework robotframework-seleniumlibrary "
-                'webdriver-manager "urllib3>=2.6.3"',
+                "not found in the CCI Python env — required for configure_revenue_settings "
+                "and other robot tasks (enable_document_builder_toggle, enable_constraints_settings, "
+                "enable_analytics_replication).\n"
+                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
             )
 
-    def _check_selenium_library(self) -> Dict[str, str]:
+    def _check_selenium_library(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "SeleniumLibrary"
         try:
             import SeleniumLibrary  # noqa: PLC0415,N813
@@ -263,23 +291,40 @@ class ValidateSetup(BaseTask):
             ver_str = getattr(SeleniumLibrary, "__version__", "unknown")
             return self._ok(label, ver_str)
         except ImportError:
-            return self._warn(
+            if auto_fix and self._install_robot_deps():
+                try:
+                    import importlib  # noqa: PLC0415
+                    sl_mod = importlib.import_module("SeleniumLibrary")
+                    ver_str = getattr(sl_mod, "__version__", "unknown")
+                    return self._fixed(label, ver_str)
+                except ImportError:
+                    pass
+            return self._fail(
                 label,
-                "not found in the CCI Python env — required for Document Builder automation.\n"
-                "  Fix: pipx inject cumulusci robotframework-seleniumlibrary",
+                "not found in the CCI Python env — required for all robot tasks.\n"
+                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
             )
 
-    def _check_webdriver_manager(self) -> Dict[str, str]:
-        label = "webdriver-manager (optional)"
+    def _check_webdriver_manager(self, auto_fix: bool = False) -> Dict[str, str]:
+        label = "webdriver-manager"
         try:
             import webdriver_manager  # noqa: PLC0415
 
             ver_str = getattr(webdriver_manager, "__version__", "unknown")
             return self._ok(label, ver_str)
         except ImportError:
+            if auto_fix and self._install_robot_deps():
+                try:
+                    import importlib  # noqa: PLC0415
+                    wdm_mod = importlib.import_module("webdriver_manager")
+                    ver_str = getattr(wdm_mod, "__version__", "unknown")
+                    return self._fixed(label, ver_str)
+                except ImportError:
+                    pass
             return self._warn(
                 label,
-                "not installed — ChromeDriver must be on PATH when this is absent.\n"
+                "not installed — ChromeDriver will be resolved from PATH instead. "
+                "Install to enable automatic ChromeDriver management.\n"
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
 
@@ -306,13 +351,13 @@ class ValidateSetup(BaseTask):
             found = shutil.which(name)
             if found:
                 return self._ok(label, found)
-        return self._warn(
+        return self._fail(
             label,
-            "not found — required for headless robot tasks (enable_document_builder_toggle, etc.).\n"
-            "  Install Chrome from https://www.google.com/chrome/ or Chromium from your package manager.",
+            "not found — Chrome is required for all robot tasks (headless mode via --headless=new).\n"
+            "  Install: brew install --cask google-chrome",
         )
 
-    def _check_chromedriver(self) -> Dict[str, str]:
+    def _check_chromedriver(self, auto_fix: bool = False) -> Dict[str, str]:
         """Check for ChromeDriver (required for headless robot tasks)."""
         label = "ChromeDriver"
         # System chromedriver
@@ -328,11 +373,19 @@ class ValidateSetup(BaseTask):
             return self._ok(label, "via webdriver-manager (downloads at runtime)")
         except ImportError:
             pass
-        return self._warn(
+        # Try auto-fix (installs webdriver-manager via robot/requirements.txt)
+        if auto_fix and self._install_robot_deps():
+            try:
+                import importlib  # noqa: PLC0415
+                importlib.import_module("webdriver_manager")
+                return self._fixed(label, "via webdriver-manager (downloads ChromeDriver at runtime)")
+            except ImportError:
+                pass
+        return self._fail(
             label,
-            "not found — required for headless robot tasks.\n"
+            "not found — ChromeDriver is required for all robot tasks.\n"
             "  Fix: pipx inject cumulusci webdriver-manager (downloads ChromeDriver at runtime)\n"
-            "  Or install chromedriver on PATH: https://chromedriver.chromium.org/",
+            "  Or: brew install chromedriver",
         )
 
     def _check_urllib3(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -403,6 +456,57 @@ class ValidateSetup(BaseTask):
                 f"auto-fix failed: {exc}\n"
                 f'  Fix: pipx inject cumulusci "urllib3>={MIN_URLLIB3_STR}" --force',
             )
+
+    # ── Robot helpers ─────────────────────────────────────────────────────────
+
+    def _install_robot_deps(self) -> bool:
+        """Run ``pipx inject cumulusci -r robot/requirements.txt`` once per session.
+
+        Returns True if the install succeeded (or had already run), False on failure.
+        Sets ``self._robot_deps_fixed = True`` so subsequent calls are a no-op.
+        """
+        if self._robot_deps_fixed:
+            return True
+
+        requirements_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "robot",
+            "requirements.txt",
+        )
+        if not os.path.isfile(requirements_path):
+            self.logger.error(
+                f"[Robot] requirements file not found: {requirements_path}"
+            )
+            return False
+
+        self.logger.info(
+            "[Robot] Installing robot dependencies via pipx inject "
+            "(robot/requirements.txt) — this may take a moment..."
+        )
+        try:
+            result = subprocess.run(
+                ["pipx", "inject", "cumulusci", "-r", requirements_path],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if result.returncode != 0:
+                err = (result.stderr or result.stdout or "").strip()
+                self.logger.error(f"[Robot] pipx inject failed: {err}")
+                return False
+
+            # Evict cached robot/selenium/webdriver module entries so subsequent
+            # imports resolve from the freshly installed packages.
+            prefixes = ("robot", "SeleniumLibrary", "webdriver_manager")
+            for name in list(sys.modules):
+                if any(name == p or name.startswith(p + ".") for p in prefixes):
+                    sys.modules.pop(name, None)
+
+            self._robot_deps_fixed = True
+            return True
+        except Exception as exc:
+            self.logger.error(f"[Robot] pipx inject failed: {exc}")
+            return False
 
     # ── SFDMU helpers ─────────────────────────────────────────────────────────
 
