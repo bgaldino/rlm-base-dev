@@ -115,31 +115,31 @@ revenue-cloud-foundations/
 ## 3. Distill
 
 **Repository:** `sf-industries/distill` (Salesforce enterprise — requires SSO + GCP/Embark setup)
-**Technology:** Python 3.10–3.12 · Claude Agent SDK · Vertex AI (GCP/Embark) · SQLite · Textual TUI
-**Interface:** Interactive CLI (`./distill start`) · Textual TUI · REST API (Web mode — planned)
+**Technology:** Python 3.10–3.12 · Claude Agent SDK · Vertex AI (GCP/Embark) · SQLite · DuckDB · ChromaDB · Textual TUI
+**Interface:** Interactive CLI (`./distill start`) · Textual TUI · Flask REST API (`src/distill/dashboard/app.py` — RBAC-protected)
 
 Distill is an AI-powered Salesforce customization migration platform built **exclusively on the Claude Agent SDK**. It answers: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
 ### 3.1 Agent Architecture
 
-Four agents currently registered; three additional planned:
+Four agents currently registered:
 
 | Agent | Status | Purpose |
 |---|---|---|
-| **CodeSuggestionAgent** | ✅ Registered | Migrates Apex/trigger files to target org via `run_file_migration` *(translation via Gemini — hardcoded)* |
+| **CodeSuggestionAgent** | ✅ Registered | Three async entry points: `run_file_migration()` (Mode 1 file-level, Gemini), `run_feature_migration()` (Mode 2 graph-first), `run_migration()` (router). Supports Apex and LWC. |
 | **DataMapperAgent** | ✅ Registered | Interactive entity/field mapping (1:1, 1:N, N:M cardinalities) |
-| **DeploymentAgent** | ✅ Registered | Deploys migrated code to Salesforce *(requires Claude Code session context)* |
-| **DeploymentAgentDataMapper** | ✅ Registered | DataMapper-aware deployment variant for mapped entities *(requires Claude Code context)* |
-| **IngestionAgent** | 🔲 Not registered | Ingests org metadata from a retrieved codebase; `insights/` module exists, agent pending |
-| **AnalysisAgent** | 🔲 Not registered | Feature/capability extraction, drift detection; `analysis/` module exists, agent pending |
-| **ProjectAgent** | 🔲 Planned | Project lifecycle and workspace management |
+| **DeploymentAgent** | ✅ Registered | Deploys migrated code to Salesforce *(requires Claude Code session context — out of scope for CCI)* |
+| **DeploymentAgentDataMapper** | ✅ Registered | DataMapper-aware deployment variant *(requires Claude Code context — out of scope for CCI)* |
+| **IngestionAgent** | 🔲 Not registered | No agent yet; CCI bypasses agent layer via `InsightsPipeline` direct import |
+| **AnalysisAgent** | 🔲 Not registered | No agent yet; `analysis/` reduced to support library for `insights/` pipeline |
 
 ### 3.2 AI Architecture
 
 - **Claude Agent SDK exclusively** — no custom Anthropic client wrapper; all LLM calls go through `ClaudeSDKClient`
 - **Clean Architecture:** Core (domain/services) → Controllers → UI — zero UI dependencies in business logic
 - **LLM access:** Vertex AI via GCP/Embark (`claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`) — requires Embark-provisioned GCP project
-- **Storage:** SQLite (primary), ChromaDB + NetworkX (configured in `base.yaml` — active integration in progress)
+- **Storage:** SQLite (projects, migration records), DuckDB (insights data — thread-safe singleton), ChromaDB (vector store for RAG)
+- **RBAC:** 4 roles (KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER), 30+ permissions, Flask route decorators
 
 ### 3.3 How It Plugs Into Foundations
 
@@ -147,12 +147,12 @@ Integration is **phased** based on what's available today vs. what Distill's roa
 
 **Today (Phase 1 — CodeSuggestion Python API):**
 ```
-Engineer identifies Apex customization worth promoting
+Engineer identifies Apex or LWC customization worth promoting
 → cci task run migrate_apex_customization  file_path=<path/to/Custom.cls>
-     └── Imports distill.codesuggestion.api.run_file_migration (Python package, not subprocess)
-         └── Output: migrated code (translated via Gemini) ready for force-app/ or unpackaged/ bundle
+     └── asyncio.run(distill.codesuggestion.api.run_file_migration(...))
+         └── Output: migrated code (Gemini-translated) written to output_dir/ for engineer review
 ```
-> ⚠️ `./distill start` CLI is interactive and cannot be subprocess-driven from CCI. Direct Python import is the correct integration path. `run_file_migration` uses Gemini internally (hardcoded).
+> ⚠️ All CodeSuggestion entry points are **async**. `GEMINI_API_KEY` required. No automated deployment — engineer reviews and merges output manually.
 
 **Future (Phase 4 — full drift detection, gated on Phase 3 insights API spike):**
 ```
@@ -160,7 +160,8 @@ Engineer identifies Apex customization worth promoting
 2. Org accumulates customizations
 3. sf project retrieve start → retrieved/
 4. cci task run capture_org_customizations  [optional, non-blocking]
-     └── distill.insights.api (Python import, not HTTP) → insights pipeline
+     └── InsightsPipeline(project_id, source_path).run()  ← Path A (preferred, no server)
+     OR  POST /api/analysis/{project_id}/run-insights     ← Path B (Flask REST fallback)
          └── Diff vs shape_manifest.json → distill_drift_report.json
                 ├── new_entities[]  (SObjects not in baseline)
                 ├── features[]      (with inferred_domain, promotion_hint)

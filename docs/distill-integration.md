@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Distill: Integration Living Document
 
 > **Status:** In Progress
-> **Last Updated:** 2026-02-27
+> **Last Updated:** 2026-03-12
 > **Scope:** Round-trip customization capture across data shapes (no custom fields, target-org-agnostic)
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -53,22 +53,32 @@ An AI-powered Salesforce customization migration platform built exclusively on t
 
 | Agent | Status | Purpose | Integration Phase |
 |---|---|---|---|
-| **CodeSuggestionAgent** | ✅ Implemented | `run_file_migration(file_path)` — migrates a `.cls`/`.trigger` to target org structure | **Phase 1 (available now)** |
+| **CodeSuggestionAgent** | ✅ Implemented | Three async entry points: `run_file_migration()` (Mode 1 — file-level), `run_feature_migration()` (Mode 2 — graph-first), `run_migration()` (unified router). Supports Apex (`.cls`/`.trigger`) and LWC bundles. | **Phase 1 (available now)** |
 | **DataMapperAgent** | ✅ Implemented | Interactive entity/field mapping (1:1, 1:N, N:M); human-driven, not automatable today | Phase 5 (future automation) |
-| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce *(requires Claude Code context — not invocable from CCI subprocess)* | Supports Phase 1 (with constraint) |
-| **DeploymentAgentDataMapper** | ✅ Implemented | DataMapper-aware deployment variant for mapped entities | Supports Phase 1 (with constraint) |
-| **IngestionAgent** | 🔲 Not registered | Ingests retrieved org metadata for analysis; `src/distill/insights/` module exists — agent registration pending | Phase 3 spike bypasses agent layer via direct Python import |
-| **AnalysisAgent** | 🔲 Not registered | Feature/capability extraction, drift detection, impact analysis; `src/distill/analysis/` module exists — agent registration pending | Phase 3 spike bypasses agent layer via direct Python import |
-| **REST API (Web mode)** | 🔲 Future | FastAPI HTTP interface for programmatic integration | Not required for CCI integration (Python import path) |
+| **DeploymentAgent** | ✅ Implemented | Deploys migrated code to Salesforce *(requires Claude Code context — out of scope for CCI)* | Out of scope for CCI |
+| **DeploymentAgentDataMapper** | ✅ Implemented | DataMapper-aware deployment variant for mapped entities | Out of scope for CCI |
+| **IngestionAgent** | 🔲 Not registered | Not yet registered. CCI bypasses agent layer — invokes `InsightsPipeline` from `distill.insights.pipeline` directly | Phase 3 spike validates headless invocation |
+| **AnalysisAgent** | 🔲 Not registered | Not yet registered. `src/distill/analysis/` reduced to a support library (parsing/ingestion/LLM utilities) consumed by `insights/` — no standalone agent path planned | Phase 3 spike validates headless invocation |
+| **REST API (Flask/Dashboard)** | ✅ Exists | Flask app in `src/distill/dashboard/app.py`: `POST /api/analysis/{project_id}/run-insights`, GET summary/features. RBAC-protected (API key auth). FastAPI installed in Docker but **not used**. | Phase 4 alternative path |
 
-**Today's integration entry point:** `CodeSuggestionAgent.run_file_migration` — importable as a Python API (`from distill.codesuggestion.api import run_file_migration`). Takes an Apex file path, returns migrated code. Engineer-triggered, not automated.
+**Today's CodeSuggestion entry points** (`from distill.codesuggestion.api import ...`):
+
+| Function | Mode | Input | Notes |
+|---|---|---|---|
+| `await run_file_migration(file_path, llm_provider)` | Mode 1 — file-level | Single `.cls`, `.trigger`, or LWC bundle path | Original API; Gemini hardcoded (`GEMINI_API_KEY` required) |
+| `await run_feature_migration(feature_id, project_id, ...)` | Mode 2 — graph-first | Feature ID from Distill project graph | Deterministic, graph-aware; requires pre-ingested project |
+| `await run_migration(...)` | Unified router | Either mode's inputs | Dispatches to Mode 1 or Mode 2 based on params |
 
 > ⚠️ **Integration constraints:**
-> - `./distill start` is an interactive, menu-driven CLI — it cannot be driven non-interactively from a CCI subprocess. The correct integration path is a **direct Python package import**.
-> - `run_file_migration` internally routes through **Gemini** (hardcoded), not Claude. The orchestration shell runs on Haiku, but the actual code translation is Gemini-powered.
-> - `DeploymentAgent` uses Claude Code built-in tools (`Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash`) and is only operable within a Claude Code session — it cannot be invoked from CCI.
+> - `./distill start` is an interactive, menu-driven CLI — it cannot be driven non-interactively. The correct integration path is a **direct Python package import**.
+> - All CodeSuggestion entry points are **async** — CCI tasks must wrap calls with `asyncio.run()`.
+> - `run_file_migration` routes through **Gemini** (hardcoded). The `llm_provider` parameter exists but Claude is explicitly disabled. `GEMINI_API_KEY` required.
+> - `DeploymentAgent` requires Claude Code built-in tools. Out of scope for CCI.
+> - The Flask REST API requires an API key (`X-API-Key` header) and a pre-existing Distill project (`project_id`).
 
-**Full automated drift detection** (the round-trip workflow in §3) requires the `insights/` pipeline to be callable headlessly from a CCI Python task — validated via the Phase 3 spike. Agent registration and REST API are **not required** for the CCI integration path (direct Python import). The underlying `insights/` and `analysis/` modules exist in the repo. See §8 for the phased roadmap.
+**Full automated drift detection** (the round-trip workflow in §3) can be reached via two paths: (1) direct Python import of `InsightsPipeline` from `distill.insights.pipeline` — no server required, or (2) Flask REST API (`POST /api/analysis/{project_id}/run-insights`) if Distill is running as a server. The Phase 3 spike validates path (1). See §8 for the phased roadmap.
+
+**Module architecture (confirmed):** `insights/` is the pipeline orchestrator (ingest → parse → extract features → build graph → report). `analysis/` has been reduced to a support library of low-level parsing, ingestion, and LLM utilities consumed internally by `insights/`. `insights/api.py` exists but is currently empty — the integration target is `InsightsPipeline` in `distill.insights.pipeline`.
 
 ---
 
@@ -162,11 +172,13 @@ Distill's capability clustering output provides the semantic signal to make this
 
 ---
 
-## 4. Distill REST API: Integration Contract *(Future — Web Mode Not Yet Built)*
+## 4. Distill REST API: Integration Contract *(Flask — available when server running)*
 
-> ⚠️ **Status:** The Distill REST API (Web mode / FastAPI) is planned but not yet implemented. The endpoints below represent the **target integration contract** — the API surface that Phase 4 of the integration will call once Distill's Web mode is built. This section should be treated as a forward-looking specification, not current capability.
+> **Status:** A Flask REST API exists in `src/distill/dashboard/app.py` and is the current server-mode integration surface. It is **not a FastAPI app** — FastAPI is installed in the Docker image but unused. The API requires Distill to be running as a server (Docker or local) and an API key for authentication (RBAC-protected).
 >
-> **Today's integration path** is CLI-based (Phase 1 — CodeSuggestionAgent via `./distill start`). See §8 for the phased roadmap.
+> **For CCI integration**, the preferred path is **direct Python import** of `InsightsPipeline` (no server required) — see Phase 3/4 in §8. The REST API is documented here as an alternative path for environments where Distill runs as a persistent service.
+>
+> **Note on endpoint paths:** The `serve_api.py` (custom HTTP server) uses slightly different paths from the Flask dashboard app. The endpoints below reflect the Flask dashboard app (`src/distill/dashboard/app.py`), which is the integration-relevant surface.
 
 ### 4.1 Full API Reference (Target Contract)
 
@@ -201,19 +213,20 @@ OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
 
 | Method | Path | Purpose | Key Body / Query Params |
 |---|---|---|---|
-| `POST` | `/api/analysis/run` | Trigger Insights pipeline | `project_id`, `source_path`, `repo_type` (default: `"Source"`), `skip_stages[]` |
-| `GET` | `/api/analysis/{id}/summary` | Poll for completion / get stats | `mode` (`fast`\|`thorough`), `repo_type` |
-| `GET` | `/api/analysis/{id}/features` | Get extracted business features | `mode`, `repo_type` |
+| `POST` | `/api/analysis/{project_id}/run-insights` | Trigger Insights pipeline for a project | `mode` (`fast`\|`thorough`), `repo_type` (default: `"Source"`), `skip_stages[]` |
+| `GET` | `/api/analysis/{project_id}/summary` | Get analysis stats / poll for completion | `mode` (`fast`\|`thorough`), `repo_type` |
+| `GET` | `/api/analysis/{project_id}/features` | Get extracted business features | `mode`, `repo_type` |
 
-**`POST /api/analysis/run` request:**
+**`POST /api/analysis/{project_id}/run-insights` request:**
 ```json
 {
-  "project_id": "<uuid>",
-  "source_path": "/path/to/retrieved/metadata",
+  "mode": "fast",
   "repo_type": "Source",
   "skip_stages": []
 }
 ```
+
+**Authentication:** All Flask endpoints require `X-API-Key: <key>` header. API key managed via Distill auth system.
 
 **`GET /api/analysis/{id}/summary` response:**
 ```json
@@ -274,17 +287,20 @@ OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
 ### 4.2 API Call Sequence for `capture_org_customizations`
 
 ```
-1. GET  /health                              → confirm reachable
-2. GET  /api/projects                        → find project by name
-   (or) GET /api/workspace/active            → use active project
-3. POST /api/analysis/run                    → trigger Insights on retrieved/ path
-         body: { project_id, source_path, repo_type: "Source" }
-4. POLL GET /api/analysis/{id}/summary       → check total_features > 0
+1. GET  /health                                          → confirm server reachable
+2. GET  /api/projects                                    → find project by name/id
+   (or) GET /api/workspace/active                        → use active project
+3. POST /api/analysis/{project_id}/run-insights          → trigger Insights pipeline
+         headers: { X-API-Key: <key> }
+         body: { mode: "fast", repo_type: "Source" }
+4. POLL GET /api/analysis/{project_id}/summary           → check total_features > 0
          repeat every poll_interval until complete or timeout
-5. GET  /api/analysis/{id}/features          → get full feature inventory
-6. [local] diff(features, baseline_manifest) → compute drift report
-7. [local] write drift_report.json           → output artifact
+5. GET  /api/analysis/{project_id}/features              → get full feature inventory
+6. [local] diff(features, baseline_manifest)             → compute drift report
+7. [local] write drift_report.json                       → output artifact
 ```
+
+> **Preferred alternative for CCI:** Replace steps 3–5 with a direct `InsightsPipeline(project_id, source_path).run()` call — no server, no polling, no API key. See Phase 3 in §8.
 
 ### 4.3 Known Gap: Project Creation via REST API
 
@@ -1146,21 +1162,27 @@ env:
 >
 > This phase delivers the first live integration point: an engineer who has identified an Apex customization worth promoting can invoke Distill's CodeSuggestion agent from a Foundations CCI task to translate that file for the target org structure. This is **engineer-triggered**, not automated — the drift detection step is still manual at this phase.
 >
-> **Scope: translation only, no automated deployment.** The CCI task calls `run_file_migration`, captures the migrated code, and writes it to a local output directory. The engineer reviews the output and merges manually into `force-app/` or an `unpackaged/post_*` bundle. `DeploymentAgent` is out of scope for CCI integration — it requires Claude Code built-in tools that only exist inside a Claude Code session.
+> **Scope: translation only, no automated deployment.** The CCI task calls a CodeSuggestion entry point, captures the migrated code, and writes it to a local output directory. The engineer reviews the output and merges manually. `DeploymentAgent` is out of scope for CCI integration — it requires Claude Code built-in tools.
 >
-> **How it works:** A CCI Python task imports `run_file_migration` directly from Distill's Python package (`from distill.codesuggestion.api import run_file_migration`). The task passes a `.cls` or `.trigger` file path and captures the migrated code output.
+> **How it works:** A CCI Python task imports from `distill.codesuggestion.api` directly. Three entry points are available:
+> - `run_file_migration(file_path, llm_provider)` — Mode 1, file-level. Supports `.cls`, `.trigger`, and LWC bundles (`.html`/`.js`/`.css`). Start here.
+> - `run_feature_migration(feature_id, project_id, ...)` — Mode 2, graph-first. Requires a pre-ingested Distill project. More deterministic output.
+> - `run_migration(...)` — unified router; dispatches to Mode 1 or Mode 2.
 >
-> **Why not subprocess?** `./distill start` is an interactive, menu-driven CLI that cannot be driven non-interactively. Direct Python import integrates cleanly with CumulusCI's Python task system.
+> All entry points are **async** — wrap with `asyncio.run()` in the CCI task.
 >
-> **LLM note:** `run_file_migration` internally routes through **Gemini** (hardcoded), not Claude. The `llm_provider` config field exists but `migration_tools.py` explicitly logs `"⚠️ Anthropic/Claude Vertex DISABLED - Gemini is HARDCODED for all migrations"`. The integration plumbing is model-agnostic — when the Distill team re-enables Claude, the CCI task requires zero changes. Until then, a valid `GEMINI_API_KEY` is required.
+> **Why not subprocess?** `./distill start` is interactive and cannot be driven non-interactively. Direct Python import integrates cleanly with CumulusCI's task system.
+>
+> **LLM note:** All entry points route through **Gemini** (hardcoded). The `llm_provider` parameter exists but Claude is explicitly disabled in `migration_tools.py`. The integration plumbing is model-agnostic — when Distill re-enables Claude, the CCI task requires zero changes. Until then, `GEMINI_API_KEY` is required.
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 1.1 | Write `tasks/rlm_distill_migrate.py` — CCI Python task that imports `distill.codesuggestion.api.run_file_migration` directly (Python package import, not subprocess) | | 🔲 TODO |
-| 1.2 | Add `migrate_apex_customization` task to `cumulusci.yml` with `file_path` and `output_dir` options | | 🔲 TODO |
-| 1.3 | Add guard logic: Distill package installed? `GEMINI_API_KEY` set? File path valid? File is `.cls` or `.trigger`? | | 🔲 TODO |
-| 1.4 | Test with a real Apex class from a customized qb/en-US dev org | | 🔲 TODO |
-| 1.5 | Document the engineer-triggered promote workflow (retrieve → identify → translate → review → merge) — note: translation only, no automated deployment | | 🔲 TODO |
+| 1.1 | Write `tasks/rlm_distill_migrate.py` — async CCI Python task using `asyncio.run()` to call `distill.codesuggestion.api.run_file_migration` | | 🔲 TODO |
+| 1.2 | Add `migrate_apex_customization` task to `cumulusci.yml` with `file_path`, `output_dir`, and `migration_mode` (mode1\|mode2) options | | 🔲 TODO |
+| 1.3 | Add guard logic: Distill package installed? `GEMINI_API_KEY` set? File path valid? File type supported (`.cls`, `.trigger`, LWC bundle)? | | 🔲 TODO |
+| 1.4 | Test Mode 1 with a real Apex class from a customized qb/en-US dev org | | 🔲 TODO |
+| 1.5 | Test Mode 1 with a real LWC component (multi-file bundle handling) | | 🔲 TODO |
+| 1.6 | Document the engineer-triggered promote workflow (retrieve → identify → translate → review → merge); note translation only, no automated deployment | | 🔲 TODO |
 
 ---
 
@@ -1191,47 +1213,48 @@ env:
 
 > **Distill requirement:** Access to `sf-industries/distill` repo + ability to install the package.
 >
-> **What this phase validates:** Can `distill.insights.api` (or `distill.insights.pipeline`) be imported and invoked from a standalone Python process — without the interactive CLI, TUI, or Claude Code session?
+> **What this phase validates:** Can `InsightsPipeline` from `distill.insights.pipeline` be imported and invoked from a standalone Python process — without the interactive CLI, TUI, or Claude Code session?
 >
-> **Why this is the critical path question:** The `insights/` module exists in the Distill repo with `api.py`, `pipeline.py`, and a full pipeline directory structure (`capabilities/`, `features/`, `flows/`, `graph/`, `ingestion/`, `parsing/`, `reporting/`, `verification/`). `enable_insights: true` is set in `base.yaml`. The `/insights [fast|thorough]` slash command runs the pipeline today through the CLI. If this pipeline can be called headlessly, Phases 3+4 of the original roadmap collapse into a single implementation phase — no agent registration needed, no REST API needed. CCI calls the service layer directly, consistent with the Phase 1 pattern.
+> **Confirmed facts (updated from source):**
+> - `insights/api.py` is currently **empty** — it is not the integration target.
+> - The integration target is **`InsightsPipeline`** in `distill.insights.pipeline` + the `run_analysis()` convenience function.
+> - `analysis/` has been **reduced to a support library** (parsing, ingestion, LLM utilities) consumed internally by `insights/`. It is not a standalone integration surface. O13 is resolved — they are confirmed complementary, not parallel.
+> - The Flask dashboard app exposes `POST /api/analysis/{project_id}/run-insights` as an alternative (server-mode) path, already implemented.
 >
-> **Module architecture hypothesis (to confirm with Distill team):** `insights/` is the pipeline orchestrator (ingest → parse → extract features → build graph → report). `analysis/` provides LLM-powered analysis capabilities that `insights/` invokes at specific stages. They are complementary, not competing implementations. `insights/api.py` is the integration target.
+> **Spike success criteria:** A standalone Python script (no CLI, no TUI, no server) instantiates `InsightsPipeline(project_id, source_path, ...)` and calls `.run()` against a test metadata directory, producing structured output (JSON or equivalent).
 >
-> **Spike success criteria:** A standalone Python script (no CLI, no TUI) successfully runs `distill.insights.api` against a test metadata directory and produces a feature inventory as structured output (JSON or equivalent).
->
-> **Spike failure path:** If headless invocation requires Distill runtime context that cannot be bootstrapped from CCI (e.g., event bus, plugin system, active database session), document the specific blockers and coordinate with Distill team on exposing a lightweight headless API.
+> **Spike failure path:** If headless invocation requires Distill runtime context that cannot be bootstrapped from CCI (e.g., DuckDB project setup, ChromaDB vector store, LLM client init), fall back to the Flask REST API path (server-mode) and document the specific blockers.
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 3.1 | Coordinate with Distill team: confirm `insights/` vs `analysis/` module relationship — is `analysis/` consumed by `insights/` or a parallel implementation? | | 🔲 TODO |
-| 3.2 | Identify `distill.insights.api` entry points and required initialization (config loading, DB setup, event bus, LLM client) | | 🔲 TODO |
-| 3.3 | Write a standalone Python script that imports and calls `distill.insights.api` with a test metadata directory — no CLI, no TUI, no Claude Code | | 🔲 TODO |
-| 3.4 | Document: what Distill runtime dependencies must be initialized? Can they be bootstrapped from a CCI task context? | | 🔲 TODO |
-| 3.5 | If spike succeeds: define stable API contract for CCI consumption (input: directory path + config, output: feature inventory JSON) | | 🔲 TODO |
-| 3.6 | If spike fails: document blockers, propose minimal changes to Distill to enable headless API, coordinate with Distill team | | 🔲 TODO |
+| 3.1 | Identify `InsightsPipeline.__init__` signature — what project context, config, and LLM client are required to instantiate headlessly? | | 🔲 TODO |
+| 3.2 | Write a standalone Python script: instantiate `InsightsPipeline` and call `.run()` against a test retrieved metadata directory — no CLI, no server | | 🔲 TODO |
+| 3.3 | Document runtime dependencies: DuckDB project DB, ChromaDB, LLM client init — can they be bootstrapped from a CCI task context? | | 🔲 TODO |
+| 3.4 | If spike succeeds: define stable invocation contract for CCI (input: `source_path` + config, output: feature inventory JSON) | | 🔲 TODO |
+| 3.5 | If spike fails: switch to Flask REST API path — document auth setup (`X-API-Key`), project pre-creation, and polling requirements for CCI | | 🔲 TODO |
 
 ---
 
 ### Phase 4: Automated Drift Detection *(Gated on Phase 3 spike success)*
 
-> **Gate:** Phase 3 spike confirms that `distill.insights.api` can be invoked headlessly from a CCI Python task. If the spike failed, this phase is blocked until the Distill team exposes a headless API (see Phase 3 task 3.6).
+> **Gate:** Phase 3 spike confirms that `InsightsPipeline` can be invoked headlessly from a CCI Python task (path A), or the Flask REST API fallback path is documented and configured (path B).
 >
-> **What changed from the original roadmap:** The original Phase 4 was gated on `AnalysisAgent` registration + REST API (Web mode). Neither gate is required for CCI integration:
-> - **Agent registration:** CCI imports the service layer (`distill.insights.api`) directly, bypassing the agent/controller layer. This is the same pattern used in Phase 1 (`distill.codesuggestion.api`).
-> - **REST API:** CCI runs in-process via Python import, not over HTTP. The REST API is useful for external consumers (dashboards, CI/CD services) but is not on the critical path for the CCI integration.
+> **Two integration paths (choose based on Phase 3 outcome):**
+> - **Path A — Python import (preferred):** `InsightsPipeline(project_id, source_path, ...).run()` called directly from CCI task. No server required. Consistent with Phase 1 pattern.
+> - **Path B — Flask REST API (fallback):** CCI calls `POST /api/analysis/{project_id}/run-insights` against a running Distill server, polls `GET /api/analysis/{project_id}/summary`, then fetches features. Requires API key, running server, and pre-created project.
 >
-> This is the full round-trip workflow designed in §3. The CCI task `capture_org_customizations` calls `distill.insights.api` (per the contract established in Phase 3), diffs the results against `shape_manifest.json`, and produces `distill_drift_report.json` with domain classification and promotion hints.
+> **What changed from the original roadmap:** AnalysisAgent registration and FastAPI are not required. The Flask REST API already exists. The Python import path may require no Distill-side changes at all.
 >
-> The Phase 2 task skeleton and guard logic slot directly into this phase — the stub Distill call is replaced with the real `insights/` API call.
+> The Phase 2 task skeleton slots directly into this phase — the stub Distill call is replaced with the real `InsightsPipeline` invocation (or REST call).
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 4.1 | Wire `distill.insights.api` into `capture_org_customizations` — replace stub call with real insights pipeline invocation (per Phase 3 contract) | | 🔲 TODO |
-| 4.2 | Define `sf project retrieve start` filter — likely `ApexClass,Flow,LightningComponentBundle,CustomObject` — scoped to what insights pipeline analyzes | | 🔲 TODO |
+| 4.1 | Wire `InsightsPipeline` (or REST fallback) into `capture_org_customizations` — replace stub call with real insights invocation per Phase 3 contract | | 🔲 TODO |
+| 4.2 | Define `sf project retrieve start` filter — `ApexClass,Flow,LightningComponentBundle,CustomObject` — scoped to what insights pipeline analyzes | | 🔲 TODO |
 | 4.3 | Implement diff logic: insights feature inventory vs `shape_manifest.json` | | 🔲 TODO |
 | 4.4 | Populate `drift_report.json` with new entities, features, domain classification, promotion hints | | 🔲 TODO |
-| 4.5 | Handle Distill project context initialization from CCI (may require programmatic project creation or pre-configuration) | | 🔲 TODO |
-| 4.6 | Test full round-trip: retrieve → insights API → diff → report | | 🔲 TODO |
+| 4.5 | Handle Distill project context: DuckDB setup, project ID, source path configuration (Path A) or project pre-creation and API key (Path B) | | 🔲 TODO |
+| 4.6 | Test full round-trip: retrieve → `InsightsPipeline.run()` → diff → report | | 🔲 TODO |
 
 ---
 
@@ -1278,6 +1301,8 @@ env:
 | O8 | How should `active_flags` be passed in CI scenarios? | Open | Options: (a) hardcoded in `cumulusci.yml` per environment, (b) env var mapped in CI YAML, (c) read from a `shapes.json` `"default_flags"` field. |
 | O9 | Should `shapes.json` become the shared protocol for Aegis test-scenario selection as well as Distill drift detection? | Open | If Aegis consumes `shapes.json` to determine which test scenarios are applicable for a given data shape and flag combination, the manifest becomes a true cross-platform contract rather than a Distill-specific artifact. This would make the manifest format a foundational design decision that should be finalized before Phase 5. |
 | O10 | What is the correct open-source/IP sequencing for this platform? | Open | The workflow (feature-flag-aware manifest generation + AI drift detection + Promote/Overlay/Discard classification) may be patentable. Legal review and patent filing — if pursued — must precede any open-source publication. Internal distribution (sfLabs) may be possible before external publication depending on licensing strategy. |
-| O11 | Should Phase 1 wait for Claude re-enablement in `run_file_migration`, or proceed with Gemini dependency? | Resolved | **Proceed with Gemini.** The integration plumbing is model-agnostic — when Distill re-enables Claude, the CCI task requires zero changes. `GEMINI_API_KEY` is a documented prerequisite. The hardcode reads as a workaround (`"DISABLED"`), not a permanent design choice. |
-| O12 | What is the initialization sequence for `distill.insights.api` in headless mode? | Phase 3 spike | Core question for the Phase 3 spike: does `insights/api.py` require the full Distill runtime (event bus, plugin system, active DB session), or can it be bootstrapped with minimal config? The answer determines whether Phase 4 is a 2-week implementation or requires Distill-side changes first. |
-| O13 | Are `insights/` and `analysis/` complementary pipeline stages or parallel implementations? | Phase 3 spike | Architectural hypothesis: `insights/` is the pipeline orchestrator; `analysis/` provides LLM-powered analysis at specific stages. Confirm with Distill team in Phase 3. If parallel implementations, determine which is the "blessed" integration target. |
+| O11 | Should Phase 1 wait for Claude re-enablement in `run_file_migration`, or proceed with Gemini dependency? | ✅ Resolved | **Proceed with Gemini.** The integration plumbing is model-agnostic — when Distill re-enables Claude, the CCI task requires zero changes. `GEMINI_API_KEY` is a documented prerequisite. The hardcode reads as a workaround (`"DISABLED"`), not a permanent design choice. |
+| O12 | What is the initialization sequence for `InsightsPipeline` in headless mode? | Phase 3 spike | Reframed: `insights/api.py` is empty — the integration target is `InsightsPipeline` in `distill.insights.pipeline`. Spike question: does `InsightsPipeline.__init__` require DuckDB project DB, ChromaDB, or LLM client to be pre-initialized, or does it accept a `source_path` and bootstrap internally? |
+| O13 | Are `insights/` and `analysis/` complementary pipeline stages or parallel implementations? | ✅ Resolved | **Confirmed complementary.** `analysis/` was reduced to a support library (parsing, ingestion, LLM utilities) in commit f6fa7dc. Its `api.py`, `graph/`, `reporting/`, and `featuremapping/` were removed. `InsightsPipeline` in `insights/` is the sole pipeline orchestrator and integration target. |
+| O14 | Does RBAC (roles: KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER) affect the CCI integration path? | Open | The Flask REST API is RBAC-protected — CCI will need an API key with appropriate role (likely IMPLEMENTOR: `analysis:run`, `insights:read`). Python import path (Path A) bypasses RBAC entirely. If using Path B, confirm API key provisioning process with Distill team. |
+| O15 | Should CCI use the KIT system for the reference shape baseline? | Open | Distill's KIT system packages migration artifacts (source analysis, entity maps, suggestions) into reusable bundles. A `qb-en-US` KIT could be the blessed reference artifact. If the Distill team publishes a `qb-en-US` KIT, `capture_org_customizations` could diff against it rather than a locally generated `shape_manifest.json`. Evaluate in Phase 4. |
