@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "bc748f2d-27d1-4b22-a905-f3b0fb97368b",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
+  "configurationTags" : [ ],
+  "devName" : "View_Consumption__c",
+  "id" : "0c952c81-4557-451e-83b8-d2a84f83059e",
+  "label" : "View Consumption",
+  "pageAccess" : "UseParent",
+  "routeType" : "custom-view-consumption",
+  "type" : "route",
+  "urlPrefix" : "view-consumption"
+}

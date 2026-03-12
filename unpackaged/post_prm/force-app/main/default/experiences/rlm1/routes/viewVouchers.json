@@ -1,0 +1,11 @@
+{
+  "activeViewId" : "b26cfd0c-2810-4ca8-b4b9-dbb1e18caca7",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
+  "configurationTags" : [ ],
+  "devName" : "View_Voucher_List",
+  "id" : "e3bd2314-64cb-41ad-93bb-27ba61aafe84",
+  "label" : "View Vouchers",
+  "routeType" : "voucher-list",
+  "type" : "route",
+  "urlPrefix" : "voucher-list"
+}

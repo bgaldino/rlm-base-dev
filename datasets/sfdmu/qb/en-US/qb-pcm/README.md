@@ -46,7 +46,7 @@ Upsert all 28 objects in dependency order
 | 6  | AttributeCategory             | Upsert    | `Code`                                                                                                | 18      |
 | 7  | AttributeCategoryAttribute    | Upsert    | `AttributeCategory.Code;AttributeDefinition.Code`                                                     | 34      |
 | 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 16      |
-| 9  | ProductClassificationAttr     | Upsert    | `Name` (SFDMU v5: simplified from composite) | 36      |
+| 9  | ProductClassificationAttr     | Upsert    | `Name`¹                                                                                               | 36      |
 | 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 178     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
 | 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
@@ -66,6 +66,8 @@ Upsert all 28 objects in dependency order
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
 | 27 | ProductCategoryQualification  | (default) | `Name`                                                                                                | 0       |
 | 28 | ProdtAttrScope                | (default) | `Name`                                                                                                | 3       |
+
+¹ ProductClassificationAttr: SFDMU v5 uses simplified external ID from composite.
 
 **Note:** Objects 19-20 and 24-27 have empty CSVs (0 data records) and serve as placeholders for future data. Objects 24-27 do not specify an `operation` in `export.json`, so SFDMU uses the default behavior.
 
@@ -282,13 +284,15 @@ cci task run extract_qb_pcm_data --org <your-org>
 
 This task is in the **Data Management - Extract** group. To run all QB extract tasks: `cci flow run run_qb_extracts --org <org>`. To run all idempotency tests (including qb-pcm): `cci flow run run_qb_idempotency_tests --org <org>`.
 
-Extracted CSVs are written to a timestamped directory under `datasets/sfdmu/extractions/qb-pcm/`. Raw SFDMU extraction does **not** include the `$$` composite key columns required for v5 re-import. To make extracted data import-ready, run the post-process script:
+Extracted CSVs are written to a timestamped directory under `datasets/sfdmu/extractions/qb-pcm/`. **The extract task runs the post-processor by default**, so re-import-ready CSVs (with `$$` composite key columns) are in `<timestamp>/processed/`. To re-process an existing extraction manually:
 
 ```bash
 python3 scripts/post_process_extraction.py <extraction-dir> datasets/sfdmu/qb/en-US/qb-pcm --output-dir <output-dir>
 ```
 
-The idempotency task uses this flow (load → extract → post-process → load from processed) when run with `use_extraction_roundtrip: true` (the default for `test_qb_pcm_idempotency`) to validate that extracted data can be re-imported without creating duplicates.
+To get only raw SFDMU output (no post-process), run the task with `-o run_post_process false`.
+
+The idempotency task uses this flow (load → extract → post-process → load from processed) when `use_extraction_roundtrip` is true (the default for `test_qb_pcm_idempotency`; from CLI use `-o use_extraction_roundtrip true`). With `persist_extraction_output: true` (default for qb-pcm), extraction and processed output are written to `datasets/sfdmu/extractions/qb-pcm/<timestamp>/` instead of a temp dir. To validate that extracted data can be re-imported without creating duplicates, run the idempotency task as-is.
 
 ## Idempotency
 
@@ -300,7 +304,7 @@ This plan should be idempotent via SFDMU's Upsert operation with composite exter
 cci task run test_qb_pcm_idempotency --org <your-org>
 ```
 
-That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false`.
+That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false` (e.g. `-o use_extraction_roundtrip false`).
 
 **Not yet validated** — idempotency testing against a 260 org is pending.
 

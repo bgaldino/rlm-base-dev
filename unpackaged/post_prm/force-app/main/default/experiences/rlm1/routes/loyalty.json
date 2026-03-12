@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "cc890bf8-c5db-48ab-9f56-107287345f77",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
+  "configurationTags" : [ ],
+  "devName" : "Loyalty__c",
+  "id" : "95998087-9379-4231-9442-72042de426c9",
+  "label" : "Loyalty",
+  "pageAccess" : "UseParent",
+  "routeType" : "custom-loyalty",
+  "type" : "route",
+  "urlPrefix" : "loyalty"
+}

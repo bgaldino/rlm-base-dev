@@ -1,29 +1,29 @@
 {
-  "appPageId" : "dda6100b-c839-4550-b692-a7d3d6030bf4",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:sldsOneColLayout",
   "dataProviders" : [ ],
-  "id" : "c210421d-ff78-45ac-8cfb-85263d99240e",
+  "id" : "08aa94b6-ed17-44d9-b8d5-cc5ebdca622a",
   "label" : "Error",
   "regions" : [ {
-    "id" : "4b9bcb61-69a8-4f21-a462-753c58f99ee9",
+    "id" : "9357971b-632c-45bf-8c8b-b0e0bf22a6b8",
     "regionName" : "header",
     "type" : "region"
   }, {
     "components" : [ {
       "componentAttributes" : {
-        "richTextValue" : "<div style='text-align: center;'>Invalid Page</div>"
+        "richTextValue" : " <div class='slds-grid slds-grid--vertical slds-align--absolute-center slds-container--large'>   <div class='slds-align-middle slds-m-bottom--xx-large slds-m-top--xx-large' alt='Page not available'>      <img src='/sfsites/c/img/community/slds/messaging/illustration-page-not-found.png' class='slds-p-horizontal--large'/>   </div>   <h4 class='slds-text-align--center slds-text-heading--large slds-text-color--weak slds-m-bottom--small'>Page not available</h4>    <p class='slds-text-align--center slds-text-heading--medium slds-text-color--weak'>Maybe the page was deleted, the URL is incorrect, or something else went wrong. If you know the page exists but you still can’t get to it, please ask the community administrator for help.</p>  </div>"
       },
-      "componentName" : "forceCommunity:richTextInline",
-      "id" : "3abff22d-6806-42ec-9880-3cd89b1b8794",
+      "componentName" : "forceCommunity:htmlBlock",
+      "id" : "a46bc977-60f9-4331-9d27-6a9ea691b232",
       "renderPriority" : "NEUTRAL",
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "225c6fbe-2799-49f1-9e29-c5095c1bb813",
+    "id" : "a8234c24-78b5-44ec-9c67-3b9b23f5bc26",
     "regionName" : "content",
     "type" : "region"
   }, {
-    "id" : "f3825970-6773-476c-9cde-c45e6e7fe3eb",
+    "id" : "fd75f022-cb22-49fb-8e91-113c15ae5273",
     "regionName" : "footer",
     "type" : "region"
   }, {
@@ -34,11 +34,11 @@
         "title" : "Error"
       },
       "componentName" : "forceCommunity:seoAssistant",
-      "id" : "152d5db3-4ac1-478d-85ba-03dbafd81cd0",
+      "id" : "3fc0ecfa-d44e-4a7c-8464-a4a272a6d1e5",
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "1dac06bc-b042-4440-aaf0-2e8d286c287a",
+    "id" : "43687718-fd9a-4d2f-8252-b1ca66139142",
     "regionName" : "sfdcHiddenRegion",
     "type" : "region"
   } ],

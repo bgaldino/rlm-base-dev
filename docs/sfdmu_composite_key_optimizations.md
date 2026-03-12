@@ -34,7 +34,10 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 #### qb-billing
 - **BillingTreatment**: externalId simplified to `Name` (was `Name;BillingPolicy.Name;LegalEntity.Name`)
 - **BillingTreatmentItem**: externalId simplified to `Name;BillingTreatment.Name`
+- **PaymentTermItem**: externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
+- **GeneralLedgerAcctAsgntRule**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
 - CSV references updated; `BillingPolicy.DefaultBillingTreatment` reference simplified
+- **Pass 3 objectset_source fix**: BillingPolicy and BillingTreatment CSVs updated to use simplified externalId formats
 
 #### qb-tax
 - **TaxTreatment**: externalId simplified to `Name` (was `Name;LegalEntity.Name;TaxPolicy.Name`)
@@ -51,7 +54,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **ProductFulfillmentScenario**: externalId simplified to `Name`; `$$` column removed
 - **FulfillmentWorkspaceItem**: `deleteOldData: true` added (auto-number Names make direct-field matching impossible); `$$` column removed
 - **ProductDecompEnrichmentRule**: excluded (0 records)
-- **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name) and `UserAndGroup.csv` (Name). The tasks `insert_qb_dro_data_scratch` and `insert_qb_dro_data_prod` run with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
+- **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name), `User.csv`, and `UserAndGroup.csv` (Name). The task `insert_qb_dro_data` runs with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
 
 #### qb-rates
 - **PriceBookRateCard**: `deleteOldData: true` added (auto-number Name, all-relationship externalId `PriceBook.Name;RateCard.Name;RateCardType`)
@@ -80,6 +83,40 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 - **FulfillmentStepDependencyDef**: 10/13 records depend on the missing FSD records above.
 - **ObjectStateActionDefinition**: `legalS2` fails to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeed.
 - **Excluded objects** (PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride): require manual handling if needed.
+
+### Validation and Fixing Tools
+
+The project includes `scripts/validate_sfdmu_v5_datasets.py` for validating and fixing SFDMU v5 compliance issues:
+
+**Validation Only:**
+
+```bash
+python scripts/validate_sfdmu_v5_datasets.py
+python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb/en-US/qb-billing
+```
+
+**Automatic Fixes:**
+
+```bash
+# Fix empty CSV headers
+python scripts/validate_sfdmu_v5_datasets.py --fix-headers
+
+# Fix missing composite key columns
+python scripts/validate_sfdmu_v5_datasets.py --fix-composite-keys
+
+# Fix all issues
+python scripts/validate_sfdmu_v5_datasets.py --fix-all
+
+# Dry-run to preview changes
+python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
+```
+
+**Recent Fixes Applied:**
+
+- **qb-billing/export.json**: PaymentTermItem externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
+- **qb-billing/GeneralLedgerAcctAsgntRule.csv**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
+- **qb-billing/objectset_source/object-set-3/**: Updated Pass 3 CSVs to use simplified BillingTreatment externalId (`Name` only, not composite)
+- **Empty CSV headers added**: GeneralLedgerJrnlEntryRule, ProductQualification, ProductDisqualification, ProductCategoryQualification, ProductCategoryDisqualification, CostBook, CostBookEntry
 
 ## Original composite key optimizations
 
@@ -118,7 +155,7 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 
 Extract and idempotency tasks are grouped in CumulusCI for convenience:
 
-- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling). List with `cci task list --group "Data Management - Extract"`.
-- **Data Management - Idempotency:** Tasks `test_qb_*_idempotency` for the same plans. Each loads the plan twice and asserts no record count increase. List with `cci task list --group "Data Management - Idempotency"`.
+- **Data Management - Extract:** Tasks `extract_qb_*_data` (qb-pcm, qb-pricing, …). Each task runs the post-processor by default so output in `<timestamp>/processed/` is re-import-ready. The extract task and post-process script are **plan-agnostic**: each task uses its `pathtoexportjson` from `cumulusci.yml` (e.g. qb-rating → `datasets/sfdmu/qb/en-US/qb-rating`), and output goes to `extractions/<plan_name>/<timestamp>/`. Single-pass (flat `objects`) and multi-pass (`objectSets`) export.json formats are supported. Other data shapes (e.g. mfg) use the same pattern: place plans under `datasets/sfdmu/<shape>/<locale>/<plan-name>/` (e.g. `mfg/en-US/mfg-pcm`) and add matching anchors and tasks; the same tooling applies. List with `cci task list --group "Data Management - Extract"`.
+- **Data Management - Idempotency:** Tasks `test_qb_*_idempotency` for the same plans. Each loads the plan twice and asserts no record count increase. Options: `use_extraction_roundtrip` (when true, second run uses extract → post-process → load from processed); `persist_extraction_output` (when true with roundtrip, write extraction to `extractions/<plan>/<timestamp>` instead of temp). qb-pcm idempotency uses both by default. List with `cci task list --group "Data Management - Idempotency"`.
 
 **Flows:** `cci flow run run_qb_extracts --org <org>` runs all extract tasks; `cci flow run run_qb_idempotency_tests --org <org>` runs all idempotency tests. See main [README](../README.md) Data Management Tasks and Flows sections.
