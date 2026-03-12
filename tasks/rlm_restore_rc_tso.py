@@ -12,8 +12,8 @@ except ImportError:
     TaskOptionsError = Exception
 
 
-class RestoreRCTSO(BaseTask):
-    """Restore RC_TSO from .skip file so it can be deployed."""
+class RestoreRLMTSO(BaseTask):
+    """Restore RLM_TSO from .skip file so it can be deployed."""
     
     task_options: Dict[str, Dict[str, Any]] = {
         "path": {
@@ -26,18 +26,18 @@ class RestoreRCTSO(BaseTask):
         path = self.options.get("path")
         psg_path = Path(path) / "3_permissionsetgroups"
         tso_storage_dir = Path(path) / "3_permissionsetgroups_tso"
-        tso_storage_file = tso_storage_dir / "RC_TSO.permissionsetgroup-meta.xml"
-        tso_file = psg_path / "RC_TSO.permissionsetgroup-meta.xml"
+        tso_storage_file = tso_storage_dir / "RLM_TSO.permissionsetgroup-meta.xml"
+        tso_file = psg_path / "RLM_TSO.permissionsetgroup-meta.xml"
         
         if not tso_storage_dir.exists():
-            self.logger.warning(f"RC_TSO storage directory does not exist: {tso_storage_dir}")
+            self.logger.warning(f"RLM_TSO storage directory does not exist: {tso_storage_dir}")
             return
         
         if tso_storage_file.exists() and not tso_file.exists():
             # Move RC_TSO from storage to main directory for deployment
             tso_storage_file.rename(tso_file)
-            self.logger.info("RC_TSO moved from storage directory for deployment")
+            self.logger.info("RLM_TSO moved from storage directory for deployment")
         elif tso_file.exists():
-            self.logger.debug("RC_TSO already exists in main directory, no move needed")
+            self.logger.debug("RLM_TSO already exists in main directory, no move needed")
         else:
-            self.logger.warning("RC_TSO file not found in storage directory")
+            self.logger.warning("RLM_TSO file not found in storage directory")

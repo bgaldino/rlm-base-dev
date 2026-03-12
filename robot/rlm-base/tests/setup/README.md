@@ -84,7 +84,7 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 |----------|-------------|
 | `PRICING_PROCEDURE` | Default pricing procedure name (default: "RLM Revenue Management Default Pricing Procedure"). |
 | `USAGE_RATING_PROCEDURE` | Default usage rating procedure name (default: "RLM Default Rating Discovery Procedure"). |
-| `CREATE_ORDERS_FLOW` | API name of the Create Orders from Quotes flow (default: "RC_CreateOrdersFromQuote"). |
+| `CREATE_ORDERS_FLOW` | API name of the Create Orders from Quotes flow (default: "RLM_CreateOrdersFromQuote"). |
 
 ## Implementation Notes
 

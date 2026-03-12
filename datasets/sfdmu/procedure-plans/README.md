@@ -10,8 +10,8 @@ This data plan is executed as **step 4** of the `prepare_procedureplans` flow (w
 
 | Step | Task                                    | Description                                                                  |
 |------|-----------------------------------------|------------------------------------------------------------------------------|
-| 1    | `deploy_post_procedureplans`            | Deploy expression set metadata (RC_Price_Distribution_Procedure, RC_Revenue_Management_Recalc_Procedure) + RevenueManagement.settings (`skipOrgSttPricing=true`) |
-| 2    | `activate_procedure_plan_expression_sets` | Activate RC_Price_Distribution_Procedure_V1 (idempotent)                   |
+| 1    | `deploy_post_procedureplans`            | Deploy expression set metadata (RLM_Price_Distribution_Procedure, RLM_Revenue_Management_Recalc_Procedure) + RevenueManagement.settings (`skipOrgSttPricing=true`) |
+| 2    | `activate_procedure_plan_expression_sets` | Activate RLM_Price_Distribution_Procedure_V1 (idempotent)                   |
 | 3    | `create_procedure_plan_definition`      | Create PPD + inactive PPDV via Connect API (idempotent)                      |
 | 4    | `insert_procedure_plan_data`            | Run this SFDMU plan (2 passes — sections then options)                       |
 | 5    | `activate_procedure_plan_version`       | Activate the ProcedurePlanDefinitionVersion (idempotent)                     |
@@ -105,11 +105,11 @@ Activates the ProcedurePlanDefinitionVersion after all sections and options have
 | Section | SubSectionType | Sequence | Expression Set | Priority |
 |---------|----------------|----------|----------------|----------|
 | Default Pricing | `DefaultPricing` | 1 | `RLM_DefaultPricingProcedure` | 1 |
-| Header Distribution | `HeaderDistribution` | 2 | `RC_Price_Distribution_Procedure` | 1 |
+| Header Distribution | `HeaderDistribution` | 2 | `RLM_Price_Distribution_Procedure` | 1 |
 
 The plan executes two pricing procedures in order:
 1. **Default Pricing** (Seq 1): Runs `RLM_DefaultPricingProcedure` — the main pricing expression set (deployed by the core flow, not this plan)
-2. **Header Distribution** (Seq 2): Runs `RC_Price_Distribution_Procedure` — distributes header-level adjustments to line items (deployed by `deploy_post_procedureplans`)
+2. **Header Distribution** (Seq 2): Runs `RLM_Price_Distribution_Procedure` — distributes header-level adjustments to line items (deployed by `deploy_post_procedureplans`)
 
 ## Expression Set Metadata
 
@@ -117,8 +117,8 @@ Two expression sets are deployed by `deploy_post_procedureplans` (step 1 of the 
 
 | Expression Set | Description | Deployed By |
 |----------------|-------------|-------------|
-| `RC_Price_Distribution_Procedure` | Price distribution procedure for header-to-line allocation | `post_procedureplans` |
-| `RC_Revenue_Management_Recalc_Procedure` | Revenue management recalculation procedure | `post_procedureplans` |
+| `RLM_Price_Distribution_Procedure` | Price distribution procedure for header-to-line allocation | `post_procedureplans` |
+| `RLM_Revenue_Management_Recalc_Procedure` | Revenue management recalculation procedure | `post_procedureplans` |
 
 `RLM_DefaultPricingProcedure` is deployed and activated by the core expression set flow (`activate_and_deploy_expression_sets`) earlier in the `prepare_rlm_org` pipeline. It is referenced by the data plan but not deployed or managed by this flow.
 
@@ -177,7 +177,7 @@ This plan depends on the following having been loaded/deployed first:
 - **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 19 of `prepare_rlm_org`)
 - **Context definitions** — `RLM_SalesTransactionContext` must exist for Connect API context resolution (deployed by `extend_context_definitions` in `prepare_core`)
 
-This plan deploys its own prerequisite expression sets (`RC_Price_Distribution_Procedure`, `RC_Revenue_Management_Recalc_Procedure`) in step 1 of the flow.
+This plan deploys its own prerequisite expression sets (`RLM_Price_Distribution_Procedure`, `RLM_Revenue_Management_Recalc_Procedure`) in step 1 of the flow.
 
 ## Simulation Mode
 

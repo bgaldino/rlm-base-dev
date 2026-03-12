@@ -63,7 +63,7 @@ Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` o
 ### `createTaxEngine.apex` (Prerequisite)
 
 Creates the TaxEngineProvider and TaxEngine via REST API callout. Requires:
-- `ApexClass` named `RC_MockTaxAdapter` (deployed as metadata)
+- `ApexClass` named `RLM_MockTaxAdapter` (deployed as metadata)
 - `NamedCredential` named `RLM_MockTax` (deployed as metadata)
 
 The script creates the TaxEngineProvider via REST API (because it cannot be inserted via standard DML), then creates a TaxEngine record linked to it.
@@ -107,7 +107,7 @@ No auto-numbered Name fields are used.
 
 **Upstream:**
 - **qb-pcm** — Product2 records must exist (matched by `StockKeepingUnit`)
-- **Metadata deployment** — `RC_MockTaxAdapter` Apex class and `RLM_MockTax` NamedCredential must be deployed
+- **Metadata deployment** — `RLM_MockTaxAdapter` Apex class and `RLM_MockTax` NamedCredential must be deployed
 
 **Downstream:**
 - None directly — tax configuration is consumed at runtime by the billing/invoicing engine

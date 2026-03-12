@@ -81,7 +81,7 @@ cci task run manage_transaction_processing_types --operation list
 The `unpackaged/post_constraints` bundle contains metadata that must deploy **after** the constraint fields exist. This includes:
 
 - `RLM_QuoteItemTrigger`
-- `RC_Asset_Action_Source_Record_Page.flexipage-meta.xml`
+- `RLM_Asset_Action_Source_Record_Page.flexipage-meta.xml`
 - `OrderItem-RLM Order Product Layout.layout-meta.xml`
 - `QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml`
 - `RLM_QuantumBit.permissionset-meta.xml` (only field permissions for constraint fields)
@@ -136,7 +136,7 @@ Automates general Revenue Settings page configuration via Robot Framework:
 - **Pricing Procedure** -- set to `RLM Revenue Management Default Pricing Procedure` (combobox-recipe, `<li>`-scoped)
 - **Usage Rating Procedure** -- set to `RLM Default Rating Discovery Procedure` (combobox-recipe, `<li>`-scoped; page reload between Pricing and Usage Rating ensures clean dropdown state)
 - **Instant Pricing** toggle -- enabled (shadow DOM toggle via JavaScript)
-- **Create Orders Flow** -- set to `RC_CreateOrdersFromQuote` (text input)
+- **Create Orders Flow** -- set to `RLM_CreateOrdersFromQuote` (text input)
 
 All values are configurable via `cumulusci.yml` task options. All procedure field selectors are scoped to their parent `<li>` setup-assistant step, making it impossible to accidentally interact with the Asset Context field. The Asset Context field is **not** configured in this step; it is handled exclusively by `enable_constraints_settings`.
 

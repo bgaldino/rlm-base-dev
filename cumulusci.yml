@@ -280,7 +280,7 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
-      #- RC_Collection_Plan_Activity
+      #- RLM_Collection_Plan_Activity
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets
@@ -1419,7 +1419,7 @@ tasks:
       outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
       usage_rating_procedure: RLM Default Rating Discovery Procedure
-      create_orders_flow: RC_CreateOrdersFromQuote
+      create_orders_flow: RLM_CreateOrdersFromQuote
 
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
@@ -1879,7 +1879,7 @@ tasks:
 
   activate_procedure_plan_expression_sets:
     group: Revenue Lifecycle Management
-    description: Activate Procedure Plan expression set versions (RC_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
+    description: Activate Procedure Plan expression set versions (RLM_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: activate_versions
