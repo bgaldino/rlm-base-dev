@@ -1,44 +1,44 @@
 {
-  "appPageId" : "dda6100b-c839-4550-b692-a7d3d6030bf4",
+  "appPageId" : "33545492-13c4-4c9b-83c3-4966dcb97e8d",
   "componentName" : "siteforce:sldsOneColLayout",
   "dataProviders" : [ ],
-  "id" : "3f7e2584-6cb2-482e-b5a4-8b87e951b7e6",
+  "id" : "9b577d87-6705-4bda-839d-9578ccce6d98",
   "label" : "Search",
   "regions" : [ {
-    "id" : "cbfb550a-aab6-4761-9b0d-2a1ecf670c33",
+    "id" : "010de64a-5542-4a68-9d78-513d7c26097b",
     "regionName" : "header",
     "type" : "region"
   }, {
     "components" : [ {
       "componentAttributes" : {
         "scopes" : [ {
-          "isPublic" : true,
-          "name" : "FeedPost"
-        }, {
-          "isPublic" : true,
-          "name" : "KnowledgeArticleVersion"
+          "isPublic" : false,
+          "name" : "Lead"
         }, {
           "isPublic" : false,
-          "name" : "Case"
+          "name" : "Opportunity"
         }, {
-          "isPublic" : true,
-          "name" : "CollaborationGroup"
+          "isPublic" : false,
+          "name" : "Campaign"
+        }, {
+          "isPublic" : false,
+          "name" : "ContentDocument"
         } ],
         "searchResultFiltering" : true,
         "searchTerm" : "{!term}",
         "showTopResults" : true
       },
       "componentName" : "forceCommunity:search",
-      "id" : "658f39f3-53da-41aa-b55c-1b25db8a2e41",
+      "id" : "264d057a-6c24-40c5-af33-7879f0ba7ffe",
       "renderPriority" : "NEUTRAL",
       "renditionMap" : { },
       "type" : "component"
     } ],
-    "id" : "eae3b8d4-73aa-423c-8a06-a04896f61946",
+    "id" : "1eeb8bfb-f3fe-402a-b95f-5e2f6db36e23",
     "regionName" : "content",
     "type" : "region"
   }, {
-    "id" : "4e4efe76-62ea-45bf-a927-8a11494d49fc",
+    "id" : "35fc49b5-f982-4fd7-b0cf-90ee6fb2988a",
     "regionName" : "footer",
     "type" : "region"
   } ],

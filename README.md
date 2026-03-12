@@ -9,6 +9,8 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
 ## Table of Contents
 
+- [macOS Environment Setup (Homebrew + pyenv + nvm)](#macos-environment-setup-homebrew--pyenv--nvm)
+  - [Using Claude Code with this project](#using-claude-code-with-this-project)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
   - [Setup for headless robot runs](#setup-for-headless-robot-runs)
@@ -25,21 +27,314 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 - [Branch Information](#branch-information)
 - [Additional Resources](#additional-resources)
 
+## macOS Environment Setup (Homebrew + pyenv + nvm)
+
+> **Cursor users:** Open this README in [Cursor](https://www.cursor.com/), press `Cmd+L` to open the AI chat, and paste: *"Walk me through the macOS Environment Setup section of this README, running each command in the terminal."* The agent can execute each step interactively. Run the steps in order — each one builds on the previous.
+
+This section walks through a full, clean environment setup on macOS using [Homebrew](https://brew.sh/) for package management, [pyenv](https://github.com/pyenv/pyenv) for Python version management, and [nvm](https://github.com/nvm-sh/nvm) for Node.js version management. Using version managers (pyenv + nvm) keeps your tool installations isolated from the macOS system Python and Node, avoiding conflicts when multiple projects need different versions. Skip any step for tools you already have installed.
+
+### Step 1 — Install Homebrew
+
+If you don't have Homebrew installed, run:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Follow the post-install instructions to add Homebrew to your `PATH` (shown at the end of the installer output). Then verify:
+
+```bash
+brew --version
+```
+
+### Step 2 — Install core tools (git, gh, GCM)
+
+```bash
+# Install git (version control)
+brew install git
+
+# Install GitHub CLI (gh) — used for PR workflows, cloning private repos, etc.
+brew install gh
+
+# Install Git Credential Manager (recommended) — secure credential storage for HTTPS git operations
+brew install --cask git-credential-manager
+```
+
+Verify and authenticate:
+
+```bash
+git --version
+gh --version
+
+# Authenticate with GitHub (if you haven't already)
+gh auth login
+```
+
+### Step 3 — Install Node.js via nvm
+
+[nvm](https://github.com/nvm-sh/nvm) (Node Version Manager) lets you install and switch between Node.js versions without touching the system Node. This is the recommended approach if you manage multiple projects — it prevents conflicts between the sf CLI's Node dependency and any other Node-based tools on your system.
+
+> **Why nvm over `brew install node`?** Homebrew installs a single Node version system-wide. nvm lets you pin projects to specific Node versions and keeps global npm packages (like `@salesforce/cli`) tied to the version they were installed with.
+>
+> **Node LTS versions only:** Always use an even-numbered LTS release (v20, v22, v24) for tooling. Odd-numbered releases (v21, v23, v25) are short-lived "Current" releases with no long-term support — they reach end-of-life within 6 months and are not suitable for developer tools.
+
+```bash
+# Install nvm via Homebrew
+brew install nvm
+
+# Add nvm to your interactive shell (~/.zshrc)
+echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
+echo '[ -s "$(brew --prefix nvm)/nvm.sh" ] && \. "$(brew --prefix nvm)/nvm.sh"' >> ~/.zshrc
+echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --prefix nvm)/etc/bash_completion.d/nvm"' >> ~/.zshrc
+
+# Also add nvm to ~/.zshenv so non-interactive shells see it
+# (required for IDE tools, CI runners, and Claude Code which spawn non-interactive shells)
+# Homebrew is often only on PATH in login shells (~/.zprofile); fall back to known absolute
+# locations so this works in non-interactive shells that never source ~/.zprofile.
+echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
+echo '# Bootstrap Homebrew in non-interactive shells' >> ~/.zshenv
+echo 'if ! command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
+echo '  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do' >> ~/.zshenv
+echo '    [ -x "$_brew" ] && eval "$($_brew shellenv)" && break' >> ~/.zshenv
+echo '  done' >> ~/.zshenv
+echo 'fi' >> ~/.zshenv
+echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
+echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
+echo '  if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then' >> ~/.zshenv
+echo '    \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
+echo '  fi' >> ~/.zshenv
+echo 'fi' >> ~/.zshenv
+
+# Reload your shell
+source ~/.zshrc
+
+# Install the latest LTS version of Node.js
+nvm install --lts
+
+# Set LTS as the default for all new shells
+nvm alias default lts/*
+
+# Verify
+node --version   # Should show an even-numbered LTS version (v20, v22, v24, …)
+npm --version
+```
+
+> **After setup, restart your terminal** (or any IDE/tool that spawns shells) so the updated PATH takes effect in all contexts.
+
+If you already have `brew install node` and want to migrate to nvm, remove the Homebrew version after installing nvm — it is no longer needed:
+```bash
+brew uninstall node   # safe after nvm is installed and default is set
+```
+
+### Step 4 — Install pyenv and Python
+
+[pyenv](https://github.com/pyenv/pyenv) lets you install and switch between Python versions without touching the system Python.
+
+**Python 3.12 or 3.13 is recommended for CumulusCI** — both are stable and tested with CCI 4.x. Python 3.14 is very new (released October 2025) and has known dependency compatibility issues. Avoid it for CCI.
+
+```bash
+# Install pyenv
+brew install pyenv
+
+# Add pyenv to your interactive shell (~/.zshrc)
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+
+# Also add pyenv to ~/.zshenv for non-interactive shells
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshenv
+echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshenv
+echo 'eval "$(pyenv init -)"' >> ~/.zshenv
+
+# Reload your shell
+source ~/.zshrc
+
+# Install the latest 3.13.x patch automatically
+PYTHON_VERSION=$(pyenv install --list | grep -E "^[[:space:]]*3\.13\.[0-9]+$" | tail -1 | tr -d '[:space:]')
+pyenv install "$PYTHON_VERSION"
+pyenv global "$PYTHON_VERSION"
+
+# Verify
+python --version   # Should show the latest 3.13.x patch
+```
+
+> **Using multiple Python versions?** You can install additional versions alongside (for example, another 3.12.x or 3.13.x patch) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
+
+> **Non-interactive shell note:** The `~/.zshenv` additions above ensure that IDE tools, CI runners, and Claude Code (which spawn non-interactive shells) can find your pyenv-managed Python. Without `~/.zshenv`, only interactive terminal sessions see pyenv.
+
+### Step 5 — Create and activate a virtual environment (venv)
+
+After cloning the repository (Step 8 below), create a project-specific virtual environment. This isolates the project's Python dependencies from your system and other projects.
+
+> **If you install CumulusCI via pipx (recommended, Step 6), you do not need to manually install packages into this venv** — pipx manages CCI in its own isolated environment. Still create a venv if you want to run project scripts (`scripts/`, `tasks/`) directly outside of CCI, or if you choose `pip install cumulusci` instead.
+
+```bash
+# From the repo root (uses whichever Python pyenv points to — 3.12 recommended)
+python -m venv .venv
+
+# Activate the venv
+source .venv/bin/activate
+
+# Your prompt should now show (.venv) prefix
+# Verify
+python --version
+pip --version
+```
+
+To deactivate the venv when you're done:
+
+```bash
+deactivate
+```
+
+> **Tip:** Add `.venv/` to your `.gitignore` if it isn't already (this project's `.gitignore` covers it).
+
+### Step 6 — Install CumulusCI
+
+**Recommended: use pipx** — pipx installs CumulusCI in its own isolated Python environment, keeping it separate from your project venv and system Python.
+
+```bash
+# Install pipx via pyenv's Python — keeps all Python tooling under pyenv, not Homebrew
+# Uses the pyenv global set in Step 4 ($(pyenv prefix) resolves to that version)
+$(pyenv prefix)/bin/python3 -m pip install --user pipx
+
+# Ensure ~/.local/bin is in your PATH (pipx installs cci, snowfakery, etc. there)
+$(pyenv prefix)/bin/python3 -m pipx ensurepath
+source ~/.zshrc
+
+# Install CumulusCI using the same Python version
+pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
+
+# Fix a known compatibility issue: CCI depends on fs/pyfilesystem2 which requires
+# pkg_resources from setuptools<71. Newer setuptools removes pkg_resources.
+pipx inject cumulusci "setuptools<71"
+
+# Verify
+cci version   # Should show CumulusCI 4.x running on Python 3.13.x
+```
+
+> **Why `setuptools<71`?** CumulusCI 4.x depends on `pyfilesystem2` which uses `pkg_resources`, a module that was removed from `setuptools` in version 71+. The inject command pins setuptools in the CCI venv to a compatible version. This does not affect your global Python or project venv.
+
+If you prefer to use the project venv instead (activate it first per Step 5, then):
+
+```bash
+pip install cumulusci "setuptools<71"
+cci version
+```
+
+### Step 7 — Install Salesforce CLI (`sf`)
+
+Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This is the Salesforce-recommended installation method.
+
+```bash
+# Install sf CLI globally via npm (nvm-managed Node must be active)
+npm install -g @salesforce/cli
+
+# Verify (must be 2.x or later)
+sf --version   # Should show @salesforce/cli/2.x darwin-arm64 node-v24.x.x
+```
+
+> **Why npm instead of Homebrew?** The Homebrew `sf` formula and `--cask sf` cask bundle their own copy of Node.js independently of nvm. This creates redundant Node installations and potential version conflicts. Installing via npm ties sf to your nvm-managed Node version, giving you a single Node installation to manage.
+
+> **After switching from Homebrew sf to npm:** If you previously had `brew install --cask sf` or `brew install sf`, remove it first: `brew uninstall sf`. The Homebrew cask is also deprecated and scheduled for removal on 2026-09-01.
+
+> **npm globals and nvm versions:** npm global packages (like `@salesforce/cli`) are installed per nvm Node version. If you switch Node versions with `nvm use`, run `npm install -g @salesforce/cli` again in the new version, or use `nvm reinstall-packages <old-version>` to copy all globals.
+
+### Step 8 — Clone the repository
+
+```bash
+git clone <repository-url>
+cd rlm-base-dev
+```
+
+> Replace `<repository-url>` with the actual repo URL from GitHub (use `gh repo clone <org>/<repo>` if you used `gh auth login` above).
+
+### Step 9 — Install SFDMU plugin (v5+)
+
+SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.0.0 or later is required.**
+
+```bash
+sf plugins install sfdmu
+
+# Verify (should show 5.x)
+sf plugins list
+```
+
+### Step 10 — Authenticate with Salesforce
+
+```bash
+# For a standard org
+sf org login web
+
+# For a Dev Hub (required for scratch orgs)
+sf org login web --alias devhub --instance-url https://login.salesforce.com
+
+# Set your default org for CCI
+cci org default <your-org-alias>
+```
+
+### Step 11 — Verify the full setup
+
+Run the built-in setup validator (no org connection required):
+
+```bash
+cci task run validate_setup
+```
+
+This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing Robot Framework pieces and `webdriver-manager` are auto-installed via `pipx inject`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
+
+> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, SeleniumLibrary, webdriver-manager via `pipx inject -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
+
+### Using Claude Code with this project
+
+[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells** (it does not source `~/.zshrc`). Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Steps 3 and 4 above add the required init blocks to `~/.zshenv` — if you skipped those additions, add them now.
+
+**Verify Claude Code can see your tools** by asking it to run:
+
+```bash
+node --version && sf --version && cci version && python --version
+```
+
+If any command returns "not found", check that `~/.zshenv` contains the nvm and pyenv init blocks (see Steps 3 and 4), then **restart Claude Code** so it picks up the updated PATH.
+
+**After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
+
+**Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and — when the relevant auto-fix options are enabled — can auto-fix missing robot deps (default on) and update the SFDMU version (default on). urllib3 is upgraded as a side-effect of the robot dep fix, or independently with `auto_fix_urllib3=true`. No org connection needed. It is the fastest way to confirm your environment is ready before running flows.
+
+---
+
 ## Prerequisites
+
+> **macOS users:** See [macOS Environment Setup (Homebrew + pyenv + nvm)](#macos-environment-setup-homebrew--pyenv--nvm) for a step-by-step guide using Homebrew, pyenv (Python), nvm (Node.js), and pipx — including git, gh, GCM, and Cursor integration.
 
 ### Required Software
 
-1. **Salesforce CLI** (`sf` CLI)
-   - Version 2.x or later
-   - Installation: https://developer.salesforce.com/tools/salesforcecli
+1. **git**
+   - Installation (macOS): `brew install git` — or use the Xcode Command Line Tools (`xcode-select --install`)
+   - Verify: `git --version`
+
+2. **GitHub CLI** (`gh`) — recommended
+   - Used for cloning, PR workflows, and authentication
+   - Installation: `brew install gh` (macOS) — see https://cli.github.com/
+   - Verify: `gh --version`
+   - Authenticate: `gh auth login`
+
+3. **Git Credential Manager** (GCM) — recommended
+   - Provides secure, cross-platform credential storage for HTTPS git operations
+   - Installation: `brew install --cask git-credential-manager` (macOS) — see https://github.com/git-ecosystem/git-credential-manager
+   - Configured automatically after installation
+
+4. **Salesforce CLI** (`sf` CLI)
+   - Version 2.x or later; requires an LTS Node.js (v20, v22, or v24 — **not** odd-numbered releases like v25 which are unsupported)
+   - Installation (macOS): `npm install -g @salesforce/cli` — see https://developer.salesforce.com/tools/salesforcecli
    - Verify: `sf --version`
 
-2. **CumulusCI** (CCI)
+5. **CumulusCI** (CCI)
    - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
-   - Installation: **prefer** `pipx install cumulusci` (isolated environment; avoids modifying your global Python). If you don't use pipx: create a virtual environment and run `pip install cumulusci` inside it.
+   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` then `pipx inject cumulusci "setuptools<71"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
    - Verify: `cci version`
 
-3. **SFDMU (Salesforce Data Move Utility)**
+6. **SFDMU (Salesforce Data Move Utility)**
    - **Version 5.0.0 or later required** (v4.x is no longer supported)
    - Required for data loading tasks
    - Installation: `sf plugins install sfdmu`
@@ -47,9 +342,15 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
    - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
-4. **Python** (for custom tasks)
-   - Python 3.8 or later
-   - Required packages are included with CumulusCI
+7. **Node.js** — required by the `sf` CLI and SFDMU plugin
+   - Use an LTS version (even-numbered: v20, v22, v24); odd-numbered releases (v21, v23, v25) are not supported by sf CLI
+   - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
+   - Verify: `node --version`
+
+8. **Python** (for custom tasks)
+   - Python 3.8 or later; **3.12 recommended** for CumulusCI (3.13 is acceptable; 3.14 has known dependency compatibility issues)
+   - macOS: use [pyenv](https://github.com/pyenv/pyenv) — `brew install pyenv` — to manage versions
+   - Required packages are included with CumulusCI; use a venv for local script development
 
 ### Required Salesforce Access
 
