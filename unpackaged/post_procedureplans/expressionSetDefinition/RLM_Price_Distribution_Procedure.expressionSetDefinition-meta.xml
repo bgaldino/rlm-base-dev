@@ -7,9 +7,9 @@
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>RC_Price_Distribution_Procedure_V1</fullName>
+        <fullName>RLM_Price_Distribution_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>
-        <expressionSetDefinition>RC_Price_Distribution_Procedure</expressionSetDefinition>
+        <expressionSetDefinition>RLM_Price_Distribution_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
         <label>RC Price Distribution Procedure V1</label>
         <processType>DefaultPricing</processType>

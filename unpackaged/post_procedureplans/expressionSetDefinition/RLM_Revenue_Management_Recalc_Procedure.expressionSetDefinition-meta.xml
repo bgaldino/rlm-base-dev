@@ -7,10 +7,10 @@
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>RC_Revenue_Management_Recalc_Procedure_V1</fullName>
+        <fullName>RLM_Revenue_Management_Recalc_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>
         <description>RC Revenue Management Recalc Procedure</description>
-        <expressionSetDefinition>RC_Revenue_Management_Recalc_Procedure</expressionSetDefinition>
+        <expressionSetDefinition>RLM_Revenue_Management_Recalc_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
         <label>RC Revenue Management Recalc Procedure</label>
         <processType>DefaultPricing</processType>
