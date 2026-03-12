@@ -339,8 +339,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RC_Start_Sync__c</fieldItem>
-                <identifier>RecordRC_Start_Sync__cField</identifier>
+                <fieldItem>Record.RLM_Start_Sync__c</fieldItem>
+                <identifier>RecordRLM_Start_Sync__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
@@ -1411,7 +1411,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>flowApiName</name>
-                    <value>RC_Quote_Smart_Approval</value>
+                    <value>RLM_Quote_Smart_Approval</value>
                 </componentInstanceProperties>
                 <componentName>runtime_approvals:approvalsWorkflowComponent</componentName>
                 <identifier>runtime_approvals_approvalsWorkflowComponent</identifier>

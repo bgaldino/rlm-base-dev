@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_UEBIdHyperlink__c</fullName>
     <externalId>false</externalId>
-    <formula>HYPERLINK(&quot;/&quot; &amp;  RC_UEBId__c ,   RC_UEBIdName__c , &apos;_self&apos;)</formula>
+    <formula>HYPERLINK(&quot;/&quot; &amp;  RLM_UEBId__c ,   RLM_UEBIdName__c , &apos;_self&apos;)</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>UEBIdHyperlink</label>
     <required>false</required>

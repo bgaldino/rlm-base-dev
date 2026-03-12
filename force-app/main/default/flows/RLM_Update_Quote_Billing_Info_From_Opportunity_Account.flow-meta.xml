@@ -3,7 +3,7 @@
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
-        <name>ARC_Process_Used_for_Quote</name>
+        <name>ARLM_Process_Used_for_Quote</name>
         <label>ARC Process Used for Quote?</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -257,7 +257,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>ARC_Process_Used_for_Quote</targetReference>
+            <targetReference>ARLM_Process_Used_for_Quote</targetReference>
         </connector>
         <object>Quote</object>
         <recordTriggerType>Create</recordTriggerType>

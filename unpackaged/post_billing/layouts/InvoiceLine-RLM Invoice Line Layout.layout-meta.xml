@@ -37,11 +37,11 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>RC_Account__c</field>
+                <field>RLM_Account__c</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>RC_Product_Type__c</field>
+                <field>RLM_Product_Type__c</field>
             </layoutItems>
         </layoutColumns>
         <layoutColumns>

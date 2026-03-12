@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval_Level__c</fullName>
     <label>Approval Level</label>
-    <summarizedField>QuoteLineItem.RC_Approval_Level_Calc__c</summarizedField>
+    <summarizedField>QuoteLineItem.RLM_Approval_Level_Calc__c</summarizedField>
     <summaryForeignKey>QuoteLineItem.QuoteId</summaryForeignKey>
     <summaryOperation>max</summaryOperation>
     <trackHistory>false</trackHistory>

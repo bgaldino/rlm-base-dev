@@ -22,7 +22,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Quote.RC_Start_Sync__c</field>
+        <field>Quote.RLM_Start_Sync__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

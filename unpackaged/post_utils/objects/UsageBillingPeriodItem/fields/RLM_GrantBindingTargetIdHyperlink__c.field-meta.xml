@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_GrantBindingTargetIdHyperlink__c</fullName>
     <externalId>false</externalId>
-    <formula>HYPERLINK(&quot;/&quot; &amp;  RC_GrantBindingTargetId__c ,   RC_GrantBindingTargetIdName__c , &apos;_self&apos;)</formula>
+    <formula>HYPERLINK(&quot;/&quot; &amp;  RLM_GrantBindingTargetId__c ,   RLM_GrantBindingTargetIdName__c , &apos;_self&apos;)</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>GrantBindingTargetIdHyperlink</label>
     <required>false</required>

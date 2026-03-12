@@ -3,5 +3,5 @@
     <apiVersion>66.0</apiVersion>
     <availableInTouch>false</availableInTouch>
     <confirmationTokenRequired>false</confirmationTokenRequired>
-    <label>RC_QuoteApproval</label>
+    <label>RLM_QuoteApproval</label>
 </ApexPage>

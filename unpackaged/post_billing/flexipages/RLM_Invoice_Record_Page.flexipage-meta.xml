@@ -10,7 +10,7 @@
                             <value>InvoiceDraftToPosted</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Invoice.RC_Apply_Payment</value>
+                            <value>Invoice.RLM_Apply_Payment</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>

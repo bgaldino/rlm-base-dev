@@ -7,6 +7,6 @@
     <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>
-        <valueSetName>RC_Approval_Status</valueSetName>
+        <valueSetName>RLM_Approval_Status</valueSetName>
     </valueSet>
 </CustomField>

@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_AssetIdHyperlink__c</fullName>
     <externalId>false</externalId>
-    <formula>HYPERLINK(&quot;/&quot; &amp;  RC_AssetId__c ,   RC_AssetIdName__c , &apos;_self&apos;)</formula>
+    <formula>HYPERLINK(&quot;/&quot; &amp;  RLM_AssetId__c ,   RLM_AssetIdName__c , &apos;_self&apos;)</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>AssetIdHyperlink</label>
     <required>false</required>

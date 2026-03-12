@@ -66,7 +66,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>flowName</name>
-                    <value>RC_UpdateDecisionTables</value>
+                    <value>RLM_UpdateDecisionTables</value>
                 </componentInstanceProperties>
                 <componentName>flowruntime:interview</componentName>
                 <identifier>flowruntime_interview4</identifier>
@@ -80,7 +80,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>flowName</name>
-                    <value>RC_Refresh_Pricing_Decision_Tables</value>
+                    <value>RLM_Refresh_Pricing_Decision_Tables</value>
                 </componentInstanceProperties>
                 <componentName>flowruntime:interview</componentName>
                 <identifier>flowruntime_interview</identifier>
@@ -94,7 +94,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>flowName</name>
-                    <value>RC_Refresh_Asset_Decision_Tables</value>
+                    <value>RLM_Refresh_Asset_Decision_Tables</value>
                 </componentInstanceProperties>
                 <componentName>flowruntime:interview</componentName>
                 <identifier>flowruntime_interview2</identifier>
@@ -108,7 +108,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>flowName</name>
-                    <value>RC_Refresh_Rate_Card_Decision_Tables</value>
+                    <value>RLM_Refresh_Rate_Card_Decision_Tables</value>
                 </componentInstanceProperties>
                 <componentName>flowruntime:interview</componentName>
                 <identifier>flowruntime_interview3</identifier>
