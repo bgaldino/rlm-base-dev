@@ -1,4 +1,4 @@
-public with sharing class RC_RebuildSearchIndex {
+public with sharing class RLM_RebuildSearchIndex {
     
     @InvocableMethod(label='Deploy PCM Index' description='Calls the Connect API to deploy PCM index after Decision Table refresh')
     public static List<PCMDeployResult> deployPCMIndex(List<PCMDeployRequest> requests) {

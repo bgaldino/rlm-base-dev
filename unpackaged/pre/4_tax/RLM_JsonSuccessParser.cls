@@ -1,4 +1,4 @@
-global with sharing class RC_JsonSuccessParser
+global with sharing class RLM_JsonSuccessParser
 {
   public static void consumeObject(JSONParser parser)
   {
@@ -186,7 +186,7 @@ global with sharing class RC_JsonSuccessParser
     public List<Summary> summary {get;set;}
     public List<Messages> messages {get;set;}
 
-    public RC_JsonSuccessParser(JSONParser parser) {
+    public RLM_JsonSuccessParser(JSONParser parser) {
         while (parser.nextToken() != JSONToken.END_OBJECT) {
             if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                 String text = parser.getText();
@@ -397,8 +397,8 @@ global with sharing class RC_JsonSuccessParser
     }
 
 
-    public static RC_JsonSuccessParser parse(String json)
+    public static RLM_JsonSuccessParser parse(String json)
     {
-        return new RC_JsonSuccessParser(System.JSON.createParser(json));
+        return new RLM_JsonSuccessParser(System.JSON.createParser(json));
     }
 }

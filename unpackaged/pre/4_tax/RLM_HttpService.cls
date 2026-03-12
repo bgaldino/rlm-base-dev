@@ -3,10 +3,10 @@
 //  Company: Salesforce
 //  Author: Ravi Shankar
 //  Purpose: Http Generic Class 
-public with sharing class RC_HttpService 
+public with sharing class RLM_HttpService 
 {   
     // Attribute to implement singleton pattern for Order Product Service class
-    private static RC_HttpService httpServiceInstance;
+    private static RLM_HttpService httpServiceInstance;
     
     // VARIABLES
     
@@ -20,11 +20,11 @@ public with sharing class RC_HttpService
     * @params NA
     * @return Http Service Class Instance
     */ 
-    public static RC_HttpService getInstance() 
+    public static RLM_HttpService getInstance() 
     {
         if (NULL == httpServiceInstance) 
         {
-            httpServiceInstance =  new RC_HttpService();  
+            httpServiceInstance =  new RLM_HttpService();  
         }
         return httpServiceInstance;
     }

@@ -1,12 +1,12 @@
-public with sharing class RC_AvalaraJSONBuilder 
+public with sharing class RLM_AvalaraJSONBuilder 
 {
-    private static RC_AvalaraJSONBuilder avalaraJSONBuilderInstance;
+    private static RLM_AvalaraJSONBuilder avalaraJSONBuilderInstance;
     
-    public static RC_AvalaraJSONBuilder getInstance() 
+    public static RLM_AvalaraJSONBuilder getInstance() 
     {
         if (NULL == avalaraJSONBuilderInstance) 
         {
-            avalaraJSONBuilderInstance = new RC_AvalaraJSONBuilder();
+            avalaraJSONBuilderInstance = new RLM_AvalaraJSONBuilder();
         }
         return avalaraJSONBuilderInstance;
     }

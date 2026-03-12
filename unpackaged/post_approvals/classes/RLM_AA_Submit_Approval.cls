@@ -1,4 +1,4 @@
-global class RC_AA_Submit_Approval {
+global class RLM_AA_Submit_Approval {
 @InvocableMethod(label='Submit for Approval' description='Calls a Flow Orchestration Approval.' category='Approvals')
     public static void callFlow(List<svcParameter> svcParameters) {
     // Prepare the Flow variables

@@ -1,4 +1,4 @@
-global class RC_CalculateTaxService {
+global class RLM_CalculateTaxService {
     // ============================================================================
     // CONSTANT 
     // ============================================================================
@@ -49,9 +49,9 @@ global class RC_CalculateTaxService {
         try{
             List<commercetax.TaxLineItemRequest> listOfLines = request.lineItems;
             if(!listOfLines.isEmpty()){
-                RC_HttpService sendHttpRequest = new RC_HttpService();
+                RLM_HttpService sendHttpRequest = new RLM_HttpService();
                 sendHttpRequest.addHeader('Content-type', 'application/json');
-                String requestBody = RC_AvalaraJSONBuilder.getInstance().frameJsonForGetTaxOrderItem(request);
+                String requestBody = RLM_AvalaraJSONBuilder.getInstance().frameJsonForGetTaxOrderItem(request);
                 sendHttpRequest.post('/transactions/create',requestBody);
                 //system.debug('Request '+requestBody);
                 String responseString = '';
@@ -68,7 +68,7 @@ global class RC_CalculateTaxService {
                 if(!responseString.contains('error'))
                 {
                     commercetax.CalculateTaxResponse response = new commercetax.CalculateTaxResponse();
-                    RC_JsonSuccessParser jsonSuccessParserClass = RC_JsonSuccessParser.parse(responseString);
+                    RLM_JsonSuccessParser jsonSuccessParserClass = RLM_JsonSuccessParser.parse(responseString);
                     response.setTaxTransactionType(request.taxTransactionType);
                     response.setDocumentCode(jsonSuccessParserClass.code);
                     response.setReferenceDocumentCode(jsonSuccessParserClass.referenceCode);
@@ -92,12 +92,12 @@ global class RC_CalculateTaxService {
                     response.setTaxTransactionId(jsonSuccessParserClass.id);
                     response.setCurrencyIsoCode(request.currencyIsoCode);
                     List<commercetax.LineItemResponse> lineItemResponses = new List<commercetax.LineItemResponse>();
-                    for(RC_JsonSuccessParser.Lines linesToProcess: jsonSuccessParserClass.lines)
+                    for(RLM_JsonSuccessParser.Lines linesToProcess: jsonSuccessParserClass.lines)
                     {
                         commercetax.LineItemResponse lineItemResponse = new commercetax.LineItemResponse();
                         Double rateCalculated = 0.0;
                         List<commercetax.TaxDetailsResponse> taxDetailsResponses = new List<commercetax.TaxDetailsResponse>();
-                        for(RC_JsonSuccessParser.details linesDetails : linesToProcess.details)
+                        for(RLM_JsonSuccessParser.details linesDetails : linesToProcess.details)
                         {
                             commercetax.TaxDetailsResponse taxDetailsResponse = new commercetax.TaxDetailsResponse();
                             if(linesDetails.exemptAmount != 0){
@@ -148,14 +148,14 @@ global class RC_CalculateTaxService {
                 }
                 else
                 {
-                    RC_JsonErrorParser jsonErrorParserClass = RC_JsonErrorParser.parse(responseString);
+                    RLM_JsonErrorParser jsonErrorParserClass = RLM_JsonErrorParser.parse(responseString);
                     String message = null;
                     if(String.isNotBlank(jsonErrorParserClass.error.message))
                     {
                        message=jsonErrorParserClass.error.message;
                     }else{
                            String errorMessage = '';
-                            for(RC_JsonErrorParser.cls_details messageString : jsonErrorParserClass.error.details)
+                            for(RLM_JsonErrorParser.cls_details messageString : jsonErrorParserClass.error.details)
                             {
                                 if(String.isNotBlank(messageString.message) )
                                 {

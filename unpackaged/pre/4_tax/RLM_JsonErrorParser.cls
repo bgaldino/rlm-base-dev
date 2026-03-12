@@ -1,4 +1,4 @@
-global with sharing class RC_JsonErrorParser
+global with sharing class RLM_JsonErrorParser
 {
     public cls_error error;
     
@@ -19,8 +19,8 @@ global with sharing class RC_JsonErrorParser
         public String helpLink;
         public String severity;
     }
-    public static RC_JsonErrorParser parse(String json)
+    public static RLM_JsonErrorParser parse(String json)
     {
-        return (RC_JsonErrorParser) System.JSON.deserialize(json, RC_JsonErrorParser.class);
+        return (RLM_JsonErrorParser) System.JSON.deserialize(json, RLM_JsonErrorParser.class);
     }
 }

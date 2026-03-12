@@ -1,4 +1,4 @@
-global virtual class RC_MockAppAdapter implements commercetax.TaxEngineAdapter {
+global virtual class RLM_MockAppAdapter implements commercetax.TaxEngineAdapter {
 
     global commercetax.TaxEngineResponse processRequest(commercetax.TaxEngineContext taxEngineContext) {
         commercetax.RequestType requestType = taxEngineContext.getRequestType();

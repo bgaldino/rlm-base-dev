@@ -1,5 +1,5 @@
 /**
- * RC_AccountUtilities
+ * RLM_AccountUtilities
  * 
  * This class provides functionality to delete all related objects for an account in the correct order.
  * It handles complex relationships between objects, particularly focusing on Usage Entitlement Buckets
@@ -25,7 +25,7 @@
  * @author John Rozsits, Brian Galdino, Anthropic Claude 4 Sonnet
  * @date 2025-06-10
  */
-public class RC_AccountUtilities {
+public class RLM_AccountUtilities {
     // Constants
     private static final Integer BATCH_SIZE = 200;
     /**
