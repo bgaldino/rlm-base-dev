@@ -1,0 +1,633 @@
+$$OmniProcess.UniqueName$Name,Description,DesignerCustomizationType,DiscoveryFrameworkUsageType,EmbeddedOmniScriptKey,IsActive,IsOmniScriptEmbeddable,Level,Name,OmniProcess.UniqueName,OmniProcessVersionNumber,ParentElement.$$OmniProcess.UniqueName$Name,ParentElementName,ParentElementType,PropertySetConfig,SequenceNumber,Type
+#N/A;FetchDocumentTemplateFromName,Data Mapper Extract Action,#N/A,#N/A,#N/A,true,false,1,FetchDocumentTemplateFromName,#N/A,3,#N/A;templatesLoop,templatesLoop,Loop Block,"{
+  ""sendOnlyAdditionalInput"" : false,
+  ""dataRaptor Input Parameters"" : [ {
+    ""inputParam"" : ""templateName"",
+    ""element"" : ""templateNames:DocumentTemplate""
+  } ],
+  ""returnOnlyAdditionalOutput"" : false,
+  ""failOnStepError"" : true,
+  ""internalNotes"" : """",
+  ""isActive"" : true,
+  ""chainOnStep"" : false,
+  ""returnOnlyFailureResponse"" : false,
+  ""ignoreCache"" : false,
+  ""responseJSONPath"" : """",
+  ""responseJSONNode"" : """",
+  ""executionConditionalFormula"" : """",
+  ""actionMessage"" : """",
+  ""sendJSONPath"" : """",
+  ""failureConditionalFormula"" : """",
+  ""id"" : """",
+  ""restOptions"" : { },
+  ""bundle"" : ""ExtractTemplateNamesDCT"",
+  ""sendJSONNode"" : """"
+}",1,DataRaptor Extract Action
+doc_GenerationCore_English_1;GenerateAndPreviewDocument,#N/A,#N/A,#N/A,#N/A,true,true,1,GenerateAndPreviewDocument,doc_GenerationCore_English_1,1,doc_GenerationCore_English_1;GenerateDocument,GenerateDocument,Step,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""Generate and Preview Document"",
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""hide"" : false,
+  ""lwcName"" : ""runtime_industries_docgen__osGenerateAndPreviewDocument"",
+  ""bStandalone"" : false,
+  ""customAttributes"" : [ {
+    ""name"" : ""context-id"",
+    ""source"" : ""%SObjectId%""
+  }, {
+    ""name"" : ""template-id"",
+    ""source"" : ""%selectedTemplate:id%""
+  }, {
+    ""name"" : ""document-title"",
+    ""source"" : ""%DocumentTitle%""
+  }, {
+    ""name"" : ""font-source"",
+    ""source"" : ""%FontSource%""
+  }, {
+    ""name"" : ""attach-document"",
+    ""source"" : ""%OutputFileFormat%""
+  }, {
+    ""name"" : ""service-function"",
+    ""source"" : ""%GenerationType%""
+  }, {
+    ""name"" : ""token-data-map"",
+    ""source"" : ""%tokenDataMap%""
+  }, {
+    ""name"" : ""attach-document"",
+    ""source"" : ""pdf""
+  } ]
+}",0,Custom Lightning Web Component
+doc_GenerationCore_English_1;EmailPDFDocument,#N/A,#N/A,#N/A,#N/A,true,true,1,EmailPDFDocument,doc_GenerationCore_English_1,1,doc_GenerationCore_English_1;GenerateDocument,GenerateDocument,Step,"{
+  ""controlWidth"" : 4,
+  ""label"" : ""EmailPDF"",
+  ""useTemplate"" : false,
+  ""emailTemplateInformation"" : {
+    ""emailTemplateName"" : """",
+    ""emailTargetObjectId"" : """",
+    ""saveAsActivity"" : false,
+    ""whatId"" : """"
+  },
+  ""emailInformation"" : {
+    ""toAddressList"" : [ ""%Contact%"" ],
+    ""ccAddressList"" : [ ],
+    ""bccAddressList"" : [ ],
+    ""emailSubject"" : ""QuantumBit Proposal"",
+    ""emailBody"" : ""Please review the following proposal"",
+    ""setHtmlBody"" : false
+  },
+  ""OrgWideEmailAddress"" : """",
+  ""fileAttachments"" : """",
+  ""attachmentList"" : """",
+  ""contentVersionList"" : ""%pdfGenContentVersionId%"",
+  ""staticDocList"" : [ ],
+  ""docList"" : """",
+  ""remoteTimeout"" : 30000,
+  ""inProgressMessage"" : ""In Progress"",
+  ""postMessage"" : ""Done"",
+  ""failureNextLabel"" : ""Continue"",
+  ""failureAbortLabel"" : ""Abort"",
+  ""failureGoBackLabel"" : ""Go Back"",
+  ""failureAbortMessage"" : ""Are you sure?"",
+  ""validationRequired"" : ""Step"",
+  ""redirectPageName"" : """",
+  ""redirectTemplateUrl"" : ""vlcAcknowledge.html"",
+  ""redirectNextLabel"" : ""Next"",
+  ""redirectNextWidth"" : 3,
+  ""redirectPreviousLabel"" : ""Previous"",
+  ""redirectPreviousWidth"" : 3,
+  ""showPersistentComponent"" : [ true, false ],
+  ""show"" : null,
+  ""HTMLTemplateId"" : """",
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""enableDefaultAbort"" : false,
+  ""enableActionMessage"" : false,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",2,Email Action
+doc_GenerationCore_English_1;Contact,#N/A,#N/A,#N/A,#N/A,true,true,1,Contact,doc_GenerationCore_English_1,1,doc_GenerationCore_English_1;GenerateDocument,GenerateDocument,Step,"{
+  ""controlWidth"" : 8,
+  ""label"" : ""Contact Email"",
+  ""showInputWidth"" : false,
+  ""inputWidth"" : 12,
+  ""required"" : false,
+  ""repeat"" : false,
+  ""repeatClone"" : false,
+  ""repeatLimit"" : null,
+  ""readOnly"" : false,
+  ""defaultValue"" : ""sfdemo@salesforce.demo"",
+  ""help"" : false,
+  ""helpText"" : """",
+  ""mask"" : """",
+  ""pattern"" : """",
+  ""ptrnErrText"" : """",
+  ""minLength"" : 0,
+  ""maxLength"" : 255,
+  ""placeholder"" : """",
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""accessibleInFutureSteps"" : false,
+  ""debounceValue"" : 0,
+  ""HTMLTemplateId"" : """",
+  ""hide"" : false,
+  ""disOnTplt"" : false
+}",1,Text
+doc_QuoteProposal_English_1;txtDocumentName,#N/A,#N/A,#N/A,#N/A,true,false,1,txtDocumentName,doc_QuoteProposal_English_1,1,doc_QuoteProposal_English_1;stepQuoteDocumentName,stepQuoteDocumentName,Step,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""Document Name"",
+  ""showInputWidth"" : false,
+  ""inputWidth"" : 12,
+  ""required"" : false,
+  ""repeat"" : false,
+  ""repeatClone"" : false,
+  ""repeatLimit"" : null,
+  ""readOnly"" : false,
+  ""defaultValue"" : ""Badger Proposal"",
+  ""help"" : false,
+  ""helpText"" : """",
+  ""mask"" : """",
+  ""pattern"" : """",
+  ""ptrnErrText"" : """",
+  ""minLength"" : 0,
+  ""maxLength"" : 255,
+  ""placeholder"" : """",
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""accessibleInFutureSteps"" : false,
+  ""debounceValue"" : 0,
+  ""HTMLTemplateId"" : """",
+  ""hide"" : false,
+  ""disOnTplt"" : false
+}",0,Text
+doc_QuoteProposal_English_1;CustomLWC1,#N/A,#N/A,#N/A,#N/A,true,false,1,CustomLWC1,doc_QuoteProposal_English_1,1,doc_QuoteProposal_English_1;stepQuoteSelectTemplate,stepQuoteSelectTemplate,Step,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""CustomLWC1"",
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""hide"" : false,
+  ""lwcName"" : ""runtime_industries_docgen__osListTemplates"",
+  ""bStandalone"" : false,
+  ""customAttributes"" : [ {
+    ""name"" : ""template-type"",
+    ""source"" : ""%stepQuoteTemplateType:txtTemplateType%""
+  } ]
+}",0,Custom Lightning Web Component
+doc_QuoteProposal_English_1;txtTemplateType,#N/A,#N/A,#N/A,#N/A,true,false,1,txtTemplateType,doc_QuoteProposal_English_1,1,doc_QuoteProposal_English_1;stepQuoteTemplateType,stepQuoteTemplateType,Step,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""Template Type"",
+  ""required"" : true,
+  ""repeat"" : false,
+  ""repeatClone"" : false,
+  ""repeatLimit"" : null,
+  ""readOnly"" : false,
+  ""horizontalMode"" : true,
+  ""defaultValue"" : ""MicrosoftWord"",
+  ""help"" : false,
+  ""helpText"" : """",
+  ""options"" : [ {
+    ""name"" : ""MicrosoftWord"",
+    ""developerName"" : null,
+    ""value"" : ""Microsoft Word (DOCX)"",
+    ""autoAdv"" : null
+  }, {
+    ""name"" : ""MicrosoftPowerpoint"",
+    ""developerName"" : null,
+    ""value"" : ""Microsoft PowerPoint (PPTX)"",
+    ""autoAdv"" : null
+  } ],
+  ""optionSource"" : {
+    ""type"" : """",
+    ""source"" : """"
+  },
+  ""controllingField"" : {
+    ""element"" : """",
+    ""type"" : """",
+    ""source"" : """"
+  },
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""accessibleInFutureSteps"" : false,
+  ""HTMLTemplateId"" : """",
+  ""hide"" : false,
+  ""optionWidth"" : 100,
+  ""optionHeight"" : 100,
+  ""imageCountInRow"" : 3,
+  ""enableCaption"" : true,
+  ""disOnTplt"" : false
+}",0,Radio
+GuidedSelling_PowerManagement_English_1;Standards_and_Compliance,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Standards_and_Compliance,GuidedSelling_PowerManagement_English_1,1,GuidedSelling_PowerManagement_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""Review Standards \u0026 Compliancy Requirements"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""Certification-CSA"",""value"":""Certification-CSA"",""autoAdv"":null},{""name"":""Listing-UL 2200"",""value"":""Listing-UL 2200"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false}",4,Select
+GuidedSelling_PowerManagement_English_1;Special_Application,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Special_Application,GuidedSelling_PowerManagement_English_1,1,GuidedSelling_PowerManagement_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""Do you require a motor starting special application?"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":true,""helpText"":""A \""motor starting special application\"" is any situation where a generator is sized or designed specifically to handle the massive, brief surge of power required to start an electric motor."",""options"":[{""name"":""None - Standard"",""value"":""None - Standard"",""autoAdv"":null},{""name"":""Motor Starting"",""value"":""Motor Starting"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false,""helpTextPos"":""bottom-left""}",3,Select
+GuidedSelling_PowerManagement_English_1;Seismic_Certification,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Seismic_Certification,GuidedSelling_PowerManagement_English_1,1,GuidedSelling_PowerManagement_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""What seismic certification do you require?"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""IBC Seismic Certification"",""value"":""IBC Seismic Certification"",""autoAdv"":null},{""name"":""OSHPD Seismic Certification"",""value"":""OSHPD Seismic Certification"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false}",2,Select
+GuidedSelling_PowerManagement_English_1;Emission_Certification,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Emission_Certification,GuidedSelling_PowerManagement_English_1,1,GuidedSelling_PowerManagement_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""Do you have emissions certification requirements?"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""Install-US Stat"",""value"":""Install-US Stat"",""autoAdv"":null},{""name"":""Install-OutsideUS"",""value"":""Install-OutsideUS"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false}",1,Select
+GuidedSelling_PowerManagement_English_1;Generator_Application,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Generator_Application,GuidedSelling_PowerManagement_English_1,1,GuidedSelling_PowerManagement_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""What is the intended generator application?"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""Prime Power (PRP)"",""value"":""Prime Power (PRP)"",""autoAdv"":null},{""name"":""Emergency Standby Power (ESP)"",""value"":""Emergency Standby Power (ESP)"",""autoAdv"":null},{""name"":""Continuous Power (COP)"",""value"":""Continuous Power (COP)"",""autoAdv"":null},{""name"":""Data Center Continuous (DCC)"",""value"":""Data Center Continuous (DCC)"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false}",0,Select
+GuidedSelling_Chemcials_English_1;Chemical_Regulatory_Requirements,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Chemical_Regulatory_Requirements,GuidedSelling_Chemcials_English_1,1,GuidedSelling_Chemcials_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""What are the performance/regulatory requirements"",""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""horizontalMode"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""Coatings-Grade"",""developerName"":""Coatings-Grade"",""value"":""Coatings-Grade""},{""name"":""Durable"",""developerName"":""Durable"",""value"":""Durable""},{""name"":""Electronics-Grade"",""developerName"":""Electronics-Grade"",""value"":""Electronics-Grade""},{""name"":""Fast Evaporating"",""developerName"":""Fast Evaporating"",""value"":""Fast Evaporating""},{""name"":""FDA-Compliant"",""developerName"":""FDA-Compliant"",""value"":""FDA-Compliant""},{""name"":""Food-Grade"",""developerName"":""Food-Grade"",""value"":""Food-Grade""},{""name"":""High-Density"",""developerName"":""High-Density"",""value"":""High-Density""},{""name"":""High-Dielectric-Strength"",""developerName"":""High-Dielectric-Strength"",""value"":""High-Dielectric-Strength""},{""name"":""High-Gloss"",""developerName"":""High-Gloss"",""value"":""High-Gloss""},{""name"":""High-Opacity"",""developerName"":""High-Opacity"",""value"":""High-Opacity""},{""name"":""High-Purity"",""developerName"":""High-Purity"",""value"":""High-Purity""},{""name"":""High-Strength"",""developerName"":""High-Strength"",""value"":""High-Strength""},{""name"":""High-Temperature"",""developerName"":""High-Temperature"",""value"":""High-Temperature""},{""name"":""Long-Life"",""developerName"":""Long-Life"",""value"":""Long-Life""},{""name"":""Multi-Metal Compatible"",""developerName"":""Multi-Metal Compatible"",""value"":""Multi-Metal Compatible""},{""name"":""Non-Yellowing Additive"",""developerName"":""Non-Yellowing Additive"",""value"":""Non-Yellowing Additive""},{""name"":""Silicone-Based"",""developerName"":""Silicone-Based"",""value"":""Silicone-Based""},{""name"":""Thermally-Conductive"",""developerName"":""Thermally-Conductive"",""value"":""Thermally-Conductive""},{""name"":""Ultra-High-Purity"",""developerName"":""Ultra-High-Purity"",""value"":""Ultra-High-Purity""},{""name"":""USP-grade"",""developerName"":""USP-grade"",""value"":""USP-grade""}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""optionWidth"":100.0,""optionHeight"":100.0,""imageCountInRow"":3.0,""enableCaption"":true,""disOnTplt"":false}",2,Multi-select
+GuidedSelling_Chemcials_English_1;Chemical_Application,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Chemical_Application,GuidedSelling_Chemcials_English_1,1,GuidedSelling_Chemcials_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""What is the primary application?"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""PCB cleaning"",""value"":""PCB cleaning"",""autoAdv"":null},{""name"":""Protective Topcoat"",""value"":""Protective Topcoat"",""autoAdv"":null},{""name"":""pH Adjustment and Sanitizing"",""value"":""pH Adjustment and Sanitizing"",""autoAdv"":null},{""name"":""Preventing Product Degradation"",""value"":""Preventing Product Degradation"",""autoAdv"":null},{""name"":""Coolant System Protection"",""value"":""Coolant System Protection"",""autoAdv"":null},{""name"":""Foam Control During Processing"",""value"":""Foam Control During Processing"",""autoAdv"":null},{""name"":""Component Encapsulation"",""value"":""Component Encapsulation"",""autoAdv"":null},{""name"":""Durable Container Molding"",""value"":""Durable Container Molding"",""autoAdv"":null},{""name"":""pH Adjustment and Synthesis"",""value"":""pH Adjustment and Synthesis"",""autoAdv"":null},{""name"":""Cleaning-In-Place (CIP)"",""value"":""Cleaning-In-Place (CIP)"",""autoAdv"":null},{""name"":""Semiconductor Etching and Cleaning"",""value"":""Semiconductor Etching and Cleaning"",""autoAdv"":null},{""name"":""Tablet Coating and Opacifier"",""value"":""Tablet Coating and Opacifier"",""autoAdv"":null},{""name"":""Paint and Thinner Formulation"",""value"":""Paint and Thinner Formulation"",""autoAdv"":null},{""name"":""Plastic Component and Coating Protection"",""value"":""Plastic Component and Coating Protection"",""autoAdv"":null},{""name"":""Paint Preparation and Parts Cleaning"",""value"":""Paint Preparation and Parts Cleaning"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false}",1,Select
+GuidedSelling_Chemcials_English_1;Customer_Industry,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,1,Customer_Industry,GuidedSelling_Chemcials_English_1,1,GuidedSelling_Chemcials_English_1;Step1,Step1,Step,"{""controlWidth"":12.0,""label"":""Customer Industry"",""showInputWidth"":false,""inputWidth"":12.0,""required"":false,""repeat"":false,""repeatClone"":false,""repeatLimit"":null,""readOnly"":false,""defaultValue"":null,""help"":false,""helpText"":"""",""options"":[{""name"":""Electronics"",""value"":""Electronics"",""autoAdv"":null},{""name"":""Automotive"",""value"":""Automotive"",""autoAdv"":null},{""name"":""Food \u0026 Beverage"",""value"":""Food \u0026 Beverage"",""autoAdv"":null},{""name"":""Pharmaceutical"",""value"":""Pharmaceutical"",""autoAdv"":null}],""optionSource"":{""type"":"""",""source"":""""},""controllingField"":{""element"":"""",""type"":"""",""source"":""""},""show"":null,""conditionType"":""Hide if False"",""accessibleInFutureSteps"":false,""HTMLTemplateId"":"""",""hide"":false,""disOnTplt"":false}",0,Select
+GuidedSelling_Chemcials_English_1;ProductGuidedSelectionIntegration,#N/A,#N/A,#N/A,ProductGuidedSelection|Integration|English,true,false,0,ProductGuidedSelectionIntegration,GuidedSelling_Chemcials_English_1,1,#N/A;#N/A,#N/A,#N/A,"{""Type"":""ProductGuidedSelection"",""Sub Type"":""Integration"",""Language"":""English"",""show"":null}",1,OmniScript
+GuidedSelling_Chemcials_English_1;Step1,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,0,Step1,GuidedSelling_Chemcials_English_1,1,#N/A;#N/A,#N/A,#N/A,"{""label"":""Chemical Guided Selling Questions"",""validationRequired"":true,""previousLabel"":""Previous"",""previousWidth"":3,""nextLabel"":""Next"",""nextWidth"":3,""cancelLabel"":""Cancel"",""cancelMessage"":""Are you sure?"",""saveLabel"":""Save for later"",""saveMessage"":""Are you sure you want to save it for later?"",""completeLabel"":""Complete"",""completeMessage"":""Are you sure you want to complete the script?"",""instruction"":"""",""showPersistentComponent"":[true, false],""remoteClass"":"""",""remoteMethod"":"""",""remoteTimeout"":30000,""remoteOptions"":{},""knowledgeOptions"":{""language"":""English"",""publishStatus"":""Online"", ""keyword"":"""",""dataCategoryCriteria"":"""",""remoteTimeout"":30000,""typeFilter"":""""},""show"":null,""conditionType"":""Hide if False"",""HTMLTemplateId"":"""",""instructionKey"":"""",""chartLabel"":null,""allowSaveForLater"":true,""errorMessage"":{""custom"":[],""default"":null},""wpm"":false,""ssm"":false,""message"":{},""pubsub"":false,""businessCategory"":"""",""businessEvent"":""""}",0,Step
+GuidedSelling_PowerManagement_English_1;ProductGuidedSelectionIntegration,#N/A,#N/A,#N/A,ProductGuidedSelection|Integration|English,true,false,0,ProductGuidedSelectionIntegration,GuidedSelling_PowerManagement_English_1,1,#N/A;#N/A,#N/A,#N/A,"{""Type"":""ProductGuidedSelection"",""Sub Type"":""Integration"",""Language"":""English"",""show"":null}",1,OmniScript
+GuidedSelling_PowerManagement_English_1;Step1,#N/A,Discovery Framework,GsUsageType,#N/A,true,false,0,Step1,GuidedSelling_PowerManagement_English_1,1,#N/A;#N/A,#N/A,#N/A,"{""label"":""Power Management Questions"",""validationRequired"":true,""previousLabel"":""Previous"",""previousWidth"":3,""nextLabel"":""Next"",""nextWidth"":3,""cancelLabel"":""Cancel"",""cancelMessage"":""Are you sure?"",""saveLabel"":""Save for later"",""saveMessage"":""Are you sure you want to save it for later?"",""completeLabel"":""Complete"",""completeMessage"":""Are you sure you want to complete the script?"",""instruction"":"""",""showPersistentComponent"":[true, false],""remoteClass"":"""",""remoteMethod"":"""",""remoteTimeout"":30000,""remoteOptions"":{},""knowledgeOptions"":{""language"":""English"",""publishStatus"":""Online"", ""keyword"":"""",""dataCategoryCriteria"":"""",""remoteTimeout"":30000,""typeFilter"":""""},""show"":null,""conditionType"":""Hide if False"",""HTMLTemplateId"":"""",""instructionKey"":"""",""chartLabel"":null,""allowSaveForLater"":true,""errorMessage"":{""custom"":[],""default"":null},""wpm"":false,""ssm"":false,""message"":{},""pubsub"":false,""businessCategory"":"""",""businessEvent"":""""}",0,Step
+ProductGuidedSelection_Integration_English_1;Save-Responses,#N/A,#N/A,Default,#N/A,true,true,0,Save-Responses,ProductGuidedSelection_Integration_English_1,1,#N/A;#N/A,#N/A,#N/A,"{""controlWidth"":12.0,""label"":""Save"",""remoteClass"":""discoveryfrmwrk.StoreResponses"",""remoteMethod"":""invokeMethod"",""remoteOptions"":{""preTransformBundle"":"""",""postTransformBundle"":""""},""remoteTimeout"":30000.0,""preTransformBundle"":"""",""postTransformBundle"":"""",""sendJSONPath"":"""",""sendJSONNode"":"""",""responseJSONPath"":"""",""responseJSONNode"":"""",""extraPayload"":{},""inProgressMessage"":""In Progress"",""postMessage"":""Done"",""failureNextLabel"":""Continue"",""failureAbortLabel"":""Abort"",""failureGoBackLabel"":""Go Back"",""failureAbortMessage"":""Are you sure?"",""validationRequired"":""Step"",""redirectPageName"":"""",""redirectTemplateUrl"":""vlcAcknowledge.html"",""redirectNextLabel"":""Next"",""redirectNextWidth"":3.0,""redirectPreviousLabel"":""Previous"",""redirectPreviousWidth"":3.0,""showPersistentComponent"":[true,false],""show"":null,""HTMLTemplateId"":"""",""wpm"":false,""ssm"":false,""message"":{""guidedSelectionInvocationEvent"":""%assessmentId%""},""pubsub"":true,""svgSprite"":"""",""svgIcon"":"""",""errorMessage"":{""custom"":[],""default"":null},""enableDefaultAbort"":false,""enableActionMessage"":false,""useContinuation"":false,""businessCategory"":"""",""businessEvent"":""""}",1,Remote Action
+doc_QuoteProposal_English_1;stepQuoteTemplateType,#N/A,#N/A,#N/A,#N/A,true,false,0,stepQuoteTemplateType,doc_QuoteProposal_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""label"" : ""Specify Template Type"",
+  ""validationRequired"" : true,
+  ""previousLabel"" : ""Previous"",
+  ""previousWidth"" : 3,
+  ""nextLabel"" : ""Next"",
+  ""nextWidth"" : 3,
+  ""cancelLabel"" : ""Cancel"",
+  ""cancelMessage"" : ""Are you sure?"",
+  ""saveLabel"" : ""Save for later"",
+  ""saveMessage"" : ""Are you sure you want to save it for later?"",
+  ""completeLabel"" : ""Complete"",
+  ""completeMessage"" : ""Are you sure you want to complete the script?"",
+  ""instruction"" : """",
+  ""showPersistentComponent"" : [ true, false ],
+  ""remoteClass"" : """",
+  ""remoteMethod"" : """",
+  ""remoteTimeout"" : 30000,
+  ""remoteOptions"" : { },
+  ""knowledgeOptions"" : {
+    ""language"" : ""English"",
+    ""publishStatus"" : ""Online"",
+    ""keyword"" : """",
+    ""dataCategoryCriteria"" : """",
+    ""remoteTimeout"" : 30000,
+    ""typeFilter"" : """"
+  },
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""HTMLTemplateId"" : """",
+  ""instructionKey"" : """",
+  ""chartLabel"" : null,
+  ""allowSaveForLater"" : true,
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""ariaLevel"" : 2,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",1,Step
+doc_QuoteProposal_English_1;stepQuoteSelectTemplate,#N/A,#N/A,#N/A,#N/A,true,false,0,stepQuoteSelectTemplate,doc_QuoteProposal_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""label"" : ""Select Template"",
+  ""validationRequired"" : true,
+  ""previousLabel"" : ""Previous"",
+  ""previousWidth"" : 3,
+  ""nextLabel"" : ""Next"",
+  ""nextWidth"" : 3,
+  ""cancelLabel"" : ""Cancel"",
+  ""cancelMessage"" : ""Are you sure?"",
+  ""saveLabel"" : ""Save for later"",
+  ""saveMessage"" : ""Are you sure you want to save it for later?"",
+  ""completeLabel"" : ""Complete"",
+  ""completeMessage"" : ""Are you sure you want to complete the script?"",
+  ""instruction"" : """",
+  ""showPersistentComponent"" : [ true, false ],
+  ""remoteClass"" : """",
+  ""remoteMethod"" : """",
+  ""remoteTimeout"" : 30000,
+  ""remoteOptions"" : { },
+  ""knowledgeOptions"" : {
+    ""language"" : ""English"",
+    ""publishStatus"" : ""Online"",
+    ""keyword"" : """",
+    ""dataCategoryCriteria"" : """",
+    ""remoteTimeout"" : 30000,
+    ""typeFilter"" : """"
+  },
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""HTMLTemplateId"" : """",
+  ""instructionKey"" : """",
+  ""chartLabel"" : null,
+  ""allowSaveForLater"" : true,
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""ariaLevel"" : 2,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",2,Step
+doc_QuoteProposal_English_1;stepQuoteDocumentName,#N/A,#N/A,#N/A,#N/A,true,false,0,stepQuoteDocumentName,doc_QuoteProposal_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""label"" : ""Output Document Name"",
+  ""validationRequired"" : true,
+  ""previousLabel"" : ""Previous"",
+  ""previousWidth"" : 3,
+  ""nextLabel"" : ""Next"",
+  ""nextWidth"" : 3,
+  ""cancelLabel"" : ""Cancel"",
+  ""cancelMessage"" : ""Are you sure?"",
+  ""saveLabel"" : ""Save for later"",
+  ""saveMessage"" : ""Are you sure you want to save it for later?"",
+  ""completeLabel"" : ""Complete"",
+  ""completeMessage"" : ""Are you sure you want to complete the script?"",
+  ""instruction"" : """",
+  ""showPersistentComponent"" : [ true, false ],
+  ""remoteClass"" : """",
+  ""remoteMethod"" : """",
+  ""remoteTimeout"" : 30000,
+  ""remoteOptions"" : { },
+  ""knowledgeOptions"" : {
+    ""language"" : ""English"",
+    ""publishStatus"" : ""Online"",
+    ""keyword"" : """",
+    ""dataCategoryCriteria"" : """",
+    ""remoteTimeout"" : 30000,
+    ""typeFilter"" : """"
+  },
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""HTMLTemplateId"" : """",
+  ""instructionKey"" : """",
+  ""chartLabel"" : null,
+  ""allowSaveForLater"" : true,
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""ariaLevel"" : 2,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",0,Step
+doc_QuoteProposal_English_1;Set DocGen component Options,#N/A,#N/A,#N/A,#N/A,true,false,0,Set DocGen component Options,doc_QuoteProposal_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""pubsub"" : false,
+  ""message"" : { },
+  ""ssm"" : false,
+  ""wpm"" : false,
+  ""HTMLTemplateId"" : """",
+  ""show"" : null,
+  ""showPersistentComponent"" : [ true, false ],
+  ""elementValueMap"" : {
+    ""documentTitle"" : ""%stepQuoteDocumentName:txtDocumentName%"",
+    ""SObjectId"" : ""%ContextId%"",
+    ""FileFormat"" : ""pdf"",
+    ""templateNames"" : [ {
+      ""DocumentTemplate"" : ""%selectedTemplate:templateName%""
+    } ],
+    ""hideDocusign"" : true
+  },
+  ""label"" : """",
+  ""controlWidth"" : 12
+}",4,Set Values
+doc_QuoteProposal_English_1;RCACoreDocGen,#N/A,#N/A,#N/A,doc|GenerationCore|English,true,false,0,RCACoreDocGen,doc_QuoteProposal_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""Type"" : ""doc"",
+  ""Sub Type"" : ""GenerationCore"",
+  ""Language"" : ""English"",
+  ""show"" : null
+}",5,OmniScript
+doc_QuoteProposal_English_1;GetQuoteDetails,#N/A,#N/A,#N/A,#N/A,true,false,0,GetQuoteDetails,doc_QuoteProposal_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""GetQuoteDetails"",
+  ""bundle"" : ""RCQuoteExtractBasic"",
+  ""ignoreCache"" : false,
+  ""dataRaptor Input Parameters"" : [ {
+    ""element"" : ""ContextId"",
+    ""inputParam"" : ""Id""
+  } ],
+  ""remoteTimeout"" : 30000,
+  ""responseJSONPath"" : """",
+  ""responseJSONNode"" : ""tokenMapData"",
+  ""inProgressMessage"" : ""In Progress"",
+  ""postMessage"" : ""Done"",
+  ""failureNextLabel"" : ""Continue"",
+  ""failureAbortLabel"" : ""Abort"",
+  ""failureGoBackLabel"" : ""Go Back"",
+  ""failureAbortMessage"" : ""Are you sure?"",
+  ""validationRequired"" : ""Step"",
+  ""redirectPageName"" : """",
+  ""redirectTemplateUrl"" : ""vlcAcknowledge.html"",
+  ""redirectNextLabel"" : ""Next"",
+  ""redirectNextWidth"" : 3,
+  ""redirectPreviousLabel"" : ""Previous"",
+  ""redirectPreviousWidth"" : 3,
+  ""showPersistentComponent"" : [ true, false ],
+  ""show"" : null,
+  ""HTMLTemplateId"" : """",
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""enableDefaultAbort"" : false,
+  ""enableActionMessage"" : false,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",3,DataRaptor Extract Action
+doc_GenerationCore_English_1;SetValues,#N/A,#N/A,#N/A,#N/A,true,true,0,SetValues,doc_GenerationCore_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""SetValues"",
+  ""elementValueMap"" : {
+    ""templateNames"" : ""%templateNames%"",
+    ""SObjectId"" : ""%SObjectId%"",
+    ""TemplateType"" : ""%templateType%""
+  },
+  ""showPersistentComponent"" : [ true, false ],
+  ""show"" : null,
+  ""HTMLTemplateId"" : """",
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false
+}",0,Set Values
+doc_GenerationCore_English_1;SetGenerationServiceInputParams,#N/A,#N/A,#N/A,#N/A,true,true,0,SetGenerationServiceInputParams,doc_GenerationCore_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""SetGenerationServiceInputParams"",
+  ""elementValueMap"" : {
+    ""tokenDataMap"" : ""%tokenMapData%"",
+    ""selectedTemplate"" : {
+      ""id"" : ""%selectedTemplate|1:Id%""
+    }
+  },
+  ""showPersistentComponent"" : [ true, false ],
+  ""show"" : null,
+  ""HTMLTemplateId"" : """",
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false
+}",3,Set Values
+doc_GenerationCore_English_1;IPgetTemplateDetailsForDocGen,#N/A,#N/A,#N/A,#N/A,true,true,0,IPgetTemplateDetailsForDocGen,doc_GenerationCore_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""IPgetTemplateDetailsForDocGen"",
+  ""integrationProcedureKey"" : ""doc_Generation"",
+  ""useContinuation"" : false,
+  ""remoteOptions"" : {
+    ""preTransformBundle"" : """",
+    ""postTransformBundle"" : """",
+    ""useFuture"" : false,
+    ""chainable"" : false
+  },
+  ""remoteTimeout"" : 30000,
+  ""preTransformBundle"" : """",
+  ""postTransformBundle"" : """",
+  ""sendJSONPath"" : """",
+  ""sendJSONNode"" : """",
+  ""responseJSONPath"" : """",
+  ""responseJSONNode"" : """",
+  ""extraPayload"" : { },
+  ""inProgressMessage"" : ""In Progress"",
+  ""postMessage"" : ""Done"",
+  ""failureNextLabel"" : ""Continue"",
+  ""failureAbortLabel"" : ""Abort"",
+  ""failureGoBackLabel"" : ""Go Back"",
+  ""failureAbortMessage"" : ""Are you sure?"",
+  ""validationRequired"" : ""Step"",
+  ""redirectPageName"" : """",
+  ""redirectTemplateUrl"" : ""vlcAcknowledge.html"",
+  ""redirectNextLabel"" : ""Next"",
+  ""redirectNextWidth"" : 3,
+  ""redirectPreviousLabel"" : ""Previous"",
+  ""redirectPreviousWidth"" : 3,
+  ""showPersistentComponent"" : [ true, false ],
+  ""show"" : null,
+  ""HTMLTemplateId"" : """",
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""svgSprite"" : """",
+  ""svgIcon"" : """",
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""enableDefaultAbort"" : false,
+  ""enableActionMessage"" : false,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",1,Integration Procedure Action
+doc_GenerationCore_English_1;GenerationOptions,#N/A,#N/A,#N/A,#N/A,true,true,0,GenerationOptions,doc_GenerationCore_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""controlWidth"" : 12,
+  ""label"" : ""Set Document Generation Options"",
+  ""elementValueMap"" : {
+    ""OutputFileFormat"" : ""all"",
+    ""FontSource"" : ""Rich Text Editor Font"",
+    ""DocumentTitle"" : ""%documentTitle%"",
+    ""GenerationType"" : ""generateDocumentWithTokenData""
+  },
+  ""showPersistentComponent"" : [ true, false ],
+  ""show"" : null,
+  ""HTMLTemplateId"" : """",
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false
+}",2,Set Values
+doc_GenerationCore_English_1;GenerateDocument,#N/A,#N/A,#N/A,#N/A,true,true,0,GenerateDocument,doc_GenerationCore_English_1,1,#N/A;#N/A,#N/A,#N/A,"{
+  ""label"" : ""GenerateDocument"",
+  ""validationRequired"" : true,
+  ""previousLabel"" : ""Previous"",
+  ""previousWidth"" : 3,
+  ""nextLabel"" : ""Next"",
+  ""nextWidth"" : 3,
+  ""cancelLabel"" : ""Cancel"",
+  ""cancelMessage"" : ""Are you sure?"",
+  ""saveLabel"" : ""Save for later"",
+  ""saveMessage"" : ""Are you sure you want to save it for later?"",
+  ""completeLabel"" : ""Complete"",
+  ""completeMessage"" : ""Are you sure you want to complete the script?"",
+  ""instruction"" : """",
+  ""showPersistentComponent"" : [ true, false ],
+  ""remoteClass"" : """",
+  ""remoteMethod"" : """",
+  ""remoteTimeout"" : 30000,
+  ""remoteOptions"" : { },
+  ""knowledgeOptions"" : {
+    ""language"" : ""English"",
+    ""publishStatus"" : ""Online"",
+    ""keyword"" : """",
+    ""dataCategoryCriteria"" : """",
+    ""remoteTimeout"" : 30000,
+    ""typeFilter"" : """"
+  },
+  ""show"" : null,
+  ""conditionType"" : ""Hide if False"",
+  ""HTMLTemplateId"" : """",
+  ""instructionKey"" : """",
+  ""chartLabel"" : null,
+  ""allowSaveForLater"" : true,
+  ""errorMessage"" : {
+    ""custom"" : [ ],
+    ""default"" : null
+  },
+  ""wpm"" : false,
+  ""ssm"" : false,
+  ""message"" : { },
+  ""pubsub"" : false,
+  ""ariaLevel"" : 2,
+  ""businessCategory"" : """",
+  ""businessEvent"" : """"
+}",4,Step
+#N/A;templatesLoop,Loop Block,#N/A,#N/A,#N/A,true,false,0,templatesLoop,#N/A,3,#N/A;#N/A,#N/A,#N/A,"{
+  ""executionConditionalFormula"" : """",
+  ""loopList"" : ""templateNames"",
+  ""id"" : """",
+  ""internalNotes"" : """",
+  ""isActive"" : true,
+  ""restOptions"" : { },
+  ""loopOutput"" : {
+    ""Id"" : ""%FetchDocumentTemplateFromName:Id%"",
+    ""TemplateType"" : ""%FetchDocumentTemplateFromName:TemplateType%"",
+    ""VersionNumber"" : ""%FetchDocumentTemplateFromName:VersionNumber%"",
+    ""Name"" : ""%FetchDocumentTemplateFromName:Name%""
+  }
+}",1,Loop Block
+#N/A;SetTemplateData,#N/A,#N/A,#N/A,#N/A,true,false,0,SetTemplateData,#N/A,3,#N/A;#N/A,#N/A,#N/A,"{
+  ""responseJSONPath"" : """",
+  ""responseJSONNode"" : """",
+  ""executionConditionalFormula"" : """",
+  ""actionMessage"" : """",
+  ""elementValueMap"" : {
+    ""tokenMapData"" : ""=SERIALIZE(%tokenMapData%)"",
+    ""selectedTemplate"" : ""%templatesLoop%""
+  },
+  ""disOnTplt"" : false,
+  ""failureConditionalFormula"" : """",
+  ""failOnStepError"" : true,
+  ""id"" : """",
+  ""isActive"" : true,
+  ""restOptions"" : {
+    ""headers"" : { },
+    ""params"" : { }
+  },
+  ""chainOnStep"" : false
+}",2,Set Values
+#N/A;ResponseAction,Response Action,#N/A,#N/A,#N/A,true,false,0,ResponseAction,#N/A,3,#N/A;#N/A,#N/A,#N/A,"{
+  ""responseJSONPath"" : """",
+  ""responseJSONNode"" : """",
+  ""executionConditionalFormula"" : """",
+  ""returnFullDataJSON"" : false,
+  ""returnOnlyAdditionalOutput"" : false,
+  ""sendJSONPath"" : ""SetTemplateData"",
+  ""responseFormat"" : ""JSON"",
+  ""id"" : """",
+  ""isActive"" : true,
+  ""restOptions"" : {
+    ""headers"" : { },
+    ""params"" : { }
+  },
+  ""sendJSONNode"" : """"
+}",3,Response Action
