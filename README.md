@@ -195,15 +195,15 @@ deactivate
 
 ```bash
 # Install pipx via pyenv's Python — keeps all Python tooling under pyenv, not Homebrew
-# Use whichever Python version you chose in Step 4 (3.12 or 3.13)
-$(pyenv prefix 3.13)/bin/python3.13 -m pip install --user pipx
+# Uses the pyenv global set in Step 4 ($(pyenv prefix) resolves to that version)
+$(pyenv prefix)/bin/python3 -m pip install --user pipx
 
 # Ensure ~/.local/bin is in your PATH (pipx installs cci, snowfakery, etc. there)
-$(pyenv prefix 3.13)/bin/python3.13 -m pipx ensurepath
+$(pyenv prefix)/bin/python3 -m pipx ensurepath
 source ~/.zshrc
 
 # Install CumulusCI using the same Python version
-pipx install cumulusci --python $(pyenv prefix 3.13)/bin/python3.13
+pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
 
 # Fix a known compatibility issue: CCI depends on fs/pyfilesystem2 which requires
 # pkg_resources from setuptools<71. Newer setuptools removes pkg_resources.
