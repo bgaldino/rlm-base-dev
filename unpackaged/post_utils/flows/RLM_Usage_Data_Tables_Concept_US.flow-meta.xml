@@ -171,61 +171,61 @@
             </value>
         </filters>
         <inputAssignments>
-            <field>RC_AssetIdName__c</field>
+            <field>RLM_AssetIdName__c</field>
             <value>
                 <elementReference>Loop_Current_US.Asset.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_AssetId__c</field>
+            <field>RLM_AssetId__c</field>
             <value>
                 <elementReference>Loop_Current_US.AssetId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_LiableSummaryIdName__c</field>
+            <field>RLM_LiableSummaryIdName__c</field>
             <value>
                 <elementReference>Loop_Current_US.LiableSummary.UsageBillingPeriodItemNum</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_LiableSummaryId__c</field>
+            <field>RLM_LiableSummaryId__c</field>
             <value>
                 <elementReference>Loop_Current_US.LiableSummaryId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UEAIdName__c</field>
+            <field>RLM_UEAIdName__c</field>
             <value>
                 <elementReference>Get_Usage_Entitlement_Account_US.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UEAId__c</field>
+            <field>RLM_UEAId__c</field>
             <value>
                 <elementReference>Loop_Current_US.UsageEntitlementAccountId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UoMIdName__c</field>
+            <field>RLM_UoMIdName__c</field>
             <value>
                 <elementReference>Loop_Current_US.Uom.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UoMId__c</field>
+            <field>RLM_UoMId__c</field>
             <value>
                 <elementReference>Loop_Current_US.UomId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UsageResourceIdName__c</field>
+            <field>RLM_UsageResourceIdName__c</field>
             <value>
                 <elementReference>Get_Usage_Resource_US.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UsageResourceId__c</field>
+            <field>RLM_UsageResourceId__c</field>
             <value>
                 <elementReference>Loop_Current_US.UsageResourceId</elementReference>
             </value>
@@ -281,7 +281,7 @@
             <inputParameters>
                 <name>columns</name>
                 <value>
-                    <stringValue>[{&quot;apiName&quot;:&quot;RC_UsageSummaryIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-ca8c&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Name&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;UsageSummaryIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;Status&quot;,&quot;guid&quot;:&quot;column-ea9e&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Status&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;apiName&quot;:&quot;RC_AssetIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-b3db&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Asset&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;AssetIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;RC_UsageResourceIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-a6e6&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Usage Resource&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:3,&quot;label&quot;:&quot;UsageResourceIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;StartDateTime&quot;,&quot;guid&quot;:&quot;column-15fd&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Start Date&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:4,&quot;label&quot;:&quot;Start Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;EndDateTime&quot;,&quot;guid&quot;:&quot;column-fbee&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;End Date&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:5,&quot;label&quot;:&quot;End Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;RC_UoMIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-6856&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;UoM&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:6,&quot;label&quot;:&quot;UoMIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;ConsumptionUnits&quot;,&quot;guid&quot;:&quot;column-316b&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:7,&quot;label&quot;:&quot;Consumption Units&quot;,&quot;type&quot;:&quot;number&quot;},{&quot;apiName&quot;:&quot;RC_UEAIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-102f&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Usage Entitlement Account&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:8,&quot;label&quot;:&quot;UEAIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;RC_LiableSummaryIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-f1d1&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Liable Summary&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:9,&quot;label&quot;:&quot;LiableSummaryIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;}]</stringValue>
+                    <stringValue>[{&quot;apiName&quot;:&quot;RLM_UsageSummaryIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-ca8c&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Name&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;UsageSummaryIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;Status&quot;,&quot;guid&quot;:&quot;column-ea9e&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Status&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;apiName&quot;:&quot;RLM_AssetIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-b3db&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Asset&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;AssetIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;RLM_UsageResourceIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-a6e6&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Usage Resource&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:3,&quot;label&quot;:&quot;UsageResourceIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;StartDateTime&quot;,&quot;guid&quot;:&quot;column-15fd&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Start Date&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:4,&quot;label&quot;:&quot;Start Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;EndDateTime&quot;,&quot;guid&quot;:&quot;column-fbee&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;End Date&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:5,&quot;label&quot;:&quot;End Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;RLM_UoMIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-6856&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;UoM&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:6,&quot;label&quot;:&quot;UoMIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;ConsumptionUnits&quot;,&quot;guid&quot;:&quot;column-316b&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:7,&quot;label&quot;:&quot;Consumption Units&quot;,&quot;type&quot;:&quot;number&quot;},{&quot;apiName&quot;:&quot;RLM_UEAIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-102f&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Usage Entitlement Account&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:8,&quot;label&quot;:&quot;UEAIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;RLM_LiableSummaryIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-f1d1&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Liable Summary&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:9,&quot;label&quot;:&quot;LiableSummaryIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;}]</stringValue>
                 </value>
             </inputParameters>
             <inputParameters>

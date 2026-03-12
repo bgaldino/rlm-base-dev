@@ -197,7 +197,7 @@
         <dataType>DateTime</dataType>
         <expression>NOW()</expression>
     </formulas>
-    <interviewLabel>RC_AddTransactionJournalScreenFlow {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM_AddTransactionJournalScreenFlow {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Add Transaction Journals (Conceptual)</label>
     <loops>
         <name>Loop_Assets</name>

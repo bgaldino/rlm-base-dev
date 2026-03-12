@@ -9,7 +9,7 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RC_MonitorWorkflowServicesURL {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM_MonitorWorkflowServicesURL {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Monitor Workflow Services Screen Flow</label>
     <processMetadataValues>
         <name>BuilderType</name>

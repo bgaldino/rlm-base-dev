@@ -17,20 +17,22 @@
         </value>
     </constants>
     <decisions>
-        <description>fff</description>
         <name>Requires_Approval</name>
         <label>Requires Approval</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Update_Quote_Status_to_Approved</targetReference>
+        </defaultConnector>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_Requires_Approval</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-                <operator>GreaterThan</operator>
+                <leftValueReference>QueryApprovalData.Outputs.OriginalActionType</leftValueReference>
+                <operator>EqualTo</operator>
                 <rightValue>
-                    <numberValue>0.0</numberValue>
+                    <stringValue>Transfer</stringValue>
                 </rightValue>
             </conditions>
             <connector>
@@ -39,67 +41,9 @@
             <label>Yes</label>
         </rules>
     </decisions>
-    <decisions>
-        <name>Was_Rejected</name>
-        <label>Was Rejected</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Update_Quote_Status_to_Approved</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
-        <rules>
-            <name>Rejected</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>rejectedQuote</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <booleanValue>true</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Update_Quote_Status_to_Rejected</targetReference>
-            </connector>
-            <label>Rejected</label>
-        </rules>
-    </decisions>
-    <description>This will use Smart Approvals and will also use Agentforce to send the Body of the approval email</description>
     <environments>Default</environments>
-    <formulas>
-        <description>, {!Manager_Approver.Outputs.approvalDecision} == &quot;Approve&quot;)
-{!QueryApprovalData.Outputs.DiscountApprovalLevel}  == 1
-,
-     OR(
-          ISBLANK({!Director_Approver.Outputs.approvalDecision}),
-           {!Director_Approver.Status} = &quot;NotStarted&quot;
-     )
-
-IF(AND({!Manager_Approver.Outputs.approvalDecision} == &quot;Approve&quot;), TRUE, FALSE)</description>
-        <name>fmlExitStage1</name>
-        <dataType>Boolean</dataType>
-        <expression>AND(
-     OR(
-          ISBLANK({!Manager_Approver.Outputs.approvalDecision}),
-          {!Manager_Approver.Status} = &quot;NotStarted&quot;
-     )
-)</expression>
-    </formulas>
-    <formulas>
-        <name>fmlManagerApproval</name>
-        <dataType>Boolean</dataType>
-        <expression>IF(AND({!QueryApprovalData.Outputs.DiscountApprovalLevel}== 1, {!Manager_Approver.Outputs.approvalDecision} == &apos;Approve&apos;), TRUE, FALSE)</expression>
-    </formulas>
-    <formulas>
-        <name>rejectedQuote</name>
-        <dataType>Boolean</dataType>
-        <expression>OR(
-CONTAINS({!Manager_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
-CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
-)</expression>
-    </formulas>
-    <interviewLabel>RC Quote Smart Approval {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Smart Approval</label>
+    <interviewLabel>RC Quote Transfer Approval {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RC Quote Transfer Approval</label>
     <orchestratedStages>
         <name>Query_Quote_for_Approval_Criteria</name>
         <label>Query Quote for Approval Criteria</label>
@@ -112,7 +56,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <stageSteps>
             <description>Call another Auto-Launch Flow to get the criteria from the Quote. This data will be used as the criteria for the approval steps</description>
             <name>QueryApprovalData</name>
-            <actionName>RC_Quote_Approval_Data</actionName>
+            <actionName>RLM_Quote_Approval_Data</actionName>
             <actionType>stepBackground</actionType>
             <canAssigneeEdit>false</canAssigneeEdit>
             <debugSimulateStep>false</debugSimulateStep>
@@ -136,53 +80,17 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </stageSteps>
     </orchestratedStages>
     <orchestratedStages>
-        <description>gg</description>
         <name>Quote_Approval_Level_1</name>
         <label>Quote Approval Level 1</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Was_Rejected</targetReference>
+            <targetReference>Update_Quote_Status_to_Approved</targetReference>
         </connector>
-        <exitConditionLogic>(1 AND 2) OR (2 AND 3 AND 4) OR 5</exitConditionLogic>
-        <exitConditions>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>LessThan</operator>
-            <rightValue>
-                <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <leftValueReference>Manager_Approver.Status</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <stringValue>Completed</stringValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <leftValueReference>Director_Approver.Status</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <stringValue>Completed</stringValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <leftValueReference>rejectedQuote</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <booleanValue>true</booleanValue>
-            </rightValue>
-        </exitConditions>
+        <exitConditionLogic>and</exitConditionLogic>
         <stageSteps>
             <name>Set_Quote_Approval_Status_Pending</name>
-            <actionName>RC_AA_Set_Quote_Status</actionName>
+            <actionName>RLM_AA_Set_Quote_Status</actionName>
             <actionType>stepBackground</actionType>
             <canAssigneeEdit>false</canAssigneeEdit>
             <debugSimulateStep>false</debugSimulateStep>
@@ -208,23 +116,23 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </stageSteps>
         <stageSteps>
             <name>Manager_Approver</name>
-            <actionName>RC_AA_Evaluate_Approval_Request</actionName>
+            <actionName>RLM_AA_Evaluate_Approval_Request</actionName>
             <actionType>stepApproval</actionType>
             <assignees>
                 <assignee>
-                    <stringValue>Manager</stringValue>
+                    <elementReference>managerGroupName</elementReference>
                 </assignee>
-                <assigneeType>Group</assigneeType>
+                <assigneeType>Resource</assigneeType>
             </assignees>
             <canAssigneeEdit>false</canAssigneeEdit>
             <debugSimulateStep>false</debugSimulateStep>
             <entryConditionLogic>and</entryConditionLogic>
             <entryConditions>
                 <conditionType>EntryCondition</conditionType>
-                <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-                <operator>GreaterThan</operator>
+                <leftValueReference>QueryApprovalData.Outputs.OriginalActionType</leftValueReference>
+                <operator>EqualTo</operator>
                 <rightValue>
-                    <numberValue>0.0</numberValue>
+                    <stringValue>Transfer</stringValue>
                 </rightValue>
             </entryConditions>
             <exitConditionLogic>and</exitConditionLogic>
@@ -272,80 +180,6 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             <shouldLock>false</shouldLock>
             <stepSubtype>ApprovalStep</stepSubtype>
         </stageSteps>
-        <stageSteps>
-            <name>Director_Approver</name>
-            <actionName>RC_AA_Evaluate_Approval_Request</actionName>
-            <actionType>stepApproval</actionType>
-            <assignees>
-                <assignee>
-                    <stringValue>Director</stringValue>
-                </assignee>
-                <assigneeType>Group</assigneeType>
-            </assignees>
-            <canAssigneeEdit>false</canAssigneeEdit>
-            <debugSimulateStep>false</debugSimulateStep>
-            <entryConditionLogic>and</entryConditionLogic>
-            <entryConditions>
-                <conditionType>EntryCondition</conditionType>
-                <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-                <operator>GreaterThanOrEqualTo</operator>
-                <rightValue>
-                    <numberValue>2.0</numberValue>
-                </rightValue>
-            </entryConditions>
-            <entryConditions>
-                <conditionType>EntryCondition</conditionType>
-                <leftValueReference>Manager_Approver.Outputs.approvalDecision</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>Approve</stringValue>
-                </rightValue>
-            </entryConditions>
-            <exitConditionLogic>and</exitConditionLogic>
-            <inputParameters>
-                <name>recordId</name>
-                <value>
-                    <elementReference>recordId</elementReference>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>ActionInput__RecordId</name>
-                <value>
-                    <elementReference>recordId</elementReference>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>ActionInput__CustomEmailSubject</name>
-            </inputParameters>
-            <inputParameters>
-                <name>ActionInput__CustomEmailBody</name>
-            </inputParameters>
-            <inputParameters>
-                <name>ActionInput__ApprovalChainName</name>
-                <value>
-                    <stringValue>Discount</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>ActionInput__CanUseSmartApproval</name>
-                <value>
-                    <stringValue>true</stringValue>
-                </value>
-            </inputParameters>
-            <label>Director Approver</label>
-            <outputConfigParams>
-                <name>approvalComments</name>
-                <value xsi:nil="true"/>
-            </outputConfigParams>
-            <outputConfigParams>
-                <name>approvalDecision</name>
-                <value xsi:nil="true"/>
-            </outputConfigParams>
-            <requiresAsyncProcessing>false</requiresAsyncProcessing>
-            <runAsUser>false</runAsUser>
-            <shouldLock>false</shouldLock>
-            <stepSubtype>ApprovalStep</stepSubtype>
-        </stageSteps>
     </orchestratedStages>
     <orchestratedStages>
         <name>Update_Quote_Status_to_Approved</name>
@@ -355,7 +189,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <exitConditionLogic>and</exitConditionLogic>
         <stageSteps>
             <name>Set_to_Approved</name>
-            <actionName>RC_AA_Set_Quote_Status</actionName>
+            <actionName>RLM_AA_Set_Quote_Status</actionName>
             <actionType>stepBackground</actionType>
             <canAssigneeEdit>false</canAssigneeEdit>
             <debugSimulateStep>false</debugSimulateStep>
@@ -380,39 +214,6 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             <stepSubtype>BackgroundStep</stepSubtype>
         </stageSteps>
     </orchestratedStages>
-    <orchestratedStages>
-        <name>Update_Quote_Status_to_Rejected</name>
-        <label>Update Quote Status to Rejected</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <exitConditionLogic>and</exitConditionLogic>
-        <stageSteps>
-            <name>Set_to_Rejected</name>
-            <actionName>RC_AA_Set_Quote_Status</actionName>
-            <actionType>stepBackground</actionType>
-            <canAssigneeEdit>false</canAssigneeEdit>
-            <debugSimulateStep>false</debugSimulateStep>
-            <entryConditionLogic>and</entryConditionLogic>
-            <exitConditionLogic>and</exitConditionLogic>
-            <inputParameters>
-                <name>QuoteID</name>
-                <value>
-                    <elementReference>recordId</elementReference>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>Status</name>
-                <value>
-                    <stringValue>Rejected</stringValue>
-                </value>
-            </inputParameters>
-            <label>Set to Rejected</label>
-            <requiresAsyncProcessing>false</requiresAsyncProcessing>
-            <runAsUser>false</runAsUser>
-            <shouldLock>false</shouldLock>
-            <stepSubtype>BackgroundStep</stepSubtype>
-        </stageSteps>
-    </orchestratedStages>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -431,12 +232,6 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             <stringValue>LightningFlowBuilder</stringValue>
         </value>
     </processMetadataValues>
-    <processMetadataValues>
-        <name>SendNoApproverEmails</name>
-        <value>
-            <stringValue>false</stringValue>
-        </value>
-    </processMetadataValues>
     <processType>ApprovalWorkflow</processType>
     <runInMode>SystemModeWithoutSharing</runInMode>
     <start>
@@ -448,7 +243,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
     </start>
     <status>Active</status>
     <variables>
-        <name>DiscountApprovalLevelxx</name>
+        <name>DiscountApprovalLevel</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>

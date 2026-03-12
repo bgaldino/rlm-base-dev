@@ -55,7 +55,7 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC_OrchestrateUsage {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM_OrchestrateUsage {!$Flow.CurrentDateTime}</interviewLabel>
     <label>One Click Orchestrate Usage Flow</label>
     <processMetadataValues>
         <name>BuilderType</name>

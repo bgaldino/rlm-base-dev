@@ -5,13 +5,13 @@
         <label>Build Index and Search</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>RC_RebuildSearchIndex</actionName>
+        <actionName>RLM_RebuildSearchIndex</actionName>
         <actionType>apex</actionType>
         <connector>
             <targetReference>Org_Setup_Status</targetReference>
         </connector>
         <flowTransactionModel>Automatic</flowTransactionModel>
-        <nameSegment>RC_RebuildSearchIndex</nameSegment>
+        <nameSegment>RLM_RebuildSearchIndex</nameSegment>
         <offset>0</offset>
         <outputParameters>
             <assignToReference>SnapShotStatus</assignToReference>
@@ -43,7 +43,7 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RC_Rebuild_Search_Index {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM_Rebuild_Search_Index {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RC Rebuild Search Index</label>
     <processMetadataValues>
         <name>BuilderType</name>

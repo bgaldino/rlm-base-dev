@@ -252,49 +252,49 @@
             </value>
         </filters>
         <inputAssignments>
-            <field>RC_AssetIdName__c</field>
+            <field>RLM_AssetIdName__c</field>
             <value>
                 <elementReference>Get_Asset_LS.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_AssetId__c</field>
+            <field>RLM_AssetId__c</field>
             <value>
                 <elementReference>Get_Asset_LS.Id</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_GrantBindingTargetIdName__c</field>
+            <field>RLM_GrantBindingTargetIdName__c</field>
             <value>
                 <elementReference>Get_GrantBindingTarget_LS_Account.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_GrantBindingTargetId__c</field>
+            <field>RLM_GrantBindingTargetId__c</field>
             <value>
                 <elementReference>Loop_Current_LS.GrantBindingTargetId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UEBIdName__c</field>
+            <field>RLM_UEBIdName__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UsageEntitlementBucket.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UEBId__c</field>
+            <field>RLM_UEBId__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UsageEntitlementBucketId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UoMIdName__c</field>
+            <field>RLM_UoMIdName__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UoM.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UoMId__c</field>
+            <field>RLM_UoMId__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UoMId</elementReference>
             </value>
@@ -318,49 +318,49 @@
             </value>
         </filters>
         <inputAssignments>
-            <field>RC_AssetIdName__c</field>
+            <field>RLM_AssetIdName__c</field>
             <value>
                 <elementReference>Get_Asset_LS.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_AssetId__c</field>
+            <field>RLM_AssetId__c</field>
             <value>
                 <elementReference>Get_Asset_LS.Id</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_GrantBindingTargetIdName__c</field>
+            <field>RLM_GrantBindingTargetIdName__c</field>
             <value>
                 <elementReference>Get_Asset_LS.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_GrantBindingTargetId__c</field>
+            <field>RLM_GrantBindingTargetId__c</field>
             <value>
                 <elementReference>Loop_Current_LS.GrantBindingTargetId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UEBIdName__c</field>
+            <field>RLM_UEBIdName__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UsageEntitlementBucket.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UEBId__c</field>
+            <field>RLM_UEBId__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UsageEntitlementBucketId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UoMIdName__c</field>
+            <field>RLM_UoMIdName__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UoM.Name</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
-            <field>RC_UoMId__c</field>
+            <field>RLM_UoMId__c</field>
             <value>
                 <elementReference>Loop_Current_LS.UoMId</elementReference>
             </value>
@@ -422,7 +422,7 @@
             <inputParameters>
                 <name>columns</name>
                 <value>
-                    <stringValue>[{&quot;apiName&quot;:&quot;RC_LiableSummaryIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-5183&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Name&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;LiableSummaryIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;Status&quot;,&quot;guid&quot;:&quot;column-b533&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Status&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;apiName&quot;:&quot;RC_AssetIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-abd0&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Asset&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;AssetIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;RC_UoMIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-b4ba&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;UoM&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:3,&quot;label&quot;:&quot;UoMIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;TotalUsedQuantity&quot;,&quot;guid&quot;:&quot;column-60fd&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:4,&quot;label&quot;:&quot;Total Used Quantity&quot;,&quot;type&quot;:&quot;number&quot;},{&quot;apiName&quot;:&quot;OverageQuantity&quot;,&quot;guid&quot;:&quot;column-d419&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:5,&quot;label&quot;:&quot;Overage Quantity&quot;,&quot;type&quot;:&quot;number&quot;},{&quot;apiName&quot;:&quot;OverageAmount&quot;,&quot;guid&quot;:&quot;column-42f0&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:6,&quot;label&quot;:&quot;Overage Amount&quot;,&quot;type&quot;:&quot;currency&quot;},{&quot;apiName&quot;:&quot;RC_UEBIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-d6c1&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Usage Entitlement Bucket&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:7,&quot;label&quot;:&quot;UEBIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;StartDateTime&quot;,&quot;guid&quot;:&quot;column-d41d&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:8,&quot;label&quot;:&quot;Start Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;EndDateTime&quot;,&quot;guid&quot;:&quot;column-811e&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:9,&quot;label&quot;:&quot;End Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;RC_GrantBindingTargetIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-78a9&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Grant Binding Target&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:10,&quot;label&quot;:&quot;GrantBindingTargetIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;}]</stringValue>
+                    <stringValue>[{&quot;apiName&quot;:&quot;RLM_LiableSummaryIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-5183&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Name&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;LiableSummaryIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;Status&quot;,&quot;guid&quot;:&quot;column-b533&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Status&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;apiName&quot;:&quot;RLM_AssetIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-abd0&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Asset&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;AssetIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;RLM_UoMIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-b4ba&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;UoM&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:3,&quot;label&quot;:&quot;UoMIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;TotalUsedQuantity&quot;,&quot;guid&quot;:&quot;column-60fd&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:4,&quot;label&quot;:&quot;Total Used Quantity&quot;,&quot;type&quot;:&quot;number&quot;},{&quot;apiName&quot;:&quot;OverageQuantity&quot;,&quot;guid&quot;:&quot;column-d419&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:5,&quot;label&quot;:&quot;Overage Quantity&quot;,&quot;type&quot;:&quot;number&quot;},{&quot;apiName&quot;:&quot;OverageAmount&quot;,&quot;guid&quot;:&quot;column-42f0&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:6,&quot;label&quot;:&quot;Overage Amount&quot;,&quot;type&quot;:&quot;currency&quot;},{&quot;apiName&quot;:&quot;RLM_UEBIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-d6c1&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Usage Entitlement Bucket&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:7,&quot;label&quot;:&quot;UEBIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;StartDateTime&quot;,&quot;guid&quot;:&quot;column-d41d&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:8,&quot;label&quot;:&quot;Start Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;EndDateTime&quot;,&quot;guid&quot;:&quot;column-811e&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:9,&quot;label&quot;:&quot;End Date Time&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;RLM_GrantBindingTargetIdHyperlink__c&quot;,&quot;guid&quot;:&quot;column-78a9&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:true,&quot;customHeaderLabel&quot;:&quot;Grant Binding Target&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:10,&quot;label&quot;:&quot;GrantBindingTargetIdHyperlink&quot;,&quot;type&quot;:&quot;customRichText&quot;}]</stringValue>
                 </value>
             </inputParameters>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>

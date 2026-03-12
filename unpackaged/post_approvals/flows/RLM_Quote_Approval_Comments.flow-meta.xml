@@ -5,13 +5,13 @@
         <label>Call Approval</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>RC_AA_Submit_Approval</actionName>
+        <actionName>RLM_AA_Submit_Approval</actionName>
         <actionType>apex</actionType>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>approvalLevel</name>
             <value>
-                <elementReference>recordId.RC_Approval_Level__c</elementReference>
+                <elementReference>recordId.RLM_Approval_Level__c</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -23,7 +23,7 @@
         <inputParameters>
             <name>flowName</name>
             <value>
-                <stringValue>RC_Quote_Smart_Approval</stringValue>
+                <stringValue>RLM_Quote_Smart_Approval</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
@@ -32,7 +32,7 @@
                 <elementReference>recordId.Id</elementReference>
             </value>
         </inputParameters>
-        <nameSegment>RC_AA_Submit_Approval</nameSegment>
+        <nameSegment>RLM_AA_Submit_Approval</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <apiVersion>66.0</apiVersion>

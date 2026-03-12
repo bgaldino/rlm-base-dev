@@ -73,7 +73,7 @@
     </customProperties>
     <environments>Default</environments>
     <interviewLabel>AI Generated Flow for want a screen flow that calls the WriteOffInvoices invocable...</interviewLabel>
-    <label>RC_WriteOffInvoices</label>
+    <label>RLM_WriteOffInvoices</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

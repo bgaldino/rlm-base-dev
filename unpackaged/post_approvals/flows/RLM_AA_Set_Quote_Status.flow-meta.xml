@@ -3,8 +3,8 @@
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
-    <interviewLabel>RC Quote Approval Data {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Approval Data</label>
+    <interviewLabel>RC AA Set Quote Status {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RC AA Set Quote Status</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -24,65 +24,47 @@
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <recordLookups>
-        <name>Get_Quote_Data</name>
-        <label>Get Quote Data</label>
+    <recordUpdates>
+        <name>Update_Quote_Status</name>
+        <label>Update Quote Status</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>QuoteId</elementReference>
+                <elementReference>QuoteID</elementReference>
             </value>
         </filters>
+        <inputAssignments>
+            <field>RLM_Approval_Status__c</field>
+            <value>
+                <elementReference>Status</elementReference>
+            </value>
+        </inputAssignments>
         <object>Quote</object>
-        <outputAssignments>
-            <assignToReference>QuoteId</assignToReference>
-            <field>Id</field>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>OriginalActionType</assignToReference>
-            <field>OriginalActionType</field>
-        </outputAssignments>
-        <outputAssignments>
-            <assignToReference>DiscountApprovalLevel</assignToReference>
-            <field>RC_Approval_Level__c</field>
-        </outputAssignments>
-    </recordLookups>
+    </recordUpdates>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Quote_Data</targetReference>
+            <targetReference>Update_Quote_Status</targetReference>
         </connector>
     </start>
     <status>Active</status>
     <variables>
-        <name>DiscountApprovalLevel</name>
-        <dataType>Number</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>true</isOutput>
-        <scale>0</scale>
-        <value>
-            <numberValue>0.0</numberValue>
-        </value>
-    </variables>
-    <variables>
-        <name>OriginalActionType</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>true</isOutput>
-    </variables>
-    <variables>
-        <name>QuoteId</name>
+        <name>QuoteID</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
-        <isOutput>true</isOutput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>Status</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
     </variables>
 </Flow>
