@@ -668,14 +668,14 @@
         </itemInstances>
         <itemInstances>
             <fieldInstance>
-                <fieldItem>Record.RC_Account__c</fieldItem>
-                <identifier>RecordRC_Account__cField</identifier>
+                <fieldItem>Record.RLM_Account__c</fieldItem>
+                <identifier>RecordRLM_Account__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
-                <fieldItem>Record.RC_Product_Type__c</fieldItem>
-                <identifier>RecordRC_Product_Type__cField</identifier>
+                <fieldItem>Record.RLM_Product_Type__c</fieldItem>
+                <identifier>RecordRLM_Product_Type__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-81df5fd1-1826-4596-bbfa-79fa56b2df33</name>

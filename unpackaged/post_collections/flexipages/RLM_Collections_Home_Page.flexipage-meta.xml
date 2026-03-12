@@ -13,7 +13,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>filterName</name>
-                    <value>RC_All_Collection_Plans</value>
+                    <value>RLM_All_Collection_Plans</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideActionBar</name>

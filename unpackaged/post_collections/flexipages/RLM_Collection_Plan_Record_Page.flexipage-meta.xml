@@ -488,7 +488,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>flowName</name>
-                    <value>RC_Create_Late_Fee</value>
+                    <value>RLM_Create_Late_Fee</value>
                 </componentInstanceProperties>
                 <componentName>flowruntime:interview</componentName>
                 <identifier>flowruntime_interview</identifier>
