@@ -89,8 +89,15 @@ echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --pr
 
 # Also add nvm to ~/.zshenv so non-interactive shells see it
 # (required for IDE tools, CI runners, and Claude Code which spawn non-interactive shells)
-# Guard brew call so the line works even if brew is not yet on PATH in non-interactive shells
+# Homebrew is often only on PATH in login shells (~/.zprofile); fall back to known absolute
+# locations so this works in non-interactive shells that never source ~/.zprofile.
 echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
+echo '# Bootstrap Homebrew in non-interactive shells' >> ~/.zshenv
+echo 'if ! command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
+echo '  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do' >> ~/.zshenv
+echo '    [ -x "$_brew" ] && eval "$($_brew shellenv)" && break' >> ~/.zshenv
+echo '  done' >> ~/.zshenv
+echo 'fi' >> ~/.zshenv
 echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
 echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
 echo '  if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then' >> ~/.zshenv
