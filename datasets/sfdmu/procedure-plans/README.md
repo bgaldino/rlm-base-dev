@@ -76,7 +76,7 @@ Key behaviors:
 
 | Option | Value | Description |
 |--------|-------|-------------|
-| `developerName` | `RC_Quote_Pricing_Procedure_Plan` | PPD DeveloperName |
+| `developerName` | `RLM_Quote_Pricing_Procedure_Plan` | PPD DeveloperName |
 | `name` | `RC Quote Pricing Procedure Plan` | PPD label |
 | `primaryObject` | `Quote` | Target object |
 | `processType` | `RevenueCloud` | Process type |

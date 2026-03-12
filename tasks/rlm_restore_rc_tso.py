@@ -1,5 +1,5 @@
 """
-Custom CumulusCI task to restore RC_TSO from .skip file before deployment.
+Custom CumulusCI task to restore RLM_TSO from .skip file before deployment.
 """
 from pathlib import Path
 from typing import Dict, Any
@@ -34,7 +34,7 @@ class RestoreRLMTSO(BaseTask):
             return
         
         if tso_storage_file.exists() and not tso_file.exists():
-            # Move RC_TSO from storage to main directory for deployment
+            # Move RLM_TSO from storage to main directory for deployment
             tso_storage_file.rename(tso_file)
             self.logger.info("RLM_TSO moved from storage directory for deployment")
         elif tso_file.exists():

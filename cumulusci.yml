@@ -449,8 +449,8 @@ project:
 # Each setting is referenced in the create_procedure_plan_definition task
 
     procedure_plan_definition_description: &procedure_plan_definition_description "Procedure Plan Definition for Quote Pricing"
-    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RC_Quote_Pricing_Procedure_Plan"
-    procedure_plan_definition_name: &procedure_plan_definition_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RLM_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_name: &procedure_plan_definition_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
     procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
     procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
@@ -458,7 +458,7 @@ project:
     procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
     procedure_plan_definition_version_save_context_mapping: &procedure_plan_definition_version_save_context_mapping "QuoteEntitiesMapping"
     procedure_plan_definition_version_effective_from: &procedure_plan_definition_version_effective_from "2026-01-01T00:00:00.000Z"
-    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_version_rank: &procedure_plan_definition_version_rank 1
     procedure_plan_definition_version_effective_to: &procedure_plan_definition_version_effective_to 
 
@@ -1883,7 +1883,7 @@ tasks:
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: activate_versions
-      version_full_names: RC_Price_Distribution_Procedure_V1
+      version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
 #----------------#
