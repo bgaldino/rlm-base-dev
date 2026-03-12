@@ -214,4 +214,11 @@
         <isInput>true</isInput>
         <isOutput>false</isOutput>
     </variables>
+    <variables>
+        <name>firstApprover</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
 </Flow>
