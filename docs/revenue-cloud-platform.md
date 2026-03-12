@@ -1,7 +1,7 @@
 # Revenue Cloud Engineering Platform
 
 > **Document Type:** Integration Overview — Living Document
-> **Last Updated:** 2026-02-27
+> **Last Updated:** 2026-03-12
 > **Audience:** Engineering Leadership
 >
 > **Three platforms. One integrated engineering workflow for Revenue Cloud.**
@@ -218,6 +218,8 @@ Aegis is a **Salesforce Revenue Cloud BDD test automation framework** built on B
 2. **No shapes/manifest awareness:** Aegis has no concept of data shapes, feature flags, or `shapes.json`. Test scenarios are written per-team and don't adapt to which QB/Q3/MFG shape was loaded. Cross-referencing shape metadata with Aegis scenario selection is an open design question (see O9 in [distill-integration.md](distill-integration.md)).
 3. **No CCI integration today:** The Aegis repo has no `cumulusci.yml`, no CCI task classes, and no reference to Foundations. The `RevenueGoFoundation` team is the closest existing touchpoint.
 
+**Full integration plan:** [aegis-integration.md](aegis-integration.md) — credential handoff design, CCI task design, feature flag→team mapping, Jenkins API trigger, phased roadmap.
+
 ### 4.4 Running Aegis Against a Foundations Org (Manual Steps Today)
 
 ```bash
@@ -363,7 +365,8 @@ The integrated platform — specifically the combination of (1) CCI feature-flag
 | Document | Purpose | Audience |
 |---|---|---|
 | **[This document](revenue-cloud-platform.md)** | Platform overview — entry point for all stakeholders | All |
-| **[Integration Specification](distill-integration.md)** | Full technical spec: REST API contract, shape manifest schema, CCI task design, open questions, roadmap | Engineering |
+| **[Distill Integration Plan](distill-integration.md)** | Full technical spec: insights pipeline integration, shape manifest schema, CCI task design, open questions, phased roadmap | Engineering |
+| **[Aegis Integration Plan](aegis-integration.md)** | Credential handoff design, CCI task design, flag-to-team mapping, Jenkins API trigger, phased roadmap | Engineering |
 | **[Project Analysis Reference](project-analysis.md)** | Comprehensive inventory of both Foundations and Distill — tasks, flows, APIs, DB schemas | Engineering |
 | **[Datasets Reorganization Proposal](datasets-reorganization.md)** | Phase 0: before/after structure, migration script, CCI path changes required | Engineering |
 
