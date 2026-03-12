@@ -192,7 +192,7 @@ class ValidateSetup(BaseTask):
         except FileNotFoundError:
             return self._warn(
                 label,
-                "not found — Node.js is required if you install sf CLI and SFDMU via npm. "
+                "not found — Node.js is required to run the npm-installed sf CLI and its plugins (including SFDMU). "
                 "Download from https://nodejs.org or use a version manager such as nvm "
                 "(on macOS: brew install nvm && nvm install --lts).",
             )
