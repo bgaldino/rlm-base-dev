@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OmniScript xmlns="http://soap.sforce.com/2006/04/metadata">
+    <designerCustomizationType>Discovery Framework</designerCustomizationType>
+    <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+    <elementTypeComponentMapping>{&quot;ElementTypeToHTMLTemplateList&quot;:[]}</elementTypeComponentMapping>
+    <isActive>true</isActive>
+    <isIntegrationProcedure>false</isIntegrationProcedure>
+    <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
+    <isMetadataCacheDisabled>false</isMetadataCacheDisabled>
+    <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
+    <isTestProcedure>false</isTestProcedure>
+    <isWebCompEnabled>true</isWebCompEnabled>
+    <language>English</language>
+    <name>Chemicals Guided Selling</name>
+    <omniProcessElements>
+        <embeddedOmniScriptKey>ProductGuidedSelection|Integration|English</embeddedOmniScriptKey>
+        <isActive>true</isActive>
+        <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
+        <level>0.0</level>
+        <name>ProductGuidedSelectionIntegration</name>
+        <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
+        <propertySetConfig>{
+  &quot;Type&quot; : &quot;ProductGuidedSelection&quot;,
+  &quot;Sub Type&quot; : &quot;Integration&quot;,
+  &quot;Language&quot; : &quot;English&quot;,
+  &quot;show&quot; : null
+}</propertySetConfig>
+        <sequenceNumber>1.0</sequenceNumber>
+        <type>OmniScript</type>
+    </omniProcessElements>
+    <omniProcessElements>
+        <childElements>
+            <designerCustomizationType>Discovery Framework</designerCustomizationType>
+            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <isActive>true</isActive>
+            <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
+            <level>1.0</level>
+            <name>Chemical_Application</name>
+            <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
+            <propertySetConfig>{
+  &quot;controlWidth&quot; : 12.0,
+  &quot;label&quot; : &quot;What is the primary application?&quot;,
+  &quot;showInputWidth&quot; : false,
+  &quot;inputWidth&quot; : 12.0,
+  &quot;required&quot; : false,
+  &quot;repeat&quot; : false,
+  &quot;repeatClone&quot; : false,
+  &quot;repeatLimit&quot; : null,
+  &quot;readOnly&quot; : false,
+  &quot;defaultValue&quot; : null,
+  &quot;help&quot; : false,
+  &quot;helpText&quot; : &quot;&quot;,
+  &quot;options&quot; : [ {
+    &quot;name&quot; : &quot;PCB cleaning&quot;,
+    &quot;value&quot; : &quot;PCB cleaning&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Protective Topcoat&quot;,
+    &quot;value&quot; : &quot;Protective Topcoat&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;pH Adjustment and Sanitizing&quot;,
+    &quot;value&quot; : &quot;pH Adjustment and Sanitizing&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Preventing Product Degradation&quot;,
+    &quot;value&quot; : &quot;Preventing Product Degradation&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Coolant System Protection&quot;,
+    &quot;value&quot; : &quot;Coolant System Protection&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Foam Control During Processing&quot;,
+    &quot;value&quot; : &quot;Foam Control During Processing&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Component Encapsulation&quot;,
+    &quot;value&quot; : &quot;Component Encapsulation&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Durable Container Molding&quot;,
+    &quot;value&quot; : &quot;Durable Container Molding&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;pH Adjustment and Synthesis&quot;,
+    &quot;value&quot; : &quot;pH Adjustment and Synthesis&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Cleaning-In-Place (CIP)&quot;,
+    &quot;value&quot; : &quot;Cleaning-In-Place (CIP)&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Semiconductor Etching and Cleaning&quot;,
+    &quot;value&quot; : &quot;Semiconductor Etching and Cleaning&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Tablet Coating and Opacifier&quot;,
+    &quot;value&quot; : &quot;Tablet Coating and Opacifier&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Paint and Thinner Formulation&quot;,
+    &quot;value&quot; : &quot;Paint and Thinner Formulation&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Plastic Component and Coating Protection&quot;,
+    &quot;value&quot; : &quot;Plastic Component and Coating Protection&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Paint Preparation and Parts Cleaning&quot;,
+    &quot;value&quot; : &quot;Paint Preparation and Parts Cleaning&quot;,
+    &quot;autoAdv&quot; : null
+  } ],
+  &quot;optionSource&quot; : {
+    &quot;type&quot; : &quot;&quot;,
+    &quot;source&quot; : &quot;&quot;
+  },
+  &quot;controllingField&quot; : {
+    &quot;element&quot; : &quot;&quot;,
+    &quot;type&quot; : &quot;&quot;,
+    &quot;source&quot; : &quot;&quot;
+  },
+  &quot;show&quot; : null,
+  &quot;conditionType&quot; : &quot;Hide if False&quot;,
+  &quot;accessibleInFutureSteps&quot; : false,
+  &quot;HTMLTemplateId&quot; : &quot;&quot;,
+  &quot;hide&quot; : false,
+  &quot;disOnTplt&quot; : false
+}</propertySetConfig>
+            <sequenceNumber>1.0</sequenceNumber>
+            <type>Select</type>
+            <uniqueIndex>Chemical_Application</uniqueIndex>
+        </childElements>
+        <childElements>
+            <designerCustomizationType>Discovery Framework</designerCustomizationType>
+            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <isActive>true</isActive>
+            <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
+            <level>1.0</level>
+            <name>Chemical_Regulatory_Requirements</name>
+            <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
+            <propertySetConfig>{
+  &quot;controlWidth&quot; : 12.0,
+  &quot;label&quot; : &quot;What are the performance/regulatory requirements&quot;,
+  &quot;required&quot; : false,
+  &quot;repeat&quot; : false,
+  &quot;repeatClone&quot; : false,
+  &quot;repeatLimit&quot; : null,
+  &quot;readOnly&quot; : false,
+  &quot;horizontalMode&quot; : false,
+  &quot;defaultValue&quot; : null,
+  &quot;help&quot; : false,
+  &quot;helpText&quot; : &quot;&quot;,
+  &quot;options&quot; : [ {
+    &quot;name&quot; : &quot;Coatings-Grade&quot;,
+    &quot;developerName&quot; : &quot;Coatings-Grade&quot;,
+    &quot;value&quot; : &quot;Coatings-Grade&quot;
+  }, {
+    &quot;name&quot; : &quot;Durable&quot;,
+    &quot;developerName&quot; : &quot;Durable&quot;,
+    &quot;value&quot; : &quot;Durable&quot;
+  }, {
+    &quot;name&quot; : &quot;Electronics-Grade&quot;,
+    &quot;developerName&quot; : &quot;Electronics-Grade&quot;,
+    &quot;value&quot; : &quot;Electronics-Grade&quot;
+  }, {
+    &quot;name&quot; : &quot;Fast Evaporating&quot;,
+    &quot;developerName&quot; : &quot;Fast Evaporating&quot;,
+    &quot;value&quot; : &quot;Fast Evaporating&quot;
+  }, {
+    &quot;name&quot; : &quot;FDA-Compliant&quot;,
+    &quot;developerName&quot; : &quot;FDA-Compliant&quot;,
+    &quot;value&quot; : &quot;FDA-Compliant&quot;
+  }, {
+    &quot;name&quot; : &quot;Food-Grade&quot;,
+    &quot;developerName&quot; : &quot;Food-Grade&quot;,
+    &quot;value&quot; : &quot;Food-Grade&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Density&quot;,
+    &quot;developerName&quot; : &quot;High-Density&quot;,
+    &quot;value&quot; : &quot;High-Density&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Dielectric-Strength&quot;,
+    &quot;developerName&quot; : &quot;High-Dielectric-Strength&quot;,
+    &quot;value&quot; : &quot;High-Dielectric-Strength&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Gloss&quot;,
+    &quot;developerName&quot; : &quot;High-Gloss&quot;,
+    &quot;value&quot; : &quot;High-Gloss&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Opacity&quot;,
+    &quot;developerName&quot; : &quot;High-Opacity&quot;,
+    &quot;value&quot; : &quot;High-Opacity&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Purity&quot;,
+    &quot;developerName&quot; : &quot;High-Purity&quot;,
+    &quot;value&quot; : &quot;High-Purity&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Strength&quot;,
+    &quot;developerName&quot; : &quot;High-Strength&quot;,
+    &quot;value&quot; : &quot;High-Strength&quot;
+  }, {
+    &quot;name&quot; : &quot;High-Temperature&quot;,
+    &quot;developerName&quot; : &quot;High-Temperature&quot;,
+    &quot;value&quot; : &quot;High-Temperature&quot;
+  }, {
+    &quot;name&quot; : &quot;Long-Life&quot;,
+    &quot;developerName&quot; : &quot;Long-Life&quot;,
+    &quot;value&quot; : &quot;Long-Life&quot;
+  }, {
+    &quot;name&quot; : &quot;Multi-Metal Compatible&quot;,
+    &quot;developerName&quot; : &quot;Multi-Metal Compatible&quot;,
+    &quot;value&quot; : &quot;Multi-Metal Compatible&quot;
+  }, {
+    &quot;name&quot; : &quot;Non-Yellowing Additive&quot;,
+    &quot;developerName&quot; : &quot;Non-Yellowing Additive&quot;,
+    &quot;value&quot; : &quot;Non-Yellowing Additive&quot;
+  }, {
+    &quot;name&quot; : &quot;Silicone-Based&quot;,
+    &quot;developerName&quot; : &quot;Silicone-Based&quot;,
+    &quot;value&quot; : &quot;Silicone-Based&quot;
+  }, {
+    &quot;name&quot; : &quot;Thermally-Conductive&quot;,
+    &quot;developerName&quot; : &quot;Thermally-Conductive&quot;,
+    &quot;value&quot; : &quot;Thermally-Conductive&quot;
+  }, {
+    &quot;name&quot; : &quot;Ultra-High-Purity&quot;,
+    &quot;developerName&quot; : &quot;Ultra-High-Purity&quot;,
+    &quot;value&quot; : &quot;Ultra-High-Purity&quot;
+  }, {
+    &quot;name&quot; : &quot;USP-grade&quot;,
+    &quot;developerName&quot; : &quot;USP-grade&quot;,
+    &quot;value&quot; : &quot;USP-grade&quot;
+  } ],
+  &quot;optionSource&quot; : {
+    &quot;type&quot; : &quot;&quot;,
+    &quot;source&quot; : &quot;&quot;
+  },
+  &quot;controllingField&quot; : {
+    &quot;element&quot; : &quot;&quot;,
+    &quot;type&quot; : &quot;&quot;,
+    &quot;source&quot; : &quot;&quot;
+  },
+  &quot;show&quot; : null,
+  &quot;conditionType&quot; : &quot;Hide if False&quot;,
+  &quot;accessibleInFutureSteps&quot; : false,
+  &quot;HTMLTemplateId&quot; : &quot;&quot;,
+  &quot;hide&quot; : false,
+  &quot;optionWidth&quot; : 100.0,
+  &quot;optionHeight&quot; : 100.0,
+  &quot;imageCountInRow&quot; : 3.0,
+  &quot;enableCaption&quot; : true,
+  &quot;disOnTplt&quot; : false
+}</propertySetConfig>
+            <sequenceNumber>2.0</sequenceNumber>
+            <type>Multi-select</type>
+            <uniqueIndex>Chemical_Regulatory_Requirements</uniqueIndex>
+        </childElements>
+        <childElements>
+            <designerCustomizationType>Discovery Framework</designerCustomizationType>
+            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <isActive>true</isActive>
+            <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
+            <level>1.0</level>
+            <name>Customer_Industry</name>
+            <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
+            <propertySetConfig>{
+  &quot;controlWidth&quot; : 12.0,
+  &quot;label&quot; : &quot;Customer Industry&quot;,
+  &quot;showInputWidth&quot; : false,
+  &quot;inputWidth&quot; : 12.0,
+  &quot;required&quot; : false,
+  &quot;repeat&quot; : false,
+  &quot;repeatClone&quot; : false,
+  &quot;repeatLimit&quot; : null,
+  &quot;readOnly&quot; : false,
+  &quot;defaultValue&quot; : null,
+  &quot;help&quot; : false,
+  &quot;helpText&quot; : &quot;&quot;,
+  &quot;options&quot; : [ {
+    &quot;name&quot; : &quot;Electronics&quot;,
+    &quot;value&quot; : &quot;Electronics&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Automotive&quot;,
+    &quot;value&quot; : &quot;Automotive&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Food &amp; Beverage&quot;,
+    &quot;value&quot; : &quot;Food &amp; Beverage&quot;,
+    &quot;autoAdv&quot; : null
+  }, {
+    &quot;name&quot; : &quot;Pharmaceutical&quot;,
+    &quot;value&quot; : &quot;Pharmaceutical&quot;,
+    &quot;autoAdv&quot; : null
+  } ],
+  &quot;optionSource&quot; : {
+    &quot;type&quot; : &quot;&quot;,
+    &quot;source&quot; : &quot;&quot;
+  },
+  &quot;controllingField&quot; : {
+    &quot;element&quot; : &quot;&quot;,
+    &quot;type&quot; : &quot;&quot;,
+    &quot;source&quot; : &quot;&quot;
+  },
+  &quot;show&quot; : null,
+  &quot;conditionType&quot; : &quot;Hide if False&quot;,
+  &quot;accessibleInFutureSteps&quot; : false,
+  &quot;HTMLTemplateId&quot; : &quot;&quot;,
+  &quot;hide&quot; : false,
+  &quot;disOnTplt&quot; : false
+}</propertySetConfig>
+            <sequenceNumber>0.0</sequenceNumber>
+            <type>Select</type>
+            <uniqueIndex>Customer_Industry</uniqueIndex>
+        </childElements>
+        <designerCustomizationType>Discovery Framework</designerCustomizationType>
+        <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+        <isActive>true</isActive>
+        <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
+        <level>0.0</level>
+        <name>Step1</name>
+        <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
+        <propertySetConfig>{
+  &quot;label&quot; : &quot;Chemical Guided Selling Questions&quot;,
+  &quot;validationRequired&quot; : true,
+  &quot;previousLabel&quot; : &quot;Previous&quot;,
+  &quot;previousWidth&quot; : 3,
+  &quot;nextLabel&quot; : &quot;Next&quot;,
+  &quot;nextWidth&quot; : 3,
+  &quot;cancelLabel&quot; : &quot;Cancel&quot;,
+  &quot;cancelMessage&quot; : &quot;Are you sure?&quot;,
+  &quot;saveLabel&quot; : &quot;Save for later&quot;,
+  &quot;saveMessage&quot; : &quot;Are you sure you want to save it for later?&quot;,
+  &quot;completeLabel&quot; : &quot;Complete&quot;,
+  &quot;completeMessage&quot; : &quot;Are you sure you want to complete the script?&quot;,
+  &quot;instruction&quot; : &quot;&quot;,
+  &quot;showPersistentComponent&quot; : [ true, false ],
+  &quot;remoteClass&quot; : &quot;&quot;,
+  &quot;remoteMethod&quot; : &quot;&quot;,
+  &quot;remoteTimeout&quot; : 30000,
+  &quot;remoteOptions&quot; : { },
+  &quot;knowledgeOptions&quot; : {
+    &quot;language&quot; : &quot;English&quot;,
+    &quot;publishStatus&quot; : &quot;Online&quot;,
+    &quot;keyword&quot; : &quot;&quot;,
+    &quot;dataCategoryCriteria&quot; : &quot;&quot;,
+    &quot;remoteTimeout&quot; : 30000,
+    &quot;typeFilter&quot; : &quot;&quot;
+  },
+  &quot;show&quot; : null,
+  &quot;conditionType&quot; : &quot;Hide if False&quot;,
+  &quot;HTMLTemplateId&quot; : &quot;&quot;,
+  &quot;instructionKey&quot; : &quot;&quot;,
+  &quot;chartLabel&quot; : null,
+  &quot;allowSaveForLater&quot; : true,
+  &quot;errorMessage&quot; : {
+    &quot;custom&quot; : [ ],
+    &quot;default&quot; : null
+  },
+  &quot;wpm&quot; : false,
+  &quot;ssm&quot; : false,
+  &quot;message&quot; : { },
+  &quot;pubsub&quot; : false,
+  &quot;businessCategory&quot; : &quot;&quot;,
+  &quot;businessEvent&quot; : &quot;&quot;
+}</propertySetConfig>
+        <sequenceNumber>0.0</sequenceNumber>
+        <type>Step</type>
+    </omniProcessElements>
+    <omniProcessType>OmniScript</omniProcessType>
+    <propertySetConfig>{&quot;persistentComponent&quot;:[{&quot;render&quot;:false,&quot;label&quot;:&quot;&quot;,&quot;remoteClass&quot;:&quot;&quot;,&quot;remoteMethod&quot;:&quot;&quot;,&quot;remoteTimeout&quot;:30000,&quot;remoteOptions&quot;:{&quot;preTransformBundle&quot;:&quot;&quot;,&quot;postTransformBundle&quot;:&quot;&quot;},&quot;preTransformBundle&quot;:&quot;&quot;,&quot;postTransformBundle&quot;:&quot;&quot;,&quot;sendJSONPath&quot;:&quot;&quot;,&quot;sendJSONNode&quot;:&quot;&quot;,&quot;responseJSONPath&quot;:&quot;&quot;,&quot;responseJSONNode&quot;:&quot;&quot;,&quot;id&quot;:&quot;vlcCart&quot;,&quot;itemsKey&quot;:&quot;cartItems&quot;, &quot;modalConfigurationSetting&quot;:{&quot;modalHTMLTemplateId&quot;:&quot;vlcProductConfig.html&quot;,&quot;modalController&quot;:&quot;ModalProductCtrl&quot;,&quot;modalSize&quot;:&quot;lg&quot;}}, {&quot;render&quot;:false,&quot;dispOutsideOmni&quot;:false,&quot;label&quot;:&quot;&quot;,&quot;remoteClass&quot;:&quot;&quot;,&quot;remoteMethod&quot;:&quot;&quot;,&quot;remoteTimeout&quot;:30000,&quot;remoteOptions&quot;:{&quot;preTransformBundle&quot;:&quot;&quot;,&quot;postTransformBundle&quot;:&quot;&quot;},&quot;preTransformBundle&quot;:&quot;&quot;,&quot;postTransformBundle&quot;:&quot;&quot;,&quot;id&quot;:&quot;vlcKnowledge&quot;,&quot;itemsKey&quot;:&quot;knowledgeItems&quot;, &quot;modalConfigurationSetting&quot;:{&quot;modalHTMLTemplateId&quot;:&quot;&quot;,&quot;modalController&quot;:&quot;&quot;,&quot;modalSize&quot;:&quot;lg&quot;}}],&quot;allowSaveForLater&quot;:true,&quot;saveNameTemplate&quot;:null,&quot;saveExpireInDays&quot;:null,&quot;saveForLaterRedirectPageName&quot;:&quot;sflRedirect&quot;,&quot;saveForLaterRedirectTemplateUrl&quot;:&quot;vlcSaveForLaterAcknowledge.html&quot;,&quot;saveContentEncoded&quot;:false,&quot;saveObjectId&quot;:&quot;%ContextId%&quot;,&quot;saveURLPatterns&quot;:{},&quot;autoSaveOnStepNext&quot;:false, &quot;elementTypeToHTMLTemplateMapping&quot;:{},&quot;seedDataJSON&quot;:{}, &quot;trackingCustomData&quot;:{},&quot;enableKnowledge&quot;:false,&quot;bLK&quot;:false,&quot;lkObjName&quot;:null,&quot;knowledgeArticleTypeQueryFieldsMap&quot;:{},&quot;timeTracking&quot;:false, &quot;hideStepChart&quot;:false, &quot;mergeSavedData&quot;: false,&quot;visualforcePagesAvailableInPreview&quot;:{},&quot;cancelType&quot;:&quot;SObject&quot;,&quot;allowCancel&quot;:true,&quot;cancelSource&quot;:&quot;%ContextId%&quot;,&quot;cancelRedirectPageName&quot;:&quot;OmniScriptCancelled&quot;,&quot;cancelRedirectTemplateUrl&quot;:&quot;vlcCancelled.html&quot;,&quot;consoleTabLabel&quot;:&quot;New&quot;,&quot;wpm&quot;:false,&quot;ssm&quot;:false,&quot;message&quot;:{},&quot;pubsub&quot;:false,&quot;autoFocus&quot;:false, &quot;currencyCode&quot;:&quot;&quot;, &quot;showInputWidth&quot;:false, &quot;rtpSeed&quot;:false,&quot;consoleTabTitle&quot;:null,&quot;consoleTabIcon&quot;:&quot;custom:custom18&quot;,&quot;errorMessage&quot;:{&quot;custom&quot;:[]},&quot;stylesheet&quot;:{&quot;newport&quot;:&quot;&quot;,&quot;lightning&quot;:&quot;&quot;,&quot;newportRtl&quot;:&quot;&quot;,&quot;lightningRtl&quot;:&quot;&quot;},&quot;stepChartPlacement&quot;:&quot;right&quot;,&quot;disableUnloadWarn&quot;:true,&quot;scrollBehavior&quot;:&quot;auto&quot;}</propertySetConfig>
+    <subType>Chemcials</subType>
+    <type>GuidedSelling</type>
+    <uniqueName>GuidedSelling_Chemcials_English_1</uniqueName>
+    <versionNumber>1.0</versionNumber>
+</OmniScript>
