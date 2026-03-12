@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete

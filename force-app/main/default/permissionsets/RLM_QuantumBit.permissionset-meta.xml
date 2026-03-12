@@ -20,11 +20,7 @@
         <field>Quote.RLM_TermMonths__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Quote.RLM_Start_Sync__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
+
     <fieldPermissions>
         <editable>false</editable>
         <field>QuoteLineItem.RLM_ProductName__c</field>
