@@ -115,3 +115,9 @@ datasets/sfdmu/**/*.csv.bak
 tmp-metadata/
 .cursor/plans/**
 retrieved_rlm_bundle/**
+
+
+# MFG Test
+datasets/sfdmu/test
+dev
+extractions

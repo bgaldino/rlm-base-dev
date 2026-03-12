@@ -2841,6 +2841,16 @@ flows:
         options:
           data_dir: *fuelCell_mfg_cml
 
+  prepare_badger_dro:
+    group: Badger
+    steps:
+      1:
+        task: insert_badger_dro_data
+        when: project_config.project__custom__badger
+      2:
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__badger
+
   run_qb_extracts:
     group: Data Management - Extract
     description: Run all QB data extract tasks (org → CSV). Use --org to specify source org.
