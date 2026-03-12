@@ -40,7 +40,7 @@
     <tabs>standard-GeneralLdgrAcctPrdSummary</tabs>
     <tabs>standard-TransactionJournal</tabs>
     <uiType>Lightning</uiType>
-    <utilityBar>RC_Receivables_Management_UtilityBar</utilityBar>
+    <utilityBar>RLM_Receivables_Management_UtilityBar</utilityBar>
     <workspaceConfig>
         <mappings>
             <tab>standard-GeneralLdgrAcctPrdSummary</tab>

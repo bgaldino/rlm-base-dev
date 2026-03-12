@@ -1,4 +1,4 @@
-<apex:page standardController="Quote" extensions="RC_QuoteApprovalController" showQuickActionVfHeader="false" lightningStylesheets="true">
+<apex:page standardController="Quote" extensions="RLM_QuoteApprovalController" showQuickActionVfHeader="false" lightningStylesheets="true">
     <script>
         function closePopup() {
             if (sforce && sforce.one) {
