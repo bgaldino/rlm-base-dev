@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -220,7 +220,7 @@ project:
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
       # Territory Sales Operations permission sets
       - ERIBasic
-      - RC_Utilities
+      - RLM_UtilitiesPermset
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -262,9 +262,9 @@ project:
 
     rlm_psg_api_names: &rlm_psg_api_names
       # Core permission set groups
-      - RC_QB_AI
-      - RC_RCB
-      - RC_RMI
+      - RLM_QB_AI
+      - RLM_RCB
+      - RLM_RMI
       - RLM_CFG
       - RLM_CLM
       - RLM_DOC
@@ -275,7 +275,7 @@ project:
       - RLM_USG
 
     psg_tso: &psg_tso
-      - RC_TSO
+      - RLM_TSO
       
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
@@ -288,7 +288,7 @@ project:
 
     ps_aea: &ps_aea
       # Agent-specific permission sets
-      - RLM_Revenue_Cloud_Agent
+      - RLM_QuotingAgent
 
 
     ps_constraints: &ps_constraints
@@ -707,18 +707,18 @@ tasks:
       path: unpackaged/pre
 
   restore_rc_tso:
-    description: Move RC_TSO from storage directory for deployment (only when tso flag is true)
+    description: Move RLM_TSO from storage directory for deployment (only when tso flag is true)
     class_path: tasks.rlm_restore_rc_tso.RestoreRCTSO
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/pre
 
   deploy_rc_tso:
-    description: Deploy RC_TSO Permission Set Group (only when tso flag is true)
+    description: Deploy RLM_TSO Permission Set Group (only when tso flag is true)
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
-      path: unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
+      path: unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
   deploy_context_definitions:
     description: Deploy Context Definitions

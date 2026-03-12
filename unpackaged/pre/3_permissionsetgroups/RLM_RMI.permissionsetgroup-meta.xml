@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>RC Revenue Management Intelligence with Data Cloud and Tableau Next</description>
+    <description>Revenue Management Intelligence with Data Cloud and Tableau Next</description>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RC_RMI</label>
+    <label>RLM_RMI</label>
     <permissionSets>force__AnalyticsStoreUser</permissionSets>
     <permissionSets>force__PulseRuntimeUser</permissionSets>
     </PermissionSetGroup>

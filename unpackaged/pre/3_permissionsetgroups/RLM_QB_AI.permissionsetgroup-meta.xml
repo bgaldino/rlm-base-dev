@@ -2,5 +2,5 @@
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
     <description>Generative AI permission sets for QuantumBit NextGen</description>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RC QuantumBit AI</label>
-    </PermissionSetGroup>
+    <label>RLM QuantumBit AI</label>
+</PermissionSetGroup>

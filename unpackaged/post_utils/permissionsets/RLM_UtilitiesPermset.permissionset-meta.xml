@@ -165,6 +165,10 @@
         <field>UsageSummary.RC_UsageSummaryIdHyperlink__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <classAccesses>
+        <apexClass>RC_AccountUtilities</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RC_UsageManagement256PermSet</label>
+    <label>RLM Utilities</label>
 </PermissionSet>

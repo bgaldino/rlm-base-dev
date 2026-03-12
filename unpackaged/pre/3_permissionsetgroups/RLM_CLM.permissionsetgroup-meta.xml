@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Revenue Cloud Salesforce Contracts Permission Sets</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_CLM</label>
     <permissionSets>force__CLMAdminUser</permissionSets>
