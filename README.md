@@ -89,20 +89,33 @@ echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --pr
 
 # Also add nvm to ~/.zshenv so non-interactive shells see it
 # (required for IDE tools, CI runners, and Claude Code which spawn non-interactive shells)
+# Homebrew is often only on PATH in login shells (~/.zprofile); fall back to known absolute
+# locations so this works in non-interactive shells that never source ~/.zprofile.
 echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
-echo '[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"' >> ~/.zshenv
+echo '# Bootstrap Homebrew in non-interactive shells' >> ~/.zshenv
+echo 'if ! command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
+echo '  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do' >> ~/.zshenv
+echo '    [ -x "$_brew" ] && eval "$($_brew shellenv)" && break' >> ~/.zshenv
+echo '  done' >> ~/.zshenv
+echo 'fi' >> ~/.zshenv
+echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
+echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
+echo '  if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then' >> ~/.zshenv
+echo '    \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
+echo '  fi' >> ~/.zshenv
+echo 'fi' >> ~/.zshenv
 
 # Reload your shell
 source ~/.zshrc
 
-# Install the latest LTS Node (currently v24 "krypton")
+# Install the latest LTS version of Node.js
 nvm install --lts
 
 # Set LTS as the default for all new shells
 nvm alias default lts/*
 
 # Verify
-node --version   # Should show v24.x.x or later LTS
+node --version   # Should show an even-numbered LTS version (v20, v22, v24, …)
 npm --version
 ```
 
@@ -136,17 +149,16 @@ echo 'eval "$(pyenv init -)"' >> ~/.zshenv
 # Reload your shell
 source ~/.zshrc
 
-# Install Python 3.13 (or 3.12 — both work well with CCI)
-pyenv install 3.13
-
-# Set it as your global default
-pyenv global 3.13
+# Install the latest 3.13.x patch automatically
+PYTHON_VERSION=$(pyenv install --list | grep -E "^[[:space:]]*3\.13\.[0-9]+$" | tail -1 | tr -d '[:space:]')
+pyenv install "$PYTHON_VERSION"
+pyenv global "$PYTHON_VERSION"
 
 # Verify
-python --version   # Should show 3.13.x
+python --version   # Should show the latest 3.13.x patch
 ```
 
-> **Using multiple Python versions?** You can install additional versions alongside (e.g. `pyenv install 3.12 3.14`) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
+> **Using multiple Python versions?** You can install additional versions alongside (for example, another 3.12.x or 3.13.x patch) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
 
 > **Non-interactive shell note:** The `~/.zshenv` additions above ensure that IDE tools, CI runners, and Claude Code (which spawn non-interactive shells) can find your pyenv-managed Python. Without `~/.zshenv`, only interactive terminal sessions see pyenv.
 
@@ -183,15 +195,15 @@ deactivate
 
 ```bash
 # Install pipx via pyenv's Python — keeps all Python tooling under pyenv, not Homebrew
-# Use whichever Python version you chose in Step 4 (3.12 or 3.13)
-$(pyenv prefix 3.13)/bin/python3.13 -m pip install --user pipx
+# Uses the pyenv global set in Step 4 ($(pyenv prefix) resolves to that version)
+$(pyenv prefix)/bin/python3 -m pip install --user pipx
 
 # Ensure ~/.local/bin is in your PATH (pipx installs cci, snowfakery, etc. there)
-$(pyenv prefix 3.13)/bin/python3.13 -m pipx ensurepath
+$(pyenv prefix)/bin/python3 -m pipx ensurepath
 source ~/.zshrc
 
 # Install CumulusCI using the same Python version
-pipx install cumulusci --python $(pyenv prefix 3.13)/bin/python3.13
+pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
 
 # Fix a known compatibility issue: CCI depends on fs/pyfilesystem2 which requires
 # pkg_resources from setuptools<71. Newer setuptools removes pkg_resources.
@@ -269,9 +281,9 @@ Run the built-in setup validator (no org connection required):
 cci task run validate_setup
 ```
 
-This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework, SeleniumLibrary, and webdriver-manager are **required** and are auto-installed via `pipx inject` when missing (controlled by `auto_fix_robot`, default true). Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if it is not found. A passing summary confirms your environment is ready.
+This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing Robot Framework pieces and `webdriver-manager` are auto-installed via `pipx inject`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
 
-> **Chrome/Chromium is the only manual step:** All other missing deps are auto-fixed on first run. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
+> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, SeleniumLibrary, webdriver-manager via `pipx inject -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
 
 ### Using Claude Code with this project
 
@@ -287,7 +299,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
 
-**Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and auto-fixes missing robot deps, SFDMU version, and urllib3 — no org connection needed. It is the fastest way to confirm your environment is ready before running flows.
+**Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and — when the relevant auto-fix options are enabled — can auto-fix missing robot deps (default on) and update the SFDMU version (default on). urllib3 is upgraded as a side-effect of the robot dep fix, or independently with `auto_fix_urllib3=true`. No org connection needed. It is the fastest way to confirm your environment is ready before running flows.
 
 ---
 
@@ -319,7 +331,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
 5. **CumulusCI** (CCI)
    - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
-   - Installation: **prefer** `pipx install cumulusci --python $(pyenv prefix 3.12)/bin/python3.12` then `pipx inject cumulusci "setuptools<71"`. If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
+   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` then `pipx inject cumulusci "setuptools<71"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
