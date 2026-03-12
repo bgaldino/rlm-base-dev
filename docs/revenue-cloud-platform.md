@@ -10,7 +10,7 @@
 > |---|---|---|
 > | **[Revenue Cloud Foundations](#revenue-cloud-foundations)** | `salesforce-internal/revenue-cloud-foundations` | Build |
 > | **[Distill](#distill)** | `sf-industries/distill` | Evolve |
-> | **[Aegis](#aegis)** | `sf-industries/aegis` | Verify |
+> | **[Aegis](#aegis)** | `industries/Automated-Remote-Org-Test` | Verify |
 
 ---
 
@@ -174,21 +174,74 @@ Engineer identifies Apex or LWC customization worth promoting
 
 ## 4. Aegis
 
-**Repository:** `sf-industries/aegis` *(link to be confirmed)*
-**Technology:** AI-driven automation framework
-**Built by:** Revenue Cloud engineering team
+**Repository:** `industries/Automated-Remote-Org-Test` at `git.soma.salesforce.com/industries/Automated-Remote-Org-Test`
+**Technology:** Python · Behave 1.2.6 (BDD/Gherkin) · Selenium 4.35.0 · Playwright 1.56.0 · Jenkins CI
+**Built by:** Revenue Cloud engineering team (27 product teams, each with a folder under `features/`)
+**Authors:** Krishan Gopal Bhansalee, Rohan Sarap, Niranjana D P
 
-Aegis is an AI-driven automation testing framework that delivers automated end-to-end integration testing for Revenue Cloud. It validates the full Revenue Cloud transaction lifecycle — from product configuration through pricing, billing, and fulfillment — across Foundations-provisioned orgs.
+Aegis is a **Salesforce Revenue Cloud BDD test automation framework** built on Behave + Selenium/Playwright. It validates end-to-end business flows across 27 RLM product teams — from product configuration through pricing, billing, usage, and fulfillment — running against live Salesforce Steam orgs.
 
-### 4.1 Integration Role
+**Architecture:**
+- **Gherkin feature files** per team under `features/<TeamName>/`
+- **Dual UI engine:** Playwright (via `@playwright` tag) or Selenium — feature-level choice
+- **Composite API graph collections** for test data setup (multi-SObject setup in one HTTP call)
+- **Persona-based testing** via `shared/data/personas.json` — named users for role-based scenario validation
+- **CI/CD:** Jenkins runs all 27 teams in parallel on Docker Selenium Grid; per-team email notifications via `team_config.json`
+- **PRD-to-test AI assist:** PRDs analyzed by Cursor (AI agent) to generate Gherkin feature files — the AI is a test-authoring aid, not the runtime engine
 
-| Touchpoint | How Aegis Connects |
+**Teams (27) include:** BillingCreditMemo, BillingInvoicing, BillingPayments, BillingUsageInvoicing, PriceManagement, ProductCatalogManagement, UsageManagement, UsageSelling, UsageConsumption, SalesforceContracts, **RevenueGoFoundation** (direct Foundations touchpoint — see below), and others.
+
+### 4.1 RevenueGoFoundation Team — Direct Integration Touchpoint
+
+`features/RevenueGoFoundation/` is the existing Aegis team that directly tests Revenue Cloud Foundations-provisioned orgs:
+
+| Feature File | What It Tests |
 |---|---|
-| **Post-provision validation** | Run Aegis suite after `prepare_rlm_org` to verify the org behaves correctly before handing to users |
-| **Post-promote regression** | After Distill-identified customizations are promoted into Foundations, Aegis provides the regression safety net |
-| **Continuous verification** | Ongoing org health checks as the baseline evolves across releases |
+| `RevenueCloudInitialSetup.feature` | Revenue Cloud Initial Setup (enable RC, create quotes/orders via UI) |
+| `DynamicRevenueOrchestrator.feature` | DRO flows on a Foundations-provisioned org |
 
-> *Aegis integration details and documentation links to be added. Contact the Revenue Cloud engineering team for current status.*
+**Known gap:** The feature file notes — *"Aegis framework currently does not support creation of fresh orgs. We are only testing feature page functionalities. For fresh org initial setup, Revenue Cloud needs to be enabled manually for the first time."* This means Aegis tests run against a **pre-provisioned org** (created by `prepare_rlm_org`) rather than provisioning one itself.
+
+**Org connection:** Env vars only (`SF_URL`, `SF_USERNAME`, `SF_PASSWORD`, `SF_TOKEN`). Team credentials stored in `RevenueGoFoundationCreds.json`.
+
+### 4.2 Integration Role
+
+| Touchpoint | How Aegis Connects | Current State |
+|---|---|---|
+| **Post-provision validation** | Run `RevenueGoFoundation` suite after `prepare_rlm_org` to verify org behaves correctly | `RevenueGoFoundation` team folder exists and tests Initial Setup + DRO flows |
+| **Post-promote regression** | After Distill-identified customizations are promoted into Foundations, Aegis provides the regression safety net | Manually coordinated today — no automated trigger from CCI |
+| **Continuous verification** | Ongoing org health checks as the baseline evolves across releases | Jenkins cron on existing Steam orgs |
+
+### 4.3 Current Gaps for CCI Integration
+
+1. **No fresh-org provisioning:** Aegis cannot create orgs — it must be pointed at an existing one. CCI provisions the org; Aegis is pointed at it post-provision. A CCI task that outputs `SF_URL` + credentials and triggers the relevant Aegis Jenkins job would close this gap.
+2. **No shapes/manifest awareness:** Aegis has no concept of data shapes, feature flags, or `shapes.json`. Test scenarios are written per-team and don't adapt to which QB/Q3/MFG shape was loaded. Cross-referencing shape metadata with Aegis scenario selection is an open design question (see O9 in [distill-integration.md](distill-integration.md)).
+3. **No CCI integration today:** The Aegis repo has no `cumulusci.yml`, no CCI task classes, and no reference to Foundations. The `RevenueGoFoundation` team is the closest existing touchpoint.
+
+### 4.4 Running Aegis Against a Foundations Org (Manual Steps Today)
+
+```bash
+# 1. Provision the org via Foundations
+cci flow run prepare_rlm_org --org <scratch-org>
+
+# 2. Get the org URL and credentials
+cci org info <scratch-org>
+
+# 3. Clone and set up Aegis
+git clone https://git.soma.salesforce.com/industries/Automated-Remote-Org-Test
+cd Automated-Remote-Org-Test
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# 4. Point Aegis at the provisioned org
+export SF_URL="<org-url-from-step-2>"
+export SF_USERNAME="<username>"
+export SF_PASSWORD="<password>"
+export SF_TOKEN=""  # Not required for scratch orgs
+
+# 5. Run the RevenueGoFoundation suite
+behave features/RevenueGoFoundation/
+```
 
 ---
 
