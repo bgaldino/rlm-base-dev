@@ -51,7 +51,7 @@ The create flow runs in the correct order: nodes → mappings → re-fetch → a
 **Example — create dedicated DocGen context:**
 
 ```bash
-cci task run apply_context_docgen --org beta
+cci task run apply_context_docgen
 ```
 
 Or via `manage_context_definition`:
