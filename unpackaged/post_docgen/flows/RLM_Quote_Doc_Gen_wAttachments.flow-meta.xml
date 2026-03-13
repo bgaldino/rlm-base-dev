@@ -311,8 +311,8 @@
         <dataType>String</dataType>
         <expression>{!uplFiles.fileNames}</expression>
     </formulas>
-    <interviewLabel>RC Quote Doc Gen wAttachments {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Doc Gen wAttachments</label>
+    <interviewLabel>RLM Quote Doc Gen wAttachments {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Quote Doc Gen wAttachments</label>
     <loops>
         <name>Loop_Selected_Table_Attachments</name>
         <label>Loop Selected Table Attachments</label>

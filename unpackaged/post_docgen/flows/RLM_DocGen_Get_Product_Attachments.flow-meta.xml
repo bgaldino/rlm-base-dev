@@ -73,8 +73,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC DocGen Get Product Attachments</label>
+    <interviewLabel>RLM DocGen Get Product Attachments {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM DocGen Get Product Attachments</label>
     <loops>
         <name>Loop_Documents</name>
         <label>Loop Documents</label>
