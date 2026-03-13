@@ -157,9 +157,16 @@ class ManageContextDefinition(SFDXBaseTask):
         # Create nodes from contextNodeDefinitions if present (supports updating a definition
         # that was created empty or needs new nodes added). Must run before attributes and
         # mapping rules, which require nodes to already exist.
+        # Filter out nodes that already exist so re-runs are idempotent.
         if plan.get("contextNodeDefinitions"):
-            self._create_context_nodes_hierarchical(context_id, plan["contextNodeDefinitions"], dry_run)
-            detail = self._fetch_context_definition(context_id)
+            existing_names = self._collect_node_names(detail)
+            new_node_defs = [
+                nd for nd in plan["contextNodeDefinitions"]
+                if isinstance(nd, dict) and nd.get("name") not in existing_names
+            ]
+            if new_node_defs:
+                self._create_context_nodes_hierarchical(context_id, new_node_defs, dry_run)
+                detail = self._fetch_context_definition(context_id)
 
         # Create mapping entities before attributes so translate_plan mapping rules can resolve IDs.
         if plan.get("contextMappings"):
@@ -1215,6 +1222,30 @@ class ManageContextDefinition(SFDXBaseTask):
         if not updates:
             return None
         return {"contextMappings": updates}
+
+    def _collect_node_names(self, detail: Dict[str, Any]) -> set:
+        """Return the set of all node names present in a context definition detail response."""
+        names: set = set()
+        versions = detail.get("contextDefinitionVersionList", []) if isinstance(detail, dict) else []
+        nodes = versions[0].get("contextNodes", []) if versions else []
+
+        def walk(node_list):
+            for node in node_list or []:
+                if not isinstance(node, dict):
+                    continue
+                name = node.get("name")
+                if name:
+                    names.add(name)
+                child_container = node.get("childNodes", {})
+                children = (
+                    child_container.get("contextNodes", [])
+                    if isinstance(child_container, dict)
+                    else (child_container or [])
+                )
+                walk(children)
+
+        walk(nodes)
+        return names
 
     def _filter_existing_mappings(self, context_id: str, payload: Dict[str, Any]):
         detail = self._fetch_context_definition(context_id)
