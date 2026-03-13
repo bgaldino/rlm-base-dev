@@ -20,6 +20,9 @@ public class RLM_DocumentGenerationMerge {
             dgp.Type = 'MergePDF';
             // Use JSON.serialize to safely escape DocTitle (avoids invalid JSON on quotes/newlines)
             dgp.RequestText = JSON.serialize(new Map<String, Object>{ 'title' => req.DocTitle });
+            if (idStrings.isEmpty()) {
+                throw new IllegalArgumentException('RLM_DocumentGenerationMerge: recordIds must contain at least one non-null Id.');
+            }
             dgp.PdfDocIdentifiersList = String.join(idStrings, ',');
             dgp.Status = 'InProgress';
             dgp.DocGenApiVersionType = 'Advanced';

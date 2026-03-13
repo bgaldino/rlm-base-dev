@@ -14,8 +14,13 @@ public class RLM_ReturnPDFDocument {
             for (String idStr : req.ResponseText.split(',')) {
                 String trimmed = idStr.trim();
                 // Skip empty tokens (trailing comma, whitespace-only segments)
+                // Catch malformed tokens that are non-blank but not valid Ids.
                 if (String.isNotBlank(trimmed)) {
-                    contentVersionIds.add((Id) trimmed);
+                    try {
+                        contentVersionIds.add((Id) trimmed);
+                    } catch (System.StringException e) {
+                        // Non-Id token in ResponseText — skip and continue
+                    }
                 }
             }
 

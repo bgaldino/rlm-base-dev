@@ -379,9 +379,13 @@ class ManageContextDefinition(SFDXBaseTask):
             if not isinstance(node_def, dict):
                 continue
             node_name = node_def.get("name")
+            if not node_name:
+                raise TaskOptionsError(
+                    f"contextNodeDefinitions entry is missing required 'name': {node_def}"
+                )
             parent_name = node_def.get("parentNodeName")
             # Only pass fields the context-nodes API accepts; label is not a valid field.
-            node_payload = {"name": node_name} if node_name else {}
+            node_payload = {"name": node_name}
             if parent_name:
                 parent_id = node_id_by_name.get(parent_name)
                 if parent_id:
