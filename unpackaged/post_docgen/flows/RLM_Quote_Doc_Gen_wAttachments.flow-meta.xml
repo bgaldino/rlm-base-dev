@@ -584,9 +584,9 @@
                         <stringValue>12</stringValue>
                     </value>
                 </inputParameters>
-                <isRequired>false</isRequired>
+                <isRequired>true</isRequired>
             </fields>
-            <isRequired>false</isRequired>
+            <isRequired>true</isRequired>
             <regionContainerType>SectionWithoutHeader</regionContainerType>
             <styleProperties>
                 <verticalAlignment>
@@ -658,7 +658,7 @@
                         <stringValue>6</stringValue>
                     </value>
                 </inputParameters>
-                <isRequired>false</isRequired>
+                <isRequired>true</isRequired>
             </fields>
             <fields>
                 <name>Template_Selection_Section2_Column2</name>
@@ -669,9 +669,9 @@
                         <stringValue>6</stringValue>
                     </value>
                 </inputParameters>
-                <isRequired>false</isRequired>
+                <isRequired>true</isRequired>
             </fields>
-            <isRequired>false</isRequired>
+            <isRequired>true</isRequired>
             <regionContainerType>SectionWithoutHeader</regionContainerType>
             <styleProperties>
                 <verticalAlignment>
@@ -841,7 +841,6 @@
             </inputParameters>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <storeOutputAutomatically>true</storeOutputAutomatically>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>
@@ -874,7 +873,6 @@
             </inputParameters>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
-            <storeOutputAutomatically>true</storeOutputAutomatically>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>

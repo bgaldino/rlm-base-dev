@@ -610,7 +610,7 @@
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
         <globalKey>2115648e-e1ca-471d-9a01-d2f3d97ba8b6</globalKey>
-        <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:CustomProductName</inputFieldName>
+        <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:RLM_ProductName__c</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteExtractBasic</name>

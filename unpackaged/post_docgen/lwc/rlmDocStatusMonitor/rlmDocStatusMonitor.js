@@ -22,7 +22,9 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
     disconnectedCallback() {
         if (this.subscription && this.subscription.channel) {
-            unsubscribe(this.subscription, () => {});
+            unsubscribe(this.subscription, () => {
+                // Connection cleaned up
+            });
         }
     }
 
@@ -33,6 +35,7 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
             if (eventId === this.processId) {
                 this.status = eventStatus;
+
                 this.dispatchEvent(new FlowAttributeChangeEvent('status', this.status));
 
                 if (this.status !== 'InProgress' && !this.hasNavigated) {
@@ -47,17 +50,18 @@ export default class RlmDocStatusMonitor extends LightningElement {
                 this.subscription = response;
             })
             .catch(error => {
-                console.error('rlmDocStatusMonitor: EMP API subscribe error', error);
+                // Error handled silently for production
             });
 
         onError(error => {
-            console.error('rlmDocStatusMonitor: EMP API error', error);
+            // Error handled silently for production
         });
     }
 
     handleNext() {
         setTimeout(() => {
-            this.dispatchEvent(new FlowNavigationNextEvent());
+            const navigateNextEvent = new FlowNavigationNextEvent();
+            this.dispatchEvent(navigateNextEvent);
         }, 300);
     }
 }

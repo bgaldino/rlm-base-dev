@@ -587,6 +587,22 @@ tasks:
       activate: true
       verify: true
 
+  apply_context_docgen:
+    group: Revenue Lifecycle Management
+    description: >
+      Creates and configures the RLM_QuoteDocGenContext context definition for Context Service
+      document templates. Defines Quote node (AccountName, BillingStreet/City/State/PostalCode,
+      SalesRep, QuoteNumber, CreatedDate, ExpirationDate, GrandTotal) and Line child node
+      (ProductName, Quantity, ListPrice, Discount, NetUnitPrice, NetTotalPrice) mapped via
+      QuoteDocGenMapping to Quote and QuoteLineItem SObjects.
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      plan_file: datasets/context_plans/DocGen/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   extend_context_product_discovery:
     description: Extend Standard Product Discovery Context
     group: Revenue Lifecycle Management
@@ -818,6 +834,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_docgen
+
+  activate_docgen_templates:
+    group: Revenue Lifecycle Management
+    description: Activate the latest version of each RLM_ OmniStudio DocumentTemplate. DocumentTemplates always deploy as inactive; this script finds the highest version per template name and sets IsActive = true.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateDocgenTemplates.apex
 
   deploy_post_constraints:
     description: Deploy Constraints Metadata
@@ -2190,6 +2213,12 @@ flows:
         when: project_config.project__custom__docgen
       3:
         task: deploy_post_docgen
+        when: project_config.project__custom__docgen
+      4:
+        task: activate_docgen_templates
+        when: project_config.project__custom__docgen
+      5:
+        task: apply_context_docgen
         when: project_config.project__custom__docgen
 
   prepare_billing:
