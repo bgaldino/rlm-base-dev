@@ -188,7 +188,8 @@ RLM_QuoteDocGenContext (primaryObject: Quote)
 │   ├── SellerPhone       STRING   INPUTOUTPUT
 │   ├── SellerFax         STRING   INPUTOUTPUT
 │   ├── SellerEmail       STRING   INPUTOUTPUT
-│   └── SellerWebsite     STRING   INPUTOUTPUT
+│   ├── SellerWebsite     STRING   INPUTOUTPUT
+│   └── SellerCountry     STRING   INPUTOUTPUT
 └── Line (child of Quote)
     ├── ProductName   STRING   INPUTOUTPUT
     ├── Quantity      NUMBER   INPUTOUTPUT
@@ -219,6 +220,7 @@ RLM_QuoteDocGenContext (primaryObject: Quote)
 | Quote | SellerFax | Quote | RLM_Seller_Fax__c |
 | Quote | SellerEmail | Quote | RLM_Seller_Email__c |
 | Quote | SellerWebsite | Quote | RLM_Seller_Website__c |
+| Quote | SellerCountry | Quote | RLM_Seller_Country__c |
 | Line | ProductName | QuoteLineItem | RLM_ProductName__c |
 | Line | Quantity | QuoteLineItem | Quantity |
 | Line | ListPrice | QuoteLineItem | ListPrice |
