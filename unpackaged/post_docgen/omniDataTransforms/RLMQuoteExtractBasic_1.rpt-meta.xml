@@ -202,22 +202,6 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>4cbfb035-f702-4297-95a5-0508b15ca588</globalKey>
-        <inputFieldName>Quote:BillingCity</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteExtractBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldFormat>String</outputFieldFormat>
-        <outputFieldName>BillingCity</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <transformValuesMappings>{ }</transformValuesMappings>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
         <globalKey>8d914547-62e3-48da-8bff-3831f3de9ea0</globalKey>
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
