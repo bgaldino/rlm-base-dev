@@ -282,7 +282,7 @@ public class RLM_AccountUtilities {
             }
             
             // Finally handle remaining objects
-            // Delete DocGen-generated files linked to quotes before quotes are removed
+            // Delete quote-linked ContentDocuments before quotes are removed
             deleteQuoteDocuments(accountId);
             deleteQuotes(accountId);
             deleteOpportunities(accountId);
@@ -323,9 +323,11 @@ public class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes DocGen-generated ContentDocuments and DocumentGenerationProcess records
-     * linked to an account's Quotes. Must be called BEFORE deleteQuotes because the
-     * platform auto-cascades ContentDocumentLink rows when the linked Quote is deleted,
+     * Deletes ContentDocuments and DocumentGenerationProcess records linked to an
+     * account's Quotes, where those documents are not also linked to other records
+     * outside the account's quotes. Includes DocGen outputs and any manually-attached
+     * quote files. Must be called BEFORE deleteQuotes because the platform
+     * auto-cascades ContentDocumentLink rows when the linked Quote is deleted,
      * making it impossible to discover quote-attached ContentDocuments afterwards.
      *
      * @param accountId The ID of the account whose quote documents should be deleted

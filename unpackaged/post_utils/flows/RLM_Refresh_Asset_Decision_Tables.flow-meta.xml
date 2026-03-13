@@ -222,7 +222,7 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RLM Refresh Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM Refresh Asset Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Refresh Asset Decision Tables</label>
     <processMetadataValues>
         <name>BuilderType</name>
