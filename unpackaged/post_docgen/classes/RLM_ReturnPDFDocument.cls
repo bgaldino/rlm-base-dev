@@ -1,35 +1,38 @@
 public class RLM_ReturnPDFDocument {
-@InvocableMethod(label='Return PDF Document ID' description='Doc Gen creates a Word and a PDF Document' category='Document Generation')
+    @InvocableMethod(label='Return PDF Document ID' description='Doc Gen creates a Word and a PDF Document' category='Document Generation')
     public static List<OutputVariable> ReturnPDFDocumentId(List<InputVariable> requests) {
-    List<OutputVariable> outputs = new List<OutputVariable>();  
-    String delimiterString = requests[0].ResponseText; // '068Kj00000dn9ky,068Kj00000dn9lR';
-    // Transform 'A, B' into "'A','B'"
-    String formattedString = '\'' + String.join(delimiterString.split(','), '\',\'') + '\'';
-    String query = 'SELECT Id, FileType, ContentDocumentId FROM ContentVersion WHERE Id IN (' + formattedString + ') AND FileType = \'PDF\'';
-    List<ContentVersion> conVersion = Database.query(query);
-    String strDocumentId;
-    String strContentVersionId;
-    if (!conVersion.isEmpty()) {
-        strDocumentId = conVersion[0].ContentDocumentId;
-        strContentVersionId = conVersion[0].Id;
+        List<OutputVariable> outputs = new List<OutputVariable>();
+        List<Id> contentVersionIds = new List<Id>();
+        for (String idStr : requests[0].ResponseText.split(',')) {
+            contentVersionIds.add((Id) idStr.trim());
+        }
+
+        List<ContentVersion> conVersion = [
+            SELECT Id, FileType, ContentDocumentId
+            FROM ContentVersion
+            WHERE Id IN :contentVersionIds AND FileType = 'PDF'
+            LIMIT 1
+        ];
+
+        OutputVariable output = new OutputVariable();
+        if (!conVersion.isEmpty()) {
+            output.ContentDocumentId = conVersion[0].ContentDocumentId;
+            output.ContentVersionId = conVersion[0].Id;
+        }
+        outputs.add(output);
+        return outputs;
     }
-    OutputVariable output = new OutputVariable();  
-    output.ContentDocumentId = strDocumentId;
-    output.ContentVersionId = strContentVersionId;
-    outputs.add(output);
-    return outputs;
-    }
+
     public class InputVariable {
         @InvocableVariable(required=true)
         public String ResponseText;
-                
     }
+
     public class OutputVariable {
         @InvocableVariable(required=true)
         public Id ContentDocumentId;
-        
+
         @InvocableVariable(required=true)
         public Id ContentVersionId;
-        
-  }
+    }
 }

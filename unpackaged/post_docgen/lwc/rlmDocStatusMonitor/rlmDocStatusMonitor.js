@@ -2,7 +2,7 @@ import { LightningElement, api } from 'lwc';
 import { subscribe, unsubscribe, onError } from 'lightning/empApi';
 import { FlowAttributeChangeEvent, FlowNavigationNextEvent } from 'lightning/flowSupport';
 
-export default class DocStatusMonitor extends LightningElement {
+export default class RlmDocStatusMonitor extends LightningElement {
     @api processId;
     @api status = 'InProgress';
     hasNavigated = false;
@@ -22,9 +22,7 @@ export default class DocStatusMonitor extends LightningElement {
 
     disconnectedCallback() {
         if (this.subscription && this.subscription.channel) {
-            unsubscribe(this.subscription, () => {
-                // Connection cleaned up
-            });
+            unsubscribe(this.subscription, () => {});
         }
     }
 
@@ -35,7 +33,6 @@ export default class DocStatusMonitor extends LightningElement {
 
             if (eventId === this.processId) {
                 this.status = eventStatus;
-
                 this.dispatchEvent(new FlowAttributeChangeEvent('status', this.status));
 
                 if (this.status !== 'InProgress' && !this.hasNavigated) {
@@ -50,18 +47,17 @@ export default class DocStatusMonitor extends LightningElement {
                 this.subscription = response;
             })
             .catch(error => {
-                // Error handled silently for production
+                console.error('rlmDocStatusMonitor: EMP API subscribe error', error);
             });
 
         onError(error => {
-            // Error handled silently for production
+            console.error('rlmDocStatusMonitor: EMP API error', error);
         });
     }
 
     handleNext() {
         setTimeout(() => {
-            const navigateNextEvent = new FlowNavigationNextEvent();
-            this.dispatchEvent(navigateNextEvent);
+            this.dispatchEvent(new FlowNavigationNextEvent());
         }, 300);
     }
 }

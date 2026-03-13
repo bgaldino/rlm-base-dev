@@ -3,14 +3,14 @@
         class="slds-box slds-theme_default slds-align_absolute-center"
         style="height: 200px;"
     >
-        <template if:true={isProcessing}>
+        <template lwc:if={isProcessing}>
             <div class="slds-text-align_center">
                 <lightning-spinner style="background:none;"
                     alternative-text="Generating Document..."
                     size="medium"
                 ></lightning-spinner>
 
-                <p class="slds-m-top_large textClass">
+                <p class="slds-m-top_large">
                     Generating your document, please wait...
                 </p>
             </div>
