@@ -674,7 +674,6 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
-| `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
 ### Using Custom Tasks
 
@@ -1064,7 +1063,6 @@ rlm-base-dev/
 │   ├── rlm_recalculate_permission_set_groups.py
 │   ├── rlm_exclude_active_decision_tables.py
 │   ├── rlm_modify_context.py
-│   ├── rlm_restore_rc_tso.py
 │   └── sfdmuload.py
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/

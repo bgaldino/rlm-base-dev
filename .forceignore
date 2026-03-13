@@ -42,8 +42,6 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 # contextDefinitions (extended at runtime via extend_context_* tasks)
 force-app/main/default/contextDefinitions
 
-# RC_TSO - storage only, never deployed (preserves permission sets not available in dev orgs)
-unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
 #unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
@@ -65,7 +63,7 @@ force-app/main/default/settings/UserInterface.settings-meta.xml
 unpackaged/post_agents/bots/Agentforce_for_Analytics.bot-meta.xml
 unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
 
-unpackaged/post_utils/flows/RCA_Event_Trigger.flow-meta.xml
+unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 
 unpackaged/post_tso/appMenus/AppSwitcher.appMenu-meta.xml
 

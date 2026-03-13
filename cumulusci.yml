@@ -220,7 +220,7 @@ project:
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
       # Territory Sales Operations permission sets
       - ERIBasic
-      - RC_Utilities
+      - RLM_UtilitiesPermset
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -262,9 +262,9 @@ project:
 
     rlm_psg_api_names: &rlm_psg_api_names
       # Core permission set groups
-      - RC_QB_AI
-      - RC_RCB
-      - RC_RMI
+      - RLM_QB_AI
+      - RLM_RCB
+      - RLM_RMI
       - RLM_CFG
       - RLM_CLM
       - RLM_DOC
@@ -275,12 +275,12 @@ project:
       - RLM_USG
 
     psg_tso: &psg_tso
-      - RC_TSO
+      - RLM_TSO
       
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
-      #- RC_Collection_Plan_Activity
+      #- RLM_Collection_Plan_Activity
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets
@@ -288,7 +288,7 @@ project:
 
     ps_aea: &ps_aea
       # Agent-specific permission sets
-      - RLM_Revenue_Cloud_Agent
+      - RLM_QuotingAgent
 
 
     ps_constraints: &ps_constraints
@@ -449,8 +449,8 @@ project:
 # Each setting is referenced in the create_procedure_plan_definition task
 
     procedure_plan_definition_description: &procedure_plan_definition_description "Procedure Plan Definition for Quote Pricing"
-    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RC_Quote_Pricing_Procedure_Plan"
-    procedure_plan_definition_name: &procedure_plan_definition_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RLM_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_name: &procedure_plan_definition_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
     procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
     procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
@@ -458,7 +458,7 @@ project:
     procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
     procedure_plan_definition_version_save_context_mapping: &procedure_plan_definition_version_save_context_mapping "QuoteEntitiesMapping"
     procedure_plan_definition_version_effective_from: &procedure_plan_definition_version_effective_from "2026-01-01T00:00:00.000Z"
-    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_version_rank: &procedure_plan_definition_version_rank 1
     procedure_plan_definition_version_effective_to: &procedure_plan_definition_version_effective_to 
 
@@ -705,20 +705,6 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/pre
-
-  restore_rc_tso:
-    description: Move RC_TSO from storage directory for deployment (only when tso flag is true)
-    class_path: tasks.rlm_restore_rc_tso.RestoreRCTSO
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/pre
-
-  deploy_rc_tso:
-    description: Deploy RC_TSO Permission Set Group (only when tso flag is true)
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 
   deploy_context_definitions:
     description: Deploy Context Definitions
@@ -1419,7 +1405,7 @@ tasks:
       outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
       usage_rating_procedure: RLM Default Rating Discovery Procedure
-      create_orders_flow: RC_CreateOrdersFromQuote
+      create_orders_flow: RLM_CreateOrdersFromQuote
 
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
@@ -1879,11 +1865,11 @@ tasks:
 
   activate_procedure_plan_expression_sets:
     group: Revenue Lifecycle Management
-    description: Activate Procedure Plan expression set versions (RC_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
+    description: Activate Procedure Plan expression set versions (RLM_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: activate_versions
-      version_full_names: RC_Price_Distribution_Procedure_V1
+      version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
 #----------------#

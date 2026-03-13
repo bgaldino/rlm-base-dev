@@ -889,7 +889,7 @@
         </defaultConnector>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
         <rules>
-            <name>If_ARC_Skip_Field_Selection</name>
+            <name>If_ARLM_Skip_Field_Selection</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>Object_Loop</leftValueReference>
@@ -1081,7 +1081,7 @@
             <label>OrderItem from Order to Asset</label>
         </rules>
         <rules>
-            <name>ARC_Case</name>
+            <name>ARLM_Case</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>TwinFieldType</leftValueReference>
@@ -1103,7 +1103,7 @@
             <label>ARC Case</label>
         </rules>
         <rules>
-            <name>ARC_Case_2</name>
+            <name>ARLM_Case_2</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>TwinFieldType</leftValueReference>
@@ -1291,7 +1291,7 @@
             <label>OrderToAssetChoice</label>
         </rules>
         <rules>
-            <name>ARC_Decision</name>
+            <name>ARLM_Decision</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>TwinFieldType</leftValueReference>

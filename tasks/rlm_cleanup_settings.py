@@ -93,8 +93,8 @@ class CleanupSettingsForDev(BaseTask):
         if psg_path.exists():
             self._cleanup_permission_set_groups(psg_path, org_features)
             
-            # Manage RC_TSO in .forceignore based on tso flag
-            self._manage_rc_tso_in_forceignore()
+            # Manage RLM_TSO in .forceignore based on tso flag
+            self._manage_RLM_TSO_in_forceignore()
     
     def _read_org_features(self, config_file: str) -> Set[str]:
         """Read features from scratch org definition JSON file."""
@@ -162,7 +162,7 @@ class CleanupSettingsForDev(BaseTask):
                 self.logger.debug(f"Keeping {field} - {required_feature} feature enabled")
     
     def _cleanup_permission_set_groups(self, psg_path: Path, org_features: Set[str]):
-        """Move permission sets from permission set groups to RC_TSO based on feature availability."""
+        """Move permission sets from permission set groups to RLM_TSO based on feature availability."""
         # Map permission sets to required features
         # Permission sets that require specific features
         ps_feature_map = {
@@ -189,7 +189,7 @@ class CleanupSettingsForDev(BaseTask):
         }
         
         # Permission sets that are never available in Enterprise dev scratch orgs
-        # (regardless of features) - these will be moved to RC_TSO
+        # (regardless of features) - these will be moved to RLM_TSO
         always_move_to_tso = {
             "force__CallCoachingIncluded",
             "force__CallCoachingUserPsl",
@@ -226,13 +226,13 @@ class CleanupSettingsForDev(BaseTask):
             "force__NLPServicePsl"
         }
         
-        # Collect all permission sets to move to RC_TSO
+        # Collect all permission sets to move to RLM_TSO
         permission_sets_to_move: Set[str] = set()
         
         # First pass: collect all permission sets that should be moved
         for psg_file in psg_path.glob("*.permissionsetgroup-meta.xml"):
-            # Skip RC_TSO itself
-            if psg_file.name == "RC_TSO.permissionsetgroup-meta.xml":
+            # Skip RLM_TSO itself
+            if psg_file.name == "RLM_TSO.permissionsetgroup-meta.xml":
                 continue
                 
             try:
@@ -259,7 +259,7 @@ class CleanupSettingsForDev(BaseTask):
                     # Check feature requirements
                     # Note: Even if features are detected, these permission sets typically
                     # require additional licenses beyond just the feature being enabled.
-                    # We move them all to RC_TSO for safety - they can be deployed when tso=true.
+                    # We move them all to RLM_TSO for safety - they can be deployed when tso=true.
                     elif ps_name in ps_feature_map:
                         should_move = True
                     
@@ -271,8 +271,8 @@ class CleanupSettingsForDev(BaseTask):
         
         # Second pass: remove permission sets from original PSGs and track what was moved
         for psg_file in psg_path.glob("*.permissionsetgroup-meta.xml"):
-            # Skip RC_TSO itself
-            if psg_file.name == "RC_TSO.permissionsetgroup-meta.xml":
+            # Skip RLM_TSO itself
+            if psg_file.name == "RLM_TSO.permissionsetgroup-meta.xml":
                 continue
                 
             try:
@@ -302,29 +302,29 @@ class CleanupSettingsForDev(BaseTask):
                             break
                     parent.remove(ps_elem)
                     removed_count += 1
-                    self.logger.info(f"Moved permission set {ps_name} from {psg_file.name} to RC_TSO")
+                    self.logger.info(f"Moved permission set {ps_name} from {psg_file.name} to RLM_TSO")
                 
                 if removed_count > 0:
                     # Preserve original namespace format
                     ET.register_namespace('', 'http://soap.sforce.com/2006/04/metadata')
                     tree.write(psg_file, encoding='utf-8', xml_declaration=True, default_namespace='http://soap.sforce.com/2006/04/metadata')
-                    self.logger.info(f"Moved {removed_count} permission set(s) from {psg_file.name} to RC_TSO")
+                    self.logger.info(f"Moved {removed_count} permission set(s) from {psg_file.name} to RLM_TSO")
                     
             except Exception as e:
                 self.logger.warning(f"Error processing permission set group {psg_file}: {e}")
         
-        # Create or update RC_TSO permission set group
+        # Create or update RLM_TSO permission set group
         if permission_sets_to_move:
             self._create_or_update_tso_psg(psg_path, permission_sets_to_move)
     
     def _create_or_update_tso_psg(self, psg_path: Path, permission_sets: Set[str]):
-        """Create or update RC_TSO permission set group with moved permission sets."""
-        tso_file = psg_path / "RC_TSO.permissionsetgroup-meta.xml"
+        """Create or update RLM_TSO permission set group with moved permission sets."""
+        tso_file = psg_path / "RLM_TSO.permissionsetgroup-meta.xml"
         namespace = 'http://soap.sforce.com/2006/04/metadata'
         
         try:
             if tso_file.exists():
-                # Update existing RC_TSO
+                # Update existing RLM_TSO
                 tree = ET.parse(tso_file)
                 root = tree.getroot()
                 
@@ -349,11 +349,11 @@ class CleanupSettingsForDev(BaseTask):
                     
                     ET.register_namespace('', namespace)
                     tree.write(tso_file, encoding='utf-8', xml_declaration=True, default_namespace=namespace)
-                    self.logger.info(f"Added {len(new_ps)} permission set(s) to existing RC_TSO")
+                    self.logger.info(f"Added {len(new_ps)} permission set(s) to existing RLM_TSO")
                 else:
-                    self.logger.debug("All permission sets already exist in RC_TSO")
+                    self.logger.debug("All permission sets already exist in RLM_TSO")
             else:
-                # Create new RC_TSO
+                # Create new RLM_TSO
                 # Register namespace first
                 ET.register_namespace('', namespace)
                 root = ET.Element(f'{{{namespace}}}PermissionSetGroup')
@@ -366,7 +366,7 @@ class CleanupSettingsForDev(BaseTask):
                 has_activation.text = 'false'
                 
                 label = ET.SubElement(root, f'{{{namespace}}}label')
-                label.text = 'RC_TSO'
+                label.text = 'RLM_TSO'
                 
                 # Add permission sets
                 for ps_name in sorted(permission_sets):
@@ -380,10 +380,10 @@ class CleanupSettingsForDev(BaseTask):
                 # Reformat with proper indentation
                 ET.indent(tree, space="    ")
                 tree.write(tso_file, encoding='utf-8', xml_declaration=True, default_namespace=namespace)
-                self.logger.info(f"Created RC_TSO permission set group with {len(permission_sets)} permission set(s)")
+                self.logger.info(f"Created RLM_TSO permission set group with {len(permission_sets)} permission set(s)")
                 
         except Exception as e:
-            self.logger.warning(f"Error creating/updating RC_TSO permission set group: {e}")
+            self.logger.warning(f"Error creating/updating RLM_TSO permission set group: {e}")
     
     def _remove_element_from_xml(self, xml_file: Path, element_name: str):
         """Remove a specific element from an XML file."""
@@ -409,8 +409,8 @@ class CleanupSettingsForDev(BaseTask):
         except Exception as e:
             self.logger.warning(f"Error processing {xml_file}: {e}")
     
-    def _manage_rc_tso_in_forceignore(self):
-        """Add or remove RC_TSO from .forceignore based on tso flag."""
+    def _manage_RLM_TSO_in_forceignore(self):
+        """Add or remove RLM_TSO from .forceignore based on tso flag."""
         # Check if tso flag is enabled using CumulusCI project config format
         tso_enabled = False
         try:
@@ -431,53 +431,53 @@ class CleanupSettingsForDev(BaseTask):
         
         forceignore_path = Path.cwd() / ".forceignore"
         if not forceignore_path.exists():
-            self.logger.warning(".forceignore file not found, skipping RC_TSO management")
+            self.logger.warning(".forceignore file not found, skipping RLM_TSO management")
             return
         
-        rc_tso_entry = "unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml"
-        rc_tso_comment = "# RC_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)"
+        RLM_TSO_entry = "unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml"
+        RLM_TSO_comment = "# RLM_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)"
         
         try:
             # Read current .forceignore
             with open(forceignore_path, 'r') as f:
                 lines = f.readlines()
             
-            # Find all RC_TSO entries (both active and commented)
-            rc_tso_entry_indices = []
-            rc_tso_comment_indices = []
+            # Find all RLM_TSO entries (both active and commented)
+            RLM_TSO_entry_indices = []
+            RLM_TSO_comment_indices = []
             
             for i, line in enumerate(lines):
                 # Check for the actual entry (not commented)
-                if rc_tso_entry in line and not line.strip().startswith('#'):
-                    rc_tso_entry_indices.append(i)
+                if RLM_TSO_entry in line and not line.strip().startswith('#'):
+                    RLM_TSO_entry_indices.append(i)
                 # Check for commented entry
-                elif rc_tso_entry in line and line.strip().startswith('#'):
-                    rc_tso_entry_indices.append(i)
+                elif RLM_TSO_entry in line and line.strip().startswith('#'):
+                    RLM_TSO_entry_indices.append(i)
                 # Check for comment lines
-                if "RC_TSO" in line and line.strip().startswith('#'):
-                    rc_tso_comment_indices.append(i)
+                if "RLM_TSO" in line and line.strip().startswith('#'):
+                    RLM_TSO_comment_indices.append(i)
             
             # Determine what to do
             if tso_enabled:
-                # tso=true: Remove RC_TSO from .forceignore (allow deployment)
-                # Remove all RC_TSO entries and associated comments
-                if rc_tso_entry_indices or rc_tso_comment_indices:
+                # tso=true: Remove RLM_TSO from .forceignore (allow deployment)
+                # Remove all RLM_TSO entries and associated comments
+                if RLM_TSO_entry_indices or RLM_TSO_comment_indices:
                     # Remove in reverse order to maintain indices
-                    indices_to_remove = sorted(set(rc_tso_entry_indices + rc_tso_comment_indices), reverse=True)
+                    indices_to_remove = sorted(set(RLM_TSO_entry_indices + RLM_TSO_comment_indices), reverse=True)
                     for idx in indices_to_remove:
                         lines.pop(idx)
                     
                     with open(forceignore_path, 'w') as f:
                         f.writelines(lines)
-                    self.logger.info("RC_TSO removed from .forceignore (tso=true - will be deployed)")
+                    self.logger.info("RLM_TSO removed from .forceignore (tso=true - will be deployed)")
                 else:
-                    self.logger.debug("RC_TSO not in .forceignore (tso=true - will be deployed)")
+                    self.logger.debug("RLM_TSO not in .forceignore (tso=true - will be deployed)")
             else:
-                # tso=false: Add RC_TSO to .forceignore (exclude from deployment)
+                # tso=false: Add RLM_TSO to .forceignore (exclude from deployment)
                 # Check if there's already an active (non-commented) entry
                 has_active_entry = any(
-                    rc_tso_entry in lines[i] and not lines[i].strip().startswith('#')
-                    for i in rc_tso_entry_indices
+                    RLM_TSO_entry in lines[i] and not lines[i].strip().startswith('#')
+                    for i in RLM_TSO_entry_indices
                 )
                 
                 if not has_active_entry:
@@ -501,20 +501,20 @@ class CleanupSettingsForDev(BaseTask):
                                 insert_index = i + 1
                                 break
                         # Insert comment and entry
-                        lines.insert(insert_index, f"{rc_tso_comment}\n")
-                        lines.insert(insert_index + 1, f"{rc_tso_entry}\n")
+                        lines.insert(insert_index, f"{RLM_TSO_comment}\n")
+                        lines.insert(insert_index + 1, f"{RLM_TSO_entry}\n")
                     else:
                         # Add at end
                         if lines and not lines[-1].endswith('\n'):
                             lines[-1] += '\n'
-                        lines.append(f"\n{rc_tso_comment}\n")
-                        lines.append(f"{rc_tso_entry}\n")
+                        lines.append(f"\n{RLM_TSO_comment}\n")
+                        lines.append(f"{RLM_TSO_entry}\n")
                     
                     with open(forceignore_path, 'w') as f:
                         f.writelines(lines)
-                    self.logger.info("RC_TSO added to .forceignore (tso=false - excluded from deployment)")
+                    self.logger.info("RLM_TSO added to .forceignore (tso=false - excluded from deployment)")
                 else:
-                    self.logger.debug("RC_TSO already in .forceignore (tso=false)")
+                    self.logger.debug("RLM_TSO already in .forceignore (tso=false)")
                     
         except Exception as e:
-            self.logger.warning(f"Error managing RC_TSO in .forceignore: {e}")
+            self.logger.warning(f"Error managing RLM_TSO in .forceignore: {e}")
