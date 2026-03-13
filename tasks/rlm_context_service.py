@@ -219,11 +219,8 @@ class ManageContextDefinition(SFDXBaseTask):
 
         if plan.get("contextNodes"):
             self._post_context_nodes(context_id, plan["contextNodes"], dry_run)
-        if plan.get("contextMappings"):
-            # Only create mappings that do not already exist in the target definition.
-            filtered = self._filter_existing_mappings(context_id, plan["contextMappings"])
-            if filtered:
-                self._post_context_mappings(context_id, filtered, dry_run)
+        # contextMappings already handled above (before attributes) to ensure
+        # mapping IDs are available for translate_plan mapping rules; skip here.
         if plan.get("contextMappingUpdates"):
             self._apply_context_mapping_updates(context_id, plan["contextMappingUpdates"], dry_run)
         if plan.get("contextTagsByName"):

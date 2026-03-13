@@ -9,7 +9,21 @@ import STATUS_FIELD from '@salesforce/schema/DocumentGenerationProcess.Status';
 let empErrorHandlerRegistered = false;
 
 export default class RlmDocStatusMonitor extends LightningElement {
-    @api processId;
+    // Use a setter so EMP subscribes even if processId is assigned after connectedCallback
+    // (Flow components can set @api inputs post-lifecycle in some runtimes).
+    _processId;
+    @api
+    get processId() {
+        return this._processId;
+    }
+    set processId(value) {
+        this._processId = value;
+        // Subscribe only if not already subscribed (subscription.channel is set on success)
+        if (value && !(this.subscription && this.subscription.channel)) {
+            this.handleSubscribe();
+        }
+    }
+
     @api status = 'InProgress';
     hasNavigated = false;
     subscription = {};
@@ -40,9 +54,8 @@ export default class RlmDocStatusMonitor extends LightningElement {
                 console.error('rlmDocStatusMonitor: EMP channel error', error);
             });
         }
-        if (this.processId) {
-            this.handleSubscribe();
-        }
+        // processId setter handles subscription when value is already set;
+        // the setter also fires if processId is assigned after connectedCallback.
     }
 
     disconnectedCallback() {
