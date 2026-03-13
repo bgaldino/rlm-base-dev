@@ -6,6 +6,10 @@ public class RLM_ReturnPDFDocument {
         }
         List<OutputVariable> outputs = new List<OutputVariable>();
         for (InputVariable req : requests) {
+            if (String.isBlank(req.ResponseText)) {
+                outputs.add(new OutputVariable());
+                continue;
+            }
             List<Id> contentVersionIds = new List<Id>();
             for (String idStr : req.ResponseText.split(',')) {
                 String trimmed = idStr.trim();

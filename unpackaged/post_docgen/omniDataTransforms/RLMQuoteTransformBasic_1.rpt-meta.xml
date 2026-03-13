@@ -6,7 +6,7 @@
     <errorIgnored>false</errorIgnored>
     <expectedInputJson>{
   &quot;BillingCity&quot; : &quot;New York&quot;,
-  &quot;QuoteId&quot; : &quot;0Q0Ka000002sdtcKAA&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Ka000000EXAMPLE&quot;,
   &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
   &quot;Line&quot; : [ {
     &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
@@ -87,11 +87,11 @@
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
   &quot;BillingState&quot; : &quot;NY&quot;,
   &quot;AccountName&quot; : &quot;Acme&quot;,
-  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+  &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</expectedInputJson>
     <expectedOutputJson>{
   &quot;BillingCity&quot; : &quot;New York&quot;,
-  &quot;QuoteId&quot; : &quot;0Q0Ka000002sdtcKAA&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Ka000000EXAMPLE&quot;,
   &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
   &quot;Line&quot; : [ {
     &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
@@ -172,7 +172,7 @@
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
   &quot;BillingState&quot; : &quot;NY&quot;,
   &quot;AccountName&quot; : &quot;Acme&quot;,
-  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+  &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</expectedOutputJson>
     <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
@@ -588,7 +588,7 @@
     <outputType>JSON</outputType>
     <previewJsonData>{
   &quot;BillingCity&quot; : &quot;New York&quot;,
-  &quot;QuoteId&quot; : &quot;0Q0Ka000002sdtcKAA&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Ka000000EXAMPLE&quot;,
   &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
   &quot;Line&quot; : [ {
     &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
@@ -669,7 +669,7 @@
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
   &quot;BillingState&quot; : &quot;NY&quot;,
   &quot;AccountName&quot; : &quot;Acme&quot;,
-  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+  &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</previewJsonData>
     <processSuperBulk>false</processSuperBulk>
     <responseCacheTtlMinutes>0.0</responseCacheTtlMinutes>

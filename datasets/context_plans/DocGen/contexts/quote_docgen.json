@@ -3,7 +3,7 @@
   "developerName": "RLM_QuoteDocGenContext",
   "label": "RLM Quote DocGen Context",
   "description": "Context definition for Quote proposal document generation templates.",
-  "primaryObject": "Quote",
+  "primaryDomainObject": "Quote",
   "contextNodeDefinitions": [
     {
       "name": "Quote",

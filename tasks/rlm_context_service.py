@@ -248,7 +248,8 @@ class ManageContextDefinition(SFDXBaseTask):
             "name": api_name,
             "developerName": plan.get("developerName"),
         }
-        # primaryObject is not a valid field for the create endpoint.
+        # Use 'primaryDomainObject' (not 'primaryObject') in plan JSON — the CS create
+        # endpoint accepts primaryDomainObject; primaryObject is not a valid API field.
         for field in ("description", "startDate", "contextTtl", "baseReference",
                       "primaryDomainObject", "contextType"):
             if plan.get(field) is not None:

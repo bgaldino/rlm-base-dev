@@ -4,6 +4,10 @@ import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import { FlowAttributeChangeEvent, FlowNavigationNextEvent } from 'lightning/flowSupport';
 import STATUS_FIELD from '@salesforce/schema/DocumentGenerationProcess.Status';
 
+// Module-level flag: onError is a global EMP handler — register it only once
+// regardless of how many component instances exist on the page.
+let empErrorHandlerRegistered = false;
+
 export default class RlmDocStatusMonitor extends LightningElement {
     @api processId;
     @api status = 'InProgress';
@@ -29,6 +33,13 @@ export default class RlmDocStatusMonitor extends LightningElement {
     }
 
     connectedCallback() {
+        if (!empErrorHandlerRegistered) {
+            empErrorHandlerRegistered = true;
+            onError(error => {
+                // eslint-disable-next-line no-console
+                console.error('rlmDocStatusMonitor: EMP channel error', error);
+            });
+        }
         if (this.processId) {
             this.handleSubscribe();
         }
@@ -58,11 +69,6 @@ export default class RlmDocStatusMonitor extends LightningElement {
                 // eslint-disable-next-line no-console
                 console.error('rlmDocStatusMonitor: EMP subscribe failed', error);
             });
-
-        onError(error => {
-            // eslint-disable-next-line no-console
-            console.error('rlmDocStatusMonitor: EMP channel error', error);
-        });
     }
 
     handleStatusChange(newStatus) {
