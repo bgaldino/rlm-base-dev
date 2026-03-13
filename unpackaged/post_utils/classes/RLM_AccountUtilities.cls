@@ -371,11 +371,9 @@ public class RLM_AccountUtilities {
 
         // 4. Exclude ContentDocuments also linked to records outside these quotes
         //    to avoid deleting files shared with Opportunities, Orders, etc.
-        //    NOTE: Salesforce auto-creates a ShareType='I' (personal library) CDL on the
-        //    owner's User record for every ContentDocument. We must ignore those or every
-        //    document would be flagged as "linked elsewhere" and nothing would be deleted.
-        //    Platform restriction prevents filtering by ShareType in SOQL alongside
-        //    LinkedEntityId, so we filter in Apex after querying.
+        //    ShareType='I' (auto-created personal-library links) are excluded in SOQL so
+        //    they are not counted as "linked elsewhere" — every document has one, which
+        //    would otherwise cause all documents to be skipped.
         List<Id> contentDocIdList = new List<Id>(contentDocIds);
         Set<Id> quoteIdSet = new Set<Id>(quoteIdList);
         Set<Id> linkedElsewhere = new Set<Id>();
@@ -385,11 +383,12 @@ public class RLM_AccountUtilities {
                 chunk.add(contentDocIdList[j]);
             }
             for (ContentDocumentLink cdl : [
-                SELECT ContentDocumentId, LinkedEntityId, ShareType FROM ContentDocumentLink
+                SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink
                 WHERE ContentDocumentId IN :chunk
+                AND ShareType != 'I'
             ]) {
-                // Skip: linked to one of our quotes (expected), or personal-library link (ShareType='I')
-                if (quoteIdSet.contains(cdl.LinkedEntityId) || cdl.ShareType == 'I') continue;
+                // Skip: linked to one of our quotes (expected)
+                if (quoteIdSet.contains(cdl.LinkedEntityId)) continue;
                 linkedElsewhere.add(cdl.ContentDocumentId);
             }
         }
