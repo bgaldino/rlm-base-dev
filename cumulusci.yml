@@ -706,20 +706,6 @@ tasks:
     options:
       path: unpackaged/pre
 
-  restore_rc_tso:
-    description: Move RLM_TSO from storage directory for deployment (only when tso flag is true)
-    class_path: tasks.rlm_restore_rc_tso.RestoreRLMTSO
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/pre
-
-  deploy_rc_tso:
-    description: Deploy RLM_TSO Permission Set Group (only when tso flag is true)
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
-
   deploy_context_definitions:
     description: Deploy Context Definitions
     class_path: cumulusci.tasks.salesforce.Deploy
