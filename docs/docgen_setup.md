@@ -168,7 +168,7 @@ The Context Service approach decouples token population from OmniStudio DataRapt
 #### Node Structure
 
 ```
-RLM_QuoteDocGenContext (primaryObject: Quote)
+RLM_QuoteDocGenContext (primaryDomainObject: Quote)
 ├── Quote  (root node)
 │   ├── AccountName       STRING   INPUTOUTPUT
 │   ├── BillingStreet     STRING   INPUTOUTPUT

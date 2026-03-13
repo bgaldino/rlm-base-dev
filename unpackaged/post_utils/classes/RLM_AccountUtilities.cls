@@ -282,9 +282,12 @@ public class RLM_AccountUtilities {
             }
             
             // Finally handle remaining objects
+            // Query quotes once and share across cleanup steps to avoid duplicate SOQL.
+            Id acctIdConverted = accountId;
+            List<Quote> accountQuotes = [SELECT Id FROM Quote WHERE QuoteAccountId = :acctIdConverted];
             // Delete quote-linked ContentDocuments before quotes are removed
-            deleteQuoteDocuments(accountId);
-            deleteQuotes(accountId);
+            deleteQuoteDocuments(accountQuotes);
+            deleteQuotes(accountQuotes);
             deleteOpportunities(accountId);
         } catch(Exception e) {
             Database.rollback(sp);
@@ -308,14 +311,12 @@ public class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes all quotes associated with the account.
-     * 
-     * @param accountId The ID of the account whose quotes should be deleted
+     * Deletes the provided quotes.
+     *
+     * @param quotesToDelete Pre-fetched list of Quote records to delete
      * @return Boolean indicating success
      */
-    private static Boolean deleteQuotes(String accountId) {
-        Id accountIdConverted = accountId;
-        Quote[] quotesToDelete = [SELECT Id FROM Quote WHERE QuoteAccountId = :accountIdConverted];
+    private static Boolean deleteQuotes(List<Quote> quotesToDelete) {
         if (!quotesToDelete.isEmpty()) {
             Database.delete(quotesToDelete);
         }
@@ -330,14 +331,12 @@ public class RLM_AccountUtilities {
      * auto-cascades ContentDocumentLink rows when the linked Quote is deleted,
      * making it impossible to discover quote-attached ContentDocuments afterwards.
      *
-     * @param accountId The ID of the account whose quote documents should be deleted
+     * @param quotes Pre-fetched list of Quote records for the account
      */
-    private static void deleteQuoteDocuments(String accountId) {
-        Id acctId = accountId;
-
-        // 1. Collect all quote IDs for the account
+    private static void deleteQuoteDocuments(List<Quote> quotes) {
+        // 1. Collect all quote IDs
         List<Id> quoteIdList = new List<Id>();
-        for (Quote q : [SELECT Id FROM Quote WHERE QuoteAccountId = :acctId]) {
+        for (Quote q : quotes) {
             quoteIdList.add(q.Id);
         }
         if (quoteIdList.isEmpty()) return;
