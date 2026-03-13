@@ -42,7 +42,9 @@ All steps are gated by `project_config.project__custom__docgen`.
 - **Binary:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_1.dt`
 - **Token list:** `AccountName`, `BillingStreet`, `BillingCity`, `BillingState`, `BillingPostalCode`, `SalesRep`, `QuoteNumber`, `CreatedDate`, `ExpirationDate`, `Line:ProductName`, `Line:Quantity`, `Line:ListPrice`, `Line:Discount`, `Line:NetUnitPrice`, `Line:NetTotalPrice` (including nested `CQL` and `CQL2` repeating sections), `GrandTotal`
 
-### `RLM_QuoteProposal_CS` — Context Service
+### `RLM_QuoteProposal_CS` — Context Service ⚠️ Work in Progress
+
+> **Status:** End-to-end document generation with this template has not been fully verified in an automated build. `AccountName` and `SalesRep` require manual mapping in Setup → Context Service after deploy (see [Manual Step Required After Deploy](#manual-step-required-after-deploy)). Do not rely on this template in production builds until those steps are automated or documented as a known post-deploy requirement.
 
 - **Token mapping:** `RLM_QuoteDocGenContext` / `QuoteDocGenMapping` (Context Service)
 - **Meta file:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_CS_1.dt-meta.xml`
@@ -223,11 +225,29 @@ The Quote Proposal generation flow (`unpackaged/post_docgen/flows/RLM_Quote_Doc_
 5. **Status polling** — `rlmDocStatusMonitor` LWC subscribes to `DocGenProcStsChgEvent` platform event; wire-based polling fallback ensures flow advances even if EMP event is dropped
 6. **PDF extraction** — calls `RLM_ReturnPDFDocument` to get ContentDocumentId/ContentVersionId from the completed DGP
 7. **Merge** — calls `RLM_DocumentGenerationMerge` to merge generated PDF with attachments
-8. **Preview** — `mulesoft_idp:configEditorPreviewPlayer` renders inline; `rlmDocPreview` LWC (invisible companion, `display:none`) sets `height: 500px` on the player host element via `document.querySelector` in `renderedCallback`
+8. **Preview** — `mulesoft_idp:configEditorPreviewPlayer` renders inline; `rlmDocPreview` LWC (invisible companion, `display:none`) injects a global `<style>` tag into `document.head` targeting `community_content-file-previewer .bodyContainer` to force `height: 500px` (see [Preview Height Fix](#preview-height-fix))
 
 ### Preview Height Fix
 
-`mulesoft_idp:configEditorPreviewPlayer` uses `height: 100%` internally but collapses to ~150px because the host element has no explicit height. `rlmDocPreview` is a companion LWC added to each preview screen in the flow. Its `renderedCallback` runs `document.querySelector('mulesoft_idp-config-editor-preview-player')` and sets `height: 500px; min-height: 500px` directly on the element's style, bypassing the shadow DOM restriction.
+`mulesoft_idp:configEditorPreviewPlayer` uses `height: 100%` internally but collapses to ~150px because its host element has no explicit height set by the flow screen container.
+
+**Why `querySelector` / `renderedCallback` does not work:** Lightning Web Security (LWS) blocks `shadowRoot` access across namespaces from LWC JavaScript. Attempting to reach into `mulesoft_idp-config-editor-preview-player` from another component's JS is silently denied.
+
+**The fix — global CSS injection:** `rlmDocPreview` is an invisible companion LWC (`display: none`) placed on each preview screen in the flow. Its `connectedCallback` injects a `<style>` tag into `document.head` targeting `community_content-file-previewer .bodyContainer`:
+
+```javascript
+connectedCallback() {
+    if (!document.getElementById(STYLE_ID)) {
+        const style = document.createElement('style');
+        style.id = STYLE_ID;
+        style.textContent =
+            `community_content-file-previewer .bodyContainer { height: 500px !important; min-height: 500px !important; }`;
+        document.head.appendChild(style);
+    }
+}
+```
+
+This works because `community_content-file-previewer` (the inner renderer used by the preview player) uses **LWC synthetic shadow**, not native shadow DOM. Global CSS rules applied to `document.head` penetrate synthetic shadow boundaries, so `.bodyContainer` inside that component receives the height override. The `STYLE_ID` guard ensures the tag is injected only once even when the flow navigates back and re-mounts the component.
 
 ---
 
