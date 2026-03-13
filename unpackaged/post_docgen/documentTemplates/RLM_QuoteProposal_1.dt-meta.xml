@@ -11,7 +11,7 @@
     <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
     <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
     <status>Active</status>
-    <tokenList>AccountName,BillingStreet,BillingCity,BillingState,BillingPostalCode,SalesRep,QuoteNumber,CreatedDate,ExpirationDate,Line:ProductName,Line:Quantity,Line:ListPrice,Line:Discount,Line:NetUnitPrice,Line:NetTotalPrice,Line:CQL:ProductName,Line:CQL:Quantity,Line:CQL:ListPrice,Line:CQL:Discount,Line:CQL:NetUnitPrice,Line:CQL:NetTotalPrice,Line:CQL:CQL2:ProductName,Line:CQL:CQL2:Quantity,Line:CQL:CQL2:ListPrice,Line:CQL:CQL2:Discount,Line:CQL:CQL2:NetUnitPrice,Line:CQL:CQL2:NetTotalPrice,GrandTotal</tokenList>
+    <tokenList>AccountName,BillingStreet,BillingCity,BillingState,BillingPostalCode,SalesRep,QuoteNumber,CreatedDate,ExpirationDate,Line:ProductName,Line:Quantity,Line:ListPrice,Line:Discount,Line:NetUnitPrice,Line:NetTotalPrice,Line:CQL:ProductName,Line:CQL:Quantity,Line:CQL:ListPrice,Line:CQL:Discount,Line:CQL:NetUnitPrice,Line:CQL:NetTotalPrice,Line:CQL:CQL2:ProductName,Line:CQL:CQL2:Quantity,Line:CQL:CQL2:ListPrice,Line:CQL:CQL2:Discount,Line:CQL:CQL2:NetUnitPrice,Line:CQL:CQL2:NetTotalPrice,GrandTotal,SellerCompanyName,SellerStreet,SellerCity,SellerState,SellerPostalCode,SellerPhone,SellerFax,SellerEmail,SellerWebsite,SellerCountry</tokenList>
     <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
     <tokenMappingType>JSON</tokenMappingType>
     <type>MicrosoftWord</type>

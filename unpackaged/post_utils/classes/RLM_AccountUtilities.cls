@@ -282,6 +282,8 @@ public class RLM_AccountUtilities {
             }
             
             // Finally handle remaining objects
+            // Delete DocGen-generated files linked to quotes before quotes are removed
+            deleteQuoteDocuments(accountId);
             deleteQuotes(accountId);
             deleteOpportunities(accountId);
         } catch(Exception e) {
@@ -315,13 +317,94 @@ public class RLM_AccountUtilities {
         Id accountIdConverted = accountId;
         Quote[] quotesToDelete = [SELECT Id FROM Quote WHERE QuoteAccountId = :accountIdConverted];
         if (!quotesToDelete.isEmpty()) {
-            Set<Id> quoteIds = new Set<Id>();
-            for (Quote q : quotesToDelete) {
-                quoteIds.add(q.Id);
-            }
             Database.delete(quotesToDelete);
         }
         return true;
+    }
+
+    /**
+     * Deletes DocGen-generated ContentDocuments and DocumentGenerationProcess records
+     * linked to an account's Quotes. Must be called BEFORE deleteQuotes because the
+     * platform auto-cascades ContentDocumentLink rows when the linked Quote is deleted,
+     * making it impossible to discover quote-attached ContentDocuments afterwards.
+     *
+     * @param accountId The ID of the account whose quote documents should be deleted
+     */
+    private static void deleteQuoteDocuments(String accountId) {
+        Id acctId = accountId;
+
+        // 1. Collect all quote IDs for the account
+        List<Id> quoteIdList = new List<Id>();
+        for (Quote q : [SELECT Id FROM Quote WHERE QuoteAccountId = :acctId]) {
+            quoteIdList.add(q.Id);
+        }
+        if (quoteIdList.isEmpty()) return;
+
+        // 2. Delete DocumentGenerationProcess records referencing these quotes.
+        //    No platform cascade — these orphan silently after Quote deletion without this step.
+        List<DocumentGenerationProcess> dgpToDelete = [
+            SELECT Id FROM DocumentGenerationProcess WHERE ReferenceObject IN :quoteIdList
+        ];
+        for (Integer i = 0; i < dgpToDelete.size(); i += BATCH_SIZE) {
+            List<DocumentGenerationProcess> dgpBatch = new List<DocumentGenerationProcess>();
+            for (Integer j = i; j < Math.min(i + BATCH_SIZE, dgpToDelete.size()); j++) {
+                dgpBatch.add(dgpToDelete[j]);
+            }
+            Database.delete(dgpBatch, false);
+        }
+
+        // 3. Collect ContentDocument IDs from CDLs before quotes are deleted.
+        //    Chunked by quoteIdList to keep per-query row counts bounded.
+        Set<Id> contentDocIds = new Set<Id>();
+        for (Integer i = 0; i < quoteIdList.size(); i += BATCH_SIZE) {
+            List<Id> chunk = new List<Id>();
+            for (Integer j = i; j < Math.min(i + BATCH_SIZE, quoteIdList.size()); j++) {
+                chunk.add(quoteIdList[j]);
+            }
+            for (ContentDocumentLink cdl : [
+                SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId IN :chunk
+            ]) {
+                contentDocIds.add(cdl.ContentDocumentId);
+            }
+        }
+        if (contentDocIds.isEmpty()) return;
+
+        // 4. Exclude ContentDocuments also linked to records outside these quotes
+        //    to avoid deleting files shared with Opportunities, Orders, etc.
+        //    NOTE: Salesforce auto-creates a ShareType='I' (personal library) CDL on the
+        //    owner's User record for every ContentDocument. We must ignore those or every
+        //    document would be flagged as "linked elsewhere" and nothing would be deleted.
+        //    Platform restriction prevents filtering by ShareType in SOQL alongside
+        //    LinkedEntityId, so we filter in Apex after querying.
+        List<Id> contentDocIdList = new List<Id>(contentDocIds);
+        Set<Id> quoteIdSet = new Set<Id>(quoteIdList);
+        Set<Id> linkedElsewhere = new Set<Id>();
+        for (Integer i = 0; i < contentDocIdList.size(); i += BATCH_SIZE) {
+            List<Id> chunk = new List<Id>();
+            for (Integer j = i; j < Math.min(i + BATCH_SIZE, contentDocIdList.size()); j++) {
+                chunk.add(contentDocIdList[j]);
+            }
+            for (ContentDocumentLink cdl : [
+                SELECT ContentDocumentId, LinkedEntityId, ShareType FROM ContentDocumentLink
+                WHERE ContentDocumentId IN :chunk
+            ]) {
+                // Skip: linked to one of our quotes (expected), or personal-library link (ShareType='I')
+                if (quoteIdSet.contains(cdl.LinkedEntityId) || cdl.ShareType == 'I') continue;
+                linkedElsewhere.add(cdl.ContentDocumentId);
+            }
+        }
+        contentDocIds.removeAll(linkedElsewhere);
+        if (contentDocIds.isEmpty()) return;
+
+        // 5. Batch-delete ContentDocuments; platform auto-cascades their CDL rows.
+        List<ContentDocument> cdsToDelete = [SELECT Id FROM ContentDocument WHERE Id IN :contentDocIds];
+        for (Integer i = 0; i < cdsToDelete.size(); i += BATCH_SIZE) {
+            List<ContentDocument> cdsBatch = new List<ContentDocument>();
+            for (Integer j = i; j < Math.min(i + BATCH_SIZE, cdsToDelete.size()); j++) {
+                cdsBatch.add(cdsToDelete[j]);
+            }
+            Database.delete(cdsBatch, false);
+        }
     }
 
     /**

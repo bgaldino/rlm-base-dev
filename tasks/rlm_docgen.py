@@ -189,3 +189,15 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
             raise Exception(
                 f"Failed to create ContentVersion for {template_name}: {response}"
             )
+
+
+# TODO: PatchDocumentTemplateLogos task — fetch the active BrandingSet logo asset
+# (e.g. via ConnectApi or ContentAsset query) and patch the DocumentTemplate
+# ContentDocument binary to replace the embedded QuantumBit logo image with the
+# org's current brand logo. This cannot be done purely through metadata deploy
+# because logo references inside DOCX binaries are embedded image bytes, not
+# metadata-resolvable references. Implement as a CCI task that: (1) queries the
+# org for the active BrandingSet primary logo ContentAsset, (2) downloads the
+# image bytes, (3) unpacks the .dt ZIP, (4) replaces the logo image in
+# word/media/, updates the image dimensions in word/document.xml if needed, and
+# (5) re-uploads via FixDocumentTemplateBinaries-style ContentVersion creation.

@@ -27,6 +27,7 @@ Both Quote templates use the same Quick Action (`Quote.RLM_Create_Proposal`) and
 4. activate_docgen_templates        → Activates the latest version of each RLM_ template (Apex)
 5. fix_document_template_binaries   → Uploads correct DOCX binary to each template (see below)
 6. apply_context_docgen             → Creates RLM_QuoteDocGenContext via Context Service API
+7. assign_permission_sets           → Grants read access to RLM_Seller_*__c formula fields (RLM_DocGen permset)
 ```
 
 All steps are gated by `project_config.project__custom__docgen`.
@@ -40,7 +41,7 @@ All steps are gated by `project_config.project__custom__docgen`.
 - **Token mapping:** OmniDataTransform pair (`RLMQuoteExtractBasic` / `RLMQuoteTransformBasic`)
 - **Meta file:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_1.dt-meta.xml`
 - **Binary:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_1.dt`
-- **Token list:** `AccountName`, `BillingStreet`, `BillingCity`, `BillingState`, `BillingPostalCode`, `SalesRep`, `QuoteNumber`, `CreatedDate`, `ExpirationDate`, `Line:ProductName`, `Line:Quantity`, `Line:ListPrice`, `Line:Discount`, `Line:NetUnitPrice`, `Line:NetTotalPrice` (including nested `CQL` and `CQL2` repeating sections), `GrandTotal`
+- **Token list:** `AccountName`, `BillingStreet`, `BillingCity`, `BillingState`, `BillingPostalCode`, `SalesRep`, `QuoteNumber`, `CreatedDate`, `ExpirationDate`, `Line:ProductName`, `Line:Quantity`, `Line:ListPrice`, `Line:Discount`, `Line:NetUnitPrice`, `Line:NetTotalPrice` (including nested `CQL` and `CQL2` repeating sections), `GrandTotal`, `SellerCompanyName`, `SellerStreet`, `SellerCity`, `SellerState`, `SellerPostalCode`, `SellerPhone`, `SellerFax`, `SellerEmail`, `SellerWebsite`, `SellerCountry`
 
 ### `RLM_QuoteProposal_CS` — Context Service ⚠️ Work in Progress
 
@@ -56,6 +57,59 @@ All steps are gated by `project_config.project__custom__docgen`.
 - **Token mapping:** `BillingDocumentGenerationGetInvoiceDetails` (billing-managed OmniDataTransform)
 - **Meta file:** `unpackaged/post_docgen/documentTemplates/RLM_InvoiceTemplate_1.dt-meta.xml`
 - **Usage type:** `Invoice`
+
+---
+
+## Dynamic Seller Info
+
+Both Quote Proposal templates (`RLM_QuoteProposal` and `RLM_QuoteProposal_CS`) include a document header with seller contact details. These values are now populated dynamically from the Quote Owner's associated Account record rather than being hardcoded.
+
+### Token Source
+
+| Token | Source |
+|---|---|
+| `SellerCompanyName` | `Quote.Owner.Account.Name` |
+| `SellerStreet` | `Quote.Owner.Account.BillingStreet` |
+| `SellerCity` | `Quote.Owner.Account.BillingCity` |
+| `SellerState` | `Quote.Owner.Account.BillingState` |
+| `SellerPostalCode` | `Quote.Owner.Account.BillingPostalCode` |
+| `SellerPhone` | `Quote.Owner.Account.Phone` |
+| `SellerFax` | `Quote.Owner.Account.Fax` |
+| `SellerEmail` | `Quote.Owner.Email` (User record) |
+| `SellerWebsite` | `Quote.Owner.Account.Website` |
+| `SellerCountry` | `Quote.Owner.Account.BillingCountry` |
+
+### Implementation
+
+**ODT template (`RLM_QuoteProposal`):** The `RLMQuoteExtractBasic` ODT reads the 10 `RLM_Seller_*__c` formula fields directly from the Quote object (`Quote:RLM_Seller_*__c`). No new query sequences are required because formula fields are resolved at the platform level before the DataRaptor reads them. `RLMQuoteTransformBasic` passes the values through unchanged.
+
+**CS template (`RLM_QuoteProposal_CS`):** The Context Service API does not support relationship traversal in `sObjectField`. Ten formula fields (`RLM_Seller_CompanyName__c` through `RLM_Seller_Country__c`) are deployed on the Quote object under `unpackaged/post_docgen/objects/Quote/fields/`. The `QuoteDocGenMapping` references these as direct `sObjectField` values, so no traversal is needed in the context plan.
+
+The `RLM_DocGen` permission set (deployed in step 7 of `prepare_docgen`) grants `readable: true` on all 10 fields.
+
+### Address Format
+
+The document header renders seller address as three lines:
+
+```
+{{SellerStreet}}
+{{SellerCity}}, {{SellerState}}
+{{SellerPostalCode}}, {{SellerCountry}}
+```
+
+### Partner vs. Internal Context
+
+For users operating in a Partner Community context, `Owner.AccountId` resolves to their company's Account — seller fields populate from the partner Account.
+
+For internal (non-portal) users, `Owner.AccountId` is null. The Account-based formula fields fall back to `$Organization.*` (the org's Company Information from Setup → Company Information), so generated documents always show valid seller data. Only `SellerWebsite` has no `$Organization` fallback (`$Organization.Website` is not a valid formula merge field) — it renders blank for internal users whose Account has no Website set. `SellerCountry` uses `$Organization.Country` as its fallback and is always populated.
+
+The priority is: **Partner Account** → **`$Organization`** (Account fields) / **`Owner:User.Email`** (email, always populated).
+
+> **Scratch org note:** Fresh scratch orgs have a blank `Organization` record (Name = org alias, all address/phone/fax fields null), so the `$Organization` fallback produces blank seller tokens on new scratch builds. A `set_org_company_info` task is planned (see `scripts/apex/setOrgCompanyInfo.apex` TODO and the `# TODO` comment before `insert_scratch_data` in `cumulusci.yml`) to populate these fields as step 2 of `prepare_scratch`.
+
+### Logo
+
+Template logos cannot be updated dynamically post-deploy because logo image bytes are embedded inside the DOCX ZIP binary. A `PatchDocumentTemplateLogos` CCI task is planned (see `tasks/rlm_docgen.py` TODO) to fetch the org's active BrandingSet logo and patch the template binaries automatically during `prepare_docgen`.
 
 ---
 
@@ -125,7 +179,16 @@ RLM_QuoteDocGenContext (primaryObject: Quote)
 │   ├── QuoteNumber       STRING   INPUTOUTPUT
 │   ├── CreatedDate       DATE     INPUTOUTPUT
 │   ├── ExpirationDate    DATE     INPUTOUTPUT
-│   └── GrandTotal        CURRENCY INPUTOUTPUT
+│   ├── GrandTotal        CURRENCY INPUTOUTPUT
+│   ├── SellerCompanyName STRING   INPUTOUTPUT
+│   ├── SellerStreet      STRING   INPUTOUTPUT
+│   ├── SellerCity        STRING   INPUTOUTPUT
+│   ├── SellerState       STRING   INPUTOUTPUT
+│   ├── SellerPostalCode  STRING   INPUTOUTPUT
+│   ├── SellerPhone       STRING   INPUTOUTPUT
+│   ├── SellerFax         STRING   INPUTOUTPUT
+│   ├── SellerEmail       STRING   INPUTOUTPUT
+│   └── SellerWebsite     STRING   INPUTOUTPUT
 └── Line (child of Quote)
     ├── ProductName   STRING   INPUTOUTPUT
     ├── Quantity      NUMBER   INPUTOUTPUT
@@ -147,6 +210,15 @@ RLM_QuoteDocGenContext (primaryObject: Quote)
 | Quote | CreatedDate | Quote | CreatedDate |
 | Quote | ExpirationDate | Quote | ExpirationDate |
 | Quote | GrandTotal | Quote | GrandTotal |
+| Quote | SellerCompanyName | Quote | RLM_Seller_CompanyName__c |
+| Quote | SellerStreet | Quote | RLM_Seller_Street__c |
+| Quote | SellerCity | Quote | RLM_Seller_City__c |
+| Quote | SellerState | Quote | RLM_Seller_State__c |
+| Quote | SellerPostalCode | Quote | RLM_Seller_PostalCode__c |
+| Quote | SellerPhone | Quote | RLM_Seller_Phone__c |
+| Quote | SellerFax | Quote | RLM_Seller_Fax__c |
+| Quote | SellerEmail | Quote | RLM_Seller_Email__c |
+| Quote | SellerWebsite | Quote | RLM_Seller_Website__c |
 | Line | ProductName | QuoteLineItem | RLM_ProductName__c |
 | Line | Quantity | QuoteLineItem | Quantity |
 | Line | ListPrice | QuoteLineItem | ListPrice |
@@ -280,3 +352,5 @@ cci task run manage_context_definition \
 | Template binary bug | Salesforce Metadata API batch deploy assigns the same ContentDocument binary to all templates. `fix_document_template_binaries` corrects this automatically. |
 | Template versions accumulate | Each deploy creates a new DocumentTemplate version. `activateDocgenTemplates.apex` activates the highest version. Old versions remain as Archived but do not cause issues. |
 | `enable_document_builder_toggle` | Uses Robot Framework; requires Robot deps. May fail if the Revenue Settings page is slow. Run `validate_setup` to check Robot deps. |
+| Template logo is static | Logo image bytes are embedded inside the DOCX binary and cannot be updated via metadata deploy. A `PatchDocumentTemplateLogos` CCI task is planned to automate this (see `tasks/rlm_docgen.py`). |
+| `SellerWebsite` blank for internal users | `$Organization.Website` is not a valid formula merge field. `RLM_Seller_Website__c` returns blank when the Quote Owner's Account has no Website set and there is no org-level fallback available. |

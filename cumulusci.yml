@@ -295,6 +295,10 @@ project:
       # Constraints-specific permission sets
       - RLM_Constraints
 
+    ps_docgen: &ps_docgen
+      # DocGen permission sets
+      - RLM_DocGen
+
     ps_prm: &ps_prm
       # PRM-specific permission sets
       - RLM_PRM
@@ -1249,6 +1253,13 @@ tasks:
     options:
       pathtoexportjson: *q3_rates_dataset
 
+
+  # TODO: set_org_company_info — populate Organization.Name/Phone/Fax/Street/City/State/PostalCode
+  # on fresh scratch orgs so RLM_Seller_*__c formula fields return real company data for
+  # internal users (who have no AccountId and fall back to $Organization.*). Implement as an
+  # AnonymousApexTask running scripts/apex/setOrgCompanyInfo.apex and add as step 2 of
+  # prepare_scratch (when: org_config.scratch). The Apex script contains placeholder values
+  # that must be replaced with real company info before enabling.
 
   insert_scratch_data:
     group: Revenue Lifecycle Management
@@ -2233,6 +2244,11 @@ flows:
       6:
         task: apply_context_docgen
         when: project_config.project__custom__docgen
+      7:
+        task: assign_permission_sets
+        when: project_config.project__custom__docgen
+        options:
+          api_names: *ps_docgen
 
   prepare_billing:
     group: Revenue Lifecycle Management
