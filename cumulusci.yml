@@ -842,6 +842,16 @@ tasks:
     options:
       path: scripts/apex/activateDocgenTemplates.apex
 
+  fix_document_template_binaries:
+    group: Revenue Lifecycle Management
+    description: >
+      Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy.
+      Salesforce metadata API bug: all DocumentTemplates deployed in a single batch
+      receive the same ContentDocument binary (first alphabetically). This task uploads
+      the correct .dt binary from the repo for each RLM_ template, replacing the wrong
+      ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
+    class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
+
   deploy_post_constraints:
     description: Deploy Constraints Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2218,6 +2228,9 @@ flows:
         task: activate_docgen_templates
         when: project_config.project__custom__docgen
       5:
+        task: fix_document_template_binaries
+        when: project_config.project__custom__docgen
+      6:
         task: apply_context_docgen
         when: project_config.project__custom__docgen
 
