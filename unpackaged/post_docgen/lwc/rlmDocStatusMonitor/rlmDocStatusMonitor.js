@@ -4,14 +4,11 @@ import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import { FlowAttributeChangeEvent, FlowNavigationNextEvent } from 'lightning/flowSupport';
 import STATUS_FIELD from '@salesforce/schema/DocumentGenerationProcess.Status';
 
-const POLL_INTERVAL_MS = 3000;
-
 export default class RlmDocStatusMonitor extends LightningElement {
     @api processId;
     @api status = 'InProgress';
     hasNavigated = false;
     subscription = {};
-    pollTimer;
 
     channelName = '/event/DocGenProcStsChgEvent';
 
@@ -19,7 +16,8 @@ export default class RlmDocStatusMonitor extends LightningElement {
         return this.status === 'InProgress';
     }
 
-    // Poll fallback: wire to DGP record and advance if no longer InProgress
+    // Wire fallback: @wire re-evaluates when processId changes and whenever LDS refreshes.
+    // This ensures the flow advances even if the EMP platform event subscription drops.
     @wire(getRecord, { recordId: '$processId', fields: [STATUS_FIELD] })
     wiredDgp({ data }) {
         if (data) {
@@ -37,9 +35,6 @@ export default class RlmDocStatusMonitor extends LightningElement {
     }
 
     disconnectedCallback() {
-        if (this.pollTimer) {
-            clearInterval(this.pollTimer);
-        }
         if (this.subscription && this.subscription.channel) {
             unsubscribe(this.subscription, () => {});
         }
@@ -58,9 +53,16 @@ export default class RlmDocStatusMonitor extends LightningElement {
             .then(response => {
                 this.subscription = response;
             })
-            .catch(() => {});
+            .catch(error => {
+                // EMP subscription failed — wire fallback above will still advance the flow
+                // eslint-disable-next-line no-console
+                console.error('rlmDocStatusMonitor: EMP subscribe failed', error);
+            });
 
-        onError(() => {});
+        onError(error => {
+            // eslint-disable-next-line no-console
+            console.error('rlmDocStatusMonitor: EMP channel error', error);
+        });
     }
 
     handleStatusChange(newStatus) {

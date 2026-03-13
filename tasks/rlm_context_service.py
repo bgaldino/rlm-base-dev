@@ -1029,7 +1029,7 @@ class ManageContextDefinition(SFDXBaseTask):
                 child_container = node.get("childNodes", {})
                 children = (
                     child_container if isinstance(child_container, list)
-                    else child_container.get("childNodes", []) if isinstance(child_container, dict)
+                    else child_container.get("contextNodes", []) if isinstance(child_container, dict)
                     else []
                 )
                 _collect_parent_ids(children, nid)

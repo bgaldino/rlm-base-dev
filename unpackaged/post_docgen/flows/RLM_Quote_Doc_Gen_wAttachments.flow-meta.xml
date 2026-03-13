@@ -956,9 +956,6 @@
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
-        <value>
-            <stringValue>0Q0Kj000003PazgKAC</stringValue>
-        </value>
     </variables>
     <variables>
         <name>varN_FileCount</name>

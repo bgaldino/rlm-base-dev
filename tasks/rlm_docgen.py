@@ -87,6 +87,7 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
             return
 
         fixed = 0
+        eligible = 0
         for dt_path in dt_files:
             meta_path = dt_path + "-meta.xml"
             if not os.path.exists(meta_path):
@@ -108,11 +109,13 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
                 )
                 continue
 
+            eligible += 1
             self._upload_correct_binary(content_doc_id, template_name, dt_path)
             fixed += 1
 
         self.logger.info(
-            f"Fixed {fixed}/{len(dt_files)} DocumentTemplate binaries."
+            f"Fixed {fixed}/{eligible} DocumentTemplate binaries "
+            f"({len(dt_files)} .dt files found, {len(dt_files) - eligible} skipped)."
         )
 
     def _parse_template_name(self, meta_path):

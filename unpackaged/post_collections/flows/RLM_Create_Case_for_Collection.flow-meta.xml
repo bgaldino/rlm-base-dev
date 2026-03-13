@@ -28,7 +28,7 @@
     <apiVersion>63.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
-    <interviewLabel>RCA - {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM - {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM - Create Case for Collection</label>
     <processMetadataValues>
         <name>BuilderType</name>
