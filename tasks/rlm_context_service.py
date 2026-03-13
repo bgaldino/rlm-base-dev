@@ -237,7 +237,7 @@ class ManageContextDefinition(SFDXBaseTask):
         """POST to connect/context-definitions to create a new context definition.
 
         Required plan fields: developerName, label (or name).
-        Optional plan fields: primaryObject, startDate, contextTtl, description.
+        Optional plan fields: primaryDomainObject, startDate, contextTtl, description.
         Use 'createPayload' in the plan to pass additional/override fields directly.
         """
         url, headers = self._build_url_and_headers("connect/context-definitions")

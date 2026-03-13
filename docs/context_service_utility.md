@@ -30,7 +30,7 @@ Set `"create": true` in the plan file to create a new context definition when it
 
 Additional plan fields for creation:
 - `label` (required): Display name of the definition.
-- `primaryObject` (optional): Primary SObject API name (e.g. `"Quote"`).
+- `primaryDomainObject` (optional): Primary SObject API name for the CS create endpoint (e.g. `"Quote"`). Note: `primaryObject` is not a valid API field — use `primaryDomainObject`.
 - `description` (optional): Description.
 - `startDate` (optional): Effective start date.
 - `contextTtl` (optional): Time-to-live.
