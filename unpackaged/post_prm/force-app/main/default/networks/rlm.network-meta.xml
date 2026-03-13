@@ -5,7 +5,7 @@
     <changePasswordTemplate>unfiled$public/CommunityChangePasswordEmailTemplate</changePasswordTemplate>
     <communityRoles/>
     <disableReputationRecordConversations>true</disableReputationRecordConversations>
-    <emailSenderAddress>bgaldino@salesforce.com</emailSenderAddress>
+    <emailSenderAddress>steelbrick_demo@salesforce.com</emailSenderAddress>
     <emailSenderName>rlm</emailSenderName>
     <embeddedLoginEnabled>false</embeddedLoginEnabled>
     <enableApexCDNCaching>true</enableApexCDNCaching>
