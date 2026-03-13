@@ -1,0 +1,684 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OmniDataTransform xmlns="http://soap.sforce.com/2006/04/metadata">
+    <active>false</active>
+    <assignmentRulesUsed>false</assignmentRulesUsed>
+    <deletedOnSuccess>false</deletedOnSuccess>
+    <errorIgnored>false</errorIgnored>
+    <expectedInputJson>{
+  &quot;BillingCity&quot; : &quot;New York&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Ka000002sdtcKAA&quot;,
+  &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;Line&quot; : [ {
+    &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$0.00&quot;,
+    &quot;CQL&quot; : [ {
+      &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Services Project&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;CQL2&quot; : [ {
+        &quot;NetUnitPrice&quot; : &quot;$240.00&quot;,
+        &quot;Discount&quot; : &quot;20&quot;,
+        &quot;ProductName&quot; : &quot;Project Manager&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$1,920.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$300.00&quot;
+      }, {
+        &quot;NetUnitPrice&quot; : &quot;$300.00&quot;,
+        &quot;ProductName&quot; : &quot;Implementation Engineer&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$2,400.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$300.00&quot;
+      }, {
+        &quot;NetUnitPrice&quot; : &quot;$500.00&quot;,
+        &quot;ProductName&quot; : &quot;Solutions Architect&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$4,000.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$500.00&quot;
+      } ],
+      &quot;ListPrice&quot; : &quot;$0.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$45.00&quot;,
+      &quot;ProductName&quot; : &quot;API Access Requests (AEH)&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$9,000.00&quot;,
+      &quot;Quantity&quot; : 100,
+      &quot;ListPrice&quot; : &quot;$45.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Database&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$24,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QB API Management Solution&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$24,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$250.00&quot;,
+      &quot;ProductName&quot; : &quot;Professional Services Daily Rate&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$62,500.00&quot;,
+      &quot;Quantity&quot; : 250,
+      &quot;ListPrice&quot; : &quot;$250.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$8,500.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Essentials Training&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$8,500.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$8,500.00&quot;
+    } ]
+  }, {
+    &quot;NetUnitPrice&quot; : &quot;$9,000.00&quot;,
+    &quot;Discount&quot; : &quot;10&quot;,
+    &quot;ProductName&quot; : &quot;Additional API&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$9,000.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$15,000.00&quot;
+  } ],
+  &quot;QuoteNumber&quot; : &quot;00000138&quot;,
+  &quot;ExpirationDate&quot; : &quot;02/11/2026&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;GrandTotal&quot; : &quot;$145,320.00&quot;,
+  &quot;CreatedDate&quot; : &quot;01/13/2026&quot;,
+  &quot;BillingPostalCode&quot; : &quot;31349&quot;,
+  &quot;BillingState&quot; : &quot;NY&quot;,
+  &quot;AccountName&quot; : &quot;Acme&quot;,
+  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+}</expectedInputJson>
+    <expectedOutputJson>{
+  &quot;BillingCity&quot; : &quot;New York&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Ka000002sdtcKAA&quot;,
+  &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;Line&quot; : [ {
+    &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$0.00&quot;,
+    &quot;CQL&quot; : [ {
+      &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Services Project&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;CQL2&quot; : [ {
+        &quot;NetUnitPrice&quot; : &quot;$240.00&quot;,
+        &quot;Discount&quot; : &quot;20&quot;,
+        &quot;ProductName&quot; : &quot;Project Manager&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$1,920.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$300.00&quot;
+      }, {
+        &quot;NetUnitPrice&quot; : &quot;$300.00&quot;,
+        &quot;ProductName&quot; : &quot;Implementation Engineer&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$2,400.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$300.00&quot;
+      }, {
+        &quot;NetUnitPrice&quot; : &quot;$500.00&quot;,
+        &quot;ProductName&quot; : &quot;Solutions Architect&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$4,000.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$500.00&quot;
+      } ],
+      &quot;ListPrice&quot; : &quot;$0.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$45.00&quot;,
+      &quot;ProductName&quot; : &quot;API Access Requests (AEH)&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$9,000.00&quot;,
+      &quot;Quantity&quot; : 100,
+      &quot;ListPrice&quot; : &quot;$45.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Database&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$24,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QB API Management Solution&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$24,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$250.00&quot;,
+      &quot;ProductName&quot; : &quot;Professional Services Daily Rate&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$62,500.00&quot;,
+      &quot;Quantity&quot; : 250,
+      &quot;ListPrice&quot; : &quot;$250.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$8,500.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Essentials Training&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$8,500.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$8,500.00&quot;
+    } ]
+  }, {
+    &quot;NetUnitPrice&quot; : &quot;$9,000.00&quot;,
+    &quot;Discount&quot; : &quot;10&quot;,
+    &quot;ProductName&quot; : &quot;Additional API&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$9,000.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$15,000.00&quot;
+  } ],
+  &quot;QuoteNumber&quot; : &quot;00000138&quot;,
+  &quot;ExpirationDate&quot; : &quot;02/11/2026&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;GrandTotal&quot; : &quot;$145,320.00&quot;,
+  &quot;CreatedDate&quot; : &quot;01/13/2026&quot;,
+  &quot;BillingPostalCode&quot; : &quot;31349&quot;,
+  &quot;BillingState&quot; : &quot;NY&quot;,
+  &quot;AccountName&quot; : &quot;Acme&quot;,
+  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+}</expectedOutputJson>
+    <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
+    <inputType>JSON</inputType>
+    <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
+    <name>RLMQuoteTransformBasic</name>
+    <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d0688cc0-5cc0-4cfe-b0fa-c82894e515f8</globalKey>
+        <inputFieldName>Line:CQL:Quantity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:Quantity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>f01c69e8-393a-413c-b675-a5d9605c87b9</globalKey>
+        <inputFieldName>QuoteId</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>QuoteId</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>0c2467f1-b209-4799-a3aa-7b8b6b83f73d</globalKey>
+        <inputFieldName>Line:NetTotalPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:NetTotalPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>0971ebca-8656-480d-966f-37c0cc5de33f</globalKey>
+        <inputFieldName>SalesRep</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>SalesRep</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>90f5f632-5a53-4e6a-81c2-f0aa979138bb</globalKey>
+        <inputFieldName>GrandTotal</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>GrandTotal</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>fc932e83-5c20-4cf2-82c0-6cf048dc8bf6</globalKey>
+        <inputFieldName>Line:CQL:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>987e422c-20ab-457e-911e-25108a23fba9</globalKey>
+        <inputFieldName>AccountName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>AccountName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>ada77796-4d03-43a8-8202-05ef9109f17d</globalKey>
+        <inputFieldName>Line:CQL:ListPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:ListPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>576c4e04-22d5-475f-b655-4895a51f6e53</globalKey>
+        <inputFieldName>Line:CQL:CQL2:Quantity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:Quantity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>6ea24399-90ed-4e14-91c0-3b293f4872f6</globalKey>
+        <inputFieldName>Line:CQL:CQL2:Discount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:Discount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c3c636d6-2f8e-4d52-8c0e-14366d44ce15</globalKey>
+        <inputFieldName>Line:CQL:CQL2:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>11f79e55-48cf-4199-a065-bd697906a2de</globalKey>
+        <inputFieldName>Line:CQL:CQL2:ListPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:ListPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>3565e5d4-d38c-44dc-85b7-b4b39430b403</globalKey>
+        <inputFieldName>Line:CQL:CQL2:NetUnitPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:NetUnitPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>8e63fee3-07ed-4c28-9d90-9c9287a8c58e</globalKey>
+        <inputFieldName>Line:ListPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ListPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>2f4429e4-5fb7-4471-b265-cb0570a74f1d</globalKey>
+        <inputFieldName>Line:NetUnitPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:NetUnitPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>76429ae0-eba8-4a86-8da8-6776106dfabb</globalKey>
+        <inputFieldName>Line:CQL:NetUnitPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:NetUnitPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>a9fc8f25-297d-4015-8eae-b8676ed8e918</globalKey>
+        <inputFieldName>CreatedDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>CreatedDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>1275af97-ea99-4312-9a28-ec09a36ffceb</globalKey>
+        <inputFieldName>Line:Quantity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:Quantity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>fb0a0333-d35b-4c86-84d1-c49455c8d1c3</globalKey>
+        <inputFieldName>Line:Discount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:Discount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>96a07cd1-0368-466c-8129-90f27549c599</globalKey>
+        <inputFieldName>ExpirationDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>ExpirationDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>b7d22911-d96f-4eeb-8694-9c75536ee45c</globalKey>
+        <inputFieldName>Line:CQL:CQL2:NetTotalPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:NetTotalPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d4da41ff-1d18-4cbd-b395-2f637c73f6fb</globalKey>
+        <inputFieldName>BillingStreet</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingStreet</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>10cd4d6f-626d-4930-ba09-621a97bf18ab</globalKey>
+        <inputFieldName>Line:CQL:NetTotalPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:NetTotalPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>60bda53f-a1dc-4647-8b5c-422e3f7b48c6</globalKey>
+        <inputFieldName>BillingCity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingCity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>99269ab2-cb44-40ec-a4d3-074f9683cfb2</globalKey>
+        <inputFieldName>QuoteNumber</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>QuoteNumber</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>163a50cb-3fcd-4934-84ad-af54f553ea0c</globalKey>
+        <inputFieldName>BillingPostalCode</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingPostalCode</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>23512840-20c2-45cb-944b-25047767cce8</globalKey>
+        <inputFieldName>BillingState</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingState</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>63891b69-273c-41f9-89d8-bd13247864b7</globalKey>
+        <inputFieldName>Line:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>46d6bbc3-9173-46e9-9fd5-92790fd3a7e6</globalKey>
+        <inputFieldName>ShippingStreet</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMQuoteTransformBasic</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>ShippingStreet</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <outputType>JSON</outputType>
+    <previewJsonData>{
+  &quot;BillingCity&quot; : &quot;New York&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Ka000002sdtcKAA&quot;,
+  &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;Line&quot; : [ {
+    &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$0.00&quot;,
+    &quot;CQL&quot; : [ {
+      &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Services Project&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;CQL2&quot; : [ {
+        &quot;NetUnitPrice&quot; : &quot;$240.00&quot;,
+        &quot;Discount&quot; : &quot;20&quot;,
+        &quot;ProductName&quot; : &quot;Project Manager&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$1,920.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$300.00&quot;
+      }, {
+        &quot;NetUnitPrice&quot; : &quot;$300.00&quot;,
+        &quot;ProductName&quot; : &quot;Implementation Engineer&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$2,400.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$300.00&quot;
+      }, {
+        &quot;NetUnitPrice&quot; : &quot;$500.00&quot;,
+        &quot;ProductName&quot; : &quot;Solutions Architect&quot;,
+        &quot;NetTotalPrice&quot; : &quot;$4,000.00&quot;,
+        &quot;Quantity&quot; : 8,
+        &quot;ListPrice&quot; : &quot;$500.00&quot;
+      } ],
+      &quot;ListPrice&quot; : &quot;$0.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$45.00&quot;,
+      &quot;ProductName&quot; : &quot;API Access Requests (AEH)&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$9,000.00&quot;,
+      &quot;Quantity&quot; : 100,
+      &quot;ListPrice&quot; : &quot;$45.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Database&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$24,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QB API Management Solution&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$24,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$250.00&quot;,
+      &quot;ProductName&quot; : &quot;Professional Services Daily Rate&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$62,500.00&quot;,
+      &quot;Quantity&quot; : 250,
+      &quot;ListPrice&quot; : &quot;$250.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$8,500.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Essentials Training&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$8,500.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$8,500.00&quot;
+    } ]
+  }, {
+    &quot;NetUnitPrice&quot; : &quot;$9,000.00&quot;,
+    &quot;Discount&quot; : &quot;10&quot;,
+    &quot;ProductName&quot; : &quot;Additional API&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$9,000.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$15,000.00&quot;
+  } ],
+  &quot;QuoteNumber&quot; : &quot;00000138&quot;,
+  &quot;ExpirationDate&quot; : &quot;02/11/2026&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;GrandTotal&quot; : &quot;$145,320.00&quot;,
+  &quot;CreatedDate&quot; : &quot;01/13/2026&quot;,
+  &quot;BillingPostalCode&quot; : &quot;31349&quot;,
+  &quot;BillingState&quot; : &quot;NY&quot;,
+  &quot;AccountName&quot; : &quot;Acme&quot;,
+  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+}</previewJsonData>
+    <processSuperBulk>false</processSuperBulk>
+    <responseCacheTtlMinutes>0.0</responseCacheTtlMinutes>
+    <rollbackOnError>false</rollbackOnError>
+    <sourceObjectDefault>false</sourceObjectDefault>
+    <synchronousProcessThreshold>0.0</synchronousProcessThreshold>
+    <targetOutputFileName>RLM_QuoteProposal(Version 1)</targetOutputFileName>
+    <type>Transform</type>
+    <uniqueName>RLMQuoteTransformBasic_1</uniqueName>
+    <versionNumber>1.0</versionNumber>
+    <xmlDeclarationRemoved>false</xmlDeclarationRemoved>
+</OmniDataTransform>
