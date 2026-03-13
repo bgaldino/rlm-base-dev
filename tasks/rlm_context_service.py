@@ -173,7 +173,7 @@ class ManageContextDefinition(SFDXBaseTask):
                 if isinstance(nd, dict) and nd.get("name") not in existing_names
             ]
             if new_node_defs:
-                self._create_context_nodes_hierarchical(context_id, new_node_defs, dry_run)
+                self._create_context_nodes_hierarchical(context_id, new_node_defs, dry_run, existing_detail=detail)
                 detail = self._fetch_context_definition(context_id)
 
         # Create mapping entities before attributes so translate_plan mapping rules can resolve IDs.
@@ -364,14 +364,43 @@ class ManageContextDefinition(SFDXBaseTask):
         if activate:
             self._activate_context_definition(context_id, dry_run)
 
-    def _create_context_nodes_hierarchical(self, context_id: str, node_defs: list, dry_run: bool):
+    def _create_context_nodes_hierarchical(
+        self, context_id: str, node_defs: list, dry_run: bool, existing_detail: Optional[Dict[str, Any]] = None
+    ):
         """Create context nodes one at a time, resolving parentNodeName references.
 
         Each node_def may contain 'parentNodeName' (a reference to a previously
         created node's name). The node ID captured from the creation response is
         used as 'parentNodeId' for subsequent child nodes.
+
+        Pass ``existing_detail`` (a fetched context definition response) to pre-populate
+        the name→ID map from already-existing nodes so child nodes can be correctly
+        parented to nodes that were created in a previous run.
         """
         node_id_by_name: Dict[str, str] = {}
+        # Pre-populate from existing nodes so parentNodeName references work when adding
+        # child nodes beneath parents that already exist in the context definition.
+        if existing_detail and not dry_run:
+            versions = existing_detail.get("contextDefinitionVersionList", []) if isinstance(existing_detail, dict) else []
+            nodes = versions[0].get("contextNodes", []) if versions else []
+
+            def _index_nodes(node_list):
+                for node in node_list or []:
+                    if not isinstance(node, dict):
+                        continue
+                    name = node.get("name")
+                    nid = node.get("contextNodeId")
+                    if name and nid:
+                        node_id_by_name[name] = nid
+                    child_container = node.get("childNodes", {})
+                    children = (
+                        child_container.get("contextNodes", [])
+                        if isinstance(child_container, dict)
+                        else (child_container or [])
+                    )
+                    _index_nodes(children)
+
+            _index_nodes(nodes)
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{context_id}/context-nodes"
         )
