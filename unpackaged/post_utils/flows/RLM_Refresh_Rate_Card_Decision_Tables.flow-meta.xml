@@ -520,7 +520,7 @@
     </customProperties>
     <environments>Default</environments>
     <interviewLabel>RCA Refresh Rate Card Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Refresh Rate Card Decision Tables</label>
+    <label>RLM Refresh Rate Card Decision Tables</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

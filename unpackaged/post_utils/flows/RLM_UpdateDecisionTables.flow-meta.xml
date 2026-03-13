@@ -35,7 +35,7 @@
     <description>Screen Flow to refresh BRE Decision Tables.</description>
     <environments>Default</environments>
     <interviewLabel>UpdateDecisionTables {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Refresh Decision Tables</label>
+    <label>RLM Refresh Decision Tables</label>
     <loops>
         <name>Loop_1</name>
         <label>Loop 1</label>

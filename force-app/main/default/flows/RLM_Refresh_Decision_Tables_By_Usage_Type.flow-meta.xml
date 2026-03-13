@@ -24,9 +24,9 @@
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
-    <interviewLabel>RC Refresh Decision Tables By Usage Type {!$Flow.CurrentDateTime}</interviewLabel>
+    <interviewLabel>RLM Refresh Decision Tables By Usage Type {!$Flow.CurrentDateTime}</interviewLabel>
     <isTemplate>true</isTemplate>
-    <label>RC Refresh Decision Tables By Usage Type</label>
+    <label>RLM Refresh Decision Tables By Usage Type</label>
     <loops>
         <name>Loop_Through_Decision_Tables</name>
         <label>Loop Through Decision Tables</label>

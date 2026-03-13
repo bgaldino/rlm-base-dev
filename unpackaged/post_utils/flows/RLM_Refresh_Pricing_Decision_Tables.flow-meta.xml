@@ -249,8 +249,8 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RC Refresh Pricing Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Refresh Pricing Decision Tables</label>
+    <interviewLabel>RLM Refresh Pricing Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Refresh Pricing Decision Tables</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

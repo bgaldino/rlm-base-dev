@@ -223,7 +223,7 @@
     </customProperties>
     <environments>Default</environments>
     <interviewLabel>RCA Refresh Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Refresh Asset Decision Tables</label>
+    <label>RLM Refresh Asset Decision Tables</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

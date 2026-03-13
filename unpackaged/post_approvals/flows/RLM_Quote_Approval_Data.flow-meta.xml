@@ -3,8 +3,8 @@
     <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
-    <interviewLabel>RC Quote Approval Data {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Approval Data</label>
+    <interviewLabel>RLM Quote Approval Data {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Quote Approval Data</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

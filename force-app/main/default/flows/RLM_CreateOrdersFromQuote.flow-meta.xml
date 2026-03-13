@@ -152,8 +152,8 @@
     </decisions>
     <description>Revenue Cloud 258 Default Create Orders From Quote Flow</description>
     <environments>Default</environments>
-    <interviewLabel>RC Create Orders From Quote {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Create Orders From Quote</label>
+    <interviewLabel>RLM Create Orders From Quote {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Create Orders From Quote</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
