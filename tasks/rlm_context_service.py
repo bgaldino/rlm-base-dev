@@ -122,7 +122,15 @@ class ManageContextDefinition(SFDXBaseTask):
             context_id = self._resolve_context_definition_id(developer_name)
             if not context_id:
                 create = str(plan.get("create", "false")).lower() in {"1", "true", "yes"}
+                validate_only = str(self.options.get("validate_only", "")).lower() in {"1", "true", "yes"}
                 if create:
+                    if validate_only:
+                        # No existing definition to validate against — log and skip creation.
+                        self.logger.info(
+                            "validate_only=true: context definition '%s' does not exist; skipping creation.",
+                            developer_name,
+                        )
+                        return
                     dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
                     activate = str(self.options.get("activate", plan.get("activate", ""))).lower() in {"1", "true", "yes"}
                     verify = str(self.options.get("verify", "")).lower() in {"1", "true", "yes"}

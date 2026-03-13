@@ -11,7 +11,8 @@
  * or drive the values from org-specific custom settings / environment variables so the
  * same script works across different partner scratch org pools.
  *
- * Run via: cci task run set_org_company_info --org <org>
+ * Run via: cci task run anon_apex -o path scripts/apex/setOrgCompanyInfo.apex --org <org>
+ * (A dedicated set_org_company_info CCI task is planned — see cumulusci.yml TODO before insert_scratch_data.)
  */
 
 // TODO: Populate with real company values before enabling this script in prepare_scratch.
