@@ -8,7 +8,11 @@ public class RLM_ReturnPDFDocument {
         for (InputVariable req : requests) {
             List<Id> contentVersionIds = new List<Id>();
             for (String idStr : req.ResponseText.split(',')) {
-                contentVersionIds.add((Id) idStr.trim());
+                String trimmed = idStr.trim();
+                // Skip empty tokens (trailing comma, whitespace-only segments)
+                if (String.isNotBlank(trimmed)) {
+                    contentVersionIds.add((Id) trimmed);
+                }
             }
 
             List<ContentVersion> conVersion = [

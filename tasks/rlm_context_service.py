@@ -296,6 +296,9 @@ class ManageContextDefinition(SFDXBaseTask):
                 self._post_context_mappings(context_id, filtered, dry_run)
 
         # 3. Re-fetch so subsequent steps have node/mapping/attribute IDs.
+        # In dry_run the context doesn't exist in the org — skip network calls.
+        if dry_run:
+            return
         detail = self._fetch_context_definition(context_id)
 
         # 4. Post attributes by name (nodes now exist in the org).
@@ -353,7 +356,7 @@ class ManageContextDefinition(SFDXBaseTask):
 
         Each node_def may contain 'parentNodeName' (a reference to a previously
         created node's name). The node ID captured from the creation response is
-        used as 'parentContextNodeId' for subsequent child nodes.
+        used as 'parentNodeId' for subsequent child nodes.
         """
         node_id_by_name: Dict[str, str] = {}
         url, headers = self._build_url_and_headers(

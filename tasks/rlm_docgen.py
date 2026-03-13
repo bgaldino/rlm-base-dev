@@ -65,9 +65,10 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
         )
 
         # Find the DocGen library
+        safe_lib = library_dev_name.replace("'", "\\'")
         result = self.sf.query(
             f"SELECT Id FROM ContentWorkspace "
-            f"WHERE DeveloperName = '{library_dev_name}' LIMIT 1"
+            f"WHERE DeveloperName = '{safe_lib}' LIMIT 1"
         )
         if not result["records"]:
             raise TaskOptionsError(
@@ -137,9 +138,10 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
         Return the ContentDocumentId of the most recently created ContentDocument
         in the DocGen library whose Title matches template_name.
         """
+        safe_name = template_name.replace("'", "\\'")
         result = self.sf.query(
             f"SELECT Id, CreatedDate FROM ContentDocument "
-            f"WHERE Title = '{template_name}' "
+            f"WHERE Title = '{safe_name}' "
             f"AND Id IN ("
             f"  SELECT ContentDocumentId FROM ContentWorkspaceDoc "
             f"  WHERE ContentWorkspaceId = '{library_id}'"
