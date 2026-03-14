@@ -21,7 +21,7 @@ ${REVENUE_SETTINGS_URL}                 ${EMPTY}
 ${MANUAL_LOGIN_WAIT}                    90s
 ${PRICING_PROCEDURE}                    RLM Revenue Management Default Pricing Procedure
 ${USAGE_RATING_PROCEDURE}               RLM Default Rating Discovery Procedure
-${CREATE_ORDERS_FLOW}                   RC_CreateOrdersFromQuote
+${CREATE_ORDERS_FLOW}                   RLM_CreateOrdersFromQuote
 
 *** Test Cases ***
 Configure Revenue Settings

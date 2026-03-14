@@ -2,8 +2,8 @@
 String baseUrl = URL.getOrgDomainUrl().toExternalForm();
 String apiVersion = 'v66.0'; // Update to the correct API version as needed
 
-// Query for the ApexClass with the name 'RC_MockTaxAdapter'
-ApexClass mockTaxAdapterClass = [SELECT Id, Name FROM ApexClass WHERE Name = 'RC_MockTaxAdapter' LIMIT 1];
+// Query for the ApexClass with the name 'RLM_MockTaxAdapter'
+ApexClass mockTaxAdapterClass = [SELECT Id, Name FROM ApexClass WHERE Name = 'RLM_MockTaxAdapter' LIMIT 1];
 
 // Query for the NamedCredential with the name 'RLM_MockTax'
 NamedCredential namedCredential = [SELECT Id, DeveloperName FROM NamedCredential WHERE DeveloperName = 'RLM_MockTax' LIMIT 1];
@@ -58,7 +58,7 @@ if (mockTaxAdapterClass != null && namedCredential != null) {
     }
 } else {
     if (mockTaxAdapterClass == null) {
-        System.debug('ApexClass with the name "RC_MockTaxAdapter" not found.');
+        System.debug('ApexClass with the name "RLM_MockTaxAdapter" not found.');
     }
     if (namedCredential == null) {
         System.debug('NamedCredential with the name "RLM_MockTax" not found.');

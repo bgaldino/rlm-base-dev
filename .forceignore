@@ -27,7 +27,6 @@ package.xml
 # default expressionSetDefinitions
 force-app/main/default/expressionSetDefinition/Default_Rating_Discovery_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure_Auto.expressionSetDefinition-meta.xml
-force-app/main/default/expressionSetDefinition/Product_Discovery_Qualification_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure_Auto.expressionSetDefinition-meta.xml
@@ -42,8 +41,6 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 # contextDefinitions (extended at runtime via extend_context_* tasks)
 force-app/main/default/contextDefinitions
 
-# RC_TSO - storage only, never deployed (preserves permission sets not available in dev orgs)
-unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
 #unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
@@ -60,21 +57,14 @@ unpackaged/post_quantumbit/pricingActionParameters
 # Misc
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
 
-force-app/main/default/settings/UserInterface.settings-meta.xml
-
 unpackaged/post_agents/bots/Agentforce_for_Analytics.bot-meta.xml
 unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
 
-unpackaged/post_utils/flows/RCA_Event_Trigger.flow-meta.xml
+unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 
 unpackaged/post_tso/appMenus/AppSwitcher.appMenu-meta.xml
 
-unpackaged/post_constraints/lwc/renderDraw3DConfigurationPrototype
-unpackaged/post_constraints/contextdefinitions/
 unpackaged/post_constraints/classes
-unpackaged/post_constraints/pages
-unpackaged/post_constraints/flows
-unpackaged/post_constraints/staticresources
 
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
@@ -82,6 +72,5 @@ unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDet
 # Ignored (deployed from unpackaged paths or org-specific)
 force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
 force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
-unpackaged/post_approvals/flows/RC_Quote_Smart_Approval.flow-meta.xml
-unpackaged/post_approvals/flows/RC_Quote_Transfer_Approval.flow-meta.xml
-unpackaged/post_approvals/flows/RC_AA_Quote_Approval.flow-meta.xml
+# RLM_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
+unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml

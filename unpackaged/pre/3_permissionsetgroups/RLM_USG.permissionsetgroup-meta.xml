@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Revenue Cloud Usage &amp; Rating Management Permission Sets</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_USG</label>
     <permissionSets>force__DecimalQuantityDesigntime</permissionSets>

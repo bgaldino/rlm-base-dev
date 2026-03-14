@@ -24,6 +24,46 @@ This utility updates Context Definitions using the Context Service `connect` API
 - `translate_plan` (optional): Translate `mappingRules` into update payloads (default: true).
 - `verify` (optional): Log verification details after updates.
 
+### Creating a New Context Definition
+
+Set `"create": true` in the plan file to create a new context definition when it does not already exist. Required plan fields: `developerName`, `label`. If the definition already exists, the create flag is ignored and the standard update flow runs instead.
+
+Additional plan fields for creation:
+- `label` (required): Display name of the definition.
+- `primaryDomainObject`: **Not currently passed through** — the context-definitions create endpoint returns `JSON_PARSER_ERROR` when this field is included, so `ManageContextDefinition` omits it. Use `createPayload` to override if/when the endpoint supports it. Note: `primaryObject` is likewise not a valid API field.
+- `description` (optional): Description.
+- `startDate` (optional): Effective start date.
+- `contextTtl` (optional): Time-to-live.
+- `baseReference` (optional): Standard context base reference for extension definitions.
+- `createPayload` (optional): Object whose keys are merged directly into the creation POST body (for API fields not covered above).
+
+Node hierarchy for new definitions uses `contextNodeDefinitions` (instead of `contextNodes`). Each entry supports `parentNodeName` to reference a previously created parent node by name:
+
+```json
+"contextNodeDefinitions": [
+  { "name": "Quote", "label": "Quote" },
+  { "name": "QuoteLineItem", "label": "Quote Line Item", "parentNodeName": "Quote" }
+]
+```
+
+The create flow runs in the correct order: nodes → mappings → re-fetch → attributes → mapping rules → tags → activate.
+
+**Example — create dedicated DocGen context:**
+
+```bash
+cci task run apply_context_docgen
+```
+
+Or via `manage_context_definition`:
+
+```bash
+cci task run manage_context_definition \
+  -o plan_file datasets/context_plans/DocGen/manifest.json \
+  -o translate_plan true \
+  -o activate true \
+  -o verify true
+```
+
 ### Plan File Structure
 
 You can provide either:

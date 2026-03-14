@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Revenue Cloud Product Catalog Management Permission Sets</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM_PCM</label>
     <permissionSets>force__ProductCatalogManagementAdministrator</permissionSets>

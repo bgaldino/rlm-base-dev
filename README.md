@@ -516,7 +516,6 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `false` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
-| `visualization` | `false` | Use Visualization components (Flow with Visuals, LWC styling) |
 
 ### Deployment Flags
 
@@ -666,6 +665,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
 | `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/docgen_setup.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
@@ -674,7 +674,6 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
-| `restore_rc_tso` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata | See `cumulusci.yml` |
 
 ### Using Custom Tasks
 
@@ -786,10 +785,9 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 23 | `prepare_agents` | Always |
 | 24 | `prepare_constraints` | Always |
 | 25 | `prepare_guidedselling` | Always |
-| 26 | `prepare_visualization` | Always |
-| 27 | `configure_revenue_settings` | Always |
-| 28 | `reconfigure_pricing_discovery` | Always |
-| 29 | `refresh_all_decision_tables` | Always |
+| 26 | `configure_revenue_settings` | Always |
+| 27 | `reconfigure_pricing_discovery` | Always |
+| 28 | `refresh_all_decision_tables` | Always |
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
 
@@ -831,7 +829,6 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
-| `prepare_visualization` | Deploy visualization components | `visualization` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
 ### Utility Flows and Tasks
@@ -983,6 +980,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/TASK_EXAMPLES.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/context_service_utility.md) | Context Service utility usage and plan examples |
+| [DocGen Setup](docs/docgen_setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 
 ### Analysis & Planning
 
@@ -1041,7 +1039,6 @@ rlm-base-dev/
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
 │   ├── post_utils/             # Utility metadata
-│   └── post_visualization/     # Visualization metadata
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
@@ -1064,7 +1061,6 @@ rlm-base-dev/
 │   ├── rlm_recalculate_permission_set_groups.py
 │   ├── rlm_exclude_active_decision_tables.py
 │   ├── rlm_modify_context.py
-│   ├── rlm_restore_rc_tso.py
 │   └── sfdmuload.py
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/

@@ -102,7 +102,7 @@
               "type" : "component"
             }, {
               "componentAttributes" : {
-                "displayFields" : "[QuoteLineItem.RLM_ProductName__c,QuoteLineItem.Quantity,QuoteLineItem.StartDate,QuoteLineItem.EndDate,QuoteLineItem.UnitPrice,QuoteLineItem.PartnerDiscountPercent,QuoteLineItem.PartnerUnitPrice,QuoteLineItem.DiscountAmount,QuoteLineItem.Discount,QuoteLineItem.NetUnitPrice,QuoteLineItem.TotalPrice,QuoteLineItem.RC_Approval__c]",
+                "displayFields" : "[QuoteLineItem.RLM_ProductName__c,QuoteLineItem.Quantity,QuoteLineItem.StartDate,QuoteLineItem.EndDate,QuoteLineItem.UnitPrice,QuoteLineItem.PartnerDiscountPercent,QuoteLineItem.PartnerUnitPrice,QuoteLineItem.DiscountAmount,QuoteLineItem.Discount,QuoteLineItem.NetUnitPrice,QuoteLineItem.TotalPrice,QuoteLineItem.RLM_Approval__c]",
                 "enableQuickAdd" : true,
                 "enableSidepanel" : true,
                 "objectApiName" : "Quote",

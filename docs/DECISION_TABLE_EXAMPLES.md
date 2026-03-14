@@ -222,9 +222,9 @@ cci task run manage_decision_tables --operation list --status Active
 
 ## Integration with Other Tasks
 
-### Using with RC_UpdateDecisionTables Flow
+### Using with RLM_UpdateDecisionTables Flow
 
-The `manage_decision_tables` task provides similar functionality to the `RC_UpdateDecisionTables` Screen Flow, but can be automated:
+The `manage_decision_tables` task provides similar functionality to the `RLM_UpdateDecisionTables` Screen Flow, but can be automated:
 
 ```bash
 # Instead of running the flow manually, use the task:
