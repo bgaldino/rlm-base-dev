@@ -60,6 +60,11 @@
         <field>Quote.RLM_Seller_Website__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>QuoteLineItem.RLM_ProductName__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM DocGen</label>
 </PermissionSet>

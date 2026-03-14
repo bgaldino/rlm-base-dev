@@ -835,14 +835,25 @@ tasks:
   
   deploy_docgen_seller_fields:
     description: >
-      Deploy RLM_Seller_*__c formula fields before the main DocGen metadata deploy.
-      The OmniDataTransform records reference these custom fields by name; Salesforce validates
-      field existence on INSERT (fresh org), so the fields must exist before the ODTs are deployed.
-      Targets only the fields subdirectory to avoid the Quote object-meta.xml action overrides,
-      which reference flexipages not yet deployed at this stage.
+      Deploy RLM_Seller_*__c, RLM_Account_Name__c, and RLM_Sales_Rep_Name__c formula fields
+      on Quote before the main DocGen metadata deploy. The OmniDataTransform records reference
+      these custom fields by name; Salesforce validates field existence on INSERT (fresh org),
+      so the fields must exist before the ODTs are deployed. Targets only the Quote fields
+      subdirectory to avoid the Quote object-meta.xml action overrides, which reference
+      flexipages not yet deployed at this stage.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_docgen/objects/Quote/fields
+
+  deploy_docgen_qli_fields:
+    description: >
+      Deploy RLM_ProductName__c formula field on QuoteLineItem before the main DocGen metadata
+      deploy. The OmniDataTransform records reference this field in inputFieldName; Salesforce
+      validates field existence on INSERT (fresh org), so it must exist before the ODTs are
+      deployed. QuoteLineItem has no object-meta.xml, so the whole directory is safe to deploy early.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_docgen/objects/QuoteLineItem
 
   deploy_docgen_odt_seed:
     description: >
@@ -2258,21 +2269,24 @@ flows:
         task: deploy_docgen_seller_fields
         when: project_config.project__custom__docgen
       4:
-        task: deploy_docgen_odt_seed
+        task: deploy_docgen_qli_fields
         when: project_config.project__custom__docgen
       5:
-        task: deploy_post_docgen
+        task: deploy_docgen_odt_seed
         when: project_config.project__custom__docgen
       6:
-        task: activate_docgen_templates
+        task: deploy_post_docgen
         when: project_config.project__custom__docgen
       7:
-        task: fix_document_template_binaries
+        task: activate_docgen_templates
         when: project_config.project__custom__docgen
       8:
-        task: apply_context_docgen
+        task: fix_document_template_binaries
         when: project_config.project__custom__docgen
       9:
+        task: apply_context_docgen
+        when: project_config.project__custom__docgen
+      10:
         task: assign_permission_sets
         when: project_config.project__custom__docgen
         options:

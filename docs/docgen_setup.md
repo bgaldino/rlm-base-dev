@@ -21,21 +21,22 @@ Both Quote templates use the same Quick Action (`Quote.RLM_Create_Proposal`) and
 ## Deployment Flow: `prepare_docgen`
 
 ```
-1. create_docgen_library            → Creates "Docgen Document Template Library" ContentWorkspace
-2. enable_document_builder_toggle   → Enables Document Builder in Revenue Settings (Robot task)
-3. deploy_docgen_seller_fields      → Pre-deploys all Quote formula fields (RLM_Seller_*__c,
-                                       RLM_Account_Name__c, RLM_Sales_Rep_Name__c) before ODTs
-4. deploy_docgen_odt_seed           → Seeds minimal ODT stubs to work around fresh-org INSERT bug
-5. deploy_post_docgen               → Deploys all metadata under unpackaged/post_docgen/
-6. activate_docgen_templates        → Activates the latest version of each RLM_ template (Apex)
-7. fix_document_template_binaries   → Uploads correct DOCX binary to each template (see below)
-8. apply_context_docgen             → Creates RLM_QuoteDocGenContext via Context Service API
-9. assign_permission_sets           → Grants read access to formula fields (RLM_DocGen permset)
+1.  create_docgen_library            → Creates "Docgen Document Template Library" ContentWorkspace
+2.  enable_document_builder_toggle   → Enables Document Builder in Revenue Settings (Robot task)
+3.  deploy_docgen_seller_fields      → Pre-deploys Quote formula fields (RLM_Seller_*__c,
+                                        RLM_Account_Name__c, RLM_Sales_Rep_Name__c) before ODTs
+4.  deploy_docgen_qli_fields         → Pre-deploys QuoteLineItem.RLM_ProductName__c before ODTs
+5.  deploy_docgen_odt_seed           → Seeds minimal ODT stubs to work around fresh-org INSERT bug
+6.  deploy_post_docgen               → Deploys all metadata under unpackaged/post_docgen/
+7.  activate_docgen_templates        → Activates the latest version of each RLM_ template (Apex)
+8.  fix_document_template_binaries   → Uploads correct DOCX binary to each template (see below)
+9.  apply_context_docgen             → Creates RLM_QuoteDocGenContext via Context Service API
+10. assign_permission_sets           → Grants read access to formula fields (RLM_DocGen permset)
 ```
 
 All steps are gated by `project_config.project__custom__docgen`.
 
-**Steps 3 and 4** exist to work around two Salesforce platform bugs on fresh orgs: the ODT deploy validates that formula fields referenced in `inputFieldName` exist at INSERT time (step 3 pre-deploys them), and the platform rejects ODT INSERT when those fields are present (`-692085439`), requiring stub records to exist so the full deploy runs as UPDATE (step 4). Both steps are idempotent.
+**Steps 3–5** exist to work around two Salesforce platform bugs on fresh orgs: the ODT deploy validates that formula fields referenced in `inputFieldName` exist at INSERT time (steps 3–4 pre-deploy them), and the platform rejects ODT INSERT when those fields are present (`-692085439`), requiring stub records to exist so the full deploy runs as UPDATE (step 5). All three steps are idempotent.
 
 ---
 
@@ -90,7 +91,7 @@ Both Quote Proposal templates (`RLM_QuoteProposal` and `RLM_QuoteProposal_CS`) i
 
 **CS template (`RLM_QuoteProposal_CS`):** The Context Service API does not support relationship traversal in `sObjectField`. Ten formula fields (`RLM_Seller_CompanyName__c` through `RLM_Seller_Country__c`) are deployed on the Quote object under `unpackaged/post_docgen/objects/Quote/fields/`. The `QuoteDocGenMapping` references these as direct `sObjectField` values, so no traversal is needed in the context plan.
 
-The `RLM_DocGen` permission set (deployed in step 9 of `prepare_docgen`) grants `readable: true` on all 12 formula fields.
+The `RLM_DocGen` permission set (deployed in step 10 of `prepare_docgen`) grants `readable: true` on all 13 formula fields.
 
 ### Address Format
 
@@ -166,7 +167,7 @@ The Context Service approach decouples token population from OmniStudio DataRapt
 
 ### Context Definition: `RLM_QuoteDocGenContext`
 
-**Deployed by:** `apply_context_docgen` (step 8 of `prepare_docgen`)
+**Deployed by:** `apply_context_docgen` (step 9 of `prepare_docgen`)
 **Plan file:** `datasets/context_plans/DocGen/manifest.json`
 **Task class:** `tasks.rlm_context_service.ManageContextDefinition`
 
