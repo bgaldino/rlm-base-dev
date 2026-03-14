@@ -194,7 +194,7 @@
   &quot;SellerWebsite&quot; : &quot;www.example.com&quot;,
   &quot;SellerCountry&quot; : &quot;US&quot;
 }</expectedOutputJson>
-    <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
+    <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
     <name>RLMQuoteTransformBasic</name>
