@@ -608,7 +608,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>d1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a</globalKey>
+        <globalKey>2f5b7f4a-d19d-408c-9e82-3bc75654cdaf</globalKey>
         <inputFieldName>SellerCompanyName</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -622,7 +622,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b</globalKey>
+        <globalKey>6939a8f1-0069-40fd-a062-0a4b2ce807e7</globalKey>
         <inputFieldName>SellerStreet</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -636,7 +636,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>f3a4b5c6-d7e8-4f9a-0b1c-2d3e4f5a6b7c</globalKey>
+        <globalKey>e97b82db-03a1-430b-9b53-c88a6a64b5cb</globalKey>
         <inputFieldName>SellerCity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -650,7 +650,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>a4b5c6d7-e8f9-4a0b-1c2d-3e4f5a6b7c8d</globalKey>
+        <globalKey>f2f14890-0c31-40bf-a8ad-9f5d7427dc05</globalKey>
         <inputFieldName>SellerState</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -664,7 +664,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>b5c6d7e8-f9a0-4b1c-2d3e-4f5a6b7c8d9e</globalKey>
+        <globalKey>fe8fbe9b-5f40-4db7-b609-b42ae08a8c55</globalKey>
         <inputFieldName>SellerPostalCode</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -678,7 +678,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>c6d7e8f9-a0b1-4c2d-3e4f-5a6b7c8d9e0f</globalKey>
+        <globalKey>7cef9be2-122e-4cba-a856-2831798915b5</globalKey>
         <inputFieldName>SellerPhone</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -692,7 +692,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>d7e8f9a0-b1c2-4d3e-4f5a-6b7c8d9e0f1a</globalKey>
+        <globalKey>8f6f025f-8841-4a8d-88cd-62ad6b9222af</globalKey>
         <inputFieldName>SellerFax</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -706,7 +706,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>e8f9a0b1-c2d3-4e4f-5a6b-7c8d9e0f1a2b</globalKey>
+        <globalKey>cf0883d5-f883-4d8f-ab57-866569c6aeae</globalKey>
         <inputFieldName>SellerEmail</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -720,7 +720,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>f9a0b1c2-d3e4-4f5a-6b7c-8d9e0f1a2b3c</globalKey>
+        <globalKey>6f06653a-e875-4a8d-8c5c-1716eb3441a8</globalKey>
         <inputFieldName>SellerWebsite</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
@@ -734,7 +734,7 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7b</globalKey>
+        <globalKey>310bbd11-9372-4719-8146-c8331ec868c4</globalKey>
         <inputFieldName>SellerCountry</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
