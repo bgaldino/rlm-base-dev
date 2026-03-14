@@ -844,6 +844,17 @@ tasks:
     options:
       path: unpackaged/post_docgen/objects/Quote/fields
 
+  deploy_docgen_odt_seed:
+    description: >
+      Seed-insert minimal RLMQuoteExtractBasic and RLMQuoteTransformBasic OmniDataTransform
+      records before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
+      custom formula fields in inputFieldName (-692085439) but accepts UPDATE of existing
+      records. This step creates the ODT stubs so the subsequent deploy_post_docgen runs
+      as an UPDATE.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/pre_docgen
+
   deploy_post_docgen:
     description: Deploy Document Generation Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2247,18 +2258,21 @@ flows:
         task: deploy_docgen_seller_fields
         when: project_config.project__custom__docgen
       4:
-        task: deploy_post_docgen
+        task: deploy_docgen_odt_seed
         when: project_config.project__custom__docgen
       5:
-        task: activate_docgen_templates
+        task: deploy_post_docgen
         when: project_config.project__custom__docgen
       6:
-        task: fix_document_template_binaries
+        task: activate_docgen_templates
         when: project_config.project__custom__docgen
       7:
-        task: apply_context_docgen
+        task: fix_document_template_binaries
         when: project_config.project__custom__docgen
       8:
+        task: apply_context_docgen
+        when: project_config.project__custom__docgen
+      9:
         task: assign_permission_sets
         when: project_config.project__custom__docgen
         options:
