@@ -57,7 +57,7 @@ public class RLM_DocumentGenerationCreate {
         public String CurrentRecordId;
 
         @InvocableVariable(required=true)
-        public String DocTemplateId;
+        public Id DocTemplateId;
 
         @InvocableVariable(required=false)
         public String DocTitle;

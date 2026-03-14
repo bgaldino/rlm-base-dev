@@ -39,7 +39,7 @@ public class RLM_DocumentGenerationMerge {
 
     public class Request {
         @InvocableVariable(label='Record of the Main object' required=true)
-        public String CurrentRecordId;
+        public Id CurrentRecordId;
 
         @InvocableVariable(label='List of PDF Ids' required=true)
         public List<Id> recordIds;
