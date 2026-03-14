@@ -23,4 +23,14 @@ export default class RlmDocPreview extends LightningElement {
             document.head.appendChild(style);
         }
     }
+
+    disconnectedCallback() {
+        // Remove the injected style when this component leaves the DOM so it does not
+        // persist and affect file previewers on other pages in the same SPA session.
+        // eslint-disable-next-line @lwc/lwc/no-document-query
+        const style = document.getElementById(STYLE_ID);
+        if (style) {
+            style.remove();
+        }
+    }
 }

@@ -49,8 +49,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RCA Event Trigger {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RCA Event Trigger</label>
+    <interviewLabel>RLM Event Trigger {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Event Trigger</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

@@ -83,3 +83,6 @@ force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
 unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml
 unpackaged/post_approvals/flows/RLM_Quote_Transfer_Approval.flow-meta.xml
 unpackaged/post_approvals/flows/RLM_AA_Quote_Approval.flow-meta.xml
+
+# RLM_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
+unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
