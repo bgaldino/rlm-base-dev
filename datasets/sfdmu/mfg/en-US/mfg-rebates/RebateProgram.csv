@@ -1,0 +1,2 @@
+CurrencyIsoCode,EndDate,Frequency,GracePeriodDayCount,Name,PayoutCalculationDayCount,ProgramReferenceNumber,RebateProgramUrl,StartDate,Status
+USD,2026-12-31,Quarterly,,Global Incentive Program,,,,2025-01-01,Active
