@@ -90,8 +90,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC Reset Account {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Reset Account</label>
+    <interviewLabel>RLM Reset Account {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Reset Account</label>
     <loops>
         <name>Iterate_Decision_Tables</name>
         <label>Iterate Decision Tables</label>

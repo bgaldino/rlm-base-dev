@@ -45,8 +45,8 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RC Apply Payments on Invoice {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Apply Payments on Invoice</label>
+    <interviewLabel>RLM Apply Payments on Invoice {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Apply Payments on Invoice</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

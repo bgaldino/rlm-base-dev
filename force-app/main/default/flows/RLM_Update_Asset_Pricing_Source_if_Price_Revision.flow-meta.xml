@@ -25,8 +25,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC Update Asset Pricing Source if Price Revision {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Update Asset Pricing Source if Price Revision</label>
+    <interviewLabel>RLM Update Asset Pricing Source if Price Revision {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Update Asset Pricing Source if Price Revision</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

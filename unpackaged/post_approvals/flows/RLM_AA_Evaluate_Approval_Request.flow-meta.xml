@@ -21,8 +21,8 @@
         </value>
     </choices>
     <environments>Default</environments>
-    <interviewLabel>RC AA Evaluate Approval Request {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC AA Evaluate Approval Request</label>
+    <interviewLabel>RLM AA Evaluate Approval Request {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM AA Evaluate Approval Request</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

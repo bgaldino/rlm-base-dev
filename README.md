@@ -666,6 +666,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
 | `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/docgen_setup.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
@@ -982,6 +983,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/TASK_EXAMPLES.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/context_service_utility.md) | Context Service utility usage and plan examples |
+| [DocGen Setup](docs/docgen_setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 
 ### Analysis & Planning
 

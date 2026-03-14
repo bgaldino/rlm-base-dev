@@ -69,8 +69,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Account Utilities</label>
+    <interviewLabel>RLM Account Utilities {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Account Utilities</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

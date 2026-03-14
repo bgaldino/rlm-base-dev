@@ -42,8 +42,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC Quote Transfer Approval {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Transfer Approval</label>
+    <interviewLabel>RLM Quote Transfer Approval {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Quote Transfer Approval</label>
     <orchestratedStages>
         <name>Query_Quote_for_Approval_Criteria</name>
         <label>Query Quote for Approval Criteria</label>

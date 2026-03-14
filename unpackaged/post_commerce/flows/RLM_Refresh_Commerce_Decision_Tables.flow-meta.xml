@@ -112,8 +112,8 @@
     </customProperties>
     <description>Screen flow to refresh Commerce decision tables. Aligns with CCI dt_commerce_decision_tables. Run when Commerce is enabled.</description>
     <environments>Default</environments>
-    <interviewLabel>RC Refresh Commerce Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Refresh Commerce Decision Tables</label>
+    <interviewLabel>RLM Refresh Commerce Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Refresh Commerce Decision Tables</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

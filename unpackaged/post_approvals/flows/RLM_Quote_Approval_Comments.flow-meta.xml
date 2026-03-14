@@ -44,8 +44,8 @@
         </value>
     </customProperties>
     <environments>Default</environments>
-    <interviewLabel>RC Quote Approval Comments {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Approval Comments</label>
+    <interviewLabel>RLM Quote Approval Comments {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Quote Approval Comments</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

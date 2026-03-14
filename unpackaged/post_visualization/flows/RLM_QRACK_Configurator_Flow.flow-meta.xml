@@ -4,8 +4,8 @@
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>non-blocking UX</description>
     <environments>Default</environments>
-    <interviewLabel>RC - QRACK Configurator Flow {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC - QRACK Configurator Flow</label>
+    <interviewLabel>RLM - QRACK Configurator Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM - QRACK Configurator Flow</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

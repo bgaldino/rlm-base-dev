@@ -620,8 +620,8 @@
         <dataType>Boolean</dataType>
         <expression>IF(CONTAINS({!PaymentPreferenceRadioButtons},{!ChoiceFullPayment}), true, false)</expression>
     </formulas>
-    <interviewLabel>RC - Create Promise to Pay {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC - Create Promise to Pay</label>
+    <interviewLabel>RLM - Create Promise to Pay {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM - Create Promise to Pay</label>
     <overriddenFlow>collection__CreatePromisetoPay</overriddenFlow>
     <processMetadataValues>
         <name>BuilderType</name>

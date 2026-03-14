@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DocumentTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <documentGenerationMechanism>ServerSide</documentGenerationMechanism>
+    <extractOmniDataTransformName>RLMQuoteExtractBasic</extractOmniDataTransformName>
+    <fileExtension>docx</fileExtension>
+    <hasBatchableSection>false</hasBatchableSection>
+    <isActive>true</isActive>
+    <isSectionProcessed>false</isSectionProcessed>
+    <mapperOmniDataTransformName>RLMQuoteTransformBasic</mapperOmniDataTransformName>
+    <name>RLM_QuoteProposal</name>
+    <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
+    <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
+    <status>Active</status>
+    <tokenList>AccountName,BillingStreet,BillingCity,BillingState,BillingPostalCode,SalesRep,QuoteNumber,CreatedDate,ExpirationDate,Line:ProductName,Line:Quantity,Line:ListPrice,Line:Discount,Line:NetUnitPrice,Line:NetTotalPrice,Line:CQL:ProductName,Line:CQL:Quantity,Line:CQL:ListPrice,Line:CQL:Discount,Line:CQL:NetUnitPrice,Line:CQL:NetTotalPrice,Line:CQL:CQL2:ProductName,Line:CQL:CQL2:Quantity,Line:CQL:CQL2:ListPrice,Line:CQL:CQL2:Discount,Line:CQL:CQL2:NetUnitPrice,Line:CQL:CQL2:NetTotalPrice,GrandTotal,SellerCompanyName,SellerStreet,SellerCity,SellerState,SellerPostalCode,SellerPhone,SellerFax,SellerEmail,SellerWebsite,SellerCountry</tokenList>
+    <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
+    <tokenMappingType>JSON</tokenMappingType>
+    <type>MicrosoftWord</type>
+    <uniqueName>RLM_QuoteProposal_1</uniqueName>
+    <usageType>Revenue_Lifecycle_Management</usageType>
+    <versionNumber>1</versionNumber>
+</DocumentTemplate>

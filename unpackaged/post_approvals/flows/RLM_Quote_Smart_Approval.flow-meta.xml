@@ -98,8 +98,8 @@ CONTAINS({!Manager_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
 CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
 )</expression>
     </formulas>
-    <interviewLabel>RC Quote Smart Approval {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC Quote Smart Approval</label>
+    <interviewLabel>RLM Quote Smart Approval {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Quote Smart Approval</label>
     <orchestratedStages>
         <name>Query_Quote_for_Approval_Criteria</name>
         <label>Query Quote for Approval Criteria</label>

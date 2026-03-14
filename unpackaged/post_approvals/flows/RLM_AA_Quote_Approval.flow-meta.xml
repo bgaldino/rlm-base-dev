@@ -211,8 +211,8 @@
         </rules>
     </decisions>
     <environments>Default</environments>
-    <interviewLabel>RC AA Quote Approval {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RC AA Quote Approval</label>
+    <interviewLabel>RLM AA Quote Approval {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM AA Quote Approval</label>
     <orchestratedStages>
         <name>Approval_Stage_2</name>
         <label>Approval Stage 2</label>
