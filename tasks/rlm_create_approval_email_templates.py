@@ -65,9 +65,9 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
         alert_csv = repo_root / (self.options.get("alert_csv") or DEFAULT_ALERT_CSV)
 
         if not template_csv.exists():
-            raise FileNotFoundError(f"EmailTemplate CSV not found: {template_csv}")
+            raise TaskOptionsError(f"EmailTemplate CSV not found: {template_csv}")
         if not alert_csv.exists():
-            raise FileNotFoundError(
+            raise TaskOptionsError(
                 f"ApprovalAlertContentDef CSV not found: {alert_csv}"
             )
 
@@ -126,6 +126,10 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
         return resp.json()["records"][0]["Id"]
 
     def _create_templates(self, base_url, session, templates, folder_id):
+        if not templates:
+            self.logger.info("No template rows in CSV; skipping template creation.")
+            return {}
+
         names = [t["Name"] for t in templates]
         names_soql = ", ".join(f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in names)
         soql = f"SELECT Id, Name FROM EmailTemplate WHERE Name IN ({names_soql})"
