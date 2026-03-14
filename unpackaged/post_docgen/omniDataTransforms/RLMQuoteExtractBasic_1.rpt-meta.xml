@@ -463,22 +463,6 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>df8224d2-dd27-4584-8ad6-98d610a56811</globalKey>
-        <inputFieldName>Quote:BillingPostalCode</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteExtractBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldFormat>String</outputFieldFormat>
-        <outputFieldName>BillingPostalCode</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <transformValuesMappings>{ }</transformValuesMappings>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
         <globalKey>8e9099eb-3581-4d3a-964f-9a63ea5a042c</globalKey>
         <inputFieldName>Quote:QuoteNumber</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
@@ -545,22 +529,6 @@
     <omniDataTransformItem>
         <disabled>false</disabled>
         <filterGroup>0.0</filterGroup>
-        <globalKey>b0a2713a-c35d-4c22-9859-bc4af0ffd162</globalKey>
-        <inputFieldName>Quote:BillingState</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteExtractBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldFormat>String</outputFieldFormat>
-        <outputFieldName>BillingState</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <transformValuesMappings>{ }</transformValuesMappings>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
         <globalKey>45360340-85d0-46a7-b425-8c5abc9d5bcf</globalKey>
         <inputFieldName>Quote:QuoteLineItem:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
@@ -585,22 +553,6 @@
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:NetTotalPrice</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <transformValuesMappings>{ }</transformValuesMappings>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>2115648e-e1ca-471d-9a01-d2f3d97ba8b6</globalKey>
-        <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:RLM_ProductName__c</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteExtractBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldFormat>String</outputFieldFormat>
-        <outputFieldName>Line:CQL:ProductName</outputFieldName>
         <outputObjectName>json</outputObjectName>
         <requiredForUpsert>false</requiredForUpsert>
         <transformValuesMappings>{ }</transformValuesMappings>
