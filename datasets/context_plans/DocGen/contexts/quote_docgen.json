@@ -51,10 +51,9 @@
     { "nodeName": "Line",  "name": "NetUnitPrice",     "dataType": "CURRENCY", "fieldType": "INPUTOUTPUT" },
     { "nodeName": "Line",  "name": "NetTotalPrice",    "dataType": "CURRENCY", "fieldType": "INPUTOUTPUT" }
   ],
-  "_note": "AccountName and SalesRep require relationship traversal (Account.Name, Owner.Name) which the Context Service API does not support in sObjectField. Map those attributes manually in Setup UI after deployment.",
   "mappingRules": [
-    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "AccountName",     "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "Account",      "childSObject": "Account", "childSObjectField": "Name" },
-    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SalesRep",        "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "Owner",        "childSObject": "User",    "childSObjectField": "Name" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "AccountName",     "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Account_Name__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SalesRep",        "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Sales_Rep_Name__c" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingStreet",    "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingStreet" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingCity",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingCity" },
     { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingState",     "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingState" },

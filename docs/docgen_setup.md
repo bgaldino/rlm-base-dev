@@ -23,14 +23,19 @@ Both Quote templates use the same Quick Action (`Quote.RLM_Create_Proposal`) and
 ```
 1. create_docgen_library            → Creates "Docgen Document Template Library" ContentWorkspace
 2. enable_document_builder_toggle   → Enables Document Builder in Revenue Settings (Robot task)
-3. deploy_post_docgen               → Deploys all metadata under unpackaged/post_docgen/
-4. activate_docgen_templates        → Activates the latest version of each RLM_ template (Apex)
-5. fix_document_template_binaries   → Uploads correct DOCX binary to each template (see below)
-6. apply_context_docgen             → Creates RLM_QuoteDocGenContext via Context Service API
-7. assign_permission_sets           → Grants read access to RLM_Seller_*__c formula fields (RLM_DocGen permset)
+3. deploy_docgen_seller_fields      → Pre-deploys all Quote formula fields (RLM_Seller_*__c,
+                                       RLM_Account_Name__c, RLM_Sales_Rep_Name__c) before ODTs
+4. deploy_docgen_odt_seed           → Seeds minimal ODT stubs to work around fresh-org INSERT bug
+5. deploy_post_docgen               → Deploys all metadata under unpackaged/post_docgen/
+6. activate_docgen_templates        → Activates the latest version of each RLM_ template (Apex)
+7. fix_document_template_binaries   → Uploads correct DOCX binary to each template (see below)
+8. apply_context_docgen             → Creates RLM_QuoteDocGenContext via Context Service API
+9. assign_permission_sets           → Grants read access to formula fields (RLM_DocGen permset)
 ```
 
 All steps are gated by `project_config.project__custom__docgen`.
+
+**Steps 3 and 4** exist to work around two Salesforce platform bugs on fresh orgs: the ODT deploy validates that formula fields referenced in `inputFieldName` exist at INSERT time (step 3 pre-deploys them), and the platform rejects ODT INSERT when those fields are present (`-692085439`), requiring stub records to exist so the full deploy runs as UPDATE (step 4). Both steps are idempotent.
 
 ---
 
@@ -43,9 +48,7 @@ All steps are gated by `project_config.project__custom__docgen`.
 - **Binary:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_1.dt`
 - **Token list:** `AccountName`, `BillingStreet`, `BillingCity`, `BillingState`, `BillingPostalCode`, `SalesRep`, `QuoteNumber`, `CreatedDate`, `ExpirationDate`, `Line:ProductName`, `Line:Quantity`, `Line:ListPrice`, `Line:Discount`, `Line:NetUnitPrice`, `Line:NetTotalPrice` (including nested `CQL` and `CQL2` repeating sections), `GrandTotal`, `SellerCompanyName`, `SellerStreet`, `SellerCity`, `SellerState`, `SellerPostalCode`, `SellerPhone`, `SellerFax`, `SellerEmail`, `SellerWebsite`, `SellerCountry`
 
-### `RLM_QuoteProposal_CS` — Context Service ⚠️ Work in Progress
-
-> **Status:** End-to-end document generation with this template has not been fully verified in an automated build. `AccountName` and `SalesRep` require manual mapping in Setup → Context Service after deploy (see [Manual Step Required After Deploy](#manual-step-required-after-deploy)). Do not rely on this template in production builds until those steps are automated or documented as a known post-deploy requirement.
+### `RLM_QuoteProposal_CS` — Context Service
 
 - **Token mapping:** `RLM_QuoteDocGenContext` / `QuoteDocGenMapping` (Context Service)
 - **Meta file:** `unpackaged/post_docgen/documentTemplates/RLM_QuoteProposal_CS_1.dt-meta.xml`
@@ -66,9 +69,11 @@ Both Quote Proposal templates (`RLM_QuoteProposal` and `RLM_QuoteProposal_CS`) i
 
 ### Token Source
 
-| Token | Source |
-|---|---|
-| `SellerCompanyName` | `Quote.Owner.Account.Name` |
+| Token | Source | Formula Field |
+|---|---|---|
+| `AccountName` | `Quote.QuoteAccount.Name` | `RLM_Account_Name__c` |
+| `SalesRep` | `Quote.Owner.FirstName + LastName` | `RLM_Sales_Rep_Name__c` |
+| `SellerCompanyName` | `Quote.Owner.Account.Name` | `RLM_Seller_CompanyName__c` |
 | `SellerStreet` | `Quote.Owner.Account.BillingStreet` |
 | `SellerCity` | `Quote.Owner.Account.BillingCity` |
 | `SellerState` | `Quote.Owner.Account.BillingState` |
@@ -85,7 +90,7 @@ Both Quote Proposal templates (`RLM_QuoteProposal` and `RLM_QuoteProposal_CS`) i
 
 **CS template (`RLM_QuoteProposal_CS`):** The Context Service API does not support relationship traversal in `sObjectField`. Ten formula fields (`RLM_Seller_CompanyName__c` through `RLM_Seller_Country__c`) are deployed on the Quote object under `unpackaged/post_docgen/objects/Quote/fields/`. The `QuoteDocGenMapping` references these as direct `sObjectField` values, so no traversal is needed in the context plan.
 
-The `RLM_DocGen` permission set (deployed in step 7 of `prepare_docgen`) grants `readable: true` on all 10 fields.
+The `RLM_DocGen` permission set (deployed in step 9 of `prepare_docgen`) grants `readable: true` on all 12 formula fields.
 
 ### Address Format
 
@@ -168,7 +173,7 @@ The Context Service approach decouples token population from OmniStudio DataRapt
 #### Node Structure
 
 ```
-RLM_QuoteDocGenContext (primaryDomainObject: Quote)
+RLM_QuoteDocGenContext
 ├── Quote  (root node)
 │   ├── AccountName       STRING   INPUTOUTPUT
 │   ├── BillingStreet     STRING   INPUTOUTPUT
@@ -203,6 +208,8 @@ RLM_QuoteDocGenContext (primaryDomainObject: Quote)
 
 | Context Node | Attribute | SObject | Field |
 |---|---|---|---|
+| Quote | AccountName | Quote | RLM_Account_Name__c |
+| Quote | SalesRep | Quote | RLM_Sales_Rep_Name__c |
 | Quote | BillingStreet | Quote | BillingStreet |
 | Quote | BillingCity | Quote | BillingCity |
 | Quote | BillingState | Quote | BillingState |
@@ -228,9 +235,7 @@ RLM_QuoteDocGenContext (primaryDomainObject: Quote)
 | Line | NetUnitPrice | QuoteLineItem | UnitPrice |
 | Line | NetTotalPrice | QuoteLineItem | TotalPrice |
 
-#### Manual Step Required After Deploy
-
-`AccountName` and `SalesRep` require relationship traversal (`Account.Name`, `Owner.Name`) which the Context Service connect API does not support for `sObjectField`. These two attributes must be mapped manually in Setup → Context Service after `apply_context_docgen` runs.
+`AccountName` and `SalesRep` use formula fields (`RLM_Account_Name__c` = `QuoteAccount.Name`, `RLM_Sales_Rep_Name__c` = `Owner:User.FirstName + LastName`) rather than relationship traversal. The Context Service connect API does not support relationship traversal in `sObjectField`, so formula fields are the correct approach for cross-object lookups in this context.
 
 #### Plan File Location
 
@@ -350,7 +355,6 @@ cci task run manage_context_definition \
 
 | Issue | Detail |
 |---|---|
-| `AccountName`, `SalesRep` not auto-mapped | Context Service API does not support relationship traversal (`Account.Name`, `Owner.Name`). Map manually in Setup after deploy. |
 | Template binary bug | Salesforce Metadata API batch deploy assigns the same ContentDocument binary to all templates. `fix_document_template_binaries` corrects this automatically. |
 | Template versions accumulate | Each deploy creates a new DocumentTemplate version. `activateDocgenTemplates.apex` activates the highest version. Old versions remain as Archived but do not cause issues. |
 | `enable_document_builder_toggle` | Uses Robot Framework; requires Robot deps. May fail if the Revenue Settings page is slow. Run `validate_setup` to check Robot deps. |

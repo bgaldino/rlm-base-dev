@@ -205,15 +205,19 @@ class ManageContextDefinition(SFDXBaseTask):
                     sobject_rules.append(rule)
 
             if sobject_rules:
-                translated = self._translate_mapping_rules(sobject_rules, detail)
-                if translated:
-                    resolved_updates = self._resolve_context_mapping_ids(detail, translated)
-                    if resolved_updates:
-                        self._apply_context_mapping_updates(context_id, resolved_updates, dry_run)
-                        detail = self._fetch_context_definition(context_id)
+                # Exclude traversal rules from the Connect API PATCH — the PATCH wipes existing
+                # hydration details on re-runs. Traversal rules are handled by _apply_traversal_hydration.
                 traversal_rules = [r for r in sobject_rules if isinstance(r, dict) and r.get("childSObjectField")]
+                patch_rules = [r for r in sobject_rules if not (isinstance(r, dict) and r.get("childSObjectField"))]
+                if patch_rules:
+                    translated = self._translate_mapping_rules(patch_rules, detail)
+                    if translated:
+                        resolved_updates = self._resolve_context_mapping_ids(detail, translated)
+                        if resolved_updates:
+                            self._apply_context_mapping_updates(context_id, resolved_updates, dry_run)
+                            detail = self._fetch_context_definition(context_id)
                 if traversal_rules:
-                    self._apply_traversal_hydration(traversal_rules, dry_run)
+                    self._apply_traversal_hydration(traversal_rules, detail, dry_run)
 
             if context_rules:
                 translated = self._translate_mapping_rules(context_rules, detail, developer_name=developer_name)
@@ -733,101 +737,123 @@ class ManageContextDefinition(SFDXBaseTask):
         )
         self._make_request("patch", url, headers=headers, json=payload, dry_run=dry_run)
 
-    def _apply_traversal_hydration(self, rules: List[Dict[str, Any]], dry_run: bool) -> None:
-        """Set ContextAttrHydrationDetail records for relationship-traversal mapping rules.
+    def _apply_traversal_hydration(
+        self, rules: List[Dict[str, Any]], detail: Dict[str, Any], dry_run: bool
+    ) -> None:
+        """Create ContextAttributeMapping + ContextAttrHydrationDetail for relationship-traversal
+        mapping rules entirely via the SObject REST API.
 
-        The Connect API PATCH endpoint rejects relationship traversals (INSUFFICIENT_ACCESS),
-        so we write ContextAttrHydrationDetail directly via the SObject REST API.
-        Each traversal rule produces two chained records: parent (source SObject + field)
-        and child (target SObject + field, linked via ParentHydrationDetailId).
+        The Connect API PATCH rejects relationship traversals (INSUFFICIENT_ACCESS) and also
+        wipes existing hydration details when traversal rules are sent without hydrationDetails.
+        Bypassing PATCH entirely for these rules makes re-runs idempotent: if the
+        ContextAttributeMapping already has hydration details, we skip without touching anything.
+
+        Two chained ContextAttrHydrationDetail records are created per rule:
+          parent: source SObject + relationship field (e.g. Quote.Account)
+          child:  target SObject + field, linked via ParentHydrationDetailId (e.g. Account.Name)
         """
+        # Build indexes needed to create ContextAttributeMapping records.
+        versions = detail.get("contextDefinitionVersionList", []) if isinstance(detail, dict) else []
+        mappings = versions[0].get("contextMappings", []) if versions else []
+
+        # node_mapping_id_index: (mapping_name, node_name) → contextNodeMappingId
+        node_mapping_id_index: Dict[tuple, str] = {}
+        for mapping in mappings or []:
+            if not isinstance(mapping, dict):
+                continue
+            m_name = mapping.get("name") or mapping.get("title")
+            for node_map in mapping.get("contextNodeMappings", []) or []:
+                if not isinstance(node_map, dict):
+                    continue
+                n_name = node_map.get("contextNodeName")
+                n_map_id = node_map.get("contextNodeMappingId")
+                if m_name and n_name and n_map_id:
+                    node_mapping_id_index[(m_name, n_name)] = n_map_id
+
+        _, attr_index = self._collect_context_indexes(detail, {})
+
         for rule in rules:
             attr_name = rule.get("contextAttribute")
+            mapping_name = rule.get("mappingName")
+            node_name = rule.get("contextNode")
             s_object = rule.get("sObject")
             s_object_field = rule.get("sObjectField")
             child_s_object = rule.get("childSObject")
             child_s_object_field = rule.get("childSObjectField")
-            if not all([attr_name, s_object, s_object_field, child_s_object, child_s_object_field]):
+            if not all([attr_name, mapping_name, node_name, s_object, s_object_field, child_s_object, child_s_object_field]):
                 continue
 
-            # Find all ContextAttributeMapping records for this attribute name.
+            # Query existing ContextAttributeMapping records for this attribute.
             soql = (
                 f"SELECT Id,CreatedDate FROM ContextAttributeMapping "
                 f"WHERE ContextInputAttributeName='{attr_name}' ORDER BY CreatedDate DESC"
             )
-            q_url, headers = self._build_url_and_headers(
-                f"query?q={soql.replace(' ', '+')}"
-            )
-            resp = self._make_request("get", q_url, headers=headers, dry_run=False)
-            records = resp.get("records", []) if isinstance(resp, dict) else []
+            q_url, headers = self._build_url_and_headers("query")
+            resp = self._make_request("get", q_url, headers=headers, params={"q": soql}, dry_run=False)
+            existing_mappings = resp.get("records", []) if isinstance(resp, dict) else []
 
-            if not records:
-                self.logger.warning(
-                    "No ContextAttributeMapping found for %s; skipping traversal hydration", attr_name
-                )
-                continue
-
-            # Keep the most recently created; delete duplicates from prior failed runs.
-            keeper_id = records[0]["Id"]
-            for dup in records[1:]:
-                # Delete child hydration details before deleting the parent mapping.
-                dup_hd_soql = (
-                    f"SELECT Id FROM ContextAttrHydrationDetail "
-                    f"WHERE ContextAttributeMappingId='{dup['Id']}'"
-                )
-                dup_hd_url, dup_hd_headers = self._build_url_and_headers(
-                    f"query?q={dup_hd_soql.replace(' ', '+')}"
-                )
-                dup_hd_resp = self._make_request("get", dup_hd_url, headers=dup_hd_headers, dry_run=False)
-                for dup_hd in (dup_hd_resp.get("records", []) if isinstance(dup_hd_resp, dict) else []):
-                    del_hd_url, del_hd_headers = self._build_url_and_headers(
-                        f"sobjects/ContextAttrHydrationDetail/{dup_hd['Id']}"
+            if existing_mappings:
+                keeper_id = existing_mappings[0]["Id"]
+            else:
+                # No ContextAttributeMapping yet — create one via SObject API.
+                node_mapping_id = node_mapping_id_index.get((mapping_name, node_name))
+                attr_id = attr_index.get((node_name, attr_name))
+                if not node_mapping_id or not attr_id:
+                    self.logger.warning(
+                        "Cannot create ContextAttributeMapping for %s: node_mapping_id=%s attr_id=%s",
+                        attr_name, node_mapping_id, attr_id,
                     )
-                    self._make_request("delete", del_hd_url, headers=del_hd_headers, dry_run=dry_run)
-                del_url, del_headers = self._build_url_and_headers(
-                    f"sobjects/ContextAttributeMapping/{dup['Id']}"
+                    continue
+                cam_url, cam_headers = self._build_url_and_headers("sobjects/ContextAttributeMapping")
+                cam_resp = self._make_request(
+                    "post", cam_url, headers=cam_headers,
+                    json={
+                        "ContextNodeMappingId": node_mapping_id,
+                        "ContextAttributeId": attr_id,
+                        "ContextInputAttributeName": attr_name,
+                    },
+                    dry_run=dry_run,
                 )
-                self.logger.info("Deleting duplicate ContextAttributeMapping %s for %s", dup["Id"], attr_name)
-                self._make_request("delete", del_url, headers=del_headers, dry_run=dry_run)
+                if dry_run:
+                    continue
+                keeper_id = (cam_resp or {}).get("id") or (cam_resp or {}).get("Id") if isinstance(cam_resp, dict) else None
+                if not keeper_id:
+                    self.logger.warning("Failed to create ContextAttributeMapping for %s", attr_name)
+                    continue
 
-            # Remove any existing hydration details before re-inserting.
+            # Check if hydration already exists (idempotent) — skip if so.
+            # The platform may auto-create hydration entries when the ContextAttributeMapping
+            # is created, so check even for newly created mappings.
             hd_soql = (
                 f"SELECT Id FROM ContextAttrHydrationDetail "
                 f"WHERE ContextAttributeMappingId='{keeper_id}'"
             )
-            hd_url, headers = self._build_url_and_headers(
-                f"query?q={hd_soql.replace(' ', '+')}"
-            )
-            hd_resp = self._make_request("get", hd_url, headers=headers, dry_run=False)
-            for hd_rec in (hd_resp.get("records", []) if isinstance(hd_resp, dict) else []):
-                del_url, del_headers = self._build_url_and_headers(
-                    f"sobjects/ContextAttrHydrationDetail/{hd_rec['Id']}"
+            hd_resp = self._make_request("get", q_url, headers=headers, params={"q": hd_soql}, dry_run=False)
+            if (hd_resp or {}).get("records"):
+                self.logger.info(
+                    "Traversal hydration already exists for %s; skipping", attr_name
                 )
-                self._make_request("delete", del_url, headers=del_headers, dry_run=dry_run)
+                continue
 
-            # Insert parent hydration detail: source SObject + relationship field.
-            p_url, headers = self._build_url_and_headers("sobjects/ContextAttrHydrationDetail")
+            # Insert parent + child ContextAttrHydrationDetail records.
+            hd_url, hd_headers = self._build_url_and_headers("sobjects/ContextAttrHydrationDetail")
             self.logger.info(
                 "Creating traversal hydration for %s: %s.%s → %s.%s",
                 attr_name, s_object, s_object_field, child_s_object, child_s_object_field,
             )
             parent_resp = self._make_request(
-                "post", p_url, headers=headers,
+                "post", hd_url, headers=hd_headers,
                 json={"ContextAttributeMappingId": keeper_id, "ObjectName": s_object, "QueryAttribute": s_object_field},
                 dry_run=dry_run,
             )
-
             if dry_run:
                 continue
-
             parent_id = (parent_resp or {}).get("id") or (parent_resp or {}).get("Id") if isinstance(parent_resp, dict) else None
             if not parent_id:
                 self.logger.warning("Failed to get parent hydration detail ID for %s", attr_name)
                 continue
-
-            # Insert child hydration detail: target SObject + field, linked to parent.
             self._make_request(
-                "post", p_url, headers=headers,
+                "post", hd_url, headers=hd_headers,
                 json={
                     "ContextAttributeMappingId": keeper_id,
                     "ObjectName": child_s_object,
