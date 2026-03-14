@@ -148,7 +148,6 @@ When renamed, the Revenue Settings configuration in any existing org also needs 
 | Old Name | New Name |
 |----------|----------|
 | `RC_Quote_Approval_Data` | `RLM_Quote_Approval_Data` |
-| `RC_Quote_Smart_Approval` | `RLM_Quote_Smart_Approval` |
 
 #### `unpackaged/post_billing/flows/`
 | Old Name | New Name |
