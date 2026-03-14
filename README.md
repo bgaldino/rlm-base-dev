@@ -516,7 +516,6 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `false` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
-| `visualization` | `false` | Use Visualization components (Flow with Visuals, LWC styling) |
 
 ### Deployment Flags
 
@@ -786,10 +785,9 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 23 | `prepare_agents` | Always |
 | 24 | `prepare_constraints` | Always |
 | 25 | `prepare_guidedselling` | Always |
-| 26 | `prepare_visualization` | Always |
-| 27 | `configure_revenue_settings` | Always |
-| 28 | `reconfigure_pricing_discovery` | Always |
-| 29 | `refresh_all_decision_tables` | Always |
+| 26 | `configure_revenue_settings` | Always |
+| 27 | `reconfigure_pricing_discovery` | Always |
+| 28 | `refresh_all_decision_tables` | Always |
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
 
@@ -831,7 +829,6 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
-| `prepare_visualization` | Deploy visualization components | `visualization` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
 ### Utility Flows and Tasks
@@ -1042,7 +1039,6 @@ rlm-base-dev/
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
 │   ├── post_utils/             # Utility metadata
-│   └── post_visualization/     # Visualization metadata
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks

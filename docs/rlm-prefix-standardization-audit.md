@@ -147,15 +147,7 @@ When renamed, the Revenue Settings configuration in any existing org also needs 
 #### `unpackaged/post_approvals/flows/`
 | Old Name | New Name |
 |----------|----------|
-| `RC_AA_Evaluate_Approval_Request` | `RLM_AA_Evaluate_Approval_Request` |
-| `RC_AA_Quote_Approval` | `RLM_AA_Quote_Approval` |
-| `RC_AA_Set_Quote_Status` | `RLM_AA_Set_Quote_Status` |
-| `RC_Quote_Approval_Comments` | `RLM_Quote_Approval_Comments` |
 | `RC_Quote_Approval_Data` | `RLM_Quote_Approval_Data` |
-| `RC_Quote_Smart_Approval` | `RLM_Quote_Smart_Approval` |
-| `RC_Quote_Transfer_Approval` | `RLM_Quote_Transfer_Approval` |
-
-Note: `RC_AA_Quote_Approval` is referenced by name inside `RC_QuoteApprovalController.cls` (`flowApiName = 'RC_AA_Quote_Approval'`). Must update class content too.
 
 #### `unpackaged/post_billing/flows/`
 | Old Name | New Name |
@@ -200,11 +192,6 @@ Note: `RC_AA_Quote_Approval` is referenced by name inside `RC_QuoteApprovalContr
 | `RC_Usage_Data_Tables_Concept_LS` | `RLM_Usage_Data_Tables_Concept_LS` | References `RC_*__c` field names inside XML |
 | `RC_Usage_Data_Tables_Concept_TJ` | `RLM_Usage_Data_Tables_Concept_TJ` | References `RC_*__c` field names inside XML |
 | `RC_Usage_Data_Tables_Concept_US` | `RLM_Usage_Data_Tables_Concept_US` | References `RC_*__c` field names inside XML |
-
-#### `unpackaged/post_visualization/flows/`
-| Old Name | New Name |
-|----------|----------|
-| `RC_QRACK_Configurator_Flow` | `RLM_QRACK_Configurator_Flow` |
 
 ---
 
@@ -330,22 +317,6 @@ All 9 classes form a tightly coupled group — rename all in a single commit.
 |-----------|-----------|---------------|
 | `RC_AccountUtilities` | `RLM_AccountUtilities` | Flows: `RC_Account_Utilities`, `RC_Reset_Account` |
 | `RC_RebuildSearchIndex` | `RLM_RebuildSearchIndex` | Flow: `RC_Rebuild_Search_Index` |
-
-#### `unpackaged/post_approvals/classes/` (2 classes)
-
-| Old Class | New Class | Notes |
-|-----------|-----------|-------|
-| `RC_AA_Submit_Approval` | `RLM_AA_Submit_Approval` | |
-| `RC_QuoteApprovalController` | `RLM_QuoteApprovalController` | References `RC_Approval_Level__c` field (BATCH E) and `RC_AA_Quote_Approval` flow (BATCH C); also referenced by `RC_QuoteApproval.page` and permset |
-
----
-
-### BATCH G — Apex/VF Pages
-
-#### `unpackaged/post_approvals/pages/`
-| Old Name | New Name | References |
-|----------|----------|------------|
-| `RC_QuoteApproval` (`.page` + `.page-meta.xml`) | `RLM_QuoteApproval` | Referenced by `RC_QuoteApprovalController` class (page name in StandardController implied by filename) |
 
 ---
 
