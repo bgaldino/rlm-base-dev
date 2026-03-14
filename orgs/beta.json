@@ -86,7 +86,7 @@
       "enableDFOPref": true
     },
     "emailTemplateSettings": {
-      "enableLightningEmailTemplateFolderSharingPref": true
+      "enableTemplateEnhancedFolderPref": true
     }
   }
 }
