@@ -9,4 +9,5 @@
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
     <name>RLMQuoteTransformBasic</name>
     <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
+    <type>Transform</type>
 </OmniDataTransform>

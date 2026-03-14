@@ -9,4 +9,5 @@
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
     <name>RLMQuoteExtractBasic</name>
     <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
+    <type>Extract</type>
 </OmniDataTransform>
