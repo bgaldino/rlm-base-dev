@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AdvAccountForecastSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <accountFieldName>AccountId</accountFieldName>
+    <calculationFrequency>Quarterly</calculationFrequency>
+    <dimensions>
+        <advAcctForecastDimName>Category</advAcctForecastDimName>
+        <dimensionFieldName>Category__c</dimensionFieldName>
+        <dimensionSourceName>Category</dimensionSourceName>
+        <hierarchySequenceNumber>1</hierarchySequenceNumber>
+    </dimensions>
+    <dimensions>
+        <advAcctForecastDimName>Product</advAcctForecastDimName>
+        <dimensionFieldName>ProductId</dimensionFieldName>
+        <dimensionSourceName>DefaultForecastDimensionSource</dimensionSourceName>
+        <hierarchySequenceNumber>2</hierarchySequenceNumber>
+    </dimensions>
+    <displayGroups>
+        <advAcctFrcstDisplayGroupName>Forecast Metrics</advAcctFrcstDisplayGroupName>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Account Manager Revenue Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>0</displayOrder>
+            <measureReferenceName>Account Manager Revenue Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Account Manager Qty Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>1</displayOrder>
+            <measureReferenceName>Account Manager Qty Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Opportunity Revenue Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>2</displayOrder>
+            <measureReferenceName>Opportunity Revenue Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Opportunity Qty Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>3</displayOrder>
+            <measureReferenceName>Opportunity Qty Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Sales Agreement Revenue</advAcctFrcstDplyGroupItemName>
+            <displayOrder>4</displayOrder>
+            <measureReferenceName>Sales Agreement Revenue</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Sales Agreement Qty</advAcctFrcstDplyGroupItemName>
+            <displayOrder>5</displayOrder>
+            <measureReferenceName>Sales Agreement Qty</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Order Revenue</advAcctFrcstDplyGroupItemName>
+            <displayOrder>6</displayOrder>
+            <measureReferenceName>Order Revenue</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Order Qty</advAcctFrcstDplyGroupItemName>
+            <displayOrder>7</displayOrder>
+            <measureReferenceName>Order Qty</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Previous Year Order Revenue</advAcctFrcstDplyGroupItemName>
+            <displayOrder>8</displayOrder>
+            <measureReferenceName>Previous Year Order Revenue</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Previous Year Order Qty</advAcctFrcstDplyGroupItemName>
+            <displayOrder>9</displayOrder>
+            <measureReferenceName>Previous Year Order Qty</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupType>MEASURE</displayGroupType>
+        <isDefault>true</isDefault>
+    </displayGroups>
+    <displayGroups>
+        <advAcctFrcstDisplayGroupName>Revenue Metrics</advAcctFrcstDisplayGroupName>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Account Manager Revenue Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>0</displayOrder>
+            <measureReferenceName>Account Manager Revenue Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Opportunity Revenue Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>1</displayOrder>
+            <measureReferenceName>Opportunity Revenue Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Sales Agreement Revenue</advAcctFrcstDplyGroupItemName>
+            <displayOrder>2</displayOrder>
+            <measureReferenceName>Sales Agreement Revenue</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Order Revenue</advAcctFrcstDplyGroupItemName>
+            <displayOrder>3</displayOrder>
+            <measureReferenceName>Order Revenue</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Previous Year Order Revenue</advAcctFrcstDplyGroupItemName>
+            <displayOrder>4</displayOrder>
+            <measureReferenceName>Previous Year Order Revenue</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupType>MEASURE</displayGroupType>
+        <isDefault>false</isDefault>
+    </displayGroups>
+    <displayGroups>
+        <advAcctFrcstDisplayGroupName>Quantity Metrics</advAcctFrcstDisplayGroupName>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Account Manager Qty Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>0</displayOrder>
+            <measureReferenceName>Account Manager Qty Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Opportunity Qty Forecast</advAcctFrcstDplyGroupItemName>
+            <displayOrder>1</displayOrder>
+            <measureReferenceName>Opportunity Qty Forecast</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Sales Agreement Qty</advAcctFrcstDplyGroupItemName>
+            <displayOrder>2</displayOrder>
+            <measureReferenceName>Sales Agreement Qty</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Order Qty</advAcctFrcstDplyGroupItemName>
+            <displayOrder>3</displayOrder>
+            <measureReferenceName>Order Qty</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupItems>
+            <advAcctFrcstDplyGroupItemName>Previous Year Order Qty</advAcctFrcstDplyGroupItemName>
+            <displayOrder>4</displayOrder>
+            <measureReferenceName>Previous Year Order Qty</measureReferenceName>
+        </displayGroupItems>
+        <displayGroupType>MEASURE</displayGroupType>
+        <isDefault>false</isDefault>
+    </displayGroups>
+    <forecastAdjPeriods>
+        <adjustmentDayCount>365</adjustmentDayCount>
+        <frequency>Quarter</frequency>
+        <profileName>admin</profileName>
+        <startDay>1</startDay>
+    </forecastAdjPeriods>
+    <forecastFactObjectName>AdvAccountForecastFact</forecastFactObjectName>
+    <forecastFormulas>
+        <endPeriod>8</endPeriod>
+        <formulaExpression>(Account_Manager_Forecasted_Revenue__c +  OpportunityRevenue +  SalesAgreementRevenue)/3</formulaExpression>
+        <formulaType>REVENUE</formulaType>
+        <startPeriod>1</startPeriod>
+    </forecastFormulas>
+    <forecastFormulas>
+        <endPeriod>8</endPeriod>
+        <formulaExpression>(Account_Manager_Forecasted_Quantity__c +  OpportunityQuantity +  SalesAgreementQuantity)/3</formulaExpression>
+        <formulaType>QUANTITY</formulaType>
+        <startPeriod>1</startPeriod>
+    </forecastFormulas>
+    <forecastPeriodGroupName>DefaultForecastPeriodGroup</forecastPeriodGroupName>
+    <forecastQuantityFieldName>ForecastedQuantity</forecastQuantityFieldName>
+    <forecastRevenueFieldName>ForecastedRevenue</forecastRevenueFieldName>
+    <forecastSetFieldName>AdvAcctForecastSetPartnerId</forecastSetFieldName>
+    <forecastSetName>CategoryForecastSet</forecastSetName>
+    <forecastStatusFieldName>Status</forecastStatusFieldName>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Account Manager Revenue Forecast</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>Account_Manager_Forecasted_Revenue__c</forecastDataMeasureName>
+        <forecastMeasureName>Account Manager Revenue Forecast</forecastMeasureName>
+        <forecastMeasureType>REVENUE</forecastMeasureType>
+        <isAdjustmentTracked>true</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Sales Agreement Qty</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>SalesAgreementQuantity</forecastDataMeasureName>
+        <forecastMeasureName>Sales Agreement Qty</forecastMeasureName>
+        <forecastMeasureType>QUANTITY</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Order Qty</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>OrderQuantity</forecastDataMeasureName>
+        <forecastMeasureName>Order Qty</forecastMeasureName>
+        <forecastMeasureType>QUANTITY</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Account Manager Qty Forecast</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>Account_Manager_Forecasted_Quantity__c</forecastDataMeasureName>
+        <forecastMeasureName>Account Manager Qty Forecast</forecastMeasureName>
+        <forecastMeasureType>QUANTITY</forecastMeasureType>
+        <isAdjustmentTracked>true</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Opportunity Revenue Forecast</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>OpportunityRevenue</forecastDataMeasureName>
+        <forecastMeasureName>Opportunity Revenue Forecast</forecastMeasureName>
+        <forecastMeasureType>REVENUE</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Order Revenue</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>OrderRevenue</forecastDataMeasureName>
+        <forecastMeasureName>Order Revenue</forecastMeasureName>
+        <forecastMeasureType>REVENUE</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Opportunity Qty Forecast</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>OpportunityQuantity</forecastDataMeasureName>
+        <forecastMeasureName>Opportunity Qty Forecast</forecastMeasureName>
+        <forecastMeasureType>QUANTITY</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Sales Agreement Revenue</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>SalesAgreementRevenue</forecastDataMeasureName>
+        <forecastMeasureName>Sales Agreement Revenue</forecastMeasureName>
+        <forecastMeasureType>REVENUE</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Previous Year Order Revenue</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>LastYearOrderRevenue</forecastDataMeasureName>
+        <forecastMeasureName>Previous Year Order Revenue</forecastMeasureName>
+        <forecastMeasureType>REVENUE</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <measureDefinitions>
+        <advAcctForecastMeasureDefName>Previous Year Order Qty</advAcctForecastMeasureDefName>
+        <aggregationType>SUM</aggregationType>
+        <computationMethod>CUSTOM</computationMethod>
+        <forecastDataMeasureName>LastYearOrderQuantity</forecastDataMeasureName>
+        <forecastMeasureName>Previous Year Order Qty</forecastMeasureName>
+        <forecastMeasureType>QUANTITY</forecastMeasureType>
+        <isAdjustmentTracked>false</isAdjustmentTracked>
+    </measureDefinitions>
+    <periodFieldName>PeriodId</periodFieldName>
+    <rolloverFrequency>Quarterly</rolloverFrequency>
+    <status>Active</status>
+</AdvAccountForecastSet>
