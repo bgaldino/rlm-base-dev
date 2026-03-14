@@ -640,7 +640,7 @@
                 <name>Template_Selection_Section2_Column1</name>
                 <fieldType>Region</fieldType>
                 <fields>
-                    <name>dspFileAttacments</name>
+                    <name>dspFileAttachments</name>
                     <fieldText>&lt;p&gt;&lt;strong style=&quot;background-color: rgb(255, 255, 255); font-size: 16px;&quot;&gt;File Attachments&lt;/strong&gt;&lt;/p&gt;</fieldText>
                     <fieldType>DisplayText</fieldType>
                     <styleProperties>
