@@ -18,8 +18,8 @@ public class RLM_ReturnPDFDocument {
                 if (String.isNotBlank(trimmed)) {
                     try {
                         contentVersionIds.add((Id) trimmed);
-                    } catch (System.StringException e) {
-                        // Non-Id token in ResponseText — skip and continue
+                    } catch (Exception e) {
+                        // Non-Id token in ResponseText (StringException or TypeException) — skip and continue
                     }
                 }
             }

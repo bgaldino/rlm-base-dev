@@ -4,14 +4,23 @@ public class RLM_DocumentGenerationCreate {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException('RLM_DocumentGenerationCreate: at least one request is required.');
         }
+        // Bulkify: collect all template IDs and query once before the loop.
+        Set<Id> templateIds = new Set<Id>();
+        for (Request req : requests) {
+            if (req.DocTemplateId != null) templateIds.add(req.DocTemplateId);
+        }
+        Map<Id, DocumentTemplate> templateMap = new Map<Id, DocumentTemplate>(
+            [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds]
+        );
+
         List<Response> responses = new List<Response>();
         for (Request req : requests) {
             String stCurrRecordId = req.CurrentRecordId;
             String stDocTitle = req.DocTitle;
             String stDocTemplateId = req.DocTemplateId;
 
-            DocumentTemplate dt = [SELECT TokenMappingMethodType, ContextDefinitionName, ContextMappingName FROM DocumentTemplate WHERE Id = :stDocTemplateId LIMIT 1];
-            Boolean isContextService = dt.TokenMappingMethodType == 'ContextService';
+            DocumentTemplate dt = templateMap.get(stDocTemplateId);
+            Boolean isContextService = dt != null && dt.TokenMappingMethodType == 'ContextService';
 
             DocumentGenerationProcess dgp = new DocumentGenerationProcess();
             dgp.Type = 'GenerateAndConvert';

@@ -223,6 +223,9 @@ public class RLM_AccountUtilities {
         if (request == null || request.isEmpty()) {
             return;
         }
+        if (request.size() > 1) {
+            throw new IllegalArgumentException('RLM_AccountUtilities.delAccountRelatedObjects: only one request at a time is supported.');
+        }
 
         String accountId = request.get(0).accountId;
         Boolean deleteAssets = request.get(0).DeleteAssets;

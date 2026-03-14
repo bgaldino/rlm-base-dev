@@ -166,7 +166,7 @@ The Context Service approach decouples token population from OmniStudio DataRapt
 
 ### Context Definition: `RLM_QuoteDocGenContext`
 
-**Deployed by:** `apply_context_docgen` (step 6 of `prepare_docgen`)
+**Deployed by:** `apply_context_docgen` (step 8 of `prepare_docgen`)
 **Plan file:** `datasets/context_plans/DocGen/manifest.json`
 **Task class:** `tasks.rlm_context_service.ManageContextDefinition`
 
