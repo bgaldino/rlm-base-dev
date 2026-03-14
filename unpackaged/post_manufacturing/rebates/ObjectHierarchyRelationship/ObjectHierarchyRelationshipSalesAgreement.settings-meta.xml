@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ObjectHierarchyRelationship xmlns="http://soap.sforce.com/2006/04/metadata">
+   <parentObjectMapping>
+      <inputObject>SalesAgreement</inputObject>
+      <outputObject>TransactionJournal</outputObject>
+      <mappingFields>
+        <inputField>AccountId</inputField>
+        <outputField>MemberId</outputField>
+      </mappingFields>
+   </parentObjectMapping>
+   <childObjectMapping>
+   <inputObject>SalesAgreementProduct</inputObject>
+      <outputObject>TransactionJournal</outputObject> 
+      <mappingFields>
+        <inputField>ProductId</inputField>
+        <outputField>ProductId</outputField>
+      </mappingFields>
+      <mappingFields>
+        <inputField>TotalActualQuantity</inputField>
+        <outputField>Quantity</outputField>
+      </mappingFields>
+      <mappingFields>
+        <inputField>TotalActualAmount</inputField>
+        <outputField>Distance</outputField>
+      </mappingFields>
+   </childObjectMapping>
+   <usageType>EligibleProgramRebateType</usageType>
+</ObjectHierarchyRelationship>

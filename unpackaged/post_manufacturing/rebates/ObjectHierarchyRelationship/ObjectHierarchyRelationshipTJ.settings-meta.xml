@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ObjectHierarchyRelationship xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>ObjectHierarchyRelationship</masterLabel>
+    <parentObjectMapping>
+        <inputObject>TransactionJournal</inputObject>
+            <mappingFields>
+            <inputField>MemberId</inputField>
+            <outputField>RebateProgramMemberId</outputField>
+        </mappingFields>
+        <mappingFields>
+            <inputField>Distance</inputField>
+            <outputField>TotalTransactionAmount</outputField>
+        </mappingFields>
+        <mappingFields>
+            <inputField>Quantity</inputField>
+            <outputField>TotalQuantity</outputField>
+        </mappingFields>
+        <mappingFields>
+            <inputField>ProductId</inputField>
+            <outputField>ProductId</outputField>
+        </mappingFields>
+         <mappingFields>
+            <inputField>CurrencyIsoCode</inputField>
+            <outputField>CurrencyIsoCode</outputField>
+        </mappingFields>
+        <outputObject>RebateMemberProductAggregate</outputObject>
+    </parentObjectMapping>
+    <usageType>EligibleProgramRebateType</usageType>
+</ObjectHierarchyRelationship>
