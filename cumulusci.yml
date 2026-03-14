@@ -835,9 +835,10 @@ tasks:
     description: >
       Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
       PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
-      Apex class, and permission set. EmailTemplatePage FlexiPages cannot be deployed via
-      Metadata API (platform restriction); Lightning Email Templates are created separately
-      by create_approval_email_templates.
+      Apex class, and permission set. EmailTemplatePage FlexiPages (including
+      RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be
+      deployed via Metadata API (platform restriction); Lightning Email Templates are created
+      separately by create_approval_email_templates.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_approvals

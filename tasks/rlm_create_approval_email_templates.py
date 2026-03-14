@@ -121,10 +121,11 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
 
     def _create_templates(self, base_url, headers, templates, folder_id):
         names = [t["Name"] for t in templates]
-        names_soql = ", ".join(f"'{n}'" for n in names)
+        names_soql = ", ".join(f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in names)
+        soql = f"SELECT Id, Name FROM EmailTemplate WHERE Name IN ({names_soql})"
         resp = requests.get(
-            f"{base_url}/query?q=SELECT+Id,Name+FROM+EmailTemplate"
-            f"+WHERE+Name+IN+({names_soql})",
+            f"{base_url}/query",
+            params={"q": soql},
             headers=headers,
         )
         resp.raise_for_status()
@@ -181,11 +182,16 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
             self.logger.info("No alert→template mappings to process.")
             return
 
-        alert_names_soql = ", ".join(f"'{n}'" for n in alert_to_template_id)
+        alert_names_soql = ", ".join(
+            f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in alert_to_template_id
+        )
+        soql = (
+            f"SELECT Id, Name, EmailTemplateId FROM ApprovalAlertContentDef"
+            f" WHERE Name IN ({alert_names_soql})"
+        )
         resp = requests.get(
-            f"{base_url}/query?q=SELECT+Id,Name,EmailTemplateId"
-            f"+FROM+ApprovalAlertContentDef"
-            f"+WHERE+Name+IN+({alert_names_soql})",
+            f"{base_url}/query",
+            params={"q": soql},
             headers=headers,
         )
         resp.raise_for_status()

@@ -136,6 +136,10 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
                 <name>DiscountApprovalLevel</name>
                 <value xsi:nil="true"/>
             </outputConfigParams>
+            <outputConfigParams>
+                <name>PaymentTerms</name>
+                <value xsi:nil="true"/>
+            </outputConfigParams>
             <requiresAsyncProcessing>false</requiresAsyncProcessing>
             <runAsUser>false</runAsUser>
             <shouldLock>false</shouldLock>
@@ -557,13 +561,6 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <value>
             <numberValue>0.0</numberValue>
         </value>
-    </variables>
-    <variables>
-        <name>firstApprover</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
     </variables>
     <variables>
         <name>recordId</name>
