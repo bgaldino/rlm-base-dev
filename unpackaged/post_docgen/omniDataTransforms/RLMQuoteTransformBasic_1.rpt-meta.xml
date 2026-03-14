@@ -87,17 +87,7 @@
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
   &quot;BillingState&quot; : &quot;NY&quot;,
   &quot;AccountName&quot; : &quot;Acme&quot;,
-  &quot;SalesRep&quot; : &quot;Sample User&quot;,
-  &quot;SellerCompanyName&quot; : &quot;Sample Company&quot;,
-  &quot;SellerStreet&quot; : &quot;100 Main St&quot;,
-  &quot;SellerCity&quot; : &quot;Chicago&quot;,
-  &quot;SellerState&quot; : &quot;IL&quot;,
-  &quot;SellerPostalCode&quot; : &quot;60601&quot;,
-  &quot;SellerPhone&quot; : &quot;312-555-0100&quot;,
-  &quot;SellerFax&quot; : &quot;312-555-0101&quot;,
-  &quot;SellerEmail&quot; : &quot;admin@example.com&quot;,
-  &quot;SellerWebsite&quot; : &quot;www.example.com&quot;,
-  &quot;SellerCountry&quot; : &quot;US&quot;
+  &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</expectedInputJson>
     <expectedOutputJson>{
   &quot;BillingCity&quot; : &quot;New York&quot;,
@@ -182,17 +172,7 @@
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
   &quot;BillingState&quot; : &quot;NY&quot;,
   &quot;AccountName&quot; : &quot;Acme&quot;,
-  &quot;SalesRep&quot; : &quot;Sample User&quot;,
-  &quot;SellerCompanyName&quot; : &quot;Sample Company&quot;,
-  &quot;SellerStreet&quot; : &quot;100 Main St&quot;,
-  &quot;SellerCity&quot; : &quot;Chicago&quot;,
-  &quot;SellerState&quot; : &quot;IL&quot;,
-  &quot;SellerPostalCode&quot; : &quot;60601&quot;,
-  &quot;SellerPhone&quot; : &quot;312-555-0100&quot;,
-  &quot;SellerFax&quot; : &quot;312-555-0101&quot;,
-  &quot;SellerEmail&quot; : &quot;admin@example.com&quot;,
-  &quot;SellerWebsite&quot; : &quot;www.example.com&quot;,
-  &quot;SellerCountry&quot; : &quot;US&quot;
+  &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</expectedOutputJson>
     <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
@@ -605,146 +585,6 @@
         <requiredForUpsert>false</requiredForUpsert>
         <upsertKey>false</upsertKey>
     </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>2f5b7f4a-d19d-408c-9e82-3bc75654cdaf</globalKey>
-        <inputFieldName>SellerCompanyName</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerCompanyName</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>6939a8f1-0069-40fd-a062-0a4b2ce807e7</globalKey>
-        <inputFieldName>SellerStreet</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerStreet</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>e97b82db-03a1-430b-9b53-c88a6a64b5cb</globalKey>
-        <inputFieldName>SellerCity</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerCity</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>f2f14890-0c31-40bf-a8ad-9f5d7427dc05</globalKey>
-        <inputFieldName>SellerState</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerState</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>fe8fbe9b-5f40-4db7-b609-b42ae08a8c55</globalKey>
-        <inputFieldName>SellerPostalCode</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerPostalCode</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>7cef9be2-122e-4cba-a856-2831798915b5</globalKey>
-        <inputFieldName>SellerPhone</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerPhone</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>8f6f025f-8841-4a8d-88cd-62ad6b9222af</globalKey>
-        <inputFieldName>SellerFax</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerFax</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>cf0883d5-f883-4d8f-ab57-866569c6aeae</globalKey>
-        <inputFieldName>SellerEmail</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerEmail</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>6f06653a-e875-4a8d-8c5c-1716eb3441a8</globalKey>
-        <inputFieldName>SellerWebsite</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerWebsite</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
-    <omniDataTransformItem>
-        <disabled>false</disabled>
-        <filterGroup>0.0</filterGroup>
-        <globalKey>310bbd11-9372-4719-8146-c8331ec868c4</globalKey>
-        <inputFieldName>SellerCountry</inputFieldName>
-        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
-        <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RLMQuoteTransformBasic</name>
-        <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>SellerCountry</outputFieldName>
-        <outputObjectName>json</outputObjectName>
-        <requiredForUpsert>false</requiredForUpsert>
-        <upsertKey>false</upsertKey>
-    </omniDataTransformItem>
     <outputType>JSON</outputType>
     <previewJsonData>{
   &quot;BillingCity&quot; : &quot;New York&quot;,
@@ -829,17 +669,7 @@
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
   &quot;BillingState&quot; : &quot;NY&quot;,
   &quot;AccountName&quot; : &quot;Acme&quot;,
-  &quot;SalesRep&quot; : &quot;Sample User&quot;,
-  &quot;SellerCompanyName&quot; : &quot;Sample Company&quot;,
-  &quot;SellerStreet&quot; : &quot;100 Main St&quot;,
-  &quot;SellerCity&quot; : &quot;Chicago&quot;,
-  &quot;SellerState&quot; : &quot;IL&quot;,
-  &quot;SellerPostalCode&quot; : &quot;60601&quot;,
-  &quot;SellerPhone&quot; : &quot;312-555-0100&quot;,
-  &quot;SellerFax&quot; : &quot;312-555-0101&quot;,
-  &quot;SellerEmail&quot; : &quot;admin@example.com&quot;,
-  &quot;SellerWebsite&quot; : &quot;www.example.com&quot;,
-  &quot;SellerCountry&quot; : &quot;US&quot;
+  &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</previewJsonData>
     <processSuperBulk>false</processSuperBulk>
     <responseCacheTtlMinutes>0.0</responseCacheTtlMinutes>
