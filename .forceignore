@@ -74,7 +74,7 @@ force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
 force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
 # Record page stored here pending FlexiPage layering strategy; deployed separately per module
 unpackaged/post_approvals/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
-# EmailTemplatePage flexipages: exclude from deploy for orgs that can't create them. Remove these lines to deploy when the org supports Lightning Email Template pages.
+# EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
 # RLM_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
