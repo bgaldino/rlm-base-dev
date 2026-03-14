@@ -563,6 +563,13 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </value>
     </variables>
     <variables>
+        <name>firstApprover</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
         <name>recordId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
