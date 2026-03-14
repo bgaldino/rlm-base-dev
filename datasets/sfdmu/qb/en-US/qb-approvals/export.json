@@ -1,0 +1,18 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "Approval Alert Content Definitions",
+      "objects": [
+        {
+          "query": "SELECT Name, ApprovalFlowApiName, ApprovalStepApiName, NotificationReason, EmailTemplate.Name FROM ApprovalAlertContentDef",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

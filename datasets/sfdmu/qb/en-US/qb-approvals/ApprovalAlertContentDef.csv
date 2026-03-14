@@ -1,0 +1,3 @@
+Name,ApprovalFlowApiName,ApprovalStepApiName,NotificationReason,EmailTemplate.Name
+RLM Quote Discount Approval Alert,RLM_Quote_Smart_Approval,Manager_Approver,ApprovalStepAssignment,RLM Quote Discount Approval Template
+RLM Quote Payment Term Approval Alert,RLM_Quote_Smart_Approval,Payment_Terms,ApprovalStepAssignment,RLM Quote Payment Terms Approval Template

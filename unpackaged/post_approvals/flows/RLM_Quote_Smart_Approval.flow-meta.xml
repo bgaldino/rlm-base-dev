@@ -25,12 +25,19 @@
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>Yes_Requires_Approval</name>
-            <conditionLogic>and</conditionLogic>
+            <conditionLogic>or</conditionLogic>
             <conditions>
                 <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
                 <operator>GreaterThan</operator>
                 <rightValue>
                     <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>QueryApprovalData.Outputs.PaymentTerms</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Net 30</stringValue>
                 </rightValue>
             </conditions>
             <connector>
@@ -144,8 +151,9 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <connector>
             <targetReference>Was_Rejected</targetReference>
         </connector>
-        <exitConditionLogic>(1 AND 2) OR (2 AND 3 AND 4) OR 5</exitConditionLogic>
+        <exitConditionLogic>(1 AND 2) OR (2 AND 3 AND 4) OR  (6 AND 7) OR 5</exitConditionLogic>
         <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
             <operator>LessThan</operator>
             <rightValue>
@@ -153,6 +161,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             </rightValue>
         </exitConditions>
         <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>Manager_Approver.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
@@ -160,6 +169,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             </rightValue>
         </exitConditions>
         <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
             <operator>GreaterThanOrEqualTo</operator>
             <rightValue>
@@ -167,6 +177,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             </rightValue>
         </exitConditions>
         <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>Director_Approver.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
@@ -174,10 +185,27 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             </rightValue>
         </exitConditions>
         <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>rejectedQuote</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <booleanValue>true</booleanValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>Payment_Terms.Status</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.PaymentTerms</leftValueReference>
+            <operator>NotEqualTo</operator>
+            <rightValue>
+                <stringValue>Net 30</stringValue>
             </rightValue>
         </exitConditions>
         <stageSteps>
@@ -346,6 +374,78 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
             <shouldLock>false</shouldLock>
             <stepSubtype>ApprovalStep</stepSubtype>
         </stageSteps>
+        <stageSteps>
+            <name>Payment_Terms</name>
+            <actionName>RLM_AA_Evaluate_Approval_Request</actionName>
+            <actionType>stepApproval</actionType>
+            <assignees>
+                <assignee>
+                    <stringValue>Manager</stringValue>
+                </assignee>
+                <assigneeType>Group</assigneeType>
+            </assignees>
+            <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
+            <entryConditionLogic>and</entryConditionLogic>
+            <entryConditions>
+                <conditionType>EntryCondition</conditionType>
+                <leftValueReference>QueryApprovalData.Outputs.PaymentTerms</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <stringValue>Net 30</stringValue>
+                </rightValue>
+            </entryConditions>
+            <exitConditionLogic>and</exitConditionLogic>
+            <inputParameters>
+                <name>recordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__RecordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CustomEmailSubject</name>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CustomEmailBody</name>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__ApprovalChainName</name>
+                <value>
+                    <stringValue>Finance</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CanUseSmartApproval</name>
+                <value>
+                    <stringValue>true</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CanUseRuleBasedAutoApprovals</name>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__ApprovalOverrideDecision</name>
+            </inputParameters>
+            <label>Payment Terms</label>
+            <outputConfigParams>
+                <name>approvalComments</name>
+                <value xsi:nil="true"/>
+            </outputConfigParams>
+            <outputConfigParams>
+                <name>approvalDecision</name>
+                <value xsi:nil="true"/>
+            </outputConfigParams>
+            <requiresAsyncProcessing>false</requiresAsyncProcessing>
+            <runAsUser>false</runAsUser>
+            <shouldLock>false</shouldLock>
+            <stepSubtype>ApprovalStep</stepSubtype>
+        </stageSteps>
     </orchestratedStages>
     <orchestratedStages>
         <name>Update_Quote_Status_to_Approved</name>
@@ -459,6 +559,13 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </value>
     </variables>
     <variables>
+        <name>firstApprover</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
         <name>recordId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -474,13 +581,6 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
     </variables>
     <variables>
         <name>submitter</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <name>firstApprover</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
