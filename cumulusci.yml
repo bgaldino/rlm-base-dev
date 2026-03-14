@@ -90,7 +90,7 @@ project:
     billing: true             # Use Billing
     payments: true            # Use Payments
     approvals: true           # Use Approvals
-    approvals_email: false    # Deploy approval email template FlexiPages (requires AdvancedApproval org feature)
+    approvals_email: true     # Deploy approval email template FlexiPages (requires AdvancedApproval org feature)
     clm: true                # Use Contract Lifecycle Management
     clm_data: false           # Use Contract Lifecycle Management Data
     dro: true                 # Use Dynamic Revenue Orchestration
