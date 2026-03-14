@@ -384,12 +384,15 @@ public class RLM_AccountUtilities {
                 chunk.add(contentDocIdList[j]);
             }
             for (ContentDocumentLink cdl : [
-                SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink
+                SELECT ContentDocumentId, LinkedEntityId, ShareType FROM ContentDocumentLink
                 WHERE ContentDocumentId IN :chunk
-                AND ShareType != 'I'
             ]) {
-                // Skip: linked to one of our quotes (expected)
-                if (quoteIdSet.contains(cdl.LinkedEntityId)) continue;
+                // Skip: linked to one of our quotes (expected), or a personal-library
+                // link (ShareType='I') auto-created by the platform for the file owner.
+                // NOTE: ShareType cannot be filtered in SOQL here because Salesforce only
+                // allows non-Id field filters on ContentDocumentLink when filtering by
+                // LinkedEntityId with the equals operator — not with ContentDocumentId IN.
+                if (quoteIdSet.contains(cdl.LinkedEntityId) || cdl.ShareType == 'I') continue;
                 linkedElsewhere.add(cdl.ContentDocumentId);
             }
         }
