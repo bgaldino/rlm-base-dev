@@ -113,7 +113,7 @@ project:
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
     constraints_data: false   # Use Constraint Builder Data
-    guidedselling: false      # Use Guided Selling
+    guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
@@ -523,6 +523,7 @@ project:
     badger_dro_dataset: &badger_dro_dataset "datasets/sfdmu/mfg/en-US/mfg-dro"     # Badger DRO dataset
     genSet_mfg_cml: &genSet_mfg_cml "datasets/constraints/mfg/genSet" #Badger MFG Generator Set
     fuelCell_mfg_cml: &fuelCell_mfg_cml "datasets/constraints/mfg/fuelCell" #Badger MFG Fuel Cell
+    badger_guidedselling_dataset: &badger_guidedselling_dataset "datasets/sfdmu/mfg/en-US/mfg-guidedselling" #Badger MFG Guided Selling
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -1198,6 +1199,21 @@ tasks:
     options:
       path: unpackaged/post_manufacturing/mfg_omni/quote_omniscript/omniScripts
 
+  deploy_badger_doc_templates:
+    description: Deploy Badger Doc Gen
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/mfg_omni/documentTemplates
+
+  #Deploy Badger Guided Selling
+
+  deploy_badger_guidedselling:
+    description: Deploy Badger Guided Selling
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/guided_selling
 
   # Test Task
   deploy_test:
@@ -1324,6 +1340,13 @@ tasks:
     options:
       pathtoexportjson: *badger_dro_dataset
       dynamic_assigned_to_user: true
+
+  insert_badger_guidedselling_data:
+    group: Badger RCA
+    description: Insert QuantumBit Guided Selling Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_guidedselling_dataset
 
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
@@ -2896,6 +2919,9 @@ flows:
       4:
         task: deploy_badger_omniscripts_4
         when: project_config.project__custom__badger
+      5:
+        task: deploy_badger_doc_templates
+        when: project_config.project__custom__badger
 
   # Badger Insert Data Flow
 
@@ -2959,6 +2985,16 @@ flows:
       2:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__badger
+
+  prepare_badger_guidedselling:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: insert_badger_guidedselling_data
+        when: project_config.project__custom__guidedselling and project_config.project__custom__badger
+      2:
+        task: deploy_badger_guidedselling
+        when: project_config.project__custom__guidedselling and project_config.project__custom__badger
 
   run_qb_extracts:
     group: Data Management - Extract
