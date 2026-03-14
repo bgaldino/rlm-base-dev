@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <classAccesses>
-        <apexClass>RLM_QuoteApprovalController</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
     <externalCredentialPrincipalAccesses>
         <enabled>true</enabled>
         <externalCredentialPrincipal>BillingSystemExtCredentials-Billing System Principal</externalCredentialPrincipal>

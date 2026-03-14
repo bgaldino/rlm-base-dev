@@ -2006,10 +2006,10 @@ flows:
         flow: prepare_guidedselling
       26:
         task: configure_revenue_settings
-      28:
+      27:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
-      29:
+      28:
         flow: refresh_all_decision_tables
          
   prepare_core:
