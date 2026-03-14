@@ -17,7 +17,7 @@ public class RLM_DocumentGenerationCreate {
         for (Request req : requests) {
             String stCurrRecordId = req.CurrentRecordId;
             String stDocTitle = req.DocTitle;
-            String stDocTemplateId = req.DocTemplateId;
+            Id stDocTemplateId = req.DocTemplateId;
 
             DocumentTemplate dt = templateMap.get(stDocTemplateId);
             Boolean isContextService = dt != null && dt.TokenMappingMethodType == 'ContextService';
