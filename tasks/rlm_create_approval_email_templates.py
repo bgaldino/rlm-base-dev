@@ -80,14 +80,17 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
         )
 
         headers, base_url = self._api_headers()
-        folder_id = self._get_org_id(base_url, headers)
+        session = requests.Session()
+        session.headers.update(headers)
+
+        folder_id = self._get_org_id(base_url, session)
 
         self.logger.info("Using org ID as FolderId (Unfiled Public): %s", folder_id)
 
         template_id_by_name = self._create_templates(
-            base_url, headers, templates, folder_id
+            base_url, session, templates, folder_id
         )
-        self._link_alerts(base_url, headers, alerts, template_id_by_name)
+        self._link_alerts(base_url, session, alerts, template_id_by_name)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -111,22 +114,25 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
         base_url = f"{instance_url}/services/data/v{api_version}"
         return headers, base_url
 
-    def _get_org_id(self, base_url, headers):
-        resp = requests.get(
-            f"{base_url}/query?q=SELECT+Id+FROM+Organization+LIMIT+1",
-            headers=headers,
+    _TIMEOUT = 30  # seconds; prevents indefinite hang if Salesforce stalls
+
+    def _get_org_id(self, base_url, session):
+        resp = session.get(
+            f"{base_url}/query",
+            params={"q": "SELECT Id FROM Organization LIMIT 1"},
+            timeout=self._TIMEOUT,
         )
         resp.raise_for_status()
         return resp.json()["records"][0]["Id"]
 
-    def _create_templates(self, base_url, headers, templates, folder_id):
+    def _create_templates(self, base_url, session, templates, folder_id):
         names = [t["Name"] for t in templates]
         names_soql = ", ".join(f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in names)
         soql = f"SELECT Id, Name FROM EmailTemplate WHERE Name IN ({names_soql})"
-        resp = requests.get(
+        resp = session.get(
             f"{base_url}/query",
             params={"q": soql},
-            headers=headers,
+            timeout=self._TIMEOUT,
         )
         resp.raise_for_status()
         existing = {r["Name"]: r["Id"] for r in resp.json()["records"]}
@@ -148,10 +154,10 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
                 "UiType": tmpl.get("UiType") or "SFX",
                 "FolderId": folder_id,
             }
-            resp = requests.post(
+            resp = session.post(
                 f"{base_url}/sobjects/EmailTemplate",
-                headers=headers,
                 data=json.dumps(payload),
+                timeout=self._TIMEOUT,
             )
             if resp.status_code in (200, 201):
                 record_id = resp.json()["id"]
@@ -164,7 +170,7 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
 
         return template_id_by_name
 
-    def _link_alerts(self, base_url, headers, alerts, template_id_by_name):
+    def _link_alerts(self, base_url, session, alerts, template_id_by_name):
         """Link ApprovalAlertContentDef records to their EmailTemplates."""
         # Build alert_name → template_id from the CSV's EmailTemplate.Name column
         alert_to_template_id = {}
@@ -189,10 +195,10 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
             f"SELECT Id, Name, EmailTemplateId FROM ApprovalAlertContentDef"
             f" WHERE Name IN ({alert_names_soql})"
         )
-        resp = requests.get(
+        resp = session.get(
             f"{base_url}/query",
             params={"q": soql},
-            headers=headers,
+            timeout=self._TIMEOUT,
         )
         resp.raise_for_status()
         org_alerts = {r["Name"]: r for r in resp.json()["records"]}
@@ -209,10 +215,10 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
                 self.logger.info("Already linked: %s", alert_name)
                 continue
 
-            resp = requests.patch(
+            resp = session.patch(
                 f"{base_url}/sobjects/ApprovalAlertContentDef/{alert['Id']}",
-                headers=headers,
                 data=json.dumps({"EmailTemplateId": template_id}),
+                timeout=self._TIMEOUT,
             )
             if resp.status_code == 204:
                 self.logger.info("Linked: %s", alert_name)
