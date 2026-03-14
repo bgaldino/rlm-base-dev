@@ -838,9 +838,11 @@ tasks:
       Deploy RLM_Seller_*__c formula fields before the main DocGen metadata deploy.
       The OmniDataTransform records reference these custom fields by name; Salesforce validates
       field existence on INSERT (fresh org), so the fields must exist before the ODTs are deployed.
+      Targets only the fields subdirectory to avoid the Quote object-meta.xml action overrides,
+      which reference flexipages not yet deployed at this stage.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
-      path: unpackaged/post_docgen/objects
+      path: unpackaged/post_docgen/objects/Quote/fields
 
   deploy_post_docgen:
     description: Deploy Document Generation Metadata
