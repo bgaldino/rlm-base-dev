@@ -833,6 +833,15 @@ tasks:
     options:
       path: unpackaged/post_approvals
   
+  deploy_docgen_seller_fields:
+    description: >
+      Deploy RLM_Seller_*__c formula fields before the main DocGen metadata deploy.
+      The OmniDataTransform records reference these custom fields by name; Salesforce validates
+      field existence on INSERT (fresh org), so the fields must exist before the ODTs are deployed.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_docgen/objects
+
   deploy_post_docgen:
     description: Deploy Document Generation Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2233,18 +2242,21 @@ flows:
         task: enable_document_builder_toggle
         when: project_config.project__custom__docgen
       3:
-        task: deploy_post_docgen
+        task: deploy_docgen_seller_fields
         when: project_config.project__custom__docgen
       4:
-        task: activate_docgen_templates
+        task: deploy_post_docgen
         when: project_config.project__custom__docgen
       5:
-        task: fix_document_template_binaries
+        task: activate_docgen_templates
         when: project_config.project__custom__docgen
       6:
-        task: apply_context_docgen
+        task: fix_document_template_binaries
         when: project_config.project__custom__docgen
       7:
+        task: apply_context_docgen
+        when: project_config.project__custom__docgen
+      8:
         task: assign_permission_sets
         when: project_config.project__custom__docgen
         options:
