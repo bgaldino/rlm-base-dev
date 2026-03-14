@@ -111,7 +111,6 @@ project:
     guidedselling: false      # Use Guided Selling
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
-    visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
 
@@ -969,13 +968,6 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
-
-  deploy_post_visualization:
-    description: Deploy Visualization Metadata (Flow with Visuals, LWC styling)
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_visualization
-      collision_check: False
 
   enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
@@ -2013,8 +2005,6 @@ flows:
       25:
         flow: prepare_guidedselling
       26:
-        flow: prepare_visualization
-      27:
         task: configure_revenue_settings
       28:
         task: reconfigure_pricing_discovery
@@ -2536,13 +2526,6 @@ flows:
       2:
         task: deploy_post_guidedselling
         when: project_config.project__custom__guidedselling
-
-  prepare_visualization:
-    group: Revenue Lifecycle Management
-    steps:
-      1:
-        task: deploy_post_visualization
-        when: project_config.project__custom__visualization
 
   prepare_analytics:
     group: Revenue Lifecycle Management
