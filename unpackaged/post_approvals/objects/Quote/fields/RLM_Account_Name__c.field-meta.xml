@@ -3,7 +3,7 @@
     <fullName>RLM_Account_Name__c</fullName>
     <externalId>false</externalId>
     <formula>QuoteAccount.Name</formula>
-    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
     <label>Account Name</label>
     <required>false</required>
     <trackHistory>false</trackHistory>

@@ -833,9 +833,10 @@ tasks:
 
   deploy_post_approvals:
     description: >
-      Deploy Advanced Approvals metadata (flows, fields, globalValueSets, quickAction,
-      pathAssistant, EmailTemplatePage FlexiPages). Requires Lightning Email Templates
-      Folders and Enhanced Sharing to be enabled (set via EmailTemplate.settings-meta.xml).
+      Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
+      PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
+      Apex class, permission set, and EmailTemplatePage FlexiPages. Requires Lightning Email
+      Templates Folders and Enhanced Sharing (enabled via EmailTemplate.settings-meta.xml).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_approvals

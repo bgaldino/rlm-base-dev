@@ -94,7 +94,7 @@ You&amp;#39;ve received the request to approve the following Quote:&amp;nbsp;&lt
                         Account&lt;/td&gt;
                         &lt;td style=&quot;text-align:right; width:25%;padding:5px;&quot;&gt;
                         {{{Quote.RLM_Account_Name__c}}}&lt;/td&gt;
-                        &lt;td style=&quot;text-align:left width:10%; padding:5px;&quot;&gt;&lt;/td&gt;
+                        &lt;td style=&quot;text-align:left; width:10%; padding:5px;&quot;&gt;&lt;/td&gt;
                         &lt;td style=&quot;text-align:left; width:20%; padding:5px;&quot;&gt;
                         Quote Amount&lt;/td&gt;
                         &lt;td style=&quot;text-align:right; width:25%;padding:5px;&quot;&gt;
@@ -106,7 +106,7 @@ You&amp;#39;ve received the request to approve the following Quote:&amp;nbsp;&lt
                         Start Date&lt;/td&gt;
                         &lt;td style=&quot;text-align:right; width:25%;padding:5px;&quot;&gt;
                         {{{Quote.StartDate}}}&lt;/td&gt;
-                        &lt;td style=&quot;text-align:left width:10%; padding:5px;&quot;&gt;&lt;/td&gt;
+                        &lt;td style=&quot;text-align:left; width:10%; padding:5px;&quot;&gt;&lt;/td&gt;
                         &lt;td style=&quot;text-align:left; width:20%; padding:5px;&quot;&gt;
                         Discounts&lt;/td&gt;
                         &lt;td style=&quot;text-align:right; width:25%;padding:5px;&quot;&gt;
@@ -118,7 +118,7 @@ You&amp;#39;ve received the request to approve the following Quote:&amp;nbsp;&lt
                         Expiration Date&lt;/td&gt;
                         &lt;td style=&quot;text-align:right; width:25%;padding:5px;&quot;&gt;
                         {{{Quote.ExpirationDate}}}&lt;/td&gt;
-                        &lt;td style=&quot;text-align:left width:10%; padding:5px;&quot;&gt;&lt;/td&gt;
+                        &lt;td style=&quot;text-align:left; width:10%; padding:5px;&quot;&gt;&lt;/td&gt;
                         &lt;td style=&quot;text-align:left; width:20%; padding:5px;&quot;&gt;
                         Net Price&lt;/td&gt;
                         &lt;td style=&quot;text-align:right; width:25%;padding:5px;&quot;&gt;
