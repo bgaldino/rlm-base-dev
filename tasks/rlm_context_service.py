@@ -8,7 +8,7 @@ aligned with the Context Service Tooling API contracts.
 import json
 import os
 from abc import abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -211,6 +211,9 @@ class ManageContextDefinition(SFDXBaseTask):
                     if resolved_updates:
                         self._apply_context_mapping_updates(context_id, resolved_updates, dry_run)
                         detail = self._fetch_context_definition(context_id)
+                traversal_rules = [r for r in sobject_rules if isinstance(r, dict) and r.get("childSObjectField")]
+                if traversal_rules:
+                    self._apply_traversal_hydration(traversal_rules, dry_run)
 
             if context_rules:
                 translated = self._translate_mapping_rules(context_rules, detail, developer_name=developer_name)
@@ -249,7 +252,7 @@ class ManageContextDefinition(SFDXBaseTask):
         """POST to connect/context-definitions to create a new context definition.
 
         Required plan fields: developerName, label (or name).
-        Optional plan fields: primaryDomainObject, startDate, contextTtl, description.
+        Optional plan fields: startDate, contextTtl, description.
         Use 'createPayload' in the plan to pass additional/override fields directly.
         """
         url, headers = self._build_url_and_headers("connect/context-definitions")
@@ -260,10 +263,10 @@ class ManageContextDefinition(SFDXBaseTask):
             "name": api_name,
             "developerName": plan.get("developerName"),
         }
-        # Use 'primaryDomainObject' (not 'primaryObject') in plan JSON — the CS create
-        # endpoint accepts primaryDomainObject; primaryObject is not a valid API field.
+        # 'primaryDomainObject' is not accepted by the context-definitions create endpoint
+        # (returns JSON_PARSER_ERROR). Omit it; the API does not require it for create.
         for field in ("description", "startDate", "contextTtl", "baseReference",
-                      "primaryDomainObject", "contextType"):
+                      "contextType"):
             if plan.get(field) is not None:
                 payload[field] = plan[field]
         if isinstance(plan.get("createPayload"), dict):
@@ -729,6 +732,110 @@ class ManageContextDefinition(SFDXBaseTask):
             node_mapping_id,
         )
         self._make_request("patch", url, headers=headers, json=payload, dry_run=dry_run)
+
+    def _apply_traversal_hydration(self, rules: List[Dict[str, Any]], dry_run: bool) -> None:
+        """Set ContextAttrHydrationDetail records for relationship-traversal mapping rules.
+
+        The Connect API PATCH endpoint rejects relationship traversals (INSUFFICIENT_ACCESS),
+        so we write ContextAttrHydrationDetail directly via the SObject REST API.
+        Each traversal rule produces two chained records: parent (source SObject + field)
+        and child (target SObject + field, linked via ParentHydrationDetailId).
+        """
+        for rule in rules:
+            attr_name = rule.get("contextAttribute")
+            s_object = rule.get("sObject")
+            s_object_field = rule.get("sObjectField")
+            child_s_object = rule.get("childSObject")
+            child_s_object_field = rule.get("childSObjectField")
+            if not all([attr_name, s_object, s_object_field, child_s_object, child_s_object_field]):
+                continue
+
+            # Find all ContextAttributeMapping records for this attribute name.
+            soql = (
+                f"SELECT Id,CreatedDate FROM ContextAttributeMapping "
+                f"WHERE ContextInputAttributeName='{attr_name}' ORDER BY CreatedDate DESC"
+            )
+            q_url, headers = self._build_url_and_headers(
+                f"query?q={soql.replace(' ', '+')}"
+            )
+            resp = self._make_request("get", q_url, headers=headers, dry_run=False)
+            records = resp.get("records", []) if isinstance(resp, dict) else []
+
+            if not records:
+                self.logger.warning(
+                    "No ContextAttributeMapping found for %s; skipping traversal hydration", attr_name
+                )
+                continue
+
+            # Keep the most recently created; delete duplicates from prior failed runs.
+            keeper_id = records[0]["Id"]
+            for dup in records[1:]:
+                # Delete child hydration details before deleting the parent mapping.
+                dup_hd_soql = (
+                    f"SELECT Id FROM ContextAttrHydrationDetail "
+                    f"WHERE ContextAttributeMappingId='{dup['Id']}'"
+                )
+                dup_hd_url, dup_hd_headers = self._build_url_and_headers(
+                    f"query?q={dup_hd_soql.replace(' ', '+')}"
+                )
+                dup_hd_resp = self._make_request("get", dup_hd_url, headers=dup_hd_headers, dry_run=False)
+                for dup_hd in (dup_hd_resp.get("records", []) if isinstance(dup_hd_resp, dict) else []):
+                    del_hd_url, del_hd_headers = self._build_url_and_headers(
+                        f"sobjects/ContextAttrHydrationDetail/{dup_hd['Id']}"
+                    )
+                    self._make_request("delete", del_hd_url, headers=del_hd_headers, dry_run=dry_run)
+                del_url, del_headers = self._build_url_and_headers(
+                    f"sobjects/ContextAttributeMapping/{dup['Id']}"
+                )
+                self.logger.info("Deleting duplicate ContextAttributeMapping %s for %s", dup["Id"], attr_name)
+                self._make_request("delete", del_url, headers=del_headers, dry_run=dry_run)
+
+            # Remove any existing hydration details before re-inserting.
+            hd_soql = (
+                f"SELECT Id FROM ContextAttrHydrationDetail "
+                f"WHERE ContextAttributeMappingId='{keeper_id}'"
+            )
+            hd_url, headers = self._build_url_and_headers(
+                f"query?q={hd_soql.replace(' ', '+')}"
+            )
+            hd_resp = self._make_request("get", hd_url, headers=headers, dry_run=False)
+            for hd_rec in (hd_resp.get("records", []) if isinstance(hd_resp, dict) else []):
+                del_url, del_headers = self._build_url_and_headers(
+                    f"sobjects/ContextAttrHydrationDetail/{hd_rec['Id']}"
+                )
+                self._make_request("delete", del_url, headers=del_headers, dry_run=dry_run)
+
+            # Insert parent hydration detail: source SObject + relationship field.
+            p_url, headers = self._build_url_and_headers("sobjects/ContextAttrHydrationDetail")
+            self.logger.info(
+                "Creating traversal hydration for %s: %s.%s → %s.%s",
+                attr_name, s_object, s_object_field, child_s_object, child_s_object_field,
+            )
+            parent_resp = self._make_request(
+                "post", p_url, headers=headers,
+                json={"ContextAttributeMappingId": keeper_id, "ObjectName": s_object, "QueryAttribute": s_object_field},
+                dry_run=dry_run,
+            )
+
+            if dry_run:
+                continue
+
+            parent_id = (parent_resp or {}).get("id") or (parent_resp or {}).get("Id") if isinstance(parent_resp, dict) else None
+            if not parent_id:
+                self.logger.warning("Failed to get parent hydration detail ID for %s", attr_name)
+                continue
+
+            # Insert child hydration detail: target SObject + field, linked to parent.
+            self._make_request(
+                "post", p_url, headers=headers,
+                json={
+                    "ContextAttributeMappingId": keeper_id,
+                    "ObjectName": child_s_object,
+                    "QueryAttribute": child_s_object_field,
+                    "ParentHydrationDetailId": parent_id,
+                },
+                dry_run=dry_run,
+            )
 
     def _is_context_active(self, context_id: str) -> bool:
         detail = self._fetch_context_definition(context_id)
@@ -1219,14 +1326,17 @@ class ManageContextDefinition(SFDXBaseTask):
                 mapped_context_definition = developer_name or detail.get("developerName") or detail.get("contextDefinitionId")
             else:
                 if rule.get("sObject") and rule.get("sObjectField"):
-                    context_attribute_mapping["hydrationDetails"] = {
-                        "contextAttrHydrationDetails": [
-                            {
-                                "sObjectDomain": rule.get("sObject"),
-                                "queryAttribute": rule.get("sObjectField"),
-                            }
-                        ]
+                    hydration_entry: Dict[str, Any] = {
+                        "sObjectDomain": rule.get("sObject"),
+                        "queryAttribute": rule.get("sObjectField"),
                     }
+                    if not rule.get("childSObjectField"):
+                        # Simple field mapping — include hydration in the PATCH payload.
+                        # Traversal rules (childSObjectField set) are handled separately via
+                        # _apply_traversal_hydration because the Connect API rejects them.
+                        context_attribute_mapping["hydrationDetails"] = {
+                            "contextAttrHydrationDetails": [hydration_entry]
+                        }
             if attr_mapping_id:
                 context_attribute_mapping["contextAttributeMappingId"] = attr_mapping_id
 
