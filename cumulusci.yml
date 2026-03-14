@@ -319,6 +319,9 @@ project:
     badger_mfg_psg: &badger_mfg_psg
       - MFG
 
+    badger_aaf_ps: &badger_aaf_ps
+      - MFG_AAF
+
 #-----------------#
 # DECISION TABLES #
 #-----------------#
@@ -524,6 +527,8 @@ project:
     genSet_mfg_cml: &genSet_mfg_cml "datasets/constraints/mfg/genSet" #Badger MFG Generator Set
     fuelCell_mfg_cml: &fuelCell_mfg_cml "datasets/constraints/mfg/fuelCell" #Badger MFG Fuel Cell
     badger_guidedselling_dataset: &badger_guidedselling_dataset "datasets/sfdmu/mfg/en-US/mfg-guidedselling" #Badger MFG Guided Selling
+    badger_rebates_dataset: &badger_rebates_dataset "datasets/sfdmu/mfg/en-US/mfg-rebates" #Badger MFG Rebates
+    badger_aaf_dataset: &badger_aaf_dataset "datasets/sfdmu/mfg/en-US/mfg-aaf" #Badger MFG Advanced Account Forecast
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -1215,6 +1220,43 @@ tasks:
     options:
       path: unpackaged/post_manufacturing/guided_selling
 
+  #Deploy Badger Rebates
+  deploy_badger_rebates:
+    description: Deploy Badger Rebates
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/rebates
+
+  # Deploy Badger Advanced Forecasting
+  deploy_badger_aaf_1:
+    description: Deploy Badger Advanced Forecasting
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/aaf/1_aaf
+
+  deploy_badger_aaf_2:
+    description: Deploy Badger Advanced Forecasting
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/aaf/2_aaf
+
+  deploy_badger_aaf_3:
+    description: Deploy Badger Advanced Forecasting
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/aaf/3_aaf
+
+  deploy_badger_aaf_4:
+    description: Deploy Badger Advanced Forecasting
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Badger RCA
+    options:
+      path: unpackaged/post_manufacturing/aaf/4_aaf
+
   # Test Task
   deploy_test:
     description: Test deployment
@@ -1347,6 +1389,21 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_guidedselling_dataset
+
+  insert_badger_rebates_data:
+    group: Badger RCA
+    description: Insert Badger Rebates Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_rebates_dataset
+
+  insert_badger_aaf_data:
+    group: Badger RCA
+    description: Insert Badger Advanced Account Forecast Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_aaf_dataset
+      dynamic_period_id: true
 
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
@@ -1954,6 +2011,13 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_dataset
+
+  extract_mfg_aaf_data:
+    group: Data Management - Extract
+    description: "Extract mfg-aaf (Advanced Account Forecast) from org to CSV. Output in datasets/sfdmu/extractions/mfg-aaf/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *badger_aaf_dataset
 
 # Badger Idempotency Tasks
   test_badger_pcm_idempotency:
@@ -2995,6 +3059,42 @@ flows:
       2:
         task: deploy_badger_guidedselling
         when: project_config.project__custom__guidedselling and project_config.project__custom__badger
+
+  prepare_badger_rebates:
+    group: Badger
+    steps:
+      1:
+        task: deploy_badger_rebates
+        when: project_config.project__custom__badger
+      2:
+        task: insert_badger_rebates_data
+        when: project_config.project__custom__badger
+
+  prepare_badger_aaf:
+    group: Badger
+    steps:
+      1:
+        task: deploy_badger_aaf_1
+        when: project_config.project__custom__badger
+      2:
+        task: deploy_badger_aaf_2
+        when: project_config.project__custom__badger
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__badger
+        options:
+          api_names: *badger_aaf_ps
+      4:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+        when: project_config.project__custom__badger
+      5:
+        task: deploy_badger_aaf_3
+        when: project_config.project__custom__badger
+      6:
+        task: deploy_badger_aaf_4
+        when: project_config.project__custom__badger
 
   run_qb_extracts:
     group: Data Management - Extract
