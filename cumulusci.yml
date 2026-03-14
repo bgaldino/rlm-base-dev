@@ -90,7 +90,6 @@ project:
     billing: true             # Use Billing
     payments: true            # Use Payments
     approvals: true           # Use Approvals
-    approvals_email: true     # Deploy approval email template FlexiPages (requires AdvancedApproval org feature)
     clm: true                # Use Contract Lifecycle Management
     clm_data: false           # Use Contract Lifecycle Management Data
     dro: true                 # Use Dynamic Revenue Orchestration
@@ -834,22 +833,12 @@ tasks:
 
   deploy_post_approvals:
     description: >
-      Deploy Advanced Approvals Metadata (flows, fields, globalValueSets, quickAction,
-      pathAssistant, RLM_Quote_Record_Page). Excludes EmailTemplatePage FlexiPages,
-      which require the AdvancedApproval org feature and are deployed by
-      deploy_post_approvals_email.
+      Deploy Advanced Approvals metadata (flows, fields, globalValueSets, quickAction,
+      pathAssistant, EmailTemplatePage FlexiPages). Requires Lightning Email Templates
+      Folders and Enhanced Sharing to be enabled (set via EmailTemplate.settings-meta.xml).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_approvals
-
-  deploy_post_approvals_email:
-    description: >
-      Deploy approval email template FlexiPages (RLM_Quote_Discount_Approval_Template,
-      RLM_Quote_Payment_Terms_Approval_Template). Requires the AdvancedApproval scratch
-      org feature. Must run after deploy_post_approvals.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_approvals_email
   
   deploy_docgen_seller_fields:
     description: >
@@ -2567,14 +2556,11 @@ flows:
         task: deploy_post_approvals
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
       2:
-        task: deploy_post_approvals_email
-        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals and project_config.project__custom__approvals_email
-      3:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
         options:
           api_names: *ps_approvals
-      4:
+      3:
         task: insert_qb_approvals_data
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
 
