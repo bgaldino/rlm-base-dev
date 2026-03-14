@@ -1,4 +1,4 @@
-"""Helper library for creating Chrome options for headless execution.
+"""Helper library for creating Chrome options for headless and visible execution.
 
 Used by default for CCI robot tasks (e.g. enable_document_builder, enable_constraints_settings,
 configure_revenue_settings). Set BROWSER to use a different browser (e.g. firefox).
@@ -27,3 +27,4 @@ def get_headless_chrome_options():
     options.add_argument('--disable-software-rasterizer')
 
     return options
+

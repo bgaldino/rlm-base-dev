@@ -835,12 +835,23 @@ tasks:
     description: >
       Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
       PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
-      Apex class, permission set, and EmailTemplatePage FlexiPages. The two EmailTemplatePage
-      flexipages are in .forceignore by default so orgs that cannot create them do not fail; remove
-      those .forceignore lines to deploy the templates when the target org supports them.
+      Apex class, and permission set. EmailTemplatePage FlexiPages cannot be deployed via
+      Metadata API (platform restriction); Lightning Email Templates are created separately
+      by create_approval_email_templates.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_approvals
+
+  create_approval_email_templates:
+    group: Revenue Lifecycle Management
+    description: >
+      Create Lightning Email Templates for RLM Approval notifications from the dataset CSV.
+      Reads EmailTemplate.csv from datasets/sfdmu/qb/en-US/qb-approvals/ and creates
+      SFX-type (Lightning) EmailTemplate records in the target org, then links them to
+      ApprovalAlertContentDef records. Idempotent: skips templates that already exist.
+      Required before insert_qb_approvals_data. EmailTemplatePage FlexiPages cannot be
+      deployed via Metadata API (platform restriction).
+    class_path: tasks.rlm_create_approval_email_templates.CreateApprovalEmailTemplates
   
   deploy_docgen_seller_fields:
     description: >
@@ -2558,11 +2569,14 @@ flows:
         task: deploy_post_approvals
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
       2:
+        task: create_approval_email_templates
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      3:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
         options:
           api_names: *ps_approvals
-      3:
+      4:
         task: insert_qb_approvals_data
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
 

@@ -3,6 +3,15 @@
   "excludeIdsFromCSVFiles": "false",
   "objectSets": [
     {
+      "name": "Lightning Email Templates",
+      "objects": [
+        {
+          "query": "SELECT Name, DeveloperName, Subject, HtmlValue, UiType FROM EmailTemplate WHERE Name LIKE 'RLM%'",
+          "operation": "Readonly"
+        }
+      ]
+    },
+    {
       "name": "Approval Alert Content Definitions",
       "objects": [
         {
