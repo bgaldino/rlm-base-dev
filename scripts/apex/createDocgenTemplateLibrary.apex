@@ -1,4 +1,4 @@
-String libraryApiName = 'DocGen';
+String libraryApiName = 'DocgenDocumentTemplateLibrary';
 
 try {
     List<ContentWorkspace> libraries = [SELECT Id FROM ContentWorkspace WHERE DeveloperName = :libraryApiName LIMIT 1];
@@ -6,7 +6,7 @@ try {
     if(libraries.isEmpty()) {
         ContentWorkspace library = new ContentWorkspace();
         library.Name = 'Docgen Document Template Library';
-        library.DeveloperName = 'DocGen';
+        library.DeveloperName = libraryApiName;
         insert library;
         System.debug(libraryApiName + ' Docgen Document Template Library has been created');
     } else {
