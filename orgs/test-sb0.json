@@ -84,6 +84,9 @@
     },
     "dynamicFulfillmentOrchestratorSettings": {
       "enableDFOPref": true
+    },
+    "emailTemplateSettings": {
+      "enableTemplateEnhancedFolderPref": true
     }
   }
 }

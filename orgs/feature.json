@@ -64,6 +64,9 @@
     },
     "einsteinGptSettings" : {
       "enableEinsteinGptPlatform" : true
+    },
+    "emailTemplateSettings": {
+      "enableTemplateEnhancedFolderPref": true
     }
   }
 }
