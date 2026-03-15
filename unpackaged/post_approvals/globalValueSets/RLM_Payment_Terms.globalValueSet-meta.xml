@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Net 30</fullName>
+        <default>true</default>
+        <label>Net 30</label>
+    </customValue>
+    <customValue>
+        <fullName>Net 45</fullName>
+        <default>false</default>
+        <label>Net 45</label>
+    </customValue>
+    <customValue>
+        <fullName>Net 60</fullName>
+        <default>false</default>
+        <label>Net 60</label>
+    </customValue>
+    <customValue>
+        <fullName>Net 90</fullName>
+        <default>false</default>
+        <label>Net 90</label>
+    </customValue>
+    <masterLabel>RLM Payment Terms</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

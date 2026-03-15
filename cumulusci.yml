@@ -285,6 +285,10 @@ project:
     psg_tso: &psg_tso
       - RLM_TSO
       
+    ps_approvals: &ps_approvals
+      # Approvals-specific permission sets
+      - RLM_Approvals
+
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
@@ -512,6 +516,7 @@ project:
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
+    quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
 
@@ -888,10 +893,27 @@ tasks:
       path: unpackaged/post_prm
 
   deploy_post_approvals:
-    description: Deploy Advanced Approvals Metadata
+    description: >
+      Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
+      PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
+      Apex class, and permission set. EmailTemplatePage FlexiPages (including
+      RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be
+      deployed via Metadata API (platform restriction); Lightning Email Templates are created
+      separately by create_approval_email_templates.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_approvals
+
+  create_approval_email_templates:
+    group: Revenue Lifecycle Management
+    description: >
+      Create Lightning Email Templates for RLM Approval notifications from the dataset CSV.
+      Reads EmailTemplate.csv from datasets/sfdmu/qb/en-US/qb-approvals/ and creates
+      SFX-type (Lightning) EmailTemplate records in the target org, then links them to
+      ApprovalAlertContentDef records. Idempotent: skips templates that already exist.
+      Required before insert_qb_approvals_data. EmailTemplatePage FlexiPages cannot be
+      deployed via Metadata API (platform restriction).
+    class_path: tasks.rlm_create_approval_email_templates.CreateApprovalEmailTemplates
   
   deploy_docgen_seller_fields:
     description: >
@@ -1642,7 +1664,18 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
-  
+
+  insert_qb_approvals_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for
+      discount and payment terms approval notifications. Requires post_approvals metadata
+      (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates
+      to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_approvals_dataset
+
   deactivate_decision_tables:
     group: Revenue Lifecycle Management
     description: Deactivate Decision Tables (required before updating active decision tables)
@@ -2018,6 +2051,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
 
+  extract_qb_approvals_data:
+    group: Data Management - Extract
+    description: "Extract qb-approvals (ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_approvals_dataset
+
   extract_qb_prm_data:
     group: Data Management - Extract
     description: "Extract qb-prm (partner relationship management) from org to CSV. Output in datasets/sfdmu/extractions/qb-prm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -2150,6 +2190,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_approvals_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-approvals (ApprovalAlertContentDef).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_approvals_dataset
       use_extraction_roundtrip: false
 
   test_qb_prm_idempotency:
@@ -2590,8 +2638,7 @@ flows:
         task: deploy_post_billing
         when: project_config.project__custom__quantumbit and project_config.project__custom__billing
       3:
-        task: deploy_post_approvals
-        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        flow: prepare_approvals
       4:
         task: deploy_quantumbit
         when: project_config.project__custom__quantumbit
@@ -2929,6 +2976,24 @@ flows:
         options:
           operation: activate_versions
           version_full_names: "QuantumBitComplete_V1,Server2_V1"
+
+  prepare_approvals:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_approvals
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      2:
+        task: create_approval_email_templates
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        options:
+          api_names: *ps_approvals
+      4:
+        task: insert_qb_approvals_data
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management
