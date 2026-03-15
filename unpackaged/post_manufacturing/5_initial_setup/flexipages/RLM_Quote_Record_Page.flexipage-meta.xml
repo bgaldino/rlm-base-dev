@@ -13,7 +13,7 @@
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RC_Submit_for_Approval</value>
+                            <value>Quote.RLM_Submit_for_Approval</value>
                         </valueListItems>
                         <valueListItems>
                             <value>GenerateQuoteDocument</value>
@@ -119,7 +119,7 @@
                             <value>QuoteLineItem.Discount</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.RC_Approval__c</value>
+                            <value>QuoteLineItem.RLM_Approval__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.NetUnitPrice</value>
@@ -167,10 +167,10 @@
                             <value>QuoteLineItem.Quantity</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.RC_Approval__c</value>
+                            <value>QuoteLineItem.RLM_Approval__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.RC_Approval_Level_Calc__c</value>
+                            <value>QuoteLineItem.RLM_Approval_Level_Calc__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Unit_Cost__c</value>
@@ -1025,8 +1025,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RC_Approval_Status__c</fieldItem>
-                <identifier>RecordRC_Approval_Status_cField</identifier>
+                <fieldItem>Record.RLM_Approval_Status__c</fieldItem>
+                <identifier>RecordRLM_Approval_Status_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1109,8 +1109,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
-                <identifier>RecordRC_Approval_Level_cField</identifier>
+                <fieldItem>Record.RLM_Approval_Level__c</fieldItem>
+                <identifier>RecordRLM_Approval_Level_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>

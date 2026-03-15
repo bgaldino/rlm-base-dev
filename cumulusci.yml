@@ -113,7 +113,7 @@ project:
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
     constraints_data: false   # Use Constraint Builder Data
-    guidedselling: true      # Use Guided Selling
+    guidedselling: false      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
@@ -2472,6 +2472,18 @@ flows:
         flow: prepare_badger_omni_docgen
       8:
         task: deploy_full_badger_5
+      9:
+        flow: prepare_badger_context_plan
+      10:
+        flow: prepare_badger_pricing
+      11:
+        flow: prepare_badger_data
+      12:
+        flow: prepare_badger_guidedselling
+      13:
+        flow: prepare_badger_rebates
+      14:
+        flow: prepare_badger_aaf
          
   prepare_core:
     group: Revenue Lifecycle Management
@@ -3084,6 +3096,12 @@ flows:
         when: project_config.project__custom__badger
       2:
         task: insert_badger_pricing_data
+        when: project_config.project__custom__badger
+      3:
+        task: insert_badger_dro_data
+        when: project_config.project__custom__badger
+      4:
+        flow: import_mfg_cml
         when: project_config.project__custom__badger
 
 # Badger Context Plan Flow

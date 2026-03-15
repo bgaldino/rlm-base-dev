@@ -13,7 +13,7 @@
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RC_Submit_for_Approval</value>
+                            <value>Quote.RLM_Submit_for_Approval</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.Create_Sales_Agreement</value>
@@ -122,7 +122,7 @@
                             <value>QuoteLineItem.Discount</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.RC_Approval__c</value>
+                            <value>QuoteLineItem.RLM_Approval__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.NetUnitPrice</value>
@@ -294,8 +294,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RC_Approval_Status__c</fieldItem>
-                <identifier>RecordRC_Approval_Status_cField</identifier>
+                <fieldItem>Record.RLM_Approval_Status__c</fieldItem>
+                <identifier>RecordRLM_Approval_Status_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -388,8 +388,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.RC_Approval_Level__c</fieldItem>
-                <identifier>RecordRC_Approval_Level_cField</identifier>
+                <fieldItem>Record.RLM_Approval_Level__c</fieldItem>
+                <identifier>RecordRLM_Approval_Level_cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1267,7 +1267,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>flowApiName</name>
-                    <value>RC_Quote_Smart_Approval</value>
+                    <value>RLM_Quote_Smart_Approval</value>
                 </componentInstanceProperties>
                 <componentName>runtime_approvals:approvalsWorkflowComponent</componentName>
                 <identifier>runtime_approvals_approvalsWorkflowComponent</identifier>
