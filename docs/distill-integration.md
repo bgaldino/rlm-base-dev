@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Distill: Integration Living Document
 
 > **Status:** In Progress
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-03-16
 > **Scope:** Round-trip customization capture across data shapes (no custom fields, target-org-agnostic)
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -63,15 +63,16 @@ An AI-powered Salesforce customization migration platform built exclusively on t
 
 **Today's CodeSuggestion entry points** (`from distill.codesuggestion.api import ...`):
 
-| Function | Mode | Input | Notes |
+| Function | Mode | Signature | Notes |
 |---|---|---|---|
-| `await run_file_migration(file_path, llm_provider)` | Mode 1 — file-level | Single `.cls`, `.trigger`, or LWC bundle path | Original API; Gemini hardcoded (`GEMINI_API_KEY` required) |
+| `await run_file_migration(project_id, file_path, user_request, ...)` | Mode 1 — file-level | `project_id: str`, `file_path: str`, `user_request: str` required; optional `db_path`, `output_dir`, `llm_provider="gemini"`, `write_output=True` | Requires a pre-existing Distill project. Gemini hardcoded (`GEMINI_API_KEY` required) |
 | `await run_feature_migration(feature_id, project_id, ...)` | Mode 2 — graph-first | Feature ID from Distill project graph | Deterministic, graph-aware; requires pre-ingested project |
 | `await run_migration(...)` | Unified router | Either mode's inputs | Dispatches to Mode 1 or Mode 2 based on params |
 
 > ⚠️ **Integration constraints:**
 > - `./distill start` is an interactive, menu-driven CLI — it cannot be driven non-interactively. The correct integration path is a **direct Python package import**.
 > - All CodeSuggestion entry points are **async** — CCI tasks must wrap calls with `asyncio.run()`.
+> - `run_file_migration` requires a **pre-existing Distill project** (`project_id`). A project must be created via the Distill CLI (`/configure`) before Phase 1 CCI tasks can be used. See §4.3.
 > - `run_file_migration` routes through **Gemini** (hardcoded). The `llm_provider` parameter exists but Claude is explicitly disabled. `GEMINI_API_KEY` required.
 > - `DeploymentAgent` requires Claude Code built-in tools. Out of scope for CCI.
 > - The Flask REST API requires an API key (`X-API-Key` header) and a pre-existing Distill project (`project_id`).
@@ -272,6 +273,17 @@ OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
 |---|---|---|
 | `POST` | `/api/feature-mapping/run` | Map features between source and target inventories |
 
+#### S3 Object Storage (`serve_api.py` only — not in Flask dashboard)
+
+> Added in commit `190b920`. These endpoints exist on the custom HTTP server (`serve_api.py`), not the Flask dashboard app. They are a generic object storage CRUD interface backed by boto3. **Not integrated with the insights or codesuggestion pipelines** — exposed for external consumers (e.g., storing/retrieving analysis artifacts). Requires Salesforce FedX `FEDX_OBJECT_STORAGE_ADDON_SEPIA_CAT_REGION` env var and standard AWS credential chain.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/s3/objects` | List objects (optional `prefix` query param; supports pagination) |
+| `POST` | `/api/s3/objects` | Upload object — body: `{ "key": "<path>", "body": "<content>" }` |
+| `GET` | `/api/s3/objects/{key}` | Get object content (returns binary attachment) |
+| `DELETE` | `/api/s3/objects/{key}` | Delete object |
+
 **`POST /api/feature-mapping/run` request:**
 ```json
 {
@@ -306,14 +318,16 @@ OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
 
 **Current state:** Projects must be created via the Distill CLI (`/configure` slash command). There is no `POST /api/projects` endpoint.
 
-**Impact:** The CCI task requires a Distill project to be pre-configured before first use.
+**Impact on Phase 1 (CodeSuggestion):** `run_file_migration` now requires `project_id` as its first argument (as of the multi-user framework). A Distill project must exist before Phase 1 CCI tasks can run — not just for Phase 4 drift detection.
 
-**Workaround (Phase 1):**
-- Users run `./distill start` once, use `/configure` to create a named project pointing at their retrieved metadata directory
-- Record the project UUID in `cumulusci.yml` as the `distill_project_id` option
+**Impact on Phase 4 (Drift Detection):** `InsightsPipeline` and the Flask API both require `project_id`. Same pre-configuration requirement.
 
-**Future enhancement (Phase 2):**
-Contribute a `POST /api/projects` endpoint to Distill that accepts `{project_name, domain, source_folder_location}` and returns a project object with UUID. This removes the manual pre-configuration step.
+**Workaround (both phases):**
+- User runs `./distill start` once, uses `/configure` to create a named project
+- Records the project UUID in `cumulusci.yml` as `distill_project_id`
+
+**Future enhancement:**
+Contribute a `POST /api/projects` endpoint to Distill that accepts `{project_name, domain, source_folder_location}` and returns a project object with UUID. This removes the manual pre-configuration step. The KIT system (added in commit `35430c8`) may eventually provide this surface for KIT-based workflows.
 
 ---
 

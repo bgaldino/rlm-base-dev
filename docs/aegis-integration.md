@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Aegis: Integration Plan
 
 > **Status:** Planning
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-03-16
 > **Scope:** Automated post-provision validation of Foundations-provisioned orgs using the Aegis BDD test framework
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -37,16 +37,19 @@ CumulusCI automation framework that provisions fully-configured Salesforce Reven
 
 **Repository:** `git.soma.salesforce.com/industries/Automated-Remote-Org-Test`
 **Technology:** Python · Behave 1.2.6 (BDD/Gherkin) · Selenium 4.35.0 · Playwright 1.56.0
-**CI:** Jenkins (27 teams in parallel on Docker Selenium Grid, 2× daily cron)
+**CI:** Jenkins (25 teams in parallel on Docker Selenium Grid, 2× daily cron)
 
 Aegis is a Revenue Cloud BDD test automation framework. It validates end-to-end business flows against live Salesforce orgs using Gherkin scenarios written by each product team.
 
 **Integration-relevant facts:**
-- 27 product team folders under `features/`
-- `features/RevenueGoFoundation/` — the existing team that tests Foundations-provisioned orgs (Initial Setup, DRO)
+- 26 team folders under `features/`, 25 registered in `team_config.json`
+- `features/RevenueGoFoundation/` — the existing team that tests Foundations-provisioned orgs; contains **2 feature files**: `RevenueCloudInitialSetup.feature` (Playwright) and `DynamicRevenueOrchestrator.feature` (Playwright)
+- Session injection supported natively: `Given login to Salesforce with sessionId and verify login successful` step exists across 26+ feature files including both RevenueGoFoundation files — **no Aegis code changes needed for CCI OAuth integration**
+- Session utilities (`shared/utils/authentication/session_utils.py`) provide `init_selenium_session(context, session_id, instance_url)` — accepts OAuth tokens directly via frontdoor.jsp
 - Org connection via env vars: `SF_URL`, `SF_USERNAME`, `SF_PASSWORD`, `SF_TOKEN`
 - Team creds JSON format: `{ "ORG_KEY": { "SF_URL", "SF_USERNAME", "SF_PASSWORD", "SF_TOKEN" } }`
 - Jenkins job supports `TEST_PATH` param to target a single team or feature file
+- Auto-cleanup feature (`shared/steps/platform/graph_collection_steps.py`): graph collection test data is auto-deleted after each scenario (failed scenarios delete all records; passed scenarios delete only created records)
 - **Known gap:** Aegis cannot create or provision orgs — it must be pointed at an existing one
 
 **Aegis does NOT:**
@@ -148,17 +151,20 @@ self.org_config.username       # SF_USERNAME
 # SF_PASSWORD and SF_TOKEN are not stored — CCI uses OAuth access tokens
 ```
 
-**Critical constraint:** CCI uses OAuth access tokens, not username/password. Aegis's `salesforce_login.py` uses username + password + security token for session auth. These are different authentication flows.
+**Authentication approach: OAuth session injection — confirmed working.** CCI uses OAuth access tokens (not username/password). Aegis's `session_utils.py` (`init_selenium_session`) accepts `session_id` + `instance_url` directly, authenticating the browser via Salesforce's `frontdoor.jsp` endpoint. Both `RevenueGoFoundation` feature files already use `Given login to Salesforce with sessionId and verify login successful` — **no Aegis code changes are required**.
 
-**Resolution options (in order of preference):**
+The full credential flow:
+1. CCI passes `self.org_config.access_token` → `SF_SESSION_ID` in `cci_aegis_creds.json`
+2. CCI passes `self.org_config.instance_url` → `SF_URL` in `cci_aegis_creds.json`
+3. Aegis loads the creds file, calls `login_manager.authenticate_salesforce()` with the session ID
+4. `session_utils.init_selenium_session()` authenticates the browser via `{instance_url}/secur/frontdoor.jsp?sid={session_id}`
+
+**Fallback options (only if session injection fails):**
 
 | Option | Mechanism | Notes |
 |---|---|---|
-| **A — Session injection (preferred)** | CCI gets an OAuth access token from `self.org_config.access_token` + `instance_url`; Aegis uses the `Given login to Salesforce with sessionId` step | Already used by `RevenueGoFoundationCreds.json` — this is how DRO.feature authenticates today |
-| **B — Password auth** | User provides `org_password` option to the CCI task; written into the env | Requires knowing the org password; works for scratch orgs with known passwords |
-| **C — Connected App** | CCI generates a short-lived access token via Connected App + JWT flow | More robust for long-running suites; adds setup complexity |
-
-**Option A is the right path.** The `DynamicRevenueOrchestrator.feature` background already uses `Given login to Salesforce with sessionId` — Aegis's authentication layer supports session injection. CCI passes `instance_url` + `access_token`; Aegis uses them directly without needing a password.
+| **B — Password auth** | User provides `org_password` option to the CCI task | Requires knowing the org password; works for scratch orgs with known passwords |
+| **C — Connected App** | CCI generates access token via Connected App + JWT flow | More robust for long-running suites; adds setup complexity |
 
 ### 4.2 Credentials File Format
 
@@ -438,8 +444,8 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 |---|---|---|---|
 | 0.1 | Write `tasks/rlm_aegis.py` — `ValidateAegisEnvironment` task class with guard logic | | 🔲 TODO |
 | 0.2 | Add `validate_aegis_environment` task to `cumulusci.yml` | | 🔲 TODO |
-| 0.3 | Confirm session injection works: set `SF_SESSION_ID` = CCI access token, run `RevenueGoFoundation/` manually with `Given login to Salesforce with sessionId` | | 🔲 TODO |
-| 0.4 | Confirm `cci_aegis_creds.json` pattern: add `CCI_PROVISIONED_ORG` key to `RevenueGoFoundationCreds.json` (or separate file) + add to Aegis `.gitignore` | | 🔲 TODO |
+| 0.3 | ~~Confirm session injection works~~ — **already confirmed.** Both `RevenueGoFoundation` feature files use `Given login to Salesforce with sessionId`; `session_utils.py` accepts `session_id` + `instance_url` directly. No Aegis code changes needed. | | ✅ Confirmed |
+| 0.4 | Add `CCI_PROVISIONED_ORG` key to `RevenueGoFoundationCreds.json` (or a separate `cci_aegis_creds.json`) + add file to Aegis `.gitignore` — small Aegis PR | | 🔲 TODO |
 | 0.5 | Verify guard logic: missing repo, missing behave, expired token — all produce warnings not errors | | 🔲 TODO |
 
 ---
@@ -462,18 +468,22 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 
 ---
 
-### Phase 2: DRO and Shape-Specific Scenarios *(Requires `dro: true` flag)*
+### Phase 2: Full RevenueGoFoundation Suite + Shape-Specific Scenarios *(Requires `dro: true` flag)*
 
 > **Requirement:** Phase 1 complete + a Foundations org with DRO data loaded (`qb-dro` plan).
 >
-> Extend the smoke suite to explicitly invoke `DynamicRevenueOrchestrator.feature` when the `dro` flag is active, and verify the DRO setup tests pass against a real DRO-configured org.
+> Both `RevenueGoFoundation` feature files are now **Playwright-based** (migrated from Selenium as of commits `7643bfd` and `e5902da`). Phase 1 smoke may target just one; Phase 2 runs both explicitly and wires DRO invocation to the `dro` feature flag.
+>
+> `RevenueGoFoundation/` currently contains:
+> - `RevenueCloudInitialSetup.feature` — Initial Setup validation (Playwright)
+> - `DynamicRevenueOrchestrator.feature` — DRO setup, redirections, feature toggles (Playwright)
 
 | # | Task | Owner | Status |
 |---|---|---|---|
-| 2.1 | Add `dro` flag handling to `RunAegisSuite`: when `dro: true`, add `features/RevenueGoFoundation/DynamicRevenueOrchestrator.feature` to test path | | 🔲 TODO |
-| 2.2 | Test DRO scenarios against a `qb-dro`-loaded org — confirm all 4 DRO scenarios pass | | 🔲 TODO |
-| 2.3 | Document which DRO scenarios require specific activation steps from `prepare_rlm_org` (e.g. `activate_dro_records` must run before Aegis) | | 🔲 TODO |
-| 2.4 | Handle ordering constraint: Aegis must run after all activation tasks (`activate_rating_records`, `activate_dro_records` etc.) — enforce in flow step order | | 🔲 TODO |
+| 2.1 | Add `dro` flag handling to `RunAegisSuite`: when `dro: true`, explicitly include `DynamicRevenueOrchestrator.feature`; always include `RevenueCloudInitialSetup.feature` | | 🔲 TODO |
+| 2.2 | Test both feature files against a `qb-dro`-loaded org — confirm all scenarios pass | | 🔲 TODO |
+| 2.3 | Document which scenarios require activation steps from `prepare_rlm_org` to have run first (e.g. `activate_dro_records` before DRO scenarios) | | 🔲 TODO |
+| 2.4 | Handle ordering: Aegis must run after all activation tasks (`activate_rating_records`, `activate_dro_records` etc.) — enforce in flow step order | | 🔲 TODO |
 
 ---
 
@@ -521,7 +531,7 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 | # | Question | Status | Decision |
 |---|---|---|---|
 | R1 | Is the integration blocking or non-blocking? | ✅ Resolved | **Non-blocking by default.** `fail_on_aegis_failure` option (default `false`) — failures log a warning and flow continues. Post-promote regression is the exception — it will use `fail_on_aegis_failure: true`. |
-| R2 | Which authentication flow: OAuth session injection or username/password? | ✅ Resolved | **Session injection (Option A).** CCI passes `access_token` + `instance_url`; Aegis uses `Given login to Salesforce with sessionId`. Already used by `DynamicRevenueOrchestrator.feature`. No password needed. |
+| R2 | Which authentication flow: OAuth session injection or username/password? | ✅ Resolved | **Session injection confirmed.** CCI passes `access_token` + `instance_url`; Aegis uses `Given login to Salesforce with sessionId and verify login successful` via `session_utils.init_selenium_session()` (frontdoor.jsp). Used by both `RevenueGoFoundation` feature files and 24 other teams. No Aegis code changes needed. |
 | R3 | Should Aegis be invoked locally (behave subprocess) or via Jenkins API? | ✅ Resolved | **Both — phased.** Phase 1 delivers local subprocess (developer workflow). Phase 3 adds Jenkins API trigger (CI workflow). Feature flag `aegis: true` opts in. |
 
 ### 9.2 Open Questions
@@ -536,4 +546,4 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 | O6 | Can `@smoke` tag be added to the most critical `RevenueGoFoundation` scenarios? | Aegis team | Current smoke coverage unknown — need to coordinate with Aegis `RevenueGoFoundation` authors to tag the ~5 most critical scenarios `@smoke` for fast-path validation. |
 | O7 | What is the expected runtime of the `RevenueGoFoundation` full suite? | Needs measurement | Determines whether Phase 1 local run is practical in `prepare_rlm_org` (target: under 5 min for smoke, under 15 min for full). Run and measure against a real Foundations org. |
 | O8 | How should the Aegis repo path be configured per-developer? | Open | Options: (a) `aegis_repo_path` task option (current), (b) `AEGIS_REPO_PATH` env var, (c) `cumulusci.yml` project-level default pointing to a standard location. A `~/.cumulusci/aegis.yml` personal config would avoid committing local paths. |
-| O9 | Should existing `RevenueGoFoundation` feature files be updated to support CCI-provisioned org patterns? | Coordinate with Aegis team | The current `RevenueGoFoundationCreds.json` has a single hardcoded org. Adding a `CCI_PROVISIONED_ORG` key and updating Background steps to optionally use it is a small Aegis PR. Coordinate timing with the Aegis `RevenueGoFoundation` team. |
+| O9 | Should `RevenueGoFoundationCreds.json` be updated to accept a CCI-provisioned org key? | Small Aegis PR | Both feature files already use session injection (`Given login to Salesforce with sessionId`). The only change needed: add a `CCI_PROVISIONED_ORG` key to `RevenueGoFoundationCreds.json` and add `cci_aegis_creds.json` to `.gitignore`. Background steps require no code change — they already accept any ORG_KEY from the creds file. |
