@@ -111,7 +111,6 @@ project:
     guidedselling: false      # Use Guided Selling
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
-    visualization: false      # Use Visualization components (Flow with Visuals, LWC styling)
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
 
@@ -220,7 +219,7 @@ project:
     rlm_tso_ps_api_names: &rlm_tso_ps_api_names
       # Territory Sales Operations permission sets
       - ERIBasic
-      - RC_Utilities
+      - RLM_UtilitiesPermset
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -262,9 +261,9 @@ project:
 
     rlm_psg_api_names: &rlm_psg_api_names
       # Core permission set groups
-      - RC_QB_AI
-      - RC_RCB
-      - RC_RMI
+      - RLM_QB_AI
+      - RLM_RCB
+      - RLM_RMI
       - RLM_CFG
       - RLM_CLM
       - RLM_DOC
@@ -275,12 +274,16 @@ project:
       - RLM_USG
 
     psg_tso: &psg_tso
-      - RC_TSO
+      - RLM_TSO
       
+    ps_approvals: &ps_approvals
+      # Approvals-specific permission sets
+      - RLM_Approvals
+
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
-      #- RC_Collection_Plan_Activity
+      #- RLM_Collection_Plan_Activity
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets
@@ -288,12 +291,16 @@ project:
 
     ps_aea: &ps_aea
       # Agent-specific permission sets
-      - RLM_Revenue_Cloud_Agent
+      - RLM_QuotingAgent
 
 
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
       - RLM_Constraints
+
+    ps_docgen: &ps_docgen
+      # DocGen permission sets
+      - RLM_DocGen
 
     ps_prm: &ps_prm
       # PRM-specific permission sets
@@ -449,8 +456,8 @@ project:
 # Each setting is referenced in the create_procedure_plan_definition task
 
     procedure_plan_definition_description: &procedure_plan_definition_description "Procedure Plan Definition for Quote Pricing"
-    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RC_Quote_Pricing_Procedure_Plan"
-    procedure_plan_definition_name: &procedure_plan_definition_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_developer_name: &procedure_plan_definition_developer_name "RLM_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_name: &procedure_plan_definition_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_primary_object: &procedure_plan_definition_primary_object "Quote"
     procedure_plan_definition_process_type: &procedure_plan_definition_process_type "RevenueCloud"
     procedure_plan_definition_version_active: &procedure_plan_definition_version_active false
@@ -458,7 +465,7 @@ project:
     procedure_plan_definition_version_read_context_mapping: &procedure_plan_definition_version_read_context_mapping "QuoteEntitiesMapping"
     procedure_plan_definition_version_save_context_mapping: &procedure_plan_definition_version_save_context_mapping "QuoteEntitiesMapping"
     procedure_plan_definition_version_effective_from: &procedure_plan_definition_version_effective_from "2026-01-01T00:00:00.000Z"
-    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RC_Quote_Pricing_Procedure_Plan"
+    procedure_plan_definition_version_developer_name: &procedure_plan_definition_version_developer_name "RLM_Quote_Pricing_Procedure_Plan"
     procedure_plan_definition_version_rank: &procedure_plan_definition_version_rank 1
     procedure_plan_definition_version_effective_to: &procedure_plan_definition_version_effective_to 
 
@@ -485,6 +492,7 @@ project:
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
+    quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
 
@@ -582,6 +590,22 @@ tasks:
     options:
       developer_name: *sales_transaction_context_name
       plan_file: datasets/context_plans/ConstraintEngineNodeStatus/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
+  apply_context_docgen:
+    group: Revenue Lifecycle Management
+    description: >
+      Creates and configures the RLM_QuoteDocGenContext context definition for Context Service
+      document templates. Defines Quote node (AccountName, BillingStreet/City/State/PostalCode,
+      SalesRep, QuoteNumber, CreatedDate, ExpirationDate, GrandTotal) and Line child node
+      (ProductName, Quantity, ListPrice, Discount, NetUnitPrice, NetTotalPrice) mapped via
+      QuoteDocGenMapping to Quote and QuoteLineItem SObjects.
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      plan_file: datasets/context_plans/DocGen/manifest.json
       translate_plan: true
       deactivate_before: false
       activate: true
@@ -706,20 +730,6 @@ tasks:
     options:
       path: unpackaged/pre
 
-  restore_rc_tso:
-    description: Move RC_TSO from storage directory for deployment (only when tso flag is true)
-    class_path: tasks.rlm_restore_rc_tso.RestoreRCTSO
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/pre
-
-  deploy_rc_tso:
-    description: Deploy RC_TSO Permission Set Group (only when tso flag is true)
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/pre/3_permissionsetgroups/RC_TSO.permissionsetgroup-meta.xml
-
   deploy_context_definitions:
     description: Deploy Context Definitions
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -822,16 +832,83 @@ tasks:
       path: unpackaged/post_prm
 
   deploy_post_approvals:
-    description: Deploy Advanced Approvals Metadata
+    description: >
+      Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
+      PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
+      Apex class, and permission set. EmailTemplatePage FlexiPages (including
+      RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be
+      deployed via Metadata API (platform restriction); Lightning Email Templates are created
+      separately by create_approval_email_templates.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_approvals
+
+  create_approval_email_templates:
+    group: Revenue Lifecycle Management
+    description: >
+      Create Lightning Email Templates for RLM Approval notifications from the dataset CSV.
+      Reads EmailTemplate.csv from datasets/sfdmu/qb/en-US/qb-approvals/ and creates
+      SFX-type (Lightning) EmailTemplate records in the target org, then links them to
+      ApprovalAlertContentDef records. Idempotent: skips templates that already exist.
+      Required before insert_qb_approvals_data. EmailTemplatePage FlexiPages cannot be
+      deployed via Metadata API (platform restriction).
+    class_path: tasks.rlm_create_approval_email_templates.CreateApprovalEmailTemplates
   
+  deploy_docgen_seller_fields:
+    description: >
+      Deploy RLM_Seller_*__c, RLM_Account_Name__c, and RLM_Sales_Rep_Name__c formula fields
+      on Quote before the main DocGen metadata deploy. The OmniDataTransform records reference
+      these custom fields by name; Salesforce validates field existence on INSERT (fresh org),
+      so the fields must exist before the ODTs are deployed. Targets only the Quote fields
+      subdirectory to avoid the Quote object-meta.xml action overrides, which reference
+      flexipages not yet deployed at this stage.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_docgen/objects/Quote/fields
+
+  deploy_docgen_qli_fields:
+    description: >
+      Deploy RLM_ProductName__c formula field on QuoteLineItem before the main DocGen metadata
+      deploy. The OmniDataTransform records reference this field in inputFieldName; Salesforce
+      validates field existence on INSERT (fresh org), so it must exist before the ODTs are
+      deployed. QuoteLineItem has no object-meta.xml, so the whole directory is safe to deploy early.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_docgen/objects/QuoteLineItem
+
+  deploy_docgen_odt_seed:
+    description: >
+      Seed-insert minimal RLMQuoteExtractBasic and RLMQuoteTransformBasic OmniDataTransform
+      records before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
+      custom formula fields in inputFieldName (-692085439) but accepts UPDATE of existing
+      records. This step creates the ODT stubs so the subsequent deploy_post_docgen runs
+      as an UPDATE.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/pre_docgen
+
   deploy_post_docgen:
     description: Deploy Document Generation Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_docgen
+
+  activate_docgen_templates:
+    group: Revenue Lifecycle Management
+    description: Activate the latest version of each RLM_ OmniStudio DocumentTemplate. DocumentTemplates always deploy as inactive; this script finds the highest version per template name and sets IsActive = true.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateDocgenTemplates.apex
+
+  fix_document_template_binaries:
+    group: Revenue Lifecycle Management
+    description: >
+      Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy.
+      Salesforce metadata API bug: all DocumentTemplates deployed in a single batch
+      receive the same ContentDocument binary (first alphabetically). This task uploads
+      the correct .dt binary from the repo for each RLM_ template, replacing the wrong
+      ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
+    class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
 
   deploy_post_constraints:
     description: Deploy Constraints Metadata
@@ -913,13 +990,6 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
-
-  deploy_post_visualization:
-    description: Deploy Visualization Metadata (Flow with Visuals, LWC styling)
-    class_path: cumulusci.tasks.salesforce.DeployBundles
-    options:
-      path: unpackaged/post_visualization
-      collision_check: False
 
   enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
@@ -1231,6 +1301,13 @@ tasks:
       pathtoexportjson: *q3_rates_dataset
 
 
+  # TODO: set_org_company_info — populate Organization.Name/Phone/Fax/Street/City/State/PostalCode
+  # on fresh scratch orgs so RLM_Seller_*__c formula fields return real company data for
+  # internal users (who have no AccountId and fall back to $Organization.*). Implement as an
+  # AnonymousApexTask running scripts/apex/setOrgCompanyInfo.apex and add as step 2 of
+  # prepare_scratch (when: org_config.scratch). The Apex script contains placeholder values
+  # that must be replaced with real company info before enabling.
+
   insert_scratch_data:
     group: Revenue Lifecycle Management
     description: Insert Scratch Data
@@ -1281,7 +1358,18 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
-  
+
+  insert_qb_approvals_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for
+      discount and payment terms approval notifications. Requires post_approvals metadata
+      (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates
+      to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_approvals_dataset
+
   deactivate_decision_tables:
     group: Revenue Lifecycle Management
     description: Deactivate Decision Tables (required before updating active decision tables)
@@ -1419,7 +1507,7 @@ tasks:
       outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
       usage_rating_procedure: RLM Default Rating Discovery Procedure
-      create_orders_flow: RC_CreateOrdersFromQuote
+      create_orders_flow: RLM_CreateOrdersFromQuote
 
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
@@ -1627,6 +1715,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
 
+  extract_qb_approvals_data:
+    group: Data Management - Extract
+    description: "Extract qb-approvals (ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_approvals_dataset
+
   extract_qb_prm_data:
     group: Data Management - Extract
     description: "Extract qb-prm (partner relationship management) from org to CSV. Output in datasets/sfdmu/extractions/qb-prm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -1706,6 +1801,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_approvals_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-approvals (ApprovalAlertContentDef).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_approvals_dataset
       use_extraction_roundtrip: false
 
   test_qb_prm_idempotency:
@@ -1879,11 +1982,11 @@ tasks:
 
   activate_procedure_plan_expression_sets:
     group: Revenue Lifecycle Management
-    description: Activate Procedure Plan expression set versions (RC_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
+    description: Activate Procedure Plan expression set versions (RLM_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: activate_versions
-      version_full_names: RC_Price_Distribution_Procedure_V1
+      version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
 #----------------#
@@ -1950,13 +2053,11 @@ flows:
       25:
         flow: prepare_guidedselling
       26:
-        flow: prepare_visualization
-      27:
         task: configure_revenue_settings
-      28:
+      27:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
-      29:
+      28:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2124,8 +2225,7 @@ flows:
         task: deploy_post_billing
         when: project_config.project__custom__quantumbit and project_config.project__custom__billing
       3:
-        task: deploy_post_approvals
-        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        flow: prepare_approvals
       4:
         task: deploy_quantumbit
         when: project_config.project__custom__quantumbit
@@ -2203,8 +2303,31 @@ flows:
         task: enable_document_builder_toggle
         when: project_config.project__custom__docgen
       3:
+        task: deploy_docgen_seller_fields
+        when: project_config.project__custom__docgen
+      4:
+        task: deploy_docgen_qli_fields
+        when: project_config.project__custom__docgen
+      5:
+        task: deploy_docgen_odt_seed
+        when: project_config.project__custom__docgen
+      6:
         task: deploy_post_docgen
         when: project_config.project__custom__docgen
+      7:
+        task: activate_docgen_templates
+        when: project_config.project__custom__docgen
+      8:
+        task: fix_document_template_binaries
+        when: project_config.project__custom__docgen
+      9:
+        task: apply_context_docgen
+        when: project_config.project__custom__docgen
+      10:
+        task: assign_permission_sets
+        when: project_config.project__custom__docgen
+        options:
+          api_names: *ps_docgen
 
   prepare_billing:
     group: Revenue Lifecycle Management
@@ -2441,6 +2564,24 @@ flows:
           operation: activate_versions
           version_full_names: "QuantumBitComplete_V1,Server2_V1"
 
+  prepare_approvals:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_approvals
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      2:
+        task: create_approval_email_templates
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        options:
+          api_names: *ps_approvals
+      4:
+        task: insert_qb_approvals_data
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+
   prepare_guidedselling:
     group: Revenue Lifecycle Management
     steps:
@@ -2450,13 +2591,6 @@ flows:
       2:
         task: deploy_post_guidedselling
         when: project_config.project__custom__guidedselling
-
-  prepare_visualization:
-    group: Revenue Lifecycle Management
-    steps:
-      1:
-        task: deploy_post_visualization
-        when: project_config.project__custom__visualization
 
   prepare_analytics:
     group: Revenue Lifecycle Management

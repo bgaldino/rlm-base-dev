@@ -1,0 +1,111 @@
+{
+  "create": true,
+  "developerName": "RLM_QuoteDocGenContext",
+  "label": "RLM Quote DocGen Context",
+  "description": "Context definition for Quote proposal document generation templates.",
+  "contextNodeDefinitions": [
+    {
+      "name": "Quote",
+      "label": "Quote"
+    },
+    {
+      "name": "Line",
+      "label": "Quote Line Item",
+      "parentNodeName": "Quote"
+    }
+  ],
+  "contextMappings": {
+    "contextMappings": [
+      {
+        "name": "QuoteDocGenMapping",
+        "description": "QuoteDocGenMapping",
+        "isDefault": true
+      }
+    ]
+  },
+  "contextAttributesByName": [
+    { "nodeName": "Quote", "name": "AccountName",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "BillingStreet",    "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "BillingCity",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "BillingState",     "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "BillingPostalCode","dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SalesRep",         "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "QuoteNumber",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "CreatedDate",      "dataType": "DATE",     "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "ExpirationDate",   "dataType": "DATE",     "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "GrandTotal",       "dataType": "CURRENCY", "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerCompanyName","dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerStreet",     "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerCity",       "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerState",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerPostalCode", "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerPhone",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerFax",        "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerEmail",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerWebsite",    "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Quote", "name": "SellerCountry",   "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Line",  "name": "ProductName",      "dataType": "STRING",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Line",  "name": "Quantity",         "dataType": "NUMBER",   "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Line",  "name": "ListPrice",        "dataType": "CURRENCY", "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Line",  "name": "Discount",         "dataType": "PERCENT",  "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Line",  "name": "NetUnitPrice",     "dataType": "CURRENCY", "fieldType": "INPUTOUTPUT" },
+    { "nodeName": "Line",  "name": "NetTotalPrice",    "dataType": "CURRENCY", "fieldType": "INPUTOUTPUT" }
+  ],
+  "mappingRules": [
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "AccountName",     "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Account_Name__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SalesRep",        "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Sales_Rep_Name__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingStreet",    "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingStreet" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingCity",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingCity" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingState",     "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingState" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "BillingPostalCode","mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "BillingPostalCode" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "QuoteNumber",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "QuoteNumber" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "CreatedDate",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "CreatedDate" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "ExpirationDate",   "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "ExpirationDate" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "GrandTotal",       "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "GrandTotal" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerCompanyName","mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_CompanyName__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerStreet",     "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Street__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerCity",       "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_City__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerState",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_State__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerPostalCode", "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_PostalCode__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerPhone",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Phone__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerFax",        "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Fax__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerEmail",      "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Email__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerWebsite",    "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Website__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Quote", "contextAttribute": "SellerCountry",   "mappingType": "SOBJECT", "sObject": "Quote",         "sObjectField": "RLM_Seller_Country__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "ProductName",      "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "RLM_ProductName__c" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "Quantity",         "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "Quantity" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "ListPrice",        "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "ListPrice" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "Discount",         "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "Discount" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "NetUnitPrice",     "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "UnitPrice" },
+    { "mappingName": "QuoteDocGenMapping", "contextNode": "Line",  "contextAttribute": "NetTotalPrice",    "mappingType": "SOBJECT", "sObject": "QuoteLineItem", "sObjectField": "TotalPrice" }
+  ],
+  "contextTagsByName": [
+    { "nodeName": "Quote", "attributeName": "AccountName",      "name": "AccountName" },
+    { "nodeName": "Quote", "attributeName": "BillingStreet",    "name": "BillingStreet" },
+    { "nodeName": "Quote", "attributeName": "BillingCity",      "name": "BillingCity" },
+    { "nodeName": "Quote", "attributeName": "BillingState",     "name": "BillingState" },
+    { "nodeName": "Quote", "attributeName": "BillingPostalCode","name": "BillingPostalCode" },
+    { "nodeName": "Quote", "attributeName": "SalesRep",         "name": "SalesRep" },
+    { "nodeName": "Quote", "attributeName": "QuoteNumber",      "name": "QuoteNumber" },
+    { "nodeName": "Quote", "attributeName": "CreatedDate",      "name": "CreatedDate" },
+    { "nodeName": "Quote", "attributeName": "ExpirationDate",   "name": "ExpirationDate" },
+    { "nodeName": "Quote", "attributeName": "GrandTotal",       "name": "GrandTotal" },
+    { "nodeName": "Quote", "attributeName": "SellerCompanyName","name": "SellerCompanyName" },
+    { "nodeName": "Quote", "attributeName": "SellerStreet",     "name": "SellerStreet" },
+    { "nodeName": "Quote", "attributeName": "SellerCity",       "name": "SellerCity" },
+    { "nodeName": "Quote", "attributeName": "SellerState",      "name": "SellerState" },
+    { "nodeName": "Quote", "attributeName": "SellerPostalCode", "name": "SellerPostalCode" },
+    { "nodeName": "Quote", "attributeName": "SellerPhone",      "name": "SellerPhone" },
+    { "nodeName": "Quote", "attributeName": "SellerFax",        "name": "SellerFax" },
+    { "nodeName": "Quote", "attributeName": "SellerEmail",      "name": "SellerEmail" },
+    { "nodeName": "Quote", "attributeName": "SellerWebsite",    "name": "SellerWebsite" },
+    { "nodeName": "Quote", "attributeName": "SellerCountry",   "name": "SellerCountry" },
+    { "nodeName": "Line",  "attributeName": "ProductName",      "name": "ProductName" },
+    { "nodeName": "Line",  "attributeName": "Quantity",         "name": "Quantity" },
+    { "nodeName": "Line",  "attributeName": "ListPrice",        "name": "ListPrice" },
+    { "nodeName": "Line",  "attributeName": "Discount",         "name": "Discount" },
+    { "nodeName": "Line",  "attributeName": "NetUnitPrice",     "name": "NetUnitPrice" },
+    { "nodeName": "Line",  "attributeName": "NetTotalPrice",    "name": "NetTotalPrice" }
+  ],
+  "activate": true
+}

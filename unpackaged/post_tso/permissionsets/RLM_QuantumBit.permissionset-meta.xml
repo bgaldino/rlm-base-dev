@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <classAccesses>
-        <apexClass>RC_QuoteApprovalController</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
     <externalCredentialPrincipalAccesses>
         <enabled>true</enabled>
         <externalCredentialPrincipal>BillingSystemExtCredentials-Billing System Principal</externalCredentialPrincipal>
@@ -19,12 +15,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>InvoiceLine.RC_Account__c</field>
+        <field>InvoiceLine.RLM_Account__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>InvoiceLine.RC_Product_Type__c</field>
+        <field>InvoiceLine.RLM_Product_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -34,17 +30,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Quote.RC_Approval_Level__c</field>
+        <field>Quote.RLM_Approval_Level__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Quote.RC_Approval_Status__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Quote.RC_Start_Sync__c</field>
+        <field>Quote.RLM_Approval_Status__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -59,12 +50,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>QuoteLineItem.RC_Approval_Level_Calc__c</field>
+        <field>QuoteLineItem.RLM_Approval_Level_Calc__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>QuoteLineItem.RC_Approval__c</field>
+        <field>QuoteLineItem.RLM_Approval__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

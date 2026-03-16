@@ -100,7 +100,7 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Set_ARC_Variables</name>
+        <name>Set_ARLM_Variables</name>
         <label>Set ARC Variables</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -1042,7 +1042,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Set_ARC_Variables</targetReference>
+                <targetReference>Set_ARLM_Variables</targetReference>
             </connector>
             <label>ARC</label>
         </rules>

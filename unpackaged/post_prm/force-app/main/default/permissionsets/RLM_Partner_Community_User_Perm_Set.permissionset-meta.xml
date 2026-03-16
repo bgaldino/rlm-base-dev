@@ -1885,12 +1885,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>Quote.RC_Approval_Level__c</field>
+        <field>Quote.RLM_Approval_Level__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Quote.RC_Approval_Status__c</field>
+        <field>Quote.RLM_Approval_Status__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2105,12 +2105,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>QuoteLineItem.RC_Approval_Level_Calc__c</field>
+        <field>QuoteLineItem.RLM_Approval_Level_Calc__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>QuoteLineItem.RC_Approval__c</field>
+        <field>QuoteLineItem.RLM_Approval__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
