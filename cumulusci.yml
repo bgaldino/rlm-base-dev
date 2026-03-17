@@ -1004,6 +1004,14 @@ tasks:
     options:
       path: unpackaged/post_payments
 
+  patch_payments_site_for_deploy:
+    group: Revenue Lifecycle Management
+    description: >
+      Patch Payments_Webhook.site-meta.xml with the org's actual admin username before
+      deploy. Required because siteAdmin and siteGuestRecordDefaultOwner are immutable
+      after site creation and the committed XML contains the scratch org test user.
+    class_path: tasks.rlm_community.PatchPaymentsSiteForDeploy
+
   deploy_post_payments_site:
     description: Deploy Payments site settings only
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2603,14 +2611,17 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_payments_site
+        task: patch_payments_site_for_deploy
         when: project_config.project__custom__payments
       2:
+        task: deploy_post_payments_site
+        when: project_config.project__custom__payments
+      3:
         task: publish_community
         when: project_config.project__custom__payments
         options:
           name: Payments Webhook
-      3:
+      4:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
 

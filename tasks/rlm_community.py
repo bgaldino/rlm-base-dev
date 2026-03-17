@@ -236,3 +236,61 @@ class PatchNetworkEmailForDeploy(BaseTask):
 
         with open(abs_xml_path, "w", encoding="utf-8") as f:
             f.write(xml_content)
+
+
+class PatchPaymentsSiteForDeploy(BaseTask):
+    """
+    Reads the current authenticated user's username from the org and patches
+    the Payments_Webhook.site-meta.xml on disk before the metadata deploy runs.
+
+    Background: CustomSite metadata requires siteAdmin and siteGuestRecordDefaultOwner
+    to reference a User that exists in the target org. The committed XML contains the
+    scratch org test user, which doesn't exist in non-scratch orgs. This task replaces
+    those fields with the CCI-authenticated user's username before deploy.
+
+    Run this BEFORE deploy_post_payments_site.
+    """
+
+    task_options = {
+        "site_meta_xml_path": {
+            "description": (
+                "Relative path (from repo root) to the .site-meta.xml file to patch "
+                "(default: unpackaged/post_payments/sites/Payments_Webhook.site-meta.xml)."
+            ),
+            "required": False,
+        },
+    }
+
+    def _run_task(self):
+        default_xml_path = (
+            "unpackaged/post_payments/sites/Payments_Webhook.site-meta.xml"
+        )
+        xml_path = self.options.get("site_meta_xml_path", default_xml_path)
+
+        if not hasattr(self, "org_config") or not self.org_config:
+            raise TaskOptionsError("No org_config available")
+
+        username = self.org_config.username
+        if not username:
+            raise TaskOptionsError("Could not determine org username from org_config")
+
+        repo_root = self.project_config.repo_root
+        abs_xml_path = os.path.join(repo_root, xml_path)
+
+        with open(abs_xml_path, "r", encoding="utf-8") as f:
+            xml_content = f.read()
+
+        for tag in ("siteAdmin", "siteGuestRecordDefaultOwner"):
+            new_tag = f"<{tag}>{username}</{tag}>"
+            xml_content = re.sub(
+                rf"<{tag}>[^<]*</{tag}>",
+                new_tag,
+                xml_content,
+            )
+
+        with open(abs_xml_path, "w", encoding="utf-8") as f:
+            f.write(xml_content)
+
+        self.logger.info(
+            f"Patched siteAdmin and siteGuestRecordDefaultOwner to '{username}' in {xml_path}."
+        )
