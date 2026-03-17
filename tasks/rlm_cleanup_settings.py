@@ -1,5 +1,5 @@
 """
-Custom CumulusCI task to clean up settings files for dev scratch orgs.
+Custom CumulusCI task to clean up settings files before deployment.
 Removes fields that are not available based on org features and edition.
 """
 import json
@@ -17,31 +17,22 @@ except ImportError:
 
 
 class CleanupSettingsForDev(BaseTask):
-    """Remove problematic settings fields for dev scratch orgs based on feature availability."""
+    """Remove problematic settings fields based on org feature availability."""
     
     task_options: Dict[str, Dict[str, Any]] = {
         "path": {
             "description": "Path to settings files",
             "required": True
-        },
-        "remove_for_scratch": {
-            "description": "Remove fields for scratch orgs (default: True)",
-            "required": False
         }
     }
     
     def _run_task(self):
         path = self.options.get("path")
-        remove_for_scratch = self.options.get("remove_for_scratch", True)
-        
-        # Only clean up for scratch orgs
-        is_scratch = False
         org_features: Set[str] = set()
         org_config_file: Optional[str] = None
-        
+
         try:
             if hasattr(self, 'org_config') and self.org_config:
-                is_scratch = getattr(self.org_config, 'scratch', False)
                 # Get config file path to read features
                 if hasattr(self.org_config, 'config_file'):
                     org_config_file = self.org_config.config_file
@@ -49,12 +40,8 @@ class CleanupSettingsForDev(BaseTask):
                     org_config_file = getattr(self.org_config.config, 'config_file', None)
         except AttributeError:
             pass
-        
-        if not remove_for_scratch or not is_scratch:
-            self.logger.info("Skipping settings cleanup - not a scratch org or cleanup disabled")
-            return
-        
-        # Read features from scratch org definition file
+
+        # Read features from org definition file
         if org_config_file:
             org_features = self._read_org_features(org_config_file)
             self.logger.info(f"Detected {len(org_features)} features in org definition")

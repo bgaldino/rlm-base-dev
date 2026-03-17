@@ -4,11 +4,10 @@ Active decision tables cannot be edited, so we skip deploying them by moving
 them into a .skip subdirectory before deploy_pre; restore_decision_tables
 moves them back after deploy. No .forceignore changes are made—the .skip
 move is sufficient and avoids leaving .forceignore entries behind.
-TODO: Find a proper way to deactivate decision tables before deployment.
+Works for all org types (scratch and non-scratch).
 """
-import os
 from pathlib import Path
-from typing import Set, List
+from typing import Set
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -48,18 +47,6 @@ class ExcludeActiveDecisionTables(BaseTask):
         skip_dir_name = self.options.get("skip_dir") or ".skip"
         skip_dir = path / skip_dir_name
         decision_tables_to_check = self.options.get("decision_tables", self.PROBLEMATIC_DECISION_TABLES)
-        
-        # Only run for scratch orgs
-        is_scratch = False
-        try:
-            if hasattr(self, 'org_config') and self.org_config:
-                is_scratch = getattr(self.org_config, 'scratch', False)
-        except AttributeError:
-            pass
-        
-        if not is_scratch:
-            self.logger.info("Skipping active decision table exclusion - not a scratch org")
-            return
         
         # Query active decision tables
         active_decision_tables = self._get_active_decision_tables(decision_tables_to_check)

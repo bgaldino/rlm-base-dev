@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -716,7 +716,7 @@ tasks:
 # TODO: Organize pre/post deploy tasks into their own sections
 
   cleanup_settings_for_dev:
-    description: Clean up settings files for dev scratch orgs (removes unsupported fields)
+    description: Clean up settings files before deployment (removes fields unsupported in the target org)
     class_path: tasks.rlm_cleanup_settings.CleanupSettingsForDev
     group: Revenue Lifecycle Management
     options:
@@ -2071,15 +2071,15 @@ flows:
           api_names: *rlm_psl_api_names
       3:
         task: cleanup_settings_for_dev
-        when: org_config.scratch
+        #when: org_config.scratch
       4:
         task: exclude_active_decision_tables
-        when: org_config.scratch
+        #when: org_config.scratch
       5:
         task: deploy_pre
       6:
         task: restore_decision_tables
-        when: org_config.scratch
+        #when: org_config.scratch
       7:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
