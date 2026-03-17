@@ -1,0 +1,20 @@
+{
+  "required" : [ "accountName" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "accountName" : {
+      "title" : "accountName",
+      "description" : "Account name for which the account balance/summary is to be fetched.",
+      "lightning:type" : "lightning__textType",
+      "copilotAction:isUserInput" : true
+    },
+    "varAccountId" : {
+      "title" : "varAccountId",
+      "description" : "The Account ID captured from the Account page from context variable, if available. The Account Id for which balance is to be fetched",
+      "lightning:type" : "lightning__textType",
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

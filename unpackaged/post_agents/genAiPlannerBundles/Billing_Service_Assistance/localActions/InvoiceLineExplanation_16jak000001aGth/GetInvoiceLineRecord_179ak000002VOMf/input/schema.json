@@ -1,0 +1,29 @@
+{
+  "required" : [ "invoicelinename" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "InvoiceDocumentID" : {
+      "title" : "Invoice Document ID",
+      "description" : "The document number the user provides to find invoice line records.If multiple matches are found, show them as radio buttons. If a single match is found, pass its ID to the Invoice action.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "invoiceId" : {
+      "title" : "Invoice ID",
+      "description" : "The invoice ID captured from the Invoice page, if available. The ID and invoice line name are used to find matching invoice line records.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "invoicelinename" : {
+      "title" : "Invoice Line Name",
+      "description" : "The name of the invoice line specified by the user to identify the correct invoice line record.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

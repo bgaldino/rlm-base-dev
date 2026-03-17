@@ -1,0 +1,17 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "varAccountSummaryText" : {
+      "title" : "varAccountSummaryText",
+      "description" : "Formatted text summary of the account’s outstanding and credit balances (invoices, payments, memos, refunds) and the computed net payable amount. This summary is presented by the Agent to the user in the chat or Copilot response window.",
+      "maxLength" : 100000,
+      "lightning:type" : "lightning__richTextType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

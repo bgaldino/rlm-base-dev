@@ -1,0 +1,24 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "LatestInvoiceRecord" : {
+      "title" : "LatestInvoiceRecord",
+      "description" : "Holds all invoice details linked to the invoice record. Use Markdown formatting for display. Make the invoice name linkable to invoice id using markdown.",
+      "lightning:type" : "lightning__recordInfoType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "Output" : {
+      "title" : "Output",
+      "description" : "Always include this in the response. Holds the Markdown-formatted PDF download link. Construct as: You can download the PDF here: [Download Invoice PDF](https://<org_domain>.my.salesforce.com/sfc/servlet.shepherd/version/download/{ContentVersionId})",
+      "maxLength" : 100000,
+      "lightning:type" : "lightning__richTextType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

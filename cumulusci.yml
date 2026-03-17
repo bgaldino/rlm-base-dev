@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -101,7 +101,9 @@ project:
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: true                # Use Partner Relationship Management
-    prm_exp_bundle: true      # Use PRM Experience Bundle
+    prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
+    billing_portal: false     # Use Self-Service Billing Portal community
+    billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
@@ -820,16 +822,33 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata
+    description: Deploy Trialforce Source Org Metadata (app launcher deploys separately via deploy_post_tso_app_menu when tso=true)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso
+
+  deploy_post_tso_app_menu:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy App Launcher (AppSwitcher) order. Only runs when tso=true. Deploys
+      after deploy_post_tso so org default persists; users with personalized
+      launchers may need to use "Reset to default" in the App Launcher to see it.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_tso_appmenu
 
   deploy_post_prm:
     description: Deploy Partner Relationship Management Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm
+
+  deploy_post_personas:
+    group: Revenue Lifecycle Management
+    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_personas
 
   deploy_post_approvals:
     description: >
@@ -1009,8 +1028,16 @@ tasks:
     description: >
       Patch Payments_Webhook.site-meta.xml with the org's actual admin username before
       deploy. Required because siteAdmin and siteGuestRecordDefaultOwner are immutable
-      after site creation and the committed XML contains the scratch org test user.
+      after site creation and the committed XML contains a placeholder username.
     class_path: tasks.rlm_community.PatchPaymentsSiteForDeploy
+
+  revert_payments_site_after_deploy:
+    group: Revenue Lifecycle Management
+    description: >
+      Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in
+      Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo
+      never stores the target org's real username. Run AFTER deploy_post_payments_site.
+    class_path: tasks.rlm_community.RevertPaymentsSiteAfterDeploy
 
   deploy_post_payments_site:
     description: Deploy Payments site settings only
@@ -1112,11 +1139,17 @@ tasks:
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
-      Read the rlm Network's current emailSenderAddress from the org and patch
-      the network-meta.xml file on disk with that value before deploy_post_prm
-      runs. Required because Salesforce mandates emailSenderAddress in Network
-      metadata but the field is immutable after Network creation.
+      Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the
+      target org running user's email so deploy_post_prm succeeds. Repo stores a
+      non-PII placeholder; run revert_network_email_after_deploy after deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
+
+  revert_network_email_after_deploy:
+    group: Partner Relationship Management
+    description: >
+      Restore the placeholder emailSenderAddress in rlm.network-meta.xml after
+      deploy_post_prm so the repo never persists the target org's email.
+    class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
 
   deploy_post_prm_tso:
     group: Partner Relationship Management
@@ -1146,6 +1179,24 @@ tasks:
       template: "Build Your Own (LWR)"
       url_path_prefix: "sfpwebhook"
       skip_existing: true
+
+  create_billing_portal:
+    group: Revenue Lifecycle Management
+    description: Create Self-Service Billing Portal community (Experience Cloud site).
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    options:
+      name: "Billing Portal"
+      description: "RLM Self-Service Billing Portal"
+      template: "Self-Service Billing Portal"
+      url_path_prefix: "billing"
+      skip_existing: true
+
+  deploy_post_billing_portal:
+    group: Revenue Lifecycle Management
+    description: Deploy Billing Portal site metadata (experiences, themes, etc.) from unpackaged/post_billing_portal. Run when billing_portal_deploy is true after create_billing_portal.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_billing_portal
 
 
 #------------------#
@@ -2268,11 +2319,14 @@ flows:
         task: deploy_post_tso
         when: project_config.project__custom__tso
       5:
+        task: deploy_post_tso_app_menu
+        when: project_config.project__custom__tso
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      6:
+      7:
         task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
@@ -2383,22 +2437,25 @@ flows:
         task: deploy_post_prm
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       5:
+        task: revert_network_email_after_deploy
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
+      6:
         task: publish_community
         when: project_config.project__custom__prm
         options:
           name: rlm
-      6:
+      7:
         task: deploy_sharing_rules
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
-      7:
+      8:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
-      8:
+      9:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      9:
+      10:
         task: manage_context_definition
         when: project_config.project__custom__prm
         options:
@@ -2406,6 +2463,24 @@ flows:
           developer_name: RLM_SalesTransactionContext
           translate_plan: true
           activate: true
+
+  prepare_billing_portal:
+    group: Revenue Lifecycle Management
+    description: >
+      Create Self-Service Billing Portal community and optionally deploy site content.
+      When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+    steps:
+      1:
+        task: create_billing_portal
+        when: project_config.project__custom__billing_portal
+      2:
+        task: deploy_post_billing_portal
+        when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+      3:
+        task: publish_community
+        when: project_config.project__custom__billing_portal
+        options:
+          name: "Billing Portal"
 
   prepare_tax:
     group: Revenue Lifecycle Management
@@ -2617,13 +2692,23 @@ flows:
         task: deploy_post_payments_site
         when: project_config.project__custom__payments
       3:
+        task: revert_payments_site_after_deploy
+        when: project_config.project__custom__payments
+      4:
         task: publish_community
         when: project_config.project__custom__payments
         options:
           name: Payments Webhook
-      4:
+      5:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+  prepare_personas:
+    group: Revenue Lifecycle Management
+    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas. Not wired into prepare_rlm_org.
+    steps:
+      1:
+        task: deploy_post_personas
 
   run_qb_extracts:
     group: Data Management - Extract

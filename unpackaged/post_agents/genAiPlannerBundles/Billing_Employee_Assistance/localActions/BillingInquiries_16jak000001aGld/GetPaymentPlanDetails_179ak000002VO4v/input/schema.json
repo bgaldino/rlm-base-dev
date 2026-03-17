@@ -1,0 +1,22 @@
+{
+  "required" : [ "varInvoiceDocNumber" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "varInvoiceDocNumber" : {
+      "title" : "varInvoiceDocNumber",
+      "description" : "The Agent should ask for the invoice number from the user.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "varInvoiceId" : {
+      "title" : "varInvoiceId",
+      "description" : "If the user is already on the invoice record page, derive the invoice Id directly from context. Do not ask the user to provide this.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

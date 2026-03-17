@@ -1,0 +1,15 @@
+{
+  "required" : [ "searchTerm" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "searchTerm" : {
+      "title" : "searchTerm",
+      "description" : "The search keyword used to retrieve relevant products.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

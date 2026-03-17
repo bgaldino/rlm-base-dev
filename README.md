@@ -630,6 +630,9 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `exclude_active_decision_tables` | `rlm_exclude_active_decision_tables.py` | Move active decision tables to `.skip` dir before deploy |
 | `assign_permission_set_groups_tolerant` | `rlm_assign_permission_set_groups.py` | Assign PSGs with tolerance for missing permissions |
 | `recalculate_permission_set_groups` | `rlm_recalculate_permission_set_groups.py` | Recalculate PSGs and wait for Updated status (retries, delays) |
+| `deploy_post_tso_app_menu` | (CCI Deploy) | Deploy App Launcher (AppSwitcher) order from `unpackaged/post_tso_appmenu`. Runs only when `tso=true` (step 5 of `prepare_tso`). See [App Launcher](#app-launcher-tso) below. |
+| `patch_network_email_for_deploy` | `rlm_community.py` | Replace placeholder `emailSenderAddress` in `rlm.network-meta.xml` with target org running user's email before `deploy_post_prm`. Repo stores non-PII placeholder; run `revert_network_email_after_deploy` after deploy. |
+| `revert_network_email_after_deploy` | `rlm_community.py` | Restore placeholder `emailSenderAddress` in `rlm.network-meta.xml` after `deploy_post_prm` so the repo never persists the org email. |
 
 ### Activation Tasks
 
@@ -674,6 +677,13 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
+
+### App Launcher (TSO)
+
+When `tso=true`, the App Launcher order is deployed from `unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml` (step 5 of `prepare_tso`, after `deploy_post_tso`). The repo file should contain the desired org-default order.
+
+- **Capture your customized order:** In the org where you have arranged the App Launcher, run `python scripts/sync_appmenu_from_user.py` (with that org set as default). This writes the running user's App Launcher order from `UserAppMenuCustomization` into the repo file. No deploy is performed by the script.
+- **Deploy in builds:** The flow runs `deploy_post_tso_app_menu` when `tso=true`, so new builds get that order as the org default. Users who have already personalized their launcher may need to use "Reset to default" in the App Launcher to see it.
 
 ### Using Custom Tasks
 
@@ -813,12 +823,12 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_pricing_data` | Load pricing SFDMU data | `qb` |
 | `prepare_scratch` | Insert scratch-only data | Scratch only, not `tso` |
 | `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
-| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
+| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata; deploys App Launcher order from `post_tso_appmenu` when `tso=true` | `tso` |
 | `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Deploy PRM metadata, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Create community, patch Network email (placeholder → running user), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
@@ -1038,6 +1048,7 @@ rlm-base-dev/
 │   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings (skipOrgSttPricing)
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
+│   ├── post_tso_appmenu/       # App Launcher (AppSwitcher) order; deployed only when tso=true
 │   ├── post_utils/             # Utility metadata
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
@@ -1096,7 +1107,10 @@ rlm-base-dev/
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
-│   └── bash/                   # Bash scripts
+│   ├── bash/                   # Bash scripts
+│   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into post_tso_appmenu (no deploy)
+│   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
+│   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── constraints_setup.md
 │   ├── DECISION_TABLE_EXAMPLES.md
@@ -1153,6 +1167,16 @@ cci task run export_cml --org <source_org> \
 ```
 
 See the [Constraints Utility Guide](datasets/constraints/README.md) for full export/import/validate documentation.
+
+### App Launcher order (TSO)
+
+```bash
+# Capture your customized App Launcher order from the default org into the repo (no deploy)
+python scripts/sync_appmenu_from_user.py
+
+# Deploy App Launcher to an org (when tso=true the flow does this automatically)
+cci task run deploy_post_tso_app_menu --org <org>
+```
 
 ### Load Product Data
 

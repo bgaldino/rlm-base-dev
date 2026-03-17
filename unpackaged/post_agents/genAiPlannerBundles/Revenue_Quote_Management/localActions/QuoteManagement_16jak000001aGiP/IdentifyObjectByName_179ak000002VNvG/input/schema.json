@@ -1,0 +1,15 @@
+{
+  "required" : [ "objectName" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "objectName" : {
+      "title" : "objectName",
+      "description" : "Term representing a salesforce object name from which we want to retrieve the matching api names. For instance for the query \"list the reports from user Marc\", IdentifyObjectByName could be called 2 times, with objectName=\"reports\" and objectName=\"user\".",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
