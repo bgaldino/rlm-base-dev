@@ -1,0 +1,15 @@
+{
+  "required" : [ "Input:invoicelineid" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:invoicelineid" : {
+      "title" : "Invoice Line ID",
+      "description" : "A unique identifier that retrieves invoice lines associated with an invoice, before the ExplainInvoiceLine action is run.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

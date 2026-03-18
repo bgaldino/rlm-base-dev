@@ -1,0 +1,32 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "MinDueDate" : {
+      "title" : "MinDueDate",
+      "description" : "Stores the minimum due date across all invoices associated with the provided Account Id.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "PendingAmount" : {
+      "title" : "PendingAmount",
+      "description" : "Calculates the total pending amount due on the next payment date.",
+      "multipleOf" : 1.0E-34,
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "PendingInvoices" : {
+      "title" : "PendingInvoices",
+      "description" : "All the invoices that are pending on the next due date, formatted as text (e.g., INV-008, INV-009).",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

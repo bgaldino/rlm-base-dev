@@ -1,0 +1,15 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "PaymentDetailsOutput" : {
+      "title" : "PaymentDetailsOutput",
+      "description" : "Markdown-formatted summary of the payment plan for the requested invoice, listing all installments with amounts and due dates. Example: 'I can see the payment plan comprises of three equal monthly installments...'.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

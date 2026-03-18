@@ -1,0 +1,34 @@
+{
+  "required" : [ "assetIds", "quantityChange" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "amendmentDate" : {
+      "title" : "AmendmentDate",
+      "description" : "Effective start date of the amendment, to be specified in YYYY-MM-DD format. If not provided, this will default to today’s date.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "assetIds" : {
+      "title" : "AssetIds",
+      "description" : "The list of asset IDs to amend.",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quantityChange" : {
+      "title" : "QuantityChange",
+      "description" : "The difference in quantity added or reduced from the asset's existing quantity.",
+      "multipleOf" : 1.0E-34,
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>Deliver accurate and timely billing support with an autonomous AI agent. The Billing Employee Assistance Agent addresses invoice inquiries, clarifies invoice charges, and provides payment plans, recent bill details, account summaries, balances, and upcoming payment information.</description>
+    <localActionLinks>
+        <genAiFunctionName>AnswerQuestionsWithKnowledge_16jak000001aGld</genAiFunctionName>
+    </localActionLinks>
+    <localTopicLinks>
+        <genAiPluginName>BillingInquiries_16jak000001aGld</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>BillingInquiries_16jak000001aGld</fullName>
+        <aiPluginUtterances>
+            <developerName>utterance1</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 1</masterLabel>
+            <utterance>Hi, can you tell me the current account balance for my account?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance2</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 2</masterLabel>
+            <utterance>When is my next payment due?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance3</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 3</masterLabel>
+            <utterance>Can you get me the payment plan for my invoice?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance4</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 4</masterLabel>
+            <utterance>Can you show me my latest bill?</utterance>
+        </aiPluginUtterances>
+        <canEscalate>false</canEscalate>
+        <description>Helps user understand their billing and payment details. This topic is triggered when the user asks for the payment plan for any invoice, details about an invoice in context, the next payment for an account, or information in an account’s billing context. It also handles requests to retrieve the latest invoice, download the invoice document or PDF, or check the current account balance. The topic intelligently identifies the correct billing flow or action to execute — such as fetching payment schedules, generating invoice documents, or retrieving account balances — ensuring users receive accurate, contextual, and actionable responses about their billing information.</description>
+        <developerName>BillingInquiries_16jak000001aGld</developerName>
+        <genAiPluginInstructions>
+            <description>To retrieve and summarize the net account balance by aggregating posted invoices, credit memos, debit memos, payments, and refunds call action GetAccountBalance.</description>
+            <developerName>Instruction1</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 1</masterLabel>
+            <sortOrder>0</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>To identify and summarize the next payment due date and amount by referencing outstanding invoices and payment schedules for an account call action GetNextDuePayment.</description>
+            <developerName>Instruction2</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 2</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>To display the  payment plans for a specified invoice call action GetPaymentPlanDetails.</description>
+            <developerName>Instruction3</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 3</masterLabel>
+            <sortOrder>2</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>To fetch and provide the most recent posted invoice along with its associated document for the provided account call action InvoiceDocumentPDF.</description>
+            <developerName>Instruction4</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 4</masterLabel>
+            <sortOrder>3</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Use Markdown formatting for responses. If an output variable or field value begins with /sfc/servlet.shepherd/document/download/, treat it as a downloadable file link. Automatically prepend the current Salesforce org domain (for example, https://mydomain.my.salesforce.com) to create the full download URL.Display the link in a user-friendly format such as: You can download the PDF here: [Download Invoice PDF](https://mydomain.my.salesforce.com/sfc/servlet.shepherd/version/download/069Wt000001qSu5IAE) Do not display the raw URL or ID; always format it as a clickable Markdown hyperlink.</description>
+            <developerName>Instruction5</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 5</masterLabel>
+            <sortOrder>4</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Pick up this topic if user asks for the payment plan for any invoice or invoice&apos;s context or next payment for an account or in an account&apos;s context or asks to get Latest Invoice and/or Document/PDF/ downloadable PDF, account balance for an account or in account&apos;s context.</description>
+            <developerName>Instruction6</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 6</masterLabel>
+            <sortOrder>5</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Check if the user has provided a account name. If so, use it as the accountName for the GetAccountBalance and GetNextDuePayment action and as varAccountName for InvoiceDocumentPDF action. If the user is on the record or Lightning page of the Account object, use the currentRecordId as the varAccountId for the InvoiceDocumentPDF, GetAccountBalance and GetNextDuePayment actions. If the accountName/varAccountName or varAccountId can’t be located, prompt the user to provide it</description>
+            <developerName>Instruction7</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 7</masterLabel>
+            <sortOrder>6</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Check if the user has provided a invoice document number. If so, use it as the varInvoiceDocNumber for the GetPaymentPlanDetails action. If the user is on the record or Lightning page of the Invoice object, use the currentRecordId as the varInvoiceId for the GetPaymentPlanDetails actions. If the varInvoiceDocNumber or varInvoiceId can’t be located, prompt the user to provide it</description>
+            <developerName>Instruction8</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 8</masterLabel>
+            <sortOrder>7</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Never display internal Salesforce record IDs to the end user. When referencing Salesforce records in responses: Always present human-readable fields (such as Name, Number, or Label) instead of IDs. If a record is linkable, render it as a clickable link using the record’s display name, not its ID. Invoices must always be referenced by their Document Number, and the Document Number should be the clickable text. Do not expose IDs in plain text, hyperlinks, error messages, logs, or explanations under any circumstance.</description>
+            <developerName>Instruction9</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 9</masterLabel>
+            <sortOrder>8</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>GetAccountBalance_179ak000002VO4v</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetNextDuePayment_179ak000002VO4v</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>InvoiceDocumentPDF_179ak000002VO4v</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetPaymentPlanDetails_179ak000002VO4v</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>GetAccountBalance_179ak000002VO4v</fullName>
+            <description>Pick up this action if the user asks for Account Balance or the current account balance for any account.</description>
+            <developerName>GetAccountBalance_179ak000002VO4v</developerName>
+            <invocationTarget>billing_agents__RetrieveAccountBalance</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetAccountBalance</localDeveloperName>
+            <masterLabel>Get Account Balance</masterLabel>
+            <progressIndicatorMessage>Fetching Account Balance ...</progressIndicatorMessage>
+            <source>billing_agents__GetAccountBalance</source>
+        </localActions>
+        <localActions>
+            <fullName>GetNextDuePayment_179ak000002VO4v</fullName>
+            <description>Call this action if the user asks for the next payment due date for an account. Summarize the next payment date and total due amount in this format: Your next payment is due on **{!MinDueDate}**, for an amount of **${!PendingAmount}** for invoices **{!PendingInvoices}**. The Agent should automatically derive the Account Id from context if the user is on the Account page.</description>
+            <developerName>GetNextDuePayment_179ak000002VO4v</developerName>
+            <invocationTarget>billing_agents__RetrieveNextDuePayment</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetNextDuePayment</localDeveloperName>
+            <masterLabel>Retrieve Next Due Payment</masterLabel>
+            <progressIndicatorMessage>Fetching Next Due Payment Details ...</progressIndicatorMessage>
+            <source>billing_agents__GetNextDuePayment</source>
+        </localActions>
+        <localActions>
+            <fullName>InvoiceDocumentPDF_179ak000002VO4v</fullName>
+            <description>Fetches latest invoice/bill details and the corresponding invoice PDF for the provided account id/account name. Use Markdown formatting for all responses. Include the PDF link inline with the invoice details. If any output variable or field value begins with /sfc/servlet.shepherd/document/download/ or /sfc/servlet.shepherd/version/download/, prepend the Salesforce org domain and format as a Markdown hyperlink. Always include the formatted PDF link in the initial response if available.</description>
+            <developerName>InvoiceDocumentPDF_179ak000002VO4v</developerName>
+            <invocationTarget>billing_agents__GetInvoiceDocumentPDF</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>InvoiceDocumentPDF</localDeveloperName>
+            <masterLabel>Get Invoice Document PDF</masterLabel>
+            <progressIndicatorMessage>Fetching Invoice PDF ...</progressIndicatorMessage>
+            <source>billing_agents__InvoiceDocumentPDF</source>
+        </localActions>
+        <localActions>
+            <fullName>GetPaymentPlanDetails_179ak000002VO4v</fullName>
+            <description>Call this action if the user asks to fetch a payment plan for any invoice. The Agent should ask for the invoice number (if the user is already on the invoice record page then derive the invoice number directly). Summarize the payment plan in this format: &quot;I can see the payment plan comprises of {!InstallmentCount} equal monthly installments. Here is the payment plan for invoice **{!InvoiceNumber}**: {!#each PaymentSchedules} * **Installment {!InstallmentNumber}**: **${!Amount}** due on **{!DueDate}** {/each}&quot;</description>
+            <developerName>GetPaymentPlanDetails_179ak000002VO4v</developerName>
+            <invocationTarget>billing_agents__GeneratePaymentDetails</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetPaymentPlanDetails</localDeveloperName>
+            <masterLabel>Get Payment Plan Details</masterLabel>
+            <progressIndicatorMessage>Fetching Payment Plan Details ...</progressIndicatorMessage>
+            <source>billing_agents__GetPaymentPlanDetails</source>
+        </localActions>
+        <localDeveloperName>BillingInquiries</localDeveloperName>
+        <masterLabel>Billing Inquiries</masterLabel>
+        <pluginType>Topic</pluginType>
+        <scope>Your job is to help users understand their billing and payment details. You should respond when the user asks about payment plans for an invoice, requests details about an invoice in context, asks for the next payment due for an account, or inquires about billing information within an account’s context. You should also act when the user wants to retrieve the latest invoice, get or download an invoice document or PDF, or check the current account balance. Use the appropriate billing actions or flows — such as retrieving payment plans, fetching invoice documents, or obtaining account balances — to provide clear, accurate, and contextual information that helps the user stay informed about their billing activities.</scope>
+        <source>billing_agents__BillingInquiries</source>
+    </localTopics>
+    <masterLabel>Billing Employee Assistance</masterLabel>
+    <plannerActions>
+        <fullName>AnswerQuestionsWithKnowledge_16jak000001aGld</fullName>
+        <description>Answers questions about company policies and procedures, troubleshooting steps, or product information. For example: “What is your return policy?” “How do I fix an issue?” or “What features does a product have?”</description>
+        <developerName>AnswerQuestionsWithKnowledge_16jak000001aGld</developerName>
+        <invocationTarget>streamKnowledgeSearch</invocationTarget>
+        <invocationTargetType>standardInvocableAction</invocationTargetType>
+        <isConfirmationRequired>false</isConfirmationRequired>
+        <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+        <localDeveloperName>AnswerQuestionsWithKnowledge</localDeveloperName>
+        <masterLabel>Answer Questions with Knowledge</masterLabel>
+        <progressIndicatorMessage>Getting answers</progressIndicatorMessage>
+        <source>EmployeeCopilot__AnswerQuestionsWithKnowledge</source>
+    </plannerActions>
+    <plannerSurfaces>
+        <adaptiveResponseAllowed>true</adaptiveResponseAllowed>
+        <callRecordingAllowed>false</callRecordingAllowed>
+        <surface>SurfaceAction__Messaging</surface>
+        <surfaceType>Messaging</surfaceType>
+    </plannerSurfaces>
+    <plannerType>AiCopilot__ReAct</plannerType>
+</GenAiPlannerBundle>

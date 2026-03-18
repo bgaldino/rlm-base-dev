@@ -300,3 +300,34 @@ cci task run manage_expression_sets --operation list_versions --developer_names 
 - **Field Names**:
   - Flows use: `DefinitionId`, `MasterLabel`, `VersionNumber`, `CreatedDate`
   - Expression Sets use: `DeveloperName`, `MasterLabel`, `LastModifiedDate`
+
+## PRM Network Email and App Launcher
+
+### PRM Network (rlm.network-meta.xml)
+
+The repo stores a **placeholder** `emailSenderAddress` (`rlm-network-sender@example.com`) so no real email is committed. During `prepare_prm`:
+
+1. **patch_network_email_for_deploy** — Replaces the placeholder with the Network's actual current `EmailSenderAddress` (queried from the org; immutable after Network creation) so the metadata deploy succeeds. Run before `deploy_post_prm`.
+2. **deploy_post_prm** — Deploys PRM metadata (including the patched Network).
+3. **revert_network_email_after_deploy** — Restores the placeholder in the file so the repo never persists the org email.
+
+```bash
+# Manual run (flow runs these automatically when prm + prm_exp_bundle + tso)
+cci task run patch_network_email_for_deploy --org <org>
+cci task run deploy_post_prm --org <org>
+cci task run revert_network_email_after_deploy --org <org>
+```
+
+### App Launcher (TSO)
+
+Capture the running user's App Launcher order and deploy it when `tso=true`:
+
+```bash
+# 1. Set default org to the org where you customized the App Launcher, then:
+python scripts/sync_appmenu_from_user.py
+
+# 2. Deploy the App Launcher to an org (or let prepare_tso do it when tso=true)
+cci task run deploy_post_tso_app_menu --org <org>
+```
+
+The script writes to `unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml`. No deploy is performed by the script.

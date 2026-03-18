@@ -1,0 +1,22 @@
+{
+  "required" : [ "recordName" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordName" : {
+      "title" : "recordName",
+      "description" : "The name or title of the Salesforce record extracted from user input. The name can be used to find a Salesforce CRM record.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "objectApiName" : {
+      "title" : "objectApiName",
+      "description" : "The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to find. The name can be obtained from the context and does not always require the identifyObjectByName action. (eg. IdentifyRecordByName(recordName=\"Paul\", objectApiName=\"user\")). Leave empty to check with all possible objectApiNames. Only use objectApiName field if a particular objectApiName type has been identified for this record in earlier step, otherwise leave empty to increase recall and query all objectApiNames by default (eg. IdentifyRecordByName(recordName=\"Paul\")).",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
