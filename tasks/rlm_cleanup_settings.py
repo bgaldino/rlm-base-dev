@@ -17,7 +17,12 @@ except ImportError:
 
 
 class CleanupSettingsForDev(BaseTask):
-    """Remove problematic settings fields based on org feature availability."""
+    """Remove problematic settings fields based on org feature availability.
+
+    Note: Despite the "ForDev" in the class name (legacy), this task runs before
+    deployment on all org types (scratch, sandbox, production) to strip settings
+    fields that are unsupported in the target org's edition or feature set.
+    """
     
     task_options: Dict[str, Dict[str, Any]] = {
         "path": {

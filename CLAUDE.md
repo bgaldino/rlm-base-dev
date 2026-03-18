@@ -164,7 +164,7 @@ Controlled via `project → custom` in `cumulusci.yml`. Boolean flags like `qb`,
 
 ### PRM Network emailSenderAddress
 - **Repo:** `unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml` uses a **placeholder** `emailSenderAddress` (e.g. `rlm-network-sender@example.com`) so the repo never stores a real email.
-- **Deploy time:** Task `patch_network_email_for_deploy` (before `deploy_post_prm`) replaces the placeholder with the **target org running user's email** so the metadata deploy succeeds. Task `revert_network_email_after_deploy` (after `deploy_post_prm`) restores the placeholder so the repo is never left with the org email. Both tasks are in `tasks/rlm_community.py`.
+- **Deploy time:** Task `patch_network_email_for_deploy` (before `deploy_post_prm`) replaces the placeholder with the **Network's actual current `EmailSenderAddress`** (queried from the org; immutable after Network creation) so the metadata deploy succeeds. Task `revert_network_email_after_deploy` (after `deploy_post_prm`) restores the placeholder so the repo is never left with the org email. Both tasks are in `tasks/rlm_community.py`.
 
 ---
 
