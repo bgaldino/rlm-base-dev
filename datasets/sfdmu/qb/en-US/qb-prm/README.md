@@ -11,7 +11,7 @@ This plan is executed as **step 9** of the `prepare_prm` flow (when `prm=true` a
 | Step | Task                              | Description                                                |
 |------|-----------------------------------|------------------------------------------------------------|
 | 1    | `create_partner_central`          | Create Partner Central community                           |
-| 2    | `patch_network_email_for_deploy`  | Replace placeholder email in rlm.network-meta.xml with running user email |
+| 2    | `patch_network_email_for_deploy`  | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
 | 3    | `setup_prm_org_email`             | Create org-wide email address for PRM                      |
 | 4    | `deploy_post_prm`                 | Deploy PRM Experience Bundle metadata                      |
 | 5    | `revert_network_email_after_deploy` | Restore placeholder email in rlm.network-meta.xml        |

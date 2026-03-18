@@ -1140,8 +1140,9 @@ tasks:
     group: Partner Relationship Management
     description: >
       Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the
-      target org running user's email so deploy_post_prm succeeds. Repo stores a
-      non-PII placeholder; run revert_network_email_after_deploy after deploy.
+      Network's actual current EmailSenderAddress (immutable after creation) so
+      deploy_post_prm succeeds. Repo stores a non-PII placeholder; run
+      revert_network_email_after_deploy after deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
 
   revert_network_email_after_deploy:

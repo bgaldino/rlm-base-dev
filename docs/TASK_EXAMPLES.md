@@ -307,7 +307,7 @@ cci task run manage_expression_sets --operation list_versions --developer_names 
 
 The repo stores a **placeholder** `emailSenderAddress` (`rlm-network-sender@example.com`) so no real email is committed. During `prepare_prm`:
 
-1. **patch_network_email_for_deploy** — Replaces the placeholder with the target org running user's email so the metadata deploy succeeds. Run before `deploy_post_prm`.
+1. **patch_network_email_for_deploy** — Replaces the placeholder with the Network's actual current `EmailSenderAddress` (queried from the org; immutable after Network creation) so the metadata deploy succeeds. Run before `deploy_post_prm`.
 2. **deploy_post_prm** — Deploys PRM metadata (including the patched Network).
 3. **revert_network_email_after_deploy** — Restores the placeholder in the file so the repo never persists the org email.
 

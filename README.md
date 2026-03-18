@@ -631,7 +631,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `assign_permission_set_groups_tolerant` | `rlm_assign_permission_set_groups.py` | Assign PSGs with tolerance for missing permissions |
 | `recalculate_permission_set_groups` | `rlm_recalculate_permission_set_groups.py` | Recalculate PSGs and wait for Updated status (retries, delays) |
 | `deploy_post_tso_app_menu` | (CCI Deploy) | Deploy App Launcher (AppSwitcher) order from `unpackaged/post_tso_appmenu`. Runs only when `tso=true` (step 5 of `prepare_tso`). See [App Launcher](#app-launcher-tso) below. |
-| `patch_network_email_for_deploy` | `rlm_community.py` | Replace placeholder `emailSenderAddress` in `rlm.network-meta.xml` with target org running user's email before `deploy_post_prm`. Repo stores non-PII placeholder; run `revert_network_email_after_deploy` after deploy. |
+| `patch_network_email_for_deploy` | `rlm_community.py` | Replace placeholder `emailSenderAddress` in `rlm.network-meta.xml` with the Network's actual current `EmailSenderAddress` (immutable after creation) before `deploy_post_prm`. Repo stores non-PII placeholder; run `revert_network_email_after_deploy` after deploy. |
 | `revert_network_email_after_deploy` | `rlm_community.py` | Restore placeholder `emailSenderAddress` in `rlm.network-meta.xml` after `deploy_post_prm` so the repo never persists the org email. |
 
 ### Activation Tasks
