@@ -1,4 +1,4 @@
-# Revenue Cloud Foundations: The Build Process
+# Revenue Cloud Base Foundations: The Build Process
 
 **How `prepare_rlm_org` Stands Up a Fully Configured Revenue Cloud Org**
 
@@ -73,15 +73,15 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 2. **Permission set license assignment** — Assigns 30+ PSLs covering core RLM, billing, rating, AI, CLM, and other capabilities. These are assigned in waves because some licenses depend on others being present first.
 
-3. **Settings cleanup** (scratch orgs only) — Removes metadata settings that don't apply to scratch orgs, preventing deployment failures from unsupported configuration.
+3. **Settings cleanup** — Removes metadata settings that can cause deployment failures on certain org types. (The scratch-only guard is currently inactive; this runs for all org types.)
 
-4. **Decision table scaffolding** (scratch orgs only) — Temporarily excludes active decision tables, deploys pre-deployment metadata bundles (settings, PSGs, tax metadata), then restores the decision tables. This dance is necessary because some decision tables reference metadata that must exist before they can be deployed.
+4. **Decision table scaffolding** — Temporarily excludes active decision tables, deploys pre-deployment metadata bundles (settings, PSGs, tax metadata), then restores the decision tables. (The scratch-only guard is currently inactive; this runs for all org types.) This dance is necessary because some decision tables reference metadata that must exist before they can be deployed.
 
 5. **Context definition extension** — Extends 11 standard RLM context definitions with custom attributes via the Context Service API. Contexts are how Revenue Cloud maps business processes to data — the Sales Transaction Context maps quotes, the Billing Context maps billing schedules, and so on. Each context needs custom extensions to support the demo data model.
 
 6. **Rule library creation** — Creates pricing and DRO rule libraries that the pricing and fulfillment engines reference at runtime.
 
-**`prepare_decision_tables`** (Step 2) activates all decision tables. The `cleanup_settings_for_dev` task and the decision table exclude/restore steps run for all org types (the scratch-only guards are not active in the current flow). Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation. They must be active before any data that references them is loaded.
+**`prepare_decision_tables`** (Step 2) activates all decision tables on scratch orgs (`activate_decision_tables` is gated on `org_config.scratch`); on non-scratch orgs the flow runs but the activation task is skipped and pre-existing decision table state is relied upon. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
 **`prepare_expression_sets`** (Step 3) deactivates existing expression sets. On scratch orgs it also validates pricing schedule prerequisites and deploys expression sets in draft state (`ensure_pricing_schedules` and `deploy_expression_sets` are gated on `org_config.scratch`); on non-scratch orgs only the deactivation step runs. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 19) after all dependent data is in place.
 
@@ -153,7 +153,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
-**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, deploys sharing rules, loads PRM-specific data, and extends the Sales Transaction Context with partner account attributes.
+**PRM** (Step 22, `prm` flag) — Creates the Partner Central community and publishes it. Additional sub-steps are gated on secondary flags: the Experience Bundle patch/deploy/revert and `RLM_PRM` permission set assignment require `prm_exp_bundle AND tso`; sharing rules deployment requires `sharingsettings`. In a default (non-TSO) build only community creation and PRM data load run.
 
 **Agentforce agents** (Step 23, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
 
@@ -214,7 +214,7 @@ The most common failure points and how to address them:
 
 **Metadata deployment failures** — Often caused by missing dependencies or settings incompatible with the org type. The `cleanup_settings_for_dev` task in Phase 1 handles most of these for scratch orgs, but new settings introduced by Salesforce releases can cause unexpected failures.
 
-**Data load failures** — Most commonly caused by SFDMU v5 composite key issues or missing prerequisite records. The project's SFDMU v5 compliance rules (documented in `CLAUDE.md`) explain the known bugs and workarounds.
+**Data load failures** — Most commonly caused by SFDMU v5 composite key issues or missing prerequisite records. See `docs/sfdmu_composite_key_optimizations.md` for the primary reference on v5 migration changes and known bugs; `CLAUDE.md` covers the same rules in a developer-oriented format.
 
 **Robot Framework failures** — The browser automation steps can fail if Chrome/ChromeDriver versions are mismatched or if Salesforce UI elements have changed between releases. Running `validate_setup` first catches ChromeDriver issues.
 
