@@ -62,7 +62,7 @@ SFDMU v5 introduced breaking changes. All data plans **must** comply with the fo
 
 ### The Three Confirmed v5 Bugs
 
-> See `docs/sfdmu_composite_key_optimizations.md` for full details.
+> The three bugs below are the authoritative reference. `docs/sfdmu_composite_key_optimizations.md` covers dataset-level migration changes (which externalIds were simplified and why) but does not document these bugs individually.
 
 **Bug 1 — All-multi-hop externalId fails validation**
 Objects whose `externalId` contains ONLY relationship-traversal components (2+ hops) get:
