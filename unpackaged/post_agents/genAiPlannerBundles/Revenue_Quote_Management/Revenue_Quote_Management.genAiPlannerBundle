@@ -239,7 +239,7 @@
         <description>Use Revenue Cloud to create initial quotes, create amendment quotes,  add products to quotes, apply discounts to quote line items on quotes,  create renewal quote, update quote details, update quote line item,  get renewable assets, get active assets.</description>
         <developerName>QuoteManagement_16jak000001aGiP</developerName>
         <genAiPluginInstructions>
-            <description>To provide a link to the quote, always use the in the following format:  &quot;The quote has been successfully created/updated. You can view the quote [here](/{quoteId}).&quot;.  Replace `{quoteId}` with the actual quote&apos;s record ID to create a live hyperlink.  Ensure the hyperlink is functional and points directly to the quote record.</description>
+            <description>To provide a link to the quote, always use the following format:  &quot;The quote has been successfully created/updated. You can view the quote [here](/{quoteId}).&quot;  Replace `{quoteId}` with the actual quote&apos;s record ID to create a live hyperlink.  Ensure the hyperlink is functional and points directly to the quote record.</description>
             <developerName>Instruction1</developerName>
             <language xsi:nil="true"/>
             <masterLabel>Instruction1</masterLabel>

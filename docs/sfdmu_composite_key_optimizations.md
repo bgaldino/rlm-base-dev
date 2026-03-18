@@ -131,7 +131,7 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
 ### qb-billing
 - **AccountingPeriod** externalId uses `Name;FinancialYear`.
 - **LegalEntyAccountingPeriod** externalId uses `Name`.
-- **PaymentTermItem** externalId uses `$$PaymentTerm.Name$Type` with matching CSV column.
+- **PaymentTermItem** externalId uses `PaymentTerm.Name;Type` (v5 format); matching `$$PaymentTerm.Name$Type` column remains in the CSV.
 
 ### qb-rates
 - **RateCard** externalId uses `Name;Type` with `$$Name$Type` in CSV.
