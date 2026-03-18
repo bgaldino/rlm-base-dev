@@ -304,6 +304,13 @@ class PatchPaymentsSiteForDeploy(BaseTask):
     """
 
     task_options = {
+        "placeholder_username": {
+            "description": (
+                "Placeholder value in the repo file to replace with the running user username "
+                "(default: payments-site-admin@example.com)."
+            ),
+            "required": False,
+        },
         "site_meta_xml_path": {
             "description": (
                 "Relative path (from repo root) to the .site-meta.xml file to patch "
@@ -314,6 +321,9 @@ class PatchPaymentsSiteForDeploy(BaseTask):
     }
 
     def _run_task(self):
+        placeholder = self.options.get(
+            "placeholder_username", "payments-site-admin@example.com"
+        )
         default_xml_path = (
             "unpackaged/post_payments/sites/Payments_Webhook.site-meta.xml"
         )
@@ -333,11 +343,15 @@ class PatchPaymentsSiteForDeploy(BaseTask):
             xml_content = f.read()
 
         for tag in ("siteAdmin", "siteGuestRecordDefaultOwner"):
-            new_tag = f"<{tag}>{username}</{tag}>"
-            xml_content = re.sub(
-                rf"<{tag}>[^<]*</{tag}>",
-                new_tag,
-                xml_content,
+            placeholder_tag = f"<{tag}>{placeholder}</{tag}>"
+            if placeholder_tag not in xml_content:
+                raise TaskOptionsError(
+                    f"Placeholder '{placeholder}' not found in <{tag}> in {xml_path}. "
+                    "Ensure the repo file contains the placeholder before deploying."
+                )
+            xml_content = xml_content.replace(
+                placeholder_tag,
+                f"<{tag}>{username}</{tag}>",
             )
 
         with open(abs_xml_path, "w", encoding="utf-8") as f:
