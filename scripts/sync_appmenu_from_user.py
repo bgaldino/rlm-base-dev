@@ -18,9 +18,30 @@ Run with default org set:
 from __future__ import annotations
 
 import csv
+import json
 import subprocess
 import sys
 from pathlib import Path
+
+
+def _get_running_user_id() -> str:
+    """Return the Salesforce Id of the default org's running user."""
+    result = subprocess.run(
+        ["sf", "org", "display", "--json"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"sf org display failed: {result.stderr or result.stdout}")
+    data = json.loads(result.stdout)
+    username = data["result"]["username"]
+    username_escaped = username.replace("'", "''")
+    csv_text = _run_sf_query(f"SELECT Id FROM User WHERE Username = '{username_escaped}' LIMIT 1")
+    rows = _parse_csv(csv_text)
+    if not rows:
+        raise RuntimeError(f"Could not find User record for username '{username}'")
+    return (rows[0].get("ID") or rows[0].get("Id") or "").strip()
 
 
 def _run_sf_query(query: str) -> str:
@@ -63,9 +84,13 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     out_path = repo_root / "unpackaged" / "post_tso_appmenu" / "appMenus" / "AppSwitcher.appMenu-meta.xml"
 
+    print("Resolving running user Id...")
+    running_user_id = _get_running_user_id()
+    print(f"Running user Id: {running_user_id}")
+
     print("Querying running user's App Launcher order (UserAppMenuCustomization)...")
     custom_csv = _run_sf_query(
-        "SELECT ApplicationId, SortOrder FROM UserAppMenuCustomization ORDER BY SortOrder"
+        f"SELECT ApplicationId, SortOrder FROM UserAppMenuCustomization WHERE UserId = '{running_user_id}' ORDER BY SortOrder"
     )
     custom_rows = _parse_csv(custom_csv)
     if not custom_rows:

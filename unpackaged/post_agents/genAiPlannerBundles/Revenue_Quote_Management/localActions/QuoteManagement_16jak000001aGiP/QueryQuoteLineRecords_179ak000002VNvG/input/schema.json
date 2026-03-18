@@ -1,5 +1,5 @@
 {
-  "required" : [ "QuoteId" ],
+  "required" : [ "quoteId" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "quoteId" : {

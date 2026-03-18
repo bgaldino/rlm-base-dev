@@ -1,5 +1,5 @@
 {
-  "required" : [ "OpportunityID" ],
+  "required" : [ "opportunityID" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "opportunityID" : {

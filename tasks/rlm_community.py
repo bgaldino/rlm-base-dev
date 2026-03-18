@@ -210,15 +210,16 @@ class PatchNetworkEmailForDeploy(BaseTask):
         with open(abs_xml_path, "r", encoding="utf-8") as f:
             xml_content = f.read()
 
-        if "<emailSenderAddress>" not in xml_content:
+        placeholder_tag = f"<emailSenderAddress>{placeholder}</emailSenderAddress>"
+        if placeholder_tag not in xml_content:
             raise TaskOptionsError(
-                f"No emailSenderAddress element found in {xml_path}."
+                f"Placeholder '{placeholder}' not found in {xml_path}. "
+                "Ensure the repo file contains the placeholder before deploying."
             )
 
-        xml_content = re.sub(
-            r"<emailSenderAddress>[^<]*</emailSenderAddress>",
+        xml_content = xml_content.replace(
+            placeholder_tag,
             f"<emailSenderAddress>{deploy_email}</emailSenderAddress>",
-            xml_content,
         )
 
         with open(abs_xml_path, "w", encoding="utf-8") as f:
