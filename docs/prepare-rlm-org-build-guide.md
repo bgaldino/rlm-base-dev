@@ -47,7 +47,7 @@ The most commonly used flags and their defaults:
 - **dro: true** — Dynamic Revenue Orchestration fulfillment plans
 - **rating: true** — Usage-based rating design-time data
 - **rates: true** — Rate cards and rate card entries
-- **clm: true** — Contract Lifecycle Management metadata
+- **clm: true** — Enables CLM permission set licenses and CLM context definition extensions; CLM reference data additionally requires `clm_data: true` (defaults to `false`)
 - **prm: true** — Partner Relationship Management
 - **docgen: true** — Document Generation templates
 - **constraints: true** — Constraint Builder / product configuration rules
@@ -187,7 +187,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 ## How Long Does It Take?
 
-A typical `prepare_rlm_org` run with default flags (QuantumBit data shape, billing, tax, rating, DRO, CLM, constraints, PRM, and DocGen all enabled) takes approximately 45–75 minutes for a scratch org, depending on network conditions and Salesforce instance load. The longest individual steps are typically `deploy_full` (metadata deployment), the billing data load (three-pass), and the decision table refresh at the end.
+A typical `prepare_rlm_org` run with a full demo configuration (QuantumBit data shape, billing, tax, rating, DRO, CLM with `clm_data`, constraints, PRM, and DocGen all enabled) takes approximately 45–75 minutes for a scratch org, depending on network conditions and Salesforce instance load. Note that `clm_data` defaults to `false`, so CLM reference data is not loaded in a literal default run. The longest individual steps are typically `deploy_full` (metadata deployment), the billing data load (three-pass), and the decision table refresh at the end.
 
 ---
 
