@@ -128,7 +128,7 @@ Runs an SFDMU load twice and asserts record counts don't increase. Supports `use
 (extract + post-process + re-import between runs).
 
 ### `ExtractSFDMUData`
-Wraps `sf sfdmu run --targetusername CSVFILE`. Runs `post_process_extraction.py` automatically.
+Wraps `sf sfdmu run --sourceusername <org> --targetusername CSVFILE` (org → CSV). Runs `post_process_extraction.py` automatically.
 
 ---
 
@@ -138,7 +138,7 @@ Wraps `sf sfdmu run --targetusername CSVFILE`. Runs `post_process_extraction.py`
 ```yaml
 tasks:
   my_task_name:
-    group: Data Maintenance           # Required — groups tasks in `cci task list`
+    group: Data Maintenance           # Recommended — groups tasks in `cci task list`
     description: >
       One or two sentence description. Be specific about which objects/SObjects are affected.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
@@ -261,7 +261,7 @@ cci task run deploy_post_tso_app_menu --org <alias>
 4. **cumulusci.yml** — task group, description accuracy (don't list excluded objects), feature flag conditions
 5. **README accuracy** — object tables, operation columns, deletion order footnotes
 6. **Apex bulk safety** — no SOQL in loops, no single-record DML in loops
-7. **CSV header alignment** — `$$` columns must match externalId fields; empty header files need blank first line
+7. **CSV header alignment** — `$$` columns must match externalId fields; empty CSVs must have the correct header row (field names from the query) — use `--fix-headers` in `validate_sfdmu_v5_datasets.py` to auto-add
 8. **PRM Network email** — repo must use placeholder only; patch/revert tasks must run in correct order (patch before deploy_post_prm, revert after). No real email in committed rlm.network-meta.xml.
 9. **Payments site username** — repo must use placeholder only; patch/revert tasks must run in correct order. No real username in committed Payments_Webhook.site-meta.xml.
 10. **App Launcher** — post_tso_appmenu deployed only when tso=true; sync_appmenu_from_user.py retrieves user order only (no deploy).
