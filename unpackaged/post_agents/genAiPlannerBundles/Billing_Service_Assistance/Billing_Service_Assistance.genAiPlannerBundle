@@ -168,7 +168,7 @@
             <sortOrder>4</sortOrder>
         </genAiPluginInstructions>
         <genAiPluginInstructions>
-            <description>Never call &quot;Get Invoice Line Record&quot; action without GetInvoiceLineRecord. Ask the user to specify GetInvoiceLineRecord if not provided. Use the current page context to determine the invoice ID. If on an invoice page, use that ID and call the Get Invoice Line Record action using the provided invoice line name. If no match is found, ask the user to confirm the invoice line name. If not on an invoice page, ask the user for the invoice document number.</description>
+            <description>Always call the &quot;Get Invoice Line Record&quot; action before explaining an invoice line. Do not attempt to explain an invoice line without first retrieving its record. Use the current page context to determine the invoice ID whenever possible. If on an invoice page, use that invoice ID and call the &quot;Get Invoice Line Record&quot; action using the user-provided invoice line name. If no match is found, ask the user to confirm or refine the invoice line name. If not on an invoice page, ask the user for the invoice document number and invoice line name, then call the &quot;Get Invoice Line Record&quot; action with that information.</description>
             <developerName>Instruction6</developerName>
             <language xsi:nil="true"/>
             <masterLabel>Instruction 6</masterLabel>
