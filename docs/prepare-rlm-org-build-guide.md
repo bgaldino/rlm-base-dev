@@ -33,7 +33,7 @@ Before diving into the flow itself, it helps to understand the tools that power 
 
 ## Feature Flags: How the Build Adapts
 
-One of the most important concepts to understand is that `prepare_rlm_org` is not a fixed sequence — it's a *conditional* sequence controlled by over 50 feature flags. These flags live in `cumulusci.yml` under `project.custom` and determine which steps execute for a given build.
+One of the most important concepts to understand is that `prepare_rlm_org` is not a fixed sequence — it's a *conditional* sequence controlled by around 30 feature flags. These flags live in `cumulusci.yml` under `project.custom` and determine which steps execute for a given build.
 
 For example, if you're building an org that doesn't need billing capabilities, you set `billing: false` and the entire billing data load, activation, and settings deployment is skipped. If you want the QuantumBit product dataset (the default demo data shape), `qb: true` enables it. If you're building a Trialforce Source Org for trial generation, `tso: true` activates additional permission sets and metadata bundles specific to that org type.
 
@@ -81,9 +81,9 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 6. **Rule library creation** — Creates pricing and DRO rule libraries that the pricing and fulfillment engines reference at runtime.
 
-**`prepare_decision_tables`** (Step 2) activates all decision tables in scratch orgs. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation. They must be active before any data that references them is loaded.
+**`prepare_decision_tables`** (Step 2) activates all decision tables. The `cleanup_settings_for_dev` task and the decision table exclude/restore steps run for all org types (the scratch-only guards are not active in the current flow). Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation. They must be active before any data that references them is loaded.
 
-**`prepare_expression_sets`** (Step 3) deactivates existing expression sets, validates pricing schedule prerequisites, and deploys expression sets in draft state. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 19) after all dependent data is in place.
+**`prepare_expression_sets`** (Step 3) deactivates existing expression sets. On scratch orgs it also validates pricing schedule prerequisites and deploys expression sets in draft state (`ensure_pricing_schedules` and `deploy_expression_sets` are gated on `org_config.scratch`); on non-scratch orgs only the deactivation step runs. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 19) after all dependent data is in place.
 
 ---
 
@@ -95,13 +95,13 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Payments webhook creation** (Step 4, conditional on `payments` flag) — Creates the Experience Cloud site that serves as the payments webhook endpoint. This must happen early because the site takes time to provision and later steps depend on it.
 
-**`deploy_full`** (Step 5) — This is the single largest step in the build. It deploys all metadata from `force-app/` (the core SFDX package) plus all conditional `unpackaged/pre/` and `unpackaged/post_*/` bundles. The deployment respects feature flags — if `billing: false`, the billing-related post bundles are skipped. This single step pushes over 600 metadata components to the org.
+**`deploy_full`** (Step 5) — This is the single largest step in the build. It deploys the core SFDX package from `force-app/main/default`. The `unpackaged/pre/` bundle is deployed earlier (before this step), and `unpackaged/post_*/` bundles (payments, billing portal, PRM, TSO, etc.) are deployed in their respective sub-flows later in the sequence. This single step pushes hundreds of metadata components to the org.
 
 **Price adjustment schedule activation** (Step 6, scratch orgs only) — Activates price adjustment schedules that control how pricing rules apply discounts, markups, and other adjustments. These must be active before pricing data can be loaded.
 
 **Scratch org seed data** (Step 7, scratch orgs only, not TSO) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs, these records already exist; in fresh scratch orgs, we need to create them.
 
-**Payments site deployment** (Step 8) — Deploys the payments site metadata and settings, then publishes the Experience Cloud community.
+**Payments site deployment** (Step 8, conditional on `payments` flag) — Deploys the payments site metadata and settings, then publishes the Experience Cloud community. Because `Payments_Webhook.site-meta.xml` stores a placeholder username in the repo, a patch task replaces the placeholder with the org's actual username immediately before the deploy, and a revert task restores the placeholder immediately after — so no real username is ever committed.
 
 **QuantumBit preparation** (Step 9) — Deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions.
 
@@ -127,7 +127,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Document Generation** (Step 12, `docgen` flag) — Creates the DocGen template library, enables the Document Builder toggle via Robot Framework (this is one of those settings with no API), deploys document templates and seller fields, and activates templates. DocGen allows users to generate PDF quotes and contracts directly from Salesforce.
 
-**Dynamic Revenue Orchestration** (Step 13, `dro` flag) — Loads fulfillment plan data that defines how orders are decomposed and routed for fulfillment. DRO data includes dynamic user assignment — the build queries the target org for the running user and injects that user ID into the data, because fulfillment assignments are user-specific.
+**Dynamic Revenue Orchestration** (Step 13, `dro` flag) — Loads fulfillment plan data that defines how orders are decomposed and routed for fulfillment. DRO data includes dynamic user assignment — the build queries the target org for the running user and injects that user's Name into the data, because fulfillment assignments are user-specific.
 
 **Tax** (Step 14, `tax` flag) — Creates the tax engine instance, loads tax policies and treatments, and activates tax records. The tax engine is a Revenue Cloud component that calculates tax at transaction time. It must be created via Apex before tax policy data can reference it.
 
