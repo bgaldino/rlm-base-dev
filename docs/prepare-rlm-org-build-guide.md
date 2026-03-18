@@ -77,7 +77,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 4. **Decision table scaffolding** — Temporarily excludes active decision tables, deploys pre-deployment metadata bundles (settings, PSGs, tax metadata), then restores the decision tables. (The scratch-only guard is currently inactive; this runs for all org types.) This dance is necessary because some decision tables reference metadata that must exist before they can be deployed.
 
-5. **Context definition extension** — Extends 11 standard RLM context definitions with custom attributes via the Context Service API. Contexts are how Revenue Cloud maps business processes to data — the Sales Transaction Context maps quotes, the Billing Context maps billing schedules, and so on. Each context needs custom extensions to support the demo data model.
+5. **Context definition extension** — Extends up to 11 standard RLM context definitions with custom attributes via the Context Service API. Two always run (Sales Transaction, Product Discovery) plus Asset; the remaining 8 are conditional: Cart (`commerce`), Billing and Collection Plan Segment (`billing`), Fulfillment Asset (`dro`), Contracts and Contracts Extraction (`clm`), Rate Management and Rating Discovery (`rating`). Contexts are how Revenue Cloud maps business processes to data — the Sales Transaction Context maps quotes, the Billing Context maps billing schedules, and so on. Each context needs custom extensions to support the demo data model.
 
 6. **Rule library creation** (`breconfig` flag) — Creates pricing rule libraries and, when `dro` is also enabled, the DRO rule library. Skipped in default builds where `breconfig: false`.
 
@@ -153,7 +153,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
-**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, loads PRM-specific data, and extends the Sales Transaction Context with partner account attributes — all gated on `prm` alone. Additional sub-steps require secondary flags: the Experience Bundle patch/deploy/revert and `RLM_PRM` permission set assignment require `prm_exp_bundle AND tso`; sharing rules deployment requires `sharingsettings`.
+**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all gated on `prm` alone. PRM data loading (`insert_quantumbit_prm_data`) additionally requires `qb`; a Q3-only build (`qb: false`) will create and publish the community but skip the QuantumBit PRM data load. Additional sub-steps require secondary flags: the Experience Bundle patch/deploy/revert and `RLM_PRM` permission set assignment require `prm_exp_bundle AND tso`; sharing rules deployment requires `sharingsettings`.
 
 **Agentforce agents** (Step 23, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
 
