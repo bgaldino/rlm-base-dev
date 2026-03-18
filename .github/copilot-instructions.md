@@ -88,7 +88,8 @@ cause Upsert to always insert instead of matching, creating duplicates on every 
 | Composite uniqueness, all fields are direct | `operation: Upsert`, `externalId: Field1;Field2`, `$$Field1$Field2` column in CSV |
 | externalId uses any relationship traversal | `operation: Insert`, `deleteOldData: true` |
 | Auto-number `Name`, all-relationship externalId | `operation: Insert`, `deleteOldData: true` |
-| Empty CSV (no records yet) | `excluded: true` — prevents destructive delete-on-load |
+| Empty CSV + object uses `deleteOldData: true` or a pre-delete task | `excluded: true` — prevents wiping org records and inserting nothing |
+| Empty CSV + object uses `Upsert` (no delete-first) | Ensure correct header row is present; no `excluded` needed — upsert of 0 rows is a safe no-op |
 
 ### deleteOldData Deletion Order
 
@@ -149,8 +150,10 @@ tasks:
 ```
 
 ### Naming Conventions
-- `insert_qb_<plan>_data` — loads data plan (e.g. `insert_qb_rating_data`, `insert_qb_rates_data`, `insert_qb_dro_data`)
-- `insert_quantumbit_<plan>_data` — also used for loads, primarily for pcm/pricing/product_image/prm plans (e.g. `insert_quantumbit_pcm_data`, `insert_quantumbit_pricing_data`)
+- `insert_qb_<plan>_data` — loads QB data plan (e.g. `insert_qb_rating_data`, `insert_qb_rates_data`, `insert_qb_dro_data`)
+- `insert_quantumbit_<plan>_data` — also used for QB loads, primarily for pcm/pricing/product_image/prm plans (e.g. `insert_quantumbit_pcm_data`, `insert_quantumbit_pricing_data`)
+- `insert_q3_<plan>_data` — loads Q3 data plans (e.g. `insert_q3_data`, `insert_q3_rates_data`, `insert_q3_billing_data`, `insert_q3_rating_data`, `insert_q3_tax_data`)
+- `insert_<plan>_data` — loads cross-dataset plans (e.g. `insert_clm_data`, `insert_billing_data`, `insert_tax_data`) — check `cumulusci.yml` for the full list; the above prefixes are non-exhaustive
 - `delete_qb_<plan>_data` or `delete_quantumbit_<plan>_data` — deletes plan data
 - `extract_qb_<plan>_data` — extracts from org
 - `test_qb_<plan>_idempotency` — idempotency test
@@ -201,7 +204,7 @@ When reviewing `export.json` changes:
 - [ ] No 2-hop traversal fields in externalId without `operation: Insert` + `deleteOldData: true`
 - [ ] ORDER BY fields are present in the SELECT clause
 - [ ] Relationship traversal columns in SOQL match what CSV headers expect
-- [ ] Empty CSVs have `excluded: true` (prevents destructive wipe when records are added later)
+- [ ] Empty CSVs with `deleteOldData: true` or a pre-delete task have `excluded: true` (prevents wiping org records then inserting nothing); empty CSVs on Upsert-only objects just need a correct header row
 - [ ] Objects ordered parent → child (deleteOldData reverse-order safety)
 - [ ] `$$` composite key columns in CSV headers match the `externalId` fields exactly
 
