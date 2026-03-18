@@ -21,7 +21,7 @@ Before diving into the flow itself, it helps to understand the tools that power 
 
 **CumulusCI (CCI)** is the orchestration engine. Think of it as the conductor of the orchestra — it defines the order of operations, manages dependencies between steps, and provides the runtime for executing tasks against a Salesforce org. Every step in `prepare_rlm_org` is either a CCI task (a single unit of work) or a CCI flow (a sequence of tasks grouped together).
 
-**SFDMU (Salesforce Data Move Utility) v5** handles all data loading. When the build needs to insert product catalogs, pricing records, billing configurations, or any other data, SFDMU reads CSV files from the repository and loads them into the org. Version 5 is critical — it introduced breaking changes from v4, and all our data plans are built for v5's composite key patterns.
+**SFDMU (Salesforce Data Move Utility) v5** handles most CSV-based data loading. When the build needs to insert product catalogs, pricing records, billing configurations, or other structured data, SFDMU reads CSV files from the repository and loads them into the org. Version 5 is critical — it introduced breaking changes from v4, and all our data plans are built for v5's composite key patterns. Some data is loaded via other mechanisms: constraint models use the custom CML import task (`tasks/rlm_cml.py`), and Procedure Plan Definitions are created via the Salesforce Connect API.
 
 **Salesforce DX / sf CLI** handles metadata deployment — pushing configuration, custom objects, permission sets, and other metadata to the org.
 
@@ -115,7 +115,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Product data loading** (Step 10) — For the QuantumBit data shape, this loads 28 objects including Product2, ProductCategory, ProductCatalog, ProductSellingModel, ProductSellingModelOption, and their relationships. The PCM data defines the full product hierarchy — what products exist, how they're categorized, what selling models they use (one-time, subscription, usage-based), and how they relate to each other as bundles and components. Product images are loaded in a separate pass because image records (ContentVersion/ContentDocumentLink) require the product records to already exist.
 
-**Pricing data loading** (Step 11) — Loads 16 objects including PricebookEntry, PriceAdjustmentSchedule, PriceAdjustmentTier, and their relationships. Before loading, existing pricing data is deleted to prevent duplicates — this is a clean-load pattern rather than an upsert, because SFDMU v5 has known limitations with composite-key upserts on pricing objects.
+**Pricing data loading** (Step 11) — Loads 15 objects including PricebookEntry, PriceAdjustmentSchedule, PriceAdjustmentTier, and their relationships. Before loading, existing pricing data is deleted to prevent duplicates — this is a clean-load pattern rather than an upsert, because SFDMU v5 has known limitations with composite-key upserts on pricing objects.
 
 ---
 
