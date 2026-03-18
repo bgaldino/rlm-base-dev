@@ -101,9 +101,9 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Scratch org seed data** (Step 7, scratch orgs only, not TSO) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs, these records already exist; in fresh scratch orgs, we need to create them.
 
-**Payments site deployment** (Step 8, conditional on `payments` flag) — Deploys the payments site metadata and settings, then publishes the Experience Cloud community. Because `Payments_Webhook.site-meta.xml` stores a placeholder username in the repo, a patch task replaces the placeholder with the org's actual username immediately before the deploy, and a revert task restores the placeholder immediately after — so no real username is ever committed.
+**Payments site deployment** (Step 8) — The `prepare_payments` sub-flow always runs, but every task inside it is gated on `project_config.project__custom__payments`, so when `payments: false` the entire phase is a no-op. When enabled, it deploys the payments site metadata and settings and publishes the Experience Cloud community. Because `Payments_Webhook.site-meta.xml` stores a placeholder username in the repo, a patch task replaces the placeholder with the org's actual username immediately before the deploy, and a revert task restores the placeholder immediately after — so no real username is ever committed.
 
-**QuantumBit preparation** (Step 9) — Deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions.
+**QuantumBit preparation** (Step 9, `quantumbit` flag) — Deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions. Note: the `quantumbit` flag gates this metadata deployment; product and pricing data loads are separately gated on the `qb` flag in later phases.
 
 ---
 
@@ -137,7 +137,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **CLM** (Step 17, `clm` + `clm_data` flags) — Loads Contract Lifecycle Management reference data including contract templates, clause libraries, and related configuration.
 
-**Rating** (Step 18, `rating` + `rates` flags) — Loads usage rating design-time data and rate cards. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Periods (PURPs), and Product Usage Groups (PUGs). Rate card data is loaded separately. After both are loaded, a complex 7-step Apex activation script runs to activate PURs, PUGs, and rate card entries in the correct platform-required order.
+**Rating** (Step 18, `rating` flag; rate cards additionally require `rates`) — Loads usage rating design-time data whenever `rating: true`. Rate card loading and the activation tasks are additionally gated on `rates: true`. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Periods (PURPs), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. After both are loaded, a complex 7-step Apex activation script runs to activate PURs, PUGs, and rate card entries in the correct platform-required order.
 
 ---
 
@@ -153,7 +153,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
-**PRM** (Step 22, `prm` flag) — Creates the Partner Central community and publishes it. Additional sub-steps are gated on secondary flags: the Experience Bundle patch/deploy/revert and `RLM_PRM` permission set assignment require `prm_exp_bundle AND tso`; sharing rules deployment requires `sharingsettings`. In a default (non-TSO) build only community creation and PRM data load run.
+**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, loads PRM-specific data, and extends the Sales Transaction Context with partner account attributes — all gated on `prm` alone. Additional sub-steps require secondary flags: the Experience Bundle patch/deploy/revert and `RLM_PRM` permission set assignment require `prm_exp_bundle AND tso`; sharing rules deployment requires `sharingsettings`.
 
 **Agentforce agents** (Step 23, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
 
@@ -181,7 +181,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Pricing discovery reconfiguration** (Step 27, scratch orgs only, not TSO) — Fixes the pricing discovery procedure by reconfiguring an expression set. This addresses a platform behavior where scratch org provisioning creates a default pricing discovery configuration that conflicts with the one we deploy.
 
-**Decision table refresh** (Step 28) — The final step syncs pricing data and refreshes all decision table categories: pricing discovery, asset, rating, rating discovery, and commerce (if enabled). Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This step must always run last because it materializes the current state of all reference data into the decision table engine.
+**Decision table refresh** (Step 28) — The final step syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; asset, rating, and rating discovery categories refresh only when `rating: true`; commerce refreshes only when `commerce: true`. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This step must always run last because it materializes the current state of all reference data into the decision table engine.
 
 ---
 
