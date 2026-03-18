@@ -9,7 +9,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 28-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 28-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -79,7 +79,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 5. **Context definition extension** — Extends 11 standard RLM context definitions with custom attributes via the Context Service API. Contexts are how Revenue Cloud maps business processes to data — the Sales Transaction Context maps quotes, the Billing Context maps billing schedules, and so on. Each context needs custom extensions to support the demo data model.
 
-6. **Rule library creation** — Creates pricing and DRO rule libraries that the pricing and fulfillment engines reference at runtime.
+6. **Rule library creation** (`breconfig` flag) — Creates pricing rule libraries and, when `dro` is also enabled, the DRO rule library. Skipped in default builds where `breconfig: false`.
 
 **`prepare_decision_tables`** (Step 2) activates all decision tables on scratch orgs (`activate_decision_tables` is gated on `org_config.scratch`); on non-scratch orgs the flow runs but the activation task is skipped and pre-existing decision table state is relied upon. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
@@ -200,8 +200,10 @@ cci flow run prepare_rlm_org --org beta
 # Check which flags are active
 cci project info
 
-# Override a flag for a single run
-cci flow run prepare_rlm_org --org beta -o billing false
+# Override a flag for a single run by editing project.custom in cumulusci.yml:
+# e.g. set "billing: false" under project > custom, then re-run
+# Note: feature flags are read from project_config.project__custom__* via
+# when: conditions — they cannot be overridden with the -o CLI option
 ```
 
 ---
