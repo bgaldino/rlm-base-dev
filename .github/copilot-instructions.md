@@ -202,7 +202,7 @@ When reviewing `export.json` changes:
 
 - [ ] externalId uses `;` delimiters (not `$$`)
 - [ ] No 2-hop traversal fields in externalId without `operation: Insert` + `deleteOldData: true`
-- [ ] ORDER BY fields are present in the SELECT clause
+- [ ] ORDER BY fields give stable, consistent load order (relationship traversal fields like `Catalog.Code` are valid in ORDER BY without being in SELECT)
 - [ ] Relationship traversal columns in SOQL match what CSV headers expect
 - [ ] Empty CSVs with `deleteOldData: true` or a pre-delete task have `excluded: true` (prevents wiping org records then inserting nothing); empty CSVs on Upsert-only objects just need a correct header row
 - [ ] Objects ordered parent → child (deleteOldData reverse-order safety)
