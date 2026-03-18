@@ -107,17 +107,19 @@ columns, making outputs re-import-ready. Always use processed extraction output 
 ## Python Task Classes (`tasks/rlm_sfdmu.py`)
 
 ### `LoadSFDMUData`
-Wraps `sf sfdmu run --sourceusername CSVFILE`. Key option: `pathtoexportjson` (directory).
+Wraps `sf sfdmu run --sourceusername CSVFILE --targetusername <org>` (CSV → org). Key option: `pathtoexportjson` (directory).
 
 ### Deleting data plans
 
 Deletes use one of two implementations depending on the plan:
 
-- **`DeleteSFDMUData` (Python task):** Used for plans where SFDMU can drive the deletion from the
-  export.json object list. Example: `delete_quantumbit_pricing_data` (`class_path: tasks.rlm_sfdmu.DeleteSFDMUData`).
+- **`DeleteSFDMUData` (Python task, REST-based):** Reads `export.json` to identify non-excluded
+  `operation: Insert` objects, then deletes all records of those types via Salesforce REST API
+  (`composite/sobjects`) in reverse array order (children first). Does **not** invoke SFDMU —
+  extends `BaseSalesforceTask` directly. Example: `delete_quantumbit_pricing_data`.
 - **`AnonymousApexTask` (Apex script):** Used for plans that require deactivation before deletion or
   complex dependency ordering. Examples: `delete_qb_rating_data`, `delete_qb_rates_data`,
-  `delete_quantumbit_billing_data`. Key scripts:
+  `delete_draft_billing_records`. Key scripts:
   - `scripts/apex/deleteQbRatingData.apex` — deactivates then deletes PUG → PURP → PUR
   - `scripts/apex/deleteQbRatesData.apex` — deletes rate card data (must run before deleteQbRatingData; rates FK to PURs)
 
@@ -172,7 +174,7 @@ Controlled via `project → custom` in `cumulusci.yml`. Boolean flags like `qb`,
 - **Deploy time:** Task `patch_network_email_for_deploy` (before `deploy_post_prm`) replaces the placeholder with the **Network's actual current `EmailSenderAddress`** (queried from the org; immutable after Network creation) so the metadata deploy succeeds. Task `revert_network_email_after_deploy` (after `deploy_post_prm`) restores the placeholder so the repo is never left with the org email. Both tasks are in `tasks/rlm_community.py`.
 
 ### Payments Site Username
-- **Repo:** `unpackaged/post_payments/sites/Payments_Webhook.site-meta.xml` uses placeholder `payments-site-admin@example.com` for `siteAdmin` and `owner` fields.
+- **Repo:** `unpackaged/post_payments/sites/Payments_Webhook.site-meta.xml` uses placeholder `payments-site-admin@example.com` for `siteAdmin` and `siteGuestRecordDefaultOwner` fields.
 - **Deploy time:** Task `patch_payments_site_for_deploy` replaces these with `org_config.username` before deploy; `revert_payments_site_after_deploy` restores the placeholder afterward. Both tasks are in `tasks/rlm_community.py`.
 
 ---
