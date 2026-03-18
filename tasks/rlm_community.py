@@ -138,13 +138,14 @@ class SetupPrmOrgEmail(BaseTask):
 class PatchNetworkEmailForDeploy(BaseTask):
     """
     Replaces the placeholder emailSenderAddress in the Network .network-meta.xml
-    with the target org's running user email so the metadata deploy succeeds.
+    with the Network's actual current EmailSenderAddress so the metadata deploy succeeds.
     The repo file must contain the placeholder (non-PII); run revert_network_email_after_deploy
     after deploy to restore the placeholder so the repo never stores the real email.
 
-    Background: Salesforce requires emailSenderAddress in Network metadata for
-    both CREATE and UPDATE operations. The committed file uses a placeholder;
-    this task substitutes the running user's email only during deployment.
+    Background: Salesforce requires emailSenderAddress in Network metadata for UPDATE
+    operations, and the field is immutable after Network creation. The committed file uses
+    a placeholder; this task reads the Network's actual current value and substitutes it
+    only during deployment so the deployed value exactly matches the org's existing value.
 
     Run AFTER create_partner_central and BEFORE deploy_post_prm.
     """
@@ -152,8 +153,15 @@ class PatchNetworkEmailForDeploy(BaseTask):
     task_options = {
         "placeholder_email": {
             "description": (
-                "Placeholder value in the repo file to replace with the running user email "
-                "(default: rlm-network-sender@example.com)."
+                "Placeholder value in the repo file to replace with the Network's actual "
+                "EmailSenderAddress (default: rlm-network-sender@example.com)."
+            ),
+            "required": False,
+        },
+        "network_name": {
+            "description": (
+                "Name of the Network record to read EmailSenderAddress from "
+                "(default: rlm)."
             ),
             "required": False,
         },
@@ -171,6 +179,7 @@ class PatchNetworkEmailForDeploy(BaseTask):
         placeholder = self.options.get(
             "placeholder_email", "rlm-network-sender@example.com"
         )
+        network_name = self.options.get("network_name", "rlm")
         default_xml_path = (
             "unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml"
         )
@@ -189,19 +198,20 @@ class PatchNetworkEmailForDeploy(BaseTask):
             "Content-Type": "application/json",
         }
         query_url = f"{instance_url}/services/data/v{api_version}/query"
-        username_escaped = self.org_config.username.replace("'", "''")
-        soql = f"SELECT Email FROM User WHERE Username = '{username_escaped}' LIMIT 1"
+        network_name_escaped = network_name.replace("'", "''")
+        soql = f"SELECT EmailSenderAddress FROM Network WHERE Name = '{network_name_escaped}' LIMIT 1"
         response = requests.get(query_url, headers=headers, params={"q": soql})
         response.raise_for_status()
         result = response.json()
         if result.get("totalSize", 0) == 0:
             raise TaskOptionsError(
-                f"Could not find User for username '{self.org_config.username}'"
+                f"Network '{network_name}' not found in org. "
+                "Ensure create_partner_central has run before this task."
             )
-        deploy_email = result["records"][0].get("Email", "").strip()
+        deploy_email = result["records"][0].get("EmailSenderAddress", "").strip()
         if not deploy_email:
             raise TaskOptionsError(
-                "Running user has no Email set; cannot patch network emailSenderAddress."
+                f"Network '{network_name}' has no EmailSenderAddress set."
             )
 
         repo_root = self.project_config.repo_root
@@ -226,7 +236,7 @@ class PatchNetworkEmailForDeploy(BaseTask):
             f.write(xml_content)
 
         self.logger.info(
-            f"Patched emailSenderAddress to running user email in {xml_path} (for deploy only)."
+            f"Patched emailSenderAddress to Network '{network_name}' value in {xml_path} (for deploy only)."
         )
 
 
