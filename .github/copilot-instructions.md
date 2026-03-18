@@ -111,11 +111,15 @@ Wraps `sf sfdmu run --sourceusername CSVFILE`. Key option: `pathtoexportjson` (d
 
 ### Deleting data plans
 
-Deletes are implemented as Apex scripts (not a Python task class). Each plan has a dedicated
-`delete_qb_<plan>_data` CCI task that runs an Apex script to deactivate and delete records in
-dependency order. Key scripts:
-- `scripts/apex/deleteQbRatingData.apex` — deactivates then deletes PUG → PURP → PUR
-- `scripts/apex/deleteQbRatesData.apex` — deletes rate card data (must run before deleteQbRatingData; rates FK to PURs)
+Deletes use one of two implementations depending on the plan:
+
+- **`DeleteSFDMUData` (Python task):** Used for plans where SFDMU can drive the deletion from the
+  export.json object list. Example: `delete_quantumbit_pricing_data` (`class_path: tasks.rlm_sfdmu.DeleteSFDMUData`).
+- **`AnonymousApexTask` (Apex script):** Used for plans that require deactivation before deletion or
+  complex dependency ordering. Examples: `delete_qb_rating_data`, `delete_qb_rates_data`,
+  `delete_quantumbit_billing_data`. Key scripts:
+  - `scripts/apex/deleteQbRatingData.apex` — deactivates then deletes PUG → PURP → PUR
+  - `scripts/apex/deleteQbRatesData.apex` — deletes rate card data (must run before deleteQbRatingData; rates FK to PURs)
 
 Always run `delete_qb_rates_data` before `delete_qb_rating_data` to satisfy FK constraints.
 
@@ -143,7 +147,8 @@ tasks:
 ```
 
 ### Naming Conventions
-- `insert_qb_<plan>_data` — loads data plan
+- `insert_qb_<plan>_data` — loads data plan (e.g. `insert_qb_rating_data`, `insert_qb_rates_data`, `insert_qb_dro_data`)
+- `insert_quantumbit_<plan>_data` — also used for loads, primarily for pcm/pricing/product_image/prm plans (e.g. `insert_quantumbit_pcm_data`, `insert_quantumbit_pricing_data`)
 - `delete_qb_<plan>_data` or `delete_quantumbit_<plan>_data` — deletes plan data
 - `extract_qb_<plan>_data` — extracts from org
 - `test_qb_<plan>_idempotency` — idempotency test
