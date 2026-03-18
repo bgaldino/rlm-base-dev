@@ -81,7 +81,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 6. **Rule library creation** (`breconfig` flag) — Creates pricing rule libraries and, when `dro` is also enabled, the DRO rule library. Skipped in default builds where `breconfig: false`.
 
-**`prepare_decision_tables`** (Step 2) activates all decision tables on scratch orgs (`activate_decision_tables` is gated on `org_config.scratch`); on non-scratch orgs the flow runs but the activation task is skipped and pre-existing decision table state is relied upon. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
+**`prepare_decision_tables`** (Step 2) activates a specific set of decision tables on scratch orgs (`activate_decision_tables` is gated on `org_config.scratch` and targets `RLM_ProductCategoryQualification`, `RLM_ProductQualification`, and `RLM_CostBookEntries`); on non-scratch orgs the flow runs but activation is skipped and pre-existing decision table state is relied upon. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
 **`prepare_expression_sets`** (Step 3) deactivates existing expression sets. On scratch orgs it also validates pricing schedule prerequisites and deploys expression sets in draft state (`ensure_pricing_schedules` and `deploy_expression_sets` are gated on `org_config.scratch`); on non-scratch orgs only the deactivation step runs. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 19) after all dependent data is in place.
 
@@ -200,10 +200,12 @@ cci flow run prepare_rlm_org --org beta
 # Check which flags are active
 cci project info
 
-# Override a flag for a single run by editing project.custom in cumulusci.yml:
-# e.g. set "billing: false" under project > custom, then re-run
-# Note: feature flags are read from project_config.project__custom__* via
-# when: conditions — they cannot be overridden with the -o CLI option
+# Override a flag for a single run (some flows expose flags as runtime options):
+cci flow run prepare_constraints --org beta -o constraints_data true
+
+# To change a flag that isn't exposed as a runtime option, edit project.custom
+# in cumulusci.yml and re-run. Check the flow/task definition in cumulusci.yml
+# to confirm whether a given flag can be set via -o at runtime.
 ```
 
 ---
