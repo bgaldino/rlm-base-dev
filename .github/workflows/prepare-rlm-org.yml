@@ -60,9 +60,27 @@ jobs:
           python -c "import robot; print('Robot Framework OK')"
           python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
           python -c "import webdriver_manager; print('webdriver-manager OK')"
-          SFDMU_VERSION=$(sf plugins --json | python -c "import json,sys; plugins=json.load(sys.stdin); p=[x for x in plugins if x.get('name')=='sfdmu']; print(p[0]['version'] if p else 'not found')")
+          SFDMU_VERSION=$(sf plugins --json | python -c "
+import json, sys
+data = json.load(sys.stdin)
+plugins = data if isinstance(data, list) else data.get('result', data.get('plugins', []))
+match = [p for p in plugins if isinstance(p, dict) and p.get('name') == 'sfdmu']
+if not match:
+    print('ERROR: sfdmu plugin not found', file=sys.stderr); sys.exit(1)
+print(match[0]['version'])
+")
           echo "SFDMU version: $SFDMU_VERSION"
-          python -c "v='$SFDMU_VERSION'; major=int(v.split('.')[0]); assert major>=5, f'SFDMU v5+ required, got {v}'"
+          python -c "
+import sys
+v = '$SFDMU_VERSION'
+parts = v.split('.')
+if not parts[0].isdigit():
+    print(f'ERROR: could not parse SFDMU version: {v}', file=sys.stderr); sys.exit(1)
+major = int(parts[0])
+if major < 5:
+    print(f'ERROR: SFDMU v5+ required, got {v}', file=sys.stderr); sys.exit(1)
+print(f'SFDMU v{v} meets minimum requirement (v5+)')
+"
 
       - name: Authenticate Dev Hub
         run: |
