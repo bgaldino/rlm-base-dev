@@ -86,7 +86,7 @@ class ValidateSetup(BaseTask):
             "description": (
                 "When true, run pipx inject cumulusci --force -r robot/requirements.txt "
                 "to install missing Robot Framework dependencies (robotframework, "
-                "robotframework-seleniumlibrary, webdriver-manager, urllib3). "
+                "robotframework-seleniumlibrary, selenium, webdriver-manager, urllib3). "
                 "Default: true — robot tasks are required and deps are auto-installed "
                 "on first run."
             ),
@@ -534,7 +534,7 @@ class ValidateSetup(BaseTask):
         )
         try:
             result = subprocess.run(
-                ["pipx", "inject", "cumulusci", "-r", requirements_path],
+                ["pipx", "inject", "cumulusci", "--force", "-r", requirements_path],
                 capture_output=True,
                 text=True,
                 timeout=300,
