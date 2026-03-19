@@ -28,11 +28,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Cache npm global packages
+      - name: Cache npm download cache
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-global-${{ runner.os }}-node22
+          key: npm-cache-${{ runner.os }}-node22
 
       - name: Install sf CLI and SFDMU plugin
         run: |
@@ -60,6 +60,9 @@ jobs:
           python -c "import robot; print('Robot Framework OK')"
           python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
           python -c "import webdriver_manager; print('webdriver-manager OK')"
+          SFDMU_VERSION=$(sf plugins --json | python -c "import json,sys; plugins=json.load(sys.stdin); p=[x for x in plugins if x.get('name')=='sfdmu']; print(p[0]['version'] if p else 'not found')")
+          echo "SFDMU version: $SFDMU_VERSION"
+          python -c "v='$SFDMU_VERSION'; major=int(v.split('.')[0]); assert major>=5, f'SFDMU v5+ required, got {v}'"
 
       - name: Authenticate Dev Hub
         run: |
