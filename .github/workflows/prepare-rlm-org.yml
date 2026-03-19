@@ -43,7 +43,8 @@ jobs:
 
       - name: Install CumulusCI and dependencies
         run: |
-          pip install "cumulusci>=4.0.0" "setuptools<71" -r robot/requirements.txt
+          pip install "cumulusci>=4.0.0" "setuptools<71"
+          pip install "webdriver-manager>=4,<5" "urllib3>=2.6.3"
           cci version
 
       - name: Verify environment
@@ -55,6 +56,7 @@ jobs:
           python --version
           python -c "import robot; print('Robot Framework OK')"
           python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
+          python -c "import webdriver_manager; print('webdriver-manager OK')"
 
       - name: Authenticate Dev Hub
         run: |
