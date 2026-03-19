@@ -44,7 +44,7 @@ jobs:
       - name: Install sf CLI and SFDMU plugin
         run: |
           npm install -g @salesforce/cli@2.127.2
-          sf plugins install sfdmu@5
+          sf plugins install sfdmu@5 --no-prompt
           sf --version
           sf plugins
 
