@@ -12,6 +12,8 @@ jobs:
   prepare-rlm-org:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      CHROME_BIN: /usr/bin/google-chrome
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,20 +28,40 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+
       - name: Cache npm global packages
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: npm-global-${{ runner.os }}-node22
 
-      - name: Install sf CLI and SFDMU
+      - name: Install sf CLI and SFDMU plugin
         run: |
           npm install -g @salesforce/cli
           sf plugins install sfdmu
+          sf --version
+          sf plugins list
 
-      - name: Install CumulusCI
+      - name: Install CumulusCI and dependencies
         run: |
           pip install cumulusci "setuptools<71"
+          pip install -r robot/requirements.txt
+          cci version
+
+      - name: Verify environment
+        run: |
+          node --version
+          sf --version
+          cci version
+          sf plugins list
+          python --version
+          python -c "import robot; print('Robot Framework OK')"
+          python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
 
       - name: Authenticate Dev Hub
         run: |
