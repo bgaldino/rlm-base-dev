@@ -18,10 +18,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -45,7 +45,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install --upgrade pip setuptools
-          .venv/bin/pip install "cumulusci>=4.0.0" "webdriver-manager>=4,<5"
+          .venv/bin/pip install "cumulusci==4.8.1" "webdriver-manager>=4,<5"
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
           .venv/bin/cci version
 
