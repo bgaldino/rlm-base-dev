@@ -277,9 +277,9 @@ Run the built-in setup validator (no org connection required):
 cci task run validate_setup
 ```
 
-This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework, selenium (4.10+), and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing or outdated Robot Framework pieces (including selenium) are auto-installed via `pipx inject -r robot/requirements.txt`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
+This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework, selenium (4.10+), and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing or outdated Robot Framework pieces (including selenium) are auto-installed via `pipx inject cumulusci --force -r robot/requirements.txt`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
 
-> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, selenium>=4.10, SeleniumLibrary, webdriver-manager via `pipx inject -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
+> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, selenium>=4.10, SeleniumLibrary, webdriver-manager via `pipx inject cumulusci --force -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
 
 ### Using Claude Code with this project
 
@@ -1253,7 +1253,7 @@ Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Run `
 This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. The project's `WebDriverManager.py` patches `RemoteConnection._timeout` at import time to resolve this automatically. If you still encounter it, ensure your Robot dependencies are up to date:
 
 ```bash
-pipx inject cumulusci -r robot/requirements.txt --force
+pipx inject cumulusci --force -r robot/requirements.txt
 ```
 
 Use `--force` to upgrade existing packages. CumulusCI currently pins `selenium<4`, so the automatic patch in `WebDriverManager.py` is required for urllib3 2.x compatibility. Then re-run the Document Builder task or flow.
