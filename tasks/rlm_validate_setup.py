@@ -320,7 +320,8 @@ class ValidateSetup(BaseTask):
                     import importlib  # noqa: PLC0415
                     sel_mod = importlib.import_module("selenium")
                     ver_str = getattr(sel_mod, "__version__", "unknown")
-                    return self._fixed(label, ver_str)
+                    if _parse_version(ver_str) >= MIN_SELENIUM:
+                        return self._fixed(label, ver_str)
                 except ImportError:
                     pass
             return self._fail(

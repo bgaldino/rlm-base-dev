@@ -19,8 +19,6 @@ jobs:
   prepare-rlm-org:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    env:
-      CHROME_BIN: /usr/bin/google-chrome
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,6 +38,11 @@ jobs:
         with:
           path: ~/.npm
           key: npm-cache-${{ runner.os }}-node22
+
+      - name: Install Chrome
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y google-chrome-stable
 
       - name: Install sf CLI and SFDMU plugin
         run: |
