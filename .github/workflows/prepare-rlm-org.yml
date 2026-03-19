@@ -43,9 +43,11 @@ jobs:
 
       - name: Install CumulusCI and dependencies
         run: |
-          pip install setuptools "cumulusci>=4.0.0"
-          pip install "webdriver-manager>=4,<5" "urllib3>=2.6.3"
-          cci version
+          python -m venv .venv
+          .venv/bin/pip install "cumulusci>=4.0.0"
+          .venv/bin/pip install "webdriver-manager>=4,<5"
+          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
+          .venv/bin/cci version
 
       - name: Verify environment
         run: |
