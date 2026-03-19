@@ -1,18 +1,17 @@
 name: Prepare RLM Org
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-concurrency:
-  group: prepare-rlm-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  workflow_dispatch:
+    inputs:
+      org_alias:
+        description: "Scratch org alias to create"
+        required: false
+        default: "test-org"
 
 jobs:
   prepare-rlm-org:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    if: github.event.pull_request.head.repo.full_name == github.repository
     env:
       CHROME_BIN: /usr/bin/google-chrome
     steps:
@@ -70,13 +69,13 @@ jobs:
 
       - name: Create scratch org
         run: |
-          cci org scratch test-sb0 test-org --default
+          cci org scratch test-sb0 ${{ inputs.org_alias }} --default
 
       - name: Run prepare_rlm_org
         run: |
-          cci flow run prepare_rlm_org --org test-org
+          cci flow run prepare_rlm_org --org ${{ inputs.org_alias }}
 
       - name: Delete scratch org
         if: always()
         run: |
-          cci org scratch_delete test-org || true
+          cci org scratch_delete ${{ inputs.org_alias }} || true
