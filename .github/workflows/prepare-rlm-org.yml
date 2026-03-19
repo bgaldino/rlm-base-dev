@@ -7,6 +7,13 @@ on:
         description: "Scratch org alias to create"
         required: false
         default: "test-org"
+      scratch_config:
+        description: "Scratch org config name from orgs/ (e.g. dev, test-sb0)"
+        required: false
+        default: "dev"
+
+permissions:
+  contents: read
 
 jobs:
   prepare-rlm-org:
@@ -36,7 +43,7 @@ jobs:
 
       - name: Install sf CLI and SFDMU plugin
         run: |
-          npm install -g @salesforce/cli
+          npm install -g @salesforce/cli@2.127.2
           sf plugins install sfdmu
           sf --version
           sf plugins
@@ -70,7 +77,7 @@ jobs:
 
       - name: Create scratch org
         run: |
-          cci org scratch test-sb0 ${{ inputs.org_alias }} --default
+          cci org scratch ${{ inputs.scratch_config }} ${{ inputs.org_alias }} --default
 
       - name: Run prepare_rlm_org
         run: |
