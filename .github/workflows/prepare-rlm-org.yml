@@ -12,6 +12,7 @@ jobs:
   prepare-rlm-org:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    if: github.event.pull_request.head.repo.full_name == github.repository
     env:
       CHROME_BIN: /usr/bin/google-chrome
     steps:
