@@ -21,7 +21,7 @@ Before diving into the flow itself, it helps to understand the tools that power 
 
 **CumulusCI (CCI)** is the orchestration engine. Think of it as the conductor of the orchestra — it defines the order of operations, manages dependencies between steps, and provides the runtime for executing tasks against a Salesforce org. Every step in `prepare_rlm_org` is either a CCI task (a single unit of work) or a CCI flow (a sequence of tasks grouped together).
 
-**SFDMU (Salesforce Data Move Utility) v5** handles most CSV-based data loading. When the build needs to insert product catalogs, pricing records, billing configurations, or other structured data, SFDMU reads CSV files from the repository and loads them into the org. Version 5 is critical — it introduced breaking changes from v4, and all our data plans are built for v5's composite key patterns. Some data is loaded via other mechanisms: constraint models use the custom CML import task (`tasks/rlm_cml.py`), and Procedure Plan Definitions are created via the Salesforce Connect API.
+**SFDMU (Salesforce Data Move Utility) v5** handles most CSV-based data loading. When the build needs to insert product catalogs, pricing records, billing configurations, or other structured data, SFDMU reads CSV files from the repository and loads them into the org. Version 5 is critical — it introduced breaking changes from v4, and all our data plans are built for v5's composite key patterns. Some data is loaded via other mechanisms: constraint models use the custom CML import task (`tasks/rlm_cml.py`), and Procedure Plan Definitions are created via the Salesforce Connect REST API.
 
 **Salesforce DX / sf CLI** handles metadata deployment — pushing configuration, custom objects, permission sets, and other metadata to the org.
 
@@ -103,7 +103,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Payments site deployment** (Step 8) — This step always runs, but if `payments` is turned off, every task inside it is simply skipped. When Payments is enabled, it deploys the site metadata and settings and publishes the Experience Cloud community. The site metadata in the repository uses a placeholder username to avoid storing real usernames in source control — right before deployment, that placeholder is swapped for the org's actual username, and immediately after deployment it's restored. Nothing sensitive ever gets committed.
 
-**QuantumBit preparation** (Step 9, `quantumbit` flag) — Deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions. Two separate flags control QuantumBit: `quantumbit` controls this metadata deployment, while the actual product and pricing data loads later in the flow are controlled independently by the `qb` flag.
+**QuantumBit preparation** (Step 9) — This step always runs, but like Payments, if `quantumbit` is off every task inside is simply skipped. When enabled, it deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions. Two separate flags control QuantumBit content: `quantumbit` controls this metadata deployment, while the actual product and pricing data loads later in the flow are controlled independently by the `qb` flag.
 
 ---
 
@@ -137,7 +137,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **CLM** (Step 17, `clm` + `clm_data` flags) — Loads Contract Lifecycle Management reference data including contract templates, clause libraries, and related configuration.
 
-**Rating** (Step 18, `rating` and `rates` flags) — Loads usage rating design-time data when `rating` is enabled. Rate card loading and the final activation steps additionally require `rates` to be on. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Periods (PURPs), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. After both are loaded, a complex 7-step Apex activation script runs to activate PURs, PUGs, and rate card entries in the correct platform-required order.
+**Rating** (Step 18, `rating` and `rates` flags) — Loads usage rating design-time data when `rating` is enabled. Rate card loading and the final activation steps additionally require `rates` to be on. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Periods (PURPs), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. Activation happens in two separate steps: a 7-step Apex script activates PURs, PURPs, and PUGs in the platform-required order, then a second Apex script activates the rate card entries.
 
 ---
 
@@ -151,7 +151,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **TSO preparation** (Step 20, `tso` flag) — Assigns additional permission set licenses, permission set groups, and metadata bundles specific to Trialforce Source Orgs. TSOs have a superset of permissions because they're used to generate trial orgs that need to work out of the box.
 
-**Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
+**Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect REST API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
 **PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all of which happen whenever `prm` is on. Loading the QuantumBit PRM product data additionally requires `qb`; if you're building a Q3-only org, the community is still created and published but that data load is skipped. Two sub-steps are Trialforce Source Org-specific and only run in TSO builds: deploying the full Experience Bundle and assigning the `RLM_PRM` permission set. Sharing rules deployment is its own separate toggle (`sharingsettings`).
 
