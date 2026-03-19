@@ -1,0 +1,58 @@
+name: Prepare RLM Org
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: prepare-rlm-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-rlm-org:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache npm global packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-global-${{ runner.os }}-node22
+
+      - name: Install sf CLI and SFDMU
+        run: |
+          npm install -g @salesforce/cli sfdx-data-move-utility
+
+      - name: Install CumulusCI
+        run: |
+          pip install cumulusci "setuptools<71"
+
+      - name: Authenticate Dev Hub
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" | sf org login sfdx-url --stdin --set-default-dev-hub --alias devhub
+
+      - name: Create scratch org
+        run: |
+          cci org scratch test-sb0 test-org --default
+
+      - name: Run prepare_rlm_org
+        run: |
+          cci flow run prepare_rlm_org --org test-org
+
+      - name: Delete scratch org
+        if: always()
+        run: |
+          cci org scratch_delete test-org || true
