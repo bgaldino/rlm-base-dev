@@ -44,8 +44,8 @@ jobs:
       - name: Install CumulusCI and dependencies
         run: |
           python -m venv .venv
-          .venv/bin/pip install "cumulusci>=4.0.0"
-          .venv/bin/pip install "webdriver-manager>=4,<5"
+          .venv/bin/pip install --upgrade pip setuptools
+          .venv/bin/pip install "cumulusci>=4.0.0" "webdriver-manager>=4,<5"
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
           .venv/bin/cci version
 
