@@ -84,7 +84,7 @@ class ValidateSetup(BaseTask):
         },
         "auto_fix_robot": {
             "description": (
-                "When true, run pipx inject cumulusci -r robot/requirements.txt "
+                "When true, run pipx inject cumulusci --force -r robot/requirements.txt "
                 "to install missing Robot Framework dependencies (robotframework, "
                 "robotframework-seleniumlibrary, webdriver-manager, urllib3). "
                 "Default: true — robot tasks are required and deps are auto-installed "
@@ -285,7 +285,7 @@ class ValidateSetup(BaseTask):
                 "not found in the CCI Python env — required for configure_revenue_settings "
                 "and other robot tasks (enable_document_builder_toggle, enable_constraints_settings, "
                 "enable_analytics_replication).\n"
-                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
+                "  Fix: pipx inject cumulusci --force -r robot/requirements.txt",
             )
 
     def _check_selenium(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -312,7 +312,7 @@ class ValidateSetup(BaseTask):
             return self._fail(
                 label,
                 f"{ver_str} — requires {MIN_SELENIUM_STR}+ (executable_path removed in 4.10; "
-                "Service API required). Fix: pipx inject cumulusci -r robot/requirements.txt",
+                "Service API required). Fix: pipx inject cumulusci --force -r robot/requirements.txt",
             )
         except ImportError:
             if auto_fix and self._install_robot_deps():
@@ -326,7 +326,7 @@ class ValidateSetup(BaseTask):
             return self._fail(
                 label,
                 "not found in the CCI Python env — required for all robot tasks.\n"
-                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
+                "  Fix: pipx inject cumulusci --force -r robot/requirements.txt",
             )
 
     def _check_selenium_library(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -348,7 +348,7 @@ class ValidateSetup(BaseTask):
             return self._fail(
                 label,
                 "not found in the CCI Python env — required for all robot tasks.\n"
-                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
+                "  Fix: pipx inject cumulusci --force -r robot/requirements.txt",
             )
 
     def _check_webdriver_manager(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -507,7 +507,7 @@ class ValidateSetup(BaseTask):
     # ── Robot helpers ─────────────────────────────────────────────────────────
 
     def _install_robot_deps(self) -> bool:
-        """Run ``pipx inject cumulusci -r robot/requirements.txt`` at most once per session.
+        """Run ``pipx inject cumulusci --force -r robot/requirements.txt`` at most once per session.
 
         Returns True if the install succeeded (or had already succeeded), False on failure.
         After the first attempt (success or failure) ``self._robot_deps_attempted`` is set so

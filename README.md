@@ -374,7 +374,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
    1. **Python packages** — Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
      ```bash
-     pipx inject cumulusci -r robot/requirements.txt
+     pipx inject cumulusci --force -r robot/requirements.txt
      ```
      If you use a project virtual environment: `pip install -r robot/requirements.txt` inside the venv. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
 
@@ -1236,7 +1236,7 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
    ```
 2. Install them into CumulusCI's environment so headless robot tasks can run. If you use **pipx** for CumulusCI:
    ```bash
-   pipx inject cumulusci -r robot/requirements.txt
+   pipx inject cumulusci --force -r robot/requirements.txt
    ```
 3. Run `cci task run validate_setup` to confirm all headless robot dependencies (Robot, selenium 4.10+, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver). Once the org is ready, run the task to confirm end-to-end.
 

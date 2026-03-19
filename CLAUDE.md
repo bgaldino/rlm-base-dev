@@ -207,7 +207,7 @@ See `## macOS Environment Setup (Homebrew + pyenv + nvm)` section in README.md f
 - **~/.zshenv** must include nvm and pyenv init for non-interactive shells (IDE tools, CI, Claude Code). Without it, `sf` and `node` are not found in those contexts. Add both blocks to `~/.zshenv` AND `~/.zshrc`.
 - **venv** should be created at repo root (`.venv/`) for running `scripts/` and `tasks/` outside CCI
 - **validate_setup** (`cci task run validate_setup`) is the built-in environment checker — checks Python, CCI, sf CLI, SFDMU, Node.js, Robot deps. Runs without an org. Auto-fixes outdated SFDMU by default.
-- Robot Framework deps (for headless tasks) are defined in `robot/requirements.txt`. Install/update via `pipx inject cumulusci -r robot/requirements.txt`, or run `cci task run validate_setup` — `auto_fix_robot=true` (default) auto-installs them when missing
+- Robot Framework deps (for headless tasks) are defined in `robot/requirements.txt`. Install/update via `pipx inject cumulusci --force -r robot/requirements.txt`, or run `cci task run validate_setup` — `auto_fix_robot=true` (default) auto-installs them when missing
 
 ---
 
