@@ -32,11 +32,6 @@
     "communitiesSettings": {
       "enableNetworksEnabled": true
     },
-    "securitySettings": {
-      "sessionSettings": {
-        "enableSeparateSalesforceAndSiteLogin": false
-      }
-    },
     "currencySettings": {
       "enableMultiCurrency": true
     },
