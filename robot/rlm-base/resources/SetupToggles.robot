@@ -363,7 +363,8 @@ _Open Chrome With Managed Driver
 _Open Chrome With Explicit Path
     [Arguments]    ${path}
     ${options}=    Get Headless Chrome Options
-    Create Webdriver    Chrome    executable_path=${path}    options=${options}
+    ${service}=    Evaluate    selenium.webdriver.chrome.service.Service(executable_path="${path}")    selenium.webdriver.chrome.service
+    Create Webdriver    Chrome    service=${service}    options=${options}
     Go To    about:blank
 
 _Open Chrome With Options Fallback
