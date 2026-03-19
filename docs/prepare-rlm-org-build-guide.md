@@ -200,12 +200,11 @@ cci flow run prepare_rlm_org --org beta
 # Check which flags are active
 cci project info
 
-# Override a flag for a single run (some flows expose flags as runtime options):
+# Override any project.custom flag for a single run with -o <flag> <value>:
 cci flow run prepare_constraints --org beta -o constraints_data true
 
-# To change a flag that isn't exposed as a runtime option, edit project.custom
-# in cumulusci.yml and re-run. Check the flow/task definition in cumulusci.yml
-# to confirm whether a given flag can be set via -o at runtime.
+# To change a flag persistently, edit project.custom in cumulusci.yml.
+# Use -o for temporary one-off overrides; edit cumulusci.yml for permanent defaults.
 ```
 
 ---
