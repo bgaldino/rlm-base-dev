@@ -1250,13 +1250,13 @@ Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Run `
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. The project's `WebDriverManager.py` patches `RemoteConnection._timeout` at import time to resolve this automatically. If you still encounter it, ensure your Robot dependencies are up to date:
+This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, selenium 3.x is still installed in the CCI pipx venv. Upgrade it:
 
 ```bash
 pipx inject cumulusci --force -r robot/requirements.txt
 ```
 
-Use `--force` to upgrade existing packages. CumulusCI currently pins `selenium<4`, so the automatic patch in `WebDriverManager.py` is required for urllib3 2.x compatibility. Then re-run the Document Builder task or flow.
+The `--force` flag is required to upgrade already-installed packages. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 
