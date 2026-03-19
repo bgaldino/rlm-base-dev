@@ -44,7 +44,7 @@ jobs:
       - name: Install sf CLI and SFDMU plugin
         run: |
           npm install -g @salesforce/cli@2.127.2
-          sf plugins install sfdmu@5 --no-prompt
+          echo y | sf plugins install sfdmu@5
           sf --version
           sf plugins
 
@@ -86,4 +86,4 @@ jobs:
       - name: Delete scratch org
         if: always()
         run: |
-          cci org scratch_delete ${{ inputs.org_alias }} --no-prompt || true
+          cci org scratch_delete ${{ inputs.org_alias }} || true
