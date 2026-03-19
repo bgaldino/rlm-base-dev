@@ -49,8 +49,7 @@ jobs:
 
       - name: Install CumulusCI and dependencies
         run: |
-          pip install cumulusci "setuptools<71"
-          pip install -r robot/requirements.txt
+          pip install "cumulusci>=4.0.0" "setuptools<71" -r robot/requirements.txt
           cci version
 
       - name: Verify environment
