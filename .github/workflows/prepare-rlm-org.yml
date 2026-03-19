@@ -46,7 +46,7 @@ jobs:
           npm install -g @salesforce/cli
           sf plugins install sfdmu
           sf --version
-          sf plugins list
+          sf plugins
 
       - name: Install CumulusCI and dependencies
         run: |
@@ -59,7 +59,7 @@ jobs:
           node --version
           sf --version
           cci version
-          sf plugins list
+          sf plugins
           python --version
           python -c "import robot; print('Robot Framework OK')"
           python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
