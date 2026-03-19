@@ -50,7 +50,8 @@
     "securitySettings": {
       "enableAdminLoginAsAnyUser": true,
       "sessionSettings": {
-        "forceRelogin": false
+        "forceRelogin": false,
+        "enableSeparateSalesforceAndSiteLogin": false
       }
     },
     "languageSettings": {
