@@ -62,7 +62,9 @@ jobs:
 
       - name: Authenticate Dev Hub
         run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" | sf org login sfdx-url --stdin --set-default-dev-hub --alias devhub
+          echo "${{ secrets.SFDX_AUTH_URL }}" > /tmp/sfdx-auth-url.txt
+          sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
+          rm /tmp/sfdx-auth-url.txt
 
       - name: Create scratch org
         run: |
