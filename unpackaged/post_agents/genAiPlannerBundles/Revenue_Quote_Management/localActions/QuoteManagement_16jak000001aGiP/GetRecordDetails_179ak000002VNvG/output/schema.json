@@ -1,0 +1,16 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "snapshot" : {
+      "title" : "Record Details",
+      "description" : "Record details, including object fields and values, records from related lists, and more.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "A text blob containing record details, including object fields and values, records from related lists, and more.",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

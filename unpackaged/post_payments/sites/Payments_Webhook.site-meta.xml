@@ -23,8 +23,8 @@
     <redirectToCustomDomain>false</redirectToCustomDomain>
     <referrerPolicyOriginWhenCrossOrigin>true</referrerPolicyOriginWhenCrossOrigin>
     <selfRegPage>CommunitiesSelfReg</selfRegPage>
-    <siteAdmin>test-r0bhszjyzyfb@example.com</siteAdmin>
-    <siteGuestRecordDefaultOwner>test-r0bhszjyzyfb@example.com</siteGuestRecordDefaultOwner>
+    <siteAdmin>payments-site-admin@example.com</siteAdmin>
+    <siteGuestRecordDefaultOwner>payments-site-admin@example.com</siteGuestRecordDefaultOwner>
     <siteType>ChatterNetwork</siteType>
     <urlPathPrefix>sfpwebhookvforcesite</urlPathPrefix>
 </CustomSite>

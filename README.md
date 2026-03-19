@@ -205,20 +205,16 @@ source ~/.zshrc
 # Install CumulusCI using the same Python version
 pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
 
-# Fix a known compatibility issue: CCI depends on fs/pyfilesystem2 which requires
-# pkg_resources from setuptools<71. Newer setuptools removes pkg_resources.
-pipx inject cumulusci "setuptools<71"
-
 # Verify
 cci version   # Should show CumulusCI 4.x running on Python 3.13.x
 ```
 
-> **Why `setuptools<71`?** CumulusCI 4.x depends on `pyfilesystem2` which uses `pkg_resources`, a module that was removed from `setuptools` in version 71+. The inject command pins setuptools in the CCI venv to a compatible version. This does not affect your global Python or project venv.
+> **Note on setuptools:** Earlier versions of this guide instructed `pipx inject cumulusci "setuptools<71"` to work around a `pkg_resources` issue in `pyfilesystem2`. This pin is **no longer needed or valid** — modern CumulusCI (4.8+) with snowfakery 4.x requires `setuptools>=75.4`, making the `<71` pin incompatible. If you have an older CCI install with the pin, remove it: `pipx inject --force cumulusci "setuptools>=75.4"`.
 
 If you prefer to use the project venv instead (activate it first per Step 5, then):
 
 ```bash
-pip install cumulusci "setuptools<71"
+pip install cumulusci
 cci version
 ```
 
@@ -281,9 +277,9 @@ Run the built-in setup validator (no org connection required):
 cci task run validate_setup
 ```
 
-This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing Robot Framework pieces and `webdriver-manager` are auto-installed via `pipx inject`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
+This checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, and Robot Framework dependencies. Robot Framework, selenium (4.10+), and SeleniumLibrary are **required**; `validate_setup` ensures that either `webdriver-manager` is installed in the CCI environment (preferred) or a compatible `chromedriver` binary is available on PATH. When `auto_fix_robot` is true (default), missing or outdated Robot Framework pieces (including selenium) are auto-installed via `pipx inject cumulusci --force -r robot/requirements.txt`. Chrome or Chromium must be installed manually — `validate_setup` will report FAIL if no supported browser is found. A passing summary confirms your environment is ready.
 
-> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, SeleniumLibrary, webdriver-manager via `pipx inject -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
+> **What is and isn't auto-fixed:** `validate_setup` auto-fixes the SFDMU plugin version, Robot Framework deps (Robot, selenium>=4.10, SeleniumLibrary, webdriver-manager via `pipx inject cumulusci --force -r robot/requirements.txt`), and optionally urllib3 (`auto_fix_urllib3=true`). It does **not** auto-install sf CLI, Node.js, Python, or Chrome/Chromium — those must be installed manually. Install Chrome before running flows: `brew install --cask google-chrome` (macOS) or your distribution's chromium package (Linux).
 
 ### Using Claude Code with this project
 
@@ -331,7 +327,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
 5. **CumulusCI** (CCI)
    - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
-   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` then `pipx inject cumulusci "setuptools<71"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
+   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci` inside it.
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
@@ -376,11 +372,13 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
    Required if you use `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, or `configure_revenue_settings`:
 
-   1. **Python packages** — Robot Framework, SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
+   1. **Python packages** — Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
      ```bash
-     pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
+     pipx inject cumulusci --force -r robot/requirements.txt
      ```
-     If you use a project virtual environment: `pip install -r robot/requirements.txt` inside the venv. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager`.
+     If you use a project virtual environment: `pip install -r robot/requirements.txt` inside the venv. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
+
+     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.10,<5`. If you have an older selenium installed, `cci task run validate_setup` will detect and auto-upgrade it.
 
    2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`
@@ -626,10 +624,13 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 | Task Name | Module | Description |
 |-----------|--------|-------------|
-| `cleanup_settings_for_dev` | `rlm_cleanup_settings.py` | Remove unsupported settings for dev scratch orgs |
+| `cleanup_settings_for_dev` | `rlm_cleanup_settings.py` | Remove settings fields unsupported in the target org before deployment (runs for all org types) |
 | `exclude_active_decision_tables` | `rlm_exclude_active_decision_tables.py` | Move active decision tables to `.skip` dir before deploy |
 | `assign_permission_set_groups_tolerant` | `rlm_assign_permission_set_groups.py` | Assign PSGs with tolerance for missing permissions |
 | `recalculate_permission_set_groups` | `rlm_recalculate_permission_set_groups.py` | Recalculate PSGs and wait for Updated status (retries, delays) |
+| `deploy_post_tso_app_menu` | (CCI Deploy) | Deploy App Launcher (AppSwitcher) order from `unpackaged/post_tso_appmenu`. Runs only when `tso=true` (step 5 of `prepare_tso`). See [App Launcher](#app-launcher-tso) below. |
+| `patch_network_email_for_deploy` | `rlm_community.py` | Replace placeholder `emailSenderAddress` in `rlm.network-meta.xml` with the Network's actual current `EmailSenderAddress` (immutable after creation) before `deploy_post_prm`. Repo stores non-PII placeholder; run `revert_network_email_after_deploy` after deploy. |
+| `revert_network_email_after_deploy` | `rlm_community.py` | Restore placeholder `emailSenderAddress` in `rlm.network-meta.xml` after `deploy_post_prm` so the repo never persists the org email. |
 
 ### Activation Tasks
 
@@ -663,7 +664,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `create_docgen_library` | `rlm_sfdmu.py` | Create document generation library | See `cumulusci.yml` |
 | `create_dro_rule_library` | `rlm_sfdmu.py` | Create DRO rule library | See `cumulusci.yml` |
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
-| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU when `auto_fix=true`. No org required. | See `cumulusci.yml` |
+| `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU and robot deps (including selenium) when `auto_fix=true`/`auto_fix_robot=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/docgen_setup.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
@@ -674,6 +675,13 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
+
+### App Launcher (TSO)
+
+When `tso=true`, the App Launcher order is deployed from `unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml` (step 5 of `prepare_tso`, after `deploy_post_tso`). The repo file should contain the desired org-default order.
+
+- **Capture your customized order:** In the org where you have arranged the App Launcher, run `python scripts/sync_appmenu_from_user.py` (with that org set as default). This writes the running user's App Launcher order from `UserAppMenuCustomization` into the repo file. No deploy is performed by the script.
+- **Deploy in builds:** The flow runs `deploy_post_tso_app_menu` when `tso=true`, so new builds get that order as the org default. Users who have already personalized their launcher may need to use "Reset to default" in the App Launcher to see it.
 
 ### Using Custom Tasks
 
@@ -813,12 +821,12 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_pricing_data` | Load pricing SFDMU data | `qb` |
 | `prepare_scratch` | Insert scratch-only data | Scratch only, not `tso` |
 | `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
-| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
+| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata; deploys App Launcher order from `post_tso_appmenu` when `tso=true` | `tso` |
 | `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Deploy PRM metadata, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
@@ -1038,6 +1046,7 @@ rlm-base-dev/
 │   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings (skipOrgSttPricing)
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
+│   ├── post_tso_appmenu/       # App Launcher (AppSwitcher) order; deployed only when tso=true
 │   ├── post_utils/             # Utility metadata
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
@@ -1096,7 +1105,10 @@ rlm-base-dev/
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
-│   └── bash/                   # Bash scripts
+│   ├── bash/                   # Bash scripts
+│   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into post_tso_appmenu (no deploy)
+│   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
+│   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── constraints_setup.md
 │   ├── DECISION_TABLE_EXAMPLES.md
@@ -1154,6 +1166,16 @@ cci task run export_cml --org <source_org> \
 
 See the [Constraints Utility Guide](datasets/constraints/README.md) for full export/import/validate documentation.
 
+### App Launcher order (TSO)
+
+```bash
+# Capture your customized App Launcher order from the default org into the repo (no deploy)
+python scripts/sync_appmenu_from_user.py
+
+# Deploy App Launcher to an org (when tso=true the flow does this automatically)
+cci task run deploy_post_tso_app_menu --org <org>
+```
+
 ### Load Product Data
 
 ```bash
@@ -1210,13 +1232,13 @@ If you installed Robot Framework or SeleniumLibrary with `pip install` and got a
 
 1. Uninstall from the Python you used:
    ```bash
-   python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework webdriver-manager
+   python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager
    ```
 2. Install them into CumulusCI's environment so headless robot tasks can run. If you use **pipx** for CumulusCI:
    ```bash
-   pipx inject cumulusci robotframework robotframework-seleniumlibrary webdriver-manager "urllib3>=2.6.3"
+   pipx inject cumulusci --force -r robot/requirements.txt
    ```
-3. Run `cci task run validate_setup` to confirm all headless robot dependencies (Robot, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver). Once the org is ready, run the task to confirm end-to-end.
+3. Run `cci task run validate_setup` to confirm all headless robot dependencies (Robot, selenium 4.10+, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver). Once the org is ready, run the task to confirm end-to-end.
 
 ### Headless robot: Chrome/Chromium or ChromeDriver not found
 
@@ -1228,13 +1250,13 @@ Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Run `
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. The project's `WebDriverManager.py` patches `RemoteConnection._timeout` at import time to resolve this automatically. If you still encounter it, ensure your Robot dependencies are up to date:
+This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, selenium 3.x is still installed in the CCI pipx venv. Upgrade it:
 
 ```bash
-pipx inject cumulusci -r robot/requirements.txt --force
+pipx inject cumulusci --force -r robot/requirements.txt
 ```
 
-Use `--force` to upgrade existing packages. CumulusCI currently pins `selenium<4`, so the automatic patch in `WebDriverManager.py` is required for urllib3 2.x compatibility. Then re-run the Document Builder task or flow.
+The `--force` flag is required to upgrade already-installed packages. Then re-run the Document Builder task or flow.
 
 ### CumulusCI Not Found
 

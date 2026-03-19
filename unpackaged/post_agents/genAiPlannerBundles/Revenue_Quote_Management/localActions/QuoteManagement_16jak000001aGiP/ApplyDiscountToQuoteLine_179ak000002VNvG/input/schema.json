@@ -1,0 +1,30 @@
+{
+  "required" : [ "discountPercentage", "quoteId", "quoteLineItemId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "discountPercentage" : {
+      "title" : "DiscountPercentage",
+      "description" : "The discount percentage that should be applied to the QuoteLineItem. The input should be a number with up to 2 decimals. Maximum value is 100.",
+      "multipleOf" : 1.0E-34,
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quoteId" : {
+      "title" : "QuoteId",
+      "description" : "18 character Id of the quote record.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quoteLineItemId" : {
+      "title" : "QuoteLineItemId",
+      "description" : "18 character Id of the QuoteLineItem record on which this action acts. This is not the Product2 Id.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

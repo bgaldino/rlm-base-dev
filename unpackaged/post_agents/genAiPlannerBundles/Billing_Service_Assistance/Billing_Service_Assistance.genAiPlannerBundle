@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>Deliver clear and accessible billing support to community users with an autonomous AI agent. The Billing Service Assistance Agent explains invoice charges in real time, provides detailed breakdowns of unclear line items, and helps customers resolve common billing questions directly within Experience Cloud.</description>
+    <localActionLinks>
+        <genAiFunctionName>AnswerQuestionsWithKnowledge_16jak000001aGth</genAiFunctionName>
+    </localActionLinks>
+    <localTopicLinks>
+        <genAiPluginName>InvoiceLineExplanation_16jak000001aGth</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>InvoiceLineExplanation_16jak000001aGth</fullName>
+        <aiPluginUtterances>
+            <developerName>utterance1</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 1</masterLabel>
+            <utterance>Can you elaborate on the &apos;Premium Channel Package&apos; charge shown here?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance2</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 2</masterLabel>
+            <utterance>Can you provide more information about the &apos;One-time Setup Fee&apos;?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance3</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 3</masterLabel>
+            <utterance>Could you break down the &apos;Data Overage&apos; charge on page 2?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance4</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 4</masterLabel>
+            <utterance>Could you provide details on the &apos;International Call Charge&apos; from June 5th?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance5</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 5</masterLabel>
+            <utterance>Explain Charge</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance6</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 6</masterLabel>
+            <utterance>Explain Invoice</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance7</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 7</masterLabel>
+            <utterance>Hi, I see a charge for *Professional Services* on my invoice, but I thought the project wasn’t fully delivered. Can you explain the breakdown?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance8</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 8</masterLabel>
+            <utterance>I&apos;m confused about the &apos;Adjustment&apos; of -$10. Can you tell me why that was applied?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance9</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 9</masterLabel>
+            <utterance>I&apos;m looking at my invoice and I don&apos;t understand the &apos;Miscellaneous Charge&apos; of $12.50. Can you explain?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance10</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 10</masterLabel>
+            <utterance>I&apos;m not clear on the &apos;Hardware Upgrade Cost&apos; on line 4. Could you explain it?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance11</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 11</masterLabel>
+            <utterance>I&apos;m seeing a &apos;Reconnection Fee&apos; here, and I don&apos;t know why. Can you explain?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance12</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 12</masterLabel>
+            <utterance>I need an explanation for the &apos;Data Storage&apos; entry on this invoice.</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance13</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 13</masterLabel>
+            <utterance>What does &apos;Account Maintenance Fee&apos; entail on this invoice?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance14</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 14</masterLabel>
+            <utterance>What does &apos;Service Fee &apos; on my latest bill refer to?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance15</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 15</masterLabel>
+            <utterance>What does the &apos;Early Termination Fee&apos; relate to on this bill?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance16</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 16</masterLabel>
+            <utterance>What exactly is the &apos;Late Payment Penalty&apos; of $15 for?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance17</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 17</masterLabel>
+            <utterance>What is &apos;API Calls&apos; on my bill?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance18</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 18</masterLabel>
+            <utterance>What&apos;s included in the &apos;Laptop Bundle&apos; line?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance19</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 19</masterLabel>
+            <utterance>What&apos;s the reason for the &apos;Expedited Shipping Fee&apos; on my recent purchase?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance20</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 20</masterLabel>
+            <utterance>Why am I charged $110 on my last invoice?</utterance>
+        </aiPluginUtterances>
+        <canEscalate>false</canEscalate>
+        <description>Helps users understand their invoice lines by explaining each charge and its underlying reasons or methods.</description>
+        <developerName>InvoiceLineExplanation_16jak000001aGth</developerName>
+        <genAiPluginInstructions>
+            <description>Ask clarifying questions to understand the user&apos;s specific invoice or invoice line explainability needs, but never repeat the same question.</description>
+            <developerName>Instruction1</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 1</masterLabel>
+            <sortOrder>0</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Ask the customer for the invoice document number and the invoice line name. Do not make assumptions—always ask clarifying questions when needed.</description>
+            <developerName>Instruction2</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 2</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Avoid making assumptions about charges. Validate all information using available records or tools.</description>
+            <developerName>Instruction3</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 3</masterLabel>
+            <sortOrder>2</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Present all components of a charge together in a single, clear response.</description>
+            <developerName>Instruction4</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 4</masterLabel>
+            <sortOrder>3</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Use Markdown to format responses for better readability. When referencing IDs, display them as hyperlinks using their names instead of showing raw IDs (e.g., invoice line, billing milestone plan, or item).</description>
+            <developerName>Instruction5</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 5</masterLabel>
+            <sortOrder>4</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Always call the &quot;Get Invoice Line Record&quot; action before explaining an invoice line. Do not attempt to explain an invoice line without first retrieving its record. Use the current page context to determine the invoice ID whenever possible. If on an invoice page, use that invoice ID and call the &quot;Get Invoice Line Record&quot; action using the user-provided invoice line name. If no match is found, ask the user to confirm or refine the invoice line name. If not on an invoice page, ask the user for the invoice document number and invoice line name, then call the &quot;Get Invoice Line Record&quot; action with that information.</description>
+            <developerName>Instruction6</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 6</masterLabel>
+            <sortOrder>5</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>When multiple options are available, present them as radio buttons. If there are more than five records, show only five initially, and display more only if requested or if the relevant invoice line isn&apos;t listed.</description>
+            <developerName>Instruction7</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 7</masterLabel>
+            <sortOrder>6</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Present multiple-choice options using radio buttons for easier selection.</description>
+            <developerName>Instruction8</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 8</masterLabel>
+            <sortOrder>7</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>Provide information in a clear, human-readable, and visually appealing format.</description>
+            <developerName>Instruction9</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 9</masterLabel>
+            <sortOrder>8</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>When explaining a charge, include a detailed breakdown of the invoice line, including any hidden components.</description>
+            <developerName>Instruction10</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 10</masterLabel>
+            <sortOrder>9</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>GetInvoiceLineRecord_179ak000002VOMf</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExplainInvoiceLine_179ak000002VOMf</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>ExplainInvoiceLine_179ak000002VOMf</fullName>
+            <description>Your task is to explain the invoice line. Take the input from Invoice Line Json Flow. Execute Invoice Line Json Flow before executing it. If the user asks for explaining an invoice line, or asks why they are charged a particular amount for an invoice line.</description>
+            <developerName>ExplainInvoiceLine_179ak000002VOMf</developerName>
+            <invocationTarget>billing_agents__invoiceLineChargeDetails</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExplainInvoiceLine</localDeveloperName>
+            <masterLabel>Explain Invoice Line</masterLabel>
+            <source>billing_agents__ExplainInvoiceLine</source>
+        </localActions>
+        <localActions>
+            <fullName>GetInvoiceLineRecord_179ak000002VOMf</fullName>
+            <description>You are suppose to run this action prior to Invoice 2 action, You are supposed to take InvoiceDocumentID as the input from the user and display the list as radio buttons for the user to select. If there is just one radio button don’t ask user to select, directly send the ID to Invoice2. If you are on the Invoice page, do not ask for InvoiceDocumentID — pick up the invoice ID in variable `invoiceId` and call the flow with the invoice line name that the user provided. If still unable to get the invoice line(s), ask the user for the document number which they are referring to.</description>
+            <developerName>GetInvoiceLineRecord_179ak000002VOMf</developerName>
+            <invocationTarget>billing_agents__InvoiceLineRecord</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetInvoiceLineRecord</localDeveloperName>
+            <masterLabel>Get Invoice Line Records</masterLabel>
+            <source>billing_agents__GetInvoiceLineRecord</source>
+        </localActions>
+        <localDeveloperName>InvoiceLineExplanation</localDeveloperName>
+        <masterLabel>Invoice Line Explanation</masterLabel>
+        <pluginType>Topic</pluginType>
+        <scope>Help users understand their invoice line charges. Explain what the charge is for, why it was billed, and how the amount was calculated. Provide clear, consolidated, and accurate information.</scope>
+        <source>billing_agents__InvoiceLineExplanation</source>
+    </localTopics>
+    <masterLabel>Billing Service Assistance</masterLabel>
+    <plannerActions>
+        <fullName>AnswerQuestionsWithKnowledge_16jak000001aGth</fullName>
+        <description>Answers questions about company policies and procedures, troubleshooting steps, or product information. For example: “What is your return policy?” “How do I fix an issue?” or “What features does a product have?”</description>
+        <developerName>AnswerQuestionsWithKnowledge_16jak000001aGth</developerName>
+        <invocationTarget>streamKnowledgeSearch</invocationTarget>
+        <invocationTargetType>standardInvocableAction</invocationTargetType>
+        <isConfirmationRequired>false</isConfirmationRequired>
+        <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+        <localDeveloperName>AnswerQuestionsWithKnowledge</localDeveloperName>
+        <masterLabel>Answer Questions with Knowledge</masterLabel>
+        <progressIndicatorMessage>Getting answers</progressIndicatorMessage>
+        <source>EmployeeCopilot__AnswerQuestionsWithKnowledge</source>
+    </plannerActions>
+    <plannerSurfaces>
+        <adaptiveResponseAllowed>true</adaptiveResponseAllowed>
+        <callRecordingAllowed>false</callRecordingAllowed>
+        <surface>SurfaceAction__CustomerWebClient</surface>
+        <surfaceType>CustomerWebClient</surfaceType>
+    </plannerSurfaces>
+    <plannerSurfaces>
+        <adaptiveResponseAllowed>true</adaptiveResponseAllowed>
+        <callRecordingAllowed>false</callRecordingAllowed>
+        <surface>SurfaceAction__Messaging</surface>
+        <surfaceType>Messaging</surfaceType>
+    </plannerSurfaces>
+    <plannerType>AiCopilot__ReAct</plannerType>
+</GenAiPlannerBundle>

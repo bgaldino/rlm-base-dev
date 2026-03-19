@@ -1,0 +1,87 @@
+name: Prepare RLM Org
+
+on:
+  workflow_dispatch:
+    inputs:
+      org_alias:
+        description: "Scratch org alias to create"
+        required: false
+        default: "test-org"
+      scratch_config:
+        description: "Scratch org config name from orgs/ (e.g. dev, test-sb0)"
+        required: false
+        default: "dev"
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-rlm-org:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache npm download cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-cache-${{ runner.os }}-node22
+
+      - name: Install sf CLI and SFDMU plugin
+        run: |
+          npm install -g @salesforce/cli@2.127.2
+          yes | sf plugins install sfdmu@5
+          sf --version
+          sf plugins
+
+      - name: Install CumulusCI and dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip "setuptools>=75.4,<77"
+          .venv/bin/pip install "cumulusci==4.8.1"
+          .venv/bin/pip install -r robot/requirements.txt
+          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
+          .venv/bin/cci version
+
+      - name: Verify environment
+        run: |
+          node --version
+          sf --version
+          cci version
+          sf plugins
+          python --version
+          python -c "import robot; print('Robot Framework OK')"
+          python -c "import SeleniumLibrary; print('SeleniumLibrary OK')"
+          python -c "import webdriver_manager; print('webdriver-manager OK')"
+          cci task run validate_setup
+
+      - name: Authenticate Dev Hub
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > /tmp/sfdx-auth-url.txt
+          sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
+          rm /tmp/sfdx-auth-url.txt
+
+      - name: Create scratch org
+        run: |
+          cci org scratch ${{ inputs.scratch_config }} ${{ inputs.org_alias }} --default
+
+      - name: Run prepare_rlm_org
+        run: |
+          cci flow run prepare_rlm_org --org ${{ inputs.org_alias }}
+
+      - name: Delete scratch org
+        if: always()
+        run: |
+          cci org scratch_delete ${{ inputs.org_alias }} || true
