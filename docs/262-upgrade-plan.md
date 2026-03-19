@@ -46,8 +46,8 @@ Verify SObjects and fields used across data plans and metadata against the 262 s
 - [ ] `Pricebook2`, `PricebookEntry` — pricing plan objects
 - [ ] `PriceAdjustmentSchedule`, `PriceAdjustmentTier` — pricing adjustment objects
 - [ ] `ProductSellingModel`, `ProductSellingModelOption` — selling model objects
-- [ ] `ProductUsageResource` (PUR), `ProductUsageResourcePricing` (PURP), `ProductUsageGroup` (PUG) — rating objects
-- [ ] `RateCard`, `RateCardEntry`, `RateCardEntryAdjTier` — rates objects
+- [x] `ProductUsageResource` (PUR), `ProductUsageResourcePolicy` (PURP, API name confirmed in 262), `ProductUsageGroup` (PUG) — rating objects; overlap validation now enforced on activation (see #262-4)
+- [x] `RateCard`, `RateCardEntry`, `RateCardEntryAdjTier` — `RateCard.Status` removed in 262 (see #262-3); `RateCardEntry.Status` still present but DML via SOAP fails (see #262-2)
 - [ ] `BillingPolicy`, `BillingTreatment`, `BillingTreatmentItem` — billing objects
 - [ ] `PaymentTerm` — billing plan
 - [ ] `TaxPolicy`, `TaxTreatment`, `TaxTreatmentItem` — tax objects
@@ -119,12 +119,12 @@ Run SFDMU v5 dataset compliance check after any schema-driven updates.
 
 ## 6. Full Build Verification
 
-- [ ] Run `cci flow run prepare_rlm_org` end-to-end on a 262 scratch org
+- [x] Run `cci flow run prepare_rlm_org` end-to-end on a 262 scratch org — full build confirmed successful
 - [ ] Verify all 28 flow steps pass (check `cumulusci.yml` flow definition)
 - [ ] Verify `prepare_payments` sub-flow succeeds
 - [ ] Verify `prepare_prm` sub-flow succeeds (when `prm=true`)
 - [ ] Verify `prepare_approvals` sub-flow succeeds (when `approvals=true`)
-- [ ] Verify Robot Framework tasks pass (`enable_document_builder_toggle`, `configure_revenue_settings`, `enable_constraints_settings`)
+- [x] Verify Robot Framework tasks pass — `enable_analytics_replication` rewritten for 262 (see Known Issues #262-1)
 - [ ] Trigger GitHub Actions workflow (`prepare-rlm-org.yml`) on `262-test` branch
 
 ---
@@ -145,6 +145,10 @@ Review `project__custom__*` flags in `cumulusci.yml` against 262 capabilities.
 |---|------|--------|
 | #76 | `enableSeparateSalesforceAndSiteLogin` — correct metadata API mechanism unknown; Security.settings-meta.xml approach invalid | Open |
 | — | Dev Hub configuration for 262-test | Pending |
+| #262-1 | **`InsightsSetupSettings` VF page removed** — Analytics Setup VF iframe (`waveSetupSettings.apexp`) removed in 262. Old robot test failed with "Analytics Settings VF iframe not found". **Fixed:** `enable_analytics.robot` and `AnalyticsSetupHelper.py` rewritten to click "Enable CRM Analytics" on `/lightning/setup/InsightsSetupGettingStarted/home`. Full CRM Analytics enablement (not the lightweight Data Sync toggle) is now required. `enableAnalytics` is not a valid `AnalyticsSettings` metadata field in v67 — robot/UI approach is the only path. | Resolved |
+| #262-2 | **`RateCardEntry` DML via SOAP/Apex Execute Anonymous raises `UNKNOWN_EXCEPTION` (500)** — Platform regression in 262. Both `AnonymousApexTask` and `sf apex run` against `RateCardEntry` fail. REST API works correctly. **Fixed:** `activate_rates` task replaced with new `tasks/rlm_activate_rates.py` Python class using REST Composite API (25 records per request). | Resolved |
+| #262-3 | **`RateCard.Status` field removed** — The `Status` field on `RateCard` was completely removed in 262. Any Apex or SOQL referencing `RateCard.Status` must be removed. `activateRatingRecords.apex` already does not reference it (only `RateCardEntry.Status` is used). Review any custom scripts if porting from pre-262. | Resolved (no change needed in current scripts) |
+| #262-4 | **PUR idempotency — "effective period overlaps" on second run** — In 262, the platform enforces overlap validation when activating `ProductUsageResource` records that share the same Product+UsageResource with overlapping effective dates. On a second `prepare_rating` run, SFDMU `deleteOldData: true` cannot delete Active PURs, so new Draft PURs are inserted alongside existing Active ones. If those Draft PURs have children (PUGs/PURPs), step 2.5 in `activateRatingRecords.apex` cannot delete them. **Fixed:** Added step 2.5a to `activateRatingRecords.apex` — deletes Draft PUG/PURP children of identified duplicate Draft PURs first, then refreshes `purIdsWithChildren` so the main deletion loop proceeds. | Resolved |
 
 ---
 

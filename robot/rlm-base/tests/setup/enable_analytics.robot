@@ -1,5 +1,9 @@
 *** Settings ***
-Documentation     Enable the "Enable Data Sync and Connections" checkbox (enableWaveReplication) on the Analytics Settings page. Required for the rating data processing engine. Does not require enabling the full CRM Analytics feature.
+Documentation     Enable CRM Analytics via the Analytics Getting Started page
+...               (InsightsSetupGettingStarted/home). Required for the rating data
+...               processing engine in Release 262+. The old InsightsSetupSettings VF
+...               iframe page was removed in Summer '26; full CRM Analytics enablement
+...               is now the required step. Idempotent: if already enabled, skips the click.
 Library           ../../resources/AnalyticsSetupHelper.py
 Resource          ../../resources/SetupToggles.robot
 Suite Setup       Open Browser For Setup
@@ -8,17 +12,13 @@ Suite Teardown    Close Browser After Setup
 *** Variables ***
 # Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended).
 ${ORG_ALIAS}                   ${EMPTY}
-${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupSettings/home
-${MANUAL_LOGIN_WAIT}           90s
+${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupGettingStarted/home
 
 *** Test Cases ***
-Enable Data Sync And Connections Toggle
-    [Documentation]    Enable the "Enable Data Sync and Connections" checkbox in the CRM Analytics
-    ...    Settings Visualforce iframe (waveSetupSettings.apexp). The setting lives inside a VF
-    ...    child frame — the Lightning Web Security proxy blocks all standard DOM queries on the
-    ...    outer shell, but Selenium can access the VF page directly after switching frames.
-    ...    Idempotent: if already enabled, returns 'already_enabled' without clicking Save.
-    ...    No explicit sleep is needed — the keyword polls for the iframe and checkboxes.
+Enable CRM Analytics
+    [Documentation]    Click the "Enable CRM Analytics" button on the CRM Analytics Getting
+    ...    Started page. Idempotent: if the button is absent (already enabled), returns
+    ...    'already_enabled' without clicking. No VF iframe involved — standard Lightning DOM.
     Open Setup Page    ${ANALYTICS_SETUP_PATH}
-    ${result}=    Enable Data Sync And Connections Via VF Iframe
-    Log    Enable Data Sync and Connections (enableWaveReplication): ${result}
+    ${result}=    Enable CRM Analytics Via Getting Started Page
+    Log    Enable CRM Analytics: ${result}

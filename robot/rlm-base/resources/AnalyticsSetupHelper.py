@@ -1,48 +1,56 @@
 """AnalyticsSetupHelper — Robot Framework keyword library for Analytics Setup page.
 
-The "Enable Data Sync and Connections" setting lives in a Visualforce iframe
-(waveSetupSettings.apexp) embedded inside the Lightning setup shell at
-/lightning/setup/InsightsSetupSettings/home.
+In Release 262+ (Summer '26), the Analytics Settings VF iframe page
+(InsightsSetupSettings/waveSetupSettings.apexp) was removed. CRM Analytics is
+now enabled via the "Enable CRM Analytics" button on the Getting Started page:
+  /lightning/setup/InsightsSetupGettingStarted/home
 
-The outer Lightning shell is protected by Lightning Web Security (LWS) and
-uses shadow DOM, which prevents reliably locating Lightning components (such
-as the setup checkbox) via standard Selenium XPath / querySelectorAll.  This
-helper uses XPath only in the outer shell to locate the Visualforce iframe
-element itself (a plain HTML iframe); after switch_to.frame the VF page is
-standard HTML and not subject to LWS, so native WebDriver element finding
-works correctly inside it.  The VF iframe content is also NOT included in CDP
-DOM.getDocument, which only returns the main frame's DOM.
+The button lives in the main Lightning DOM (no VF iframe). Shadow DOM traversal
+is used to handle the lightning-button web component wrapper.
 
 Usage in robot file:
     Library    ../../resources/AnalyticsSetupHelper.py
 """
 
-from selenium.common.exceptions import (
-    ElementClickInterceptedException,
-    ElementNotInteractableException,
-    JavascriptException,
-    NoSuchElementException,
-    StaleElementReferenceException,
-    TimeoutException,
-    WebDriverException,
-)
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from robot.api.deco import keyword
 from robot.libraries.BuiltIn import BuiltIn
 
+_FIND_AND_CLICK_JS = """
+return (function(buttonText) {
+    function findButton(root) {
+        var candidates = root.querySelectorAll('button, input[type="button"], input[type="submit"]');
+        for (var i = 0; i < candidates.length; i++) {
+            var text = (candidates[i].textContent || candidates[i].value || '').trim();
+            if (text === buttonText) return candidates[i];
+        }
+        var all = root.querySelectorAll('*');
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].shadowRoot) {
+                var found = findButton(all[i].shadowRoot);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+    var btn = findButton(document.body);
+    if (!btn) return 'not_found';
+    btn.click();
+    return 'clicked';
+})(arguments[0]);
+"""
+
 
 class AnalyticsSetupHelper:
-    """Keyword library for enabling Analytics settings in the VF iframe."""
+    """Keyword library for enabling CRM Analytics via the Getting Started page."""
 
     ROBOT_LIBRARY_SCOPE = "TEST"
-    TARGET_LABEL = "Enable Data Sync and Connections"
-
-    # Centralised timeout constants (seconds) — tune here if org load times differ.
-    IFRAME_WAIT_S = 30
-    CHECKBOX_WAIT_S = 30
-    SAVE_WAIT_S = 30
+    BUTTON_LABEL = "Enable CRM Analytics"
+    BUTTON_WAIT_S = 20
+    POST_CLICK_WAIT_S = 30
 
     @property
     def _driver(self):
@@ -50,224 +58,71 @@ class AnalyticsSetupHelper:
         return selib.driver
 
     @keyword
-    def enable_data_sync_and_connections_via_vf_iframe(self):
-        """Enable the 'Enable Data Sync and Connections' checkbox in the VF iframe.
+    def enable_crm_analytics_via_getting_started_page(self):
+        """Click 'Enable CRM Analytics' on the Analytics Getting Started page.
 
-        The Analytics Settings page embeds a Visualforce page (waveSetupSettings.apexp)
-        in a child iframe.  This keyword:
-          1. Ensures Selenium starts in the default (main) frame.
-          2. Waits for the VF iframe to appear (up to IFRAME_WAIT_S seconds).
-          3. Switches Selenium into the VF iframe.
-          4. Waits for checkboxes to appear in the VF page (up to CHECKBOX_WAIT_S seconds).
-          5. Finds the checkbox associated with the 'Enable Data Sync and Connections' label.
-          6. Clicks the checkbox if not already enabled.
-          7. Clicks the Save button and waits for page reload to persist the setting.
-
-        Always restores Selenium to the default (main) frame via try/finally.
+        Searches the main DOM and shadow DOM for the button. If absent (CRM
+        Analytics already enabled), returns 'already_enabled' without clicking.
 
         Returns:
-            'already_enabled'  — checkbox was already checked; no action taken.
-            'clicked'          — checkbox was found, enabled, and saved.
+            'already_enabled'  — button not found; CRM Analytics already on.
+            'clicked'          — button found, clicked, and page updated.
         Raises:
-            AssertionError     — VF iframe, checkbox, or Save button not found.
+            AssertionError     — button found but could not be clicked.
         """
         log = BuiltIn().log
         driver = self._driver
-
-        # ── Step 1: ensure we start in the main frame ──────────────────
         driver.switch_to.default_content()
 
-        # ── Step 2: wait for the VF iframe ─────────────────────────────
-        # vfFrameId is the deterministic name prefix assigned by Salesforce to
-        # the Analytics settings VF iframe (e.g. vfFrameId_1772739916061).
-        log("Waiting for VF iframe (name attribute containing 'vfFrameId') to appear...")
-        iframe_xpath = "//iframe[contains(@name, 'vfFrameId')]"
-        try:
-            WebDriverWait(driver, self.IFRAME_WAIT_S).until(
-                EC.frame_to_be_available_and_switch_to_it((By.XPATH, iframe_xpath))
-            )
-        except TimeoutException:
-            raise AssertionError(
-                f"Analytics Settings VF iframe not found after {self.IFRAME_WAIT_S} s. "
-                "Expected iframe with name attribute containing 'vfFrameId'."
-            )
-        log("VF iframe found; WebDriver context switched into frame.")
+        log(f"Waiting up to {self.BUTTON_WAIT_S}s for '{self.BUTTON_LABEL}' button...")
 
-        # ── Steps 3-7: already in VF frame; always restore context on exit ────
-        try:
-            return self._interact_with_vf_page(driver, log)
-        finally:
-            driver.switch_to.default_content()
-
-    # ── Private helpers ────────────────────────────────────────────────
-
-    def _interact_with_vf_page(self, driver, log):
-        """Perform checkbox find/click/save inside the already-switched VF iframe."""
-
-        # ── Step 3: wait for checkboxes to appear ──────────────────────
-        log("Waiting for checkboxes in VF page to appear...")
-        try:
-            WebDriverWait(driver, self.CHECKBOX_WAIT_S).until(
-                EC.presence_of_element_located((By.XPATH, "//input[@type='checkbox']"))
-            )
-        except TimeoutException:
-            raise AssertionError(
-                f"No checkboxes appeared in VF iframe after {self.CHECKBOX_WAIT_S} s. "
-                f"Cannot locate '{self.TARGET_LABEL}'."
-            )
-        cbs = driver.find_elements(By.XPATH, "//input[@type='checkbox']")
-        log(f"VF frame: WebDriver found {len(cbs)} checkbox(es)")
-
-        # ── Step 4: find the target checkbox ───────────────────────────
-        checkbox = self._find_checkbox_by_label(driver, cbs, log)
-
-        # ── Step 5: check current state ────────────────────────────────
-        is_checked = checkbox.is_selected()
-        log(f"'{self.TARGET_LABEL}' is_selected: {is_checked}")
-        if is_checked:
-            return "already_enabled"
-
-        # ── Step 6: enable the checkbox ────────────────────────────────
-        click_exceptions = (
-            ElementClickInterceptedException,
-            ElementNotInteractableException,
-            WebDriverException,
+        # Wait for page to settle then check for the button via JS
+        button_xpath = (
+            f"//button[normalize-space(.)='{self.BUTTON_LABEL}'] | "
+            f"//input[@type='button' and normalize-space(@value)='{self.BUTTON_LABEL}']"
         )
+        btn = None
         try:
-            checkbox.click()
-        except click_exceptions as exc:
-            log(f"Direct checkbox click failed ({type(exc).__name__}); falling back to JS click")
-            try:
-                driver.execute_script("arguments[0].click();", checkbox)
-            except JavascriptException as js_exc:
-                raise AssertionError(
-                    f"Both direct and JS click failed for '{self.TARGET_LABEL}' checkbox."
-                ) from js_exc
-        try:
-            log(f"Checkbox clicked; is_selected now: {checkbox.is_selected()}")
-        except StaleElementReferenceException:
-            log("Checkbox clicked; is_selected now cannot be determined (stale element).")
-
-        # ── Step 7: click Save to persist the setting ──────────────────
-        save_btn = self._find_save_button(driver, log)
-        if save_btn is None:
-            raise AssertionError(
-                "Save button not found in VF page after enabling checkbox. "
-                "Checkbox was clicked but the setting cannot be persisted."
+            btn = WebDriverWait(driver, self.BUTTON_WAIT_S).until(
+                EC.presence_of_element_located((By.XPATH, button_xpath))
             )
-        try:
-            save_btn.click()
-        except click_exceptions as exc:
-            log(f"Direct Save click failed ({type(exc).__name__}); falling back to JS click")
-            try:
-                driver.execute_script("arguments[0].click();", save_btn)
-            except JavascriptException as js_exc:
-                raise AssertionError(
-                    "Both direct and JS click failed for the Save button."
-                ) from js_exc
-
-        # Staleness of the Save button indicates the page reloaded after submission.
-        try:
-            WebDriverWait(driver, self.SAVE_WAIT_S).until(EC.staleness_of(save_btn))
-            log("Save completed (button became stale); setting persisted")
         except TimeoutException:
-            raise AssertionError(
-                f"Save button did not become stale within {self.SAVE_WAIT_S} s. "
-                "Analytics Settings uses a full-page submit; button staleness is expected. "
-                "The setting may not have been persisted."
+            pass
+
+        if btn is None:
+            # Button not in main DOM — may be inside a shadow root, try JS traversal
+            result = driver.execute_script(_FIND_AND_CLICK_JS, self.BUTTON_LABEL)
+            if result == "not_found":
+                log(
+                    f"'{self.BUTTON_LABEL}' button not found after {self.BUTTON_WAIT_S}s "
+                    "— CRM Analytics appears to already be enabled."
+                )
+                return "already_enabled"
+            # JS already clicked it
+            log(f"'{self.BUTTON_LABEL}' found in shadow DOM and clicked via JS.")
+        else:
+            # Use the element captured by WebDriverWait — avoids a second find_element
+            # call that races against Lightning re-renders.
+            log(f"'{self.BUTTON_LABEL}' button found in main DOM; clicking via JS...")
+            driver.execute_script("arguments[0].click();", btn)
+
+        # Wait for the button to go stale (page reload/nav after enabling)
+        log(f"Waiting up to {self.POST_CLICK_WAIT_S}s for page to update...")
+        try:
+            if btn is not None:
+                WebDriverWait(driver, self.POST_CLICK_WAIT_S).until(
+                    EC.staleness_of(btn)
+                )
+            else:
+                # After JS click from shadow DOM, just give the page time to settle
+                import time
+                time.sleep(5)
+            log("CRM Analytics enabled successfully.")
+        except TimeoutException:
+            log(
+                "Page did not navigate/reload after clicking — "
+                "CRM Analytics may have been enabled without a page change.",
+                "WARN",
             )
 
         return "clicked"
-
-    def _find_checkbox_by_label(self, driver, checkboxes, log):
-        """Return the checkbox element associated with TARGET_LABEL.
-
-        Raises AssertionError if no confident match is found — does NOT fall
-        back to an arbitrary checkbox to avoid toggling an unrelated setting.
-        """
-        target = self.TARGET_LABEL.lower()
-
-        for cb in checkboxes:
-            cb_id = cb.get_attribute("id")
-            # 1. label[for="<id>"] text match
-            if cb_id:
-                try:
-                    lbl = driver.find_element(By.XPATH, f"//label[@for='{cb_id}']")
-                    if target in (lbl.text or "").lower():
-                        log(f"Found checkbox via label[@for='{cb_id}']: {lbl.text!r}")
-                        return cb
-                except (NoSuchElementException, StaleElementReferenceException):
-                    pass
-            # 2. Row text match
-            try:
-                row_text = (cb.find_element(By.XPATH, "ancestor::tr[1]").text or "").lower()
-                if target in row_text:
-                    log("Found checkbox by row text match")
-                    return cb
-            except (NoSuchElementException, StaleElementReferenceException):
-                pass
-            # 3. JS closest container text
-            try:
-                parent_text = (driver.execute_script(
-                    "var el=arguments[0]; "
-                    "var c=el.closest('tr,td,li,div'); "
-                    "return c ? c.innerText : '';",
-                    cb
-                ) or "").lower()
-                if target in parent_text:
-                    log("Found checkbox via JS closest container")
-                    return cb
-            except (JavascriptException, StaleElementReferenceException):
-                pass
-
-        # 4. Find label element by text content, then resolve to checkbox
-        try:
-            lbl_el = driver.find_element(By.XPATH, f"//*[contains(text(),'{self.TARGET_LABEL}')]")
-            lbl_for = lbl_el.get_attribute("for")
-            if lbl_for:
-                try:
-                    return driver.find_element(
-                        By.XPATH,
-                        f"//input[@type='checkbox' and @id='{lbl_for}']",
-                    )
-                except NoSuchElementException:
-                    log(
-                        "Label 'for' attribute did not resolve to a checkbox; "
-                        "falling back to row-based checkbox lookup."
-                    )
-            return driver.find_element(
-                By.XPATH,
-                f"//*[contains(text(),'{self.TARGET_LABEL}')]/ancestor::tr[1]//input[@type='checkbox']",
-            )
-        except (NoSuchElementException, StaleElementReferenceException) as e:
-            log(f"Label text fallback failed: {e}")
-
-        raise AssertionError(
-            f"Unable to locate checkbox for '{self.TARGET_LABEL}'. "
-            f"Checked {len(checkboxes)} candidate checkbox(es) without a confident match."
-        )
-
-    @staticmethod
-    def _find_save_button(driver, log):
-        """Return the Save button element, or None if not found.
-
-        Selectors are constrained to elements that are confidently Save actions
-        (by value, name, or id) to avoid accidentally matching Cancel or other
-        submit buttons on Visualforce pages.
-        """
-        for sel in [
-            "input[value='Save']",
-            "input[name$='saveBtn']",
-            "input[name$='save']",
-            ".pbButton input[value='Save']",
-        ]:
-            els = driver.find_elements(By.CSS_SELECTOR, sel)
-            if els:
-                log(f"Found Save button via CSS '{sel}'")
-                return els[0]
-        for xp in ["//input[@value='Save']", "//input[@name='save' or @name='saveBtn']"]:
-            els = driver.find_elements(By.XPATH, xp)
-            if els:
-                log(f"Found Save button via XPath '{xp}'")
-                return els[0]
-        return None

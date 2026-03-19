@@ -104,9 +104,9 @@ columns, making outputs re-import-ready. Always use processed extraction output 
 
 ---
 
-## Python Task Classes (`tasks/rlm_sfdmu.py`)
+## Python Task Classes
 
-### `LoadSFDMUData`
+### `tasks/rlm_sfdmu.py` — `LoadSFDMUData`
 Wraps `sf sfdmu run --sourceusername CSVFILE`. Key option: `pathtoexportjson` (directory).
 
 ### Deleting data plans
@@ -119,12 +119,28 @@ dependency order. Key scripts:
 
 Always run `delete_qb_rates_data` before `delete_qb_rating_data` to satisfy FK constraints.
 
-### `TestSFDMUIdempotency`
+### `tasks/rlm_sfdmu.py` — `TestSFDMUIdempotency`
 Runs an SFDMU load twice and asserts record counts don't increase. Supports `use_extraction_roundtrip`
 (extract + post-process + re-import between runs).
 
-### `ExtractSFDMUData`
+### `tasks/rlm_sfdmu.py` — `ExtractSFDMUData`
 Wraps `sf sfdmu run --targetusername CSVFILE`. Runs `post_process_extraction.py` automatically.
+
+### `tasks/rlm_activate_rates.py` — `ActivateRateCardEntries` (Release 262+)
+Activates Draft `RateCardEntry` records by setting `Status = 'Active'` via the Salesforce REST
+Composite API (25 records per request). Replaces the former `activateRateCardEntries.apex` approach,
+which fails in Release 262 with `UNKNOWN_EXCEPTION` (500) — a platform regression in the SOAP
+Execute Anonymous endpoint for `RateCardEntry` DML. The REST API path works correctly.
+Uses `self.org_config.access_token` / `self.org_config.instance_url` pattern. Idempotent: queries
+only Draft records; no-ops if all are already Active.
+
+### `tasks/rlm_analytics.py` — `EnableAnalyticsReplication` (Release 262+)
+Runs the `enable_analytics.robot` test suite via Robot Framework / Selenium. In Release 262, the
+`InsightsSetupSettings` VF iframe page was removed; this task now navigates to
+`/lightning/setup/InsightsSetupGettingStarted/home` and clicks "Enable CRM Analytics". The helper
+library `robot/rlm-base/resources/AnalyticsSetupHelper.py` handles shadow DOM traversal and a
+WebDriverWait race-condition fix (saves the element reference from `WebDriverWait` directly rather
+than calling `find_element` again after Lightning re-renders).
 
 ---
 
@@ -170,15 +186,19 @@ Controlled via `project → custom` in `cumulusci.yml`. Boolean flags like `qb`,
 
 ## Apex Scripts (`scripts/apex/`)
 
-- `activateRatingRecords.apex` — 7-step PUR/PUG activation (complex platform ordering)
+- `activateRatingRecords.apex` — 7-step PUR/PURP/PUG activation (complex platform ordering):
+  - **Step 2.5a** (262 idempotency fix): Before deleting duplicate Draft PURs, first delete their Draft PUG and PURP (`ProductUsageResourcePolicy`) children, then refresh `purIdsWithChildren`. Required because SFDMU `deleteOldData: true` cannot delete Active PURs; on a second run new Draft PURs are inserted alongside Active ones, and in 262 the platform rejects activation of PURs with overlapping effective periods. If Draft duplicates have children, they cannot be deleted — 2.5a clears those children first.
+  - **Step 2.5b**: Delete childless Draft duplicate PURs.
 - `deleteQbRatingData.apex` — deactivates then deletes PUG → PURP → PUR
 - `deleteQbRatesData.apex` — deletes rates data (must run before deleteQbRatingData; rates FK to PURs)
 - Activation scripts generally: query records, set `Status = 'Active'` (or equivalent), update
+- **Note:** `RateCardEntry` activation is NOT done via Apex in Release 262 — see `tasks/rlm_activate_rates.py` (REST Composite API). `RateCard.Status` field was removed in 262.
 
 **Review checklist for Apex:**
 - No SOQL in loops
 - Bulk-safe (use `update records;` not `update record;` in a loop)
 - Deactivation before deletion where platform requires it (PUR, PUG, rate card entries)
+- Do not reference `RateCard.Status` — removed in Release 262
 
 ---
 

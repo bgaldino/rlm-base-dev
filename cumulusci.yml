@@ -16,6 +16,18 @@ orgs:
     dev-sb0:
       config_file: orgs/dev-sb0.json
       days: 30
+    dev-sdb9:
+      config_file: orgs/dev-sdb9.json
+      days: 30
+    dev-sdb27:
+      config_file: orgs/dev-sdb27.json
+      days: 30
+    dev-sdb39:
+      config_file: orgs/dev-sdb39.json
+      days: 30
+    dev-sdb6:
+      config_file: orgs/dev-sdb6.json
+      days: 30
     test-sb0:
       config_file: orgs/test-sb0.json
       days: 30
@@ -113,7 +125,7 @@ project:
     guidedselling: false      # Use Guided Selling
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
-    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
+    analytics: true          # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -1011,7 +1023,7 @@ tasks:
       path: unpackaged/post_guidedselling
 
   enable_analytics_replication:
-    description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
+    description: Enable CRM Analytics via browser automation (Robot/Selenium, clicks "Enable CRM Analytics" on InsightsSetupGettingStarted/home; VF iframe approach removed in 262)
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
     options:
       suite: robot/rlm-base/tests/setup/enable_analytics.robot
@@ -1644,10 +1656,11 @@ tasks:
 
   activate_rates:
     group: Revenue Lifecycle Management
-    description: Activate Rates
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-    options:
-      path: scripts/apex/activateRateCardEntries.apex
+    description: >
+      Activate Draft RateCardEntry records (Status → Active). Uses REST Composite
+      API instead of Apex DML — Apex path raises UNKNOWN_EXCEPTION in Release 262
+      (platform regression in SOAP Execute Anonymous for RateCardEntry).
+    class_path: tasks.rlm_activate_rates.ActivateRateCardEntries
 
 
 #--------------------#

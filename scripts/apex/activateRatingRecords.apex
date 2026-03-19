@@ -11,7 +11,11 @@
 // Activation order (7 steps):
 //   1. UnitOfMeasureClass > Active  (safety net; SFDMU Pass 2 handles this)
 //   2. UsageResource > Active       (safety net; SFDMU Pass 2 handles this)
-//   2.5. Remove duplicate PURs with NO PUG/PURP children (survivor priority: Active > has-children > lower Id)
+//   2.5. Remove duplicate PURs that overlap an Active PUR by effective period:
+//        2.5a. Delete Draft PUG/PURP children of the duplicate Draft PURs (API 262: SFDMU
+//              deleteOldData cannot delete Active records, so a second run inserts fresh Draft
+//              children linked to the new Draft PURs — clear them first to unblock PUR deletion).
+//        2.5b. Delete the now-childless duplicate Draft PURs (survivor: Active > has-children > lower Id).
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
 //                                    require them Active before usage PURs can activate)
@@ -222,6 +226,40 @@ if (candidatePairKeys.isEmpty()) {
         }
     }
     if (!duplicatePurIds.isEmpty()) {
+        // Sub-step 2.5a: Clear Draft PUG/PURP children of duplicate Draft PURs so the PURs
+        // can be deleted by the loop below (which skips PURs with children).
+        // In API 262+ SFDMU deleteOldData cannot delete Active PURs/PUGs/PURPs, so a second
+        // plan run inserts fresh Draft children linked to the duplicate Draft PURs, blocking
+        // deletion. We delete those Draft children first, then re-query to refresh purIdsWithChildren.
+        Set<Id> draftDuplicatePurIds = new Set<Id>();
+        for (ProductUsageResource pur : allPurs) {
+            if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft') {
+                draftDuplicatePurIds.add(pur.Id);
+            }
+        }
+        if (!draftDuplicatePurIds.isEmpty()) {
+            List<SObject> childrenToDelete = new List<SObject>();
+            childrenToDelete.addAll([SELECT Id FROM ProductUsageGrant         WHERE ProductUsageResourceId IN :draftDuplicatePurIds AND Status = 'Draft']);
+            childrenToDelete.addAll([SELECT Id FROM ProductUsageResourcePolicy WHERE ProductUsageResourceId IN :draftDuplicatePurIds]);
+            if (!childrenToDelete.isEmpty()) {
+                Database.DeleteResult[] childResults = Database.delete(childrenToDelete, false);
+                Integer childDeleted = 0;
+                for (Database.DeleteResult r : childResults) { if (r.isSuccess()) childDeleted++; }
+                System.debug('Step 2.5a: cleared ' + childDeleted + '/' + childrenToDelete.size() +
+                    ' Draft child record(s) (PUG/PURP) of duplicate Draft PUR(s).');
+                // Refresh purIdsWithChildren for the affected PURs after child deletion
+                purIdsWithChildren.removeAll(draftDuplicatePurIds);
+                for (AggregateResult ar : [
+                    SELECT ProductUsageResourceId purId FROM ProductUsageGrant
+                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds GROUP BY ProductUsageResourceId
+                ]) { purIdsWithChildren.add((Id)ar.get('purId')); }
+                for (AggregateResult ar : [
+                    SELECT ProductUsageResourceId purId FROM ProductUsageResourcePolicy
+                    WHERE ProductUsageResourceId IN :draftDuplicatePurIds GROUP BY ProductUsageResourceId
+                ]) { purIdsWithChildren.add((Id)ar.get('purId')); }
+            }
+        }
+
         List<ProductUsageResource> purToDelete = new List<ProductUsageResource>();
         for (ProductUsageResource pur : allPurs) {
             if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft' && !purIdsWithChildren.contains(pur.Id)) {
