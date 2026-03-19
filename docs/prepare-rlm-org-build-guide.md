@@ -73,17 +73,17 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 2. **Permission set license assignment** — Assigns 30+ PSLs covering core RLM, billing, rating, AI, CLM, and other capabilities. These are assigned in waves because some licenses depend on others being present first.
 
-3. **Settings cleanup** — Removes metadata settings that can cause deployment failures on certain org types. (The scratch-only guard is currently inactive; this runs for all org types.)
+3. **Settings cleanup** — Removes metadata settings that can cause deployment failures on certain org types. This currently runs for all org types, not just scratch orgs.
 
-4. **Decision table scaffolding** — Temporarily excludes active decision tables, deploys pre-deployment metadata bundles (settings, PSGs, tax metadata), then restores the decision tables. (The scratch-only guard is currently inactive; this runs for all org types.) This dance is necessary because some decision tables reference metadata that must exist before they can be deployed.
+4. **Decision table scaffolding** — Temporarily excludes active decision tables, deploys pre-deployment metadata bundles (settings, permission set groups, tax metadata), then restores the decision tables. This currently runs for all org types. The reason for the exclusion-and-restore pattern: some decision tables reference metadata that doesn't exist yet, so they'd fail validation if left active during that deployment.
 
 5. **Context definition extension** — Extends up to 11 standard RLM context definitions with custom attributes via the Context Service API. Two always run (Sales Transaction, Product Discovery) plus Asset; the remaining 8 are conditional: Cart (`commerce`), Billing and Collection Plan Segment (`billing`), Fulfillment Asset (`dro`), Contracts and Contracts Extraction (`clm`), Rate Management and Rating Discovery (`rating`). Contexts are how Revenue Cloud maps business processes to data — the Sales Transaction Context maps quotes, the Billing Context maps billing schedules, and so on. Each context needs custom extensions to support the demo data model.
 
 6. **Rule library creation** (`breconfig` flag) — Creates pricing rule libraries and, when `dro` is also enabled, the DRO rule library. Skipped in default builds where `breconfig: false`.
 
-**`prepare_decision_tables`** (Step 2) activates a specific set of decision tables on scratch orgs (`activate_decision_tables` is gated on `org_config.scratch` and targets `RLM_ProductCategoryQualification`, `RLM_ProductQualification`, and `RLM_CostBookEntries`); on non-scratch orgs the flow runs but activation is skipped and pre-existing decision table state is relied upon. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
+**`prepare_decision_tables`** (Step 2) activates a specific set of decision tables — but only on scratch orgs. On sandboxes or persistent orgs, this step runs but skips activation, since those orgs are expected to already have their decision tables in place. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
-**`prepare_expression_sets`** (Step 3) deactivates existing expression sets. On scratch orgs it also validates pricing schedule prerequisites and deploys expression sets in draft state (`ensure_pricing_schedules` and `deploy_expression_sets` are gated on `org_config.scratch`); on non-scratch orgs only the deactivation step runs. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 19) after all dependent data is in place.
+**`prepare_expression_sets`** (Step 3) deactivates existing expression sets on all org types. On scratch orgs it also validates that pricing schedule prerequisites are in place and deploys expression sets in draft state — on sandboxes or persistent orgs, only the deactivation runs. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 19) after all dependent data is in place.
 
 ---
 
@@ -101,9 +101,9 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Scratch org seed data** (Step 7, scratch orgs only, not TSO) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs, these records already exist; in fresh scratch orgs, we need to create them.
 
-**Payments site deployment** (Step 8) — The `prepare_payments` sub-flow always runs, but every task inside it is gated on `project_config.project__custom__payments`, so when `payments: false` the entire phase is a no-op. When enabled, it deploys the payments site metadata and settings and publishes the Experience Cloud community. Because `Payments_Webhook.site-meta.xml` stores a placeholder username in the repo, a patch task replaces the placeholder with the org's actual username immediately before the deploy, and a revert task restores the placeholder immediately after — so no real username is ever committed.
+**Payments site deployment** (Step 8) — This step always runs, but if `payments` is turned off, every task inside it is simply skipped. When Payments is enabled, it deploys the site metadata and settings and publishes the Experience Cloud community. The site metadata in the repository uses a placeholder username to avoid storing real usernames in source control — right before deployment, that placeholder is swapped for the org's actual username, and immediately after deployment it's restored. Nothing sensitive ever gets committed.
 
-**QuantumBit preparation** (Step 9, `quantumbit` flag) — Deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions. Note: the `quantumbit` flag gates this metadata deployment; product and pricing data loads are separately gated on the `qb` flag in later phases.
+**QuantumBit preparation** (Step 9, `quantumbit` flag) — Deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions. Two separate flags control QuantumBit: `quantumbit` controls this metadata deployment, while the actual product and pricing data loads later in the flow are controlled independently by the `qb` flag.
 
 ---
 
@@ -137,7 +137,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **CLM** (Step 17, `clm` + `clm_data` flags) — Loads Contract Lifecycle Management reference data including contract templates, clause libraries, and related configuration.
 
-**Rating** (Step 18, `rating` flag; rate cards additionally require `rates`) — Loads usage rating design-time data whenever `rating: true`. Rate card loading and the activation tasks are additionally gated on `rates: true`. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Periods (PURPs), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. After both are loaded, a complex 7-step Apex activation script runs to activate PURs, PUGs, and rate card entries in the correct platform-required order.
+**Rating** (Step 18, `rating` and `rates` flags) — Loads usage rating design-time data when `rating` is enabled. Rate card loading and the final activation steps additionally require `rates` to be on. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Periods (PURPs), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. After both are loaded, a complex 7-step Apex activation script runs to activate PURs, PUGs, and rate card entries in the correct platform-required order.
 
 ---
 
@@ -153,7 +153,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
-**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all gated on `prm` alone. PRM data loading (`insert_quantumbit_prm_data`) additionally requires `qb`; a Q3-only build (`qb: false`) will create and publish the community but skip the QuantumBit PRM data load. Additional sub-steps require secondary flags: the Experience Bundle patch/deploy/revert and `RLM_PRM` permission set assignment require `prm_exp_bundle AND tso`; sharing rules deployment requires `sharingsettings`.
+**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all of which happen whenever `prm` is on. Loading the QuantumBit PRM product data additionally requires `qb`; if you're building a Q3-only org, the community is still created and published but that data load is skipped. Two sub-steps are Trialforce Source Org-specific and only run in TSO builds: deploying the full Experience Bundle and assigning the `RLM_PRM` permission set. Sharing rules deployment is its own separate toggle (`sharingsettings`).
 
 **Agentforce agents** (Step 23, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
 
@@ -181,7 +181,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Pricing discovery reconfiguration** (Step 27, scratch orgs only, not TSO) — Fixes the pricing discovery procedure by reconfiguring an expression set. This addresses a platform behavior where scratch org provisioning creates a default pricing discovery configuration that conflicts with the one we deploy.
 
-**Decision table refresh** (Step 28) — The final step syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; asset, rating, and rating discovery categories refresh only when `rating: true`; commerce refreshes only when `commerce: true`. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This step must always run last because it materializes the current state of all reference data into the decision table engine.
+**Decision table refresh** (Step 28) — The final step syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This step must always run last because it materializes the current state of all reference data into the decision table engine.
 
 ---
 
