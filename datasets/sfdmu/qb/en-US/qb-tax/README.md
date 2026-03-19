@@ -270,4 +270,4 @@ All keys are simple (1-3 fields). No simplification opportunities. The `TaxTreat
 4. **Add extraction support**: Create `extract_qb_tax_data` CCI task for bidirectional operation
 5. **Clean up NamedCredential.csv**: Either add it to `export.json` or remove the orphaned file
 6. **Consider combining activation**: Pass 2 (SFDMU) and `activateTaxRecords.apex` both activate TaxTreatment and TaxPolicy — consider simplifying to one activation mechanism
-7. **API version management**: `createTaxEngine.apex` has a hardcoded `v66.0` — consider making this dynamic
+7. **API version management**: `createTaxEngine.apex` has a hardcoded `v67.0` — consider making this dynamic

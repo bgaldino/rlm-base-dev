@@ -68,7 +68,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "66.0"
+    api_version: "67.0"
   git:
     default_branch: "main"
   source_format: sfdx

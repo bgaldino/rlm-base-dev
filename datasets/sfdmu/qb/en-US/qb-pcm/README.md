@@ -310,7 +310,7 @@ That task runs the load twice and fails if any object's record count increases o
 
 ## 260 Schema Validation Notes
 
-- **API Version**: `66.0` (Release 260)
+- **API Version**: `67.0` (Release 260)
 - **Schema validation pending** — needs to be tested against a 260 scratch org to confirm all fields in SOQL queries are valid
 - Objects 24-27 (Qualification/Disqualification) have no `operation` specified in `export.json` — should be verified that SFDMU handles the default behavior correctly for empty datasets
 - `ProductComponentGrpOverride` and `ProductRelComponentOverride` use polymorphic `OverrideContextId$Product2` syntax — should verify this works correctly in 260

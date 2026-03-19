@@ -105,7 +105,7 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
         instance_url = self.org_config.instance_url
         api_version = (
             getattr(self.project_config, "project__package__api_version", None)
-            or "66.0"
+            or "67.0"
         )
         headers = {
             "Authorization": f"Bearer {access_token}",

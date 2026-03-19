@@ -134,7 +134,7 @@ class CMLBaseTask(BaseSalesforceTask):
 
     task_options: Dict[str, Dict[str, Any]] = {
         "api_version": {
-            "description": "Override Salesforce API version (e.g. 66.0)",
+            "description": "Override Salesforce API version (e.g. 67.0)",
             "required": False,
         },
     }
@@ -155,7 +155,7 @@ class CMLBaseTask(BaseSalesforceTask):
             return str(self.options["api_version"])
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "67.0")
         )
 
     @property

@@ -72,7 +72,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
             or getattr(
                 self.project_config,
                 "project__package__api_version",
-                "66.0",
+                "67.0",
             )
         )
 

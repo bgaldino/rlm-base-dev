@@ -8,5 +8,5 @@
   "name": "rlm-base",
   "namespace": "",
   "sfdcLoginUrl": "https://login.test1.my.pc-rnd.salesforce.com",
-  "sourceApiVersion": "66.0"
+  "sourceApiVersion": "67.0"
 }

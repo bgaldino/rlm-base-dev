@@ -122,7 +122,7 @@ class ManageFlows(BaseTask):
             access_token = self.org_config.access_token
             instance_url = self.org_config.instance_url
             # Get API version from project config or org config
-            api_version = getattr(self.org_config, 'api_version', None) or getattr(self.project_config, 'project__package__api_version', '66.0')
+            api_version = getattr(self.org_config, 'api_version', None) or getattr(self.project_config, 'project__package__api_version', '67.0')
             
             # First, try to describe Flow object to see available fields
             describe_url = f"{instance_url}/services/data/v{api_version}/tooling/sobjects/Flow/describe"
@@ -339,7 +339,7 @@ class ManageFlows(BaseTask):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
         # Get API version from project config or org config
-        api_version = getattr(self.org_config, 'api_version', None) or getattr(self.project_config, 'project__package__api_version', '66.0')
+        api_version = getattr(self.org_config, 'api_version', None) or getattr(self.project_config, 'project__package__api_version', '67.0')
         
         url = f"{instance_url}/services/data/v{api_version}/tooling/sobjects/Flow/{flow_id}"
         headers = {

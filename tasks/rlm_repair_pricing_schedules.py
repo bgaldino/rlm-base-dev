@@ -148,7 +148,7 @@ class EnsurePricingSchedules(BaseTask):
         instance_url = self.org_config.instance_url
         api_version = (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "67.0")
         )
 
         name_list = "', '".join([n.replace("'", "\\'") for n in schedule_names])
@@ -247,7 +247,7 @@ class EnsurePricingSchedules(BaseTask):
         instance_url = self.org_config.instance_url
         api_version = (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "67.0")
         )
 
         escaped = [n.replace("'", "\\'") for n in developer_names]

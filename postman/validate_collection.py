@@ -75,7 +75,7 @@ def validate_collection(collection_path):
             else:
                 raw_url = ''
 
-            # Check for v62.0, v63.0, v64.0, v65.0 (not v66.0 which might be intentional)
+            # Check for v62.0, v63.0, v64.0, v65.0, v66.0 (not v67.0 which might be intentional)
             for old_version in ['v62.0', 'v63.0', 'v64.0', 'v65.0']:
                 if old_version in raw_url:
                     stats['endpoints_with_hardcoded_version'].append(

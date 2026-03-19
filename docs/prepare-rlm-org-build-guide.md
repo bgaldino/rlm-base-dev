@@ -3,7 +3,7 @@
 **How `prepare_rlm_org` Stands Up a Fully Configured Revenue Cloud Org**
 
 > Audience: Semi-technical stakeholders, enablement engineers, and new team members
-> Last Updated: March 2026 | Salesforce Release 260 (Spring '26) | API v66.0
+> Last Updated: March 2026 | Salesforce Release 260 (Spring '26) | API v67.0
 
 ---
 

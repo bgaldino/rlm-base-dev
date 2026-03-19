@@ -1,7 +1,7 @@
 # Revenue Cloud Base Foundations
 
 **Salesforce Release:** 260 (Spring '26)
-**API Version:** 66.0
+**API Version:** 67.0
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 

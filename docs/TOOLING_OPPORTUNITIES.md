@@ -168,7 +168,7 @@ The project already includes management tasks for:
 
 ### API Version Compatibility
 
-- **Target API Version**: 66.0 (Release 260)
+- **Target API Version**: 67.0 (Release 262)
 - **My Domain Enforcement**: Spring '26 enforces My Domain URLs for API traffic
 - **Deprecated APIs**: SOAP API `login()` for versions 31.0–64.0 will be retired by Summer '27
 

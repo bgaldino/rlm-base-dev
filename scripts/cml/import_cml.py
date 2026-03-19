@@ -207,7 +207,7 @@ def main():
 
     global access_token, instance_url, api_version, headers
     access_token, instance_url = get_auth(target_alias)
-    api_version = get_latest_api_version(instance_url) # e.g., '66.0'
+    api_version = get_latest_api_version(instance_url) # e.g., '67.0'
     print(f"API Version is: {api_version}")
     headers = {
         "Authorization": f"Bearer {access_token}",

@@ -449,7 +449,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             "required": True,
         },
         "api_version": {
-            "description": "Salesforce API version override (e.g. '66.0'). Defaults to org or project version.",
+            "description": "Salesforce API version override (e.g. '67.0'). Defaults to org or project version.",
             "required": False,
         },
         "object_sets": {
@@ -477,7 +477,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             return str(self.options["api_version"])
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "67.0")
         )
 
     @property

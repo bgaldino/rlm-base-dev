@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-**Revenue Cloud Base Foundations** automates creation and configuration of Salesforce environments for Revenue Lifecycle Management (RLM). It targets Salesforce Release 260 (Spring '26, API v66.0).
+**Revenue Cloud Base Foundations** automates creation and configuration of Salesforce environments for Revenue Lifecycle Management (RLM). It targets Salesforce Release 260 (Spring '26, API v67.0).
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
