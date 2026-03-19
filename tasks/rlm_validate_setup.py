@@ -2,11 +2,11 @@
 CumulusCI task to validate the local developer setup for rlm-base-dev.
 
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
-and Robot Framework dependencies (Robot, SeleniumLibrary, webdriver-manager,
-Chrome/Chromium, ChromeDriver, urllib3). Optionally auto-fixes an outdated or
-missing SFDMU plugin (auto_fix), robot dependencies via pipx inject
-(auto_fix_robot, on by default), and urllib3 via pipx inject
-(auto_fix_urllib3, off by default).
+and Robot Framework dependencies (Robot, selenium, SeleniumLibrary,
+webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3). Optionally
+auto-fixes an outdated or missing SFDMU plugin (auto_fix), robot
+dependencies via pipx inject (auto_fix_robot, on by default), and urllib3
+via pipx inject (auto_fix_urllib3, off by default).
 
 Run without an org:
     cci task run validate_setup
@@ -40,6 +40,8 @@ MIN_SF_MAJOR: int = 2
 MIN_SFDMU_DEFAULT: str = "5.0.0"
 MIN_URLLIB3: Tuple[int, ...] = (2, 6, 3)
 MIN_URLLIB3_STR: str = "2.6.3"
+MIN_SELENIUM: Tuple[int, ...] = (4, 10)
+MIN_SELENIUM_STR: str = "4.10"
 
 # ── status tokens ────────────────────────────────────────────────────────────
 PASS = "PASS"
@@ -82,9 +84,9 @@ class ValidateSetup(BaseTask):
         },
         "auto_fix_robot": {
             "description": (
-                "When true, run pipx inject cumulusci -r robot/requirements.txt "
+                "When true, run pipx inject cumulusci --force -r robot/requirements.txt "
                 "to install missing Robot Framework dependencies (robotframework, "
-                "robotframework-seleniumlibrary, webdriver-manager, urllib3). "
+                "robotframework-seleniumlibrary, selenium, webdriver-manager, urllib3). "
                 "Default: true — robot tasks are required and deps are auto-installed "
                 "on first run."
             ),
@@ -141,6 +143,7 @@ class ValidateSetup(BaseTask):
             self._check_sf_cli(),
             self._check_sfdmu(required_sfdmu, auto_fix),
             self._check_robot(auto_fix_robot),
+            self._check_selenium(auto_fix_robot),
             self._check_selenium_library(auto_fix_robot),
             self._check_webdriver_manager(auto_fix_robot),
             self._check_chrome_chromium(),
@@ -282,7 +285,49 @@ class ValidateSetup(BaseTask):
                 "not found in the CCI Python env — required for configure_revenue_settings "
                 "and other robot tasks (enable_document_builder_toggle, enable_constraints_settings, "
                 "enable_analytics_replication).\n"
-                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
+                "  Fix: pipx inject cumulusci --force -r robot/requirements.txt",
+            )
+
+    def _check_selenium(self, auto_fix: bool = False) -> Dict[str, str]:
+        label = "selenium"
+        try:
+            import selenium  # noqa: PLC0415
+
+            ver_str = getattr(selenium, "__version__", "unknown")
+            if _parse_version(ver_str) >= MIN_SELENIUM:
+                return self._ok(label, ver_str)
+            # Version too old — try auto-fix first
+            if auto_fix and self._install_robot_deps():
+                try:
+                    import importlib  # noqa: PLC0415
+                    for mod in list(sys.modules):
+                        if mod == "selenium" or mod.startswith("selenium."):
+                            sys.modules.pop(mod, None)
+                    sel_mod = importlib.import_module("selenium")
+                    new_ver = getattr(sel_mod, "__version__", "unknown")
+                    if _parse_version(new_ver) >= MIN_SELENIUM:
+                        return self._fixed(label, f"{ver_str} → {new_ver}")
+                except ImportError:
+                    pass
+            return self._fail(
+                label,
+                f"{ver_str} — requires {MIN_SELENIUM_STR}+ (executable_path removed in 4.10; "
+                "Service API required). Fix: pipx inject cumulusci --force -r robot/requirements.txt",
+            )
+        except ImportError:
+            if auto_fix and self._install_robot_deps():
+                try:
+                    import importlib  # noqa: PLC0415
+                    sel_mod = importlib.import_module("selenium")
+                    ver_str = getattr(sel_mod, "__version__", "unknown")
+                    if _parse_version(ver_str) >= MIN_SELENIUM:
+                        return self._fixed(label, ver_str)
+                except ImportError:
+                    pass
+            return self._fail(
+                label,
+                "not found in the CCI Python env — required for all robot tasks.\n"
+                "  Fix: pipx inject cumulusci --force -r robot/requirements.txt",
             )
 
     def _check_selenium_library(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -304,7 +349,7 @@ class ValidateSetup(BaseTask):
             return self._fail(
                 label,
                 "not found in the CCI Python env — required for all robot tasks.\n"
-                "  Fix: pipx inject cumulusci -r robot/requirements.txt",
+                "  Fix: pipx inject cumulusci --force -r robot/requirements.txt",
             )
 
     def _check_webdriver_manager(self, auto_fix: bool = False) -> Dict[str, str]:
@@ -463,7 +508,7 @@ class ValidateSetup(BaseTask):
     # ── Robot helpers ─────────────────────────────────────────────────────────
 
     def _install_robot_deps(self) -> bool:
-        """Run ``pipx inject cumulusci -r robot/requirements.txt`` at most once per session.
+        """Run ``pipx inject cumulusci --force -r robot/requirements.txt`` at most once per session.
 
         Returns True if the install succeeded (or had already succeeded), False on failure.
         After the first attempt (success or failure) ``self._robot_deps_attempted`` is set so
@@ -490,7 +535,7 @@ class ValidateSetup(BaseTask):
         )
         try:
             result = subprocess.run(
-                ["pipx", "inject", "cumulusci", "-r", requirements_path],
+                ["pipx", "inject", "cumulusci", "--force", "-r", requirements_path],
                 capture_output=True,
                 text=True,
                 timeout=300,

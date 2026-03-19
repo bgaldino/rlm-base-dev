@@ -217,11 +217,11 @@ See `## macOS Environment Setup (Homebrew + pyenv + nvm)` section in README.md f
 - **nvm** via `brew install nvm` is the recommended Node.js version manager — prevents conflicts with system Node. Use `nvm install --lts` and `nvm alias default lts/*`. **LTS versions only** (even-numbered: v20, v22, v24). Odd-numbered releases (v21, v23, v25) are not supported by sf CLI (see forcedotcom/cli#3460).
 - **sf CLI** must be installed via `npm install -g @salesforce/cli` (NOT `brew install sf` or `brew install --cask sf`). The Homebrew formula/cask bundles its own Node and is deprecated; the npm install uses the nvm-managed Node.
 - **pyenv** via `brew install pyenv` is the recommended Python version manager; **Python 3.13 recommended for CCI** (3.14 has known dependency issues; 3.12 is also supported).
-- **pipx** is preferred for CumulusCI: install pipx via pyenv, NOT `brew install pipx`. Then: `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` and `pipx inject cumulusci "setuptools<71"`. The setuptools pin is required — CCI 4.x depends on `pyfilesystem2` which needs `pkg_resources` removed in setuptools 71+.
+- **pipx** is preferred for CumulusCI: install pipx via pyenv, NOT `brew install pipx`. Then: `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"`. No setuptools pin is needed — modern CumulusCI (4.8+) with snowfakery 4.x requires `setuptools>=75.4`; the old `setuptools<71` pin is incompatible and should not be used.
 - **~/.zshenv** must include nvm and pyenv init for non-interactive shells (IDE tools, CI). Without it, `sf` and `node` are not found in those contexts. Add both blocks to `~/.zshenv` AND `~/.zshrc`.
 - **venv** should be created at repo root (`.venv/`) for running `scripts/` and `tasks/` outside CCI.
 - **validate_setup** (`cci task run validate_setup`) is the built-in environment checker — checks Python, CCI, sf CLI, SFDMU, Node.js, Robot deps. Runs without an org. Auto-fixes outdated SFDMU by default.
-- Robot Framework deps (for headless tasks) are defined in `robot/requirements.txt`. Install/update via `pipx inject cumulusci -r robot/requirements.txt`, or run `cci task run validate_setup`.
+- Robot Framework deps (for headless tasks) are defined in `robot/requirements.txt`. Install/update via `pipx inject cumulusci --force -r robot/requirements.txt`, or run `cci task run validate_setup`.
 
 ---
 

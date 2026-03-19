@@ -73,7 +73,6 @@ playwright*
 
 #cci
 .cci
-.github
 
 #dev
 scripts/permsets.txt
