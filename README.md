@@ -1,11 +1,11 @@
 # Revenue Cloud Base Foundations
 
-**Salesforce Release:** 262 (Summer '26)
+**Salesforce Release:** 262 (Summer '26) — development branch
 **API Version:** 67.0
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 
-The main branch targets Salesforce Release 262 (Summer '26, GA). Other branches exist for different release scenarios.
+> **Branch note:** `262-test` is the active development branch for Salesforce Release 262 (Summer '26). `main` continues to target Release 260 (Spring '26) and will be updated for 262 when Summer '26 is generally available.
 
 ## Table of Contents
 
@@ -1326,7 +1326,8 @@ When contributing to this project:
 
 ## Branch Information
 
-- **main**: Salesforce Release 262 (Summer '26, GA)
+- **262-test**: Active development branch for Salesforce Release 262 (Summer '26) — use this branch for all 262 work
+- **main**: Salesforce Release 260 (Spring '26) — will be updated for Release 262 when Summer '26 is generally available
 - Other branches exist for different release scenarios and preview features
 
 ## Additional Resources
