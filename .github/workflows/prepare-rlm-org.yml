@@ -43,7 +43,7 @@ jobs:
 
       - name: Install CumulusCI and dependencies
         run: |
-          pip install "cumulusci>=4.0.0"
+          pip install setuptools "cumulusci>=4.0.0"
           pip install "webdriver-manager>=4,<5" "urllib3>=2.6.3"
           cci version
 
