@@ -39,15 +39,10 @@ jobs:
           path: ~/.npm
           key: npm-cache-${{ runner.os }}-node22
 
-      - name: Install Chrome
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y google-chrome-stable
-
       - name: Install sf CLI and SFDMU plugin
         run: |
           npm install -g @salesforce/cli@2.127.2
-          echo y | sf plugins install sfdmu@5
+          yes | sf plugins install sfdmu@5
           sf --version
           sf plugins
 
