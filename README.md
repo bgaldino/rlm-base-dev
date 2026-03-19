@@ -205,20 +205,16 @@ source ~/.zshrc
 # Install CumulusCI using the same Python version
 pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
 
-# Fix a known compatibility issue: CCI depends on fs/pyfilesystem2 which requires
-# pkg_resources from setuptools<71. Newer setuptools removes pkg_resources.
-pipx inject cumulusci "setuptools<71"
-
 # Verify
 cci version   # Should show CumulusCI 4.x running on Python 3.13.x
 ```
 
-> **Why `setuptools<71`?** CumulusCI 4.x depends on `pyfilesystem2` which uses `pkg_resources`, a module that was removed from `setuptools` in version 71+. The inject command pins setuptools in the CCI venv to a compatible version. This does not affect your global Python or project venv.
+> **Note on setuptools:** Earlier versions of this guide instructed `pipx inject cumulusci "setuptools<71"` to work around a `pkg_resources` issue in `pyfilesystem2`. This pin is **no longer needed or valid** — modern CumulusCI (4.8+) with snowfakery 4.x requires `setuptools>=75.4`, making the `<71` pin incompatible. If you have an older CCI install with the pin, remove it: `pipx inject cumulusci "setuptools>=75.4"`.
 
 If you prefer to use the project venv instead (activate it first per Step 5, then):
 
 ```bash
-pip install cumulusci "setuptools<71"
+pip install cumulusci
 cci version
 ```
 
@@ -331,7 +327,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
 5. **CumulusCI** (CCI)
    - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
-   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` then `pipx inject cumulusci "setuptools<71"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci "setuptools<71"` inside it.
+   - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci` inside it.
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
