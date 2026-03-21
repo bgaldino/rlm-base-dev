@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtlClntAppOauthSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+        Scopes for the RLM Portal React SPA (PKCE, no client secret):
+        - api           : REST API access — covers all /services/data/vXX/ endpoints
+                          including the CPQ/pricing/RLM connect/ paths we call
+        - refresh_token : Allows token refresh for persistent sessions
+        - openid        : User identity (sub claim) for profile page / logout
+    -->
+    <commaSeparatedOauthScopes>api, refresh_token, openid</commaSeparatedOauthScopes>
+    <externalClientApplication>RLMPortal</externalClientApplication>
+    <label>RLM Portal OAuth Settings</label>
+</ExtlClntAppOauthSettings>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtlClntAppGlobalOauthSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Callback URL — must match exactly what the React app sends in its auth request -->
+    <callbackUrl>http://localhost:5173/callback</callbackUrl>
+    <externalClientApplication>RLMPortal</externalClientApplication>
+    <!-- SPA with PKCE does not use a client secret -->
+    <isConsumerSecretOptional>true</isConsumerSecretOptional>
+    <isIntrospectAllTokens>false</isIntrospectAllTokens>
+    <!-- PKCE is required — no secret flow permitted -->
+    <isPkceRequired>true</isPkceRequired>
+    <isSecretRequiredForRefreshToken>false</isSecretRequiredForRefreshToken>
+    <label>RLM Portal Global OAuth Settings</label>
+</ExtlClntAppGlobalOauthSettings>

@@ -53,28 +53,30 @@ The org URL and Client ID are loaded automatically from `.env.local` — no manu
 
 Use this path if you are not using CumulusCI or need to set up against an existing org.
 
-### Step 1 — Create a Connected App
+### Step 1 — Create an External Client App
 
-1. In your Salesforce org, go to **Setup → App Manager → New Connected App**.
+Salesforce Spring '24+ recommends External Client Apps over Connected Apps for new integrations.
+
+1. In your Salesforce org, go to **Setup → External Client Apps → New External Client App**.
 
 2. Fill in the basics:
-   - **Connected App Name:** `RLM Portal`
+   - **Label:** `RLM Portal`
    - **API Name:** `RLMPortal`
    - **Contact Email:** your email
 
-3. Under **OAuth Settings**, check **Enable OAuth Settings**:
+3. Under **OAuth Settings**:
    - **Callback URL:** `http://localhost:5173/callback`
      *(Add additional URLs here if you deploy the app, e.g. `https://myapp.example.com/callback`)*
-   - **Selected OAuth Scopes:**
-     - `Access and manage your data (api)`
+   - **OAuth Scopes:**
+     - `Access and manage your data (api)` — covers all REST API including CPQ/RLM connect/ endpoints
      - `Perform requests at any time (refresh_token, offline_access)`
      - `Access unique user identifiers (openid)`
-   - Check **Enable Proof Key for Code Exchange (PKCE) Extension for Supported Authorization Flows**
-   - Uncheck **Require Secret for Web Server Flow** (browser SPA — no client secret)
+   - Check **Require Proof Key for Code Exchange (PKCE)**
+   - Set **Consumer Secret** to optional (SPA — no client secret)
 
 4. Click **Save**. Salesforce may take 2–10 minutes to activate the new app.
 
-5. After saving, click **Manage Consumer Details** and copy the **Consumer Key**.
+5. After saving, navigate to **App Settings → Consumer Key and Secret** and copy the **Consumer Key**.
 
 ---
 

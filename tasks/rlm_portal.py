@@ -2,7 +2,7 @@
 CumulusCI tasks for the Revenue Cloud Portal (rlm-webapp) feature flag.
 
 Tasks:
-  ConfigurePortalWebapp  — queries the RLMPortal Connected App's Consumer Key
+  ConfigurePortalWebapp  — queries the RLM Portal External Client App's Consumer Key
                            from the org (via Tooling API) and writes
                            rlm-webapp/.env.local so Vite picks up the correct
                            instanceUrl and clientId automatically.
@@ -12,7 +12,7 @@ Usage:
 
 The task is a no-op when portal=false (enforced by the when: condition in the
 prepare_portal flow).  Run it standalone after creating a new org or after the
-Connected App is re-deployed.
+External Client App is re-deployed.
 """
 
 import os
@@ -29,7 +29,7 @@ except ImportError:
 
 class ConfigurePortalWebapp(BaseTask):
     """
-    Reads the RLM Portal Connected App's Consumer Key from the org and writes
+    Reads the RLM Portal External Client App's Consumer Key from the org and writes
     rlm-webapp/.env.local with VITE_SF_INSTANCE_URL and VITE_SF_CLIENT_ID.
 
     Vite automatically loads .env.local at dev-server startup, so the webapp
@@ -39,10 +39,11 @@ class ConfigurePortalWebapp(BaseTask):
     """
 
     task_docs = """
-    After `deploy_portal_connected_app` has created the RLM Portal Connected App,
-    this task:
+    After ``deploy_portal_connected_app`` has deployed the RLM Portal External Client
+    App metadata, this task:
 
-    1. Queries the ConnectedApplication Tooling API object for the Consumer Key.
+    1. Queries the ExternalClientApplication Tooling API object for the Consumer Key
+       (falls back to ConnectedApplication for legacy orgs).
     2. Resolves the org's instance URL from org_config.
     3. Writes ``rlm-webapp/.env.local`` with::
 
@@ -56,8 +57,8 @@ class ConfigurePortalWebapp(BaseTask):
     task_options = {
         "connected_app_name": {
             "description": (
-                "Label of the Connected App to look up in the org "
-                "(default: 'RLM Portal')."
+                "Label of the External Client App (or Connected App, for legacy orgs) "
+                "to look up in the org (default: 'RLM Portal')."
             ),
             "required": False,
         },
@@ -71,8 +72,8 @@ class ConfigurePortalWebapp(BaseTask):
         "extra_callback_urls": {
             "description": (
                 "Comma-separated list of additional callback URLs to add to the "
-                "Connected App (e.g. your Heroku URL). These are appended to the "
-                "existing callbackUrl list via a PATCH on the ConnectedApplication "
+                "External Client App (e.g. your Heroku URL). These are appended to the "
+                "existing callbackUrl list via a PATCH on the ECA Global OAuth Settings "
                 "record. Optional."
             ),
             "required": False,
@@ -97,35 +98,18 @@ class ConfigurePortalWebapp(BaseTask):
         }
 
         # ── 1. Query ConsumerKey via Tooling API ─────────────────────────────
-        # ConnectedApplication is the Tooling API object; Name matches the label.
-        tooling_url = (
-            f"{instance_url}/services/data/v{api_version}/tooling/query"
+        # Try ExternalClientApplication first (Spring '24+ ECA approach),
+        # then fall back to ConnectedApplication (legacy Connected Apps).
+        consumer_key, app_id, app_type = self._get_consumer_key(
+            instance_url, api_version, headers, app_name
         )
-        app_name_escaped = app_name.replace("'", "\\'")
-        soql = (
-            f"SELECT Id, Name, ConsumerKey FROM ConnectedApplication "
-            f"WHERE Name = '{app_name_escaped}' LIMIT 1"
-        )
-        self.logger.info(f"Querying Tooling API for Connected App '{app_name}'...")
-        resp = requests.get(tooling_url, headers=headers, params={"q": soql})
-        resp.raise_for_status()
-        result = resp.json()
-
-        if result.get("totalSize", 0) == 0:
-            raise TaskOptionsError(
-                f"Connected App '{app_name}' not found in org. "
-                "Run deploy_portal_connected_app first."
-            )
-
-        record = result["records"][0]
-        consumer_key = record["ConsumerKey"]
-        app_id = record["Id"]
-        self.logger.info(f"Found Connected App '{app_name}' — ConsumerKey: {consumer_key[:12]}...")
 
         # ── 2. Optionally patch extra callback URLs ───────────────────────────
         if extra_urls.strip():
             new_urls = [u.strip() for u in extra_urls.split(",") if u.strip()]
-            self._add_callback_urls(instance_url, api_version, headers, app_id, new_urls)
+            self._add_callback_urls(
+                instance_url, api_version, headers, app_id, new_urls, app_type
+            )
 
         # ── 3. Write rlm-webapp/.env.local ───────────────────────────────────
         repo_root = self.project_config.repo_root
@@ -149,38 +133,144 @@ class ConfigurePortalWebapp(BaseTask):
             "  cd rlm-webapp && npm run dev"
         )
 
-    def _add_callback_urls(self, instance_url, api_version, headers, app_id, new_urls):
+    def _get_consumer_key(self, instance_url, api_version, headers, app_name):
         """
-        Append new_urls to the Connected App's callbackUrl list via Tooling API PATCH.
+        Query Consumer Key for the named app.
+
+        Tries ExternalClientApplication first (ECA, Spring '24+), then falls back
+        to ConnectedApplication (legacy Connected Apps).  Returns (consumer_key, record_id, app_type).
+        """
+        tooling_url = f"{instance_url}/services/data/v{api_version}/tooling/query"
+        app_name_escaped = app_name.replace("'", "\\'")
+
+        # ── Try External Client App first ─────────────────────────────────────
+        eca_soql = (
+            f"SELECT Id, Label, ConsumerKey FROM ExternalClientApplication "
+            f"WHERE Label = '{app_name_escaped}' LIMIT 1"
+        )
+        self.logger.info(
+            f"Querying Tooling API for External Client App '{app_name}' (ECA)..."
+        )
+        eca_resp = requests.get(tooling_url, headers=headers, params={"q": eca_soql})
+
+        if eca_resp.ok:
+            eca_result = eca_resp.json()
+            if eca_result.get("totalSize", 0) > 0:
+                record = eca_result["records"][0]
+                consumer_key = record["ConsumerKey"]
+                self.logger.info(
+                    f"Found ECA '{app_name}' — ConsumerKey: {consumer_key[:12]}..."
+                )
+                return consumer_key, record["Id"], "eca"
+            self.logger.info(
+                "ECA query returned 0 records — falling back to ConnectedApplication."
+            )
+        else:
+            self.logger.info(
+                f"ECA Tooling query failed ({eca_resp.status_code}) — "
+                "falling back to ConnectedApplication."
+            )
+
+        # ── Fall back to legacy Connected App ─────────────────────────────────
+        ca_soql = (
+            f"SELECT Id, Name, ConsumerKey FROM ConnectedApplication "
+            f"WHERE Name = '{app_name_escaped}' LIMIT 1"
+        )
+        self.logger.info(
+            f"Querying Tooling API for Connected App '{app_name}' (legacy)..."
+        )
+        ca_resp = requests.get(tooling_url, headers=headers, params={"q": ca_soql})
+        ca_resp.raise_for_status()
+        ca_result = ca_resp.json()
+
+        if ca_result.get("totalSize", 0) == 0:
+            raise TaskOptionsError(
+                f"App '{app_name}' not found as an External Client App or Connected App. "
+                "Run deploy_portal_connected_app first, then wait ~2 minutes for "
+                "Salesforce to activate it before retrying."
+            )
+
+        record = ca_result["records"][0]
+        consumer_key = record["ConsumerKey"]
+        self.logger.info(
+            f"Found Connected App '{app_name}' — ConsumerKey: {consumer_key[:12]}..."
+        )
+        return consumer_key, record["Id"], "connected_app"
+
+    def _add_callback_urls(
+        self, instance_url, api_version, headers, app_id, new_urls, app_type
+    ):
+        """
+        Append new_urls to the app's callbackUrl list via Tooling API PATCH.
+        Handles both ECA (ExtlClntAppGlobalOauthSettings) and legacy Connected Apps.
         Only adds URLs that are not already present.
         """
         tooling_base = f"{instance_url}/services/data/v{api_version}/tooling"
 
-        # Fetch current callback URLs
-        detail_resp = requests.get(
-            f"{tooling_base}/sobjects/ConnectedApplication/{app_id}",
-            headers=headers,
-        )
-        detail_resp.raise_for_status()
-        detail = detail_resp.json()
+        if app_type == "eca":
+            # For ECAs, callback URL lives on the ExtlClntAppGlobalOauthSettings record.
+            # Query by the ECA Id to find the associated global settings record.
+            glbl_soql = (
+                f"SELECT Id, CallbackUrl FROM ExtlClntAppGlobalOauthSettings "
+                f"WHERE ExternalClientApplicationId = '{app_id}' LIMIT 1"
+            )
+            glbl_resp = requests.get(
+                f"{tooling_base}/query",
+                headers=headers,
+                params={"q": glbl_soql},
+            )
+            glbl_resp.raise_for_status()
+            glbl_result = glbl_resp.json()
 
-        # callbackUrl is a newline-separated string in Tooling API
-        existing_raw = detail.get("oauthConfig", {}).get("callbackUrl", "")
-        existing = [u.strip() for u in existing_raw.splitlines() if u.strip()]
+            if glbl_result.get("totalSize", 0) == 0:
+                self.logger.warning(
+                    "Could not find ExtlClntAppGlobalOauthSettings — skipping URL patch."
+                )
+                return
 
-        to_add = [u for u in new_urls if u not in existing]
-        if not to_add:
-            self.logger.info("All extra callback URLs already present — skipping patch.")
-            return
+            glbl_record = glbl_result["records"][0]
+            existing_raw = glbl_record.get("CallbackUrl", "")
+            existing = [u.strip() for u in existing_raw.splitlines() if u.strip()]
+            to_add = [u for u in new_urls if u not in existing]
 
-        updated = existing + to_add
-        updated_str = "\n".join(updated)
+            if not to_add:
+                self.logger.info(
+                    "All extra callback URLs already present — skipping patch."
+                )
+                return
 
-        patch_resp = requests.patch(
-            f"{tooling_base}/sobjects/ConnectedApplication/{app_id}",
-            headers=headers,
-            json={"oauthConfig": {"callbackUrl": updated_str}},
-        )
+            updated_str = "\n".join(existing + to_add)
+            patch_resp = requests.patch(
+                f"{tooling_base}/sobjects/ExtlClntAppGlobalOauthSettings/{glbl_record['Id']}",
+                headers=headers,
+                json={"CallbackUrl": updated_str},
+            )
+        else:
+            # Legacy Connected App — callback URL is in oauthConfig.callbackUrl
+            detail_resp = requests.get(
+                f"{tooling_base}/sobjects/ConnectedApplication/{app_id}",
+                headers=headers,
+            )
+            detail_resp.raise_for_status()
+            detail = detail_resp.json()
+
+            existing_raw = detail.get("oauthConfig", {}).get("callbackUrl", "")
+            existing = [u.strip() for u in existing_raw.splitlines() if u.strip()]
+            to_add = [u for u in new_urls if u not in existing]
+
+            if not to_add:
+                self.logger.info(
+                    "All extra callback URLs already present — skipping patch."
+                )
+                return
+
+            updated_str = "\n".join(existing + to_add)
+            patch_resp = requests.patch(
+                f"{tooling_base}/sobjects/ConnectedApplication/{app_id}",
+                headers=headers,
+                json={"oauthConfig": {"callbackUrl": updated_str}},
+            )
+
         if patch_resp.status_code == 204:
             self.logger.info(f"Added callback URLs: {', '.join(to_add)}")
         else:

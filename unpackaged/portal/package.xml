@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- External Client App header (label, description, contactEmail) -->
     <types>
         <members>RLMPortal</members>
-        <name>ConnectedApp</name>
+        <name>ExternalClientApplication</name>
+    </types>
+    <!-- OAuth scopes (packageable) -->
+    <types>
+        <members>RLMPortalOAuth</members>
+        <name>ExtlClntAppOauthSettings</name>
+    </types>
+    <!--
+        Global OAuth settings: PKCE enforcement, callback URL, consumer secret policy.
+        Salesforce generates the consumer key at deploy time — it is not stored here.
+        configure_portal_webapp reads it via Tooling API and writes rlm-webapp/.env.local.
+    -->
+    <types>
+        <members>RLMPortalGlblOAuth</members>
+        <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
     <version>66.0</version>
 </Package>
