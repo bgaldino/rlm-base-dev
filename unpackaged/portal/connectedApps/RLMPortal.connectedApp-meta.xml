@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Revenue Cloud Portal — Connected App
+  ─────────────────────────────────────────────────────────────────────────────
+  OAuth 2.0 PKCE public client for the rlm-webapp storefront.
+  Deployed by the `deploy_portal_connected_app` CCI task when portal=true.
+
+  Callback URLs cover:
+    • Local dev   : http://localhost:5173/callback
+    • Heroku      : https://<your-app>.herokuapp.com/callback  (update before deploy)
+
+  After deployment the Consumer Key (Client ID) is read by `configure_portal_webapp`
+  and written to rlm-webapp/.env.local so Vite picks it up automatically.
+-->
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>rlm-portal@example.com</contactEmail>
+    <description>Revenue Cloud Portal storefront — OAuth 2.0 PKCE client for the React webapp.</description>
+    <label>RLM Portal</label>
+    <oauthConfig>
+        <!-- Add your Heroku URL here before production deployment -->
+        <callbackUrl>http://localhost:5173/callback</callbackUrl>
+        <isAdminApproved>false</isAdminApproved>
+        <isPkceRequired>true</isPkceRequired>
+        <scopes>Api</scopes>
+        <scopes>OpenID</scopes>
+        <scopes>RefreshToken</scopes>
+    </oauthConfig>
+</ConnectedApp>

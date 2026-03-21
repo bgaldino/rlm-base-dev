@@ -1,0 +1,9 @@
+# Build output
+dist/
+
+# Vite cache / timestamp files
+*.timestamp-*.mjs
+node_modules/
+
+# CCI-generated env file — contains org-specific secrets
+.env.local

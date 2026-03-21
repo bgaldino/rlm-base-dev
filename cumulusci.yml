@@ -114,6 +114,7 @@ project:
     procedureplans: true     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
+    portal: false            # Deploy Revenue Cloud Portal Connected App and configure rlm-webapp/.env.local
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -2049,6 +2050,30 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+#--------------#
+# PORTAL TASKS #
+#--------------#
+
+  deploy_portal_connected_app:
+    group: Portal
+    description: >
+      Deploys the RLM Portal Connected App metadata (unpackaged/portal) to the org.
+      Creates an OAuth 2.0 PKCE Connected App with callback URL for localhost:5173.
+      Run when portal=true; followed by configure_portal_webapp to write .env.local.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/portal
+
+  configure_portal_webapp:
+    group: Portal
+    description: >
+      Reads the RLM Portal Connected App's Consumer Key from the org (Tooling API)
+      and writes rlm-webapp/.env.local with VITE_SF_INSTANCE_URL and VITE_SF_CLIENT_ID.
+      Vite automatically loads .env.local so the dev server connects to the correct org
+      without manual config edits. Optionally patches extra_callback_urls into the
+      Connected App (e.g. a Heroku URL) via the extra_callback_urls option.
+    class_path: tasks.rlm_portal.ConfigurePortalWebapp
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -2119,7 +2144,10 @@ flows:
         when: org_config.scratch and not project_config.project__custom__tso
       28:
         flow: refresh_all_decision_tables
-         
+      29:
+        flow: prepare_portal
+        when: project_config.project__custom__portal
+
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
@@ -2682,6 +2710,21 @@ flows:
       1:
         task: enable_analytics_replication
         when: project_config.project__custom__analytics
+
+  prepare_portal:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploys the RLM Portal Connected App and configures rlm-webapp/.env.local
+      so the Vite dev server connects to the correct org automatically.
+      Only runs when portal=true. Steps: deploy Connected App metadata,
+      then query its Consumer Key and write .env.local.
+    steps:
+      1:
+        task: deploy_portal_connected_app
+        when: project_config.project__custom__portal
+      2:
+        task: configure_portal_webapp
+        when: project_config.project__custom__portal
 
   prepare_payments:
     group: Revenue Lifecycle Management

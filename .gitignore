@@ -38,6 +38,8 @@ $RECYCLE.BIN/
 
 # Local environment variables
 .env
+.env.local
+rlm-webapp/.env.local
 
 # Python Salesforce Functions
 **/__pycache__/
