@@ -22,7 +22,8 @@
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "B2BCommerce",
-    "EnablePRM"
+    "EnablePRM",
+    "ExternalClientApps"
   ],
   "settings": {
     "billingSettings": {

@@ -31,7 +31,8 @@
     "SalesforceConfiguratorEngine",
     "SalesforcePaymentsFeature",
     "TableauEinstein",
-    "UsageManagement"
+    "UsageManagement",
+    "ExternalClientApps"
     ],
   "settings": {
     "lightningExperienceSettings": {
