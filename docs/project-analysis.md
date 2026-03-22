@@ -1,7 +1,7 @@
 # Project Analysis: Revenue Cloud Foundations & Distill
 
 > **Document Type:** Living Reference
-> **Last Updated:** 2026-02-27
+> **Last Updated:** 2026-03-22
 > **Scope:** Comprehensive technical reference for both projects — capabilities, architecture, inventories
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -601,9 +601,10 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 **Distill** (`sf-industries/distill`) is an AI-powered Salesforce customization migration platform built exclusively on the Claude Agent SDK. It answers the question: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
 - **Python:** 3.10–3.12
-- **LLM:** Claude Sonnet 4.5 / Haiku 4.5 — accessed via **Vertex AI on GCP** (provisioned through Embark). No direct Anthropic API or Bedrock.
-- **Storage:** SQLite (primary — relational project/migration data), ChromaDB (vector — configured in `base.yaml`), NetworkX (graph — configured in `base.yaml`)
-- **Interface:** Interactive CLI (`./distill start`), TUI (Textual), REST API (Web mode — future)
+- **LLM:** Claude Sonnet 4.5 / Haiku 4.5 — production access via **Einstein LLM Gateway** (enabled PR #103 2026-03-16; OAuth credentials from **Falcon Vault**, PR #109 2026-03-19). Local/dev fallback: Vertex AI via GCP/Embark. No direct Anthropic API key required in production.
+- **Auth (API server):** RBAC API key (`X-API-Key`) + **OIDC JWT via QuantumK SSO** (added PR #111 2026-03-20, `oidc_auth.py` + `oidc_jwt_validator.py`)
+- **Storage:** SQLite (primary — relational project/migration data), ChromaDB (vector — configured in `base.yaml`), DuckDB (analysis/insights graph data), S3/boto3 (cloud artifact storage, added PR #101 2026-03-12), NetworkX (graph — configured in `base.yaml`)
+- **Interface:** Interactive CLI (`./distill start`), TUI (Textual), Flask REST API (RBAC-protected), FastAPI server (`serve_api.py` — S3 endpoints only)
 
 **What makes it distinctive:**
 - Clean Architecture: Core (domain/services) → Controllers → UI — core has zero UI dependencies
@@ -628,11 +629,11 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 ### LLM Access
 | Model | Access Path | Used By |
 |---|---|---|
-| `claude-sonnet-4-5@20250929` | Vertex AI via GCP/Embark | Orchestration |
-| `claude-haiku-4-5@20251001` | Vertex AI via GCP/Embark | CodeSuggestion, DataMapper agents |
-| `GEMINI_API_KEY` | Google AI direct | Gemini adapter (optional) |
+| `claude-sonnet-4-5@20250929` | Einstein LLM Gateway (prod) / Vertex AI via GCP/Embark (local) | Orchestration |
+| `claude-haiku-4-5@20251001` | Einstein LLM Gateway (prod) / Vertex AI via GCP/Embark (local) | CodeSuggestion, DataMapper agents |
+| `GEMINI_API_KEY` | Google AI direct | Gemini adapter — hardcoded in `run_file_migration` |
 
-> **Note:** LLM access requires a GCP project provisioned via [Embark](https://embark.sfdcbt.net/). No direct Anthropic API key or AWS Bedrock configuration is used.
+> **Production:** Einstein LLM Gateway handles all Claude calls in production; OAuth client credentials provisioned by **Falcon Vault** (no API key in env). **Local/dev:** Vertex AI via GCP/Embark (`claude_vertex_adapter.py`) or direct Anthropic API key as fallback. The `DISTILL_LLM__MODEL` config key and provider routing in `src/distill/einsteinllm/` control the selection.
 
 ### UI & CLI
 | Package | Role |
@@ -984,5 +985,13 @@ DataMapper field mappings  ← entity-level context
 Merged context prompt      → Claude Sonnet → migrated code
 ```
 
-### Vertex AI Support
-Distill runs Claude orchestration models through Google Vertex AI (`claude_vertex_adapter.py`). Note that `run_file_migration` — the primary CodeSuggestion tool — uses Gemini (hardcoded), not Claude Vertex. See §2.4 for the implementation note.
+### Einstein LLM Gateway (Production — added PR #103 2026-03-16)
+Distill's primary production LLM path. OAuth client credentials are provisioned by **Falcon Vault** (`src/distill/vault/vault_client.py`) — no hardcoded secrets. The `src/distill/einsteinllm/` module implements the OAuth client and handles token refresh. Secured and hardened in PR #109 (2026-03-19): all Einstein callouts now go through Falcon Vault secrets in production.
+
+### OIDC / QuantumK Auth (added PR #111 2026-03-20)
+The Flask API server (`src/distill/dashboard/app.py`) now supports two auth modes:
+- **API key** (`X-API-Key` header) — existing RBAC path (4 roles, 30+ permissions)
+- **OIDC JWT** (`Authorization: Bearer <jwt>`) — QuantumK SSO integration via `oidc_auth.py` + `oidc_jwt_validator.py`
+
+### Vertex AI Support (local/dev fallback)
+Distill runs Claude orchestration models through Google Vertex AI (`claude_vertex_adapter.py`) as a local/dev fallback. Note that `run_file_migration` — the primary CodeSuggestion tool — uses Gemini (hardcoded), not Claude Vertex. See §2.4 for the implementation note.

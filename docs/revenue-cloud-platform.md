@@ -1,7 +1,7 @@
 # Revenue Cloud Engineering Platform
 
 > **Document Type:** Integration Overview — Living Document
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-03-22
 > **Audience:** Engineering Leadership
 >
 > **Three platforms. One integrated engineering workflow for Revenue Cloud.**
@@ -115,8 +115,8 @@ revenue-cloud-foundations/
 ## 3. Distill
 
 **Repository:** `sf-industries/distill` (Salesforce enterprise — requires SSO + GCP/Embark setup)
-**Technology:** Python 3.10–3.12 · Claude Agent SDK · Vertex AI (GCP/Embark) · SQLite · DuckDB · ChromaDB · Textual TUI
-**Interface:** Interactive CLI (`./distill start`) · Textual TUI · Flask REST API (`src/distill/dashboard/app.py` — RBAC-protected)
+**Technology:** Python 3.10–3.12 · Claude Agent SDK · Einstein LLM Gateway (production) · Vertex AI/GCP/Embark (local fallback) · Falcon Vault (secrets) · OIDC/QuantumK (API auth) · SQLite · DuckDB · ChromaDB · S3 · Textual TUI
+**Interface:** Interactive CLI (`./distill start`) · Textual TUI · Flask REST API (`src/distill/dashboard/app.py` — RBAC + OIDC-protected)
 
 Distill is an AI-powered Salesforce customization migration platform built **exclusively on the Claude Agent SDK**. It answers: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
@@ -137,9 +137,9 @@ Four agents currently registered:
 
 - **Claude Agent SDK exclusively** — no custom Anthropic client wrapper; all LLM calls go through `ClaudeSDKClient`
 - **Clean Architecture:** Core (domain/services) → Controllers → UI — zero UI dependencies in business logic
-- **LLM access:** Vertex AI via GCP/Embark (`claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`) — requires Embark-provisioned GCP project
-- **Storage:** SQLite (projects, migration records), DuckDB (insights data — thread-safe singleton), ChromaDB (vector store for RAG)
-- **RBAC:** 4 roles (KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER), 30+ permissions, Flask route decorators
+- **LLM access (production):** Einstein LLM Gateway (`src/distill/einsteinllm/`) — OAuth credentials from Falcon Vault. **LLM access (local/dev):** Vertex AI via GCP/Embark (`claude_vertex_adapter.py`). Models: `claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`
+- **Auth:** RBAC API key (30+ permissions, 4 roles) + OIDC JWT via QuantumK SSO (PR #111 2026-03-20)
+- **Storage:** SQLite (projects, migration records), DuckDB (insights data — thread-safe singleton), ChromaDB (vector store for RAG), S3/boto3 (cloud artifact storage)
 
 ### 3.3 How It Plugs Into Foundations
 
@@ -403,4 +403,4 @@ The integrated platform — specifically the combination of (1) CCI feature-flag
 ---
 
 *Revenue Cloud Engineering Platform — Living Document*
-*Branch: `distill-integration` · Repo: `salesforce-internal/revenue-cloud-foundations`*
+*Branch: `feat/distill-aegis-integration` · Repo: `salesforce-internal/revenue-cloud-foundations`*

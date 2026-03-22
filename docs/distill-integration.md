@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Distill: Integration Living Document
 
 > **Status:** In Progress
-> **Last Updated:** 2026-03-16
+> **Last Updated:** 2026-03-22
 > **Scope:** Round-trip customization capture across data shapes (no custom fields, target-org-agnostic)
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -47,7 +47,7 @@ An enterprise CumulusCI automation framework for standing up Salesforce Revenue 
 
 An AI-powered Salesforce customization migration platform built exclusively on the Claude Agent SDK. Its core job: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
-**LLM access:** Vertex AI via GCP/Embark (not direct Anthropic API). Models: `claude-sonnet-4-5@20250929` (orchestration), `claude-haiku-4-5@20251001` (agents).
+**LLM access (updated 2026-03-22):** **Einstein LLM Gateway** is now the primary production LLM path (enabled in PR #103 2026-03-16; OAuth credentials secured via Falcon Vault in PR #109 2026-03-19). Local/dev environments continue to use Vertex AI via GCP/Embark as a fallback. Models: `claude-sonnet-4-5@20250929` (orchestration), `claude-haiku-4-5@20251001` (agents). The `DISTILL_LLM__MODEL` config controls model selection; provider routing is handled by `src/distill/einsteinllm/` (production OAuth client) vs. `claude_vertex_adapter.py` (local Vertex AI).
 
 **Integration-relevant agents — current status:**
 
@@ -75,7 +75,12 @@ An AI-powered Salesforce customization migration platform built exclusively on t
 > - `run_file_migration` requires a **pre-existing Distill project** (`project_id`). A project must be created via the Distill CLI (`/configure`) before Phase 1 CCI tasks can be used. See §4.3.
 > - `run_file_migration` routes through **Gemini** (hardcoded). The `llm_provider` parameter exists but Claude is explicitly disabled. `GEMINI_API_KEY` required.
 > - `DeploymentAgent` requires Claude Code built-in tools. Out of scope for CCI.
-> - The Flask REST API requires an API key (`X-API-Key` header) and a pre-existing Distill project (`project_id`).
+> - The Flask REST API requires an API key (`X-API-Key` header) and a pre-existing Distill project (`project_id`). As of PR #111 (2026-03-20), the API server also supports **OIDC JWT auth** via QuantumK SSO (`oidc_auth.py` + `oidc_jwt_validator.py`) — CCI may use either path for server-mode integration.
+>
+> ⚠️ **Known Distill bugs affecting integration (from `FLOW_DOCUMENTATION.md`):**
+> - **DataMapper silent failure on KIT creation:** The pipeline catches exceptions and returns success to the user even when mapping didn't run. Phase 1 callers should validate output files exist before treating a migration run as successful.
+> - **No path tracking in `kits` DB table:** `source_path`, `target_path`, `datamapper_path` columns are missing from the `kits` table. Project path resolution for Phase 3/4 headless invocation must use the project record directly, not the kits table.
+> - **Nested ZIP directory structure:** Extracted source ZIPs create double-nested paths (`source/source/force-app/...`). When feeding retrieved org metadata to Distill (Phase 3+), ensure the path passed to `InsightsPipeline` points to the inner `force-app/` directory, not the outer extraction root.
 
 **Full automated drift detection** (the round-trip workflow in §3) can be reached via two paths: (1) direct Python import of `InsightsPipeline` from `distill.insights.pipeline` — no server required, or (2) Flask REST API (`POST /api/analysis/{project_id}/run-insights`) if Distill is running as a server. The Phase 3 spike validates path (1). See §8 for the phased roadmap.
 
@@ -227,7 +232,7 @@ OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
 }
 ```
 
-**Authentication:** All Flask endpoints require `X-API-Key: <key>` header. API key managed via Distill auth system.
+**Authentication:** All Flask endpoints require `X-API-Key: <key>` header (RBAC-protected). As of PR #111 (2026-03-20), the API server also accepts **OIDC JWT tokens** via QuantumK SSO — use `Authorization: Bearer <jwt>` if your Salesforce SSO environment supports QuantumK. API key remains the simpler path for CCI integration. See O14.
 
 **`GET /api/analysis/{id}/summary` response:**
 ```json
@@ -1318,5 +1323,5 @@ env:
 | O11 | Should Phase 1 wait for Claude re-enablement in `run_file_migration`, or proceed with Gemini dependency? | ✅ Resolved | **Proceed with Gemini.** The integration plumbing is model-agnostic — when Distill re-enables Claude, the CCI task requires zero changes. `GEMINI_API_KEY` is a documented prerequisite. The hardcode reads as a workaround (`"DISABLED"`), not a permanent design choice. |
 | O12 | What is the initialization sequence for `InsightsPipeline` in headless mode? | Phase 3 spike | Reframed: `insights/api.py` is empty — the integration target is `InsightsPipeline` in `distill.insights.pipeline`. Spike question: does `InsightsPipeline.__init__` require DuckDB project DB, ChromaDB, or LLM client to be pre-initialized, or does it accept a `source_path` and bootstrap internally? |
 | O13 | Are `insights/` and `analysis/` complementary pipeline stages or parallel implementations? | ✅ Resolved | **Confirmed complementary.** `analysis/` was reduced to a support library (parsing, ingestion, LLM utilities) in commit f6fa7dc. Its `api.py`, `graph/`, `reporting/`, and `featuremapping/` were removed. `InsightsPipeline` in `insights/` is the sole pipeline orchestrator and integration target. |
-| O14 | Does RBAC (roles: KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER) affect the CCI integration path? | Open | The Flask REST API is RBAC-protected — CCI will need an API key with appropriate role (likely IMPLEMENTOR: `analysis:run`, `insights:read`). Python import path (Path A) bypasses RBAC entirely. If using Path B, confirm API key provisioning process with Distill team. |
+| O14 | Does RBAC (roles: KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER) affect the CCI integration path? | Updated | The Flask REST API is RBAC-protected — CCI will need an API key with appropriate role (likely IMPLEMENTOR: `analysis:run`, `insights:read`). **Updated (PR #111, 2026-03-20):** The API server now also supports **OIDC JWT auth** via QuantumK SSO (`oidc_auth.py` + `oidc_jwt_validator.py`). CCI may use either an API key (RBAC path) or an OIDC JWT (QuantumK SSO path) for server-mode integration (Path B). Python import path (Path A) bypasses all auth entirely. If using Path B, confirm API key vs. OIDC auth preference with Distill team. |
 | O15 | Should CCI use the KIT system for the reference shape baseline? | Open | Distill's KIT system packages migration artifacts (source analysis, entity maps, suggestions) into reusable bundles. A `qb-en-US` KIT could be the blessed reference artifact. If the Distill team publishes a `qb-en-US` KIT, `capture_org_customizations` could diff against it rather than a locally generated `shape_manifest.json`. Evaluate in Phase 4. |

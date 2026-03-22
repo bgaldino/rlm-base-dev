@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Aegis: Integration Plan
 
 > **Status:** Planning
-> **Last Updated:** 2026-03-16
+> **Last Updated:** 2026-03-22
 > **Scope:** Automated post-provision validation of Foundations-provisioned orgs using the Aegis BDD test framework
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -51,6 +51,7 @@ Aegis is a Revenue Cloud BDD test automation framework. It validates end-to-end 
 - Jenkins job supports `TEST_PATH` param to target a single team or feature file
 - Auto-cleanup feature (`shared/steps/platform/graph_collection_steps.py`): graph collection test data is auto-deleted after each scenario (failed scenarios delete all records; passed scenarios delete only created records)
 - **Known gap:** Aegis cannot create or provision orgs — it must be pointed at an existing one
+- **AI-assisted scenario authoring (added 2026-03-20):** `usage-pr-aegis-scenario-gen` skill added by Kumar Abhijit — a Cursor AI skill that generates Gherkin scenarios from Usage PRDs. Confirms the Aegis team is actively investing in AI-assisted test authoring, consistent with the integration narrative. Scenario coverage in usage, billing, TLT, and ProductCatalogManagement areas expanded significantly in March 2026.
 
 **Aegis does NOT:**
 - Create Salesforce orgs
@@ -542,7 +543,7 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 | O2 | Should `prepare_rlm_org` run Aegis by default, or opt-in only? | Open | Default `false` is safe for now — Aegis requires local repo clone and adds ~5 min. Could graduate to `true` for CI environments once reliability is established. |
 | O3 | How should Aegis scenario failures surface in CCI output? | Open | Options: (a) raw behave output in log, (b) parsed summary table, (c) link to Allure report. A parsed summary (scenario names + feature file paths) is most actionable. |
 | O4 | Should the flag-to-team mapping live in `shapes.json` or be hardcoded in the task? | Open | Hardcode in task for Phase 3 (fastest path). Move to `shapes.json` in Phase 4 — this resolves O9 in [distill-integration.md](distill-integration.md) and makes the manifest a true cross-platform contract. |
-| O5 | Does CCI access token have sufficient Salesforce permissions for Aegis UI tests? | Needs testing | Aegis UI tests (Playwright/Selenium) use session injection. The CCI-provisioned user must have Lightning UI access. Scratch org admin users should — confirm for sandbox/Steam orgs. |
+| O5 | Does CCI access token have sufficient Salesforce permissions for Aegis UI tests? | Needs testing | Aegis UI tests (Playwright/Selenium) use session injection. The CCI-provisioned user must have Lightning UI access. Scratch org admin users should — confirm for sandbox/Steam orgs. Note: the Rev GO org experienced a credential expiry requiring a manual update (2026-03-17) — CCI's OAuth access token approach avoids this class of credential rot since tokens are refreshed per CCI session. |
 | O6 | Can `@smoke` tag be added to the most critical `RevenueGoFoundation` scenarios? | Aegis team | Current smoke coverage unknown — need to coordinate with Aegis `RevenueGoFoundation` authors to tag the ~5 most critical scenarios `@smoke` for fast-path validation. |
 | O7 | What is the expected runtime of the `RevenueGoFoundation` full suite? | Needs measurement | Determines whether Phase 1 local run is practical in `prepare_rlm_org` (target: under 5 min for smoke, under 15 min for full). Run and measure against a real Foundations org. |
 | O8 | How should the Aegis repo path be configured per-developer? | Open | Options: (a) `aegis_repo_path` task option (current), (b) `AEGIS_REPO_PATH` env var, (c) `cumulusci.yml` project-level default pointing to a standard location. A `~/.cumulusci/aegis.yml` personal config would avoid committing local paths. |
