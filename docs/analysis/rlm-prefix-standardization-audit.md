@@ -188,7 +188,7 @@ When renamed, the Revenue Settings configuration in any existing org also needs 
 | `RC_Refresh_Pricing_Decision_Tables` | `RLM_Refresh_Pricing_Decision_Tables` | |
 | `RC_Refresh_Rate_Card_Decision_Tables` | `RLM_Refresh_Rate_Card_Decision_Tables` | |
 | `RC_Reset_Account` | `RLM_Reset_Account` | References `RC_AccountUtilities` Apex class |
-| `RC_UpdateDecisionTables` | `RLM_UpdateDecisionTables` | Referenced in docs/TASK_EXAMPLES.md, docs/DECISION_TABLE_EXAMPLES.md, tasks/rlm_manage_decision_tables.py comments |
+| `RC_UpdateDecisionTables` | `RLM_UpdateDecisionTables` | Referenced in docs/references/task-examples.md, docs/references/decision-table-examples.md, tasks/rlm_manage_decision_tables.py comments |
 | `RC_Usage_Data_Tables_Concept_LS` | `RLM_Usage_Data_Tables_Concept_LS` | References `RC_*__c` field names inside XML |
 | `RC_Usage_Data_Tables_Concept_TJ` | `RLM_Usage_Data_Tables_Concept_TJ` | References `RC_*__c` field names inside XML |
 | `RC_Usage_Data_Tables_Concept_US` | `RLM_Usage_Data_Tables_Concept_US` | References `RC_*__c` field names inside XML |
@@ -461,9 +461,9 @@ Same `RC_MockTaxAdapter` references:
 
 | File | References to Update |
 |------|---------------------|
-| `docs/constraints_setup.md` | `RC_Asset_Action_Source_Record_Page`, `RC_CreateOrdersFromQuote` |
-| `docs/TASK_EXAMPLES.md` | `RC_UpdateDecisionTables`, `RC_Account_Utilities` |
-| `docs/DECISION_TABLE_EXAMPLES.md` | `RC_UpdateDecisionTables` |
+| `docs/guides/constraints-setup.md` | `RC_Asset_Action_Source_Record_Page`, `RC_CreateOrdersFromQuote` |
+| `docs/references/task-examples.md` | `RC_UpdateDecisionTables`, `RC_Account_Utilities` |
+| `docs/references/decision-table-examples.md` | `RC_UpdateDecisionTables` |
 | `datasets/procedure-plans/README.md` | `RC_Price_Distribution_Procedure`, `RC_Revenue_Management_Recalc_Procedure`, `RC_Quote_Pricing_Procedure_Plan` |
 | `datasets/sfdmu/qb/en-US/qb-tax/README.md` | `RC_MockTaxAdapter` |
 

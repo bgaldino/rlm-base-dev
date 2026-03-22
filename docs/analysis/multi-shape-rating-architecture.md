@@ -2,7 +2,7 @@
 
 **Status**: Design Investigation — For Review
 **Scope**: `qb-rating` and `qb-rates` SFDMU data plans
-**Related**: `docs/sfdmu_composite_key_optimizations.md`, `datasets/sfdmu/qb/en-US/qb-rating/README.md`
+**Related**: `docs/references/sfdmu-composite-key-optimizations.md`, `datasets/sfdmu/qb/en-US/qb-rating/README.md`
 
 ---
 

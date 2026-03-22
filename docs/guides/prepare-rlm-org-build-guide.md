@@ -217,7 +217,7 @@ The most common failure points and how to address them:
 
 **Metadata deployment failures** — Often caused by missing dependencies or settings incompatible with the org type. The `cleanup_settings_for_dev` task in Phase 1 handles most of these, but new settings introduced by Salesforce releases can cause unexpected failures.
 
-**Data load failures** — Most commonly caused by SFDMU v5 composite key issues or missing prerequisite records. See `docs/sfdmu_composite_key_optimizations.md` for the primary reference on v5 migration changes and known bugs; `CLAUDE.md` covers the same rules in a developer-oriented format.
+**Data load failures** — Most commonly caused by SFDMU v5 composite key issues or missing prerequisite records. See `docs/references/sfdmu-composite-key-optimizations.md` for the primary reference on v5 migration changes and known bugs; `CLAUDE.md` covers the same rules in a developer-oriented format.
 
 **Robot Framework failures** — The browser automation steps can fail if Chrome/ChromeDriver versions are mismatched or if Salesforce UI elements have changed between releases. Running `validate_setup` first catches ChromeDriver issues.
 

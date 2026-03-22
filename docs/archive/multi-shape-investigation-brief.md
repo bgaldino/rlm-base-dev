@@ -51,8 +51,8 @@ tasks/rlm_sfdmu.py                                     — TestSFDMUIdempotency 
 
 ### Uncommitted New Files (staged for next commit)
 ```
-docs/multi_shape_rating_architecture.md    — full architecture analysis (PRIMARY OUTPUT)
-docs/multi_shape_investigation_brief.md   — this file
+docs/analysis/multi-shape-rating-architecture.md    — full architecture analysis (PRIMARY OUTPUT)
+docs/archive/multi-shape-investigation-brief.md   — this file
 ```
 
 ### Key CCI Tasks
@@ -136,7 +136,7 @@ SFDMU pass 2 (Insert): rows without Id (net-new)
 
 ## Investigation Plan (The Next Step)
 
-Six investigations defined in `docs/multi_shape_rating_architecture.md`. Run in this order:
+Six investigations defined in `docs/analysis/multi-shape-rating-architecture.md`. Run in this order:
 
 | # | Investigation | Method | Gates |
 |---|--------------|--------|-------|
@@ -153,7 +153,7 @@ Six investigations defined in `docs/multi_shape_rating_architecture.md`. Run in 
 
 ## Files to Read First on a New Session
 
-1. **`docs/multi_shape_rating_architecture.md`** — full architecture analysis with detailed option descriptions, investigation procedures, and decision matrix
+1. **`docs/analysis/multi-shape-rating-architecture.md`** — full architecture analysis with detailed option descriptions, investigation procedures, and decision matrix
 2. **`datasets/sfdmu/qb/en-US/qb-rating/README.md`** — plan documentation including Known Limitations / Future Work section
 3. **`tasks/rlm_sfdmu.py`** — `LoadSFDMUData`, `ExtractSFDMUData`, `TestSFDMUIdempotency` classes; the wrapper mechanism for WHERE injection lives here
 4. **`datasets/sfdmu/qb/en-US/qb-rating/export.json`** — current SFDMU plan; the starting point for any multi-shape plan variant

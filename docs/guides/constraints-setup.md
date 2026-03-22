@@ -97,7 +97,7 @@ The `apply_context_constraint_engine_node_status` task (step 4) applies context 
 
 For full plan structure, verification output details, and the sObject API workaround, see:
 
-- [Context Service Utility docs](context_service_utility.md)
+- [Context Service Utility docs](../references/context-service-utility.md)
 
 ## Setup Page Automation
 

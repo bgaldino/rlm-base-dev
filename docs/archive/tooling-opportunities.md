@@ -221,7 +221,7 @@ Based on current project needs and Spring '26 capabilities:
 
 3. **Prototype Tasks**: Start with high-priority tasks, using existing task patterns (`manage_decision_tables`, `manage_flows`) as templates
 
-4. **Document Examples**: Create example documentation similar to `DECISION_TABLE_EXAMPLES.md` and `TASK_EXAMPLES.md`
+4. **Document Examples**: Create example documentation similar to `decision-table-examples.md` and `task-examples.md`
 
 ---
 
