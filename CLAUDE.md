@@ -46,8 +46,36 @@ scripts/sync_appmenu_from_user.py  # Retrieve running user's App Launcher order 
 unpackaged/post_tso_appmenu/ # App Launcher (AppSwitcher) order; deployed only when tso=true (deploy_post_tso_app_menu)
 force-app/                  # Salesforce metadata (SFDX format)
 docs/                       # Technical documentation
-  sfdmu_composite_key_optimizations.md  # SFDMU v5 migration notes (READ THIS)
+  references/sfdmu-composite-key-optimizations.md  # SFDMU v5 migration notes (READ THIS)
 ```
+
+---
+
+## Documentation Conventions
+
+### Filename Standard
+All `.md` files under `docs/` use **lower-kebab-case**: `my-document-name.md`. No underscores, no SCREAMING_CASE, no mixed separators.
+
+### Directory Structure
+```
+docs/
+  guides/        # How-to setup and build process docs
+  references/    # Technical references and task/CLI examples
+  analysis/      # Architecture analysis and work plans
+  integration/   # Cross-tool integration plans (Distill, Aegis)
+  features/      # Feature-specific design docs
+  salesforce/    # Vendor documentation (PDFs)
+  archive/       # Superseded / historical docs
+```
+
+### Placement Rules
+- **New setup/config guide** → `docs/guides/`
+- **New task examples or technical reference** → `docs/references/`
+- **Architecture analysis or work plan** → `docs/analysis/`
+- **Integration plan (Distill, Aegis, etc.)** → `docs/integration/`
+- **Feature design doc for a specific branch** → `docs/features/`
+- **Superseded or stale doc** → `docs/archive/`
+- **Vendor PDFs** → `docs/salesforce/`
 
 ---
 
@@ -62,7 +90,7 @@ SFDMU v5 introduced breaking changes. All data plans **must** comply with the fo
 
 ### The Three Confirmed v5 Bugs
 
-> See `docs/sfdmu_composite_key_optimizations.md` for full details.
+> See `docs/references/sfdmu-composite-key-optimizations.md` for full details.
 
 **Bug 1 — All-multi-hop externalId fails validation**
 Objects whose `externalId` contains ONLY relationship-traversal components (2+ hops) get:
