@@ -575,7 +575,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `validate_cml` | Revenue Lifecycle Management | Validate CML file structure and ESC association coverage (no org needed) | [Constraints Utility Guide](datasets/constraints/README.md) |
 | `sync_pricing_data` | Revenue Lifecycle Management | Sync pricing data (PricebookEntry/PriceAdjustmentSchedule) | See `cumulusci.yml` |
 
-Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md).
+Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md).
 
 **Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
 
@@ -602,12 +602,12 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 | Task Name | Module | Description | Documentation |
 |-----------|--------|-------------|---------------|
-| `manage_decision_tables` | `rlm_manage_decision_tables.py` | Decision Table management: list, query, refresh, activate, deactivate, validate_lists | [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) |
-| `manage_flows` | `rlm_manage_flows.py` | Flow management (list, query, activate, deactivate) | [Task Examples](docs/TASK_EXAMPLES.md) |
-| `manage_expression_sets` | `rlm_manage_expression_sets.py` | Expression Set management: list, query, activate/deactivate versions | [Task Examples](docs/TASK_EXAMPLES.md) |
-| `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/constraints_setup.md) |
-| `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/context_service_utility.md) |
-| `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/context_service_utility.md) |
+| `manage_decision_tables` | `rlm_manage_decision_tables.py` | Decision Table management: list, query, refresh, activate, deactivate, validate_lists | [Decision Table Examples](docs/references/decision-table-examples.md) |
+| `manage_flows` | `rlm_manage_flows.py` | Flow management (list, query, activate, deactivate) | [Task Examples](docs/references/task-examples.md) |
+| `manage_expression_sets` | `rlm_manage_expression_sets.py` | Expression Set management: list, query, activate/deactivate versions | [Task Examples](docs/references/task-examples.md) |
+| `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/guides/constraints-setup.md) |
+| `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/references/context-service-utility.md) |
+| `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
 
 ### Decision Table Refresh Tasks
 
@@ -666,8 +666,8 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
 | `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU and robot deps (including selenium) when `auto_fix=true`/`auto_fix_robot=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
-| `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/docgen_setup.md) |
-| `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/constraints_setup.md) |
+| `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/guides/docgen-setup.md) |
+| `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
@@ -711,8 +711,8 @@ cci task run validate_cml -o cml_dir scripts/cml -o data_dir datasets/constraint
 ```
 
 For detailed examples and usage, see:
-- [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md)
-- [Flow and Expression Set Examples](docs/TASK_EXAMPLES.md)
+- [Decision Table Examples](docs/references/decision-table-examples.md)
+- [Flow and Expression Set Examples](docs/references/task-examples.md)
 - [Constraints Utility Guide](datasets/constraints/README.md)
 
 ### Custom Task Development
@@ -853,7 +853,7 @@ Data plans provide the reference data loaded during org setup. This project uses
 ### SFDMU Data Plans
 
 > **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
-> and idempotency. See [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md)
+> and idempotency. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md)
 > for the full migration details and known limitations.
 
 SFDMU data plans are located under `datasets/sfdmu/` and are loaded by the `load_sfdmu_data` task infrastructure. Each plan contains an `export.json` defining the objects, fields, and ordering for SFDMU.
@@ -984,19 +984,19 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | Document | Description |
 |----------|-------------|
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
-| [Constraints Setup](docs/constraints_setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
-| [Decision Table Examples](docs/DECISION_TABLE_EXAMPLES.md) | Comprehensive examples for Decision Table management tasks |
-| [Task Examples](docs/TASK_EXAMPLES.md) | Examples for Flow and Expression Set management tasks |
-| [Context Service Utility](docs/context_service_utility.md) | Context Service utility usage and plan examples |
-| [DocGen Setup](docs/docgen_setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
+| [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
+| [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
+| [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
+| [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
+| [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 
 ### Analysis & Planning
 
 | Document | Description |
 |----------|-------------|
-| [Tooling Opportunities](docs/TOOLING_OPPORTUNITIES.md) | Analysis of Spring '26 features and opportunities for new tooling tasks |
-| [Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
-| [RCA/RCB Unique ID Fields](docs/rca_rcb_unique_id_fields.md) | Unique ID field analysis for Revenue Cloud objects |
+| [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
+| [Tooling Opportunities](docs/archive/tooling-opportunities.md) | *(archived)* Analysis of Spring '26 features; superseded by actual implementations |
+| [RCA/RCB Unique ID Fields](docs/archive/rca-rcb-unique-id-fields.md) | *(archived)* Unique ID field analysis for Revenue Cloud objects |
 
 ### SFDMU Data Plan READMEs
 
@@ -1110,13 +1110,24 @@ rlm-base-dev/
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
-│   ├── constraints_setup.md
-│   ├── DECISION_TABLE_EXAMPLES.md
-│   ├── TASK_EXAMPLES.md
-│   ├── context_service_utility.md
-│   ├── TOOLING_OPPORTUNITIES.md
-│   ├── sfdmu_composite_key_optimizations.md
-│   └── rca_rcb_unique_id_fields.md
+│   ├── guides/                 # How-to setup and build process docs
+│   │   ├── constraints-setup.md
+│   │   ├── docgen-setup.md
+│   │   ├── post-billing-portal.md
+│   │   └── prepare-rlm-org-build-guide.md
+│   ├── references/             # Technical references and task/CLI examples
+│   │   ├── context-service-utility.md
+│   │   ├── decision-table-examples.md
+│   │   ├── sfdmu-composite-key-optimizations.md
+│   │   └── task-examples.md
+│   ├── analysis/               # Architecture analysis and work plans
+│   │   ├── multi-shape-rating-architecture.md
+│   │   └── rlm-prefix-standardization-audit.md
+│   ├── integration/            # Cross-tool integration plans
+│   ├── features/               # Feature-specific design docs
+│   │   └── headless-configurator-context-plan.md
+│   ├── salesforce/             # Vendor documentation (PDFs)
+│   └── archive/                # Superseded / historical docs
 ├── orgs/                       # Scratch org definitions
 ├── cumulusci.yml               # CumulusCI configuration
 ├── sfdx-project.json           # Salesforce DX configuration
@@ -1152,7 +1163,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import both QuantumBitComplete and Server2 models, and activate their expression sets. See [Constraints Setup](docs/constraints_setup.md) for flow details.
+This will validate CML files, import both QuantumBitComplete and Server2 models, and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
@@ -1289,7 +1300,7 @@ cci task run validate_setup
 If you see duplicate records after running data tasks multiple times, verify you are on
 SFDMU v5. The data plans have been migrated for v5 idempotency; v4.x may create duplicates
 due to differences in how composite `externalId` definitions are processed. See
-[Composite Key Optimizations](docs/sfdmu_composite_key_optimizations.md) for details.
+[Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md) for details.
 
 ### Permission Set Groups stuck Outdated / Updating
 
