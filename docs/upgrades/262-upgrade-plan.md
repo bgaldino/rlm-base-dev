@@ -8,6 +8,45 @@ This document tracks all work required to certify this repository against Salesf
 
 ---
 
+## Analysis Approach
+
+Release 262 is pre-feature-freeze — no official Salesforce documentation exists yet. All schema and behavioral analysis must be performed by direct org inspection, comparing a 260 baseline scratch org against a 262 preview scratch org. Official docs will supplement analysis once CX begins producing them post-release-freeze.
+
+### Workstation Model
+
+Two workstations with distinct capabilities are used in combination:
+
+| Capability | Personal workstation | Salesforce workstation |
+|---|---|---|
+| Cursor model | sonnet (default) | Opus (for deep analysis) |
+| Spending limits | Standard | Enterprise (higher limits) |
+| Chrome extension | ✅ Live org tab access | ❌ Not permitted |
+| UI-only validation | ✅ Via Chrome extension | ❌ Manual only |
+| sf / cci CLI | ✅ | ✅ |
+| Claude Code CLI | ✅ | ✅ (Opus, for long analysis sessions) |
+
+### Phased Execution
+
+| Phase | Work | Workstation | Status |
+|---|---|---|---|
+| 1 — Setup | Provision scratch orgs; write and commit schema query scripts | Personal | Pending org setup |
+| 2 — Data Collection | Run `FieldDefinition`/`EntityDefinition` queries against both orgs; commit diff output | Personal | Blocked on Phase 1 |
+| 3 — Deep Analysis | Cross-reference schema diffs against data plans, Apex scripts, export.json files | Salesforce (Opus) | Blocked on Phase 2 |
+| 4 — UI Validation | Validate UI-only settings and toggles in 262 org via Chrome extension | Personal | Parallel with Phase 3 |
+| 5 — Implementation | Data plan fixes, Apex updates, build verification | Either | Blocked on Phases 3–4 |
+
+The `262-test` branch and this document are the shared source of truth across both workstations. Pull before starting any phase; commit and push at the end of each phase before switching workstations.
+
+### Org Setup Required Before Phase 1
+
+New scratch orgs are needed rather than reusing any existing orgs:
+- **260 baseline** — fresh scratch org on Release 260 (Spring '26) for pre-upgrade schema baseline
+- **262 preview** — fresh scratch org on Release 262 (Summer '26) preview pod
+
+See Section 1 (Infrastructure) and Section 2 (Scratch Org Definitions) for prerequisites.
+
+---
+
 ## 1. Infrastructure & Tooling
 
 - [x] Create `262-test` branch from `main`
@@ -23,6 +62,9 @@ This document tracks all work required to certify this repository against Salesf
 - [ ] Verify `sf CLI` version supports API 67.0
 - [ ] Verify `CumulusCI` version is compatible with 67.0
 - [ ] Verify `SFDMU` plugin version is compatible with 67.0
+- [ ] Review current authenticated org list (`sf org list`) and clean up stale orgs
+- [ ] Provision new 260 baseline scratch org for schema comparison (Phase 1 prerequisite)
+- [ ] Provision new 262 preview scratch org for schema comparison (Phase 1 prerequisite)
 
 ---
 
@@ -39,6 +81,8 @@ This document tracks all work required to certify this repository against Salesf
 ## 3. Schema Changes
 
 Verify SObjects and fields used across data plans and metadata against the 262 schema. Check for added, renamed, removed, or type-changed fields.
+
+> **Analysis method:** No 262 documentation is available pre-release-freeze. All schema verification is performed by querying `FieldDefinition` and `EntityDefinition` via SOQL on both a 260 baseline scratch org and a 262 preview scratch org, then diffing the results. Query scripts live in `scripts/schema_diff/` (created during Phase 1). Checkboxes below are updated during Phase 3 (deep analysis on Salesforce workstation with Opus).
 
 ### Revenue Lifecycle Management Objects
 - [ ] `Product2` — verify all fields used in `qb-pcm` plan still exist
@@ -66,7 +110,7 @@ Verify SObjects and fields used across data plans and metadata against the 262 s
 
 ## 4. Metadata Format Changes
 
-Review Salesforce release notes and metadata API changelog for 262.
+Review Salesforce release notes and metadata API changelog for 262. UI-only settings (toggles with no metadata API equivalent) are validated via the Chrome extension on the personal workstation during Phase 4.
 
 ### Flows
 - [ ] Verify `.flow-meta.xml` schema is unchanged at API 67.0
