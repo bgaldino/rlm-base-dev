@@ -157,4 +157,4 @@ Review `project__custom__*` flags in `cumulusci.yml` against 262 capabilities.
 - [Salesforce Release Notes — Summer '26](https://help.salesforce.com/s/articleView?id=release-notes.salesforce_release_notes.htm)
 - [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/)
 - [Revenue Cloud Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/)
-- [SFDMU v5 Notes](docs/sfdmu_composite_key_optimizations.md)
+- [SFDMU v5 Notes](../references/sfdmu-composite-key-optimizations.md)

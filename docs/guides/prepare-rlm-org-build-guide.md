@@ -232,7 +232,7 @@ The most common failure points and how to address them:
 - **PCM** — Product Catalog Management, the Salesforce object model for products
 - **DRO** — Dynamic Revenue Orchestration, the fulfillment planning engine
 - **PUR** — Product Usage Resource, a rating object for usage-based products
-- **PURP** — Product Usage Resource Period, a time-bound rating interval
+- **PURP** — Product Usage Resource Policy (API name `ProductUsageResourcePolicy`), a policy governing usage resource rating behavior
 - **PUG** — Product Usage Group, a grouping of usage resources
 - **CML** — Constraint Model Library, the product configuration rules engine
 - **PSL** — Permission Set License, a Salesforce platform-level feature entitlement
