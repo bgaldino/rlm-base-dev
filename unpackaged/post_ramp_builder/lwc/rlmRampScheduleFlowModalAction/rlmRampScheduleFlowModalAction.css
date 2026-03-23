@@ -1,0 +1,4 @@
+.flow-container {
+    /* Size to content so there's no large empty space below the Create button */
+    min-height: 0;
+}

@@ -1,0 +1,19 @@
+<template>
+    <lightning-quick-action-panel header={modalTitle}>
+        <div class="flow-container">
+            <template if:true={hasRecordId}>
+                <lightning-flow
+                    flow-api-name={flowApiName}
+                    flow-input-variables={flowInputVariables}
+                    onstatuschange={handleFlowStatusChange}>
+                </lightning-flow>
+            </template>
+            <template if:false={hasRecordId}>
+                <div class="slds-p-around_medium slds-text-color_error">
+                    <lightning-icon icon-name="utility:error" size="small" class="slds-m-right_x-small"></lightning-icon>
+                    Quote record context is missing. Please run this action from a Quote record page.
+                </div>
+            </template>
+        </div>
+    </lightning-quick-action-panel>
+</template>

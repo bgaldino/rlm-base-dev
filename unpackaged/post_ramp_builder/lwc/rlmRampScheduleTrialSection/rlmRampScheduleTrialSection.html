@@ -1,0 +1,79 @@
+<template>
+    <div class="trial-container">
+        <!-- Trial Segment Toggle -->
+        <div class="form-group">
+            <label class="form-label required">
+                Trial Segment
+                <lightning-helptext content="Include a trial period at the beginning"></lightning-helptext>
+            </label>
+            <br />
+            <lightning-radio-group
+                name="trialSegment"
+                options={yesNoOptions}
+                value={includeTrialSegment}
+                onchange={handleTrialSegmentChange}
+                type="radio"
+                class="radio-vertical-stacked">
+            </lightning-radio-group>
+        </div>
+
+        <!-- Trial Configuration (only shown when trial is enabled) -->
+        <template if:true={hasTrialSegment}>
+            <!-- Trial Duration + Unit on same line -->
+            <div class="form-group">
+                <label class="form-label">
+                    Trial Segment Duration
+                    <template if:true={lockTrialDuration}>
+                        <lightning-icon icon-name="utility:lock" size="xx-small" alternative-text="Locked" class="lock-icon"></lightning-icon>
+                    </template>
+                </label>
+                <div class="duration-row">
+                    <lightning-input 
+                        type="number" 
+                        value={trialDurationValue}
+                        onchange={handleTrialDurationValueChange}
+                        variant="label-hidden"
+                        class="duration-input"
+                        min="1"
+                        step="1"
+                        disabled={lockTrialDuration}>
+                    </lightning-input>
+                    <lightning-combobox
+                        name="trialDurationUnit"
+                        value={trialDurationUnit}
+                        options={trialDurationUnitOptions}
+                        onchange={handleTrialDurationUnitChange}
+                        variant="label-hidden"
+                        class="duration-unit-combobox"
+                        disabled={lockTrialDuration}>
+                    </lightning-combobox>
+                </div>
+                <div class="info-message">
+                    <lightning-icon icon-name="utility:info" size="xx-small" alternative-text="Info"></lightning-icon>
+                    <span>Trial duration is additional to the ramp schedule duration</span>
+                </div>
+            </div>
+
+            <!-- Trial Discount -->
+            <div class="form-group">
+                <label class="form-label">
+                    Trial Discount (%)
+                    <lightning-helptext content="Discount percentage during trial period"></lightning-helptext>
+                    <template if:true={lockTrialDiscount}>
+                        <lightning-icon icon-name="utility:lock" size="xx-small" alternative-text="Locked" class="lock-icon"></lightning-icon>
+                    </template>
+                </label>
+                <lightning-input 
+                    type="number" 
+                    value={trialDiscountPercent}
+                    onchange={handleTrialDiscountChange}
+                    variant="label-hidden"
+                    class="form-input"
+                    min="0"
+                    max="100"
+                    disabled={lockTrialDiscount}>
+                </lightning-input>
+            </div>
+        </template>
+    </div>
+</template>

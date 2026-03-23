@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Ramp Schedule Trial Section</masterLabel>
+    <description>Trial segment configuration with admin-configurable locks</description>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="defaultTrialDiscount" type="Integer" label="Default Trial Discount (%)" description="Default discount percentage for trial" default="100"/>
+            <property name="defaultTrialDuration" type="Integer" label="Default Trial Duration (Days)" description="Default trial duration in days" default="30"/>
+            <property name="lockTrialDuration" type="Boolean" label="Lock Trial Duration" description="Make trial duration read-only for users" default="false"/>
+            <property name="lockTrialDiscount" type="Boolean" label="Lock Trial Discount" description="Make trial discount read-only for users" default="false"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
