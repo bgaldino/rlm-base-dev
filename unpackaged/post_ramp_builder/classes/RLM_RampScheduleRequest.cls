@@ -17,9 +17,16 @@ public class RLM_RampScheduleRequest {
      * line items — RampIdentifier/SegmentIdentifier are only assigned by the platform
      * via the EditGroup API, not via DML.
      *
-     * When false (default), uses the Connect REST API (EditGroup + CloneSalesTransaction
-     * + EditRampSchedule) via an async Queueable. Fully distributes and links all line
-     * items across segments with proper ramp identifiers. Results appear after ~10-15 s.
+     * The DML path (default, true) is the correct primary workflow:
+     *   1. Creates empty parent RampScheduleGroup + N child segment groups (IsRamped=true)
+     *   2. No products yet — the quote should be empty when the ramp builder runs
+     *   3. User then adds products via catalog; the platform natively clones them
+     *      across all ramp segments automatically
+     *
+     * When explicitly set to false, uses the Connect REST API (EditGroup +
+     * CloneSalesTransaction + EditRampSchedule) via an async Queueable. This path
+     * migrates pre-existing QLIs and distributes them across segments — intended
+     * for ramping a quote that already has products on it (advanced / experimental).
      */
     @AuraEnabled public Boolean useDmlApproach { get; set; }
 
@@ -81,6 +88,6 @@ public class RLM_RampScheduleRequest {
     public RLM_RampScheduleRequest() {
         this.segments = new List<SegmentDefinition>();
         this.migrationContext = new MigrationContext();
-        this.useDmlApproach = false;
+        this.useDmlApproach = true; // DML is the correct primary path
     }
 }

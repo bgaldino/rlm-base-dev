@@ -93,7 +93,7 @@ export default class RlmRampScheduleStatus extends LightningElement {
     }
 
     async _pollJob() {
-        // If no jobId was supplied (e.g. DML path), go straight to done
+        // DML path (default): no jobId — groups were created synchronously, go straight to done.
         if (!this.jobId) {
             this._setDone();
             return;

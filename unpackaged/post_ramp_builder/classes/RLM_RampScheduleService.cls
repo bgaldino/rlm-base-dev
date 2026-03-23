@@ -39,9 +39,11 @@ public with sharing class RLM_RampScheduleService {
         if (request.action == RLM_RampScheduleRequest.ACTION_VALIDATE) {
             return RLM_RampScheduleResponse.success(null, new List<String>(), 'Validation passed. Schedule is valid.');
         }
-        return (request.useDmlApproach == true)
-            ? createRampScheduleDml(request)
-            : createRampSchedule(request);
+        // DML path (default): creates empty group structure; user adds products afterward.
+        // API path (useDmlApproach=false): migrates existing QLIs via Queueable — advanced use.
+        return (request.useDmlApproach == false)
+            ? createRampSchedule(request)
+            : createRampScheduleDml(request);
     }
     
     /**
