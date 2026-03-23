@@ -16,8 +16,11 @@
  *                         call (all segments must share the same SegmentType at this point).
  *   4. EditGroup per segment — for any segment whose SegmentType differs from segment 0
  *                         (e.g., Trial=Custom, Year 1..N=Yearly), call EditGroup individually.
- *   5. DML              — updates Discount, RLM_UpliftPercent__c on cloned groups and their
- *                         QLIs to match each segment's definition (cloned values inherit seg 0).
+ *   5. DML              — updates SegmentType, Discount, RLM_UpliftPercent__c on all groups
+ *                         and QLIs to match each segment's definition. Groups are bucketed by
+ *                         their target SegmentType and updated in separate DML calls to satisfy
+ *                         the platform constraint that all segments in one DML batch share the
+ *                         same SegmentType. Also deletes OneTime QLIs from cloned segments.
  *
  * API references:
  *   POST /services/data/v66.0/connect/rev/sales-transaction/actions/place  (EditGroup, EditRampSchedule)
@@ -247,23 +250,29 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
             groupToSeg.put(allGroupIds[i], sortedSegments[i]);
         }
 
-        // --- Group-level update: Discount and Uplift only ---
-        // SegmentType is intentionally omitted here. The platform enforces that all
-        // segments in a ramp share the same SegmentType during DML, so mixing
-        // 'Custom' (Trial) and 'Yearly' in one batch causes a trigger failure that
-        // silently aborts the entire method. SegmentType was already set correctly
-        // on segment 0 at creation; cloned segments inherit it and it is cosmetic
-        // at the group level (IsRamped=true and the correct dates are authoritative).
-        List<QuoteLineGroup> groupsToUpdate = new List<QuoteLineGroup>();
+        // --- Group-level update: Discount, Uplift, and SegmentType ---
+        // SegmentType cannot be updated in a single batch that mixes different types
+        // (e.g. 'Custom' Trial + 'Yearly' Year 1-N) because the platform validates that
+        // all segments in a ramp share the same SegmentType during each DML call.
+        // Fix: bucket groups by their target SegmentType and issue one update per bucket.
+        // Each bucket is homogeneous so the constraint is satisfied.
+        Map<String, List<QuoteLineGroup>> groupsByType = new Map<String, List<QuoteLineGroup>>();
         for (String gid : allGroupIds) {
             RLM_RampScheduleRequest.SegmentDefinition segDef = groupToSeg.get(gid);
-            groupsToUpdate.add(new QuoteLineGroup(
+            String mappedType = mapGroupSegmentType(segDef.segmentType);
+            if (!groupsByType.containsKey(mappedType)) {
+                groupsByType.put(mappedType, new List<QuoteLineGroup>());
+            }
+            groupsByType.get(mappedType).add(new QuoteLineGroup(
                 Id                   = gid,
+                SegmentType          = mappedType,
                 Discount             = segDef.discountPercent != null ? segDef.discountPercent : 0,
                 RLM_UpliftPercent__c = segDef.upliftPercent   != null ? segDef.upliftPercent   : 0
             ));
         }
-        Database.update(groupsToUpdate, false);
+        for (List<QuoteLineGroup> sameTypeGroups : groupsByType.values()) {
+            Database.update(sameTypeGroups, false);
+        }
 
         // --- QLI-level update: SegmentType, Discount, UnitPriceUplift ---
         // OneTime products in cloned segments (1..N) are platform artefacts — delete them.
