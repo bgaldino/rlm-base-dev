@@ -178,14 +178,14 @@ private class RLM_RampScheduleFlowActionTest {
     }
     
     /**
-     * @description Test bulk execution (multiple inputs)
+     * @description Bulk execution is explicitly unsupported: execute() must throw
+     * when called with more than one input.
      */
     @isTest
     static void testBulkExecution() {
         Id quoteId = getTestQuoteId();
         Date startDate = Date.today().addDays(10);
-        
-        // Create two valid requests
+
         List<Map<String, Object>> segments1 = new List<Map<String, Object>>();
         Map<String, Object> seg1 = new Map<String, Object>();
         seg1.put('sequence', 1);
@@ -195,7 +195,7 @@ private class RLM_RampScheduleFlowActionTest {
         seg1.put('endDate', String.valueOf(startDate.addMonths(12).addDays(-1)));
         seg1.put('discountPercent', 10);
         segments1.add(seg1);
-        
+
         List<Map<String, Object>> segments2 = new List<Map<String, Object>>();
         Map<String, Object> seg2 = new Map<String, Object>();
         seg2.put('sequence', 1);
@@ -205,32 +205,38 @@ private class RLM_RampScheduleFlowActionTest {
         seg2.put('endDate', String.valueOf(startDate.addDays(365).addMonths(12).addDays(-1)));
         seg2.put('discountPercent', 15);
         segments2.add(seg2);
-        
+
         RLM_RampScheduleFlowAction.FlowInput input1 = new RLM_RampScheduleFlowAction.FlowInput();
         input1.quoteId = quoteId;
         input1.scheduleName = 'Test Flow Schedule 1';
         input1.scheduleType = RLM_RampScheduleRequest.SCHEDULE_TYPE_YEARLY;
         input1.segmentsJson = JSON.serialize(segments1);
         input1.action = RLM_RampScheduleRequest.ACTION_CREATE;
-        
+
         RLM_RampScheduleFlowAction.FlowInput input2 = new RLM_RampScheduleFlowAction.FlowInput();
         input2.quoteId = quoteId;
         input2.scheduleName = 'Test Flow Schedule 2';
         input2.scheduleType = RLM_RampScheduleRequest.SCHEDULE_TYPE_YEARLY;
         input2.segmentsJson = JSON.serialize(segments2);
         input2.action = RLM_RampScheduleRequest.ACTION_CREATE;
-        
+
         List<RLM_RampScheduleFlowAction.FlowInput> inputs = new List<RLM_RampScheduleFlowAction.FlowInput>();
         inputs.add(input1);
         inputs.add(input2);
-        
+
+        RLM_RampScheduleFlowException caughtException;
+
         Test.startTest();
-        List<RLM_RampScheduleFlowAction.FlowOutput> outputs = RLM_RampScheduleFlowAction.execute(inputs);
+        try {
+            RLM_RampScheduleFlowAction.execute(inputs);
+            System.assert(false, 'Expected RLM_RampScheduleFlowException for multiple inputs');
+        } catch (RLM_RampScheduleFlowException e) {
+            caughtException = e;
+        }
         Test.stopTest();
-        
-        System.assertEquals(2, outputs.size(), 'Should have two outputs');
-        System.assertEquals(true, outputs[0].success, 'First should succeed');
-        System.assertEquals(true, outputs[1].success, 'Second should succeed');
+
+        System.assertNotEquals(null, caughtException,
+            'RLM_RampScheduleFlowException should be thrown when inputs.size() > 1');
     }
     
     /**

@@ -87,6 +87,10 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
                 'RLM_RampMigrationQueueable failed for quote ' + quoteId
                 + ': ' + e.getMessage()
                 + '\n' + e.getStackTraceString());
+            // Rethrow so AsyncApexJob.Status becomes Failed rather than Completed.
+            // This lets the LWC polling status controller surface the failure
+            // correctly instead of showing a false success to the user.
+            throw e;
         }
     }
 
@@ -385,7 +389,17 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
         }
 
         Object errorResponse = parsed.get('errorResponse');
-        if (errorResponse != null) {
+        // Treat errorResponse as an error only when it actually contains entries.
+        // An empty list (errorResponse: []) is a normal success shape on some API versions.
+        if (errorResponse instanceof List<Object>) {
+            if (!((List<Object>) errorResponse).isEmpty()) {
+                throw new CalloutException(
+                    'Place Sales Transaction returned errorResponse: '
+                    + JSON.serialize(errorResponse)
+                );
+            }
+        } else if (errorResponse != null) {
+            // Non-list, non-null value (e.g., a Map or String) always indicates an error.
             throw new CalloutException(
                 'Place Sales Transaction returned errorResponse: '
                 + JSON.serialize(errorResponse)

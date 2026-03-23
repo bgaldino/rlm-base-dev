@@ -47,7 +47,8 @@ public with sharing class RLM_RampScheduleService {
     }
     
     /**
-     * @description Create the ramp schedule via the Connect REST API (async, default path).
+     * @description Create the ramp schedule via the Connect REST API (async, API-migration path).
+     * Used only when {@code useDmlApproach = false} (existing-line migration via Queueable).
      *
      * ARCHITECTURE NOTE — two-phase creation:
      *   Phase 1 (synchronous DML, this method):
