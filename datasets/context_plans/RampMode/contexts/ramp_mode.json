@@ -3,6 +3,12 @@
   "developerName": "RLM_SalesTransactionContext",
   "contextAttributesByName": [
     {
+      "nodeName": "SalesTransactionItem",
+      "name": "RampMode__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
       "nodeName": "SalesTransactionGroup",
       "name": "GroupRampMode__c",
       "dataType": "STRING",
@@ -10,6 +16,11 @@
     }
   ],
   "contextTagsByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RampMode__c",
+      "name": "RampMode__c"
+    },
     {
       "nodeName": "SalesTransactionGroup",
       "attributeName": "GroupRampMode__c",
@@ -19,10 +30,26 @@
   "mappingRules": [
     {
       "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RampMode__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_RampMode__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
       "contextNode": "SalesTransactionGroup",
       "contextAttribute": "GroupRampMode__c",
       "mappingType": "SOBJECT",
       "sObject": "QuoteLineGroup",
+      "sObjectField": "RLM_RampMode__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RampMode__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem",
       "sObjectField": "RLM_RampMode__c"
     },
     {
