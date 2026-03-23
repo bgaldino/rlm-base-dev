@@ -2139,6 +2139,9 @@ flows:
         when: org_config.scratch and not project_config.project__custom__tso
       28:
         flow: refresh_all_decision_tables
+      29:
+        flow: prepare_ramp_builder
+        when: project_config.project__custom__ramps
          
   prepare_core:
     group: Revenue Lifecycle Management
