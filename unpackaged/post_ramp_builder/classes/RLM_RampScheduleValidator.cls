@@ -23,10 +23,40 @@ public class RLM_RampScheduleValidator {
 
         // Validate action
         errors.addAll(validateAction(request.action));
-        
+
         // Validate quote ID
         errors.addAll(validateQuoteId(request.quoteId));
-        
+
+        // Validate schedule header and required header fields
+        if (request.scheduleHeader == null) {
+            errors.add(new RLM_RampScheduleResponse.ApiError(
+                RLM_RampScheduleResponse.ERROR_INVALID_ACTION,
+                'Schedule header is required.',
+                'scheduleHeader must be provided for ramp schedule requests.'
+            ));
+        } else {
+            if (String.isBlank(request.scheduleHeader.scheduleName)) {
+                errors.add(new RLM_RampScheduleResponse.ApiError(
+                    RLM_RampScheduleResponse.ERROR_INVALID_ACTION,
+                    'Schedule name is required.',
+                    'scheduleHeader.scheduleName must be a non-blank value.'
+                ));
+            }
+            if (String.isBlank(request.scheduleHeader.scheduleType)) {
+                errors.add(new RLM_RampScheduleResponse.ApiError(
+                    RLM_RampScheduleResponse.ERROR_INVALID_ACTION,
+                    'Schedule type is required.',
+                    'scheduleHeader.scheduleType must be specified.'
+                ));
+            }
+        }
+
+        // Fail fast if header/action/quote are invalid — segment validation would
+        // throw NPEs when dereferencing scheduleHeader fields downstream.
+        if (!errors.isEmpty()) {
+            return errors;
+        }
+
         // Validate segments exist
         if (request.segments == null || request.segments.isEmpty()) {
             errors.add(new RLM_RampScheduleResponse.ApiError(

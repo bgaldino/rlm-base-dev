@@ -101,8 +101,7 @@ public with sharing class RLM_RampScheduleService {
             seg0Group.Type = null;
             seg0Group.SegmentType = mapSegmentType(seg0Def.segmentType);
 
-            if (seg0Group.SegmentType == null || !seg0Group.SegmentType.equalsIgnoreCase(
-                    seg0Def.segmentType.replace('-', ' ').replace('_', ' '))) {
+            if (seg0Group.SegmentType == null) {
                 seg0Group.Description = 'Original Type: ' + seg0Def.segmentType;
             }
 
@@ -195,8 +194,7 @@ public with sharing class RLM_RampScheduleService {
                 if (request.scheduleHeader != null && String.isNotBlank(request.scheduleHeader.rampMode)) {
                     g.put('RLM_RampMode__c', request.scheduleHeader.rampMode);
                 }
-                if (g.SegmentType == null || !g.SegmentType.equalsIgnoreCase(
-                        segDef.segmentType.replace('-', ' ').replace('_', ' '))) {
+                if (g.SegmentType == null) {
                     g.Description = 'Original Type: ' + segDef.segmentType;
                 }
                 segGroups.add(g);

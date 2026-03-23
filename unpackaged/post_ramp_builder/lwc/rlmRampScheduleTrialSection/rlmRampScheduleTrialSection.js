@@ -5,7 +5,7 @@ import RLM_RAMP_SCHEDULE_CHANNEL from '@salesforce/messageChannel/RLM_RampSchedu
 export default class RlmRampScheduleTrialSection extends LightningElement {
     // Admin-configurable properties
     @api defaultTrialDiscount = 100;
-    @api defaultTrialDuration = 1;
+    @api defaultTrialDuration = 30;
     @api lockTrialDuration = false;
     @api lockTrialDiscount = false;
 

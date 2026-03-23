@@ -81,6 +81,7 @@ private class RLM_RampScheduleServiceTest {
     @isTest
     static void testSuccessfulCreation() {
         RLM_RampScheduleRequest request = createValidYearlyRequest();
+        request.useDmlApproach = false; // API path: segment 0 only created synchronously
         RLM_RampScheduleService service = new RLM_RampScheduleService();
         
         Test.setMock(HttpCalloutMock.class, new RampApiMock());
@@ -201,6 +202,7 @@ private class RLM_RampScheduleServiceTest {
         request.segments.add(seg2);
         
         RLM_RampScheduleService service = new RLM_RampScheduleService();
+        request.useDmlApproach = false; // API path: segment 0 only created synchronously
         
         Test.setMock(HttpCalloutMock.class, new RampApiMock());
         Test.startTest();
@@ -241,6 +243,7 @@ private class RLM_RampScheduleServiceTest {
         request.segments.add(0, trialSeg);
         
         RLM_RampScheduleService service = new RLM_RampScheduleService();
+        request.useDmlApproach = false; // API path: segment 0 only created synchronously
         
         Test.setMock(HttpCalloutMock.class, new RampApiMock());
         Test.startTest();
@@ -269,6 +272,7 @@ private class RLM_RampScheduleServiceTest {
         request.segments.add(proRata);
         
         RLM_RampScheduleService service = new RLM_RampScheduleService();
+        request.useDmlApproach = false; // API path: segment 0 only created synchronously
         
         Test.setMock(HttpCalloutMock.class, new RampApiMock());
         Test.startTest();
@@ -308,6 +312,7 @@ private class RLM_RampScheduleServiceTest {
     @isTest
     static void testSegmentTypeMapping() {
         RLM_RampScheduleRequest request = createValidYearlyRequest();
+        request.useDmlApproach = false; // API path: segment 0 only created synchronously
         RLM_RampScheduleService service = new RLM_RampScheduleService();
         
         Test.setMock(HttpCalloutMock.class, new RampApiMock());
@@ -396,6 +401,7 @@ private class RLM_RampScheduleServiceTest {
 
         RLM_RampScheduleRequest request = createValidYearlyRequest();
         request.quoteId = quoteId;
+        request.useDmlApproach = false; // API path: migrates existing QLIs via Queueable
         RLM_RampScheduleService service = new RLM_RampScheduleService();
 
         Test.startTest();
