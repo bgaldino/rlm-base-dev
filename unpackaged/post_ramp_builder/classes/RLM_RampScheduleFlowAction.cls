@@ -48,6 +48,9 @@ public with sharing class RLM_RampScheduleFlowAction {
         
         @InvocableVariable(label='Error Details' description='Detailed error information')
         public String errorDetails;
+        
+        @InvocableVariable(label='Job ID' description='AsyncApexJob ID of the background migration job (API path)')
+        public String jobId;
     }
     
     /**
@@ -81,6 +84,7 @@ public with sharing class RLM_RampScheduleFlowAction {
                     output.rampScheduleGroupId = response.data.rampScheduleGroupId;
                     output.segmentGroupIds = String.join(response.data.segmentGroupIds, ',');
                     output.message = response.data.message;
+                    output.jobId = response.data.jobId;
                 } else {
                     output.message = getFirstErrorMessage(response.errors);
                     output.errorCode = getFirstErrorCode(response.errors);

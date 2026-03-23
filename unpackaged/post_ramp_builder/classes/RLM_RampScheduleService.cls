@@ -120,12 +120,13 @@ public with sharing class RLM_RampScheduleService {
             insert seg0Group;
             
             // 3. Move any pre-existing QuoteLineItems into segment 0 and enqueue the Queueable.
-            migrateExistingLineItems(request.quoteId, sortedSegments, seg0Group, parentGroup.Id);
+            Id jobId = migrateExistingLineItems(request.quoteId, sortedSegments, seg0Group, parentGroup.Id);
             
             return RLM_RampScheduleResponse.success(
                 parentGroup.Id,
                 new List<String>{ seg0Group.Id },
-                'Ramp Schedule created. Remaining segments are being set up.'
+                'Ramp Schedule created. Remaining segments are being set up.',
+                String.valueOf(jobId)
             );
             
         } catch (DmlException e) {
@@ -291,7 +292,7 @@ public with sharing class RLM_RampScheduleService {
      *   - Subscription products: moved to segment 0 with aligned dates, discount, uplift.
      *   - One-time products: moved to segment 0, dates left untouched (platform constraint).
      */
-    private void migrateExistingLineItems(
+    private Id migrateExistingLineItems(
         String quoteId,
         List<RLM_RampScheduleRequest.SegmentDefinition> sortedSegments,
         QuoteLineGroup seg0Group,
@@ -329,11 +330,12 @@ public with sharing class RLM_RampScheduleService {
 
         // Always enqueue — EditGroup on segment 0 must run to stamp ramp identifiers,
         // and CloneSalesTransaction creates the remaining segments.
-        System.enqueueJob(new RLM_RampMigrationQueueable(
+        Id jobId = System.enqueueJob(new RLM_RampMigrationQueueable(
             quoteId,
             parentGroupId,
             seg0Group.Id,
             sortedSegments
         ));
+        return jobId;
     }
 }

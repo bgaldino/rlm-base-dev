@@ -15,6 +15,8 @@ public class RLM_RampScheduleResponse {
         @AuraEnabled public String rampScheduleGroupId { get; set; }
         @AuraEnabled public List<String> segmentGroupIds { get; set; }
         @AuraEnabled public String message { get; set; }
+        /** AsyncApexJob ID of the enqueued migration job (API path only). */
+        @AuraEnabled public String jobId { get; set; }
         
         public ResponseData() {
             this.segmentGroupIds = new List<String>();
@@ -70,11 +72,19 @@ public class RLM_RampScheduleResponse {
      * @description Create a success response
      */
     public static RLM_RampScheduleResponse success(String rampScheduleGroupId, List<String> segmentGroupIds, String message) {
+        return success(rampScheduleGroupId, segmentGroupIds, message, null);
+    }
+
+    /**
+     * @description Create a success response with an async job ID (API path)
+     */
+    public static RLM_RampScheduleResponse success(String rampScheduleGroupId, List<String> segmentGroupIds, String message, String jobId) {
         RLM_RampScheduleResponse response = new RLM_RampScheduleResponse();
         response.success = true;
         response.data.rampScheduleGroupId = rampScheduleGroupId;
         response.data.segmentGroupIds = segmentGroupIds;
         response.data.message = message;
+        response.data.jobId = jobId;
         return response;
     }
     

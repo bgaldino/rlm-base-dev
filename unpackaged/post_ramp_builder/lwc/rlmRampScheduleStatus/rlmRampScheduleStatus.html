@@ -1,0 +1,55 @@
+<template>
+    <div class="status-container">
+
+        <!-- Phase 1 & 2: Spinner -->
+        <template if:true={isPolling}>
+            <div class="status-card">
+                <div class="spinner-wrap">
+                    <lightning-spinner alternative-text={statusLabel} size="medium"></lightning-spinner>
+                </div>
+                <div class="status-label">{statusLabel}</div>
+
+                <template if:true={isPhaseQuote}>
+                    <p class="status-hint">
+                        The quote will automatically finish once repricing completes.
+                        You may also click <strong>Calculate</strong> on the Quote to speed this up.
+                    </p>
+                </template>
+            </div>
+        </template>
+
+        <!-- Done -->
+        <template if:true={isDone}>
+            <div class="status-card status-card--success">
+                <div class="icon-wrap">
+                    <lightning-icon icon-name="utility:success" variant="success" size="large"></lightning-icon>
+                </div>
+                <h2 class="status-title">Ramp Schedule Ready</h2>
+                <p class="status-body">
+                    The ramp schedule for <strong>{quoteDisplayName}</strong> has been
+                    fully configured and repriced.
+                </p>
+                <p class="status-hint">This window will close automatically&hellip;</p>
+            </div>
+        </template>
+
+        <!-- Error -->
+        <template if:true={isError}>
+            <div class="status-card status-card--error">
+                <div class="icon-wrap">
+                    <lightning-icon icon-name="utility:error" variant="error" size="large"></lightning-icon>
+                </div>
+                <h2 class="status-title">Setup Encountered an Error</h2>
+                <p class="status-body">{errorMessage}</p>
+                <div class="action-row">
+                    <lightning-button
+                        label="Close"
+                        variant="neutral"
+                        onclick={handleClose}
+                    ></lightning-button>
+                </div>
+            </div>
+        </template>
+
+    </div>
+</template>

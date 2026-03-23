@@ -108,16 +108,35 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
     </recordLookups>
     <screens>
         <name>Confirmation_Screen</name>
-        <label>Ramp Schedule Created</label>
+        <label>Ramp Schedule In Progress</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <fields>
-            <name>SuccessMessage</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(46, 132, 74); font-size: 18px;&quot;&gt;✓ &lt;/span&gt;&lt;b style=&quot;font-size: 18px; color: rgb(46, 132, 74);&quot;&gt;Ramp Schedule Created Successfully&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;Your ramp schedule has been configured for Quote: &lt;b&gt;{!Get_Quote.Name}&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;The ramp schedule segments have been created based on your configuration.&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
+            <name>RampStatusPoller</name>
+            <extensionName>c:rlmRampScheduleStatus</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>jobId</name>
+                <value>
+                    <elementReference>Create_Ramp_Schedule_Action.jobId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>quoteId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>quoteName</name>
+                <value>
+                    <elementReference>Get_Quote.Name</elementReference>
+                </value>
+            </inputParameters>
+            <isRequired>true</isRequired>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>
@@ -127,8 +146,8 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
                 </width>
             </styleProperties>
         </fields>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
+        <showFooter>false</showFooter>
+        <showHeader>false</showHeader>
     </screens>
     <screens>
         <name>Create_Ramp_Schedule_Screen</name>
