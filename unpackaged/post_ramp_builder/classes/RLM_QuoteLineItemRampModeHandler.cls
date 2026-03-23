@@ -29,23 +29,27 @@ public without sharing class RLM_QuoteLineItemRampModeHandler {
                 groupIds.add(qli.QuoteLineGroupId);
             }
         }
-        if (groupIds.isEmpty()) {
-            return;
-        }
 
-        Map<Id, QuoteLineGroup> groupMap = new Map<Id, QuoteLineGroup>([
-            SELECT Id, IsRamped, RLM_RampMode__c
-            FROM QuoteLineGroup
-            WHERE Id IN :groupIds
-              AND IsRamped = true
-        ]);
+        // Query only ramped groups; non-ramped and null groups fall through to the clear path.
+        Map<Id, QuoteLineGroup> groupMap = groupIds.isEmpty()
+            ? new Map<Id, QuoteLineGroup>()
+            : new Map<Id, QuoteLineGroup>([
+                SELECT Id, IsRamped, RLM_RampMode__c
+                FROM QuoteLineGroup
+                WHERE Id IN :groupIds
+                  AND IsRamped = true
+            ]);
 
         for (QuoteLineItem qli : qlis) {
             if (qli.QuoteLineGroupId == null) {
+                // Removed from any group — clear ramp mode.
+                qli.RLM_RampMode__c = null;
                 continue;
             }
             QuoteLineGroup grp = groupMap.get(qli.QuoteLineGroupId);
             if (grp == null) {
+                // Moved to a non-ramped group — clear stale ramp mode.
+                qli.RLM_RampMode__c = null;
                 continue;
             }
             qli.RLM_RampMode__c = grp.RLM_RampMode__c;

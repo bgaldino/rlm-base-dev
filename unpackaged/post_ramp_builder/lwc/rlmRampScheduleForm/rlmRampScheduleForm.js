@@ -151,12 +151,8 @@ export default class RlmRampScheduleForm extends LightningElement {
     handleMessage(message) {
         // Listen for start date updates from preview table
         if (message.source === 'preview' && message.startDate) {
+            // Reactive binding (value={startDate}) updates the input automatically.
             this.startDate = message.startDate;
-            // Update the input field value if it exists
-            const startDateInput = this.template.querySelector('[data-field="startDate"]');
-            if (startDateInput) {
-                startDateInput.value = message.startDate;
-            }
         }
     }
 
