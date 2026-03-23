@@ -152,19 +152,19 @@ The Flow passes `recordId` (Quote ID) into the form component and receives back 
 
 | Field | API Name | Type | Purpose |
 |-------|----------|------|---------|
-| Ramp Mode | `RLM_RampMode__c` | Text | Copied from parent group via trigger. Mapped to `OrderItem.RLM_RampMode__c` via `OrderEntitiesMapping` context. |
+| Ramp Mode | `RLM_RampMode__c` | Picklist | Copied from parent group via trigger. Mapped to `OrderItem.RLM_RampMode__c` via `OrderEntitiesMapping` context. |
 
 ### `OrderItemGroup`
 
 | Field | API Name | Type | Purpose |
 |-------|----------|------|---------|
-| Ramp Mode | `RLM_RampMode__c` | Text | Copied from `QuoteLineGroup.RLM_RampMode__c` during quote-to-order conversion via the `OrderEntitiesMapping` pricing context. |
+| Ramp Mode | `RLM_RampMode__c` | Picklist | Copied from `QuoteLineGroup.RLM_RampMode__c` during quote-to-order conversion via the `OrderEntitiesMapping` pricing context. |
 
 ### `OrderItem`
 
 | Field | API Name | Type | Purpose |
 |-------|----------|------|---------|
-| Ramp Mode | `RLM_RampMode__c` | Text | Copied from `QuoteLineItem.RLM_RampMode__c` via pricing context mapping. |
+| Ramp Mode | `RLM_RampMode__c` | Picklist | Copied from `QuoteLineItem.RLM_RampMode__c` via pricing context mapping. |
 
 ---
 

@@ -19,7 +19,9 @@ export default class RlmRampRefreshPage extends LightningElement {
             // eslint-disable-next-line @lwc/lwc/no-window-object-usage
             const params = new URLSearchParams(window.location.search);
             const backgroundContext = params.get('backgroundContext');
-            if (backgroundContext) {
+            // Validate that backgroundContext is a same-origin Lightning path before
+            // trusting it, to avoid open-redirect from a tampered URL parameter.
+            if (backgroundContext && backgroundContext.startsWith('/lightning/')) {
                 // URLSearchParams.get() already decodes once; backgroundContext
                 // is a relative /lightning/r/... path — navigate there directly.
                 // eslint-disable-next-line @lwc/lwc/no-window-object-usage

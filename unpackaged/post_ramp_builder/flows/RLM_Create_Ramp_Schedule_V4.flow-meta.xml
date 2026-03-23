@@ -323,7 +323,7 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
                     <inputParameters>
                         <name>defaultTrialDiscount</name>
                         <value>
-                            <numberValue>50.0</numberValue>
+                            <numberValue>100.0</numberValue>
                         </value>
                     </inputParameters>
                     <inputParameters>

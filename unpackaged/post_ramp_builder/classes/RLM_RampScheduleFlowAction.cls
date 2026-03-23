@@ -96,10 +96,12 @@ public with sharing class RLM_RampScheduleFlowAction {
             } catch (RLM_RampScheduleFlowException e) {
                 throw e;
             } catch (Exception e) {
-                output.success = false;
-                output.message = 'An unexpected error occurred.';
-                output.errorCode = 'UNEXPECTED_ERROR';
-                output.errorDetails = e.getMessage() + ' at ' + e.getStackTraceString();
+                // Wrap unexpected exceptions so the Flow fault connector runs and the
+                // user sees the Error screen rather than the success/confirmation screens.
+                throw new RLM_RampScheduleFlowException(
+                    'An unexpected error occurred.',
+                    e.getMessage() + ' at ' + e.getStackTraceString()
+                );
             }
             
             outputs.add(output);
