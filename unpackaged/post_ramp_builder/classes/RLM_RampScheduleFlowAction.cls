@@ -66,47 +66,61 @@ public with sharing class RLM_RampScheduleFlowAction {
     public static List<FlowOutput> execute(List<FlowInput> inputs) {
         List<FlowOutput> outputs = new List<FlowOutput>();
         RLM_RampScheduleService service = new RLM_RampScheduleService();
-        
-        for (FlowInput input : inputs) {
-            FlowOutput output = new FlowOutput();
+
+        // This action is designed for single-input invocation from a Screen Flow.
+        // Enforcing the constraint here prevents the loop-throw problem where a
+        // failure on one input silently aborts processing of all subsequent inputs.
+        if (inputs == null || inputs.isEmpty()) {
+            throw new RLM_RampScheduleFlowException(
+                'At least one input is required.',
+                null
+            );
+        }
+        if (inputs.size() > 1) {
+            throw new RLM_RampScheduleFlowException(
+                'This action supports exactly one input at a time. Received ' + inputs.size() + ' inputs.',
+                null
+            );
+        }
+
+        FlowInput input = inputs[0];
+        FlowOutput output = new FlowOutput();
+
+        try {
+            // Build request
+            RLM_RampScheduleRequest request = buildRequest(input);
             
-            try {
-                // Build request
-                RLM_RampScheduleRequest request = buildRequest(input);
-                
-                // Execute via service
-                RLM_RampScheduleResponse response = service.execute(request);
-                
-                // Map response to output
-                output.success = response.success;
-                
-                if (response.success) {
-                    output.rampScheduleGroupId = response.data.rampScheduleGroupId;
-                    output.segmentGroupIds = String.join(response.data.segmentGroupIds, ',');
-                    output.message = response.data.message;
-                    output.jobId = response.data.jobId;
-                } else {
-                    output.message = getFirstErrorMessage(response.errors);
-                    output.errorCode = getFirstErrorCode(response.errors);
-                    output.errorDetails = getErrorDetails(response.errors);
-                    // Throw so Flow fault connector runs and user sees Error screen instead of Success
-                    throw new RLM_RampScheduleFlowException(output.message, output.errorDetails);
-                }
-                
-            } catch (RLM_RampScheduleFlowException e) {
-                throw e;
-            } catch (Exception e) {
-                // Wrap unexpected exceptions so the Flow fault connector runs and the
-                // user sees the Error screen rather than the success/confirmation screens.
-                throw new RLM_RampScheduleFlowException(
-                    'An unexpected error occurred.',
-                    e.getMessage() + ' at ' + e.getStackTraceString()
-                );
+            // Execute via service
+            RLM_RampScheduleResponse response = service.execute(request);
+            
+            // Map response to output
+            output.success = response.success;
+            
+            if (response.success) {
+                output.rampScheduleGroupId = response.data.rampScheduleGroupId;
+                output.segmentGroupIds = String.join(response.data.segmentGroupIds, ',');
+                output.message = response.data.message;
+                output.jobId = response.data.jobId;
+            } else {
+                output.message = getFirstErrorMessage(response.errors);
+                output.errorCode = getFirstErrorCode(response.errors);
+                output.errorDetails = getErrorDetails(response.errors);
+                // Throw so Flow fault connector runs and user sees Error screen instead of Success
+                throw new RLM_RampScheduleFlowException(output.message, output.errorDetails);
             }
             
-            outputs.add(output);
+        } catch (RLM_RampScheduleFlowException e) {
+            throw e;
+        } catch (Exception e) {
+            // Wrap unexpected exceptions so the Flow fault connector runs and the
+            // user sees the Error screen rather than the success/confirmation screens.
+            throw new RLM_RampScheduleFlowException(
+                'An unexpected error occurred.',
+                e.getMessage() + ' at ' + e.getStackTraceString()
+            );
         }
-        
+
+        outputs.add(output);
         return outputs;
     }
     

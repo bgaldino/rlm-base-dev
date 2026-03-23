@@ -314,8 +314,18 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
                 continue;
             }
 
-            qli.Discount        = segDef.discountPercent != null ? segDef.discountPercent : 0;
-            qli.UnitPriceUplift = segDef.upliftPercent   != null ? segDef.upliftPercent   : 0;
+            // Apply same precedence as RLM_QuoteLineItemDiscountUpliftHandler:
+            // discount clears uplift, uplift clears discount, no values clears both.
+            if (segDef.discountPercent != null && segDef.discountPercent != 0) {
+                qli.Discount        = segDef.discountPercent;
+                qli.UnitPriceUplift = 0;
+            } else if (segDef.upliftPercent != null && segDef.upliftPercent != 0) {
+                qli.Discount        = 0;
+                qli.UnitPriceUplift = segDef.upliftPercent;
+            } else {
+                qli.Discount        = 0;
+                qli.UnitPriceUplift = 0;
+            }
             qli.SegmentType     = mapLineSegmentType(segDef.segmentType);
             linesToUpdate.add(qli);
         }

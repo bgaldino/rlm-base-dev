@@ -86,7 +86,7 @@ public class RLM_RampScheduleValidator {
             errors.addAll(validateContinuity(sortedSegments, isStaggeredRamp));
             errors.addAll(validateTrialSegment(sortedSegments));
             errors.addAll(validateProRataSegment(sortedSegments));
-            errors.addAll(validateSegmentTypeConsistency(sortedSegments, request.scheduleHeader?.scheduleType));
+            errors.addAll(validateSegmentTypeConsistency(sortedSegments));
             errors.addAll(validateYearlyDuration(sortedSegments, isStaggeredRamp));
         }
         
@@ -368,8 +368,7 @@ public class RLM_RampScheduleValidator {
      * - Cannot mix YEARLY and CUSTOM types (excluding Trial/Pro-rata)
      */
     private List<RLM_RampScheduleResponse.ApiError> validateSegmentTypeConsistency(
-        List<RLM_RampScheduleRequest.SegmentDefinition> segments, 
-        String scheduleType
+        List<RLM_RampScheduleRequest.SegmentDefinition> segments
     ) {
         List<RLM_RampScheduleResponse.ApiError> errors = new List<RLM_RampScheduleResponse.ApiError>();
         

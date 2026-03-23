@@ -227,17 +227,6 @@ public with sharing class RLM_RampScheduleService {
         }
     }
 
-    /** @description Generate a platform-format RampIdentifier (RDI + 16 random hex chars). */
-    private static String rampIdentifier() {
-        return 'RDI' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)).left(16);
-    }
-
-    /** @description Generate a platform-format SegmentIdentifier (SEG + 16 random hex chars). */
-    private static String segmentIdentifier() {
-        return 'SEG' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)).left(16);
-    }
-
-
     /**
      * @description Map API segment type to QuoteLineGroup.SegmentType picklist value.
      * Only two values are valid: 'Custom' and 'Yearly'.
