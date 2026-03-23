@@ -12,7 +12,7 @@ export default class RlmRampScheduleTrialSection extends LightningElement {
     // Form state
     @track includeTrialSegment = 'No';
     @track trialDurationValue = 30;
-    @track trialDurationUnit = 'Days'; // Fixed to Days
+    @track trialDurationUnit = 'Days'; // User-selectable: Days or Months
     @track trialDiscountPercent = 100;
 
     @wire(MessageContext)

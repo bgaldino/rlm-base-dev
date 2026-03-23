@@ -120,7 +120,7 @@ line items in sync with their group's ramp configuration.
 | LWC | Role |
 |-----|------|
 | `rlmRampScheduleFlowModalAction` | Quick Action wrapper — hosts `lightning-flow` in a wider panel, passes `recordId` into the Flow, and closes the action when the Flow finishes. This is the component bound to the Quote Quick Action, not a Flow screen component. |
-| `rlmRampScheduleForm` | Main form — embedded in the Flow's input screen; collects schedule name, start date, number of segments, schedule type (Yearly/Custom), ramp mode. Orchestrates the child components via LMS and submits the serialized segment JSON back to the Flow. |
+| `rlmRampScheduleForm` | Main form — embedded in the Flow's input screen; collects schedule name, start date, number of segments, and schedule type (Yearly/Custom). Orchestrates child components via LMS and submits the serialized segment JSON back to the Flow. **Note:** ramp mode is not currently user-configurable; the field is always passed as null and defaults to Standard on the created groups. |
 | `rlmRampScheduleTrialSection` | Trial period configuration — embedded in the Flow's input screen alongside the form; toggle (defaults to **No**), duration in days, discount %. Publishes state via LMS to the preview table. |
 | `rlmRampSchedulePreviewTable` | Live preview — embedded in the Flow's input screen; renders the segment table as the user edits form values. Subscribes to LMS for form and trial state updates. |
 | `rlmRampScheduleStatus` | Post-submit status component — polls the Queueable job status and shows a spinner until the async migration completes (API path only). |

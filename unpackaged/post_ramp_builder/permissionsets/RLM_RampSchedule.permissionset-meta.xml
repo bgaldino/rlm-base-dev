@@ -71,4 +71,8 @@
     </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Ramp Schedule</label>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>RunFlow</name>
+    </userPermissions>
 </PermissionSet>
