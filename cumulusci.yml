@@ -592,10 +592,9 @@ tasks:
   apply_context_ramp_mode:
     group: Revenue Lifecycle Management
     description: >
-      Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup)
-      context attributes to the Sales Transaction context definition and maps them to
-      QuoteLineItem.RLM_RampMode__c / QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping)
-      and OrderItem.RLM_RampMode__c / OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
+      Adds GroupRampMode__c (SalesTransactionGroup) context attribute to the Sales Transaction
+      context definition and maps it to QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping)
+      and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
     class_path: tasks.rlm_context_service.ManageContextDefinition
     options:
       developer_name: *sales_transaction_context_name
