@@ -1,6 +1,6 @@
 import { LightningElement, api } from 'lwc';
 
-const PREVIEW_HEIGHT = '500px';
+const PREVIEW_HEIGHT = '100%';
 const STYLE_ID = 'rlm-doc-preview-height-fix';
 
 export default class RlmDocPreview extends LightningElement {
