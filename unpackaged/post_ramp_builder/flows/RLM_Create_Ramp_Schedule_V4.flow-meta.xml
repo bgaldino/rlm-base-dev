@@ -106,31 +106,6 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
         <object>Quote</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
-    <decisions>
-        <name>Check_Ramp_Mode</name>
-        <label>Check Ramp Mode</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>DML_Confirmation_Screen</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>DML (no job)</defaultConnectorLabel>
-        <rules>
-            <name>Has_Job_Id</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Create_Ramp_Schedule_Action.jobId</leftValueReference>
-                <operator>IsNull</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Confirmation_Screen</targetReference>
-            </connector>
-            <label>API path (has job ID)</label>
-        </rules>
-    </decisions>
     <screens>
         <name>DML_Confirmation_Screen</name>
         <label>Ramp Schedule Created</label>
@@ -471,6 +446,31 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
                 <targetReference>Create_Ramp_Schedule_Action</targetReference>
             </connector>
             <label>Segments Valid</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Ramp_Mode</name>
+        <label>Check Ramp Mode</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>DML_Confirmation_Screen</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>DML (no job)</defaultConnectorLabel>
+        <rules>
+            <name>Has_Job_Id</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Create_Ramp_Schedule_Action.jobId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Confirmation_Screen</targetReference>
+            </connector>
+            <label>API path (has job ID)</label>
         </rules>
     </decisions>
     <start>
