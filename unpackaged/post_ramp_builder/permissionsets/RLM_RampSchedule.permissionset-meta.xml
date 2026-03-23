@@ -2,6 +2,16 @@
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <fieldPermissions>
         <editable>true</editable>
+        <field>OrderItem.RLM_RampMode__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>OrderItemGroup.RLM_RampMode__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>QuoteLineGroup.RLM_RampMode__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -10,6 +20,23 @@
         <field>QuoteLineGroup.RLM_UpliftPercent__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.RLM_RampMode__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <classAccesses>
+        <apexClass>RLM_QuoteLineItemDiscountUpliftHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_QuoteLineItemRampHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_QuoteLineItemRampModeHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <classAccesses>
         <apexClass>RLM_RampMigrationQueueable</apexClass>
         <enabled>true</enabled>
@@ -32,6 +59,10 @@
     </classAccesses>
     <classAccesses>
         <apexClass>RLM_RampScheduleService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_RampScheduleStatusController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
