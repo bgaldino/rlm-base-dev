@@ -243,7 +243,9 @@ public with sharing class RLM_RampScheduleService {
     /**
      * @description Map API segment type to QuoteLineGroup.SegmentType picklist value.
      * Only two values are valid: 'Custom' and 'Yearly'.
-     * Trial and Pro-Rata both use 'Custom'.
+     * 'Yearly' requires a duration of exactly 1 year; all non-year-duration segments
+     * (Trial, Pro-Rata, Custom) must use 'Custom'. The actual duration is always
+     * governed by StartDate/EndDate.
      */
     private String mapSegmentType(String apiSegmentType) {
         Map<String, String> typeMapping = new Map<String, String>{
@@ -315,6 +317,7 @@ public with sharing class RLM_RampScheduleService {
 
             for (QuoteLineItem qli : existingLines) {
                 qli.QuoteLineGroupId = seg0Group.Id;
+                qli.SegmentType      = seg0Group.SegmentType;
                 qli.Discount         = seg0.discountPercent != null ? seg0.discountPercent : 0;
                 qli.UnitPriceUplift  = seg0.upliftPercent   != null ? seg0.upliftPercent   : 0;
                 if (String.isBlank(qli.PeriodBoundary)) {

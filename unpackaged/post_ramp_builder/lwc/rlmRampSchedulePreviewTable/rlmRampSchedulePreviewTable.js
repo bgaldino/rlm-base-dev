@@ -43,7 +43,7 @@ export default class RlmRampSchedulePreviewTable extends LightningElement {
     @track durationMonths = 40;
     @track numberOfCustomSegments = 4;
     @track proRataPosition = 'End';
-    @track includeTrialSegment = 'Yes';
+    @track includeTrialSegment = 'No';
     @track trialDurationValue = 30;
     @track trialDurationUnit = 'Days'; // Fixed to Days
     @track trialDiscountPercent = 100;
