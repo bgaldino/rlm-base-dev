@@ -110,7 +110,7 @@ products on it. This path is experimental.
 
 | Trigger | SObject | Events |
 |---------|---------|--------|
-| `QuoteLineItemRampTrigger` | `QuoteLineItem` | `before insert`, `before update` |
+| `RLM_QuoteLineItemRampTrigger` | `QuoteLineItem` | `before insert`, `before update` |
 
 Fires `RLM_QuoteLineItemRampModeHandler` and `RLM_QuoteLineItemDiscountUpliftHandler` to keep
 line items in sync with their group's ramp configuration.

@@ -1041,7 +1041,7 @@ tasks:
       RLM_RampScheduleValidator, RLM_RampScheduleRequest, RLM_RampScheduleResponse,
       RLM_RampScheduleFlowException, RLM_RampMigrationQueueable, RLM_RampScheduleStatusController,
       RLM_QuoteLineItemDiscountUpliftHandler, RLM_QuoteLineItemRampModeHandler,
-      RLM_QuoteLineItemRampHandler, and test classes); QuoteLineItemRampTrigger trigger; six LWC
+      RLM_QuoteLineItemRampHandler, and test classes); RLM_QuoteLineItemRampTrigger trigger; six LWC
       bundles (rlmRampScheduleFlowModalAction, rlmRampScheduleForm, rlmRampScheduleTrialSection,
       rlmRampSchedulePreviewTable, rlmRampScheduleStatus, rlmRampRefreshPage); the
       RLM_Create_Ramp_Schedule_V4 screen flow; the Quote.RLM_Create_Ramp_Schedule_V4 quick

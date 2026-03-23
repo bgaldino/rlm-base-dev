@@ -1,7 +1,7 @@
 /**
  * @description Retained for backward compatibility. Logic has been split into
  * RLM_QuoteLineItemRampModeHandler and RLM_QuoteLineItemDiscountUpliftHandler,
- * which are called directly from QuoteLineItemRampTrigger (before insert/update).
+ * which are called directly from RLM_QuoteLineItemRampTrigger (before insert/update).
  *
  * @deprecated Use RLM_QuoteLineItemRampModeHandler and
  *             RLM_QuoteLineItemDiscountUpliftHandler instead.
