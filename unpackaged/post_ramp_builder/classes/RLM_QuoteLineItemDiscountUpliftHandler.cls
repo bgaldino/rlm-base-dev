@@ -2,8 +2,9 @@
  * @description Copies Discount and RLM_UpliftPercent__c from the parent QuoteLineGroup
  * to the QuoteLineItem when the item is inserted into or moved to a ramped group.
  *
- * Discount takes precedence over Uplift when both are non-zero on the group.
- * Uplift is expressed as a negative Discount value (e.g. 5% uplift → Discount = -5).
+ * Discount segments  → QuoteLineItem.Discount      (0–100, clears UnitPriceUplift)
+ * Uplift segments    → QuoteLineItem.UnitPriceUplift (0–100, clears Discount)
+ * Discount takes precedence when both are non-zero on the group.
  *
  * Runs in the before context so values are stamped without a separate DML call.
  */
@@ -51,20 +52,28 @@ public without sharing class RLM_QuoteLineItemDiscountUpliftHandler {
             if (grp == null) {
                 continue;
             }
-            Decimal adjustment = resolveAdjustment(grp.Discount, grp.RLM_UpliftPercent__c);
-            if (adjustment != null) {
-                qli.Discount = adjustment;
+            Boolean hasDiscount = grp.Discount != null && grp.Discount != 0;
+            Boolean hasUplift   = grp.RLM_UpliftPercent__c != null && grp.RLM_UpliftPercent__c != 0;
+
+            if (hasDiscount) {
+                qli.Discount        = grp.Discount;
+                qli.UnitPriceUplift = 0;
+            } else if (hasUplift) {
+                qli.Discount        = 0;
+                qli.UnitPriceUplift = grp.RLM_UpliftPercent__c;
             }
         }
     }
 
+    /**
+     * @description Returns the discount value for a discount segment, or null.
+     * Uplift is applied via UnitPriceUplift (not as a negative Discount), so
+     * this method returns null for uplift-only groups.
+     */
     @TestVisible
     public static Decimal resolveAdjustment(Decimal discount, Decimal uplift) {
         if (discount != null && discount != 0) {
             return discount;
-        }
-        if (uplift != null && uplift != 0) {
-            return -uplift;
         }
         return null;
     }

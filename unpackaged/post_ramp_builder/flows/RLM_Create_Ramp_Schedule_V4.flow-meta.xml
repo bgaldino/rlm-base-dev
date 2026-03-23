@@ -127,7 +127,20 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
                 </width>
             </styleProperties>
         </fields>
-        <showFooter>true</showFooter>
+        <fields>
+            <name>DML_RefreshPage</name>
+            <extensionName>c:rlmRampRefreshPage</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>false</showFooter>
         <showHeader>true</showHeader>
     </screens>
     <screens>
