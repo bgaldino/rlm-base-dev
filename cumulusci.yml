@@ -304,6 +304,10 @@ project:
       # DocGen permission sets
       - RLM_DocGen
 
+    ps_ramp_builder: &ps_ramp_builder
+      # Ramp Builder (Create Ramp Schedule V4) permission sets
+      - RLM_RampSchedule
+
     ps_prm: &ps_prm
       # PRM-specific permission sets
       - RLM_PRM
@@ -1009,6 +1013,22 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  deploy_post_ramp_builder:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Create Ramp Schedule V4 metadata: RLM_UpliftPercent__c and RLM_RampMode__c custom
+      fields on QuoteLineGroup, RLM_RampScheduleChannel Lightning Message Channel, Apex classes
+      (RLM_RampScheduleFlowAction, RLM_RampScheduleService, RLM_RampScheduleValidator,
+      RLM_RampScheduleRequest, RLM_RampScheduleResponse, RLM_RampScheduleFlowException,
+      RLM_RampMigrationQueueable, and test classes), four LWC bundles (rlmRampScheduleFlowModalAction,
+      rlmRampScheduleForm, rlmRampScheduleTrialSection, rlmRampSchedulePreviewTable), the
+      RLM_Create_Ramp_Schedule_V4 screen flow, the Quote.RLM_Create_Ramp_Schedule_V4 quick action,
+      and the RLM_RampSchedule permission set (grants FLS on both QuoteLineGroup fields and class
+      access for all production Apex classes).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_ramp_builder
 
   enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
@@ -2703,6 +2723,22 @@ flows:
       5:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+  prepare_ramp_builder:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom
+      fields, Lightning Message Channel, all Apex classes, four LWC bundles, the
+      RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order.
+      After this flow runs, add the "Create Ramp Schedule V4" action to the Quote page layout
+      (or Dynamic Actions highlights panel) and ensure the flow is Active in Setup.
+    steps:
+      1:
+        task: deploy_post_ramp_builder
+      2:
+        task: assign_permission_sets
+        options:
+          api_names: *ps_ramp_builder
 
   prepare_personas:
     group: Revenue Lifecycle Management
