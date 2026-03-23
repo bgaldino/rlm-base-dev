@@ -408,15 +408,15 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
 
     /**
      * @description Map API segment type to QuoteLineItem.SegmentType picklist value.
-     * QLI-level segment type uses different values from the group-level field:
-     *   TRIAL     → 'FreeTrial'  (matches what EditGroup API stamps natively)
-     *   YEARLY    → 'Yearly'
-     *   CUSTOM    → 'Custom'
-     *   PRO-RATED → 'Custom'
+     * Must match the corresponding QuoteLineGroup.SegmentType for the same segment —
+     * the platform enforces this constraint on order activation.
+     * Both Trial and Custom segments map to 'Custom' because 'FreeTrial' is not a
+     * valid QuoteLineGroup.SegmentType picklist value; using 'Custom' on both group
+     * and QLI satisfies the constraint.
      */
     private static String mapLineSegmentType(String apiType) {
         Map<String, String> mapping = new Map<String, String>{
-            RLM_RampScheduleRequest.SEGMENT_TYPE_TRIAL   => 'FreeTrial',
+            RLM_RampScheduleRequest.SEGMENT_TYPE_TRIAL   => 'Custom',
             RLM_RampScheduleRequest.SEGMENT_TYPE_YEARLY  => 'Yearly',
             RLM_RampScheduleRequest.SEGMENT_TYPE_CUSTOM  => 'Custom',
             RLM_RampScheduleRequest.SEGMENT_TYPE_PRORATA => 'Custom'
