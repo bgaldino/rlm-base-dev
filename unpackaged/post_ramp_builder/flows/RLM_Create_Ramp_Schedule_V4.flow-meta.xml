@@ -8,7 +8,7 @@
         <actionName>RLM_RampScheduleFlowAction</actionName>
         <actionType>apex</actionType>
         <connector>
-            <targetReference>Confirmation_Screen</targetReference>
+            <targetReference>Check_Ramp_Mode</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Error_Screen</targetReference>
@@ -106,6 +106,55 @@ IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY
         <object>Quote</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <decisions>
+        <name>Check_Ramp_Mode</name>
+        <label>Check Ramp Mode</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>DML_Confirmation_Screen</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>DML (no job)</defaultConnectorLabel>
+        <rules>
+            <name>Has_Job_Id</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Create_Ramp_Schedule_Action.jobId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Confirmation_Screen</targetReference>
+            </connector>
+            <label>API path (has job ID)</label>
+        </rules>
+    </decisions>
+    <screens>
+        <name>DML_Confirmation_Screen</name>
+        <label>Ramp Schedule Created</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>DML_SuccessMessage</name>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(46, 132, 74); font-size: 18px;&quot;&gt;✓ &lt;/span&gt;&lt;b style=&quot;font-size: 18px; color: rgb(46, 132, 74);&quot;&gt;Ramp Schedule Created&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;The ramp schedule has been set up for &lt;b&gt;{!Get_Quote.Name}&lt;/b&gt;.&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;You can now add products to the quote — they will be automatically distributed across all ramp segments.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <screens>
         <name>Confirmation_Screen</name>
         <label>Ramp Schedule In Progress</label>
