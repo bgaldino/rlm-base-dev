@@ -48,7 +48,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Creates a ramp schedule for a Quote record with configurable segments including trial, yearly, and pro-rata options. Uses multiple LWC components with Lightning Message Service for real-time updates.</description>
     <environments>Default</environments>

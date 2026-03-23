@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Ramp Schedule Form</masterLabel>
     <description>Main form for ramp schedule configuration (Name, Type, Date, Duration, Pro-rata)</description>
