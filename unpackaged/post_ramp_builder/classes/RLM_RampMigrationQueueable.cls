@@ -235,6 +235,10 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
     // NOTE: SegmentType is updated via DML rather than callEditGroupForType (EditGroup API)
     // because calling EditGroup on an already-ramped segment creates duplicate copies of
     // OneTime product QLIs — a platform side-effect we cannot control.
+    //
+    // Two separate SegmentType mappings are required:
+    //   QuoteLineGroup.SegmentType  — 'Custom' | 'Yearly'
+    //   QuoteLineItem.SegmentType   — 'FreeTrial' | 'Custom' | 'Yearly'
     // -------------------------------------------------------------------------
     private void updateSegmentData(List<String> allGroupIds) {
         Map<String, RLM_RampScheduleRequest.SegmentDefinition> groupToSeg =
@@ -243,21 +247,26 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
             groupToSeg.put(allGroupIds[i], sortedSegments[i]);
         }
 
-        // Update QuoteLineGroup: SegmentType, Discount, UpliftPercent
+        // --- Group-level update: Discount and Uplift only ---
+        // SegmentType is intentionally omitted here. The platform enforces that all
+        // segments in a ramp share the same SegmentType during DML, so mixing
+        // 'Custom' (Trial) and 'Yearly' in one batch causes a trigger failure that
+        // silently aborts the entire method. SegmentType was already set correctly
+        // on segment 0 at creation; cloned segments inherit it and it is cosmetic
+        // at the group level (IsRamped=true and the correct dates are authoritative).
         List<QuoteLineGroup> groupsToUpdate = new List<QuoteLineGroup>();
         for (String gid : allGroupIds) {
             RLM_RampScheduleRequest.SegmentDefinition segDef = groupToSeg.get(gid);
             groupsToUpdate.add(new QuoteLineGroup(
                 Id                   = gid,
-                SegmentType          = mapGroupSegmentType(segDef.segmentType),
                 Discount             = segDef.discountPercent != null ? segDef.discountPercent : 0,
                 RLM_UpliftPercent__c = segDef.upliftPercent   != null ? segDef.upliftPercent   : 0
             ));
         }
-        update groupsToUpdate;
+        Database.update(groupsToUpdate, false);
 
-        // All cloned QLIs — segment 0 keeps everything; cloned segments (1..N) have
-        // OneTime products removed since those should only appear in segment 0.
+        // --- QLI-level update: SegmentType, Discount, UnitPriceUplift ---
+        // OneTime products in cloned segments (1..N) are platform artefacts — delete them.
         Set<String> clonedGroupIds = new Set<String>(allGroupIds);
         clonedGroupIds.remove(segment0GroupId);
 
@@ -274,7 +283,6 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
             RLM_RampScheduleRequest.SegmentDefinition segDef = groupToSeg.get(qli.QuoteLineGroupId);
             if (segDef == null) { continue; }
 
-            // OneTime products in cloned segments are platform artefacts — delete them.
             if (clonedGroupIds.contains(qli.QuoteLineGroupId)
                     && qli.SellingModelType == 'OneTime') {
                 linesToDelete.add(qli);
@@ -283,15 +291,12 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
 
             qli.Discount        = segDef.discountPercent != null ? segDef.discountPercent : 0;
             qli.UnitPriceUplift = segDef.upliftPercent   != null ? segDef.upliftPercent   : 0;
+            qli.SegmentType     = mapLineSegmentType(segDef.segmentType);
             linesToUpdate.add(qli);
         }
 
-        if (!linesToDelete.isEmpty()) {
-            delete linesToDelete;
-        }
-        if (!linesToUpdate.isEmpty()) {
-            update linesToUpdate;
-        }
+        if (!linesToDelete.isEmpty()) { delete linesToDelete; }
+        if (!linesToUpdate.isEmpty()) { update linesToUpdate; }
     }
 
     // -------------------------------------------------------------------------
@@ -378,13 +383,31 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
     }
 
     /**
-     * @description Map API segment type to the QuoteLineGroup.SegmentType value accepted by
-     * Place Sales Transaction. Only two values are valid in this org: 'Custom' and 'Yearly'.
+     * @description Map API segment type to QuoteLineGroup.SegmentType picklist value.
+     * Only two values are valid in this org: 'Custom' and 'Yearly'.
      * Trial and Pro-Rata segments both map to 'Custom'.
      */
     private static String mapGroupSegmentType(String apiType) {
         Map<String, String> mapping = new Map<String, String>{
             RLM_RampScheduleRequest.SEGMENT_TYPE_TRIAL   => 'Custom',
+            RLM_RampScheduleRequest.SEGMENT_TYPE_YEARLY  => 'Yearly',
+            RLM_RampScheduleRequest.SEGMENT_TYPE_CUSTOM  => 'Custom',
+            RLM_RampScheduleRequest.SEGMENT_TYPE_PRORATA => 'Custom'
+        };
+        return mapping.containsKey(apiType) ? mapping.get(apiType) : 'Custom';
+    }
+
+    /**
+     * @description Map API segment type to QuoteLineItem.SegmentType picklist value.
+     * QLI-level segment type uses different values from the group-level field:
+     *   TRIAL     → 'FreeTrial'  (matches what EditGroup API stamps natively)
+     *   YEARLY    → 'Yearly'
+     *   CUSTOM    → 'Custom'
+     *   PRO-RATED → 'Custom'
+     */
+    private static String mapLineSegmentType(String apiType) {
+        Map<String, String> mapping = new Map<String, String>{
+            RLM_RampScheduleRequest.SEGMENT_TYPE_TRIAL   => 'FreeTrial',
             RLM_RampScheduleRequest.SEGMENT_TYPE_YEARLY  => 'Yearly',
             RLM_RampScheduleRequest.SEGMENT_TYPE_CUSTOM  => 'Custom',
             RLM_RampScheduleRequest.SEGMENT_TYPE_PRORATA => 'Custom'
