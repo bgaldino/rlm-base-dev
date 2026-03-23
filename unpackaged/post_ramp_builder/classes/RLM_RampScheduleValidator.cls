@@ -11,7 +11,16 @@ public class RLM_RampScheduleValidator {
      */
     public List<RLM_RampScheduleResponse.ApiError> validate(RLM_RampScheduleRequest request) {
         List<RLM_RampScheduleResponse.ApiError> errors = new List<RLM_RampScheduleResponse.ApiError>();
-        
+
+        if (request == null) {
+            errors.add(new RLM_RampScheduleResponse.ApiError(
+                RLM_RampScheduleResponse.ERROR_INVALID_ACTION,
+                'Request cannot be null.',
+                'A non-null RLM_RampScheduleRequest is required.'
+            ));
+            return errors;
+        }
+
         // Validate action
         errors.addAll(validateAction(request.action));
         

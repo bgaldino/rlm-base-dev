@@ -8,7 +8,7 @@ export default class RlmRampScheduleFlowModalAction extends LightningElement {
     @api objectApiName;
     @api flowApiName = 'RLM_Create_Ramp_Schedule_V4';
 
-    _stylesInjected = false;
+    _ownsStyle = false;
 
     connectedCallback() {
         this.injectModalStyles();
@@ -48,12 +48,14 @@ export default class RlmRampScheduleFlowModalAction extends LightningElement {
     }
 
     injectModalStyles() {
-        if (this._stylesInjected) {
+        if (this._ownsStyle) {
             return;
         }
 
-        let existingStyle = document.getElementById(MODAL_STYLE_ID);
-        if (!existingStyle) {
+        // Only create and own the style element if it doesn't exist yet.
+        // If another instance already injected it, we leave it alone and do not
+        // take ownership — so our disconnectedCallback won't remove it prematurely.
+        if (!document.getElementById(MODAL_STYLE_ID)) {
             const styleEl = document.createElement('style');
             styleEl.id = MODAL_STYLE_ID;
             styleEl.textContent = `
@@ -79,16 +81,18 @@ export default class RlmRampScheduleFlowModalAction extends LightningElement {
                 }
             `;
             document.head.appendChild(styleEl);
+            this._ownsStyle = true;
         }
-
-        this._stylesInjected = true;
     }
 
     removeModalStyles() {
-        const styleEl = document.getElementById(MODAL_STYLE_ID);
-        if (styleEl) {
-            styleEl.remove();
+        // Only remove the style element if this instance was the one that created it.
+        if (this._ownsStyle) {
+            const styleEl = document.getElementById(MODAL_STYLE_ID);
+            if (styleEl) {
+                styleEl.remove();
+            }
+            this._ownsStyle = false;
         }
-        this._stylesInjected = false;
     }
 }

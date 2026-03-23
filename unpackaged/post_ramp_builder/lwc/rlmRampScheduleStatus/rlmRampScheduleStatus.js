@@ -69,6 +69,13 @@ export default class RlmRampScheduleStatus extends LightningElement {
     // ── Polling logic ──────────────────────────────────────────────────────
 
     _startPolling() {
+        // DML path: no jobId — groups were created synchronously; go straight to done
+        // without setting up an interval (avoids a race where _setDone() → _stopPolling()
+        // runs before _intervalId is assigned, leaving a dangling interval).
+        if (!this.jobId) {
+            this._setDone();
+            return;
+        }
         this._poll(); // immediate first check
         this._intervalId = setInterval(() => this._poll(), POLL_INTERVAL_MS);
     }
@@ -93,7 +100,8 @@ export default class RlmRampScheduleStatus extends LightningElement {
     }
 
     async _pollJob() {
-        // DML path (default): no jobId — groups were created synchronously, go straight to done.
+        // Belt-and-suspenders: _startPolling() already short-circuits for the DML path,
+        // but guard here too in case _pollJob() is called directly.
         if (!this.jobId) {
             this._setDone();
             return;

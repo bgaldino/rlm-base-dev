@@ -14,13 +14,13 @@
  *                         After each clone a SOQL query identifies the new group.
  *   3. EditRampSchedule — sets correct start/end dates and names on all segments in one
  *                         call (all segments must share the same SegmentType at this point).
- *   4. EditGroup per segment — for any segment whose SegmentType differs from segment 0
- *                         (e.g., Trial=Custom, Year 1..N=Yearly), call EditGroup individually.
- *   5. DML              — updates SegmentType, Discount, RLM_UpliftPercent__c on all groups
- *                         and QLIs to match each segment's definition. Groups are bucketed by
- *                         their target SegmentType and updated in separate DML calls to satisfy
- *                         the platform constraint that all segments in one DML batch share the
- *                         same SegmentType. Also deletes OneTime QLIs from cloned segments.
+ *   4. DML (updateSegmentData) — for each segment, updates SegmentType, Discount, and
+ *                         RLM_UpliftPercent__c on QuoteLineGroups (bucketed by SegmentType
+ *                         to satisfy the platform constraint that a single DML batch must not
+ *                         mix SegmentTypes) and updates QLI Discount/UnitPriceUplift. Also
+ *                         deletes OneTime QLIs from cloned segments (platform artefacts).
+ *                         Note: EditGroup is NOT used here for SegmentType changes because
+ *                         calling EditGroup on individual segments duplicates OneTime QLIs.
  *
  * API references:
  *   POST /services/data/v66.0/connect/rev/sales-transaction/actions/place  (EditGroup, EditRampSchedule)
@@ -195,10 +195,14 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
             return;
         }
 
-        if (!(Boolean) parsed.get('success')) {
+        Object successVal = parsed.get('success');
+        Boolean cloneSuccess = successVal instanceof Boolean ? (Boolean) successVal : null;
+        if (cloneSuccess == null || !cloneSuccess) {
+            String baseMessage = cloneSuccess == null
+                ? 'CloneSalesTransaction response missing or non-Boolean success flag.'
+                : 'CloneSalesTransaction returned errors.';
             throw new CalloutException(
-                'CloneSalesTransaction returned errors: '
-                + JSON.serialize(parsed.get('errors'))
+                baseMessage + ' errors=' + JSON.serialize(parsed.get('errors'))
             );
         }
     }
@@ -271,7 +275,19 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
             ));
         }
         for (List<QuoteLineGroup> sameTypeGroups : groupsByType.values()) {
-            Database.update(sameTypeGroups, false);
+            List<Database.SaveResult> saveResults = Database.update(sameTypeGroups, false);
+            for (Integer i = 0; i < saveResults.size(); i++) {
+                if (!saveResults[i].isSuccess()) {
+                    List<String> msgs = new List<String>();
+                    for (Database.Error err : saveResults[i].getErrors()) {
+                        msgs.add(err.getStatusCode() + ': ' + err.getMessage());
+                    }
+                    throw new CalloutException(
+                        'updateSegmentData DML failed for group '
+                        + sameTypeGroups[i].Id + ': ' + String.join(msgs, '; ')
+                    );
+                }
+            }
         }
 
         // --- QLI-level update: SegmentType, Discount, UnitPriceUplift ---
@@ -340,11 +356,29 @@ public class RLM_RampMigrationQueueable implements Queueable, Database.AllowsCal
             return;
         }
 
+        // Check both common RLM response shapes: { success, errors } and { isSuccess, errorResponse }
+        Object isSuccessVal = parsed.get('isSuccess');
+        Boolean placeSuccess = isSuccessVal instanceof Boolean ? (Boolean) isSuccessVal : null;
+        if (placeSuccess != null && !placeSuccess) {
+            throw new CalloutException(
+                'Place Sales Transaction returned isSuccess=false. errorResponse='
+                + JSON.serialize(parsed.get('errorResponse'))
+            );
+        }
+
         Object errorsObj = parsed.get('errors');
         if (errorsObj instanceof List<Object> && !((List<Object>) errorsObj).isEmpty()) {
             throw new CalloutException(
                 'Place Sales Transaction returned errors: '
                 + JSON.serialize(errorsObj)
+            );
+        }
+
+        Object errorResponse = parsed.get('errorResponse');
+        if (errorResponse != null) {
+            throw new CalloutException(
+                'Place Sales Transaction returned errorResponse: '
+                + JSON.serialize(errorResponse)
             );
         }
     }

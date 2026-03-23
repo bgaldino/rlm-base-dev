@@ -2752,7 +2752,7 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom
-      fields, Lightning Message Channel, all Apex classes, four LWC bundles, the
+      fields, Lightning Message Channel, all Apex classes, six LWC bundles, the
       RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order.
       Adds RampMode__c/GroupRampMode__c context attributes to the Sales Transaction context
       definition mapped to QuoteLineItem, QuoteLineGroup, OrderItem, and OrderItemGroup.
