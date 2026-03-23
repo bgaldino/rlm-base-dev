@@ -18,7 +18,7 @@ export default class RlmDocPreview extends LightningElement {
             const style = document.createElement('style');
             style.id = STYLE_ID;
             style.textContent =
-                `community_content-file-previewer .bodyContainer { height: ${PREVIEW_HEIGHT} !important; min-height: ${PREVIEW_HEIGHT} !important; }`;
+                `community_content-file-previewer .bodyContainer { height: ${PREVIEW_HEIGHT} !important; }`;
             // eslint-disable-next-line @lwc/lwc/no-document-query
             document.head.appendChild(style);
         }
