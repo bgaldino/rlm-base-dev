@@ -48,7 +48,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Creates a ramp schedule for a Quote record with configurable segments including trial, yearly, and pro-rata options. Uses multiple LWC components with Lightning Message Service for real-time updates.</description>
     <environments>Default</environments>
@@ -64,8 +64,8 @@
 IF(MONTH({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(MONTH({!DefaultStartDate})) &amp; &quot;-&quot; &amp; 
 IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY({!DefaultStartDate}))</expression>
     </formulas>
-    <interviewLabel>Create Ramp Schedule V2 {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Create Ramp Schedule V2</label>
+    <interviewLabel>Create Ramp Schedule V4 {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Create Ramp Schedule V4</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

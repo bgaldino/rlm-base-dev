@@ -1033,15 +1033,19 @@ tasks:
   deploy_post_ramp_builder:
     group: Revenue Lifecycle Management
     description: >
-      Deploy Create Ramp Schedule V4 metadata: RLM_UpliftPercent__c and RLM_RampMode__c custom
-      fields on QuoteLineGroup, RLM_RampScheduleChannel Lightning Message Channel, Apex classes
-      (RLM_RampScheduleFlowAction, RLM_RampScheduleService, RLM_RampScheduleValidator,
-      RLM_RampScheduleRequest, RLM_RampScheduleResponse, RLM_RampScheduleFlowException,
-      RLM_RampMigrationQueueable, and test classes), four LWC bundles (rlmRampScheduleFlowModalAction,
-      rlmRampScheduleForm, rlmRampScheduleTrialSection, rlmRampSchedulePreviewTable), the
-      RLM_Create_Ramp_Schedule_V4 screen flow, the Quote.RLM_Create_Ramp_Schedule_V4 quick action,
-      and the RLM_RampSchedule permission set (grants FLS on both QuoteLineGroup fields and class
-      access for all production Apex classes).
+      Deploy all Ramp Schedule Builder (Create Ramp Schedule V4) metadata under
+      unpackaged/post_ramp_builder: custom fields (RLM_RampMode__c, RLM_UpliftPercent__c) on
+      QuoteLineGroup, QuoteLineItem, OrderItemGroup, and OrderItem; Lightning Message Channel
+      (RLM_RampScheduleChannel); Apex classes and test classes (RLM_RampScheduleFlowAction,
+      RLM_RampScheduleService, RLM_RampScheduleValidator, RLM_RampScheduleRequest,
+      RLM_RampScheduleResponse, RLM_RampScheduleFlowException, RLM_RampMigrationQueueable,
+      RLM_RampScheduleStatusController, RLM_QuoteLineItemDiscountUpliftHandler,
+      RLM_QuoteLineItemRampModeHandler, RLM_QuoteLineItemRampHandler, and test classes);
+      QuoteLineItemRampTrigger trigger; six LWC bundles (rlmRampScheduleFlowModalAction,
+      rlmRampScheduleForm, rlmRampScheduleTrialSection, rlmRampSchedulePreviewTable,
+      rlmRampScheduleStatus, rlmRampRefreshPage); the RLM_Create_Ramp_Schedule_V4 screen flow;
+      the Quote.RLM_Create_Ramp_Schedule_V4 quick action; and the RLM_RampSchedule permission
+      set (grants FLS on all custom fields and class access for all production Apex classes).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_ramp_builder

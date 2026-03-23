@@ -33,23 +33,29 @@ public without sharing class RLM_QuoteLineItemDiscountUpliftHandler {
                 groupIds.add(qli.QuoteLineGroupId);
             }
         }
-        if (groupIds.isEmpty()) {
-            return;
-        }
 
-        Map<Id, QuoteLineGroup> groupMap = new Map<Id, QuoteLineGroup>([
-            SELECT Id, IsRamped, Discount, RLM_UpliftPercent__c
-            FROM QuoteLineGroup
-            WHERE Id IN :groupIds
-              AND IsRamped = true
-        ]);
+        // Query only ramped groups; non-ramped and null groups fall through to the clear path.
+        Map<Id, QuoteLineGroup> groupMap = groupIds.isEmpty()
+            ? new Map<Id, QuoteLineGroup>()
+            : new Map<Id, QuoteLineGroup>([
+                SELECT Id, IsRamped, Discount, RLM_UpliftPercent__c
+                FROM QuoteLineGroup
+                WHERE Id IN :groupIds
+                  AND IsRamped = true
+              ]);
 
         for (QuoteLineItem qli : qlis) {
             if (qli.QuoteLineGroupId == null) {
+                // Removed from any group — clear both adjustments.
+                qli.Discount        = 0;
+                qli.UnitPriceUplift = 0;
                 continue;
             }
             QuoteLineGroup grp = groupMap.get(qli.QuoteLineGroupId);
             if (grp == null) {
+                // Moved to a non-ramped group — clear stale adjustments.
+                qli.Discount        = 0;
+                qli.UnitPriceUplift = 0;
                 continue;
             }
             Boolean hasDiscount = grp.Discount != null && grp.Discount != 0;
@@ -61,6 +67,10 @@ public without sharing class RLM_QuoteLineItemDiscountUpliftHandler {
             } else if (hasUplift) {
                 qli.Discount        = 0;
                 qli.UnitPriceUplift = grp.RLM_UpliftPercent__c;
+            } else {
+                // Ramped group with no adjustment configured — clear both.
+                qli.Discount        = 0;
+                qli.UnitPriceUplift = 0;
             }
         }
     }

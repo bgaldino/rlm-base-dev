@@ -60,6 +60,7 @@ public class RLM_RampScheduleResponse {
     public static final String ERROR_INVALID_YEARLY_DURATION = 'INVALID_YEARLY_DURATION';
     public static final String ERROR_INVALID_SOURCE_LINES = 'INVALID_SOURCE_LINES';
     public static final String ERROR_INVALID_ACTION = 'INVALID_ACTION';
+    public static final String ERROR_INVALID_SEQUENCE = 'INVALID_SEQUENCE';
     public static final String ERROR_DML_EXCEPTION = 'DML_EXCEPTION';
     
     public RLM_RampScheduleResponse() {

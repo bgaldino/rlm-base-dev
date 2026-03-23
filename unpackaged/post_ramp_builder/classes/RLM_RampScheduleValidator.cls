@@ -28,6 +28,13 @@ public class RLM_RampScheduleValidator {
             return errors; // Can't proceed with other validations
         }
         
+        // Validate sequence values before sorting — null/duplicate sequences produce
+        // silently incorrect sort results and must be rejected explicitly.
+        errors.addAll(validateSequences(request.segments));
+        if (!errors.isEmpty()) {
+            return errors;
+        }
+
         // Sort segments by sequence for validation
         List<RLM_RampScheduleRequest.SegmentDefinition> sortedSegments = sortSegmentsBySequence(request.segments);
         
@@ -382,6 +389,42 @@ public class RLM_RampScheduleValidator {
         return errors;
     }
     
+    /**
+     * @description Validate that every segment has a non-null, positive, unique sequence.
+     * A null or duplicate sequence would cause sortSegmentsBySequence to silently drop or
+     * overwrite entries, leading to incorrect structural validation.
+     */
+    private List<RLM_RampScheduleResponse.ApiError> validateSequences(
+            List<RLM_RampScheduleRequest.SegmentDefinition> segments) {
+        List<RLM_RampScheduleResponse.ApiError> errors = new List<RLM_RampScheduleResponse.ApiError>();
+        Set<Integer> seen = new Set<Integer>();
+        for (Integer i = 0; i < segments.size(); i++) {
+            RLM_RampScheduleRequest.SegmentDefinition seg = segments[i];
+            if (seg.sequence == null) {
+                errors.add(new RLM_RampScheduleResponse.ApiError(
+                    RLM_RampScheduleResponse.ERROR_INVALID_SEQUENCE,
+                    'Segment at index ' + i + ' is missing a sequence number.',
+                    'Every segment must have a non-null, positive sequence value.'
+                ));
+            } else if (seg.sequence < 1) {
+                errors.add(new RLM_RampScheduleResponse.ApiError(
+                    RLM_RampScheduleResponse.ERROR_INVALID_SEQUENCE,
+                    'Segment sequence must be a positive integer (got ' + seg.sequence + ').',
+                    'Segment at index ' + i + ' has sequence ' + seg.sequence + '.'
+                ));
+            } else if (seen.contains(seg.sequence)) {
+                errors.add(new RLM_RampScheduleResponse.ApiError(
+                    RLM_RampScheduleResponse.ERROR_INVALID_SEQUENCE,
+                    'Duplicate segment sequence: ' + seg.sequence + '.',
+                    'Each segment must have a unique sequence number.'
+                ));
+            } else {
+                seen.add(seg.sequence);
+            }
+        }
+        return errors;
+    }
+
     /**
      * @description Sort segments by sequence number
      */

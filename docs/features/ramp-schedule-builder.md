@@ -103,7 +103,7 @@ products on it. This path is experimental.
 | `RLM_RampScheduleValidator` | Validates the request: segment continuity, no gaps/overlaps, yearly duration, trial/pro-rata placement rules. |
 | `RLM_RampMigrationQueueable` | Async job that performs the API-based migration (EditGroup → CloneSalesTransaction → EditRampSchedule). |
 | `RLM_RampScheduleStatusController` | LWC controller — polled by `rlmRampScheduleStatus` to check Queueable job completion. |
-| `RLM_QuoteLineItemDiscountUpliftHandler` | Before-insert/update trigger handler — copies `Discount` and `RLM_UpliftPercent__c` from the parent `QuoteLineGroup` to its `QuoteLineItem`s. |
+| `RLM_QuoteLineItemDiscountUpliftHandler` | Before-insert/update trigger handler — copies `Discount` from `QuoteLineGroup.Discount` and sets `QuoteLineItem.UnitPriceUplift` from `QuoteLineGroup.RLM_UpliftPercent__c`, clearing the opposing field. Clears both fields when a QLI moves to a non-ramped group, is ungrouped, or the group has no adjustment configured. |
 | `RLM_QuoteLineItemRampModeHandler` | Before-insert/update trigger handler — copies `RLM_RampMode__c` from `QuoteLineGroup` to `QuoteLineItem`. |
 
 ### Trigger
@@ -119,11 +119,11 @@ line items in sync with their group's ramp configuration.
 
 | LWC | Role |
 |-----|------|
-| `rlmRampScheduleForm` | Main form — collects schedule name, start date, number of segments, schedule type (Yearly/Custom), ramp mode. Orchestrates the child components and submits the request to the Flow. |
-| `rlmRampScheduleTrialSection` | Trial period configuration — toggle (defaults to **No**), duration in days, discount %. Publishes state via LMS for the preview table. |
-| `rlmRampSchedulePreviewTable` | Live preview — renders the segment table as the user edits form values. Subscribes to LMS for trial state. |
+| `rlmRampScheduleFlowModalAction` | Quick Action wrapper — hosts `lightning-flow` in a wider panel, passes `recordId` into the Flow, and closes the action when the Flow finishes. This is the component bound to the Quote Quick Action, not a Flow screen component. |
+| `rlmRampScheduleForm` | Main form — embedded in the Flow's input screen; collects schedule name, start date, number of segments, schedule type (Yearly/Custom), ramp mode. Orchestrates the child components via LMS and submits the serialized segment JSON back to the Flow. |
+| `rlmRampScheduleTrialSection` | Trial period configuration — embedded in the Flow's input screen alongside the form; toggle (defaults to **No**), duration in days, discount %. Publishes state via LMS to the preview table. |
+| `rlmRampSchedulePreviewTable` | Live preview — embedded in the Flow's input screen; renders the segment table as the user edits form values. Subscribes to LMS for form and trial state updates. |
 | `rlmRampScheduleStatus` | Post-submit status component — polls the Queueable job status and shows a spinner until the async migration completes (API path only). |
-| `rlmRampScheduleFlowModalAction` | Wrapper LWC used inside the Flow screen — bridges Flow variable bindings to the form component. |
 | `rlmRampRefreshPage` | Success screen component — provides a "View Quote" button that navigates back to the Quote record page (using `backgroundContext` from the Quick Action URL), triggering a full page refresh so the new groups appear. |
 
 ### Flow

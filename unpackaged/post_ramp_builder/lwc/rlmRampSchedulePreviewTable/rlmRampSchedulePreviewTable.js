@@ -124,8 +124,10 @@ export default class RlmRampSchedulePreviewTable extends LightningElement {
     }
 
     unsubscribeFromChannel() {
-        unsubscribe(this.subscription);
-        this.subscription = null;
+        if (this.subscription) {
+            unsubscribe(this.subscription);
+            this.subscription = null;
+        }
     }
 
     handleMessage(message) {
