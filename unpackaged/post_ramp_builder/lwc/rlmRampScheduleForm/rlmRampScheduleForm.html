@@ -1,0 +1,98 @@
+<template>
+    <div class="form-container">
+        <!-- Ramp Schedule Name -->
+        <div class="form-group">
+            <label class="form-label required">Ramp Schedule Name</label>
+            <lightning-input 
+                type="text" 
+                value={scheduleName}
+                onchange={handleNameChange}
+                variant="label-hidden"
+                class="form-input">
+            </lightning-input>
+        </div>
+
+        <!-- Ramp Schedule Type -->
+        <div class="form-group">
+            <label class="form-label required">
+                Ramp Schedule Type
+                <lightning-helptext content="Choose between Annual (yearly segments) or Custom segments"></lightning-helptext>
+            </label>
+            <br />
+            <lightning-radio-group
+                name="scheduleType"
+                options={typeOptions}
+                value={scheduleType}
+                onchange={handleTypeChange}
+                type="radio"
+                class="radio-vertical-stacked">
+            </lightning-radio-group>
+        </div>
+
+        <!-- Ramp Schedule Start Date -->
+        <div class="form-group">
+            <label class="form-label required">
+                Ramp Schedule Start Date
+                <lightning-helptext content="The date when the ramp schedule begins"></lightning-helptext>
+            </label>
+            <lightning-input 
+                type="date" 
+                value={startDate}
+                onchange={handleStartDateChange}
+                variant="label-hidden"
+                class="form-input">
+            </lightning-input>
+        </div>
+
+        <!-- Duration of Ramp Schedule -->
+        <div class="form-group">
+            <label class="form-label required">Duration of Ramp Schedule</label>
+            <br />
+            <div class="duration-row">
+                <lightning-input 
+                    type="number" 
+                    value={durationMonths}
+                    onchange={handleDurationChange}
+                    variant="label-hidden"
+                    class="duration-input"
+                    min="1">
+                </lightning-input>
+                <span class="duration-label">Months</span>
+            </div>
+        </div>
+
+        <!-- Number of Custom Segments (only for Custom type) -->
+        <template if:true={isCustomType}>
+            <div class="form-group">
+                <label class="form-label required">Number of Custom Segments</label>
+                <lightning-input 
+                    type="number" 
+                    value={numberOfCustomSegments}
+                    onchange={handleCustomSegmentsChange}
+                    variant="label-hidden"
+                    class="form-input"
+                    min="1">
+                </lightning-input>
+            </div>
+        </template>
+
+        <!-- Position of Pro-rata Segment -->
+        <template if:true={showProRataPosition}>
+            <div class="form-group">
+                <label class="form-label required">
+                    Position of the Pro-rata segment
+                    <lightning-helptext content="Choose where to place the pro-rata segment"></lightning-helptext>
+                </label>
+                <br />  
+                <lightning-radio-group
+                    name="proRataPosition"
+                    options={proRataOptions}
+                    value={proRataPosition}
+                    onchange={handleProRataPositionChange}
+                    type="radio"
+                    class="radio-vertical-stacked">
+                </lightning-radio-group>
+            </div>
+        </template>
+    </div>
+</template>

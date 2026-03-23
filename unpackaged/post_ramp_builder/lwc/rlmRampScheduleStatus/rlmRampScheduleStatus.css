@@ -1,0 +1,61 @@
+.status-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 280px;
+    padding: 2rem;
+}
+
+.status-card {
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+}
+
+.spinner-wrap {
+    position: relative;
+    height: 64px;
+    margin-bottom: 1.5rem;
+}
+
+.icon-wrap {
+    margin-bottom: 1rem;
+}
+
+.status-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+    margin-bottom: 0.75rem;
+}
+
+.status-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.status-card--success .status-title {
+    color: #2e844a;
+}
+
+.status-card--error .status-title {
+    color: #c23934;
+}
+
+.status-body {
+    color: var(--lwc-colorTextDefault, #444);
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.status-hint {
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextWeak, #888);
+    margin-top: 0.75rem;
+    line-height: 1.4;
+}
+
+.action-row {
+    margin-top: 1.25rem;
+}

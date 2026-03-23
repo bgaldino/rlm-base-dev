@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Ramp Schedule Form</masterLabel>
+    <description>Main form for ramp schedule configuration (Name, Type, Date, Duration, Pro-rata)</description>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="quoteStartDate" type="String" label="Quote Start Date" description="Start date from Quote (YYYY-MM-DD)" default=""/>
+            <property name="defaultScheduleName" type="String" label="Default Schedule Name" description="Default name for the schedule" default="3 Year Ramp Schedule"/>
+            <property name="defaultDuration" type="Integer" label="Default Duration (Months)" description="Default duration in months" default="40"/>
+            <property name="defaultScheduleType" type="String" label="Default Schedule Type" description="Annual or Custom" default="Annual"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

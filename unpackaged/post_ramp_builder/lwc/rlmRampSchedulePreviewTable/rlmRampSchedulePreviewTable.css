@@ -1,0 +1,167 @@
+.preview-container {
+    background: #f3f3f3;
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 400px;
+}
+
+.preview-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #181818;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #0176d3;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    background: #ffffff;
+    border-radius: 4px;
+}
+
+.preview-table thead tr {
+    background-color: #f3f3f3;
+}
+
+.preview-table th {
+    text-align: left;
+    padding: 0.75rem 0.625rem;
+    font-weight: 600;
+    color: #444444;
+    border-bottom: 2px solid #dddbda;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+.preview-table td {
+    padding: 0.625rem;
+    border-bottom: 1px solid #e5e5e5;
+    vertical-align: middle;
+}
+
+.table-row:hover {
+    background-color: #f9f9f9;
+}
+
+/* Badge Styles */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.badge-trial {
+    background-color: #e0f7fa;
+    color: #00838f;
+    border: 1px solid #4dd0e1;
+}
+
+.badge-yearly {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.badge-prorata {
+    background-color: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffb74d;
+}
+
+.badge-custom {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #64b5f6;
+}
+
+/* Editable Input Styles */
+.editable-input {
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    background-color: #ffffff;
+    color: #181818;
+    box-sizing: border-box;
+}
+
+.editable-input:focus {
+    outline: none;
+    border-color: #0176d3;
+    box-shadow: 0 0 0 1px #0176d3;
+}
+
+.editable-input:hover {
+    border-color: #1b96ff;
+}
+
+.date-input {
+    min-width: 125px;
+}
+
+.number-input {
+    width: 70px;
+    text-align: center;
+}
+
+.discount-highlight {
+    color: #2e7d32;
+    font-weight: 700;
+}
+
+.no-data-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: #706e6b;
+    text-align: center;
+}
+
+.no-data-message lightning-icon {
+    margin-bottom: 1rem;
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
+.no-data-message p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Error Banner Styles */
+.error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #fef7f7;
+    border: 1px solid #c23934;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    color: #c23934;
+}
+
+.error-banner lightning-icon {
+    --slds-c-icon-color-foreground-default: #c23934;
+    flex-shrink: 0;
+}
+
+.error-message {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+}

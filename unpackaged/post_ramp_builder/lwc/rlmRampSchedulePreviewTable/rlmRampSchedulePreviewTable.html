@@ -1,0 +1,117 @@
+<template>
+    <div class="preview-container">
+        <h2 class="preview-title">{scheduleName}</h2>
+        
+        <!-- Validation Error Banner -->
+        <template if:true={hasValidationErrors}>
+            <div class="error-banner">
+                <lightning-icon icon-name="utility:error" size="small" alternative-text="Error"></lightning-icon>
+                <span class="error-message">{validationErrorMessage}</span>
+            </div>
+        </template>
+        
+        <div class="table-wrapper">
+            <table class="preview-table">
+                <thead>
+                    <tr>
+                        <th>Segment Name</th>
+                        <th>Segment Type</th>
+                        <th>Duration</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <template if:false={hideDiscountColumn}>
+                            <th>Discount%</th>
+                        </template>
+                        <template if:false={hideUpliftColumn}>
+                            <th>Uplift%</th>
+                        </template>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={segments} for:item="segment">
+                        <tr key={segment.id} class="table-row">
+                            <td>
+                                <input 
+                                    type="text" 
+                                    value={segment.name}
+                                    data-id={segment.id}
+                                    data-field="name"
+                                    onchange={handleSegmentFieldChange}
+                                    class="editable-input"/>
+                            </td>
+                            <td>
+                                <span class={segment.badgeClass}>{segment.typeLabel}</span>
+                            </td>
+                            <td>{segment.durationDisplay}</td>
+                            <td>
+                                <template if:true={segment.isStartDateEditable}>
+                                    <input 
+                                        type="date" 
+                                        value={segment.startDateValue}
+                                        data-id={segment.id}
+                                        data-field="startDate"
+                                        onchange={handleSegmentFieldChange}
+                                        class="editable-input date-input"/>
+                                </template>
+                                <template if:false={segment.isStartDateEditable}>
+                                    {segment.startDateDisplay}
+                                </template>
+                            </td>
+                            <td>
+                                <template if:true={segment.isEndDateEditable}>
+                                    <input 
+                                        type="date" 
+                                        value={segment.endDateValue}
+                                        data-id={segment.id}
+                                        data-field="endDate"
+                                        onchange={handleSegmentFieldChange}
+                                        class="editable-input date-input"/>
+                                </template>
+                                <template if:false={segment.isEndDateEditable}>
+                                    {segment.endDateDisplay}
+                                </template>
+                            </td>
+                            <template if:false={hideDiscountColumn}>
+                                <td>
+                                    <template if:true={segment.isTrialSegment}>
+                                        <span class="discount-highlight">{segment.discountDisplay}</span>
+                                    </template>
+                                    <template if:false={segment.isTrialSegment}>
+                                        <input 
+                                            type="number" 
+                                            value={segment.discount}
+                                            data-id={segment.id}
+                                            data-field="discount"
+                                            onchange={handleSegmentFieldChange}
+                                            class="editable-input number-input"
+                                            min="0"
+                                            max="100"/>
+                                    </template>
+                                </td>
+                            </template>
+                            <template if:false={hideUpliftColumn}>
+                                <td>
+                                    <input 
+                                        type="number" 
+                                        value={segment.uplift}
+                                        data-id={segment.id}
+                                        data-field="uplift"
+                                        onchange={handleSegmentFieldChange}
+                                        class="editable-input number-input"
+                                        min="0"/>
+                                </td>
+                            </template>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <template if:false={hasSegments}>
+            <div class="no-data-message">
+                <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                <p>Configure the form on the left to see the preview.</p>
+            </div>
+        </template>
+    </div>
+</template>

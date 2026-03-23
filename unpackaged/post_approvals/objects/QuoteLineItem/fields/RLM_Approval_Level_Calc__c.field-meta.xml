@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval_Level_Calc__c</fullName>
     <externalId>false</externalId>
-    <formula>IF(Discount &lt; 0.15 , 0 , IF(Discount &lt; 0.25 , 1 ,IF(Discount &lt; 0.35 , 2, 3 )))</formula>
+    <formula>IF(Discount &gt;= 1, 0, IF(Discount &lt; 0.15 , 0 , IF(Discount &lt; 0.25 , 1 ,IF(Discount &lt; 0.35 , 2, 3 ))))</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Approval Level Calc</label>
     <precision>18</precision>
