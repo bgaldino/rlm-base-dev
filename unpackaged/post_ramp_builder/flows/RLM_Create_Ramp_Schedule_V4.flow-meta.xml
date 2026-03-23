@@ -64,8 +64,8 @@
 IF(MONTH({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(MONTH({!DefaultStartDate})) &amp; &quot;-&quot; &amp; 
 IF(DAY({!DefaultStartDate}) &lt; 10, &quot;0&quot;, &quot;&quot;) &amp; TEXT(DAY({!DefaultStartDate}))</expression>
     </formulas>
-    <interviewLabel>Create Ramp Schedule V4 {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Create Ramp Schedule V4</label>
+    <interviewLabel>Create Ramp Schedule {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Create Ramp Schedule</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
