@@ -96,6 +96,7 @@ project:
     rating: true              # Insert Rating Design Time Data
     rates: true               # Insert Rates
     ramps: true               # Insert and configure ramps
+    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
     einstein: true            # Use Einstein AI
     product_dataset: qb       # Default product dataset to use=
     agents: false             # Deploy Agentforce Agent Configurations
@@ -1029,6 +1030,28 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  assemble_and_deploy_ux:
+    group: UX Personalization
+    description: >
+      Assembles feature-conditional UX metadata (flexipages, layouts, applications,
+      app menus, profiles) from base templates and YAML patch files in templates/.
+      Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
+      deploys in a single sf project deploy start call. Supports granular invocation
+      via metadata_type and metadata_name options for development and debugging.
+    class_path: tasks.rlm_ux_assembly.AssembleAndDeployUX
+
+  deploy_post_collections:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Collections metadata from unpackaged/post_collections (flows, objects,
+      omniUiCard, permissionsets, queues, quickActions, tabs,
+      timelineObjectDefinitions). Flexipages and applications for collections are
+      deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded
+      here via .forceignore.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_collections
 
   deploy_post_ramp_builder:
     group: Revenue Lifecycle Management
@@ -2162,6 +2185,9 @@ flows:
         flow: prepare_ramp_builder
         when: project_config.project__custom__ramps
       29:
+        flow: prepare_ux
+        when: project_config.project__custom__ux
+      30:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2767,6 +2793,17 @@ flows:
         task: assign_permission_sets
         options:
           api_names: *ps_ramp_builder
+
+  prepare_ux:
+    group: UX Personalization
+    description: >
+      Assemble and deploy all project UX personalization metadata (flexipages, layouts,
+      applications, app menus, profiles) from feature-conditional templates. Runs at
+      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
+      all referenced objects, fields, and components exist before UX metadata is deployed.
+    steps:
+      1:
+        task: assemble_and_deploy_ux
 
   prepare_personas:
     group: Revenue Lifecycle Management

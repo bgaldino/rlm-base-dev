@@ -1,0 +1,73 @@
+{
+  "assembled_at": "2026-03-25T05:38:48.619514Z",
+  "feature_flags": {
+    "qb": true,
+    "billing": true,
+    "tax": true,
+    "rating": true,
+    "rates": true,
+    "clm": true,
+    "dro": true,
+    "guidedselling": false,
+    "ramps": true,
+    "tso": false,
+    "prm": true,
+    "agents": false,
+    "docgen": true,
+    "payments": true,
+    "constraints": true,
+    "analytics": true,
+    "procedureplans": true,
+    "collections": false
+  },
+  "assembled": [
+    {
+      "type": "compactLayout",
+      "name": "RLM_Asset_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Asset/compactLayouts/RLM_Asset_Compact_Layout.compactLayout-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "compactLayout",
+      "name": "RLM_Quote_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Quote/compactLayouts/RLM_Quote_Compact_Layout.compactLayout-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "All_Assets.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Asset/listViews/All_Assets.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "All_Products.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Product2/listViews/All_Products.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "compactLayout",
+      "name": "RLM_Billing_Account_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Account/compactLayouts/RLM_Billing_Account_Compact_Layout.compactLayout-meta.xml",
+      "source": "objects/billing"
+    },
+    {
+      "type": "compactLayout",
+      "name": "RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_ux/objects/TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml",
+      "source": "objects/billing"
+    },
+    {
+      "type": "listView",
+      "name": "RLM_All_Billing_Schedule_Groups.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml",
+      "source": "objects/billing"
+    },
+    {
+      "type": "listView",
+      "name": "RLM_Failed_Invoices.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml",
+      "source": "objects/billing"
+    }
+  ]
+}

@@ -81,3 +81,28 @@ unpackaged/post_approvals/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
 # EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
+
+# Legacy UX reference files — deployed via prepare_ux (assemble_and_deploy_ux), not via feature packages.
+# These files are preserved for reference/debugging but excluded from feature-package deploys.
+unpackaged/post_billing/flexipages
+unpackaged/post_billing/layouts
+unpackaged/post_billing/applications
+unpackaged/post_billing/objects/Account/compactLayouts
+unpackaged/post_billing/objects/TransactionJournal/compactLayouts
+unpackaged/post_billing/objects/BillingScheduleGroup
+unpackaged/post_billing/objects/Invoice/listViews
+unpackaged/post_constraints/flexipages
+unpackaged/post_constraints/layouts
+unpackaged/post_payments/flexipages
+unpackaged/post_utils/flexipages
+unpackaged/post_ramp_builder/flexipages
+unpackaged/post_tso/flexipages
+unpackaged/post_tso/applications
+unpackaged/post_docgen/flexipages
+unpackaged/post_quantumbit/flexipages
+unpackaged/post_quantumbit/applications
+unpackaged/post_quantumbit/profiles
+unpackaged/post_collections/flexipages
+unpackaged/post_collections/applications
+unpackaged/post_collections/objects/Collection_Plan_Activity__c/listViews
+unpackaged/post_collections/objects/listViews
