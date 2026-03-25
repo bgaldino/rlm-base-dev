@@ -105,7 +105,7 @@ unpackaged/post_utils/flexipages
 unpackaged/post_ramp_builder/flexipages
 unpackaged/post_tso/flexipages
 unpackaged/post_tso/applications
-unpackaged/post_docgen/flexipages
+unpackaged/post_docgen/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
 unpackaged/post_quantumbit/flexipages
 unpackaged/post_quantumbit/applications
 unpackaged/post_quantumbit/profiles
@@ -121,6 +121,5 @@ force-app/main/default/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem
 force-app/main/default/objects/Order/Order.object-meta.xml
 force-app/main/default/objects/OrderItem/OrderItem.object-meta.xml
 force-app/main/default/objects/QuoteLineItem/QuoteLineItem.object-meta.xml
-# post_billing and post_docgen object UX bindings moved to templates/objects/
+# post_billing object UX bindings moved to templates/objects/
 unpackaged/post_billing/objects/TransactionJournal/TransactionJournal.object-meta.xml
-unpackaged/post_docgen/objects/Quote/Quote.object-meta.xml

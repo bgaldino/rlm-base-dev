@@ -1120,7 +1120,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
         copy_order = [
             ("base",        True),
             ("billing",     features.get("billing", False)),
-            ("docgen",      features.get("docgen", False)),
             ("tso",         features.get("tso", False)),
             ("collections", features.get("collections", False)),
         ]
