@@ -520,6 +520,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | Flag | Default | Description |
 |------|---------|-------------|
 | `sharingsettings` | `false` | Deploy Sharing Settings |
+| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Custom Tasks
 
@@ -608,6 +609,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/references/context-service-utility.md) |
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
+| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, app menus, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 29. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
 
 ### Decision Table Refresh Tasks
 
@@ -678,10 +680,23 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 ### App Launcher (TSO)
 
-When `tso=true`, the App Launcher order is deployed from `unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml` (step 5 of `prepare_tso`, after `deploy_post_tso`). The repo file should contain the desired org-default order.
+When `tso=true`, the App Launcher order is deployed twice during `prepare_rlm_org`:
 
-- **Capture your customized order:** In the org where you have arranged the App Launcher, run `python scripts/sync_appmenu_from_user.py` (with that org set as default). This writes the running user's App Launcher order from `UserAppMenuCustomization` into the repo file. No deploy is performed by the script.
-- **Deploy in builds:** The flow runs `deploy_post_tso_app_menu` when `tso=true`, so new builds get that order as the org default. Users who have already personalized their launcher may need to use "Reset to default" in the App Launcher to see it.
+1. **Step 20** (`prepare_tso`): `deploy_post_tso_app_menu` deploys from `unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml`.
+2. **Step 29** (`prepare_ux`, when `ux=true`): `assemble_and_deploy_ux` deploys from `templates/appMenus/base/AppSwitcher.appMenu-meta.xml`. **This is the final deployed state.**
+
+Both files must be kept in sync. The script only updates `post_tso_appmenu/` — copy the file to `templates/appMenus/base/` after syncing:
+
+```bash
+# Capture your customized App Launcher order from the org
+python scripts/sync_appmenu_from_user.py
+
+# Keep the UX assembly template in sync
+cp unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml \
+   templates/appMenus/base/AppSwitcher.appMenu-meta.xml
+```
+
+New builds get that order as the org default. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
 ### Using Custom Tasks
 
@@ -762,7 +777,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (29 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (30 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -795,9 +810,11 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 25 | `prepare_guidedselling` | Always |
 | 26 | `configure_revenue_settings` | Always |
 | 27 | `reconfigure_pricing_discovery` | Always |
-| 28 | `refresh_all_decision_tables` | Always |
+| 28 | `prepare_ramp_builder` | `ramps` |
+| 29 | `prepare_ux` | `ux` |
+| 30 | `refresh_all_decision_tables` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, app menus, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 30 (`refresh_all_decision_tables`) is always last.
 
 ### Data Management flows
 
@@ -838,6 +855,12 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
 | `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
+
+### UX Assembly Flow
+
+| Flow | Description | Feature Flag |
+|------|-------------|--------------|
+| `prepare_ux` | Assembles all UX metadata from `templates/` — flexipages (base + patches + standalones), layouts, applications, app menus, profiles (strip-and-build), compact layouts, list views, and object UX bindings — then deploys the assembled output from `unpackaged/post_ux/` in a single deployment. Runs at step 29 of `prepare_rlm_org`. | `ux` |
 
 ### Utility Flows and Tasks
 
@@ -1030,27 +1053,52 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 ```
 rlm-base-dev/
 ├── force-app/                  # Main Salesforce metadata (source format)
+│                               # NOTE: flexipages/, layouts/, and certain object/*.object-meta.xml
+│                               #       have been moved to templates/ — those paths are forceignored
+├── templates/                  # Source-of-truth templates for dynamic UX assembly
+│   ├── flexipages/
+│   │   ├── base/               # 25 base flexipages (moved from force-app)
+│   │   ├── standalone/         # Feature-specific complete overrides (billing, approvals, etc.)
+│   │   └── patches/            # YAML semantic patch files per feature
+│   ├── layouts/
+│   │   ├── base/               # 17 base layouts (moved from force-app)
+│   │   ├── billing/            # Billing-specific layouts
+│   │   └── constraints/        # OrderItem + QuoteLineItem overrides
+│   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
+│   ├── appMenus/
+│   │   └── base/               # AppSwitcher (assembled only when tso=true; keep in sync with post_tso_appmenu)
+│   ├── objects/                # Object-level UX bindings + compact layouts + list views
+│   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
+│   │   ├── billing/            # Billing feature (TransactionJournal)
+│   │   ├── docgen/             # DocGen feature (Quote SERVICEDOCUMENT override)
+│   │   ├── tso/                # TSO feature
+│   │   └── collections/        # Collections feature (WIP)
+│   └── profiles/
+│       ├── base/               # Canonical full profiles (Admin + PRM Partner Community User)
+│       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
 ├── unpackaged/                 # Conditional metadata (deployed based on flags)
 │   ├── pre/                    # Pre-deployment metadata
 │   │   └── 5_decisiontables/   # Decision tables (active ones auto-excluded)
 │   ├── post_approvals/         # Approvals metadata
-│   ├── post_billing/           # Billing metadata (toggles, flexipages, billingContextDefinition)
+│   ├── post_billing/           # Billing metadata (objects, flows, settings, quickActions)
 │   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)
 │   ├── post_billing_template_settings/ # Re-enable invoice toggles (template auto-creation cycle step 3)
 │   ├── post_commerce/          # Commerce metadata
 │   ├── post_constraints/       # Constraints metadata
 │   ├── post_docgen/            # Document Generation metadata
 │   ├── post_guidedselling/     # Guided Selling metadata
-│   ├── post_payments/          # Payments metadata
+│   ├── post_payments/          # Payments metadata (flows, quickActions, sites)
 │   ├── post_prm/               # Partner Relationship Management metadata
-│   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings (skipOrgSttPricing)
+│   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
-│   ├── post_tso_appmenu/       # App Launcher (AppSwitcher) order; deployed only when tso=true
-│   ├── post_utils/             # Utility metadata
+│   ├── post_tso_appmenu/       # App Launcher (AppSwitcher) captured by sync_appmenu_from_user.py; deployed at step 20 when tso=true
+│   ├── post_ux/                # Assembled UX output (git-tracked); regenerated by assemble_and_deploy_ux — do not edit directly
+│   └── post_utils/             # Utility metadata
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
+│   ├── rlm_ux_assembly.py      # Dynamic UX assembly (AssembleAndDeployUX)
 │   ├── rlm_manage_decision_tables.py
 │   ├── rlm_manage_expression_sets.py
 │   ├── rlm_manage_flows.py
@@ -1125,6 +1173,7 @@ rlm-base-dev/
 │   │   └── rlm-prefix-standardization-audit.md
 │   ├── integration/            # Cross-tool integration plans
 │   ├── features/               # Feature-specific design docs
+│   │   ├── dynamic-ux-assembly.md  # Dynamic UX assembly architecture, template layout, patch format, test plan
 │   │   └── headless-configurator-context-plan.md
 │   ├── salesforce/             # Vendor documentation (PDFs)
 │   └── archive/                # Superseded / historical docs
@@ -1139,14 +1188,38 @@ rlm-base-dev/
 ### Full Org Setup
 
 ```bash
-# 1. Create scratch org
-cci org scratch dev my-org
+# 1. Create scratch org using an existing definition
+cci org scratch dev-sb0 my-org
 
 # 2. Set as default
 cci org default my-org
 
 # 3. Run full deployment flow
 cci flow run prepare_rlm_org
+```
+
+### Skip UX Assembly
+
+```bash
+# Run full flow without assembling/deploying any UX metadata (useful for isolated testing)
+cci flow run prepare_rlm_org -o ux false
+```
+
+### Assemble and Deploy UX Metadata
+
+```bash
+# Assemble all UX metadata and deploy (same as step 29)
+cci flow run prepare_ux
+
+# Dry-run only — inspect unpackaged/post_ux/ without deploying
+cci task run assemble_and_deploy_ux -o deploy false
+
+# Regenerate and deploy a single flexipage by full filename
+cci task run assemble_and_deploy_ux \
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
+
+# Assemble only layouts (no deploy)
+cci task run assemble_and_deploy_ux -o metadata_type layouts -o deploy false
 ```
 
 ### Deploy Specific Features
