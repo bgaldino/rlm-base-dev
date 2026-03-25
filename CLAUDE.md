@@ -200,7 +200,7 @@ Key flags relevant to UX assembly:
 ### App Launcher (AppSwitcher)
 - **Source of truth:** `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` — assembled and deployed by `assemble_and_deploy_ux` when `tso=true`. Never store org-specific emails or personally identifiable identifiers here.
 - **Capture user order:** Run `python scripts/sync_appmenu_from_user.py` with the default org set to the org where the user has customized the App Launcher. Writes directly to `templates/appMenus/base/AppSwitcher.appMenu-meta.xml`. No deploy. Then run `assemble_and_deploy_ux` to deploy.
-- **Trialforce orgs:** On Trialforce-based scratch orgs, the Metadata API AppSwitcher deploy is blocked by managed ConnectedApp/Network entries from installed packages. The `reorder_app_launcher` Robot task handles App Launcher ordering on these orgs via the Aura `AppLauncherController/saveOrder` API — no UI drag required. Runs as step 2 of `prepare_ux`.
+- **When AppSwitcher Metadata API deploy is blocked:** When the org's AppMenu contains managed ConnectedApp/Network entries, the deploy fails gracefully and `reorder_app_launcher` (step 2 of `prepare_ux`) handles App Launcher ordering via the Aura `AppLauncherController/saveOrder` API — no UI drag required. Runs on all `ux=true` orgs regardless of `tso` flag.
 - New users get the org default; existing users who personalized may need "Reset to default" in the App Launcher.
 
 ### PRM Network emailSenderAddress
@@ -290,7 +290,7 @@ fully regenerated on every `assemble_and_deploy_ux` run. Edit the source templat
 | Flexipages | Base source resolution (last feature wins) + sequential YAML patch application |
 | Layouts | Copy base; billing adds 3; constraints overrides 2 (last write wins for same name) |
 | Applications | `RLM_Revenue_Cloud`: `tso > qb > base` priority; standalone apps gated per flag |
-| App menus | AppSwitcher always assembled; retrieves org's full AppSwitcher and priority-reorders it (template provides feature-gated priority order); gracefully skips AppSwitcher deploy on orgs where the AppMenu contains managed ConnectedApp or Network entries — Salesforce Metadata API cannot validate those references in a customer deploy. `AppMenuItem.SortOrder` is platform read-only (Tooling API, REST, and Apex all reject writes). On Trialforce-based scratch orgs the `reorder_app_launcher` Robot task handles ordering automatically: it opens the App Launcher modal, reads all tile IDs from the shadow DOM, and calls `AppLauncherController/saveOrder` via the Aura API — no UI drag required. All other UX components (85+) deploy successfully. |
+| App menus | AppSwitcher always assembled; retrieves org's full AppSwitcher and priority-reorders it (template provides feature-gated priority order); gracefully skips AppSwitcher deploy on orgs where the AppMenu contains managed ConnectedApp or Network entries — Salesforce Metadata API cannot validate those references in a customer deploy. `AppMenuItem.SortOrder` is platform read-only (Tooling API, REST, and Apex all reject writes). The `reorder_app_launcher` Robot task (step 2 of `prepare_ux`, gated by `ux=true`) handles ordering on all `ux=true` orgs: opens the App Launcher modal, reads all tile IDs from the shadow DOM, and calls `AppLauncherController/saveOrder` via the Aura API — no UI drag required. All other UX components (85+) deploy successfully. |
 | Profiles | Strip-and-build: classAccesses-only at step 5; full profile at step 29 via patches |
 | Objects | Feature-conditional copy: `base` always, then `billing`, `tso`, `collections` |
 

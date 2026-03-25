@@ -2827,7 +2827,7 @@ flows:
         when: project_config.project__custom__ux
       2:
         task: reorder_app_launcher
-        when: project_config.project__custom__ux and project_config.project__custom__tso
+        when: project_config.project__custom__ux
 
   prepare_personas:
     group: Revenue Lifecycle Management

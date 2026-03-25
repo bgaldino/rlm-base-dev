@@ -1492,10 +1492,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     "Deployment succeeded without AppSwitcher: %d component(s) deployed "
                     "(status=%s). AppSwitcher skipped — the org's AppMenu contains managed "
                     "ConnectedApp or Network entries that Salesforce Metadata API cannot validate "
-                    "in a customer deploy. The AppSwitcher on this org type (e.g. Trialforce-based "
-                    "scratch orgs) is pre-configured from the snapshot and cannot be reordered via "
-                    "any API (AppMenuItem.SortOrder is platform read-only). To change App Launcher "
-                    "ordering on this org, use Setup > App Manager drag-and-drop.",
+                    "in a customer deploy. App Launcher ordering will be applied by the "
+                    "reorder_app_launcher Robot task (step 2 of prepare_ux).",
                     deployed_count,
                     retry_deploy_status,
                 )
