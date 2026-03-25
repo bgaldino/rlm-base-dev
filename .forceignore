@@ -84,6 +84,13 @@ unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.f
 
 # Legacy UX reference files — deployed via prepare_ux (assemble_and_deploy_ux), not via feature packages.
 # These files are preserved for reference/debugging but excluded from feature-package deploys.
+# force-app base UX files — moved to templates/; guard prevents accidental re-introduction into deploy_full.
+force-app/main/default/flexipages
+force-app/main/default/layouts
+force-app/main/default/objects/Asset/compactLayouts
+force-app/main/default/objects/Asset/listViews
+force-app/main/default/objects/Quote/compactLayouts
+force-app/main/default/objects/Product2/listViews
 unpackaged/post_billing/flexipages
 unpackaged/post_billing/layouts
 unpackaged/post_billing/applications
