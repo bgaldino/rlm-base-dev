@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-25T06:52:15.143866Z",
+  "assembled_at": "2026-03-25T19:17:43.209779Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -10,7 +10,7 @@
     "dro": true,
     "guidedselling": false,
     "ramps": true,
-    "tso": false,
+    "tso": true,
     "prm": true,
     "agents": false,
     "docgen": true,
@@ -23,9 +23,16 @@
   "assembled": [
     {
       "type": "flexipage",
+      "name": "Home_Page_Default.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/Home_Page_Default.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/tso/Home_Page_Default.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Account_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Account_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/quantumbit/RLM_Account_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/tso/RLM_Account_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -170,6 +177,13 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/tso/RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Opportunity_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Opportunity_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Opportunity_Record_Page.flexipage-meta.xml",
@@ -222,13 +236,6 @@
       "name": "RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
-      "patches": []
-    },
-    {
-      "type": "flexipage",
-      "name": "RLM_QuantumBit_Quote.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_QuantumBit_Quote.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/docgen/RLM_QuantumBit_Quote.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -320,7 +327,7 @@
       "type": "flexipage",
       "name": "RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/quantumbit/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/tso/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -390,7 +397,7 @@
       "type": "flexipage",
       "name": "RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/quantumbit/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/tso/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -551,13 +558,33 @@
       "type": "application",
       "name": "RLM_Revenue_Cloud.app-meta.xml",
       "dest": "unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml",
-      "source_tier": "quantumbit"
+      "source_tier": "tso"
     },
     {
       "type": "application",
       "name": "standard__BillingConsole.app-meta.xml",
       "dest": "unpackaged/post_ux/applications/standard__BillingConsole.app-meta.xml",
       "source_tier": "conditional/billing"
+    },
+    {
+      "type": "appMenu",
+      "name": "AppSwitcher.appMenu-meta.xml",
+      "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
+      "source_tier": "org + template priority ordering",
+      "items_total": 78,
+      "priority_applied": [
+        "RLM_Revenue_Cloud",
+        "standard__BillingConsole",
+        "standard__IndustriesEpc",
+        "standard__PriceManagement",
+        "standard__IndustriesDfo",
+        "standard__RatingManagement",
+        "standard__UsageManagement",
+        "standard__Approvals",
+        "standard__SalesforceContracts",
+        "standard__PaymentsManagement",
+        "standard__OperationsConsole"
+      ]
     },
     {
       "type": "profile",
@@ -722,12 +749,6 @@
       "name": "RLM_Failed_Invoices.listView-meta.xml",
       "dest": "unpackaged/post_ux/objects/Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml",
       "source": "objects/billing"
-    },
-    {
-      "type": "CustomObject",
-      "name": "Quote.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Quote/Quote.object-meta.xml",
-      "source": "objects/docgen"
     }
   ]
 }

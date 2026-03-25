@@ -275,7 +275,7 @@ templates/
   layouts/billing/          — billing-specific layouts
   layouts/constraints/      — OrderItem + QuoteLineItem overrides
   applications/             — RLM_Revenue_Cloud variants + conditional standalones
-  appMenus/base/            — AppSwitcher (assembled only when tso=true)
+  appMenus/base/            — AppSwitcher (always assembled)
   objects/base/             — compact layouts + list views from force-app
   objects/billing/          — billing compact layouts + list views
   objects/collections/      — collections list views (WIP)
@@ -293,7 +293,7 @@ fully regenerated on every `assemble_and_deploy_ux` run. Edit the source templat
 | Flexipages | Base source resolution (last feature wins) + sequential YAML patch application |
 | Layouts | Copy base; billing adds 3; constraints overrides 2 (last write wins for same name) |
 | Applications | `RLM_Revenue_Cloud`: `tso > qb > base` priority; standalone apps gated per flag |
-| App menus | AppSwitcher assembled only when `tso=true` |
+| App menus | AppSwitcher always assembled; retrieves org's full AppSwitcher and priority-reorders it (template provides feature-gated priority order); gracefully skips AppSwitcher deploy on orgs where the AppMenu contains managed ConnectedApp or Network entries — Salesforce Metadata API cannot validate those references in a customer deploy. `AppMenuItem.SortOrder` is platform read-only (Tooling API, REST, and Apex all reject writes). On Trialforce-based scratch orgs the `reorder_app_launcher` Robot task handles ordering automatically: it opens the App Launcher modal, reads all tile IDs from the shadow DOM, and calls `AppLauncherController/saveOrder` via the Aura API — no UI drag required. All other UX components (85+) deploy successfully. |
 | Profiles | Strip-and-build: classAccesses-only at step 5; full profile at step 29 via patches |
 | Objects | Feature-conditional copy: `base` always, then `billing`, `tso`, `collections` |
 

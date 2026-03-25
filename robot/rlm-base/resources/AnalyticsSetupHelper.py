@@ -17,6 +17,8 @@ Usage in robot file:
     Library    ../../resources/AnalyticsSetupHelper.py
 """
 
+import time
+
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
     ElementNotInteractableException,
@@ -32,14 +34,41 @@ from selenium.webdriver.support import expected_conditions as EC
 from robot.api.deco import keyword
 from robot.libraries.BuiltIn import BuiltIn
 
+_FIND_AND_CLICK_JS = """
+return (function(buttonText) {
+    function findButton(root) {
+        var candidates = root.querySelectorAll('button, input[type="button"], input[type="submit"]');
+        for (var i = 0; i < candidates.length; i++) {
+            var text = (candidates[i].textContent || candidates[i].value || '').trim();
+            if (text === buttonText) return candidates[i];
+        }
+        var all = root.querySelectorAll('*');
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].shadowRoot) {
+                var found = findButton(all[i].shadowRoot);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+    var btn = findButton(document.body);
+    if (!btn) return 'not_found';
+    btn.click();
+    return 'clicked';
+})(arguments[0]);
+"""
+
 
 class AnalyticsSetupHelper:
     """Keyword library for enabling Analytics settings in the VF iframe."""
 
     ROBOT_LIBRARY_SCOPE = "TEST"
     TARGET_LABEL = "Enable Data Sync and Connections"
+    ENABLE_ANALYTICS_BUTTON_LABEL = "Enable CRM Analytics"
 
     # Centralised timeout constants (seconds) — tune here if org load times differ.
+    ENABLE_ANALYTICS_BUTTON_WAIT_S = 20
+    ENABLE_ANALYTICS_POST_CLICK_WAIT_S = 30
     IFRAME_WAIT_S = 30
     CHECKBOX_WAIT_S = 30
     SAVE_WAIT_S = 30
@@ -98,6 +127,64 @@ class AnalyticsSetupHelper:
             return self._interact_with_vf_page(driver, log)
         finally:
             driver.switch_to.default_content()
+
+    @keyword
+    def enable_crm_analytics_via_getting_started_page(self):
+        """Enable CRM Analytics from the Getting Started page when the button exists.
+
+        Some orgs (notably TSO variants) gate the Analytics settings behind an
+        initial "Enable CRM Analytics" action on
+        /lightning/setup/InsightsSetupGettingStarted/home.
+
+        Returns:
+            'already_enabled'  — button not found (already enabled or path not gated).
+            'clicked'          — button found and clicked.
+        """
+        log = BuiltIn().log
+        driver = self._driver
+        driver.switch_to.default_content()
+
+        button_xpath = (
+            f"//button[normalize-space(.)='{self.ENABLE_ANALYTICS_BUTTON_LABEL}'] | "
+            f"//input[@type='button' and normalize-space(@value)='{self.ENABLE_ANALYTICS_BUTTON_LABEL}'] | "
+            f"//input[@type='submit' and normalize-space(@value)='{self.ENABLE_ANALYTICS_BUTTON_LABEL}']"
+        )
+        btn = None
+        try:
+            btn = WebDriverWait(driver, self.ENABLE_ANALYTICS_BUTTON_WAIT_S).until(
+                EC.presence_of_element_located((By.XPATH, button_xpath))
+            )
+        except TimeoutException:
+            pass
+
+        if btn is None:
+            click_result = driver.execute_script(
+                _FIND_AND_CLICK_JS, self.ENABLE_ANALYTICS_BUTTON_LABEL
+            )
+            if click_result == "not_found":
+                log(
+                    f"'{self.ENABLE_ANALYTICS_BUTTON_LABEL}' button not found. "
+                    "Proceeding as already enabled."
+                )
+                return "already_enabled"
+            log(
+                f"'{self.ENABLE_ANALYTICS_BUTTON_LABEL}' clicked via shadow DOM traversal."
+            )
+            time.sleep(5)
+            return "clicked"
+
+        log(f"'{self.ENABLE_ANALYTICS_BUTTON_LABEL}' button found; clicking via JS.")
+        driver.execute_script("arguments[0].click();", btn)
+        try:
+            WebDriverWait(driver, self.ENABLE_ANALYTICS_POST_CLICK_WAIT_S).until(
+                EC.staleness_of(btn)
+            )
+        except TimeoutException:
+            log(
+                "Enable button did not go stale after click; continuing anyway.",
+                "WARN",
+            )
+        return "clicked"
 
     # ── Private helpers ────────────────────────────────────────────────
 

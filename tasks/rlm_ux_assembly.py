@@ -500,6 +500,20 @@ class AssembleAndDeployUX(SFDXBaseTask):
     """
 
     keychain_class = BaseProjectKeychain
+    APPMENU_FEATURE_REQUIREMENTS: Dict[str, Set[str]] = {
+        "RLM_Revenue_Cloud": set(),
+        "standard__BillingConsole": {"billing"},
+        "standard__IndustriesEpc": {"qb"},
+        "standard__PriceManagement": {"qb"},
+        "standard__IndustriesDfo": {"dro"},
+        "standard__RatingManagement": {"rating"},
+        "standard__UsageManagement": {"rating"},
+        "standard__Approvals": {"qb"},
+        "standard__SalesforceContracts": {"clm"},
+        "standard__PaymentsManagement": {"payments"},
+        "standard__CollectionConsole": {"collections"},
+        "standard__OperationsConsole": {"qb"},
+    }
 
     task_options: Dict[str, Dict[str, Any]] = {
         "metadata_type": {
@@ -984,9 +998,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
         filter_name: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         assembled = []
-        if not features.get("tso"):
-            return assembled
-
         src_file = templates_path / "appMenus" / "base" / "AppSwitcher.appMenu-meta.xml"
         fname = src_file.name
         if filter_name and fname != filter_name:
@@ -998,17 +1009,177 @@ class AssembleAndDeployUX(SFDXBaseTask):
         out_dir = output_path / "appMenus"
         dest = out_dir / fname
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(src_file), str(dest))
+
+        # Template provides the feature-gated priority order for our apps. The org's
+        # full AppSwitcher provides complete membership. The assembled output is the
+        # org's full list reordered so our priority apps come first. Salesforce
+        # requires ALL registered apps to be present in an AppSwitcher deploy when
+        # the org already has a populated AppMenu — deploying a subset fails.
+        # If the org retrieval fails we fall back to just the priority template items
+        # (equivalent to the legacy post_tso_appmenu approach, which only works on
+        # fresh orgs before all apps are installed).
+        priority_names = [n for n, _ in self._get_feature_gated_template_items(src_file, features)]
+
+        username = getattr(self.org_config, "username", None)
+        if username:
+            org_items = self._retrieve_org_appswitcher_items(username)
+        else:
+            org_items = []
+
+        if org_items:
+            # Ensure our primary app is first even if not yet in the org's menu.
+            rlm_key = ("RLM_Revenue_Cloud", "CustomApplication")
+            if rlm_key not in org_items:
+                org_items = [rlm_key] + org_items
+
+            # Reorder: priority apps first (template order), remaining apps follow.
+            priority_set = set(priority_names)
+            ordered: List[Tuple[str, str]] = []
+            for pname in priority_names:
+                ordered.extend((n, t) for n, t in org_items if n == pname)
+            remainder = [(n, t) for n, t in org_items if n not in priority_set]
+            final_items = ordered + remainder
+            source_tier = "org + template priority ordering"
+        else:
+            # Fallback: deploy only the priority template items. This works on
+            # fresh orgs (before all apps are installed) but will fail on orgs
+            # that already have a full AppMenu populated.
+            self.logger.warning(
+                "Could not retrieve org AppSwitcher; falling back to template priority items only. "
+                "This may fail if the org already has a populated AppMenu."
+            )
+            priority_type_map = {
+                n: t for n, t in self._get_feature_gated_template_items(src_file, features)
+            }
+            final_items = [(n, priority_type_map[n]) for n in priority_names if n in priority_type_map]
+            source_tier = "template fallback"
+
+        if not final_items:
+            self.logger.warning("AppSwitcher: no items to assemble; skipping.")
+            return assembled
+
+        root = _make_elem("AppMenu")
+        for item_name, item_type in final_items:
+            item = _sub_elem(root, "appMenuItems")
+            _sub_elem(item, "name", item_name)
+            _sub_elem(item, "type", item_type)
+
+        _write_xml(root, dest)
         assembled.append(
             {
                 "type": "appMenu",
                 "name": fname,
                 "dest": str(dest.relative_to(output_path.parent.parent)),
-                "source_tier": "base (tso conditional)",
+                "source_tier": source_tier,
+                "items_total": len(final_items),
+                "priority_applied": priority_names,
             }
         )
-        self.logger.info(f"  [appMenu] {fname} (tso conditional)")
+        self.logger.info(f"  [appMenu] {fname} ({len(final_items)} items)")
         return assembled
+
+    def _get_feature_gated_template_items(
+        self,
+        src_file: Path,
+        features: Dict[str, bool],
+    ) -> List[Tuple[str, str]]:
+        """Parse template, gate each item by APPMENU_FEATURE_REQUIREMENTS, return ordered (name, type) list."""
+        template_root = ET.parse(str(src_file)).getroot()
+        items: List[Tuple[str, str]] = []
+        for item in _findall_elem(template_root, "appMenuItems"):
+            name_el = _find_elem(item, "name")
+            type_el = _find_elem(item, "type")
+            if name_el is None or type_el is None or not name_el.text or not type_el.text:
+                continue
+            name = name_el.text.strip()
+            itype = type_el.text.strip()
+            required = self.APPMENU_FEATURE_REQUIREMENTS.get(name, set())
+            if all(features.get(flag, False) for flag in required):
+                items.append((name, itype))
+        return items
+
+    def _retrieve_org_appswitcher_items(self, username: str) -> List[Tuple[str, str]]:
+        """Retrieve AppSwitcher metadata from org and return exact ordered items."""
+        repo_root = Path(self.project_config.repo_root)
+        expected_path = repo_root / "force-app" / "main" / "default" / "appMenus" / "AppSwitcher.appMenu-meta.xml"
+        existed_before = expected_path.exists()
+        cmd = [
+            "sf",
+            "project",
+            "retrieve",
+            "start",
+            "--metadata",
+            "AppMenu:AppSwitcher",
+            "--target-org",
+            username,
+            "--json",
+        ]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=600,
+            )
+        except Exception as exc:
+            self.logger.warning(f"Unable to retrieve org AppSwitcher metadata: {exc}")
+            return []
+
+        if result.returncode != 0:
+            return []
+
+        try:
+            payload = json.loads(result.stdout or "{}")
+        except json.JSONDecodeError:
+            return []
+
+        files = payload.get("result", {}).get("files", []) if isinstance(payload, dict) else []
+        if not isinstance(files, list):
+            return []
+
+        appmenu_path: Optional[str] = None
+        for f in files:
+            if not isinstance(f, dict):
+                continue
+            if f.get("type") == "AppMenu" and f.get("fullName") == "AppSwitcher":
+                appmenu_path = f.get("filePath")
+                break
+        if not appmenu_path:
+            return []
+
+        p = Path(appmenu_path)
+        if not p.exists():
+            return []
+
+        try:
+            root = ET.parse(str(p)).getroot()
+        except Exception:
+            return []
+
+        items: List[Tuple[str, str]] = []
+        for item in _findall_elem(root, "appMenuItems"):
+            name_el = _find_elem(item, "name")
+            type_el = _find_elem(item, "type")
+            if (
+                name_el is None
+                or type_el is None
+                or not name_el.text
+                or not type_el.text
+            ):
+                continue
+            items.append((name_el.text.strip(), type_el.text.strip()))
+        # Discard transient retrieved file so it does not linger under force-app.
+        if not existed_before and p.exists():
+            try:
+                p.unlink()
+                parent = p.parent
+                if parent.exists() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except Exception:
+                # Non-fatal cleanup failure; continue with parsed items.
+                pass
+        return items
 
     # ------------------------------------------------------------------
     # Profiles assembly
@@ -1257,6 +1428,76 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         if status != 0 or deploy_status not in ("Succeeded", "SucceededPartial"):
             errors = deploy_result.get("details", {}).get("componentFailures", [])
+
+            # Check if the ONLY failures are AppSwitcher-specific. This happens on
+            # scratch orgs built from a TSO when (a) the org's AppMenu has more apps
+            # than the assembled AppSwitcher, or (b) ConnectedApp entries reference
+            # packages not installed in this org. In both cases the right behaviour is
+            # to warn and redeploy without the AppSwitcher so the rest of post_ux
+            # still lands.
+            appmenu_errors = [
+                e for e in errors
+                if e.get("componentType") == "AppMenu" and e.get("fullName") == "AppSwitcher"
+            ]
+            non_appmenu_errors = [e for e in errors if e not in appmenu_errors]
+
+            if appmenu_errors and not non_appmenu_errors:
+                reasons = "; ".join(
+                    e.get("problem", "unknown") for e in appmenu_errors
+                )
+                appmenu_file = output_path / "appMenus" / "AppSwitcher.appMenu-meta.xml"
+                self.logger.warning(
+                    "AppSwitcher deploy failed (%s). "
+                    "This typically happens on scratch orgs where the org's AppMenu contains "
+                    "apps not yet registered or ConnectedApp entries from uninstalled packages. "
+                    "Removing AppSwitcher and redeploying remaining components.",
+                    reasons,
+                )
+                if appmenu_file.exists():
+                    appmenu_file.unlink()
+
+                # Retry deploy without the AppSwitcher.
+                retry_result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=600,
+                )
+                try:
+                    retry_output = json.loads(retry_result.stdout)
+                except json.JSONDecodeError:
+                    raise CommandException(
+                        f"Retry deploy returned non-JSON output.\n"
+                        f"Stdout: {retry_result.stdout[:2000]}"
+                    )
+                retry_status = retry_output.get("status", -1)
+                retry_deploy = retry_output.get("result", {})
+                retry_deploy_status = retry_deploy.get("status", "Unknown")
+                if retry_status != 0 or retry_deploy_status not in ("Succeeded", "SucceededPartial"):
+                    retry_errors = retry_deploy.get("details", {}).get("componentFailures", [])
+                    retry_msgs = [
+                        f"  {e.get('componentType')}/{e.get('fullName')}: {e.get('problem')}"
+                        for e in retry_errors[:20]
+                    ]
+                    raise CommandException(
+                        f"Deployment failed after AppSwitcher exclusion (status={retry_deploy_status}).\n"
+                        + "\n".join(retry_msgs)
+                    )
+                deployed_count = retry_deploy.get("numberComponentsDeployed", 0)
+                self.logger.info(
+                    "Deployment succeeded without AppSwitcher: %d component(s) deployed "
+                    "(status=%s). AppSwitcher skipped — the org's AppMenu contains managed "
+                    "ConnectedApp or Network entries that Salesforce Metadata API cannot validate "
+                    "in a customer deploy. The AppSwitcher on this org type (e.g. Trialforce-based "
+                    "scratch orgs) is pre-configured from the snapshot and cannot be reordered via "
+                    "any API (AppMenuItem.SortOrder is platform read-only). To change App Launcher "
+                    "ordering on this org, use Setup > App Manager drag-and-drop.",
+                    deployed_count,
+                    retry_deploy_status,
+                )
+                return
+
             err_msgs = [
                 f"  {e.get('componentType')}/{e.get('fullName')}: {e.get('problem')}"
                 for e in errors[:20]

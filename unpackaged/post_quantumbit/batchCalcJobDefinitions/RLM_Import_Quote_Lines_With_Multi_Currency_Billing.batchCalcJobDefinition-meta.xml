@@ -725,7 +725,7 @@
         <secondarySourceName>Get_Product_Selling_Models_from_Salesforce_Object</secondarySourceName>
         <type>LeftOuter</type>
     </joins>
-    <label>RC Import Quote Lines With Multi-Currency Billing</label>
+    <label>RLM Import Quote Lines With Multi-Currency Billing</label>
     <parameters>
         <dataType>FileIdentifier</dataType>
         <description>The ID of the CSV file that contains the quote line item rows that must be processed to create records.</description>

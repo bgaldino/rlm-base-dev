@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -843,7 +843,7 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata (app launcher deploys separately via deploy_post_tso_app_menu when tso=true)
+    description: Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso
@@ -851,9 +851,9 @@ tasks:
   deploy_post_tso_app_menu:
     group: Revenue Lifecycle Management
     description: >
-      Deploy App Launcher (AppSwitcher) order. Only runs when tso=true. Deploys
-      after deploy_post_tso so org default persists; users with personalized
-      launchers may need to use "Reset to default" in the App Launcher to see it.
+      Legacy App Launcher (AppSwitcher) deploy task. In UX assembly mode
+      (ux=true), AppSwitcher is deployed by prepare_ux/assemble_and_deploy_ux.
+      This task is only used as a fallback when tso=true and ux=false.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso_appmenu
@@ -1040,6 +1040,21 @@ tasks:
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
     class_path: tasks.rlm_ux_assembly.AssembleAndDeployUX
+
+  reorder_app_launcher:
+    group: UX Personalization
+    description: >
+      Applies a priority order to the App Launcher by calling the Salesforce Aura
+      AppLauncherController/saveOrder action directly from the browser (Robot Framework /
+      Selenium). Opens the App Launcher modal, reads all app tile IDs from the shadow DOM,
+      places the priority_app_labels list first (in order), and POSTs the new order — no
+      UI drag required. Works on Trialforce-based scratch orgs where the Metadata API
+      cannot deploy an AppSwitcher containing managed ConnectedApp or Network entries and
+      AppMenuItem.SortOrder is platform read-only via all other APIs.
+    class_path: tasks.rlm_reorder_app_launcher.ReorderAppLauncher
+    options:
+      suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
+      outputdir: robot/rlm-base/results
 
   deploy_post_collections:
     group: Revenue Lifecycle Management
@@ -2132,8 +2147,7 @@ flows:
       3:
         flow: prepare_expression_sets
       4:
-        task: create_payments_webhook
-        when: project_config.project__custom__payments
+        flow: prepare_payments
       5:
         task: deploy_full
       6:
@@ -2177,16 +2191,13 @@ flows:
       25:
         flow: prepare_guidedselling
       26:
-        task: configure_revenue_settings
+        flow: prepare_revenue_settings
       27:
-        task: reconfigure_pricing_discovery
-        when: org_config.scratch and not project_config.project__custom__tso
+        flow: prepare_pricing_discovery
       28:
         flow: prepare_ramp_builder
-        when: project_config.project__custom__ramps
       29:
         flow: prepare_ux
-        when: project_config.project__custom__ux
       30:
         flow: refresh_all_decision_tables
          
@@ -2390,18 +2401,18 @@ flows:
         task: deploy_post_tso
         when: project_config.project__custom__tso
       5:
-        task: deploy_post_tso_app_menu
-        when: project_config.project__custom__tso
-      6:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      7:
+      6:
         task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
+      7:
+        task: deploy_post_tso_app_menu
+        when: project_config.project__custom__tso and not project_config.project__custom__ux
 
   prepare_dro:
     group: Revenue Lifecycle Management
@@ -2757,22 +2768,38 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: patch_payments_site_for_deploy
+        task: create_payments_webhook
         when: project_config.project__custom__payments
       2:
-        task: deploy_post_payments_site
+        task: patch_payments_site_for_deploy
         when: project_config.project__custom__payments
       3:
-        task: revert_payments_site_after_deploy
+        task: deploy_post_payments_site
         when: project_config.project__custom__payments
       4:
+        task: revert_payments_site_after_deploy
+        when: project_config.project__custom__payments
+      5:
         task: publish_community
         when: project_config.project__custom__payments
         options:
           name: Payments Webhook
-      5:
+      6:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+  prepare_revenue_settings:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: configure_revenue_settings
+
+  prepare_pricing_discovery:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: reconfigure_pricing_discovery
+        when: org_config.scratch and not project_config.project__custom__tso
 
   prepare_ramp_builder:
     group: Revenue Lifecycle Management
@@ -2787,10 +2814,13 @@ flows:
     steps:
       1:
         task: deploy_post_ramp_builder
+        when: project_config.project__custom__ramps
       2:
         task: apply_context_ramp_mode
+        when: project_config.project__custom__ramps
       3:
         task: assign_permission_sets
+        when: project_config.project__custom__ramps
         options:
           api_names: *ps_ramp_builder
 
@@ -2801,9 +2831,15 @@ flows:
       applications, app menus, profiles) from feature-conditional templates. Runs at
       step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
       all referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation — required on Trialforce
+      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
     steps:
       1:
         task: assemble_and_deploy_ux
+        when: project_config.project__custom__ux
+      2:
+        task: reorder_app_launcher
+        when: project_config.project__custom__ux
 
   prepare_personas:
     group: Revenue Lifecycle Management

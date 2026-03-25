@@ -65,61 +65,28 @@ unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 # AppSwitcher (TSO-only): uncomment to exclude from deploy (e.g. if target orgs lack referenced ConnectedApps)
 # unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml
 
-# RLM_TSO PSG: excluded by default (tso=false). Build scripts remove this line when tso=true.
-unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
 unpackaged/post_constraints/classes
 
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
 
-# Ignored (deployed from unpackaged paths or org-specific)
-force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
-force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
-# Record page stored here pending FlexiPage layering strategy; deployed separately per module
-unpackaged/post_approvals/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
 # EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
 
-# Legacy UX reference files — deployed via prepare_ux (assemble_and_deploy_ux), not via feature packages.
-# These files are preserved for reference/debugging but excluded from feature-package deploys.
-# force-app base UX files — moved to templates/; guard prevents accidental re-introduction into deploy_full.
+# force-app UX metadata — moved to templates/; deployed by prepare_ux (step 29). Guards prevent accidental re-introduction into deploy_full.
 force-app/main/default/flexipages
 force-app/main/default/layouts
 force-app/main/default/objects/Asset/compactLayouts
 force-app/main/default/objects/Asset/listViews
 force-app/main/default/objects/Quote/compactLayouts
 force-app/main/default/objects/Product2/listViews
-unpackaged/post_billing/flexipages
-unpackaged/post_billing/layouts
-unpackaged/post_billing/applications
-unpackaged/post_billing/objects/Account/compactLayouts
-unpackaged/post_billing/objects/TransactionJournal/compactLayouts
-unpackaged/post_billing/objects/BillingScheduleGroup
-unpackaged/post_billing/objects/Invoice/listViews
-unpackaged/post_constraints/flexipages
-unpackaged/post_constraints/layouts
-unpackaged/post_payments/flexipages
-unpackaged/post_utils/flexipages
-unpackaged/post_ramp_builder/flexipages
-unpackaged/post_tso/flexipages
-unpackaged/post_tso/applications
-unpackaged/post_docgen/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
-unpackaged/post_quantumbit/flexipages
-unpackaged/post_quantumbit/applications
-unpackaged/post_quantumbit/profiles
-unpackaged/post_collections/flexipages
-unpackaged/post_collections/applications
-unpackaged/post_collections/objects/Collection_Plan_Activity__c/listViews
-unpackaged/post_collections/objects/listViews
-# force-app object metadata that holds only UX bindings (actionOverrides + compactLayoutAssignment)
-# Moved to templates/objects/base/ — deployed by prepare_ux at step 29 after flexipages/compact layouts exist
+# force-app object metadata holding only UX bindings (actionOverrides + compactLayoutAssignment)
+# Moved to templates/objects/base/ — deployed by prepare_ux after flexipages/compact layouts exist
 force-app/main/default/objects/Asset/Asset.object-meta.xml
 force-app/main/default/objects/Quote/Quote.object-meta.xml
 force-app/main/default/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem.object-meta.xml
 force-app/main/default/objects/Order/Order.object-meta.xml
 force-app/main/default/objects/OrderItem/OrderItem.object-meta.xml
 force-app/main/default/objects/QuoteLineItem/QuoteLineItem.object-meta.xml
-# post_billing object UX bindings moved to templates/objects/
-unpackaged/post_billing/objects/TransactionJournal/TransactionJournal.object-meta.xml
