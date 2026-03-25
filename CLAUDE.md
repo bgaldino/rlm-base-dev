@@ -417,6 +417,6 @@ cci flow run prepare_rlm_org --org beta
     - Never edit files in `unpackaged/post_ux/` — edit templates instead
     - `force-app` profiles must stay stripped (classAccesses only — no layoutAssignment, no applicationVisibilities)
     - New UX for a feature → add to `templates/flexipages/standalone/{feature}/` (new/override pages) or `templates/flexipages/patches/{feature}/` (additive changes to existing pages)
-    - EmailTemplatePage flexipages must NOT be added to templates — they cannot deploy via Metadata API
+    - EmailTemplatePage flexipages may be added to `templates/flexipages/standalone/{feature}/` as non-deployable reference; `assemble_and_deploy_ux` automatically skips them (type check) and records the skip in `assembly_manifest.json` — they cannot deploy via Metadata API
     - `.forceignore` must have entries for any UX files in `unpackaged/post_*/` that are now assembled via `prepare_ux`
     - Compact layouts and list views belong in `templates/objects/{feature}/` not in `force-app` or feature `unpackaged/post_*/objects/`

@@ -623,16 +623,18 @@ class AssembleAndDeployUX(SFDXBaseTask):
             "assembled_at": datetime.datetime.utcnow().isoformat() + "Z",
             "feature_flags": features,
             "assembled": [],
+            "skipped": [],
         }
 
         def should_run(t: str) -> bool:
             return metadata_type in ("all", t)
 
         if should_run("flexipages"):
-            items = self._assemble_flexipages(
+            items, skipped = self._assemble_flexipages(
                 templates_path, output_path, features, metadata_name
             )
             manifest["assembled"].extend(items)
+            manifest["skipped"].extend(skipped)
 
         if should_run("layouts"):
             items = self._assemble_layouts(
@@ -756,6 +758,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         # 3. For each resolved source, apply YAML patches and write to output
         assembled = []
+        skipped = []
         # Patch order matches deploy-sequence (approvals before docgen before ramps)
         feature_patch_order = [
             ("qb",          "quantumbit"),
@@ -784,9 +787,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 fp_type_el = root.find("type")
             fp_type = fp_type_el.text.strip() if fp_type_el is not None else ""
             if fp_type in NON_DEPLOYABLE_TYPES:
-                self.logger.debug(
-                    f"  [flexipage] Skipping {fname} (type={fp_type}, not deployable via Metadata API)"
+                self.logger.warning(
+                    f"  [flexipage] Skipping {fname} — type={fp_type} cannot be deployed via Metadata API"
                 )
+                skipped.append({"file": fname, "reason": "non_deployable_metadata", "type": fp_type})
                 continue
 
             for flag, patch_feature in feature_patch_order:
@@ -824,7 +828,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 f", {len(patches_applied)} patch(es))"
             )
 
-        return assembled
+        return assembled, skipped
 
     def _apply_raw_xml_patch(self, root: ET.Element, patch: Dict[str, Any]) -> None:
         """

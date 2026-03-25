@@ -88,10 +88,12 @@ templates/
 │   ├── base/                           # RLM_Revenue_Cloud.app-meta.xml (core/minimal)
 │   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when qb=true)
 │   ├── tso/                            # RLM_Revenue_Cloud TSO variant (selected when tso=true)
-│   ├── billing/                        # standard__BillingConsole (conditional)
-│   └── collections/                    # CollectionConsole + Receivables Management (conditional)
+│   └── conditional/
+│       ├── billing/                    # standard__BillingConsole (conditional)
+│       └── collections/                # CollectionConsole + Receivables Management (conditional)
 ├── appMenus/
-│   └── AppSwitcher.appMenu-meta.xml    # Deployed only when tso=true
+│   └── base/
+│       └── AppSwitcher.appMenu-meta.xml    # Deployed only when tso=true
 ├── objects/
 │   ├── base/                           # Compact layouts and list views from force-app
 │   │   ├── Asset/
@@ -132,8 +134,11 @@ templates/
 **Patch application** (additive, in deploy order):
 `quantumbit → utils → billing → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
 
-**Skip rule**: `EmailTemplatePage` type flexipages are silently skipped — this type cannot be
-deployed via Metadata API (platform restriction). The approval email template pages
+**Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
+(platform restriction). During assembly, these pages are skipped, each skip is logged as a
+warning, and the skipped file is recorded (with reason `non_deployable_metadata`) in
+`assembly_manifest.json` so CI logs and reviewers can see that these templates were
+intentionally omitted. The approval email template pages
 (`RLM_Quote_Discount_Approval_Template`, `RLM_Quote_Payment_Terms_Approval_Template`) are
 created at runtime by `create_approval_email_templates`.
 
