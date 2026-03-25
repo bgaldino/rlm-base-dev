@@ -17,7 +17,6 @@ Usage in robot file:
     Library    ../../resources/AnalyticsSetupHelper.py
 """
 
-import time
 
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
@@ -170,7 +169,15 @@ class AnalyticsSetupHelper:
             log(
                 f"'{self.ENABLE_ANALYTICS_BUTTON_LABEL}' clicked via shadow DOM traversal."
             )
-            time.sleep(5)
+            try:
+                WebDriverWait(driver, self.ENABLE_ANALYTICS_POST_CLICK_WAIT_S).until(
+                    lambda d: d.execute_script(_FIND_AND_CLICK_JS, self.ENABLE_ANALYTICS_BUTTON_LABEL) == "not_found"
+                )
+            except TimeoutException:
+                log(
+                    "Enable button did not disappear after shadow DOM click; continuing anyway.",
+                    "WARN",
+                )
             return "clicked"
 
         log(f"'{self.ENABLE_ANALYTICS_BUTTON_LABEL}' button found; clicking via JS.")

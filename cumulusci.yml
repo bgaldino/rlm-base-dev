@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: true                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: true                 # Is Trialforce Source Org? Set false when targeting a non-TSO scratch org
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -2188,6 +2188,7 @@ flows:
         flow: prepare_ramp_builder
       29:
         flow: prepare_ux
+        when: project_config.project__custom__ux
       30:
         flow: refresh_all_decision_tables
          
@@ -2826,7 +2827,7 @@ flows:
         when: project_config.project__custom__ux
       2:
         task: reorder_app_launcher
-        when: project_config.project__custom__ux
+        when: project_config.project__custom__ux and project_config.project__custom__tso
 
   prepare_personas:
     group: Revenue Lifecycle Management
