@@ -2376,27 +2376,32 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: deploy
+        when: project_config.project__custom__tso
+        options:
+          path: unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
+      2:
         task: assign_permission_set_licenses
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_psl_api_names
-      2:
+      3:
         task: assign_permission_set_groups
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_psg_api_names
-      3:
+      4:
         task: deploy_post_utils
         when: project_config.project__custom__tso
-      4:
+      5:
         task: deploy_post_tso
         when: project_config.project__custom__tso
-      5:
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      6:
+      7:
         task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:

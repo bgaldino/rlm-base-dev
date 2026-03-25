@@ -62,6 +62,9 @@ unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
 
 unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 
+# TSO-only PSG: excluded from deploy_pre (which deploys all of unpackaged/pre/).
+# prepare_tso deploys this separately when tso=true.
+unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
 unpackaged/post_constraints/classes
 
