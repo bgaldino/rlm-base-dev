@@ -15,15 +15,13 @@
     "BillingAdvanced",
     "DocGen",
     "Einstein1AIPlatform",
-    "AIProviderOpenAI",
-    "AIProviderAWSBedrock",
-    "DisclosureFramework",
     "CGAnalytics",
     "InsightsPlatform",
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "B2BCommerce",
-    "EnablePRM"
+    "EnablePRM",
+    "ContractsAI"
   ],
   "settings": {
     "billingSettings": {
@@ -57,7 +55,9 @@
       "enableOrders": true,
       "enableEnhancedCommerceOrders": true,
       "enableOrderEvents": true,
-      "enableOptionalPricebook": true,
+      "enableOptionalPricebook": false,
+      "enableOrderWithMultiplePriceBooks": false,
+      "enableReductionOrders": true,
       "enableZeroQuantity": true,
       "enableNegativeQuantity": true
     },
@@ -77,7 +77,25 @@
       "enableRatingWaterfallPersistence": true
     },
     "revenueManagementSettings": {
-      "enableCoreCPQ": true
+      "enableAdvCreateOrdersFromQuote": true,
+      "enableAdvancedDetailLinePricing": true,
+      "enableAsIsRenewals": true,
+      "enableAutoAddDerivedAsset": true,
+      "enableCoreCPQ": true,
+      "enableDeltaPricing": true,
+      "enableFullEscalationHydration": true,
+      "enableGroupRampMultiSchedulePref": true,
+      "enableGroupRampPref": true,
+      "enableRampDeal": true,
+      "enableRevInstPricingDefaultPref": true,
+      "enableRevUnifiedSetup": true,
+      "enableRevenueAdjustment": true,
+      "enableTransactionCloning": true,
+      "enableTransactionProcessor": true,
+      "groupsEnabled": true,
+      "hidePriceRefreshNtfcn": false,
+      "relaxUniqueCipValidation": true,
+      "skipOrgSttPricing": false
     },
     "productConfiguratorSettings": {
       "enableProductConfigurator": true
