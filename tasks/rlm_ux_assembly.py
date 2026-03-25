@@ -67,6 +67,7 @@ SUFFIX_TO_TYPE: Dict[str, str] = {
     ".profile-meta.xml": "profiles",
     ".compactLayout-meta.xml": "objects",
     ".listView-meta.xml": "objects",
+    ".object-meta.xml": "objects",
 }
 
 VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "appmenus", "profiles", "objects"}
@@ -1092,17 +1093,21 @@ class AssembleAndDeployUX(SFDXBaseTask):
         filter_name: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Assemble compactLayouts and listViews from templates/objects/{feature}/ into
+        Assemble object-level UX metadata from templates/objects/{feature}/ into
         output_path/objects/{ObjectName}/{subtype}/.
 
-        Copy order:
-          base     — always included
-          billing  — when billing=true
-          tso      — when tso=true
+        Handles three file types:
+          *.object-meta.xml        — UX bindings (actionOverrides, compactLayoutAssignment)
+          *.compactLayout-meta.xml — compact layout definitions
+          *.listView-meta.xml      — list view definitions
+
+        Copy order (last write wins for same filename):
+          base        — always included
+          billing     — when billing=true
+          tso         — when tso=true
           collections — when collections=true
 
-        filter_name matches the bare filename (e.g.
-        'RLM_Asset_Compact_Layout.compactLayout-meta.xml') across any object directory.
+        filter_name matches the bare filename across any object directory.
         """
         objects_templates = templates_path / "objects"
         out_dir = output_path / "objects"
@@ -1119,6 +1124,12 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("collections", features.get("collections", False)),
         ]
 
+        patterns = [
+            "*.object-meta.xml",
+            "*.compactLayout-meta.xml",
+            "*.listView-meta.xml",
+        ]
+
         for feature_dir, active in copy_order:
             if not active:
                 continue
@@ -1126,27 +1137,35 @@ class AssembleAndDeployUX(SFDXBaseTask):
             if not src_root.exists():
                 continue
 
-            for src_file in sorted(src_root.rglob("*.compactLayout-meta.xml")) + \
-                            sorted(src_root.rglob("*.listView-meta.xml")):
+            all_files: List[Path] = []
+            for pattern in patterns:
+                all_files.extend(sorted(src_root.rglob(pattern)))
+
+            for src_file in all_files:
                 if filter_name and src_file.name != filter_name:
                     continue
                 rel = src_file.relative_to(src_root)
                 dest = out_dir / rel
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                subtype = "compactLayout" if src_file.suffix == ".xml" and \
-                    "compactLayout" in src_file.name else "listView"
+
+                name = src_file.name
+                if ".object-meta.xml" in name:
+                    subtype = "CustomObject"
+                elif ".compactLayout-meta.xml" in name:
+                    subtype = "compactLayout"
+                else:
+                    subtype = "listView"
+
                 assembled.append(
                     {
                         "type": subtype,
-                        "name": src_file.name,
+                        "name": name,
                         "dest": str(dest.relative_to(output_path.parent.parent)),
                         "source": f"objects/{feature_dir}",
                     }
                 )
-                self.logger.info(
-                    f"  [{subtype}] {rel} (from {feature_dir})"
-                )
+                self.logger.info(f"  [{subtype}] {rel} (from {feature_dir})")
 
         return assembled
 

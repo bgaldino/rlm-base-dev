@@ -113,3 +113,11 @@ unpackaged/post_collections/flexipages
 unpackaged/post_collections/applications
 unpackaged/post_collections/objects/Collection_Plan_Activity__c/listViews
 unpackaged/post_collections/objects/listViews
+# force-app object metadata that holds only UX bindings (actionOverrides + compactLayoutAssignment)
+# Moved to templates/objects/base/ — deployed by prepare_ux at step 29 after flexipages/compact layouts exist
+force-app/main/default/objects/Asset/Asset.object-meta.xml
+force-app/main/default/objects/Quote/Quote.object-meta.xml
+force-app/main/default/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem.object-meta.xml
+force-app/main/default/objects/Order/Order.object-meta.xml
+force-app/main/default/objects/OrderItem/OrderItem.object-meta.xml
+force-app/main/default/objects/QuoteLineItem/QuoteLineItem.object-meta.xml

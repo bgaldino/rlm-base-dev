@@ -320,6 +320,25 @@ layout assignments is assembled from `templates/profiles/base/` and deployed at 
 **Never add `layoutAssignment` or `applicationVisibilities` elements back to the force-app
 profile** — they belong in `templates/profiles/base/` or a feature patch file.
 
+### Object metadata strip-and-build — critical rule
+
+Several standard object `.object-meta.xml` files contain **only** UX-binding elements
+(`<actionOverrides>` pointing to flexipages, `<compactLayoutAssignment>` pointing to compact
+layouts). These have been moved out of `force-app/` and into `templates/objects/base/`:
+
+| Object | Bindings |
+|--------|----------|
+| `Asset` | actionOverride → `RLM_Asset_Record_Page`, compactLayoutAssignment → `RLM_Asset_Compact_Layout` |
+| `Quote` | actionOverride → `RLM_Quote_Record_Page`, compactLayoutAssignment → `RLM_Quote_Compact_Layout` |
+| `FulfillmentOrderLineItem` | actionOverride → `RLM_FulfillmentOrderLineItem_Record_Page` |
+| `Order` | actionOverride → `RLM_Order_Record_Page` |
+| `OrderItem` | actionOverride → `RLM_OrderItem_Record_Page` |
+| `QuoteLineItem` | actionOverride → `RLM_Quote_Line_Item_Record_Page` |
+
+These deploy at step 29 via `prepare_ux` after the referenced flexipages and compact layouts
+exist. **Never add these files back to `force-app/`** — they are forceignored and will be
+silently skipped if accidentally recreated there.
+
 ### AssetStatePeriod layout — Spring '26 required fields
 
 API v66 (Spring '26) requires `SegmentName`, `SegmentType`, `RampIdentifier`, and
