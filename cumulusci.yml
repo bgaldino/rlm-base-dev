@@ -104,7 +104,9 @@ project:
     agents: false             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: true                # Use Partner Relationship Management
-    prm_exp_bundle: true      # Use PRM Experience Bundle
+    prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
+    billing_portal: false     # Use Self-Service Billing Portal community
+    billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
@@ -310,6 +312,10 @@ project:
     ps_docgen: &ps_docgen
       # DocGen permission sets
       - RLM_DocGen
+
+    ps_ramp_builder: &ps_ramp_builder
+      # Ramp Builder (Create Ramp Schedule V4) permission sets
+      - RLM_RampSchedule
 
     ps_prm: &ps_prm
       # PRM-specific permission sets
@@ -644,6 +650,22 @@ tasks:
       activate: true
       verify: true
 
+  apply_context_ramp_mode:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup)
+      context attributes to the Sales Transaction context definition and maps them to
+      QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping)
+      and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/RampMode/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   apply_context_constraint_engine_node_status:
     group: Revenue Lifecycle Management
     description: Apply ConstraintEngineNodeStatus mappings to Sales Transaction context
@@ -777,7 +799,7 @@ tasks:
 # TODO: Organize pre/post deploy tasks into their own sections
 
   cleanup_settings_for_dev:
-    description: Clean up settings files for dev scratch orgs (removes unsupported fields)
+    description: Clean up settings files before deployment (removes fields unsupported in the target org)
     class_path: tasks.rlm_cleanup_settings.CleanupSettingsForDev
     group: Revenue Lifecycle Management
     options:
@@ -881,16 +903,33 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata
+    description: Deploy Trialforce Source Org Metadata (app launcher deploys separately via deploy_post_tso_app_menu when tso=true)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso
+
+  deploy_post_tso_app_menu:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy App Launcher (AppSwitcher) order. Only runs when tso=true. Deploys
+      after deploy_post_tso so org default persists; users with personalized
+      launchers may need to use "Reset to default" in the App Launcher to see it.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_tso_appmenu
 
   deploy_post_prm:
     description: Deploy Partner Relationship Management Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm
+
+  deploy_post_personas:
+    group: Revenue Lifecycle Management
+    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_personas
 
   deploy_post_approvals:
     description: >
@@ -1052,6 +1091,27 @@ tasks:
     options:
       path: unpackaged/post_guidedselling
 
+  deploy_post_ramp_builder:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy all Ramp Schedule Builder (Create Ramp Schedule V4) metadata under
+      unpackaged/post_ramp_builder: RLM_RampMode__c (Picklist) on QuoteLineGroup,
+      QuoteLineItem, OrderItemGroup, and OrderItem; RLM_UpliftPercent__c (Percent) on
+      QuoteLineGroup only; Lightning Message Channel (RLM_RampScheduleChannel); Apex classes
+      and test classes (RLM_RampScheduleFlowAction, RLM_RampScheduleService,
+      RLM_RampScheduleValidator, RLM_RampScheduleRequest, RLM_RampScheduleResponse,
+      RLM_RampScheduleFlowException, RLM_RampMigrationQueueable, RLM_RampScheduleStatusController,
+      RLM_QuoteLineItemDiscountUpliftHandler, RLM_QuoteLineItemRampModeHandler,
+      RLM_QuoteLineItemRampHandler, and test classes); RLM_QuoteLineItemRampTrigger trigger; six LWC
+      bundles (rlmRampScheduleFlowModalAction, rlmRampScheduleForm, rlmRampScheduleTrialSection,
+      rlmRampSchedulePreviewTable, rlmRampScheduleStatus, rlmRampRefreshPage); the
+      RLM_Create_Ramp_Schedule_V4 screen flow; the Quote.RLM_Create_Ramp_Schedule_V4 quick
+      action; and the RLM_RampSchedule permission set (grants FLS on all custom fields and class
+      access for all production Apex classes).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_ramp_builder
+
   enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
@@ -1064,6 +1124,22 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_payments
+
+  patch_payments_site_for_deploy:
+    group: Revenue Lifecycle Management
+    description: >
+      Patch Payments_Webhook.site-meta.xml with the org's actual admin username before
+      deploy. Required because siteAdmin and siteGuestRecordDefaultOwner are immutable
+      after site creation and the committed XML contains a placeholder username.
+    class_path: tasks.rlm_community.PatchPaymentsSiteForDeploy
+
+  revert_payments_site_after_deploy:
+    group: Revenue Lifecycle Management
+    description: >
+      Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in
+      Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo
+      never stores the target org's real username. Run AFTER deploy_post_payments_site.
+    class_path: tasks.rlm_community.RevertPaymentsSiteAfterDeploy
 
   deploy_post_payments_site:
     description: Deploy Payments site settings only
@@ -1327,11 +1403,18 @@ tasks:
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
-      Read the rlm Network's current emailSenderAddress from the org and patch
-      the network-meta.xml file on disk with that value before deploy_post_prm
-      runs. Required because Salesforce mandates emailSenderAddress in Network
-      metadata but the field is immutable after Network creation.
+      Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the
+      Network's actual current EmailSenderAddress (immutable after creation) so
+      deploy_post_prm succeeds. Repo stores a non-PII placeholder; run
+      revert_network_email_after_deploy after deploy.
     class_path: tasks.rlm_community.PatchNetworkEmailForDeploy
+
+  revert_network_email_after_deploy:
+    group: Partner Relationship Management
+    description: >
+      Restore the placeholder emailSenderAddress in rlm.network-meta.xml after
+      deploy_post_prm so the repo never persists the target org's email.
+    class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
 
   deploy_post_prm_tso:
     group: Partner Relationship Management
@@ -1361,6 +1444,24 @@ tasks:
       template: "Build Your Own (LWR)"
       url_path_prefix: "sfpwebhook"
       skip_existing: true
+
+  create_billing_portal:
+    group: Revenue Lifecycle Management
+    description: Create Self-Service Billing Portal community (Experience Cloud site).
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    options:
+      name: "Billing Portal"
+      description: "RLM Self-Service Billing Portal"
+      template: "Self-Service Billing Portal"
+      url_path_prefix: "billing"
+      skip_existing: true
+
+  deploy_post_billing_portal:
+    group: Revenue Lifecycle Management
+    description: Deploy Billing Portal site metadata (experiences, themes, etc.) from unpackaged/post_billing_portal. Run when billing_portal_deploy is true after create_billing_portal.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_billing_portal
 
 
 #------------------#
@@ -2447,6 +2548,9 @@ flows:
         task: reconfigure_pricing_discovery
         when: org_config.scratch and not project_config.project__custom__tso
       28:
+        flow: prepare_ramp_builder
+        when: project_config.project__custom__ramps
+      29:
         flow: refresh_all_decision_tables
 
 # Badger Master Flow
@@ -2496,15 +2600,15 @@ flows:
           api_names: *rlm_psl_api_names
       3:
         task: cleanup_settings_for_dev
-        when: org_config.scratch
+        #when: org_config.scratch
       4:
         task: exclude_active_decision_tables
-        when: org_config.scratch
+        #when: org_config.scratch
       5:
         task: deploy_pre
       6:
         task: restore_decision_tables
-        when: org_config.scratch
+        #when: org_config.scratch
       7:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
@@ -2685,11 +2789,14 @@ flows:
         task: deploy_post_tso
         when: project_config.project__custom__tso
       5:
+        task: deploy_post_tso_app_menu
+        when: project_config.project__custom__tso
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      6:
+      7:
         task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
@@ -2800,22 +2907,25 @@ flows:
         task: deploy_post_prm
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       5:
+        task: revert_network_email_after_deploy
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
+      6:
         task: publish_community
         when: project_config.project__custom__prm
         options:
           name: rlm
-      6:
+      7:
         task: deploy_sharing_rules
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
-      7:
+      8:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
-      8:
+      9:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      9:
+      10:
         task: manage_context_definition
         when: project_config.project__custom__prm
         options:
@@ -2823,6 +2933,24 @@ flows:
           developer_name: RLM_SalesTransactionContext
           translate_plan: true
           activate: true
+
+  prepare_billing_portal:
+    group: Revenue Lifecycle Management
+    description: >
+      Create Self-Service Billing Portal community and optionally deploy site content.
+      When billing_portal is true, creates the community; when billing_portal_deploy is also true, deploys unpackaged/post_billing_portal and publishes.
+    steps:
+      1:
+        task: create_billing_portal
+        when: project_config.project__custom__billing_portal
+      2:
+        task: deploy_post_billing_portal
+        when: project_config.project__custom__billing_portal and project_config.project__custom__billing_portal_deploy
+      3:
+        task: publish_community
+        when: project_config.project__custom__billing_portal
+        options:
+          name: "Billing Portal"
 
   prepare_tax:
     group: Revenue Lifecycle Management
@@ -3028,14 +3156,20 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_payments_site
+        task: patch_payments_site_for_deploy
         when: project_config.project__custom__payments
       2:
+        task: deploy_post_payments_site
+        when: project_config.project__custom__payments
+      3:
+        task: revert_payments_site_after_deploy
+        when: project_config.project__custom__payments
+      4:
         task: publish_community
         when: project_config.project__custom__payments
         options:
           name: Payments Webhook
-      3:
+      5:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
 
@@ -3203,6 +3337,33 @@ flows:
       7: 
         task: insert_badger_aaf_data
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+
+  prepare_ramp_builder:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom
+      fields, Lightning Message Channel, all Apex classes, six LWC bundles, the
+      RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order.
+      Adds RampMode__c/GroupRampMode__c context attributes to the Sales Transaction context
+      definition mapped to QuoteLineItem, QuoteLineGroup, OrderItem, and OrderItemGroup.
+      After this flow runs, add the "Create Ramp Schedule" action to the Quote page layout
+      (or Dynamic Actions highlights panel) and ensure the flow is Active in Setup.
+    steps:
+      1:
+        task: deploy_post_ramp_builder
+      2:
+        task: apply_context_ramp_mode
+      3:
+        task: assign_permission_sets
+        options:
+          api_names: *ps_ramp_builder
+
+  prepare_personas:
+    group: Revenue Lifecycle Management
+    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas. Not wired into prepare_rlm_org.
+    steps:
+      1:
+        task: deploy_post_personas
 
   run_qb_extracts:
     group: Data Management - Extract

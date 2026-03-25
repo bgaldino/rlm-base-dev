@@ -62,7 +62,11 @@ unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
 
 unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 
-unpackaged/post_tso/appMenus/AppSwitcher.appMenu-meta.xml
+# AppSwitcher (TSO-only): uncomment to exclude from deploy (e.g. if target orgs lack referenced ConnectedApps)
+# unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml
+
+# RLM_TSO PSG: excluded by default (tso=false). Build scripts remove this line when tso=true.
+unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
 unpackaged/post_constraints/classes
 
@@ -77,5 +81,3 @@ unpackaged/post_approvals/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
 # EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
-# RLM_TSO - Storage only, never deployed (preserves permission sets that aren't available in dev orgs)
-unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml

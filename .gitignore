@@ -73,7 +73,6 @@ playwright*
 
 #cci
 .cci
-.github
 
 #dev
 scripts/permsets.txt
@@ -108,7 +107,7 @@ selenium-screenshot*.png
 **/*.tsbuildinfo
 agents256*/**
 unpackaged/*bak/**
-.claude/settings.local.json
+.claude/
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak

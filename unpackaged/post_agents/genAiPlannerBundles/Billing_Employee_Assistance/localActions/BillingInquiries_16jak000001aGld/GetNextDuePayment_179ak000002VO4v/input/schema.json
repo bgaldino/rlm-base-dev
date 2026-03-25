@@ -1,0 +1,22 @@
+{
+  "required" : [ "accountName" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "varAccountId" : {
+      "title" : "varAccountId",
+      "description" : "The Account ID captured from the Account page from context variable, if available. Account Id to check invoices for. If invoked from the Account page, derive it automatically from the context variable.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "accountName" : {
+      "title" : "accountName",
+      "description" : "Account name for which the next payment due is to be fetched.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

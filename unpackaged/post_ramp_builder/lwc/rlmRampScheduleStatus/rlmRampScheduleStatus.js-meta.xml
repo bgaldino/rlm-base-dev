@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="jobId"    type="String" label="Job ID"         description="AsyncApexJob ID of the background migration queueable"/>
+            <property name="quoteId"  type="String" label="Quote ID"       description="ID of the Quote record to poll for completion"/>
+            <property name="quoteName" type="String" label="Quote Name"    description="Display name shown in the success message"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
