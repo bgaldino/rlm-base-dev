@@ -262,13 +262,13 @@ project:
       - ClauseManagementUser
       - CLMAnalyticsPsl
       - ContractManagementUser
-      #- ContractsAIUserPsl
-      - DisclosureAndComplianceHubUserPsl
+      - ContractsAIUserPsl
+      #- DisclosureAndComplianceHubUserPsl
       - DocGenDesignerPsl
       - DocumentBuilderUserPsl
       - InsightsCGAnalyticsPsl
       - Microsoft365WordPsl
-      - NLPServicePsl
+      #- NLPServicePsl
       - ObligationManagementUser
       - OmniStudioDesigner
       - ScoringFrameworkPsl

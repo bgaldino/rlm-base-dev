@@ -23,23 +23,21 @@ package.xml
 **/eslint.config.mjs
 
 # rlm-base specific entries
-
+# contextDefinitions (extended at runtime via extend_context_* tasks)
+force-app/main/default/contextDefinitions
 # default expressionSetDefinitions
 force-app/main/default/expressionSetDefinition/Default_Rating_Discovery_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Rev_Mgmt_Default_Pricing_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Procedure_Auto.expressionSetDefinition-meta.xml
-# custom expressionSetDefinitions
+# extended expressionSetDefinitions
 #force-app/main/default/expressionSetDefinition/RLM_DefaultPricingDiscoveryProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultRatingDiscoveryProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
-
-# contextDefinitions (extended at runtime via extend_context_* tasks)
-force-app/main/default/contextDefinitions
 
 # unpackaged/post_sharing
 unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
@@ -50,29 +48,16 @@ unpackaged/post_sharing/objects/PriceBookEntryDerivedPrice/PriceBookEntryDerived
 unpackaged/post_sharing/objects/ProductConfigurationRule/ProductConfigurationRule.object-meta.xml
 unpackaged/post_sharing/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
 #unpackaged/post_sharing/objects
-
 # pricingActionParameters
 unpackaged/post_quantumbit/pricingActionParameters
-
 # Misc
 force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml
-
-unpackaged/post_agents/bots/Agentforce_for_Analytics.bot-meta.xml
-unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
-
 unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
-
 # AppSwitcher (TSO-only): uncomment to exclude from deploy (e.g. if target orgs lack referenced ConnectedApps)
 # unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml
-
-# RLM_TSO PSG: excluded by default (tso=false). Build scripts remove this line when tso=true.
-unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
-
 unpackaged/post_constraints/classes
-
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
-
 # Ignored (deployed from unpackaged paths or org-specific)
 force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
 force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
@@ -81,3 +66,5 @@ unpackaged/post_approvals/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
 # EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
+# RLM_TSO PSG: excluded by default (tso=false). Build scripts remove this line when tso=true.
+unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml

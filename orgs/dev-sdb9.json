@@ -15,15 +15,14 @@
     "BillingAdvanced",
     "DocGen",
     "Einstein1AIPlatform",
-    "AIProviderOpenAI",
-    "AIProviderAWSBedrock",
-    "DisclosureFramework",
     "CGAnalytics",
     "InsightsPlatform",
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "B2BCommerce",
-    "EnablePRM"
+    "EnablePRM",
+    "ExternalClientApps",
+    "ContractsAI"
   ],
   "settings": {
     "billingSettings": {
