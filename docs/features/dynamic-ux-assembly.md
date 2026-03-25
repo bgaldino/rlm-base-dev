@@ -200,7 +200,7 @@ No patching — layouts are copied as-is.
 
 **Conditional standalone apps** (copied when their flag is active):
 - `standard__BillingConsole` — when `billing=true`
-- `standard__CollectionConsole`, `standard__ReceivablesManagement` — when `collections=true`
+- `standard__CollectionConsole`, `RLM_Receivables_Management` — when `collections=true`
 
 ### App Menus
 
@@ -246,10 +246,10 @@ cci task run assemble_and_deploy_ux [options]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--metadata-type` | `all` | `all`, `flexipages`, `layouts`, `applications`, `appmenus`, `profiles`, `objects` |
-| `--metadata-name` | (none) | Full source filename to generate one item, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`. Type is inferred from suffix. |
-| `--deploy` | `true` | Set `false` to assemble without deploying (inspect `unpackaged/post_ux/` output) |
-| `--output-path` | `unpackaged/post_ux` | Override output directory |
+| `-o metadata_type` | `all` | `all`, `flexipages`, `layouts`, `applications`, `appmenus`, `profiles`, `objects` |
+| `-o metadata_name` | (none) | Full source filename to generate one item, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`. Type is inferred from suffix. |
+| `-o deploy` | `true` | Set `false` to assemble without deploying (inspect `unpackaged/post_ux/` output) |
+| `-o output_path` | `unpackaged/post_ux` | Override output directory |
 
 **Examples:**
 
@@ -258,21 +258,21 @@ cci task run assemble_and_deploy_ux [options]
 cci task run assemble_and_deploy_ux --org dev-sb0
 
 # Dry-run: assemble only, no deploy
-cci task run assemble_and_deploy_ux --deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
 
 # Regenerate a single flexipage
 cci task run assemble_and_deploy_ux \
-    --metadata-name RLM_Quote_Record_Page.flexipage-meta.xml \
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
     --org dev-sb0
 
 # Regenerate and inspect a profile without deploying
 cci task run assemble_and_deploy_ux \
-    --metadata-name Admin.profile-meta.xml \
-    --deploy false --org dev-sb0
+    -o metadata_name Admin.profile-meta.xml \
+    -o deploy false --org dev-sb0
 
 # Assemble only layouts
 cci task run assemble_and_deploy_ux \
-    --metadata-type layouts --deploy false --org dev-sb0
+    -o metadata_type layouts -o deploy false --org dev-sb0
 ```
 
 ### `prepare_ux` flow
