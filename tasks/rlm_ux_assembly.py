@@ -1020,8 +1020,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # requires ALL registered apps to be present in an AppSwitcher deploy when
         # the org already has a populated AppMenu — deploying a subset fails.
         # If the org retrieval fails we fall back to just the priority template items
-        # (equivalent to the legacy post_tso_appmenu approach, which only works on
-        # fresh orgs before all apps are installed).
+        # (priority-only fallback — only safe on fresh orgs before all apps are installed).
         priority_names = [n for n, _ in self._get_feature_gated_template_items(src_file, features)]
 
         username = getattr(self.org_config, "username", None)

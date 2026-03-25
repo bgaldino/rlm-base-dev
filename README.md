@@ -630,7 +630,6 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `exclude_active_decision_tables` | `rlm_exclude_active_decision_tables.py` | Move active decision tables to `.skip` dir before deploy |
 | `assign_permission_set_groups_tolerant` | `rlm_assign_permission_set_groups.py` | Assign PSGs with tolerance for missing permissions |
 | `recalculate_permission_set_groups` | `rlm_recalculate_permission_set_groups.py` | Recalculate PSGs and wait for Updated status (retries, delays) |
-| `deploy_post_tso_app_menu` | (CCI Deploy) | Deploy App Launcher (AppSwitcher) order from `unpackaged/post_tso_appmenu`. Runs only when `tso=true` (step 5 of `prepare_tso`). See [App Launcher](#app-launcher-tso) below. |
 | `patch_network_email_for_deploy` | `rlm_community.py` | Replace placeholder `emailSenderAddress` in `rlm.network-meta.xml` with the Network's actual current `EmailSenderAddress` (immutable after creation) before `deploy_post_prm`. Repo stores non-PII placeholder; run `revert_network_email_after_deploy` after deploy. |
 | `revert_network_email_after_deploy` | `rlm_community.py` | Restore placeholder `emailSenderAddress` in `rlm.network-meta.xml` after `deploy_post_prm` so the repo never persists the org email. |
 
@@ -680,21 +679,17 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 ### App Launcher (TSO)
 
-When `tso=true`, the App Launcher order is deployed twice during `prepare_rlm_org`:
+When `tso=true`, `assemble_and_deploy_ux` deploys `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` as the org-default App Launcher order (step 29 of `prepare_rlm_org`).
 
-1. **Step 20** (`prepare_tso`): `deploy_post_tso_app_menu` deploys from `unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml`.
-2. **Step 29** (`prepare_ux`, when `ux=true`): `assemble_and_deploy_ux` deploys from `templates/appMenus/base/AppSwitcher.appMenu-meta.xml`. **This is the final deployed state.**
-
-Both files must be kept in sync. The script only updates `post_tso_appmenu/` — copy the file to `templates/appMenus/base/` after syncing:
+To capture a customized order from an org and commit it as the new template:
 
 ```bash
-# Capture your customized App Launcher order from the org
+# Capture your customized App Launcher order from the default org
 python scripts/sync_appmenu_from_user.py
-
-# Keep the UX assembly template in sync
-cp unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml \
-   templates/appMenus/base/AppSwitcher.appMenu-meta.xml
+# Writes directly to templates/appMenus/base/AppSwitcher.appMenu-meta.xml — no deploy.
 ```
+
+On Trialforce-based scratch orgs, the AppSwitcher Metadata API deploy is blocked by managed ConnectedApp entries from installed packages. The `reorder_app_launcher` Robot task handles App Launcher ordering on these orgs via the Aura `AppLauncherController/saveOrder` API (step 2 of `prepare_ux`).
 
 New builds get that order as the org default. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
@@ -838,7 +833,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_pricing_data` | Load pricing SFDMU data | `qb` |
 | `prepare_scratch` | Insert scratch-only data | Scratch only, not `tso` |
 | `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
-| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata; deploys App Launcher order from `post_tso_appmenu` when `tso=true` | `tso` |
+| `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
 | `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
@@ -1066,7 +1061,7 @@ rlm-base-dev/
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
 │   ├── appMenus/
-│   │   └── base/               # AppSwitcher (assembled only when tso=true; keep in sync with post_tso_appmenu)
+│   │   └── base/               # AppSwitcher (assembled only when tso=true)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
 │   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
 │   │   ├── billing/            # Billing feature (TransactionJournal)
@@ -1092,7 +1087,6 @@ rlm-base-dev/
 │   ├── post_procedureplans/    # Procedure Plans metadata + RevenueManagement.settings
 │   ├── post_scratch/           # Scratch org-only metadata
 │   ├── post_tso/               # TSO-specific metadata
-│   ├── post_tso_appmenu/       # App Launcher (AppSwitcher) captured by sync_appmenu_from_user.py; deployed at step 20 when tso=true
 │   ├── post_ux/                # Assembled UX output (git-tracked); regenerated by assemble_and_deploy_ux — do not edit directly
 │   └── post_utils/             # Utility metadata
 ├── tasks/                      # Custom CumulusCI Python task modules
@@ -1154,7 +1148,7 @@ rlm-base-dev/
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
 │   ├── bash/                   # Bash scripts
-│   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into post_tso_appmenu (no deploy)
+│   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
@@ -1253,11 +1247,11 @@ See the [Constraints Utility Guide](datasets/constraints/README.md) for full exp
 ### App Launcher order (TSO)
 
 ```bash
-# Capture your customized App Launcher order from the default org into the repo (no deploy)
+# Capture your customized App Launcher order from the default org (writes to templates/appMenus/base/)
 python scripts/sync_appmenu_from_user.py
 
-# Deploy App Launcher to an org (when tso=true the flow does this automatically)
-cci task run deploy_post_tso_app_menu --org <org>
+# Deploy App Launcher (runs automatically as part of prepare_ux when tso=true)
+cci task run assemble_and_deploy_ux -o metadata_type appmenus --org <org>
 ```
 
 ### Load Product Data

@@ -848,16 +848,6 @@ tasks:
     options:
       path: unpackaged/post_tso
 
-  deploy_post_tso_app_menu:
-    group: Revenue Lifecycle Management
-    description: >
-      Legacy App Launcher (AppSwitcher) deploy task. In UX assembly mode
-      (ux=true), AppSwitcher is deployed by prepare_ux/assemble_and_deploy_ux.
-      This task is only used as a fallback when tso=true and ux=false.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_tso_appmenu
-
   deploy_post_prm:
     description: Deploy Partner Relationship Management Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2410,9 +2400,6 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
-      7:
-        task: deploy_post_tso_app_menu
-        when: project_config.project__custom__tso and not project_config.project__custom__ux
 
   prepare_dro:
     group: Revenue Lifecycle Management

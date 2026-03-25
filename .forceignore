@@ -62,9 +62,6 @@ unpackaged/post_agents/genAiPlannerBundles/Agentforce_for_Analytics
 
 unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 
-# AppSwitcher (TSO-only): uncomment to exclude from deploy (e.g. if target orgs lack referenced ConnectedApps)
-# unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml
-
 
 unpackaged/post_constraints/classes
 

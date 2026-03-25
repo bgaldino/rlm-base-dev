@@ -6,10 +6,11 @@ The default org's running user must have set their app order (Setup > App Menu, 
 personalized in the App Launcher). This script:
   1. Queries UserAppMenuCustomization (SortOrder, ApplicationId) for the running user
   2. Maps each ApplicationId to (name, type) via AppMenuItem
-  3. Writes unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml
+  3. Writes templates/appMenus/base/AppSwitcher.appMenu-meta.xml
 
-No deploy is performed. Use the output in builds (e.g. deploy_post_tso_app_menu when tso=true).
-Target orgs must have the same apps or the file may need trimming for that org.
+No deploy is performed. Run assemble_and_deploy_ux (or prepare_ux) after syncing to
+deploy the updated template. Target orgs must have the same apps or the file may need
+trimming for that org.
 
 Run with default org set:
   python scripts/sync_appmenu_from_user.py
@@ -82,7 +83,7 @@ def _app_menu_name_and_type(row: dict[str, str]) -> tuple[str, str]:
 
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
-    out_path = repo_root / "unpackaged" / "post_tso_appmenu" / "appMenus" / "AppSwitcher.appMenu-meta.xml"
+    out_path = repo_root / "templates" / "appMenus" / "base" / "AppSwitcher.appMenu-meta.xml"
 
     print("Resolving running user Id...")
     running_user_id = _get_running_user_id()
@@ -135,7 +136,8 @@ def main() -> int:
     lines.append("</AppMenu>")
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print(f"Wrote {len(ordered_entries)} app menu items to {out_path} (your manual order; no deploy).")
+    print(f"Wrote {len(ordered_entries)} app menu items to {out_path}.")
+    print("Run 'cci task run assemble_and_deploy_ux --org <alias>' to deploy the updated template.")
     return 0
 
 
