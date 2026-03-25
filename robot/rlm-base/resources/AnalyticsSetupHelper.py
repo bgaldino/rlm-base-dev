@@ -57,6 +57,29 @@ return (function(buttonText) {
 })(arguments[0]);
 """
 
+# Presence-only check — same traversal as _FIND_AND_CLICK_JS but never clicks.
+# Use this as the WebDriverWait predicate after a click to avoid re-clicking.
+_FIND_BUTTON_JS = """
+return (function(buttonText) {
+    function findButton(root) {
+        var candidates = root.querySelectorAll('button, input[type="button"], input[type="submit"]');
+        for (var i = 0; i < candidates.length; i++) {
+            var text = (candidates[i].textContent || candidates[i].value || '').trim();
+            if (text === buttonText) return candidates[i];
+        }
+        var all = root.querySelectorAll('*');
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].shadowRoot) {
+                var found = findButton(all[i].shadowRoot);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+    return findButton(document.body) ? 'found' : 'not_found';
+})(arguments[0]);
+"""
+
 
 class AnalyticsSetupHelper:
     """Keyword library for enabling Analytics settings in the VF iframe."""
@@ -171,7 +194,7 @@ class AnalyticsSetupHelper:
             )
             try:
                 WebDriverWait(driver, self.ENABLE_ANALYTICS_POST_CLICK_WAIT_S).until(
-                    lambda d: d.execute_script(_FIND_AND_CLICK_JS, self.ENABLE_ANALYTICS_BUTTON_LABEL) == "not_found"
+                    lambda d: d.execute_script(_FIND_BUTTON_JS, self.ENABLE_ANALYTICS_BUTTON_LABEL) == "not_found"
                 )
             except TimeoutException:
                 log(
