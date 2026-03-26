@@ -14,6 +14,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import requests
+
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -65,6 +67,61 @@ class ReorderAppLauncher(BaseTask):
         },
     }
 
+    def _build_ordered_app_ids(self, priority_labels_str: str, api_version: str) -> str:
+        """Query AppMenuItem via REST API and return priority-ordered ApplicationIds.
+
+        Runs in Python (has access_token + instance_url) to avoid cross-origin XHR
+        issues from browser JS (Lightning on *.lightning.force.com, REST API on
+        *.my.salesforce.com).
+
+        Returns a comma-separated string of ApplicationId values, priority apps first.
+        """
+        instance_url = self.org_config.instance_url.rstrip("/")
+        access_token = self.org_config.access_token
+
+        soql = (
+            "SELECT ApplicationId, Label, SortOrder "
+            "FROM AppMenuItem "
+            "WHERE IsVisible=true "
+            "ORDER BY SortOrder"
+        )
+        resp = requests.get(
+            f"{instance_url}/services/data/v{api_version}/query",
+            params={"q": soql},
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        records = resp.json().get("records", [])
+
+        priority_list = [l.strip() for l in priority_labels_str.split(",") if l.strip()]
+        priority_map = {label: i for i, label in enumerate(priority_list)}
+
+        priority_ids: list = [None] * len(priority_list)
+        remaining_ids: list = []
+        matched = []
+        for rec in records:
+            label = rec.get("Label", "")
+            app_id = rec.get("ApplicationId", "")
+            if not app_id:
+                continue
+            idx = priority_map.get(label)
+            if idx is not None:
+                priority_ids[idx] = app_id
+                matched.append(label)
+            else:
+                remaining_ids.append(app_id)
+
+        unmatched = [l for l in priority_list if l not in matched]
+        if unmatched:
+            self.logger.warning(
+                "Priority app(s) not found in AppMenuItem (will be skipped): %s",
+                ", ".join(unmatched),
+            )
+
+        ordered = [i for i in priority_ids if i is not None] + remaining_ids
+        return ",".join(ordered)
+
     def _run_task(self):
         check_urllib3_for_robot(task_name="ReorderAppLauncher")
 
@@ -91,9 +148,16 @@ class ReorderAppLauncher(BaseTask):
 
         priority_labels = self.options.get("priority_app_labels") or DEFAULT_PRIORITY_LABELS
 
-        api_version = getattr(
-            self.project_config, "project__package__api_version", "67.0"
-        ) or "67.0"
+        api_version = (
+            getattr(self.project_config, "project__package__api_version", None) or "67.0"
+        )
+
+        ordered_ids = self._build_ordered_app_ids(priority_labels, api_version)
+        self.logger.info(
+            "App order resolved: %d app(s) in priority list, %d total.",
+            len([i for i in ordered_ids.split(",") if i]),
+            len(ordered_ids.split(",")),
+        )
 
         cmd = [
             sys.executable,
@@ -102,9 +166,7 @@ class ReorderAppLauncher(BaseTask):
             "--variable",
             f"ORG_ALIAS:{org_name}",
             "--variable",
-            f"PRIORITY_APP_LABELS:{priority_labels}",
-            "--variable",
-            f"API_VERSION:{api_version}",
+            f"ORDERED_APP_IDS:{ordered_ids}",
             "--outputdir",
             str(out_path),
             str(suite_path),

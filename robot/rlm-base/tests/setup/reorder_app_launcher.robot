@@ -1,14 +1,15 @@
 *** Settings ***
-Documentation     Reorders the App Launcher so that a priority list of apps appears first.
+Documentation     Reorders the App Launcher using the Aura AppLauncherController/saveOrder API.
 ...
 ...               Background: the Metadata API cannot deploy an AppSwitcher that references
 ...               managed ConnectedApp or Network entries. AppMenuItem.SortOrder is also
-...               read-only via Tooling API, REST, and Apex. The only reliable path is
-...               the Aura AppLauncherController/saveOrder API called from browser JS.
+...               read-only via Tooling API, REST, and Apex.
 ...
-...               This test navigates to the Lightning home page, queries all AppMenuItem
-...               records via the Salesforce REST API (no modal or DOM scraping needed),
-...               builds a priority-ordered ID list, and calls Aura saveOrder directly.
+...               The Python task (rlm_reorder_app_launcher.py) queries AppMenuItem via the
+...               Salesforce REST API (authenticated), computes the priority-ordered
+...               ApplicationId list, and passes it here as ORDERED_APP_IDS. This test
+...               navigates to the Lightning home page and calls Aura saveOrder directly
+...               via synchronous XHR — no modal, no DOM scraping required.
 ...
 ...               IMPORTANT: JavaScript blocks must not contain // comments — Robot Framework
 ...               joins continuation lines with spaces, which causes // to comment out
@@ -18,63 +19,37 @@ Suite Setup       Open Browser For Setup
 Suite Teardown    Close Browser After Setup
 
 *** Variables ***
-${ORG_ALIAS}              ${EMPTY}
-${HOME_PATH}              /lightning/page/home
-${PRIORITY_APP_LABELS}    Revenue Cloud
-${API_VERSION}            67.0
+${ORG_ALIAS}          ${EMPTY}
+${HOME_PATH}          /lightning/page/home
+${ORDERED_APP_IDS}    ${EMPTY}
 
 *** Test Cases ***
 Reorder App Launcher
     [Documentation]
-    ...    Navigates to the Lightning home page and reorders the App Launcher so that
-    ...    PRIORITY_APP_LABELS (comma-separated display labels) appear first, in the given
-    ...    order. Remaining apps follow in their current relative order.
-    ...    App IDs are fetched via SOQL REST API — no modal or DOM scraping required.
+    ...    Navigates to the Lightning home page and calls Aura saveOrder with the
+    ...    pre-computed ORDERED_APP_IDS (built by the Python task from SOQL). No modal
+    ...    or DOM scraping required.
     Set Window Size    1920    1080
     Open Setup Page    ${HOME_PATH}
     Sleep    3s    reason=Allow Lightning to fully initialise
-    ${result}=    Call Save Order With Priority List    ${PRIORITY_APP_LABELS}    ${API_VERSION}
+    ${result}=    Call Save Order    ${ORDERED_APP_IDS}
     Log    saveOrder result: ${result}
-    IF    "${result}".startswith("SUCCESS")
+    IF    $result.startswith("SUCCESS")
         Log    App Launcher reordered: priority order applied successfully.
     ELSE
         Log    WARNING: Unexpected saveOrder result: ${result}    WARN
     END
 
 *** Keywords ***
-Call Save Order With Priority List
-    [Documentation]    Fetches all AppMenuItem records via SOQL REST API, builds an ordered
-    ...                list where PRIORITY_LABELS (comma-separated display labels) come first
-    ...                in the given order, followed by remaining apps in their current order.
-    ...                Then calls the Aura AppLauncherController/saveOrder action.
-    ...                Returns: 'SUCCESS:<n> apps ordered', 'ERROR:<msg>', or 'FAIL:<resp>'.
-    [Arguments]    ${priority_labels}    ${api_version}
+Call Save Order
+    [Documentation]    Calls the Aura AppLauncherController/saveOrder action with the
+    ...                pre-computed ordered ApplicationId string. Reads the Aura context
+    ...                (fwuid, token) from window.$A. Returns 'SUCCESS:<n> apps ordered',
+    ...                'ERROR:<msg>', or 'FAIL:<resp>'.
+    [Arguments]    ${ordered_ids}
     ${result}=    Execute JavaScript
-    ...    return (function(priorityLabelsStr, apiVersion) {
-    ...        var priorityLabels = priorityLabelsStr.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
-    ...        var soql = 'SELECT+ApplicationId,Label,SortOrder+FROM+AppMenuItem+WHERE+IsVisible=true+ORDER+BY+SortOrder';
-    ...        var qXhr = new XMLHttpRequest();
-    ...        qXhr.open('GET', '/services/data/v' + apiVersion + '/query?q=' + soql, false);
-    ...        qXhr.setRequestHeader('Accept', 'application/json');
-    ...        qXhr.send();
-    ...        if (qXhr.status !== 200) { return 'ERROR:soql status ' + qXhr.status + ' ' + qXhr.responseText.substring(0, 200); }
-    ...        var qData;
-    ...        try { qData = JSON.parse(qXhr.responseText); } catch(e) { return 'ERROR:parse ' + e.message; }
-    ...        var records = qData.records || [];
-    ...        if (!records.length) { return 'no_apps_from_soql'; }
-    ...        var priorityMap = {};
-    ...        for (var p = 0; p < priorityLabels.length; p++) { priorityMap[priorityLabels[p]] = p; }
-    ...        var priorityIds = new Array(priorityLabels.length).fill(null);
-    ...        var remainingIds = [];
-    ...        for (var j = 0; j < records.length; j++) {
-    ...            var label = records[j].Label || '';
-    ...            var id = records[j].ApplicationId || '';
-    ...            if (!id) continue;
-    ...            var idx = priorityMap[label];
-    ...            if (idx !== undefined) { priorityIds[idx] = id; } else { remainingIds.push(id); }
-    ...        }
-    ...        var orderedIds = priorityIds.filter(function(id) { return id !== null; }).concat(remainingIds);
-    ...        if (!orderedIds.length) { return 'no_ids_found'; }
+    ...    return (function(ids) {
+    ...        if (!ids || ids.length === 0) { return 'ERROR:no_ids_provided'; }
     ...        try {
     ...            var ctx = window.$A.getContext();
     ...            var fwuid = ctx.Vr;
@@ -99,7 +74,7 @@ Call Save Order With Priority List
     ...                }
     ...            }
     ...            if (!token) { return 'ERROR:aura_token_not_found'; }
-    ...            var ids = orderedIds.join(',');
+    ...            var idCount = ids.split(',').filter(function(s) { return s.length > 0; }).length;
     ...            var msgObj = {actions: [{id: '1;a', descriptor: 'serviceComponent://ui.global.components.one.appLauncher.AppLauncherController/ACTION$saveOrder', callingDescriptor: 'UNKNOWN', params: {applicationIds: ids}}]};
     ...            var body = 'message=' + encodeURIComponent(JSON.stringify(msgObj)) +
     ...                '&aura.context=' + encodeURIComponent(auraContext) +
@@ -110,11 +85,11 @@ Call Save Order With Priority List
     ...            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
     ...            xhr.send(body);
     ...            var resp = xhr.responseText || '';
-    ...            if (resp.indexOf('"state":"SUCCESS"') >= 0) { return 'SUCCESS:' + orderedIds.length + ' apps ordered'; }
+    ...            if (resp.indexOf('"state":"SUCCESS"') >= 0) { return 'SUCCESS:' + idCount + ' apps ordered'; }
     ...            return 'FAIL:' + resp.substring(0, 300);
     ...        } catch(e) {
     ...            return 'ERROR:' + String(e.message).substring(0, 200);
     ...        }
-    ...    })(arguments[0], arguments[1])
-    ...    ARGUMENTS    ${priority_labels}    ${api_version}
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${ordered_ids}
     RETURN    ${result}
