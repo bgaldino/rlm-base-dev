@@ -15,13 +15,11 @@ except ImportError:
 
 class SetupPrmOrgEmail(BaseTask):
     """
-    Creates the org-wide email address used as the PRM community email sender,
-    and optionally updates an existing Network's emailSenderAddress to match.
+    Creates the org-wide email address used as the PRM community email sender.
 
-    Run this AFTER create_partner_central so the Network exists and can be
-    updated. The metadata deploy (deploy_post_prm) requires emailSenderAddress
-    in the Network metadata to match the actual Network value — this task
-    ensures both are aligned.
+    Note: Network.EmailSenderAddress is immutable after creation and cannot be
+    updated via the REST API. The patch_network_email_for_deploy task handles
+    aligning the repo metadata file with the Network's existing email for deploy.
     """
 
     task_options = {
@@ -33,20 +31,11 @@ class SetupPrmOrgEmail(BaseTask):
             "description": "Display name for the org-wide email address.",
             "required": False,
         },
-        "network_name": {
-            "description": (
-                "Name of the Network (Experience Cloud site) to update with the "
-                "OWA email address. If provided, the Network's emailSenderAddress "
-                "is updated via REST API after the OWA is created."
-            ),
-            "required": False,
-        },
     }
 
     def _run_task(self):
         email_address = self.options.get("email_address", "steelbrick_demo@salesforce.com")
         display_name = self.options.get("display_name", "rlm")
-        network_name = self.options.get("network_name", "rlm")
 
         if not hasattr(self, "org_config") or not self.org_config:
             raise TaskOptionsError("No org_config available")
@@ -91,48 +80,6 @@ class SetupPrmOrgEmail(BaseTask):
             else:
                 errors = result.get("errors", [])
                 raise Exception(f"Failed to create OrgWideEmailAddress: {errors}")
-
-        # Update the Network's emailSenderAddress to match the OWA
-        if network_name:
-            soql = f"SELECT Id, Name, EmailSenderAddress FROM Network WHERE Name = '{network_name}' LIMIT 1"
-            response = requests.get(query_url, headers=headers, params={"q": soql})
-            response.raise_for_status()
-            result = response.json()
-
-            if result.get("totalSize", 0) == 0:
-                self.logger.info(
-                    f"Network '{network_name}' not found — skipping emailSenderAddress update."
-                )
-                return
-
-            network = result["records"][0]
-            current_email = network.get("EmailSenderAddress", "")
-
-            if current_email == email_address:
-                self.logger.info(
-                    f"Network '{network_name}' emailSenderAddress already set to '{email_address}', skipping update."
-                )
-                return
-
-            network_id = network["Id"]
-            patch_url = f"{instance_url}/services/data/v{api_version}/sobjects/Network/{network_id}"
-            response = requests.patch(
-                patch_url,
-                headers=headers,
-                json={"EmailSenderAddress": email_address},
-            )
-            if response.status_code == 204:
-                self.logger.info(
-                    f"Updated Network '{network_name}' emailSenderAddress to '{email_address}'."
-                )
-            else:
-                try:
-                    errors = response.json()
-                except Exception:
-                    errors = response.text
-                self.logger.warning(
-                    f"Could not update Network '{network_name}' emailSenderAddress: {errors}"
-                )
 
 
 class PatchNetworkEmailForDeploy(BaseTask):
