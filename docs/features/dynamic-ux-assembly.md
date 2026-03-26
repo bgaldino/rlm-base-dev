@@ -387,7 +387,7 @@ below.
 
 | Test | Org | Result |
 |------|-----|--------|
-| `assemble_and_deploy_ux --deploy false` (dry run, all types) | dev-sb0 | 71 items assembled; EmailTemplatePage pages correctly skipped |
+| `assemble_and_deploy_ux -o deploy false` (dry run, all types) | dev-sb0 | 71 items assembled; EmailTemplatePage pages correctly skipped |
 | `assemble_and_deploy_ux` (full deploy) | dev-sb0 | 69 components deployed; `status=Succeeded` |
 | Single-item generation: `RLM_Quote_Record_Page.flexipage-meta.xml` | dev-sb0 | 14 patches applied; action order matches `post_ramp_builder` reference |
 | PRM profile patches (12 layout assignments) | dev-sb0 | Confirmed via assembly log |
@@ -422,7 +422,7 @@ TSO introduces:
 1. Prepare a TSO-capable org (or set `tso=true` in the org definition)
 2. Run dry-run to inspect output:
    ```bash
-   cci task run assemble_and_deploy_ux --deploy false --org <tso-org>
+   cci task run assemble_and_deploy_ux -o deploy false --org <tso-org>
    ```
 3. Verify:
    - `unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml` comes from
@@ -461,7 +461,7 @@ After Phases 2 and 3 pass independently:
 ### Inspect the assembled output before deploying
 
 ```bash
-cci task run assemble_and_deploy_ux --deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
 ```
 Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 
@@ -470,13 +470,13 @@ Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 ```bash
 # Single flexipage (also deploys it)
 cci task run assemble_and_deploy_ux \
-    --metadata-name RLM_Quote_Record_Page.flexipage-meta.xml \
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
     --org dev-sb0
 
 # Single layout, no deploy
 cci task run assemble_and_deploy_ux \
-    --metadata-name "Quote-RLM Quote Layout.layout-meta.xml" \
-    --deploy false --org dev-sb0
+    -o metadata_name "Quote-RLM Quote Layout.layout-meta.xml" \
+    -o deploy false --org dev-sb0
 ```
 
 ### Check what feature flags were active for a past assembly
@@ -498,6 +498,6 @@ rm -rf .sf/orgs/<org-id>/localSourceTracking
 ### Adding a new patch type or flexipage
 
 1. Add or edit the YAML patch file in `templates/flexipages/patches/{feature}/`
-2. Run `assemble_and_deploy_ux --metadata-name <pagename>.flexipage-meta.xml --deploy false`
+2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false --org <org>`
 3. Inspect the output file and compare to the reference in `unpackaged/post_*/flexipages/`
-4. When satisfied, run with `--deploy true`
+4. When satisfied, run without `-o deploy false` to deploy
