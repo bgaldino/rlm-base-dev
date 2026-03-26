@@ -697,7 +697,7 @@ class ImportCML(CMLBaseTask):
             for eid in existing_esc_ids:
                 self.delete_record("ExpressionSetConstraintObj", eid)
             self.logger.info("Old ESC records deleted")
-        elif import_failed:
+        elif import_failed and not dry_run:
             self.logger.warning(
                 "Import had errors -- skipping deletion of old ESC records. "
                 "Target org may contain a mix of old and new constraints."
