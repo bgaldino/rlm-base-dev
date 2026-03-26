@@ -83,7 +83,7 @@ qb-transactionprocessingtypes/
 
 ## Idempotency
 
-Uses `Upsert` with `DeveloperName` as the external ID — re-runs match existing records and update in place. No duplicates created.
+Uses `Upsert` with `DeveloperName` as the external ID — when `DeveloperName` is unique per record in the org, re-runs match existing records and update in place, so no additional duplicates are created by this plan. Pre-existing duplicates (if any) are preserved.
 
 ## Schema Analysis
 
