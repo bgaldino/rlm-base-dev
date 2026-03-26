@@ -119,7 +119,7 @@ Uses `Upsert` with `DeveloperName` as the external ID — re-runs match existing
 
 **`Description`** (string, nillable) — Free-text description to help admins with configuration.
 
-**`DeveloperName`** (string, required) — Unique API name. Alphanumeric and underscores only; must begin with a letter, no spaces, no trailing or consecutive underscores.
+**`DeveloperName`** (string, required) — API name (expected unique per org by convention). Alphanumeric and underscores only; must begin with a letter, no spaces, no trailing or consecutive underscores.
 
 **`Language`** (picklist, restricted, nillable) — Language of the record. Valid values: `da` (Danish), `de` (German), `en_US` (English), `es` (Spanish), `es_MX` (Spanish Mexico), `fi` (Finnish), `fr` (French), `it` (Italian), `ja` (Japanese), `ko` (Korean), `nl_NL` (Dutch), `no` (Norwegian), `pt_BR` (Portuguese Brazil), `ru` (Russian), `sv` (Swedish), `th` (Thai), `zh_CN` (Chinese Simplified), `zh_TW` (Chinese Traditional).
 
