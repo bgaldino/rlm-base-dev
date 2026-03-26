@@ -1382,6 +1382,18 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 "Org config has no username. Cannot deploy without a target org."
             )
 
+        # Always exclude AppSwitcher from the Metadata API deploy — it fails on any
+        # org whose AppMenu contains managed ConnectedApp or Network entries (which
+        # Salesforce cannot validate in a customer deploy). App Launcher ordering is
+        # handled entirely by the reorder_app_launcher Robot task (step 2 of prepare_ux).
+        appmenu_file = output_path / "appMenus" / "AppSwitcher.appMenu-meta.xml"
+        if appmenu_file.exists():
+            appmenu_file.unlink()
+            self.logger.info(
+                "AppSwitcher excluded from Metadata API deploy — ordering will be "
+                "applied by reorder_app_launcher (step 2 of prepare_ux)."
+            )
+
         cmd = [
             "sf",
             "project",
@@ -1432,72 +1444,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if status != 0 or deploy_status not in ("Succeeded", "SucceededPartial"):
             errors = deploy_result.get("details", {}).get("componentFailures", [])
 
-            # Check if the ONLY failures are AppSwitcher-specific. This happens on
-            # scratch orgs built from a TSO when (a) the org's AppMenu has more apps
-            # than the assembled AppSwitcher, or (b) ConnectedApp entries reference
-            # packages not installed in this org. In both cases the right behaviour is
-            # to warn and redeploy without the AppSwitcher so the rest of post_ux
-            # still lands.
-            appmenu_errors = [
-                e for e in errors
-                if e.get("componentType") == "AppMenu" and e.get("fullName") == "AppSwitcher"
-            ]
-            non_appmenu_errors = [e for e in errors if e not in appmenu_errors]
-
-            if appmenu_errors and not non_appmenu_errors:
-                reasons = "; ".join(
-                    e.get("problem", "unknown") for e in appmenu_errors
-                )
-                appmenu_file = output_path / "appMenus" / "AppSwitcher.appMenu-meta.xml"
-                self.logger.warning(
-                    "AppSwitcher deploy failed (%s). "
-                    "This typically happens on scratch orgs where the org's AppMenu contains "
-                    "apps not yet registered or ConnectedApp entries from uninstalled packages. "
-                    "Removing AppSwitcher and redeploying remaining components.",
-                    reasons,
-                )
-                if appmenu_file.exists():
-                    appmenu_file.unlink()
-
-                # Retry deploy without the AppSwitcher.
-                retry_result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                    timeout=600,
-                )
-                try:
-                    retry_output = json.loads(retry_result.stdout)
-                except json.JSONDecodeError:
-                    raise CommandException(
-                        f"Retry deploy returned non-JSON output.\n"
-                        f"Stdout: {retry_result.stdout[:2000]}"
-                    )
-                retry_status = retry_output.get("status", -1)
-                retry_deploy = retry_output.get("result", {})
-                retry_deploy_status = retry_deploy.get("status", "Unknown")
-                if retry_status != 0 or retry_deploy_status not in ("Succeeded", "SucceededPartial"):
-                    retry_errors = retry_deploy.get("details", {}).get("componentFailures", [])
-                    retry_msgs = [
-                        f"  {e.get('componentType')}/{e.get('fullName')}: {e.get('problem')}"
-                        for e in retry_errors[:20]
-                    ]
-                    raise CommandException(
-                        f"Deployment failed after AppSwitcher exclusion (status={retry_deploy_status}).\n"
-                        + "\n".join(retry_msgs)
-                    )
-                deployed_count = retry_deploy.get("numberComponentsDeployed", 0)
-                self.logger.info(
-                    "Deployment succeeded without AppSwitcher: %d component(s) deployed "
-                    "(status=%s). AppSwitcher skipped — the org's AppMenu contains managed "
-                    "ConnectedApp or Network entries that Salesforce Metadata API cannot validate "
-                    "in a customer deploy. App Launcher ordering will be applied by the "
-                    "reorder_app_launcher Robot task (step 2 of prepare_ux).",
-                    deployed_count,
-                    retry_deploy_status,
-                )
-                return
 
             err_msgs = [
                 f"  {e.get('componentType')}/{e.get('fullName')}: {e.get('problem')}"
