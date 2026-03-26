@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Commit_Hash__c</fullName>
+    <label>Commit Hash</label>
+    <type>Text</type>
+    <length>7</length>
+    <required>false</required>
+    <unique>false</unique>
+    <externalId>false</externalId>
+</CustomField>
