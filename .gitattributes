@@ -1,0 +1,19 @@
+# Default: normalize all text files to LF on commit
+* text=auto
+
+# Explicitly LF for files that must stay Unix-style
+*.py text eol=lf
+*.robot text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.apex text eol=lf
+
+# Binaries — no line-ending conversion
+*.png binary
+*.jpg binary
+*.pdf binary
+*.zip binary
