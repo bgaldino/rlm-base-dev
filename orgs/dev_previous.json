@@ -1,73 +1,120 @@
 {
-  "orgName": "Salesforce Revenue Lifecycle Management",
+  "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "Enterprise",
   "release": "previous",
   "features": [
-    "AdvancedApproval",
-    "AIProviderOpenAI",
-    "AIProviderAWSBedrock",
-    "BillingAdvanced",
-    "CallCoaching",
-    "CGAnalytics",
-    "Chatbot",
-    "Communities",
-    "ContractsAIClauseDesigner",
-    "Copilot",
-    "CoreCPQ",
-    "DisclosureFramework",
-    "EinsteinAssistant",
-    "Einstein1AIPlatform",
-    "EinsteinGenerativeServices",
-    "EinsteinHawkingC2CEnabled",
-    "EinsteinSearch",
-    "EnablePRM",
     "EnableSetPasswordInApi",
-    "InsightsPlatform",
     "OrderSaveLogicEnabled",
+    "OrderManagement",
     "PartnerCommunity",
+    "Communities",
+    "CustomerCommunityPlus",
+    "CoreCpq",
+    "UsageManagement",
+    "BillingAdvanced",
+    "DocGen",
+    "Einstein1AIPlatform",
+    "CGAnalytics",
+    "InsightsPlatform",
     "RevenueIntelligence",
     "SalesCloudEinstein",
-    "SalesforceConfiguratorEngine",
-    "SalesforcePaymentsFeature",
-    "TableauEinstein",
-    "UsageManagement"
-    ],
+    "B2BCommerce",
+    "EnablePRM",
+    "ExternalClientApps",
+    "ContractsAI"
+  ],
   "settings": {
+    "billingSettings": {
+      "enableBillingSetup": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    },
+    "currencySettings": {
+      "enableMultiCurrency": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
     },
-    "mobileSettings": {
-      "enableS1EncryptedStoragePref2": false
+    "industriesContextSettings": {
+      "enableContextDefinitions": true
     },
-    "userEngagementSettings": {
-      "enableShowSalesforceUserAssist": false
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
     },
-    "userManagementSettings": {
-      "enableEnhancedProfileMgmt": true,
-      "enableEnhancedPermsetMgmt": true,
-      "enableNewProfileUI": true
+    "opportunitySettings": {
+      "enableOpportunityTeam": true
+    },
+    "orderManagementSettings": {
+      "enableOrderManagement": true
+    },
+    "orderSettings": {
+      "enableOrders": true,
+      "enableEnhancedCommerceOrders": true,
+      "enableOrderEvents": true,
+      "enableOptionalPricebook": false,
+      "enableOrderWithMultiplePriceBooks": false,
+      "enableReductionOrders": true,
+      "enableZeroQuantity": true,
+      "enableNegativeQuantity": true
+    },
+    "quoteSettings": {
+      "enableQuote": true,
+      "enableQuotesWithoutOppEnabled": true
+    },
+    "industriesPricingSettings": {
+      "enableHighAvailability": true,
+      "enablePricingWaterfall": true,
+      "enablePricingWaterfallPersistence": true,
+      "enableSalesforcePricing": true
+    },
+    "industriesRatingSettings": {
+      "enableRating": true,
+      "enableRatingWaterfall": true,
+      "enableRatingWaterfallPersistence": true
+    },
+    "revenueManagementSettings": {
+      "enableAdvCreateOrdersFromQuote": true,
+      "enableAdvancedDetailLinePricing": true,
+      "enableAsIsRenewals": true,
+      "enableAutoAddDerivedAsset": true,
+      "enableCoreCPQ": true,
+      "enableDeltaPricing": true,
+      "enableFullEscalationHydration": true,
+      "enableGroupRampMultiSchedulePref": true,
+      "enableGroupRampPref": true,
+      "enableGroupRampTrialSegmentPref": true,
+      "enableRampDeal": true,
+      "enableRevInstPricingDefaultPref": true,
+      "enableRevUnifiedSetup": true,
+      "enableRevenueAdjustment": true,
+      "enableScaleAttributes": true,
+      "enableTransactionCloning": true,
+      "enableTransactionProcessor": true,
+      "groupsEnabled": true,
+      "hidePriceRefreshNtfcn": false,
+      "persistChunkSizeOverride": true,
+      "relaxUniqueCipValidation": true,
+      "skipOrgSttPricing": false
+    },
+    "productConfiguratorSettings": {
+      "enableProductConfigurator": true
+    },
+    "dynamicFulfillmentOrchestratorSettings": {
+      "enableDFOPref": true
+    },
+    "emailTemplateSettings": {
+      "enableTemplateEnhancedFolderPref": true
     },
     "securitySettings": {
       "enableAdminLoginAsAnyUser": true,
       "sessionSettings": {
         "forceRelogin": false
       }
-    },
-    "languageSettings": {
-      "enableTranslationWorkbench": true
-    },
-    "currencySettings": {
-      "enableMultiCurrency": true
-    },
-    "communitiesSettings": {
-      "enableNetworksEnabled": true
-    },
-    "einsteinGptSettings" : {
-      "enableEinsteinGptPlatform" : true
-    },
-    "emailTemplateSettings": {
-      "enableTemplateEnhancedFolderPref": true
     }
   }
 }

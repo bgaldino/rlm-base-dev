@@ -4,8 +4,6 @@
   "edition": "Enterprise",
   "features": [
     "AdvancedApproval",
-    "AIProviderOpenAI",
-    "AIProviderAWSBedrock",
     "BillingAdvanced",
     "CallCoaching",
     "CGAnalytics",
@@ -16,7 +14,6 @@
     "CoreCPQ",
     "CustomerDataPlatform",
     "CustomerDataPlatformLite",
-    "DisclosureFramework",
     "EinsteinAssistant",
     "Einstein1AIPlatform",
     "EinsteinGenerativeServices",
