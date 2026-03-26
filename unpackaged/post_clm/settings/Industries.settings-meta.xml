@@ -9,7 +9,6 @@
     <enableDontSharePartyprofWPortalOrgPref>false</enableDontSharePartyprofWPortalOrgPref>
     <enableEnhancedQuestionCreation>true</enableEnhancedQuestionCreation>
     <enableEpcDeleteAccess>false</enableEpcDeleteAccess>
-    <enableGnrcDisclsFrmwrk>false</enableGnrcDisclsFrmwrk>
     <enableIndustriesAssessment>true</enableIndustriesAssessment>
     <enableIndustriesAssessmentPrefill>false</enableIndustriesAssessmentPrefill>
     <enableIndustriesIntegrationOrchestratorPref>false</enableIndustriesIntegrationOrchestratorPref>
@@ -20,7 +19,6 @@
     <enablePartyprofParentMultiSharingOrgPref>false</enablePartyprofParentMultiSharingOrgPref>
     <enableScoringFrameworkCRMAPref>true</enableScoringFrameworkCRMAPref>
     <enableScoringFrameworkOrgPref>true</enableScoringFrameworkOrgPref>
-    <enableTurnOffDsclsReprtPbsrName>false</enableTurnOffDsclsReprtPbsrName>
     <partyProfMultiShrPrtnrsOrgPref>false</partyProfMultiShrPrtnrsOrgPref>
     <rlaEditIfAccHasEdit>false</rlaEditIfAccHasEdit>
 </IndustriesSettings>
