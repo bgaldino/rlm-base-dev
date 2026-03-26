@@ -266,12 +266,19 @@ it is assembled once at step 29 of `prepare_rlm_org` by `assemble_and_deploy_ux`
 ```
 templates/
   flexipages/base/          — 25 base flexipages (moved from force-app)
-  flexipages/standalone/    — feature-specific complete overrides (9 feature dirs)
+  flexipages/standalone/    — feature-specific complete overrides; one canonical version per page
+    quantumbit/             — QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
+    billing/                — billing + usage/rating object pages (assembled when billing=true)
+    constraints/            — constraints-specific overrides
+    collections/            — collections-specific overrides
+    utils/, payments/, docgen/, approvals/, tso/  — feature overrides (tso/ currently empty;
+                              TSO builds inherit QB standalone via tso > qb > base priority)
   flexipages/patches/       — YAML semantic patch files per feature
   layouts/base/             — 17 base layouts (moved from force-app)
   layouts/billing/          — billing-specific layouts
   layouts/constraints/      — OrderItem + QuoteLineItem overrides
   applications/             — RLM_Revenue_Cloud variants + conditional standalones
+  applications/patches/     — feature-conditional actionOverride patches (billing, rates, ramps)
   appMenus/base/            — AppSwitcher (always assembled)
   objects/base/             — compact layouts + list views from force-app
   objects/billing/          — billing compact layouts + list views
@@ -287,9 +294,9 @@ fully regenerated on every `assemble_and_deploy_ux` run. Edit the source templat
 
 | Type | Logic |
 |------|-------|
-| Flexipages | Base source resolution (last feature wins) + sequential YAML patch application |
+| Flexipages | Base source resolution (last feature wins, order: payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals) + sequential YAML patch application. One canonical standalone per page — no duplicate copies across feature dirs. TSO standalone is intentionally empty; TSO builds inherit from QB via priority chain. |
 | Layouts | Copy base; billing adds 3; constraints overrides 2 (last write wins for same name) |
-| Applications | `RLM_Revenue_Cloud`: `tso > qb > base` priority; standalone apps gated per flag |
+| Applications | `RLM_Revenue_Cloud`: `tso > qb > base` priority; feature-conditional `actionOverrides` injected via `applications/patches/{feature}/` (billing, rates, ramps) on non-TSO builds; TSO template already includes all overrides |
 | App menus | AppSwitcher always assembled; retrieves org's full AppSwitcher and priority-reorders it (template provides feature-gated priority order); gracefully skips AppSwitcher deploy on orgs where the AppMenu contains managed ConnectedApp or Network entries — Salesforce Metadata API cannot validate those references in a customer deploy. `AppMenuItem.SortOrder` is platform read-only (Tooling API, REST, and Apex all reject writes). The `reorder_app_launcher` Robot task (step 2 of `prepare_ux`, gated by `ux=true`) handles ordering on all `ux=true` orgs: opens the App Launcher modal, reads all tile IDs from the shadow DOM, and calls `AppLauncherController/saveOrder` via the Aura API — no UI drag required. All other UX components (85+) deploy successfully. |
 | Profiles | Strip-and-build: classAccesses-only at step 5; full profile at step 29 via patches |
 | Objects | Feature-conditional copy: `base` always, then `billing`, `tso`, `collections` |
@@ -408,11 +415,12 @@ cci flow run prepare_rlm_org --org beta
 6. **Apex bulk safety** — no SOQL in loops, no single-record DML in loops
 7. **CSV header alignment** — `$$` columns must match externalId fields; empty header files need blank first line
 8. **PRM Network email** — repo must use placeholder only; patch/revert tasks must run in correct order (patch before deploy_post_prm, revert after). No real email in committed rlm.network-meta.xml.
-9. **App Launcher** — `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` is the single source of truth; `sync_appmenu_from_user.py` writes directly to this file. Deployed by `prepare_ux` (step 29) when `tso=true`.
+9. **App Launcher** — `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` is the single source of truth; `sync_appmenu_from_user.py` writes directly to this file. Deployed by `prepare_ux` (step 29); `reorder_app_launcher` runs on all `ux=true` orgs (not TSO-specific).
 10. **UX assembly — template edits**
     - Never edit files in `unpackaged/post_ux/` — edit templates instead
     - `force-app` profiles must stay stripped (classAccesses only — no layoutAssignment, no applicationVisibilities)
-    - New UX for a feature → add to `templates/flexipages/standalone/{feature}/` (new/override pages) or `templates/flexipages/patches/{feature}/` (additive changes to existing pages)
+    - New UX for a feature → add to `templates/flexipages/standalone/{feature}/` (new/override pages) or `templates/flexipages/patches/{feature}/` (additive changes to existing pages). One canonical standalone version per page — avoid duplicating a page across multiple feature standalones. TSO standalone overrides only when the page contains TSO-specific components or metadata not present in any other build.
+    - New billing `actionOverrides` for the app → add to `templates/applications/patches/billing/RLM_Revenue_Cloud.patch.xml`; similarly for `rates` and `ramps` patches
     - Do NOT add `EmailTemplatePage` flexipages to `templates/flexipages/` — they cannot deploy via Metadata API and are created at runtime by `create_approval_email_templates`
     - `.forceignore` must have entries for any UX files in `unpackaged/post_*/` that are now assembled via `prepare_ux`
     - Compact layouts and list views belong in `templates/objects/{feature}/` not in `force-app` or feature `unpackaged/post_*/objects/`
