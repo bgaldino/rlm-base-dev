@@ -65,11 +65,7 @@ Call Save Order
     ...                fwuid: fwuid, loaded: ctx.getLoaded()
     ...            });
     ...            var cs = window.aura.clientService;
-    ...            var token = null;
-    ...            try {
-    ...                if (window.$A && typeof window.$A.getToken === 'function') { token = window.$A.getToken(); }
-    ...                if (!token || token === 'undefined' || token === 'null') { token = null; }
-    ...            } catch(tokenErr) { token = null; }
+    ...            var token = null; try { token = (window.$A && typeof window.$A.getToken === 'function') ? window.$A.getToken() : null; } catch(ignore) {}
     ...            if (!token) { token = cs.Ac; }
     ...            if (!token) {
     ...                var csKeys = Object.keys(cs);

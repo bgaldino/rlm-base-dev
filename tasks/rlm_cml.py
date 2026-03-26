@@ -23,10 +23,11 @@ import requests
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.tasks.salesforce import BaseSalesforceTask
-    from cumulusci.core.exceptions import TaskOptionsError
+    from cumulusci.core.exceptions import CumulusCIFailure, TaskOptionsError
 except ImportError:
     BaseTask = object
     BaseSalesforceTask = object
+    CumulusCIFailure = Exception
     TaskOptionsError = Exception
 
 # ---------------------------------------------------------------------------
@@ -633,6 +634,7 @@ class ImportCML(CMLBaseTask):
         self.logger.info(f"Found {len(existing_esc_ids)} existing ESC records to replace")
 
         import_failed = False
+        unresolved_tags = []
         new_count = 0
 
         for row in esc_list:
@@ -641,6 +643,7 @@ class ImportCML(CMLBaseTask):
             ref_name = row.get("ReferenceObject.Name", "").strip()
             ref_type = row.get("ReferenceObject.Type", "").strip()
             tag_type = row.get("ConstraintModelTagType", "").strip()
+            tag = row.get("ConstraintModelTag", "")
 
             # Clean row for insert
             clean = {}
@@ -660,7 +663,7 @@ class ImportCML(CMLBaseTask):
             if resolved_id:
                 clean["ReferenceObjectId"] = resolved_id
                 if dry_run:
-                    self.logger.info(f"[DRY RUN] Would create ESC: tag={row.get('ConstraintModelTag')}, ref={resolved_id}")
+                    self.logger.info(f"[DRY RUN] Would create ESC: tag={tag}, ref={resolved_id}")
                     new_count += 1
                 else:
                     if self.create_record("ExpressionSetConstraintObj", clean):
@@ -670,9 +673,23 @@ class ImportCML(CMLBaseTask):
             else:
                 uk = legacy_to_uk.get(ref_id, "N/A")
                 self.logger.warning(f"Could not resolve ReferenceObjectId: {ref_id} (UK: {uk}, name: {ref_name})")
+                unresolved_tags.append(f"{tag} ({tag_type})")
                 import_failed = True
 
         self.logger.info(f"{new_count} ESC records {'would be ' if dry_run else ''}created")
+
+        if unresolved_tags:
+            tag_list = ", ".join(unresolved_tags)
+            msg = (
+                f"{len(unresolved_tags)} ESC association(s) could not be resolved: {tag_list}. "
+                f"This usually means the product catalog (qb-pcm) has not been loaded or "
+                f"contains product names that don't match the constraint data plan. "
+                f"Reload qb-pcm data and retry."
+            )
+            if dry_run:
+                self.logger.error(msg)
+            else:
+                raise CumulusCIFailure(msg)
 
         # Step 6: Delete old ESC records
         if not import_failed and not dry_run:
