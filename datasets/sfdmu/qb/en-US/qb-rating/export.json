@@ -61,7 +61,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Name FROM UsageCommitmentPolicy",
+          "query": "SELECT Name, CommitmentRate FROM UsageCommitmentPolicy",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
