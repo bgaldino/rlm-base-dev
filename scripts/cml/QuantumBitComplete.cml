@@ -6,31 +6,33 @@ type LineItem;
 type QuantumBitCompleteSolution : LineItem {
     relation softwaremaintenance : SoftwareMaintenance;
 
-    relation additionalautomationqbcredits : AdditionalAutomationQBCredits {
-        default AdditionalAutomationQBCredits(25);
-    }
+    relation additionalautomationqbcredits : AdditionalAutomationQBCredits;
 
-    relation additionalmessagesqbstarter : AdditionalMessagesQBStarter {
-        default AdditionalMessagesQBStarter(5);
-    }
+    relation additionalmessagesqbstarter : AdditionalMessagesQBStarter;
 
-    relation additionalflowsqbstarter : AdditionalFlowsQBStarter {
-        default AdditionalFlowsQBStarter(5);
-    }
+    relation additionalflowsqbstarter : AdditionalFlowsQBStarter;
 
     relation quantumbitdatabase : QuantumBitDatabase;
+
+    relation quantumbitdatabasetokenbased : QuantumBitDatabaseTokenBased;
+
+    relation quantumbitdatabasetokencommiteach : QuantumBitDatabaseTokenCommitEach;
+
+    relation quantumbitdatabasetokencommitflat : QuantumBitDatabaseTokenCommitFlat;
+
+    relation quantumbitdatabasetokencommittier : QuantumBitDatabaseTokenCommitTier;
+
+    relation quantumbitdatabasemonetarycommit : QuantumBitDatabaseMonetaryCommit;
+
+    relation quantumbitdatabasequantitycommit : QuantumBitDatabaseQuantityCommit;
 
     relation quantumbitessentialstraining : QuantumBitEssentialsTraining;
 
     relation quantumbitfundamentalstraining : QuantumBitFundamentalsTraining;
 
-    relation apiaccessrequestsaeh : APIAccessRequestsAEH {
-        default APIAccessRequestsAEH(100);
-    }
+    relation apiaccessrequestsaeh : APIAccessRequestsAEH;
 
-    relation additionalapi : AdditionalAPI {
-        default AdditionalAPI(1);
-    }
+    relation additionalapi : AdditionalAPI;
 
     relation qbapimanagementsolution : QBAPIManagementSolution;
 
@@ -69,6 +71,18 @@ type AdditionalMessagesQBStarter : LineItem;
 type AdditionalFlowsQBStarter : LineItem;
 
 type QuantumBitDatabase : LineItem;
+
+type QuantumBitDatabaseTokenBased : LineItem;
+
+type QuantumBitDatabaseTokenCommitEach : LineItem;
+
+type QuantumBitDatabaseTokenCommitFlat : LineItem;
+
+type QuantumBitDatabaseTokenCommitTier : LineItem;
+
+type QuantumBitDatabaseMonetaryCommit : LineItem;
+
+type QuantumBitDatabaseQuantityCommit : LineItem;
 
 type QuantumBitEssentialsTraining : LineItem;
 

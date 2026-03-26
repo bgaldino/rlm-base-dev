@@ -1,5 +1,5 @@
 feature: approvals
-feature_flag: qb
+feature_flag: approvals
 # Adds approval submission action and approval-tracking fields to the Quote record page.
 # Note: All fields use RLM_ prefix (not RC_) per project naming standards.
 patches:

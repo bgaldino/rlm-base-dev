@@ -1,7 +1,7 @@
 {
   "$comment_plan": "qb-rates SFDMU data plan - creates rate cards, rate card entries, rate adjustment tiers, and pricebook-rate card associations. Single pass inserts all objects while RateCardEntry is Draft (RABT requires Draft parent RCE). RateCardEntry activation happens externally after this load.",
   "$comment_composite_keys": "SFDMU v5: For objects whose externalId is all-relationship paths (PriceBook.Name;RateCard.Name;RateCardType etc.), v5 cannot reliably match target records; deleteOldData: true is used so each run deletes then reinserts \u2014 record count is idempotent (same after second run).",
-  "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
+  "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU v5 does NOT auto-generate $$ composite-key columns during extraction — run scripts/post_process_extraction.py (called automatically by ExtractSFDMUData) before re-importing extracted data.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,
@@ -26,16 +26,17 @@
       "deleteOldData": true
     },
     {
+      "$comment": "SFDMU v5 Bug 2: externalId contains multi-hop traversal fields (Product.StockKeepingUnit, RateCard.Name, UsageResource.Code, RateUnitOfMeasure.UnitCode). Upsert TARGET SELECT strips parent-relationship prefixes producing invalid SOQL. Fix: Insert+deleteOldData skips the TARGET SELECT phase entirely.",
       "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.Name, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, Rate, RateCardId, RateCard.Name, RateCard.Type, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureClass.Name, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, Status, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
-      "operation": "Upsert",
+      "operation": "Insert",
       "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
       "excluded": false,
       "deleteOldData": true
     },
     {
-      "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCardEntry.RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key.",
+      "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCardEntry.RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key. SFDMU v5 Bug 2: externalId contains multi-hop traversal fields (Product.StockKeepingUnit, RateCardEntry.RateCard.Name, UsageResource.Code, RateUnitOfMeasure.UnitCode). Fix: Insert+deleteOldData skips the TARGET SELECT phase.",
       "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, Product.StockKeepingUnit, ProductSellingModelId, RateCardEntryId, RateCardEntry.RateCard.Name, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, UpperBound, UsageResourceId, UsageResource.Code FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
-      "operation": "Upsert",
+      "operation": "Insert",
       "externalId": "Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
       "excluded": false,
       "deleteOldData": true

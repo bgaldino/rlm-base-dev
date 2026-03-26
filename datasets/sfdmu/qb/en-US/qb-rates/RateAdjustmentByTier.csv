@@ -1,7 +1,8 @@
 $$Product.StockKeepingUnit$RateCardEntry.RateCard.Name$RateUnitOfMeasure.UnitCode$UsageResource.Code$LowerBound$UpperBound,AdjustmentType,AdjustmentValue,EffectiveFrom,EffectiveTo,LowerBound,Product.StockKeepingUnit,ProductSellingModel.Name,RateCardEntry.$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode,RateCardEntryStatus,RateUnitOfMeasure.Name,RateUnitOfMeasureName,UpperBound,UsageResource.Name
-QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-CPUTIME;0;,Percentage,5,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-CPUTIME;TOKEN-UOM,Active,Tokens,Tokens,,Compute Time
-QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-DATASTORAGE;0;,Percentage,4,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-DATASTORAGE;TOKEN-UOM,Active,Tokens,Tokens,,Data Storage
+QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-CPUTIME-TKN;0;,Percentage,5,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-CPUTIME-TKN;TOKEN-UOM,Active,Tokens,Tokens,,Compute Time (Token)
+QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;UR-DATASTORAGE-TKN;0;,Percentage,4,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;UR-DATASTORAGE-TKN;TOKEN-UOM,Active,Tokens,Tokens,,Data Storage (Token)
 QB-CMT-TKN-EACH;Tier Rate Card;TOKEN-UOM;QB-TOKEN;0;,Percentage,6,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;QB-TOKEN;TOKEN-UOM,Active,Tokens,Tokens,,Quantum Tokens
+QB-CMT-TKN-EACH;Tier Rate Card;USD;QB-TOKEN;0;,Percentage,0,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-EACH,Term Annual,QB-CMT-TKN-EACH;Tier Rate Card;QB-TOKEN;USD,Active,USD,USD,,Quantum Tokens
 QB-CMT-TKN-FLAT;Tier Rate Card;TOKEN-UOM;;0;,Percentage,10,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-FLAT,Term Annual,QB-CMT-TKN-FLAT;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,,
 QB-CMT-TKN-FLAT;Tier Rate Card;USD;QB-TOKEN;0;,Percentage,0,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-FLAT,Term Annual,QB-CMT-TKN-FLAT;Tier Rate Card;QB-TOKEN;USD,Active,USD,USD,,Quantum Tokens
 QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM;;0;1000,Percentage,10,2023-01-01T20:00:00.000+0000,,0,QB-CMT-TKN-TIER,Term Annual,QB-CMT-TKN-TIER;Tier Rate Card;TOKEN-UOM,Active,Tokens,Tokens,1000,
@@ -16,7 +17,7 @@ QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;100;500,Override,12.5,2023-01-01T20:00:0
 QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;1;100,Percentage,0,2023-01-01T20:00:00.000+0000,,1,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,100,Data Storage
 QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;500;5000,Override,15,2023-01-01T20:00:00.000+0000,,500,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,5000,Data Storage
 QB-DB;Tier Rate Card;USD;UR-DATASTORAGE;5000;999999999,Override,18,2023-01-01T20:00:00.000+0000,,5000,QB-DB,Term Annual,QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,999999999,Data Storage
-QB-MTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE;0;,Percentage,10,2023-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,,Data Storage
-QB-MTY-CMT;Tier Rate Card;USD;UR-CPUTIME;0;,Percentage,5,2023-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,,Compute Time
+QB-MTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE-MTY;0;,Percentage,10,2023-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-DATASTORAGE-MTY;USD,Active,USD,USD,,Data Storage (Monetary)
+QB-MTY-CMT;Tier Rate Card;USD;UR-CPUTIME-MTY;0;,Percentage,5,2023-01-01T20:00:00.000+0000,,0,QB-MTY-CMT,Term Annual,QB-MTY-CMT;Tier Rate Card;UR-CPUTIME-MTY;USD,Active,USD,USD,,Compute Time (Monetary)
 QB-QTY-CMT;Tier Rate Card;USD;UR-CPUTIME;0;,Percentage,10,2023-01-01T20:00:00.000+0000,,0,QB-QTY-CMT,Term Annual,QB-QTY-CMT;Tier Rate Card;UR-CPUTIME;USD,Active,USD,USD,,Compute Time
 QB-QTY-CMT;Tier Rate Card;USD;UR-DATASTORAGE;0;,Percentage,20,2023-01-01T20:00:00.000+0000,,0,QB-QTY-CMT,Term Annual,QB-QTY-CMT;Tier Rate Card;UR-DATASTORAGE;USD,Active,USD,USD,,Data Storage

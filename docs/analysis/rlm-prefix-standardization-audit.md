@@ -141,7 +141,7 @@ When renamed, the Revenue Settings configuration in any existing org also needs 
 | Old Name | New Name | External References |
 |----------|----------|---------------------|
 | `RC_CreateOrdersFromQuote` | `RLM_CreateOrdersFromQuote` | cumulusci.yml line 1422; robot test; ⚠️ CONFLICT 6 |
-| `RC_Refresh_Decision_Tables_By_Usage_Type` | `RLM_Refresh_Decision_Tables_By_Usage_Type` | Referenced by `RC_Account_Utilities` flow subflow call |
+| `RC_Refresh_Decision_Tables_By_Usage_Type` | ~~`RLM_Refresh_Decision_Tables_By_Usage_Type`~~ | **Deleted** — consolidated into `RLM_Refresh_Decision_Tables` (PR #93) |
 | `RC_Update_Asset_Pricing_Source_if_Price_Revision` | `RLM_Update_Asset_Pricing_Source_if_Price_Revision` | |
 
 #### `unpackaged/post_approvals/flows/`
@@ -184,11 +184,11 @@ When renamed, the Revenue Settings configuration in any existing org also needs 
 | `RC_OrchestrateUsage` | `RLM_OrchestrateUsage` | |
 | `RC_OutputUsageDataTables` | `RLM_OutputUsageDataTables` | References `RC_*__c` field names inside XML |
 | `RC_Rebuild_Search_Index` | `RLM_Rebuild_Search_Index` | References `RC_RebuildSearchIndex` Apex class |
-| `RC_Refresh_Asset_Decision_Tables` | `RLM_Refresh_Asset_Decision_Tables` | |
-| `RC_Refresh_Pricing_Decision_Tables` | `RLM_Refresh_Pricing_Decision_Tables` | |
-| `RC_Refresh_Rate_Card_Decision_Tables` | `RLM_Refresh_Rate_Card_Decision_Tables` | |
+| `RC_Refresh_Asset_Decision_Tables` | ~~`RLM_Refresh_Asset_Decision_Tables`~~ | **Deleted** — consolidated into `RLM_Refresh_Decision_Tables` (PR #93) |
+| `RC_Refresh_Pricing_Decision_Tables` | ~~`RLM_Refresh_Pricing_Decision_Tables`~~ | **Deleted** — consolidated into `RLM_Refresh_Decision_Tables` (PR #93) |
+| `RC_Refresh_Rate_Card_Decision_Tables` | ~~`RLM_Refresh_Rate_Card_Decision_Tables`~~ | **Deleted** — consolidated into `RLM_Refresh_Decision_Tables` (PR #93) |
 | `RC_Reset_Account` | `RLM_Reset_Account` | References `RC_AccountUtilities` Apex class |
-| `RC_UpdateDecisionTables` | `RLM_UpdateDecisionTables` | Referenced in docs/references/task-examples.md, docs/references/decision-table-examples.md, tasks/rlm_manage_decision_tables.py comments |
+| `RC_UpdateDecisionTables` | ~~`RLM_UpdateDecisionTables`~~ | **Deleted** — consolidated into `RLM_Refresh_Decision_Tables` (PR #93, issue #88) |
 | `RC_Usage_Data_Tables_Concept_LS` | `RLM_Usage_Data_Tables_Concept_LS` | References `RC_*__c` field names inside XML |
 | `RC_Usage_Data_Tables_Concept_TJ` | `RLM_Usage_Data_Tables_Concept_TJ` | References `RC_*__c` field names inside XML |
 | `RC_Usage_Data_Tables_Concept_US` | `RLM_Usage_Data_Tables_Concept_US` | References `RC_*__c` field names inside XML |

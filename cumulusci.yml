@@ -1198,14 +1198,6 @@ tasks:
     options:
       path: force-app/main/default/settings
 
-  setup_prm_org_email:
-    group: Partner Relationship Management
-    description: >
-      Create the steelbrick_demo@salesforce.com org-wide email address used as
-      the PRM community email sender. In scratch orgs no email verification is
-      required. Must run before deploy_post_prm.
-    class_path: tasks.rlm_community.SetupPrmOrgEmail
-
   patch_network_email_for_deploy:
     group: Partner Relationship Management
     description: >
@@ -2499,9 +2491,6 @@ flows:
         task: patch_network_email_for_deploy
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       3:
-        task: setup_prm_org_email
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
-      4:
         task: deploy_post_prm
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       5:
@@ -2570,21 +2559,27 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: delete_qb_rates_data
+        when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh
+      2:
+        task: delete_qb_rating_data
+        when: project_config.project__custom__rating and project_config.project__custom__qb and not project_config.project__custom__refresh
+      3:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      2:
+      4:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
-      3:
+      5:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      4:
+      6:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
-      5:
+      7:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      6:
+      8:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 

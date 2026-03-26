@@ -123,6 +123,15 @@ cause Upsert to always insert instead of matching, creating duplicates on every 
 | Auto-number `Name`, all-relationship externalId | `operation: Insert`, `deleteOldData: true` |
 | Empty CSV (no records yet) | `excluded: true` — prevents destructive delete-on-load |
 
+### CRITICAL — Insert + deleteOldData requires explicit approval
+
+**Never propose changing an existing `operation: Upsert` to `operation: Insert` + `deleteOldData: true` without:**
+1. Clearly explaining *why* Upsert cannot work (which specific Bug 2 or Bug 3 condition applies)
+2. Confirming that no direct-field externalId alternative exists
+3. Getting **explicit user approval** before making the change
+
+`deleteOldData: true` is destructive — it deletes all existing records before inserting. Applying it incorrectly wipes data that Upsert would have safely matched. When in doubt, keep Upsert and explain the trade-off; do not default to Insert+deleteOldData as a workaround for any ambiguous situation.
+
 ### deleteOldData Deletion Order
 
 SFDMU deletes `deleteOldData: true` objects in **reverse array order** (last object in `objects` array

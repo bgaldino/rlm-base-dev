@@ -65,7 +65,8 @@ Call Save Order
     ...                fwuid: fwuid, loaded: ctx.getLoaded()
     ...            });
     ...            var cs = window.aura.clientService;
-    ...            var token = cs.Ac;
+    ...            var token = (window.$A && typeof window.$A.getToken === 'function') ? window.$A.getToken() : null;
+    ...            if (!token) { token = cs.Ac; }
     ...            if (!token) {
     ...                var csKeys = Object.keys(cs);
     ...                for (var k = 0; k < csKeys.length; k++) {

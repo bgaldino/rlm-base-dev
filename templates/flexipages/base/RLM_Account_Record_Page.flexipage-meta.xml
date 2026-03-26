@@ -1582,7 +1582,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>flowName</name>
-                    <value>RLM_UpdateDecisionTables</value>
+                    <value>RLM_Refresh_Decision_Tables</value>
                 </componentInstanceProperties>
                 <componentName>flowruntime:interview</componentName>
                 <identifier>flowruntime_interview4</identifier>
