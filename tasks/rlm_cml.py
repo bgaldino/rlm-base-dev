@@ -679,9 +679,15 @@ class ImportCML(CMLBaseTask):
         self.logger.info(f"{new_count} ESC records {'would be ' if dry_run else ''}created")
 
         if unresolved_tags:
-            tag_list = ", ".join(unresolved_tags)
+            unique_tags = sorted(set(unresolved_tags))
+            MAX_INLINE = 10
+            if len(unique_tags) > MAX_INLINE:
+                self.logger.error("Full unresolved tag list: %s", ", ".join(unique_tags))
+                inline = ", ".join(unique_tags[:MAX_INLINE]) + f" … and {len(unique_tags) - MAX_INLINE} more (see log above)"
+            else:
+                inline = ", ".join(unique_tags)
             msg = (
-                f"{len(unresolved_tags)} ESC association(s) could not be resolved: {tag_list}. "
+                f"{len(unique_tags)} ESC association(s) could not be resolved: {inline}. "
                 f"This usually means the product catalog (qb-pcm) has not been loaded or "
                 f"contains product names that don't match the constraint data plan. "
                 f"Reload qb-pcm data and retry."
