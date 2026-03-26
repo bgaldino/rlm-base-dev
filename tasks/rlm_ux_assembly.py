@@ -907,6 +907,84 @@ class AssembleAndDeployUX(SFDXBaseTask):
     # Applications assembly
     # ------------------------------------------------------------------
 
+    def _apply_app_action_overrides_patch(self, app_dest: Path, patch_file: Path) -> None:
+        """Merge <actionOverrides> elements from a patch file into the assembled app XML.
+
+        The patch file contains bare <actionOverrides> elements (no root wrapper beyond
+        the XML declaration and an optional comment). After merging, all actionOverrides
+        in the output file are re-sorted alphabetically by pageOrSobjectType then
+        formFactor (Large before Small) to satisfy Salesforce metadata ordering.
+        """
+        import xml.etree.ElementTree as ET
+
+        NS = "http://soap.sforce.com/2006/04/metadata"
+        ET.register_namespace("", NS)
+
+        # Parse the assembled app
+        app_tree = ET.parse(app_dest)
+        app_root = app_tree.getroot()
+
+        # Parse patch — wrap in a temporary root so ET can parse multiple siblings
+        raw = patch_file.read_text(encoding="utf-8")
+        # Strip XML declaration and comments; wrap in a root element
+        import re as _re
+        raw_stripped = _re.sub(r"<\?xml[^?]*\?>", "", raw).strip()
+        raw_stripped = _re.sub(r"<!--[^-]*-->", "", raw_stripped).strip()
+        wrapped = f"<root xmlns=\"{NS}\">{raw_stripped}</root>"
+        patch_root = ET.fromstring(wrapped)
+
+        # Collect existing actionOverrides keys to avoid duplicates
+        existing_keys = set()
+        for ao in app_root.findall(f"{{{NS}}}actionOverrides"):
+            sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
+            ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
+            existing_keys.add((sobjtype, ff))
+
+        # Inject new actionOverrides that aren't already present
+        added = 0
+        for ao in patch_root.findall(f"{{{NS}}}actionOverrides"):
+            sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
+            ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
+            if (sobjtype, ff) not in existing_keys:
+                app_root.append(ao)
+                existing_keys.add((sobjtype, ff))
+                added += 1
+
+        if added == 0:
+            return
+
+        # Re-sort all actionOverrides by (pageOrSobjectType, formFactor)
+        # Large sorts before Small; missing formFactor sorts last
+        ff_order = {"Large": 0, "Small": 1, "": 2}
+        all_overrides = app_root.findall(f"{{{NS}}}actionOverrides")
+        for ao in all_overrides:
+            app_root.remove(ao)
+
+        all_overrides.sort(key=lambda ao: (
+            (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip().lower(),
+            ff_order.get((ao.findtext(f"{{{NS}}}formFactor") or "").strip(), 2),
+        ))
+
+        # Re-insert before the first non-actionOverrides element after the overrides block
+        # Find insertion index: after existing leading non-actionOverride elements
+        insert_before = None
+        for i, child in enumerate(list(app_root)):
+            tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+            if tag not in ("actionOverrides",) and i > 0:
+                insert_before = i
+                break
+
+        if insert_before is not None:
+            for idx, ao in enumerate(all_overrides):
+                app_root.insert(insert_before + idx, ao)
+        else:
+            for ao in all_overrides:
+                app_root.append(ao)
+
+        ET.indent(app_tree, space="    ")
+        app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=NS)
+        self.logger.debug(f"  [app patch] {patch_file.name}: +{added} actionOverride(s)")
+
     def _assemble_applications(
         self,
         templates_path: Path,
@@ -928,7 +1006,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         app_base = templates_path / "applications"
         assembled = []
 
-        # --- RLM_Revenue_Cloud (versioned selection) ---
+        # --- RLM_Revenue_Cloud (versioned selection + feature patches) ---
         rev_cloud_name = "RLM_Revenue_Cloud.app-meta.xml"
         if not filter_name or filter_name == rev_cloud_name:
             if features.get("tso"):
@@ -944,6 +1022,23 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
                 tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
+
+                # Apply feature-conditional actionOverride patches.
+                # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
+                # and contain bare <actionOverrides> elements (no root wrapper).
+                # TSO template already contains all overrides; patches only run for non-TSO builds.
+                patches_applied = []
+                if not features.get("tso"):
+                    patch_features = ["rates", "ramps"]
+                    for pf in patch_features:
+                        if not features.get(pf):
+                            continue
+                        patch_file = app_base / "patches" / pf / rev_cloud_name.replace(".app-meta.xml", ".patch.xml")
+                        if not patch_file.exists():
+                            continue
+                        self._apply_app_action_overrides_patch(dest, patch_file)
+                        patches_applied.append(pf)
+
                 assembled.append(
                     {
                         "type": "application",
@@ -952,7 +1047,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
                         "source_tier": tier,
                     }
                 )
-                self.logger.info(f"  [application] {rev_cloud_name} (from {tier})")
+                patch_info = f" + patches: {', '.join(patches_applied)}" if patches_applied else ""
+                self.logger.info(f"  [application] {rev_cloud_name} (from {tier}{patch_info})")
             else:
                 self.logger.warning(f"RLM_Revenue_Cloud template not found at: {src_file}")
 
