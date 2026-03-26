@@ -677,9 +677,9 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
 
-### App Launcher (TSO)
+### App Launcher
 
-When `tso=true`, `assemble_and_deploy_ux` deploys `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` as the org-default App Launcher order (step 29 of `prepare_rlm_org`).
+`assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` as the org-default App Launcher order (step 29 of `prepare_rlm_org`, gated by `ux=true`). The Metadata API deploy of AppSwitcher is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references in a customer deploy). App Launcher ordering on all `ux=true` orgs is handled by the `reorder_app_launcher` Robot task (step 2 of `prepare_ux`) via the Aura `AppLauncherController/saveOrder` API — no UI drag required.
 
 To capture a customized order from an org and commit it as the new template:
 
@@ -687,9 +687,8 @@ To capture a customized order from an org and commit it as the new template:
 # Capture your customized App Launcher order from the default org
 python scripts/sync_appmenu_from_user.py
 # Writes directly to templates/appMenus/base/AppSwitcher.appMenu-meta.xml — no deploy.
+# Then run prepare_ux or assemble_and_deploy_ux to deploy.
 ```
-
-On Trialforce-based scratch orgs, the AppSwitcher Metadata API deploy is blocked by managed ConnectedApp entries from installed packages. The `reorder_app_launcher` Robot task handles App Launcher ordering on these orgs via the Aura `AppLauncherController/saveOrder` API (step 2 of `prepare_ux`).
 
 New builds get that order as the org default. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
@@ -855,7 +854,9 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 
 | Flow | Description | Feature Flag |
 |------|-------------|--------------|
-| `prepare_ux` | Assembles all UX metadata from `templates/` — flexipages (base + patches + standalones), layouts, applications, app menus, profiles (strip-and-build), compact layouts, list views, and object UX bindings — then deploys the assembled output from `unpackaged/post_ux/` in a single deployment. Runs at step 29 of `prepare_rlm_org`. | `ux` |
+| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 29 of `prepare_rlm_org`. | `ux` |
+
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals`) followed by sequential YAML patch application. One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -1051,17 +1052,22 @@ rlm-base-dev/
 │                               # NOTE: flexipages/, layouts/, and certain object/*.object-meta.xml
 │                               #       have been moved to templates/ — those paths are forceignored
 ├── templates/                  # Source-of-truth templates for dynamic UX assembly
-│   ├── flexipages/
+│   ├── flexipages/             # See docs/features/dynamic-ux-assembly.md
 │   │   ├── base/               # 25 base flexipages (moved from force-app)
-│   │   ├── standalone/         # Feature-specific complete overrides (billing, approvals, etc.)
-│   │   └── patches/            # YAML semantic patch files per feature
+│   │   ├── standalone/         # One canonical version per page, one feature dir per page
+│   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
+│   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
+│   │   │   ├── tso/            # Intentionally empty — TSO inherits QB via tso > qb > base
+│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals, ramps
+│   │   └── patches/            # YAML semantic patch files per feature (additive component changes)
 │   ├── layouts/
 │   │   ├── base/               # 17 base layouts (moved from force-app)
 │   │   ├── billing/            # Billing-specific layouts
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
+│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
 │   ├── appMenus/
-│   │   └── base/               # AppSwitcher (assembled only when tso=true)
+│   │   └── base/               # AppSwitcher (always assembled; deploy skipped if org has managed entries)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
 │   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
 │   │   ├── billing/            # Billing feature (TransactionJournal)
@@ -1244,13 +1250,16 @@ cci task run export_cml --org <source_org> \
 
 See the [Constraints Utility Guide](datasets/constraints/README.md) for full export/import/validate documentation.
 
-### App Launcher order (TSO)
+### App Launcher order
 
 ```bash
 # Capture your customized App Launcher order from the default org (writes to templates/appMenus/base/)
 python scripts/sync_appmenu_from_user.py
 
-# Deploy App Launcher (runs automatically as part of prepare_ux when tso=true)
+# Deploy App Launcher + reorder (runs automatically as step 1+2 of prepare_ux on all ux=true orgs)
+cci flow run prepare_ux --org <org>
+
+# Assemble and deploy AppSwitcher metadata only (reorder_app_launcher runs separately)
 cci task run assemble_and_deploy_ux -o metadata_type appmenus --org <org>
 ```
 
