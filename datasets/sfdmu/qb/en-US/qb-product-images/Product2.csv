@@ -30,10 +30,10 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/add_data_graph,Additional QB DataGraph (500M),QB-DAT-GRPH
 /resource/database,QuantumBit Database,QB-DB
 /resource/genAI,QuantumBit Generative AI License,QB-GEN-AI-LIC
-/resource/hd_1tb_72k,1TB 7.2k RPM NLSAS,QB-HD 1TB
-/resource/hd_4tb_72k,4TB 7.2k RPM NLSAS,QB-HD 4TB
-/resource/hd_8tb_72k,8TB 7.2k RPM NLSAS,QB-HD 8TB
-/resource/hd_8tb_72k_se,8TB 7.2k RPM Self-Encrypting NLSAS,QB-HD 8TBSE
+/resource/hd_1tb_72k,1TB 7.2k RPM NLSAS (3.5in),QB-HD 1TB
+/resource/hd_4tb_72k,4TB 7.2k RPM NLSAS (3.5in),QB-HD 4TB
+/resource/hd_8tb_72k,8TB 7.2k RPM NLSAS (3.5in),QB-HD 8TB
+/resource/hd_8tb_72k_se,8TB 7.2k RPM Self-Encrypting NLSAS (3.5in),QB-HD 8TBSE
 /resource/intel_e52609,Intel Xeon E5-2609 v4 1.7GHz,QB-INTEL E5-2609
 /resource/intel_e52660,Intel Xeon E5-2660 v4 2.0GHz,QB-INTEL E5-2660
 /resource/intel_e52667,Intel Xeon E5-2667 v4 3.2GHz,QB-INTEL E5-2667
