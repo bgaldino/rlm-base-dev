@@ -1,17 +1,12 @@
 {
   "apiVersion": "66.0",
-  "excludeIdsFromCSVFiles": "false",
-  "objectSets": [
+  "excludeIdsFromCSVFiles": "true",
+  "objects": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
-      "objects": [
-        {
-          "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType",
-          "operation": "Insert",
-          "externalId": "DeveloperName",
-          "excluded": false
-        }
-      ]
+      "query": "SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType, PricingPreference, RatingPreference, TaxPreference FROM TransactionProcessingType",
+      "operation": "Upsert",
+      "externalId": "DeveloperName",
+      "excluded": false
     }
   ],
   "orgs": []

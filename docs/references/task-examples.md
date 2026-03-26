@@ -241,8 +241,8 @@ cci task run manage_transaction_processing_types --operation upsert --input_file
     "MasterLabel": "RLM Example",
     "Description": "Example TransactionProcessingType",
     "Language": "en_US",
-    "RuleEngine": "Pricing",
-    "SaveType": "Draft"
+    "RuleEngine": "StandardConfigurator",
+    "SaveType": "Standard"
   }
 ]
 ```
