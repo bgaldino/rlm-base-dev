@@ -1633,13 +1633,14 @@ tasks:
 
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
-    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. Required before decision table refresh."
+    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh."
     class_path: tasks.rlm_reconfigure_expression_set.ReconfigureExpressionSet
     options:
       expression_set_name: Salesforce_Default_Pricing_Discovery_Procedure
       context_definition_name: *sales_transaction_context_name
       rank: 1
       start_date: "2020-01-01T00:00:00.000Z"
+      fallback_expression_set_name: RLM_DefaultPricingDiscoveryProcedure
 
   create_dro_rule_library:
     group: Revenue Lifecycle Management
@@ -2780,7 +2781,7 @@ flows:
     steps:
       1:
         task: reconfigure_pricing_discovery
-        when: org_config.scratch and not project_config.project__custom__tso
+        when: org_config.scratch
 
   prepare_ramp_builder:
     group: Revenue Lifecycle Management
