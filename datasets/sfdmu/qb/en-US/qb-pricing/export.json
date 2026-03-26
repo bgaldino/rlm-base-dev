@@ -91,6 +91,7 @@
         {
           "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, ProductSellingModel.Name ASC",
           "operation": "Insert",
+          "deleteOldData": true,
           "externalId": "Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },

@@ -209,8 +209,8 @@ Standard Price Book;QB-SUPP-1000;期間ベース（年間）;USD,USD,true,false,
 Standard Price Book;QB-SUPP-1000;期間ベース（年間）;JPY,JPY,true,false,シルバーハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1000,期間ベース（年間）;TermDefined,3750000
 Standard Price Book;QB-SUPP-1005;期間ベース（年間）;USD,USD,true,false,ゴールドハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1005,期間ベース（年間）;TermDefined,30000
 Standard Price Book;QB-SUPP-1005;期間ベース（年間）;JPY,JPY,true,false,ゴールドハードウェアメンテナンス,Standard Price Book;true,QB-SUPP-1005,期間ベース（年間）;TermDefined,4500000
-Standard Price Book;QB-SUPP-2000;期間ベース（年間）;USD,USD,true,true,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,0
-Standard Price Book;QB-SUPP-2000;期間ベース（年間）;JPY,JPY,true,true,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,0
+Standard Price Book;QB-SUPP-2000;期間ベース（年間）;USD,USD,true,false,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,5400
+Standard Price Book;QB-SUPP-2000;期間ベース（年間）;JPY,JPY,true,false,ソフトウェア・メンテナンス,Standard Price Book;true,QB-SUPP-2000,期間ベース（年間）;TermDefined,810000
 Standard Price Book;QB-TOKENS-PACK;１回限り;USD,USD,true,false,QuantumBit トークンパック,Standard Price Book;true,QB-TOKENS-PACK,１回限り;OneTime,100
 Standard Price Book;QB-TOKENS-PACK;１回限り;JPY,JPY,true,false,QuantumBit トークンパック,Standard Price Book;true,QB-TOKENS-PACK,１回限り;OneTime,15000
 Standard Price Book;QB-TRN-ESSNTLS;１回限り;USD,USD,true,false,QuantumBit 基礎トレーニング,Standard Price Book;true,QB-TRN-ESSNTLS,１回限り;OneTime,8500
