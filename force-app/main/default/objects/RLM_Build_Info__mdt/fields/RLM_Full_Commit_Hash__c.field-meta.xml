@@ -3,7 +3,7 @@
     <fullName>RLM_Full_Commit_Hash__c</fullName>
     <label>Full Commit Hash</label>
     <type>Text</type>
-    <length>40</length>
+    <length>255</length>
     <required>false</required>
     <unique>false</unique>
     <externalId>false</externalId>

@@ -284,7 +284,7 @@ templates/
     utils/, payments/, docgen/, approvals/, tso/  — feature overrides (tso/ currently empty;
                               TSO builds inherit QB standalone via tso > qb > base priority)
   flexipages/patches/       — YAML semantic patch files per feature
-  layouts/base/             — 17 base layouts (moved from force-app)
+  layouts/base/             — 18 base layouts (moved from force-app + RLM_Build_Info__mdt)
   layouts/billing/          — billing-specific layouts
   layouts/constraints/      — OrderItem + QuoteLineItem overrides
   applications/             — RLM_Revenue_Cloud variants + conditional standalones

@@ -256,7 +256,8 @@ class StampGitCommit(SFDXBaseTask):
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata"'
-            ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'
+            ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+            ' xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n'
             "    <label>Latest</label>\n"
             "    <protected>false</protected>\n"
             "    <values>\n"
@@ -312,15 +313,19 @@ class StampGitCommit(SFDXBaseTask):
     # ------------------------------------------------------------------
 
     def _deploy(self, temp_dir, org_username):
-        """Deploy the CMDT record to the org."""
-        source_dir = os.path.join(temp_dir, "force-app")
+        """Deploy the CMDT record to the org.
+
+        Runs the sf CLI from within the temp directory using a relative
+        --source-dir path to avoid "unsafe character sequences" errors
+        from the CLI's path-traversal checks.
+        """
         command = [
             "sf",
             "project",
             "deploy",
             "start",
             "--source-dir",
-            source_dir,
+            "force-app",
             "--target-org",
             org_username,
             "--ignore-conflicts",
@@ -336,6 +341,7 @@ class StampGitCommit(SFDXBaseTask):
                 text=True,
                 check=False,
                 timeout=DEPLOY_TIMEOUT_SECONDS,
+                cwd=temp_dir,
             )
         except subprocess.TimeoutExpired:
             raise CommandException(
@@ -359,8 +365,44 @@ class StampGitCommit(SFDXBaseTask):
 
         status = output.get("status")
         if status is not None and status != 0:
-            message = output.get("message", "Unknown error")
+            message = self._extract_deploy_error(output)
             self.logger.error(f"Deploy failed: {message}")
             raise CommandException(f"Deploy failed: {message}")
 
         self.logger.debug("CMDT record deployed successfully")
+
+    @staticmethod
+    def _extract_deploy_error(output):
+        """Extract a meaningful error message from sf CLI deploy JSON output.
+
+        The sf CLI puts errors in various locations depending on the failure
+        type: top-level 'message', result.details.componentFailures, etc.
+        """
+        # Top-level message (covers auth errors, CLI errors)
+        top_msg = output.get("message")
+        if top_msg:
+            return top_msg
+
+        result = output.get("result") or {}
+
+        # Component-level failures (most common for metadata deploy errors)
+        details = result.get("details") or {}
+        failures = details.get("componentFailures")
+        if failures:
+            if isinstance(failures, dict):
+                failures = [failures]
+            lines = []
+            for f in failures[:5]:  # cap at 5 to keep output readable
+                problem = f.get("problem", "unknown")
+                comp = f.get("fullName") or f.get("fileName") or "unknown"
+                lines.append(f"  {comp}: {problem}")
+            return "Component failures:\n" + "\n".join(lines)
+
+        # result-level message or errorMessage
+        for key in ("errorMessage", "message"):
+            val = result.get(key)
+            if val:
+                return val
+
+        # Last resort: dump the whole output for debugging
+        return f"Unknown error. Full response:\n{json.dumps(output, indent=2)[:1000]}"
