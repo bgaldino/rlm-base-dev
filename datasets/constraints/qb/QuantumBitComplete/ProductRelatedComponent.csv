@@ -14,6 +14,7 @@ Id,Name,ParentProductId,ParentProduct.Name,ChildProductId,ChildProduct.Name,Chil
 0dSWt000000FFIYMA4,PRC-000000005,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQY3IAO,QuantumBit Services Project,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,50
 0dSWt000000FFIZMA4,PRC-000000020,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYyIAO,Additional Messages - QB Starter,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,30
 0dSWt000000FFIaMAO,PRC-000000007,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYMIA4,QuantumBit Database,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,5
+0dSWt000000DBTKNAA,PRC-NEW-DB-TKN,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009DBTKNAA,QuantumBit Database (TokenBased),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,7
 0dSWt000000FFIbMAO,PRC-000000008,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYxIAO,Additional Flows - QB Starter,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,40
 0dSWt000000FFIcMAO,PRC-000000026,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYaIAO,Professional Services Daily Rate,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
 0dSWt000000FFIdMAO,PRC-000000031,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYbIAO,Professional Services Scope of Work,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
