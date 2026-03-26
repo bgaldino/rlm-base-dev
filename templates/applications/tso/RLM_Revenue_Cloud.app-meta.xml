@@ -524,7 +524,7 @@
     </actionOverrides>
     <actionOverrides>
         <actionName>Tab</actionName>
-        <content>Home_Page_Default</content>
+        <content>RLM_Home_Page_Default</content>
         <formFactor>Large</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
