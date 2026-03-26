@@ -2354,19 +2354,16 @@ flows:
         task: deploy_post_utils
         when: project_config.project__custom__quantumbit
       2:
-        task: deploy_post_billing
-        when: project_config.project__custom__quantumbit and project_config.project__custom__billing
-      3:
         flow: prepare_approvals
-      4:
+      3:
         task: deploy_quantumbit
         when: project_config.project__custom__quantumbit
-      5:
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_quantumbit
-      6:
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
