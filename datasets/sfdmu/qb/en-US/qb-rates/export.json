@@ -1,7 +1,7 @@
 {
   "$comment_plan": "qb-rates SFDMU data plan - creates rate cards, rate card entries, rate adjustment tiers, and pricebook-rate card associations. Single pass inserts all objects while RateCardEntry is Draft (RABT requires Draft parent RCE). RateCardEntry activation happens externally after this load.",
   "$comment_composite_keys": "SFDMU v5: For objects whose externalId is all-relationship paths (PriceBook.Name;RateCard.Name;RateCardType etc.), v5 cannot reliably match target records; deleteOldData: true is used so each run deletes then reinserts \u2014 record count is idempotent (same after second run).",
-  "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU auto-generates $$ columns during extraction.",
+  "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU v5 does NOT auto-generate $$ composite-key columns during extraction — run scripts/post_process_extraction.py (called automatically by ExtractSFDMUData) before re-importing extracted data.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,

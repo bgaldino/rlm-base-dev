@@ -364,6 +364,28 @@
             <label>By Usage Type</label>
         </rules>
         <rules>
+            <name>Dec_RouteMode_Individual_Automated</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>var_mode</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Individual</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>var_isAutomated</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Scr_Error</targetReference>
+            </connector>
+            <label>Individual — Automated (unsupported)</label>
+        </rules>
+        <rules>
             <name>Dec_RouteMode_Individual</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
@@ -694,7 +716,7 @@
             <inputParameters>
                 <name>selectionMode</name>
                 <value>
-                    <stringValue>MULTI_SELECT</stringValue>
+                    <stringValue>SINGLE_SELECT</stringValue>
                 </value>
             </inputParameters>
             <inputParameters>
@@ -713,12 +735,6 @@
                 <name>columns</name>
                 <value>
                     <stringValue>[{&quot;apiName&quot;:&quot;SetupName&quot;,&quot;guid&quot;:&quot;column-dt01&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;Name&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;apiName&quot;:&quot;UsageType&quot;,&quot;guid&quot;:&quot;column-dt02&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Usage Type&quot;,&quot;type&quot;:&quot;text&quot;},{&quot;apiName&quot;:&quot;LastSyncDate&quot;,&quot;guid&quot;:&quot;column-dt03&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;Last Refreshed&quot;,&quot;type&quot;:&quot;customDateTime&quot;},{&quot;apiName&quot;:&quot;Status&quot;,&quot;guid&quot;:&quot;column-dt04&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:3,&quot;label&quot;:&quot;Status&quot;,&quot;type&quot;:&quot;text&quot;}]</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>selectedRows</name>
-                <value>
-                    <elementReference>Get_For_Selection</elementReference>
                 </value>
             </inputParameters>
             <inputParameters>
