@@ -608,7 +608,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Fulfillment Step Definition Record Page</masterLabel>
+    <masterLabel>RLM Fulfillment Step Definition Record Page</masterLabel>
     <parentFlexiPage>runtime_industries_dfo_entityoverrides__FulfillmentStepDefinition_rec_L</parentFlexiPage>
     <sobjectType>FulfillmentStepDefinition</sobjectType>
     <template>

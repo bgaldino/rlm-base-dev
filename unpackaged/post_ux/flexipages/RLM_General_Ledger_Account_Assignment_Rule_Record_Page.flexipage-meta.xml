@@ -602,7 +602,7 @@
         <name>sidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC General Ledger Account Assignment Rule Record Page</masterLabel>
+    <masterLabel>RLM General Ledger Account Assignment Rule Record Page</masterLabel>
     <parentFlexiPage>flexipage__default_rec_L</parentFlexiPage>
     <sobjectType>GeneralLedgerAcctAsgntRule</sobjectType>
     <template>

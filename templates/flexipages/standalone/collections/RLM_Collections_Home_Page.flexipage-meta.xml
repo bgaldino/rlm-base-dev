@@ -106,7 +106,7 @@
         <name>sidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Collections Home Page</masterLabel>
+    <masterLabel>RLM Collections Home Page</masterLabel>
     <parentFlexiPage>runtime_industries_collection__CollectionConsole_home_L</parentFlexiPage>
     <template>
         <name>home:desktopTemplate</name>

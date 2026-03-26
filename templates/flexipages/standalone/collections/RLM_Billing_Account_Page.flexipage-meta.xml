@@ -906,7 +906,7 @@
         <name>leftsidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Billing Account Page</masterLabel>
+    <masterLabel>RLM Billing Account Page</masterLabel>
     <sobjectType>Account</sobjectType>
     <template>
         <name>flexipage:recordHomePinnedLeftSidebarTemplateDesktop</name>

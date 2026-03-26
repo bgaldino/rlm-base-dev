@@ -498,7 +498,7 @@
         <name>rightsidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Collection Plan Record Page</masterLabel>
+    <masterLabel>RLM Collection Plan Record Page</masterLabel>
     <parentFlexiPage>runtime_industries_collection__CollectionPlan_rec_L</parentFlexiPage>
     <sobjectType>CollectionPlan</sobjectType>
     <template>

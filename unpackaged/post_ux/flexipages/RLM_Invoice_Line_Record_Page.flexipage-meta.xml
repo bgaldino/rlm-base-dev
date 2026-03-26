@@ -977,7 +977,7 @@
         <name>Facet-1b24544d-396a-4ab5-9ecd-10de1e6aec3a</name>
         <type>Facet</type>
     </flexiPageRegions>
-    <masterLabel>RC Invoice Line Record Page</masterLabel>
+    <masterLabel>RLM Invoice Line Record Page</masterLabel>
     <sobjectType>InvoiceLine</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>

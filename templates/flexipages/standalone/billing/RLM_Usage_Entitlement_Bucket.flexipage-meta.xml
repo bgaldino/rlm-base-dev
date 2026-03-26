@@ -110,7 +110,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Usage Entitlement Bucket</masterLabel>
+    <masterLabel>RLM Usage Entitlement Bucket</masterLabel>
     <sobjectType>UsageEntitlementBucket</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>

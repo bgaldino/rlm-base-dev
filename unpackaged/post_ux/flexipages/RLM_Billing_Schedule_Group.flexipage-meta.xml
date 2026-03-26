@@ -379,7 +379,7 @@
         <name>leftsidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Billing Schedule Group</masterLabel>
+    <masterLabel>RLM Billing Schedule Group</masterLabel>
     <sobjectType>BillingScheduleGroup</sobjectType>
     <template>
         <name>flexipage:recordHomePinnedHeaderLeftSidebarTwoColTemplateDesktop</name>

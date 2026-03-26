@@ -503,7 +503,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Quote Line Group Record Page</masterLabel>
+    <masterLabel>RLM Quote Line Group Record Page</masterLabel>
     <sobjectType>QuoteLineGroup</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>

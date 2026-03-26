@@ -402,7 +402,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Billing Schedule</masterLabel>
+    <masterLabel>RLM Billing Schedule</masterLabel>
     <sobjectType>BillingSchedule</sobjectType>
     <template>
         <name>flexipage:recordHomeSingleColTemplateDesktop</name>

@@ -447,7 +447,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Asset Action Source Record Page</masterLabel>
+    <masterLabel>RLM Asset Action Source Record Page</masterLabel>
     <sobjectType>AssetActionSource</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>

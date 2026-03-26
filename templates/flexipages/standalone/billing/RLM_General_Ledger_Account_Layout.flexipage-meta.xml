@@ -523,7 +523,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC - General Ledger Account Layout</masterLabel>
+    <masterLabel>RLM General Ledger Account Layout</masterLabel>
     <sobjectType>GeneralLedgerAccount</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>

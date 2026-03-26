@@ -304,7 +304,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>RC Product Usage Resource Record Page</masterLabel>
+    <masterLabel>RLM Product Usage Resource Record Page</masterLabel>
     <sobjectType>ProductUsageResource</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>
