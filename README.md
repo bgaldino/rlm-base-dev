@@ -679,7 +679,9 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 ### App Launcher
 
-`assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` as the org-default App Launcher order (step 29 of `prepare_rlm_org`, gated by `ux=true`). The Metadata API deploy of AppSwitcher is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references in a customer deploy). App Launcher ordering on all `ux=true` orgs is handled by the `reorder_app_launcher` Robot task (step 2 of `prepare_ux`) via the Aura `AppLauncherController/saveOrder` API — no UI drag required.
+`assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` and attempts a Metadata API deploy (step 29, gated by `ux=true`). When that deploy succeeds it becomes the **org-default** App Launcher order — new users inherit it automatically. The deploy is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references); in that case the template is **not** applied as the org default.
+
+On all `ux=true` orgs, `reorder_app_launcher` (step 2 of `prepare_ux`) applies the template order as a **user-level customization** for the automation user — it queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list, and submits it to `AppLauncherController/saveOrder` via Aura XHR. No UI drag required. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
 To capture a customized order from an org and commit it as the new template:
 
@@ -689,8 +691,6 @@ python scripts/sync_appmenu_from_user.py
 # Writes directly to templates/appMenus/base/AppSwitcher.appMenu-meta.xml — no deploy.
 # Then run prepare_ux or assemble_and_deploy_ux to deploy.
 ```
-
-New builds get that order as the org default. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
 ### Using Custom Tasks
 
