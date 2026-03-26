@@ -161,7 +161,7 @@ project:
       # AI-related permission set licenses
       # Note: Some PSLs removed for dev scratch org compatibility
       - AgentforceServiceAgentBuilderPsl
-      # - AIAcceleratorPsl  # Not available in Enterprise dev scratch orgs
+      # - AIAcceleratorPsl  # Assigned via rlm_clm_psl_api_names (requires RevenueIntelligence feature, included in all current org defs)
       # - EinsteinAnalyticsPlusPsl  # Not available in Enterprise dev scratch orgs
       # - EinsteinDisclsAndCmplHubUserPsl  # Not available in Enterprise dev scratch orgs
       - EinsteinGPTCopilotPsl
@@ -248,19 +248,20 @@ project:
 
     rlm_clm_psl_api_names: &rlm_clm_psl_api_names
       # Contract Lifecycle Management permission set licenses
+      - AIAcceleratorPsl
       - ClauseManagementUser
       - CLMAnalyticsPsl
       - ContractManagementUser
-      #- ContractsAIUserPsl
-      - DisclosureAndComplianceHubUserPsl
+      - ContractsAIUserPsl
+      #- DisclosureAndComplianceHubUserPsl
       - DocGenDesignerPsl
       - DocumentBuilderUserPsl
       - InsightsCGAnalyticsPsl
       - Microsoft365WordPsl
-      - NLPServicePsl
+      #- NLPServicePsl
       - ObligationManagementUser
       - OmniStudioDesigner
-      - ScoringFrameworkPsl
+      #- ScoringFrameworkPsl
 
     rlm_psg_api_names: &rlm_psg_api_names
       # Core permission set groups
