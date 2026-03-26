@@ -20,6 +20,16 @@ type QuantumBitCompleteSolution : LineItem {
 
     relation quantumbitdatabase : QuantumBitDatabase;
 
+    relation quantumbitdatabasetokencommiteach : QuantumBitDatabaseTokenCommitEach;
+
+    relation quantumbitdatabasetokencommitflat : QuantumBitDatabaseTokenCommitFlat;
+
+    relation quantumbitdatabasetokencommittier : QuantumBitDatabaseTokenCommitTier;
+
+    relation quantumbitdatabasemonetarycommit : QuantumBitDatabaseMonetaryCommit;
+
+    relation quantumbitdatabasequantitycommit : QuantumBitDatabaseQuantityCommit;
+
     relation quantumbitessentialstraining : QuantumBitEssentialsTraining;
 
     relation quantumbitfundamentalstraining : QuantumBitFundamentalsTraining;
@@ -69,6 +79,16 @@ type AdditionalMessagesQBStarter : LineItem;
 type AdditionalFlowsQBStarter : LineItem;
 
 type QuantumBitDatabase : LineItem;
+
+type QuantumBitDatabaseTokenCommitEach : LineItem;
+
+type QuantumBitDatabaseTokenCommitFlat : LineItem;
+
+type QuantumBitDatabaseTokenCommitTier : LineItem;
+
+type QuantumBitDatabaseMonetaryCommit : LineItem;
+
+type QuantumBitDatabaseQuantityCommit : LineItem;
 
 type QuantumBitEssentialsTraining : LineItem;
 

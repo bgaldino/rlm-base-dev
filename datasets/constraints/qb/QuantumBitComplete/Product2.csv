@@ -21,3 +21,8 @@ Id,Name
 01tWt000009JQYwIAO,QB API Management Solution
 01tWt000009JQYxIAO,Additional Flows - QB Starter
 01tWt000009JQYyIAO,Additional Messages - QB Starter
+01tWt000009CMTEAAA,QuantumBit Database (Token Commit - Each)
+01tWt000009CMTFAAA,QuantumBit Database (Token Commit - Flat)
+01tWt000009CMTTAAA,QuantumBit Database (Token Commit - Tier)
+01tWt000009MTYCMAA,QuantumBit Database (Monetary Commit)
+01tWt000009QTYCMAA,QuantumBit Database (Quantity Commit)
