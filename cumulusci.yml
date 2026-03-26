@@ -2570,21 +2570,27 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: delete_qb_rates_data
+        when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb
+      2:
+        task: delete_qb_rating_data
+        when: project_config.project__custom__rating and project_config.project__custom__qb
+      3:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      2:
+      4:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
-      3:
+      5:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      4:
+      6:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
-      5:
+      7:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      6:
+      8:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 
