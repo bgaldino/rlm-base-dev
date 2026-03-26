@@ -296,9 +296,11 @@ fully regenerated on every `assemble_and_deploy_ux` run. Edit the source templat
 
 ### EmailTemplatePage restriction
 
-`RLM_Quote_Discount_Approval_Template` and `RLM_Quote_Payment_Terms_Approval_Template` are
-`EmailTemplatePage` type and **cannot be deployed via Metadata API**. The assembly task
-automatically skips them. They are created at runtime by `create_approval_email_templates`.
+`EmailTemplatePage` flexipages **cannot be deployed via Metadata API** and must not be stored
+in `templates/flexipages/`. The approval email templates (`RLM_Quote_Discount_Approval_Template`,
+`RLM_Quote_Payment_Terms_Approval_Template`) are created at runtime by `create_approval_email_templates`
+via the REST API sidecar approach in `prepare_approvals`. The assembler's `NON_DEPLOYABLE_TYPES`
+guard remains as a defensive check but there are no EmailTemplatePage files in templates.
 
 ### Source tracking
 
@@ -411,6 +413,6 @@ cci flow run prepare_rlm_org --org beta
     - Never edit files in `unpackaged/post_ux/` — edit templates instead
     - `force-app` profiles must stay stripped (classAccesses only — no layoutAssignment, no applicationVisibilities)
     - New UX for a feature → add to `templates/flexipages/standalone/{feature}/` (new/override pages) or `templates/flexipages/patches/{feature}/` (additive changes to existing pages)
-    - EmailTemplatePage flexipages may be added to `templates/flexipages/standalone/{feature}/` as non-deployable reference; `assemble_and_deploy_ux` automatically skips them (type check) and records the skip in `assembly_manifest.json` — they cannot deploy via Metadata API
+    - Do NOT add `EmailTemplatePage` flexipages to `templates/flexipages/` — they cannot deploy via Metadata API and are created at runtime by `create_approval_email_templates`
     - `.forceignore` must have entries for any UX files in `unpackaged/post_*/` that are now assembled via `prepare_ux`
     - Compact layouts and list views belong in `templates/objects/{feature}/` not in `force-app` or feature `unpackaged/post_*/objects/`
