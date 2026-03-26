@@ -8,17 +8,19 @@ Suite Teardown    Close Browser After Setup
 *** Variables ***
 # Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended).
 ${ORG_ALIAS}                   ${EMPTY}
+${ANALYTICS_GETTING_STARTED_PATH}    /lightning/setup/InsightsSetupGettingStarted/home
 ${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupSettings/home
 ${MANUAL_LOGIN_WAIT}           90s
 
 *** Test Cases ***
 Enable Data Sync And Connections Toggle
-    [Documentation]    Enable the "Enable Data Sync and Connections" checkbox in the CRM Analytics
-    ...    Settings Visualforce iframe (waveSetupSettings.apexp). The setting lives inside a VF
-    ...    child frame — the Lightning Web Security proxy blocks all standard DOM queries on the
-    ...    outer shell, but Selenium can access the VF page directly after switching frames.
-    ...    Idempotent: if already enabled, returns 'already_enabled' without clicking Save.
-    ...    No explicit sleep is needed — the keyword polls for the iframe and checkboxes.
+    [Documentation]    For TSO/gated orgs, first click "Enable CRM Analytics" on the Getting
+    ...    Started page so Analytics setup options become available. Then enable the
+    ...    "Enable Data Sync and Connections" checkbox in the Analytics Settings VF iframe
+    ...    (waveSetupSettings.apexp). Idempotent for both steps.
+    Open Setup Page    ${ANALYTICS_GETTING_STARTED_PATH}
+    ${pre_result}=    Enable CRM Analytics Via Getting Started Page
+    Log    Enable CRM Analytics pre-step: ${pre_result}
     Open Setup Page    ${ANALYTICS_SETUP_PATH}
     ${result}=    Enable Data Sync And Connections Via VF Iframe
     Log    Enable Data Sync and Connections (enableWaveReplication): ${result}

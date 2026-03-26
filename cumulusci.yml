@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -96,6 +96,7 @@ project:
     rating: true              # Insert Rating Design Time Data
     rates: true               # Insert Rates
     ramps: true               # Insert and configure ramps
+    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
     einstein: true            # Use Einstein AI
     product_dataset: qb       # Default product dataset to use=
     agents: false             # Deploy Agentforce Agent Configurations
@@ -842,20 +843,10 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata (app launcher deploys separately via deploy_post_tso_app_menu when tso=true)
+    description: Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso
-
-  deploy_post_tso_app_menu:
-    group: Revenue Lifecycle Management
-    description: >
-      Deploy App Launcher (AppSwitcher) order. Only runs when tso=true. Deploys
-      after deploy_post_tso so org default persists; users with personalized
-      launchers may need to use "Reset to default" in the App Launcher to see it.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_tso_appmenu
 
   deploy_post_prm:
     description: Deploy Partner Relationship Management Metadata
@@ -1029,6 +1020,44 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  assemble_and_deploy_ux:
+    group: UX Personalization
+    description: >
+      Assembles feature-conditional UX metadata (flexipages, layouts, applications,
+      app menus, profiles) from base templates and YAML patch files in templates/.
+      Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
+      deploys in a single sf project deploy start call. Supports granular invocation
+      via metadata_type and metadata_name options for development and debugging.
+    class_path: tasks.rlm_ux_assembly.AssembleAndDeployUX
+
+  reorder_app_launcher:
+    group: UX Personalization
+    description: >
+      Applies a priority order to the App Launcher. The Python task queries all AppMenuItem
+      records via the Salesforce REST API (SOQL), builds a priority-ordered ApplicationId
+      list (priority_app_labels first, remaining apps after in their current relative order),
+      and passes the list to a Robot Framework test. The Robot test navigates to the Lightning
+      home page and calls Aura AppLauncherController/saveOrder via synchronous XHR — no modal
+      or DOM scraping required. Required on Trialforce-based orgs where the Metadata API cannot
+      deploy an AppSwitcher containing managed ConnectedApp or Network entries and
+      AppMenuItem.SortOrder is platform read-only via all other APIs.
+    class_path: tasks.rlm_reorder_app_launcher.ReorderAppLauncher
+    options:
+      suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
+      outputdir: robot/rlm-base/results
+
+  deploy_post_collections:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Collections metadata from unpackaged/post_collections (flows, objects,
+      omniUiCard, permissionsets, queues, quickActions, tabs,
+      timelineObjectDefinitions). Flexipages and applications for collections are
+      deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded
+      here via .forceignore.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_collections
 
   deploy_post_ramp_builder:
     group: Revenue Lifecycle Management
@@ -2109,8 +2138,7 @@ flows:
       3:
         flow: prepare_expression_sets
       4:
-        task: create_payments_webhook
-        when: project_config.project__custom__payments
+        flow: prepare_payments
       5:
         task: deploy_full
       6:
@@ -2154,14 +2182,15 @@ flows:
       25:
         flow: prepare_guidedselling
       26:
-        task: configure_revenue_settings
+        flow: prepare_revenue_settings
       27:
-        task: reconfigure_pricing_discovery
-        when: org_config.scratch and not project_config.project__custom__tso
+        flow: prepare_pricing_discovery
       28:
         flow: prepare_ramp_builder
-        when: project_config.project__custom__ramps
       29:
+        flow: prepare_ux
+        when: project_config.project__custom__ux
+      30:
         flow: refresh_all_decision_tables
          
   prepare_core:
@@ -2326,19 +2355,16 @@ flows:
         task: deploy_post_utils
         when: project_config.project__custom__quantumbit
       2:
-        task: deploy_post_billing
-        when: project_config.project__custom__quantumbit and project_config.project__custom__billing
-      3:
         flow: prepare_approvals
-      4:
+      3:
         task: deploy_quantumbit
         when: project_config.project__custom__quantumbit
-      5:
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_quantumbit
-      6:
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
@@ -2364,14 +2390,11 @@ flows:
         task: deploy_post_tso
         when: project_config.project__custom__tso
       5:
-        task: deploy_post_tso_app_menu
-        when: project_config.project__custom__tso
-      6:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      7:
+      6:
         task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
@@ -2731,22 +2754,38 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: patch_payments_site_for_deploy
+        task: create_payments_webhook
         when: project_config.project__custom__payments
       2:
-        task: deploy_post_payments_site
+        task: patch_payments_site_for_deploy
         when: project_config.project__custom__payments
       3:
-        task: revert_payments_site_after_deploy
+        task: deploy_post_payments_site
         when: project_config.project__custom__payments
       4:
+        task: revert_payments_site_after_deploy
+        when: project_config.project__custom__payments
+      5:
         task: publish_community
         when: project_config.project__custom__payments
         options:
           name: Payments Webhook
-      5:
+      6:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+  prepare_revenue_settings:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: configure_revenue_settings
+
+  prepare_pricing_discovery:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: reconfigure_pricing_discovery
+        when: org_config.scratch and not project_config.project__custom__tso
 
   prepare_ramp_builder:
     group: Revenue Lifecycle Management
@@ -2761,12 +2800,32 @@ flows:
     steps:
       1:
         task: deploy_post_ramp_builder
+        when: project_config.project__custom__ramps
       2:
         task: apply_context_ramp_mode
+        when: project_config.project__custom__ramps
       3:
         task: assign_permission_sets
+        when: project_config.project__custom__ramps
         options:
           api_names: *ps_ramp_builder
+
+  prepare_ux:
+    group: UX Personalization
+    description: >
+      Assemble and deploy all project UX personalization metadata (flexipages, layouts,
+      applications, app menus, profiles) from feature-conditional templates. Runs at
+      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
+      all referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation — required on Trialforce
+      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
+    steps:
+      1:
+        task: assemble_and_deploy_ux
+        when: project_config.project__custom__ux
+      2:
+        task: reorder_app_launcher
+        when: project_config.project__custom__ux
 
   prepare_personas:
     group: Revenue Lifecycle Management
