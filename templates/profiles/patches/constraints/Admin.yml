@@ -1,0 +1,6 @@
+feature: constraints
+feature_flag: constraints
+# The constraints feature replaces the layout CONTENT for OrderItem and QuoteLineItem,
+# but the layout names remain the same. The profile layout assignments are unchanged.
+# No profile patches needed — the layout assembly handles the content override.
+patches: []
