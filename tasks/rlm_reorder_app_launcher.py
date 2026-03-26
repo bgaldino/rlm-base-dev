@@ -1,13 +1,13 @@
 """Reorder the App Launcher via the Aura AppLauncherController/saveOrder API.
 
 Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu
-contains managed ConnectedApp or Network entries (Trialforce-based scratch orgs).
-AppMenuItem.SortOrder is read-only via Tooling API, REST, and Apex. The only
-path is browser automation against the App Launcher modal, which this task wraps.
+contains managed ConnectedApp or Network entries. AppMenuItem.SortOrder is also
+read-only via Tooling API, REST, and Apex.
 
-The Robot suite opens the Lightning home page, clicks the waffle icon, opens
-"View All", reads all tile IDs from the shadow DOM, and calls saveOrder directly
-via synchronous XHR — no drag required.
+The Robot suite navigates to the Lightning home page, queries all AppMenuItem
+records via the Salesforce REST API (SOQL), builds a priority-ordered ID list,
+and calls the Aura AppLauncherController/saveOrder action directly via sync XHR.
+No modal or DOM scraping required.
 """
 
 import subprocess
@@ -91,6 +91,10 @@ class ReorderAppLauncher(BaseTask):
 
         priority_labels = self.options.get("priority_app_labels") or DEFAULT_PRIORITY_LABELS
 
+        api_version = getattr(
+            self.project_config, "project__package__api_version", "67.0"
+        ) or "67.0"
+
         cmd = [
             sys.executable,
             "-m",
@@ -99,6 +103,8 @@ class ReorderAppLauncher(BaseTask):
             f"ORG_ALIAS:{org_name}",
             "--variable",
             f"PRIORITY_APP_LABELS:{priority_labels}",
+            "--variable",
+            f"API_VERSION:{api_version}",
             "--outputdir",
             str(out_path),
             str(suite_path),
