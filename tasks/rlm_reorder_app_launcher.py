@@ -148,15 +148,17 @@ class ReorderAppLauncher(BaseTask):
 
         priority_labels = self.options.get("priority_app_labels") or DEFAULT_PRIORITY_LABELS
 
-        api_version = (
-            getattr(self.project_config, "project__package__api_version", None) or "67.0"
-        )
+        api_version = getattr(self.project_config, "project__package__api_version", None)
+        if not api_version:
+            raise TaskOptionsError(
+                "project.package.api_version is not set in cumulusci.yml"
+            )
 
         ordered_ids = self._build_ordered_app_ids(priority_labels, api_version)
+        ordered_list = [i for i in ordered_ids.split(",") if i]
         self.logger.info(
-            "App order resolved: %d app(s) in priority list, %d total.",
-            len([i for i in ordered_ids.split(",") if i]),
-            len(ordered_ids.split(",")),
+            "App order resolved: %d total app(s) queued for reorder.",
+            len(ordered_list),
         )
 
         cmd = [

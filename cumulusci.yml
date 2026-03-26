@@ -1034,12 +1034,13 @@ tasks:
   reorder_app_launcher:
     group: UX Personalization
     description: >
-      Applies a priority order to the App Launcher by calling the Salesforce Aura
-      AppLauncherController/saveOrder action directly from the browser (Robot Framework /
-      Selenium). Opens the App Launcher modal, reads all app tile IDs from the shadow DOM,
-      places the priority_app_labels list first (in order), and POSTs the new order — no
-      UI drag required. Works on Trialforce-based scratch orgs where the Metadata API
-      cannot deploy an AppSwitcher containing managed ConnectedApp or Network entries and
+      Applies a priority order to the App Launcher. The Python task queries all AppMenuItem
+      records via the Salesforce REST API (SOQL), builds a priority-ordered ApplicationId
+      list (priority_app_labels first, remaining apps after in their current relative order),
+      and passes the list to a Robot Framework test. The Robot test navigates to the Lightning
+      home page and calls Aura AppLauncherController/saveOrder via synchronous XHR — no modal
+      or DOM scraping required. Required on Trialforce-based orgs where the Metadata API cannot
+      deploy an AppSwitcher containing managed ConnectedApp or Network entries and
       AppMenuItem.SortOrder is platform read-only via all other APIs.
     class_path: tasks.rlm_reorder_app_launcher.ReorderAppLauncher
     options:

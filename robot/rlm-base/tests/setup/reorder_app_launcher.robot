@@ -31,13 +31,13 @@ Reorder App Launcher
     ...    or DOM scraping required.
     Set Window Size    1920    1080
     Open Setup Page    ${HOME_PATH}
-    Sleep    3s    reason=Allow Lightning to fully initialise
+    Wait Until Keyword Succeeds    30s    2s    Aura Context Should Be Ready
     ${result}=    Call Save Order    ${ORDERED_APP_IDS}
     Log    saveOrder result: ${result}
     IF    $result.startswith("SUCCESS")
         Log    App Launcher reordered: priority order applied successfully.
     ELSE
-        Log    WARNING: Unexpected saveOrder result: ${result}    WARN
+        Fail    Unexpected saveOrder result: ${result}
     END
 
 *** Keywords ***
@@ -93,3 +93,10 @@ Call Save Order
     ...    })(arguments[0])
     ...    ARGUMENTS    ${ordered_ids}
     RETURN    ${result}
+
+Aura Context Should Be Ready
+    [Documentation]    Verifies that window.$A is initialised and getContext() is callable.
+    ...                Used with Wait Until Keyword Succeeds in place of an unconditional sleep.
+    ${ready}=    Execute JavaScript
+    ...    return (typeof window.$A !== 'undefined' && window.$A !== null && typeof window.$A.getContext === 'function')
+    Should Be True    ${ready}    Aura framework not yet initialised

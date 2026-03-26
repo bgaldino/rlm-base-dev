@@ -370,7 +370,7 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
    #### Setup for headless robot runs
 
-   Required if you use `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, or `configure_revenue_settings`:
+   Required if you use `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, `configure_revenue_settings`, or `reorder_app_launcher`:
 
    1. **Python packages** — Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
      ```bash
@@ -802,8 +802,8 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 23 | `prepare_agents` | Always |
 | 24 | `prepare_constraints` | Always |
 | 25 | `prepare_guidedselling` | Always |
-| 26 | `configure_revenue_settings` | Always |
-| 27 | `reconfigure_pricing_discovery` | Always |
+| 26 | `prepare_revenue_settings` | Always |
+| 27 | `prepare_pricing_discovery` | Always |
 | 28 | `prepare_ramp_builder` | `ramps` |
 | 29 | `prepare_ux` | `ux` |
 | 30 | `refresh_all_decision_tables` | Always |
