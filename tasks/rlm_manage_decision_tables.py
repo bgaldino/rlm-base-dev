@@ -2,14 +2,14 @@
 Custom CumulusCI task for comprehensive Decision Table management.
 
 This task provides functionality to:
-- Query/list decision tables (similar to RLM_UpdateDecisionTables flow)
+- Query/list decision tables (similar to RLM_Refresh_Decision_Tables flow)
 - Refresh decision tables (full or incremental)
 - Support other operations (activate, deactivate, etc.)
 
-Based on the RLM_UpdateDecisionTables flow which:
+Based on the RLM_Refresh_Decision_Tables flow which:
 - Queries DecisionTable records with Status = 'Active'
 - Uses refreshDecisionTable action
-- Supports incremental refresh
+- Supports All / ByUsageType / Individual modes with incremental refresh toggle
 """
 import json
 from typing import List, Dict, Optional, Set

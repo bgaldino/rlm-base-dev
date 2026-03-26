@@ -71,12 +71,12 @@ cci task run manage_flows --operation query --status Active --process_type Scree
 
 #### 12. Activate a Specific Flow
 ```bash
-cci task run manage_flows --operation activate --developer_names RLM_UpdateDecisionTables
+cci task run manage_flows --operation activate --developer_names RLM_Refresh_Decision_Tables
 ```
 
 #### 13. Activate Multiple Flows
 ```bash
-cci task run manage_flows --operation activate --developer_names "RLM_UpdateDecisionTables,RLM_Account_Utilities"
+cci task run manage_flows --operation activate --developer_names "RLM_Refresh_Decision_Tables,RLM_Account_Utilities"
 ```
 
 #### 14. Deactivate All Draft Flows
@@ -259,7 +259,7 @@ Notes:
 ### Refresh Decision Tables (Using Flow)
 ```bash
 # First, activate the decision table refresh flow
-cci task run manage_flows --operation activate --developer_names RLM_UpdateDecisionTables
+cci task run manage_flows --operation activate --developer_names RLM_Refresh_Decision_Tables
 ```
 
 ### Activate All Active Pricing Procedures
