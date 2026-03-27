@@ -1,0 +1,10 @@
+<template>
+  <div class="slds-card slds-var-p-around_medium">
+    <h2 class="slds-text-heading_medium">Redirecting to Order...</h2>
+    <template if:true={hasError}>
+      <div class="slds-text-color_error slds-var-m-top_small">
+        {errorMessage}
+      </div>
+    </template>
+  </div>
+</template>
