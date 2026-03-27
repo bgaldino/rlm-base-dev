@@ -49,10 +49,11 @@ public without sharing class RLM_ARC_AssetValidator {
 
         Map<Id, Asset> blockedAssetMap = new Map<Id, Asset>();
         if (!allBlockedIds.isEmpty()) {
-            blockedAssetMap = new Map<Id, Asset>([
-                SELECT Id, Name, Product2.Name, LifecycleStartDate, LifecycleEndDate
-                FROM Asset WHERE Id IN :allBlockedIds
-            ]);
+            blockedAssetMap = new Map<Id, Asset>((List<Asset>) Security.stripInaccessible(
+                AccessType.READABLE,
+                [SELECT Id, Name, Product2.Name, LifecycleStartDate, LifecycleEndDate
+                 FROM Asset WHERE Id IN :allBlockedIds]
+            ).getRecords());
         }
 
         // 5. Map results back to each request

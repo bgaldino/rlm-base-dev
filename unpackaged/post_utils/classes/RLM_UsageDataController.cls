@@ -121,10 +121,11 @@ public with sharing class RLM_UsageDataController {
             }
         }
 
-        // FLS is enforced via the RLM_UsageDatatables permission set; `with sharing` enforces record access
+        // WITH SECURITY_ENFORCED enforces CRUD and FLS; `with sharing` enforces record access.
+        // Users need the RLM_UsageDatatables permission set for the required object/field grants.
         String soql = 'SELECT ' + String.join(queryFields, ', ') +
             ' FROM ' + objectApiName +
-            ' WHERE AccountId = :accountId ORDER BY Id ASC';
+            ' WHERE AccountId = :accountId WITH SECURITY_ENFORCED ORDER BY Id ASC';
 
         List<SObject> records = Database.query(soql);
 
