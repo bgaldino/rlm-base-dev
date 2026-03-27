@@ -1,141 +1,114 @@
 erDiagram
-    %% Revenue Cloud v66.0 — Master Cross-Domain ERD
-    %% Shows key objects per domain and cross-domain relationships
-
-    %% === Product Catalog Management ===
-    Product2 { string Name StockKeepingUnit ProductCode Family }
-    ProductCategory { string Name CatalogId }
-    ProductCatalog { string Name }
-    ProductClassification { string ProductId CategoryId }
-    ProductAttributeDefinition { string ProductId AttributeDefinitionId }
-
-    %% === Salesforce Pricing ===
-    PriceBook2 { string Name IsActive IsStandard }
-    PriceBookEntry { string Pricebook2Id Product2Id UnitPrice }
-    PriceAdjustmentSchedule { string Name AdjustmentType }
-    PriceAdjustmentTier { string PriceAdjustmentScheduleId }
-    CostBook { string Name }
-    CostBookEntry { string CostBookId ProductId }
-    ContractItemPrice { string ContractId ProductId }
-    PriceRevisionPolicy { string Name }
-
-    %% === Rate Management ===
-    RateCard { string Name }
-    RateCardEntry { string RateCardId ProductId }
-    RatingFrequencyPolicy { string Name }
-
-    %% === Product Configurator ===
-    ProductConfigurationRule { string Name }
-    ProductConfigurationFlow { string Name }
-
-    %% === Transaction Management ===
-    Quote { string Name AccountId Status PricebookId }
-    QuoteLineItem { string QuoteId Product2Id ProductSellingModelId }
-    QuoteLineDetail { string QuoteLineItemId }
-    QuoteLineGroup { string QuoteId Name }
-    Order { string QuoteId AccountId Status ContractId }
-    OrderItem { string OrderId Product2Id ProductSellingModelId PricebookEntryId }
-    OrderItemDetail { string OrderItemId }
-    Asset { string AccountId Product2Id Name CurrentLifecycleEndDate }
-    AssetAction { string AssetId Type }
-    AssetActionSource { string AssetActionId OrderItemId }
-    AssetStatePeriod { string AssetId StartDate EndDate }
-    AssetRelationship { string AssetId RelatedAssetId }
-    SalesTransactionType { string Name MasterLabel }
-
-    %% === Dynamic Revenue Orchestrator ===
-    FulfillmentPlan { string Name OrderId }
-    FulfillmentStep { string FulfillmentPlanId Name }
-    FulfillmentStepDefinition { string Name }
-    FulfillmentAsset { string FulfillmentStepId AssetId }
-    SalesTransactionFulfillReq { string SalesTransactionId }
-
-    %% === Usage Management ===
-    ProductUsageResource { string Product2Id Name }
-    ProductUsageGrant { string AssetId ProductUsageResourceId }
-    UsageEntitlementBucket { string ProductUsageGrantId }
-    UsageSummary { string AssetId }
-    UsageResource { string Name }
-
-    %% === Billing ===
-    BillingSchedule { string OrderId OrderItemId ReferenceEntityId }
-    BillingScheduleGroup { string OrderId }
-    Invoice { string BillingAccountId ReferenceEntityId }
-    InvoiceLine { string InvoiceId BillingScheduleId OrderItemId }
-    CreditMemo { string BillingAccountId InvoiceId }
-    CreditMemoLine { string CreditMemoId InvoiceLineId }
-    DebitMemo { string BillingAccountId }
-    PaymentSchedule { string OrderId }
-    LegalEntity { string Name }
-    TaxPolicy { string Name }
-    SequencePolicy { string Name }
-
-    %% ========================================
-    %% CROSS-DOMAIN RELATIONSHIPS
-    %% ========================================
-
-    %% PCM → Core
-    ProductClassification }o--|| Product2 : ProductId
-    ProductClassification }o--|| ProductCategory : CategoryId
-    ProductCategory }o--|| ProductCatalog : CatalogId
-    ProductAttributeDefinition }o--|| Product2 : ProductId
-
-    %% Pricing → Product
-    PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
+    Product2
+    ProductCategory
+    ProductCategoryProduct
+    ProductAttributeDefinition
+    PriceBook2
+    PriceBookEntry
+    PriceAdjustmentSchedule
+    PriceAdjustmentTier
+    ProductSellingModel
+    RateCard
+    RateCardEntry
+    ProductConfigurationFlow
+    ProductConfigurationRule
+    Account
+    Contact
+    Contract
+    Quote
+    QuoteLineItem
+    Order
+    OrderItem
+    Asset
+    AssetStatePeriod
+    AssetAction
+    AssetActionSource
+    FulfillmentOrder
+    FulfillmentOrderLineItem
+    FulfillmentPlan
+    FulfillmentStep
+    ProductUsageGrant
+    ProductUsageResource
+    UsageSummary
+    UsageResource
+    BillingSchedule
+    Invoice
+    InvoiceLine
+    CreditMemo
+    Payment
+    BillingAccount
+    Invoice }o--|| BillingAccount : BillingAccountId
+    Invoice }o--|| CreditMemo : ReferenceEntityId
+    Invoice }o--|| Order : ReferenceEntityId
+    FulfillmentStep }o--|| FulfillmentStep : AssignedToId
+    FulfillmentStep }o--|| FulfillmentPlan : FulfillmentPlanId
+    CreditMemo }o--|| Order : ReferenceEntityId
     PriceBookEntry }o--|| Product2 : Product2Id
-    PriceAdjustmentTier }o--|| PriceAdjustmentSchedule : ScheduleId
-    CostBookEntry }o--|| CostBook : CostBookId
-    CostBookEntry }o--|| Product2 : ProductId
-
-    %% Rate → Product
-    RateCardEntry }o--|| RateCard : RateCardId
+    PriceBookEntry }o--|| ProductSellingModel : ProductSellingModelId
     RateCardEntry }o--|| Product2 : ProductId
-
-    %% Quote → Product/Pricing
-    QuoteLineItem }o--|| Quote : QuoteId
+    RateCardEntry }o--|| ProductSellingModel : ProductSellingModelId
+    RateCardEntry }o--|| RateCard : RateCardId
+    RateCardEntry }o--|| UsageResource : UsageResourceId
+    ProductUsageGrant }o--|| Product2 : ProductOfferId
+    ProductUsageGrant }o--|| ProductSellingModel : ProductSellingModelId
+    ProductUsageGrant }o--|| ProductUsageResource : ProductUsageResourceId
+    ProductUsageGrant }o--|| UsageResource : UsageResourceId
+    RateCard }o--|| UsageResource : UsageResourceId
+    ProductConfigurationFlow }o--|| Product2 : ReferenceObjectId
+    PriceAdjustmentTier }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
+    PriceAdjustmentTier }o--|| Product2 : Product2Id
+    PriceAdjustmentTier }o--|| ProductSellingModel : ProductSellingModelId
+    Asset }o--|| Asset : ParentId
+    Asset }o--|| Product2 : Product2Id
+    InvoiceLine }o--|| BillingSchedule : BillingScheduleId
+    InvoiceLine }o--|| InvoiceLine : ParentInvoiceLineId
+    InvoiceLine }o--|| Product2 : Product2Id
+    AssetAction }o--|| Asset : Lookup
+    UsageResource }o--|| UsageResource : TokenResourceId
+    UsageResource }o--|| Product2 : UsageDefinitionProductId
+    UsageSummary }o--|| UsageSummary : Field
+    UsageSummary }o--|| UsageResource : UsageResourceId
+    AssetStatePeriod }o--|| Asset : AssetId
+    BillingSchedule }o--|| BillingSchedule : OriginalBillingScheduleId
+    BillingSchedule }o--|| Order : ReferenceEntityId
+    AssetActionSource }o--|| AssetAction : AssetActionId
+    ProductConfigurationRule }o--|| Product2 : ProductId
+    ProductAttributeDefinition }o--|| Product2 : Product2Id
+    ProductCategoryProduct }o--|| ProductCategory : CategoryId
+    ProductCategoryProduct }o--|| Product2 : ProductId
+    QuoteLineItem ||--o{ Quote : QuoteId
     QuoteLineItem }o--|| Product2 : Product2Id
-    QuoteLineDetail }o--|| QuoteLineItem : QuoteLineItemId
-    QuoteLineGroup }o--|| Quote : QuoteId
-
-    %% Order → Quote/Product/Pricing
-    Order }o--|| Quote : QuoteId
-    OrderItem }o--|| Order : OrderId
+    QuoteLineItem }o--|| PriceBookEntry : PricebookEntryId
+    QuoteLineItem }o--|| ProductSellingModel : ProductSellingModelId
+    OrderItem ||--o{ Order : OrderId
     OrderItem }o--|| Product2 : Product2Id
     OrderItem }o--|| PriceBookEntry : PricebookEntryId
-    OrderItemDetail }o--|| OrderItem : OrderItemId
-
-    %% Asset → Order/Product
-    Asset }o--|| Product2 : Product2Id
-    AssetAction }o--|| Asset : AssetId
-    AssetActionSource }o--|| AssetAction : AssetActionId
+    OrderItem }o--|| ProductSellingModel : ProductSellingModelId
+    OrderItem }o--|| QuoteLineItem : QuoteLineItemId
+    OrderItem }o--|| OrderItem : OriginalOrderItemId
+    Order }o--|| Account : AccountId
+    Quote }o--|| Account : AccountId
+    Asset }o--|| Account : AccountId
+    Contract }o--|| Account : AccountId
+    Contact }o--|| Account : AccountId
+    BillingAccount }o--|| Account : AccountId
+    FulfillmentOrder }o--|| Account : AccountId
+    Account }o--|| Account : ParentId
+    Quote }o--|| Contact : ContactId
+    Order }o--|| Contract : ContractId
+    Order }o--|| Quote : QuoteId
+    Order }o--|| PriceBook2 : Pricebook2Id
+    Quote }o--|| PriceBook2 : Pricebook2Id
+    FulfillmentOrder }o--|| Order : OrderId
+    FulfillmentOrderLineItem ||--o{ FulfillmentOrder : FulfillmentOrderId
+    FulfillmentOrderLineItem }o--|| OrderItem : OrderItemId
+    FulfillmentOrderLineItem }o--|| Product2 : Product2Id
+    Asset }o--|| Contact : ContactId
     AssetActionSource }o--|| OrderItem : OrderItemId
-    AssetStatePeriod }o--|| Asset : AssetId
-    AssetRelationship }o--|| Asset : AssetId
-
-    %% DRO → Order/Asset
-    FulfillmentPlan }o--|| Order : OrderId
-    FulfillmentStep }o--|| FulfillmentPlan : PlanId
-    FulfillmentAsset }o--|| FulfillmentStep : StepId
-    FulfillmentAsset }o--|| Asset : AssetId
-    SalesTransactionFulfillReq }o--|| Order : SalesTransactionId
-
-    %% Usage → Asset/Product
-    ProductUsageResource }o--|| Product2 : Product2Id
+    BillingSchedule }o--|| Account : AccountId
+    Invoice }o--|| Account : AccountId
+    InvoiceLine ||--o{ Invoice : InvoiceId
+    CreditMemo }o--|| Account : AccountId
+    Payment }o--|| Account : AccountId
+    PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
     ProductUsageGrant }o--|| Asset : AssetId
-    ProductUsageGrant }o--|| ProductUsageResource : ResourceId
-    UsageEntitlementBucket }o--|| ProductUsageGrant : GrantId
-    UsageSummary }o--|| Asset : AssetId
-
-    %% Billing → Order/Invoice chain
-    BillingSchedule }o--|| Order : OrderId
-    BillingSchedule }o--|| OrderItem : OrderItemId
-    BillingScheduleGroup }o--|| Order : OrderId
-    Invoice }o--|| LegalEntity : LegalEntityId
-    InvoiceLine }o--|| Invoice : InvoiceId
-    InvoiceLine }o--|| BillingSchedule : BillingScheduleId
-    InvoiceLine }o--|| OrderItem : OrderItemId
-    CreditMemo }o--|| Invoice : InvoiceId
-    CreditMemoLine }o--|| CreditMemo : CreditMemoId
-    CreditMemoLine }o--|| InvoiceLine : InvoiceLineId
-    PaymentSchedule }o--|| Order : OrderId
-    ContractItemPrice }o--|| Product2 : ProductId

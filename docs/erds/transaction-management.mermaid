@@ -1,49 +1,99 @@
 erDiagram
-    Asset { string AccountId, AssetProvidedById, AssetServicedById, AssetTypeId, ContactId }
+    Account
+    Asset
     AssetAction
     AssetActionSource
     AssetActionSrcPriceAdjustment
     AssetContractRelationship
-    AssetDowntimePeriod { string LegalEntityId }
+    AssetDowntimePeriod
     AssetOwnerSharingRule
-    AssetRateAdjustment { string ProductSellingModelId, ProductSellingModelId, ProrationPolicyId, ProrationPolicyId, ReferenceEntityItemId }
+    AssetRateAdjustment
     AssetRateCardEntry
-    AssetRelationship { string AssetActionSourceId, AssetId, PriceAdjustmentCauseId }
-    AssetShare { string AssetId, ContractId }
+    AssetRelationship
+    AssetShare
     AssetStatePeriod
     AssetStatePeriodAttribute
     AssetTag
     AssetTokenEvent
-    AssetWarranty { string UserOrGroupId, AssetRateCardEntryId }
-    ApprovalSubmission { string AssetId, BindingObjectId }
-    BindingObjUsageRsrcPlcy { string RateCardEntryId, RateCardId }
-    ContractItemPrice { string AttributeDefinitionId }
-    ContractItemPriceAdjTier { string RateUnitOfMeasureId, UsageResourceId, AssetId }
-    ContractItemPriceHistory { string ProductRelationshipTypeId }
-    OrderDeliveryMethod { string RelatedAssetId }
-    OrderItemAttribute { string AssetId }
-    OrderItemDetail { string UserOrGroupId, UserOrGroupId, AssetId }
-    OrderItemRateAdjustment { string LegalEntityId }
-    OrderItemRateCardEntry { string PriceRevisionPolicy }
-    OrderItemUsageRsrcGrant { string AssetStatePeriodId, AttributeDefinitionId }
+    AssetWarranty
+    BindingObjUsageRsrcPlcy
+    Contact
+    Contract
+    ContractItemPriceAdjTier
+    ContractItemPriceHistory
+    ContractLineItem
+    Order
+    OrderDeliveryMethod
+    OrderItem
+    OrderItemAttribute
+    OrderItemDetail
+    OrderItemGroup
+    OrderItemRateAdjustment
+    OrderItemRateCardEntry
+    OrderItemUsageRsrcGrant
     OrderItemUsageRsrcPlcy
-    SalesTransactionType
+    QuotLineItmUsageRsrcPlcy
+    QuotLineItmUseRsrcGrant
+    Quote
     QuoteAction
-    QuoteLineDetail { string OwnerId, OwnerId, RelatedRecordId, RelatedRecordId, RelatedRecordId }
-    QuoteLineGroup { string SubmittedById }
-    QuoteLineItemAttribute { string BindingObjectId, BindingObjectId, BindingObjectId, BindingObjectId }
-    QuotLineItmUseRsrcGrant { string UsageOveragePolicyId, UsageResourceId }
-    QuotLineItmUsageRsrcPlcy { string ContractId }
-    QuoteLineRateAdjustment { string ProductSellingModelId }
-    QuoteLineRateCardEntry { string ContractItemPriceId }
+    QuoteLineDetail
+    QuoteLineGroup
+    QuoteLineItem
+    QuoteLineItemAttribute
+    QuoteLineRateAdjustment
+    QuoteLineRateCardEntry
+    SalesTransactionType
+    QuoteAction }o--|| Quote : QuoteId
+    QuoteAction }o--|| Asset : SourceAssetId
+    AssetRelationship }o--|| Asset : AssetId
+    AssetRelationship }o--|| Asset : RelatedAssetId
+    QuoteLineRateCardEntry }o--|| OrderItemGroup : Field
+    QuoteLineRateCardEntry }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    AssetShare }o--|| Asset : Lookup
+    OrderItemGroup }o--|| OrderItemGroup : Field
+    OrderItemGroup }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    AssetContractRelationship }o--|| Asset : AssetId
+    AssetRateCardEntry }o--|| Asset : BindingObjectId
+    AssetWarranty }o--|| Asset : BindingObjectId
+    AssetActionSrcPriceAdjustment }o--|| Asset : AssetId
+    Order }o--|| SalesTransactionType : SalesTransactionTypeId
     Asset }o--|| Asset : ParentId
     Asset }o--|| Asset : RootAssetId
-    AssetRelationship }o--|| Asset : AssetId
-    AssetShare }o--|| Asset : AssetId
-    ApprovalSubmission }o--|| Asset : BindingObjectId
-    ContractItemPriceAdjTier }o--|| Asset : AssetId
-    OrderDeliveryMethod }o--|| Asset : RelatedAssetId
-    OrderItemAttribute }o--|| Asset : AssetId
-    OrderItemDetail }o--|| Asset : AssetId
-    QuoteLineDetail }o--|| ApprovalSubmission : RelatedRecordId
-    QuoteLineItemAttribute }o--|| Asset : BindingObjectId
+    Quote }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    QuoteLineGroup }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    AssetAction }o--|| Asset : Lookup
+    AssetStatePeriod }o--|| Asset : AssetId
+    AssetStatePeriod }o--|| Asset : BindingInstanceTargetId
+    AssetActionSource }o--|| AssetAction : AssetActionId
+    AssetActionSource }o--|| AssetAction : Lookup
+    QuoteLineItem ||--o{ Quote : QuoteId
+    QuoteLineItem }o--|| QuoteLineGroup : QuoteLineGroupId
+    OrderItem ||--o{ Order : OrderId
+    OrderItem }o--|| OrderItemGroup : OrderItemGroupId
+    OrderItem }o--|| QuoteLineItem : QuoteLineItemId
+    OrderItem }o--|| OrderItem : OriginalOrderItemId
+    Order }o--|| Account : AccountId
+    Quote }o--|| Account : AccountId
+    Asset }o--|| Account : AccountId
+    Contract }o--|| Account : AccountId
+    Contact }o--|| Account : AccountId
+    Account }o--|| Account : ParentId
+    Quote }o--|| Contact : ContactId
+    Order }o--|| Contract : ContractId
+    Order }o--|| Quote : QuoteId
+    QuoteLineItemAttribute ||--o{ QuoteLineItem : QuoteLineItemId
+    QuoteLineDetail ||--o{ QuoteLineItem : QuoteLineItemId
+    QuoteLineRateAdjustment ||--o{ QuoteLineItem : QuoteLineItemId
+    QuoteLineRateCardEntry ||--o{ QuoteLineItem : QuoteLineItemId
+    QuotLineItmUsageRsrcPlcy ||--o{ QuoteLineItem : QuoteLineItemId
+    QuotLineItmUseRsrcGrant ||--o{ QuoteLineItem : QuoteLineItemId
+    OrderItemAttribute ||--o{ OrderItem : OrderItemId
+    OrderItemDetail ||--o{ OrderItem : OrderItemId
+    OrderItemRateAdjustment ||--o{ OrderItem : OrderItemId
+    OrderItemRateCardEntry }o--|| OrderItem : OrderItemId
+    OrderItemUsageRsrcPlcy ||--o{ OrderItem : OrderItemId
+    OrderItemUsageRsrcGrant ||--o{ OrderItem : OrderItemId
+    Asset }o--|| Contact : ContactId
+    AssetAction ||--o{ Asset : AssetId
+    AssetActionSource }o--|| OrderItem : OrderItemId
+    ContractLineItem }o--|| Asset : AssetId

@@ -1,20 +1,24 @@
 erDiagram
-    AttributeCategory { string OwnerId, OwnerId }
-    AttributeCategoryAttribute { string AttributeCategoryId, AttributeDefinitionId, OwnerId, OwnerId }
-    AttrPicklistExcludedValue { string AttributeId, AttributeId, AttributePicklistValueId, OwnerId, OwnerId }
-    ProductAttributeDefinition { string AttributeCategoryId, AttributeDefinitionId, OverriddenProductAttributeDefinitionId, OverrideContextId, OwnerId }
-    ProductCategoryDisqual { string CategoryId, OwnerId, OwnerId }
-    ProductCategoryQualification { string CategoryId, OwnerId, OwnerId }
-    ProductClassification { string OwnerId, OwnerId }
-    ProductClassificationAttr { string AttributeCategoryId, AttributeDefinitionId, OwnerId, OwnerId, ProductClassificationId }
-    ProductComponentGrpOverride { string OverrideContextId, OwnerId, OwnerId, ProductComponentGroupId }
-    ProductDisqualification { string OwnerId, OwnerId, ParentProductId, ProductId, RootProductId }
-    ProductQualification { string OwnerId, OwnerId, ParentProductId, ProductId, RootProductId }
-    AttributeCategoryAttribute }o--|| AttributeCategory : AttributeCategoryId
-    AttrPicklistExcludedValue }o--|| ProductAttributeDefinition : AttributeId
-    AttrPicklistExcludedValue }o--|| ProductClassificationAttr : AttributeId
+    AttrPicklistExcludedValue
+    AttributeCategory
+    AttributeDefinition
+    AttributePicklist
+    AttributePicklistValue
+    Product2
+    ProductAttributeDefinition
+    ProductCategory
+    ProductCategoryProduct
+    ProductRelatedComponent
+    ProductRelationshipType
+    AttrPicklistExcludedValue }o--|| Product2 : ProductId
+    AttributeDefinition }o--|| AttributePicklist : PicklistId
+    AttributePicklistValue }o--|| AttributePicklist : AttributePicklistId
     ProductAttributeDefinition }o--|| AttributeCategory : AttributeCategoryId
-    ProductAttributeDefinition }o--|| ProductAttributeDefinition : OverriddenProductAttributeDefinitionId
-    ProductAttributeDefinition }o--|| ProductClassificationAttr : ProductClassificationAttributeId
-    ProductClassificationAttr }o--|| AttributeCategory : AttributeCategoryId
-    ProductClassificationAttr }o--|| ProductClassification : ProductClassificationId
+    ProductAttributeDefinition }o--|| AttributeDefinition : AttributeDefinitionId
+    ProductAttributeDefinition }o--|| Product2 : Product2Id
+    ProductCategoryProduct }o--|| ProductCategory : CategoryId
+    ProductCategoryProduct }o--|| Product2 : ProductId
+    ProductRelatedComponent }o--|| Product2 : ParentProductId
+    ProductRelatedComponent }o--|| Product2 : ProductId
+    ProductRelatedComponent }o--|| ProductRelationshipType : ProductRelationshipTypeId
+    ProductCategoryProduct }o--|| ProductCategory : ProductCategoryId

@@ -1,132 +1,197 @@
 erDiagram
-    AccountingPeriod { string OwnerId, OwnerId }
-    BillingArrangement { string OwnerId, OwnerId }
-    BillingArrangementLine { string AccountId, BillingAccountId }
-    BillingBatchScheduler { string OwnerId, OwnerId, RunCriteriaId }
-    BillingBatchFilterCriteria { string BatchCriteriaId, OwnerId, OwnerId }
-    BillingMilestonePlan { string BillingTreatmentId, ReferenceItemId, ReferenceItemId }
-    BillingMilestonePlanItem { string BillingScheduleGroupId }
-    BillingPeriodItem { string BillingScheduleGroupId, InvoiceBatchRunId, InvoiceId, InvoiceLineId, UnitOfMeasureId }
+    AccountBillingAccount
+    AccountingPeriod
+    BillingAccount
+    BillingArrangement
+    BillingArrangementLine
+    BillingBatchFilterCriteria
+    BillingBatchScheduler
+    BillingMilestonePlan
+    BillingMilestonePlanItem
+    BillingPeriodItem
     BillingPolicy
-    BillingSchedule { string BillingAccountId, BillingMilestonePlanId, BillingTreatmentItemId, InvoiceBatchRunId, ReferenceEntityId }
-    BillingScheduleGroup { string BillToContactId, BillingAccountId, BillingArrangementId, BillingTreatmentId, BindingInstanceId }
-    BillingTreatment { string BillingPolicyId, LegalEntityId }
+    BillingSchedule
+    BillingScheduleGroup
+    BillingTreatment
     BillingTreatmentItem
-    BsgRelationship { string AssociatedBsgId }
-    CreditMemo { string BillToContactId, BillingAccountId, LegalEntityId, OwnerId, OwnerId }
+    BsgRelationship
+    CollectionPlan
+    CollectionPlanItem
+    CreditMemo
     CreditMemoAddressGroup
-    CreditMemoInvApplication { string AssociatedLineId, CreditMemoId }
-    CreditMemoLine { string BillingAddressId, LegalEntityId, Product2Id, ReferenceEntityItemId, ReferenceEntityItemId }
-    CreditMemoLineInvoiceLine { string CreditMemoLineId, LegalEntityId }
-    CreditMemoLineTax { string BillingAddressId, LegalEntityId, Product2Id, ReferenceEntityItemId, ShipFromAddressId }
-    DebitMemo { string AccountId, LegalEntityId, OwnerId, OwnerId }
+    CreditMemoInvApplication
+    CreditMemoLine
+    CreditMemoLineInvoiceLine
+    CreditMemoLineTax
+    DebitMemo
     DebitMemoAddress
-    DebitMemoLine { string BillingAddressId, LegalEntityId, Product2Id, ReferenceRecordId, ReferenceRecordId }
-    DebitMemoLineTax { string BillingAddressId, LegalEntityId, ShipFromAddressId }
-    GeneralLedgerAccount { string LegalEntityId, OwnerId, OwnerId }
-    GeneralLedgerAcctAsgntRule { string LegalEntityId, OwnerId, OwnerId }
+    DebitMemoLine
+    DebitMemoLineTax
+    Dispute
+    DisputeItem
     GeneralLdgrAcctPrdSummary
+    GeneralLedgerAccount
+    GeneralLedgerAcctAsgntRule
     GeneralLedgerJrnlEntryRule
     InvBatchDraftToPostedRun
-    Invoice { string BillToContactId, BillingAccountId, BillingArrangementId, BillingAccountId, InvoiceBatchRunId }
+    Invoice
     InvoiceAddressGroup
-    InvoiceBatchRun { string OwnerId, OwnerId }
-    InvoiceBatchRunCriteria { string OwnerId, OwnerId }
+    InvoiceBatchRun
+    InvoiceBatchRunCriteria
     InvoiceBatchRunRecovery
-    InvoiceDocument { string ContentDocumentId }
-    InvoiceLine { string BillingAddressId, BillingScheduleGroupId, BillingScheduleId, LegalEntityId, ParentInvoiceLineId }
-    InvoiceLineRelationship { string InvoiceId }
-    InvoiceLineTax { string BillingAddressId, LegalEntityId, Product2Id, ShipFromAddressId, ShippingAddressId }
-    LegalEntity { string EmailTemplateId, OwnerId, OwnerId }
-    LegalEntyAccountingPeriod { string AccountingPeriodId, LegalEntityId, OwnerId, OwnerId }
-    PaymentBatchRun { string OwnerId, OwnerId }
-    PaymentLineInvoiceLine { string AccountId, LegalEntityId, PaymentId }
-    PaymentRetryRule { string PaymentGatewayId }
+    InvoiceDocument
+    InvoiceLine
+    InvoiceLineRelationship
+    InvoiceLineTax
+    LegalEntity
+    LegalEntyAccountingPeriod
+    Payment
+    PaymentBatchRun
+    PaymentLineInvoice
+    PaymentLineInvoiceLine
+    PaymentRetryRule
     PaymentRetryRuleSet
-    PaymentSchedule { string CollectionPlanItemId, DefaultPaymentMethodId, DefaultPaymentMethodId, OwnerId, OwnerId }
-    PaymentScheduleItem { string PaymentAccountId, PaymentBatchRunId, PaymentId, PaymentMethodId, PaymentMethodId }
-    PaymentScheduleItemInvoiceLine
-    SequencePolicy { string OwnerId, OwnerId }
-    TaxEngineProvider { string ApexAdapterId }
-    TaxEngine { string MerchantCredentialId, TaxEngineProviderId }
-    TaxPolicy { string DefaultTaxTreatmentId }
-    TaxTreatment { string LegalEntityId, ProductId, TaxEngineId, TaxPolicyId, ProductId }
-    TransactionJournal
-    TransactionJournalEntry
-    BillingBatchScheduler }o--|| InvoiceBatchRunCriteria : RunCriteriaId
-    BillingBatchFilterCriteria }o--|| InvoiceBatchRunCriteria : BatchCriteriaId
-    BillingMilestonePlan }o--|| BillingTreatment : BillingTreatmentId
-    BillingMilestonePlan }o--|| BillingSchedule : ReferenceItemId
-    BillingMilestonePlanItem }o--|| BillingScheduleGroup : BillingScheduleGroupId
-    BillingPeriodItem }o--|| BillingScheduleGroup : BillingScheduleGroupId
+    PaymentSchedule
+    PaymentScheduleItem
+    PaymentSchedulePolicy
+    PaymentScheduleTreatment
+    PaymentScheduleTreatmentDtl
+    PaymentTerm
+    PaymentTermItem
+    PymtSchdDistributionMethod
+    Refund
+    RefundLinePayment
+    RevenueTransactionErrorLog
+    SeqPolicySelectionCondition
+    SequenceGapReconciliation
+    SequencePolicy
+    TaxEngine
+    TaxEngineInteractionLog
+    TaxEngineProvider
+    TaxPolicy
+    TaxRate
+    TaxTreatment
+    TaxEngine }o--|| TaxEngineProvider : TaxEngineProviderId
+    RevenueTransactionErrorLog }o--|| LegalEntyAccountingPeriod : PrimaryRecord2Id
+    RevenueTransactionErrorLog }o--|| BillingBatchScheduler : PrimaryRecordId
+    RevenueTransactionErrorLog }o--|| BillingSchedule : PrimaryRecordId
+    RevenueTransactionErrorLog }o--|| CreditMemo : PrimaryRecordId
+    RevenueTransactionErrorLog }o--|| CreditMemoLine : RelatedRecord2Id
+    RevenueTransactionErrorLog }o--|| CreditMemoLineInvoiceLine : RelatedRecord2Id
+    RevenueTransactionErrorLog }o--|| CreditMemoLineTax : RelatedRecord2Id
+    RevenueTransactionErrorLog }o--|| InvoiceLine : RelatedRecord2Id
+    RevenueTransactionErrorLog }o--|| BillingBatchScheduler : RelatedRecordId
+    RevenueTransactionErrorLog }o--|| BillingSchedule : RelatedRecordId
+    RevenueTransactionErrorLog }o--|| BillingScheduleGroup : RelatedRecordId
+    RevenueTransactionErrorLog }o--|| CreditMemo : RelatedRecordId
+    GeneralLedgerJrnlEntryRule }o--|| GeneralLedgerAccount : CreditGeneralLedgerAccountId
+    GeneralLedgerJrnlEntryRule }o--|| GeneralLedgerAccount : DebitGeneralLedgerAccountId
+    InvoiceLineTax }o--|| InvoiceAddressGroup : Field
+    BillingPeriodItem }o--|| BillingScheduleGroup : BillingPeriodStartDate
     BillingPeriodItem }o--|| InvoiceBatchRun : InvoiceBatchRunId
     BillingPeriodItem }o--|| Invoice : InvoiceId
     BillingPeriodItem }o--|| InvoiceLine : InvoiceLineId
-    BillingSchedule }o--|| BillingMilestonePlan : BillingMilestonePlanId
-    BillingSchedule }o--|| BillingTreatmentItem : BillingTreatmentItemId
-    BillingSchedule }o--|| InvoiceBatchRun : InvoiceBatchRunId
-    BillingSchedule }o--|| TaxTreatment : TaxTreatmentId
+    BillingPeriodItem }o--|| BillingMilestonePlanItem : RelatedMilestonePlanItemId
+    TaxTreatment }o--|| LegalEntity : LegalEntityId
+    PaymentBatchRun }o--|| BillingBatchScheduler : BillingBatchSchedulerId
+    DebitMemoLineTax }o--|| DebitMemoAddress : BillingAddressId
+    Invoice }o--|| BillingAccount : BillingAccountId
+    Invoice }o--|| InvBatchDraftToPostedRun : InvBatchDraftToPostedRunId
+    Invoice }o--|| InvoiceBatchRun : InvoiceBatchRunId
+    Invoice }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
+    Invoice }o--|| LegalEntity : LegalEntityId
+    Invoice }o--|| PaymentTerm : PaymentTermId
+    Invoice }o--|| DebitMemo : ReferenceEntityId
+    Invoice }o--|| CreditMemo : ReferenceEntityId
+    Invoice }o--|| SequencePolicy : SequencePolicyId
+    TaxRate }o--|| LegalEntity : LegalEntityId
+    GeneralLdgrAcctPrdSummary }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
+    BillingBatchFilterCriteria }o--|| InvoiceBatchRunCriteria : BatchCriteriaId
+    DebitMemoLine }o--|| DebitMemoAddress : BillingAddressId
+    DebitMemoLine }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
+    DebitMemoLine }o--|| LegalEntity : LegalEntityId
+    DebitMemoLine }o--|| InvoiceLine : ReferenceRecordId
+    DebitMemoLine }o--|| Refund : ReferenceRecordId
+    DebitMemoLine }o--|| DebitMemoAddress : ShippingAddressId
+    DebitMemoLine }o--|| TaxTreatment : TaxTreatmentId
+    BillingBatchScheduler }o--|| InvoiceBatchRunCriteria : Field
+    BillingBatchScheduler }o--|| InvoiceBatchRunCriteria : RunCriteriaId
+    PaymentLineInvoice }o--|| LegalEntity : LegalEntityId
+    TaxPolicy }o--|| LegalEntity : Field
+    TaxPolicy }o--|| TaxTreatment : DefaultTaxTreatmentId
+    TaxPolicy }o--|| PaymentTerm : PaymentTermId
+    TaxPolicy }o--|| LegalEntity : LegalEntityId
+    TaxPolicy }o--|| GeneralLedgerAccount : CreditGeneralLedgerAccountId
+    TaxPolicy }o--|| GeneralLedgerAccount : DebitGeneralLedgerAccountId
+    TaxPolicy }o--|| GeneralLedgerAcctAsgntRule : GeneralLedgerAcctAsgntRuleId
+    TaxPolicy }o--|| GeneralLedgerJrnlEntryRule : GenlLdgrJournalEntryRuleId
+    TaxPolicy }o--|| CreditMemo : ReferenceTransactionRecordId
+    TaxPolicy }o--|| CreditMemoInvApplication : ReferenceTransactionRecordId
+    TaxPolicy }o--|| CreditMemoLine : ReferenceTransactionRecordId
+    TaxPolicy }o--|| CreditMemoLineInvoiceLine : ReferenceTransactionRecordId
+    PaymentSchedule }o--|| CollectionPlanItem : CollectionPlanItemId
+    PaymentSchedule }o--|| CollectionPlan : ReferenceEntityId
+    PaymentSchedule }o--|| Invoice : ReferenceEntityId
+    BillingScheduleGroup }o--|| BillingScheduleGroup : AnchorProdtBillingSchdGrpId
     BillingScheduleGroup }o--|| BillingArrangement : BillingArrangementId
     BillingScheduleGroup }o--|| BillingTreatment : BillingTreatmentId
     BillingScheduleGroup }o--|| LegalEntity : LegalEntityId
+    BillingScheduleGroup }o--|| PaymentTerm : PaymentTermId
     BillingScheduleGroup }o--|| TaxTreatment : TaxTreatmentId
-    BillingTreatment }o--|| BillingPolicy : BillingPolicyId
-    BillingTreatment }o--|| LegalEntity : LegalEntityId
-    BsgRelationship }o--|| BillingScheduleGroup : AssociatedBsgId
+    InvoiceBatchRun }o--|| BillingBatchScheduler : BillingBatchSchedulerId
+    BillingPolicy }o--|| BillingTreatment : DefaultBillingTreatmentId
+    LegalEntyAccountingPeriod }o--|| AccountingPeriod : AccountingPeriodId
+    LegalEntyAccountingPeriod }o--|| LegalEntity : LegalEntityId
+    CreditMemo }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
     CreditMemo }o--|| LegalEntity : LegalEntityId
-    CreditMemo }o--|| Invoice : ReferenceEntityId
-    CreditMemoInvApplication }o--|| CreditMemoInvApplication : AssociatedLineId
-    CreditMemoInvApplication }o--|| CreditMemo : CreditMemoId
-    CreditMemoLine }o--|| CreditMemoAddressGroup : BillingAddressId
-    CreditMemoLine }o--|| LegalEntity : LegalEntityId
-    CreditMemoLine }o--|| InvoiceLine : ReferenceEntityItemId
-    CreditMemoLine }o--|| CreditMemoAddressGroup : ShipFromAddressId
-    CreditMemoLine }o--|| CreditMemoAddressGroup : ShippingAddressId
-    CreditMemoLine }o--|| TaxTreatment : TaxTreatmentId
-    CreditMemoLineInvoiceLine }o--|| CreditMemoLine : CreditMemoLineId
-    CreditMemoLineInvoiceLine }o--|| LegalEntity : LegalEntityId
     CreditMemoLineTax }o--|| CreditMemoAddressGroup : BillingAddressId
+    CreditMemoLineTax }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
     CreditMemoLineTax }o--|| LegalEntity : LegalEntityId
     CreditMemoLineTax }o--|| InvoiceLineTax : ReferenceEntityItemId
     CreditMemoLineTax }o--|| CreditMemoAddressGroup : ShipFromAddressId
     CreditMemoLineTax }o--|| CreditMemoAddressGroup : ShippingAddressId
-    CreditMemoLineTax }o--|| TaxTreatment : TaxTreatmentId
-    DebitMemo }o--|| LegalEntity : LegalEntityId
-    DebitMemoLine }o--|| DebitMemoAddress : BillingAddressId
-    DebitMemoLine }o--|| LegalEntity : LegalEntityId
-    DebitMemoLine }o--|| InvoiceLine : ReferenceRecordId
-    DebitMemoLine }o--|| DebitMemoAddress : ShippingAddressId
-    DebitMemoLine }o--|| TaxTreatment : TaxTreatmentId
-    DebitMemoLineTax }o--|| DebitMemoAddress : BillingAddressId
-    DebitMemoLineTax }o--|| LegalEntity : LegalEntityId
-    DebitMemoLineTax }o--|| DebitMemoAddress : ShipFromAddressId
-    GeneralLedgerAccount }o--|| LegalEntity : LegalEntityId
+    PaymentSchedulePolicy }o--|| PaymentScheduleTreatment : DefaultTreatmentId
+    BillingMilestonePlanItem }o--|| BillingScheduleGroup : BillingScheduleGroupId
+    BillingMilestonePlanItem }o--|| BillingSchedule : ReferenceItemId
+    InvoiceLineRelationship }o--|| InvoiceLine : AssociatedInvoiceLineId
+    InvoiceLineRelationship }o--|| BillingScheduleGroup : UsageProductBillSchdGrpId
+    InvoiceLineRelationship }o--|| Invoice : InvoiceId
+    CreditMemoLineInvoiceLine }o--|| CreditMemoLine : Field
+    CreditMemoLineInvoiceLine }o--|| CreditMemoLine : CreditMemoLineId
+    CreditMemoLineInvoiceLine }o--|| TaxTreatment : TaxTreatmentId
+    CreditMemoLineInvoiceLine }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
+    CreditMemoLineInvoiceLine }o--|| LegalEntity : LegalEntityId
+    CreditMemoLineInvoiceLine }o--|| CreditMemoLineInvoiceLine : RelatedCrMemoLineInvcLineId
+    BillingAccount }o--|| PaymentTerm : PaymentTermId
+    GeneralLedgerAcctAsgntRule }o--|| GeneralLedgerAccount : CreditGeneralLedgerAccountId
+    GeneralLedgerAcctAsgntRule }o--|| GeneralLedgerAccount : DebitGeneralLedgerAccountId
     GeneralLedgerAcctAsgntRule }o--|| LegalEntity : LegalEntityId
-    Invoice }o--|| InvoiceBatchRun : InvoiceBatchRunId
-    Invoice }o--|| LegalEntity : LegalEntityId
-    Invoice }o--|| DebitMemo : ReferenceEntityId
-    Invoice }o--|| SequencePolicy : SequencePolicyId
+    BillingTreatment }o--|| BillingPolicy : UsageType
+    BillingTreatment }o--|| LegalEntity : LegalEntityId
+    BillingMilestonePlan }o--|| BillingTreatment : Field
+    PaymentScheduleItem }o--|| PaymentBatchRun : PaymentBatchRunId
+    PaymentScheduleItem }o--|| Payment : PaymentId
     InvoiceLine }o--|| InvoiceAddressGroup : BillingAddressId
     InvoiceLine }o--|| BillingScheduleGroup : BillingScheduleGroupId
     InvoiceLine }o--|| BillingSchedule : BillingScheduleId
+    InvoiceLine }o--|| DebitMemoLine : GroupReferenceEntityItemId
+    InvoiceLine }o--|| LegalEntyAccountingPeriod : LegalEntityAccountingPeriodId
     InvoiceLine }o--|| LegalEntity : LegalEntityId
     InvoiceLine }o--|| InvoiceLine : ParentInvoiceLineId
-    InvoiceLine }o--|| InvoiceAddressGroup : ShipFromAddressId
+    InvoiceLine }o--|| InvoiceAddressGroup : Product
     InvoiceLine }o--|| InvoiceAddressGroup : ShippingAddressId
     InvoiceLine }o--|| TaxTreatment : TaxTreatmentId
-    InvoiceLineRelationship }o--|| Invoice : InvoiceId
-    InvoiceLineTax }o--|| InvoiceAddressGroup : BillingAddressId
-    InvoiceLineTax }o--|| LegalEntity : LegalEntityId
-    InvoiceLineTax }o--|| InvoiceAddressGroup : ShipFromAddressId
-    InvoiceLineTax }o--|| InvoiceAddressGroup : ShippingAddressId
-    InvoiceLineTax }o--|| TaxTreatment : TaxTreatmentId
-    LegalEntyAccountingPeriod }o--|| AccountingPeriod : AccountingPeriodId
-    LegalEntyAccountingPeriod }o--|| LegalEntity : LegalEntityId
-    PaymentLineInvoiceLine }o--|| LegalEntity : LegalEntityId
-    PaymentSchedule }o--|| Invoice : ReferenceEntityId
-    PaymentScheduleItem }o--|| PaymentBatchRun : PaymentBatchRunId
-    TaxEngine }o--|| TaxEngineProvider : TaxEngineProviderId
-    TaxPolicy }o--|| TaxTreatment : DefaultTaxTreatmentId
-    TaxTreatment }o--|| LegalEntity : LegalEntityId
-    TaxTreatment }o--|| TaxEngine : TaxEngineId
-    TaxTreatment }o--|| TaxPolicy : TaxPolicyId
+    BsgRelationship }o--|| BillingScheduleGroup : AssociatedBsgId
+    GeneralLedgerAccount }o--|| GeneralLedgerAccount : CreditGeneralLedgerAccountId
+    GeneralLedgerAccount }o--|| GeneralLedgerAccount : DebitGeneralLedgerAccountId
+    GeneralLedgerAccount }o--|| LegalEntity : LegalEntityId
+    CreditMemoInvApplication }o--|| CreditMemoInvApplication : AssociatedLineId
+    CreditMemoInvApplication }o--|| CreditMemo : CreditMemoId
+    BillingSchedule }o--|| BillingMilestonePlan : BillingMilestonePlanId
+    BillingSchedule }o--|| BillingTreatmentItem : BillingTreatmentItemId
+    BillingSchedule }o--|| InvBatchDraftToPostedRun : InvBatchDraftToPostedRunId
+    BillingSchedule }o--|| InvoiceBatchRun : InvoiceBatchRunId
+    BillingSchedule }o--|| BillingSchedule : OriginalBillingScheduleId
+    BillingSchedule }o--|| TaxTreatment : TaxTreatmentId
+    InvoiceLine ||--o{ Invoice : InvoiceId
+    CreditMemoLine ||--o{ CreditMemo : CreditMemoId

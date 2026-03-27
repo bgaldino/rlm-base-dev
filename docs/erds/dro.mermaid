@@ -1,34 +1,48 @@
 erDiagram
-    AssetFulfillmentDecomp { string AttributeDefinitionId }
-    FulfillmentAsset { string FulfillmentAssetId, MainFulfillmentAssetId }
-    FulfillmentAssetAttribute { string FalloutQueueId }
-    FulfillmentAssetRelationship { string OwnerId, OwnerId }
-    FulfillmentFalloutRule { string AttributeDefinitionId }
+    AssetFulfillmentDecomp
+    FulfillmentAsset
+    FulfillmentAssetAttribute
+    FulfillmentAssetRelationship
+    FulfillmentFalloutRule
     FulfillmentLineAttribute
     FulfillmentLineRel
-    FulfillmentLineSourceRel { string FulfilmentOrderLineId, OwnerId, OwnerId, SourceLineItemId, SourceLineItemId }
-    FulfillmentPlan { string ExecutionUserId, OwnerId, OwnerId }
+    FulfillmentLineSourceRel
+    FulfillmentOrder
+    FulfillmentOrderLineItem
+    FulfillmentPlan
     FulfillmentStep
-    FulfillmentStepDefinition { string AssignedToId, AssignedToId, CompensatedStepId }
-    FulfillmentStepDefinitionGroup { string FalloutQueueId, FlowInterviewId }
+    FulfillmentStepDefinition
+    FulfillmentStepDefinitionGroup
     FulfillmentStepDependency
-    FulfillmentStepDependencyDef { string OwnerId, OwnerId }
-    FulfillmentStepJeopardyRule { string ResumeOnRuleId, RunAsUserId }
-    FulfillmentStepSource { string TaskId }
-    FulfillmentTaskAssignmentRule { string AmendGroupId, AssignedToId, AssignedToId, CancelledGroupId }
-    FulfillmentWorkspace { string ExecuteOnRuleId }
+    FulfillmentStepDependencyDef
+    FulfillmentStepJeopardyRule
+    FulfillmentStepSource
+    FulfillmentTaskAssignmentRule
+    FulfillmentWorkspace
     FulfillmentWorkspaceItem
-    ProductDecompEnrichmentRule { string RunAsUserId, StepDefinitionGroupId }
-    ProdtDecompEnrchVarMap { string OwnerId, OwnerId }
-    ProductFulfillmentDecompRule { string DependencyDefinitionId, DependentStepId, DependsOnStepId }
+    ProdtDecompEnrchVarMap
+    ProductDecompEnrichmentRule
+    ProductFulfillmentDecompRule
     ProductFulfillmentScenario
+    SalesTransactionFulfillReq
     SalesTrxnDeleteEvent
-    SalesTransactionFulfillReq { string OwnerId, OwnerId }
-    ValTfrm { string SourceLineItemId, SourceLineItemId, StepId }
-    ValTfrmGrp { string ConditionId, DestinationId, DestinationId, OwnerId, OwnerId }
-    FulfillmentStepDefinition }o--|| FulfillmentStep : CompensatedStepId
-    FulfillmentTaskAssignmentRule }o--|| FulfillmentStepDefinitionGroup : AmendGroupId
-    FulfillmentTaskAssignmentRule }o--|| FulfillmentStepDefinitionGroup : CancelledGroupId
-    ProductFulfillmentDecompRule }o--|| FulfillmentStepDependencyDef : DependencyDefinitionId
-    ProductFulfillmentDecompRule }o--|| FulfillmentStep : DependentStepId
-    ProductFulfillmentDecompRule }o--|| FulfillmentStep : DependsOnStepId
+    ValTfrm
+    ValTfrmGrp
+    FulfillmentAssetRelationship }o--|| FulfillmentAsset : AssociatedFulfillmentAssetId
+    FulfillmentStep }o--|| FulfillmentStep : AssignedToId
+    FulfillmentStep }o--|| FulfillmentPlan : FulfillmentPlanId
+    FulfillmentStep }o--|| FulfillmentStepDefinition : FulfillmentStepDefinitionId
+    FulfillmentStepDefinition }o--|| FulfillmentStepDefinitionGroup : AmendGroupId
+    FulfillmentStepDependency }o--|| FulfillmentStep : Field
+    FulfillmentStepDependency }o--|| FulfillmentStepDependencyDef : DependencyDefinitionId
+    FulfillmentStepDependency }o--|| FulfillmentStep : DependsOnStepId
+    FulfillmentStepDependency }o--|| FulfillmentStepDefinition : DependsOnStepDefinitionId
+    AssetFulfillmentDecomp }o--|| FulfillmentAsset : FulfillmentSourceAssetId
+    AssetFulfillmentDecomp }o--|| FulfillmentAsset : FulfillmentTargetAssetId
+    ProductFulfillmentScenario }o--|| FulfillmentStepDefinitionGroup : FulfillmentStepDefnGroupId
+    FulfillmentStepDependencyDef }o--|| FulfillmentStep : DependsOnStepId
+    FulfillmentStepDependencyDef }o--|| FulfillmentStepDefinition : DependsOnStepDefinitionId
+    ProductDecompEnrichmentRule }o--|| ValTfrmGrp : ListMappingGroupId
+    SalesTransactionFulfillReq }o--|| FulfillmentPlan : PlanId
+    SalesTransactionFulfillReq }o--|| SalesTransactionFulfillReq : PreviousRequestId
+    FulfillmentOrderLineItem ||--o{ FulfillmentOrder : FulfillmentOrderId

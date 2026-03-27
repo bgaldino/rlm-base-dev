@@ -1,23 +1,37 @@
 erDiagram
-    AttributeAdjustmentCondition { string AttributeBasedAdjRuleId, AttributeDefinitionId, ProductId }
-    AttributeBasedAdjRule { string OwnerId, OwnerId }
-    AttributeBasedAdjustment { string AttributeBasedAdjRuleId, PriceAdjustmentScheduleId, ProductId, ProductSellingModelId }
-    AttributeDefinition
-    BundleBasedAdjustment { string ParentProductId, ParentProductSellingModelId, PriceAdjustmentScheduleId }
+    AttributeAdjustmentCondition
+    AttributeBasedAdjRule
+    AttributeBasedAdjustment
+    BundleBasedAdjustment
+    ContractItemPrice
     CostBook
-    ContractItemPrice { string ContractId }
-    CostBookEntry { string CostBookId, ProductId }
+    CostBookEntry
+    IndexRate
     PriceAdjustmentSchedule
-    PriceAdjustmentTier { string PriceAdjustmentScheduleId }
+    PriceAdjustmentTier
     PriceBook2
-    PriceBookEntry { string Pricebook2Id, Product2Id }
+    PriceBookEntry
     PriceBookEntryDerivedPrice
     PriceRevisionPolicy
+    PricingAPIExecution
+    PricingAdjBatchJob
+    PricingAdjBatchJobLog
+    PricingProcedureResolution
+    PricingProcessExecution
+    ProcedurePlanCriterion
+    ProductPriceHistoryLog
+    ProductPriceRange
+    ProductSellingModel
+    ProductSellingModelDataTranslation
+    ProductSellingModelOption
+    ProrationPolicy
+    ContractItemPrice }o--|| ProductSellingModel : ProductSellingModelId
+    ProcedurePlanCriterion }o--|| ProrationPolicy : ProrationPolicyId
+    AttributeBasedAdjustment }o--|| ProductSellingModel : Lookup
+    PriceBookEntry }o--|| ProductSellingModel : ProductSellingModelId
     AttributeAdjustmentCondition }o--|| AttributeBasedAdjRule : AttributeBasedAdjRuleId
-    AttributeAdjustmentCondition }o--|| AttributeDefinition : AttributeDefinitionId
-    AttributeBasedAdjustment }o--|| AttributeBasedAdjRule : AttributeBasedAdjRuleId
-    AttributeBasedAdjustment }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
-    BundleBasedAdjustment }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
-    CostBookEntry ||--o{ CostBook : CostBookId
-    PriceAdjustmentTier ||--o{ PriceAdjustmentSchedule : PriceAdjustmentScheduleId
+    PriceBookEntryDerivedPrice }o--|| ProductSellingModel : ProductSellingModelId
+    PriceAdjustmentTier }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
+    PriceAdjustmentTier }o--|| ProductSellingModel : ProductSellingModelId
     PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
+    ProductSellingModelOption }o--|| ProductSellingModel : ProductSellingModelId
