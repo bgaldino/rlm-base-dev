@@ -9,7 +9,9 @@
      - Asset, UnitOfMeasure, UsageEntitlementAccount, UsageEntitlementBucket, UsageResource
        (related objects accessed via lookup field traversals)
 
-     Required fields on these objects are omitted as Salesforce grants FLS automatically. -->
+     Only non-default fields requiring explicit FLS grants are listed below; standard fields
+     that are readable by default on these objects (e.g. Name, Id) are intentionally omitted.
+     The controller enforces FLS at runtime via WITH SECURITY_ENFORCED. -->
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <classAccesses>
         <apexClass>RLM_UsageDataController</apexClass>
