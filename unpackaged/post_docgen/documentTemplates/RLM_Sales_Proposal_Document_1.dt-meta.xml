@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DocumentTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
     <documentGenerationMechanism>ServerSide</documentGenerationMechanism>
-    <extractOmniDataTransformName>RCQuoteProposalExtract</extractOmniDataTransformName>
+    <extractOmniDataTransformName>RLMQuoteProposalExtract</extractOmniDataTransformName>
     <fileExtension>docx</fileExtension>
     <hasBatchableSection>false</hasBatchableSection>
     <isActive>true</isActive>
     <isSectionProcessed>false</isSectionProcessed>
-    <mapperOmniDataTransformName>RCQuoteProposalTransform</mapperOmniDataTransformName>
+    <mapperOmniDataTransformName>RLMQuoteProposalTransform</mapperOmniDataTransformName>
     <name>RLM_Sales_Proposal_Document</name>
     <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
     <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>

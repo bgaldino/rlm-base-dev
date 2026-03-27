@@ -115,7 +115,7 @@
     <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
-    <name>RCQuoteProposalTransform</name>
+    <name>RLMQuoteProposalTransform</name>
     <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
     <omniDataTransformItem>
         <disabled>false</disabled>
@@ -124,7 +124,7 @@
         <inputFieldName>Line:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:NetUnitPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -138,7 +138,7 @@
         <inputFieldName>Line:CQL:CQL2:Quantity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:CQL2:Quantity</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -152,7 +152,7 @@
         <inputFieldName>Line:ListPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:ListPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -166,7 +166,7 @@
         <inputFieldName>Line:NetTotalPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:NetTotalPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -180,7 +180,7 @@
         <inputFieldName>Line:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:Discount</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -194,7 +194,7 @@
         <inputFieldName>Line:CQL:CQL2:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:CQL2:NetUnitPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -208,7 +208,7 @@
         <inputFieldName>BillingStreet</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>BillingStreet</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -222,7 +222,7 @@
         <inputFieldName>BillingCity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>BillingCity</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -236,7 +236,7 @@
         <inputFieldName>QDiscount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number(2)</outputFieldFormat>
         <outputFieldName>QDiscount</outputFieldName>
@@ -255,7 +255,7 @@
         <globalKey>36877892-d2b3-470e-93f3-f16110e7623a</globalKey>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Formula</outputFieldName>
         <outputObjectName>Formula</outputObjectName>
@@ -269,7 +269,7 @@
         <inputFieldName>BillingPostalCode</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>BillingPostalCode</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -283,7 +283,7 @@
         <inputFieldName>Line:Quantity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:Quantity</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -297,7 +297,7 @@
         <inputFieldName>Line:CQL:CQL2:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:CQL2:Discount</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -311,7 +311,7 @@
         <inputFieldName>QuoteId</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>QuoteId</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -325,7 +325,7 @@
         <inputFieldName>Line:CQL:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:NetUnitPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -339,7 +339,7 @@
         <inputFieldName>Line:CQL:CQL2:ProductName</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:CQL2:ProductName</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -353,7 +353,7 @@
         <inputFieldName>AccountName</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>AccountName</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -367,7 +367,7 @@
         <inputFieldName>Line:CQL:ProductName</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:ProductName</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -381,7 +381,7 @@
         <inputFieldName>Line:CQL:CQL2:ListPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:CQL2:ListPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -395,7 +395,7 @@
         <inputFieldName>QuoteNumber</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>QuoteNumber</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -409,7 +409,7 @@
         <inputFieldName>BillingState</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>BillingState</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -426,7 +426,7 @@
         <globalKey>d5996526-12b7-4b5a-8843-b5c8ee6987a1</globalKey>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Formula</outputFieldName>
         <outputObjectName>Formula</outputObjectName>
@@ -440,7 +440,7 @@
         <inputFieldName>Line:CQL:ListPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:ListPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -454,7 +454,7 @@
         <inputFieldName>Line:CQL:Quantity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:Quantity</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -468,7 +468,7 @@
         <inputFieldName>Line:CQL:CQL2:NetTotalPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:CQL2:NetTotalPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -482,7 +482,7 @@
         <inputFieldName>IF_no_discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Boolean</outputFieldFormat>
         <outputFieldName>IF_no_discount</outputFieldName>
@@ -498,7 +498,7 @@
         <inputFieldName>ShippingStreet</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>ShippingStreet</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -512,7 +512,7 @@
         <inputFieldName>SalesRep</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>SalesRep</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -526,7 +526,7 @@
         <inputFieldName>GrandTotal</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>GrandTotal</outputFieldName>
@@ -542,7 +542,7 @@
         <inputFieldName>CreatedDate</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>CreatedDate</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -556,7 +556,7 @@
         <inputFieldName>IF_has_discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>IF_has_discount</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -571,7 +571,7 @@
         <inputFieldName>Line:CQL:NetTotalPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:CQL:NetTotalPrice</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -585,7 +585,7 @@
         <inputFieldName>ExpirationDate</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>ExpirationDate</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -599,7 +599,7 @@
         <inputFieldName>Line:ProductName</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalTransform</name>
+        <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:ProductName</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -668,7 +668,7 @@
     <synchronousProcessThreshold>0.0</synchronousProcessThreshold>
     <targetOutputFileName>Sales_Proposal_Document(Version 1)</targetOutputFileName>
     <type>Transform</type>
-    <uniqueName>RCQuoteProposalTransform_1</uniqueName>
+    <uniqueName>RLMQuoteProposalTransform_1</uniqueName>
     <versionNumber>1.0</versionNumber>
     <xmlDeclarationRemoved>false</xmlDeclarationRemoved>
 </OmniDataTransform>

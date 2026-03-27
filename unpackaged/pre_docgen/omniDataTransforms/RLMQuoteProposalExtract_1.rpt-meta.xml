@@ -7,7 +7,7 @@
     <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
-    <name>RCQuoteProposalTransform</name>
+    <name>RLMQuoteProposalExtract</name>
     <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
-    <type>Transform</type>
+    <type>Extract</type>
 </OmniDataTransform>

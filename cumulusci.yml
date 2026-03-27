@@ -910,7 +910,7 @@ tasks:
   deploy_docgen_odt_seed:
     description: >
       Seed-insert minimal OmniDataTransform shell records (RLMQuoteExtractBasic,
-      RLMQuoteTransformBasic, RCQuoteProposalExtract, RCQuoteProposalTransform)
+      RLMQuoteTransformBasic, RLMQuoteProposalExtract, RLMQuoteProposalTransform)
       before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
       custom formula fields in inputFieldName (-692085439) but accepts UPDATE of existing
       records. This step creates the ODT stubs so the subsequent deploy_post_docgen runs

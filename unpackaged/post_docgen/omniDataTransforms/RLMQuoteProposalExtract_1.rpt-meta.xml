@@ -7,7 +7,7 @@
     <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
-    <name>RCQuoteProposalExtract</name>
+    <name>RLMQuoteProposalExtract</name>
     <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
     <omniDataTransformItem>
         <disabled>false</disabled>
@@ -16,7 +16,7 @@
         <inputFieldName>Quote:GrandTotal</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>GrandTotal</outputFieldName>
@@ -32,7 +32,7 @@
         <inputFieldName>Contract:StartDate</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>ContractStartDate</outputFieldName>
@@ -48,7 +48,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:CQL:Discount</outputFieldName>
@@ -64,7 +64,7 @@
         <inputFieldName>Quote:QuoteLineItem:NetTotalPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:NetTotalPrice</outputFieldName>
@@ -80,7 +80,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:CustomProductName</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>Line:CQL:ProductName</outputFieldName>
@@ -99,7 +99,7 @@
         <inputObjectName>QuoteLineRelationship</inputObjectName>
         <inputObjectQuerySequence>5.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -113,7 +113,7 @@
         <inputFieldName>Quote:ExpirationDate</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>ExpirationDate</outputFieldName>
@@ -129,7 +129,7 @@
         <inputFieldName>Quote:QuoteLineItem:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:NetUnitPrice</outputFieldName>
@@ -145,7 +145,7 @@
         <inputFieldName>Quote:BillingStreet</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingStreet</outputFieldName>
@@ -161,7 +161,7 @@
         <inputFieldName>Quote:BillingPostalCode</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingPostalCode</outputFieldName>
@@ -180,7 +180,7 @@
         <inputObjectName>QuoteLineItem</inputObjectName>
         <inputObjectQuerySequence>8.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -194,7 +194,7 @@
         <inputFieldName>Quote:BillingPostalCode</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingPostalCode</outputFieldName>
@@ -210,7 +210,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine:ListPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:ListPrice</outputFieldName>
@@ -226,7 +226,7 @@
         <inputFieldName>Quote:QuoteLineItem:Quantity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:Quantity</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -241,7 +241,7 @@
         <inputFieldName>SalesRep:Name</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>SalesRep</outputFieldName>
@@ -257,7 +257,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:NetUnitPrice</outputFieldName>
@@ -276,7 +276,7 @@
         <inputObjectName>Quote</inputObjectName>
         <inputObjectQuerySequence>1.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -293,7 +293,7 @@
         <inputObjectName>User</inputObjectName>
         <inputObjectQuerySequence>3.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>SalesRep</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -307,7 +307,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine:NetTotalPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:NetTotalPrice</outputFieldName>
@@ -323,7 +323,7 @@
         <inputFieldName>Contract:EndDate</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>ContractEndDate</outputFieldName>
@@ -339,7 +339,7 @@
         <inputFieldName>Quote:QuoteLineItem:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:Discount</outputFieldName>
@@ -355,7 +355,7 @@
         <inputFieldName>Quote:ShippingStreet</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>ShippingStreet</outputFieldName>
@@ -371,7 +371,7 @@
         <inputFieldName>Quote:BillingState</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingState</outputFieldName>
@@ -387,7 +387,7 @@
         <inputFieldName>Quote:BillingState</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingState</outputFieldName>
@@ -403,7 +403,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:RLM_ProductName__c</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>Line:CQL:ProductName</outputFieldName>
@@ -419,7 +419,7 @@
         <inputFieldName>Quote:BillingCity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingCity</outputFieldName>
@@ -435,7 +435,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:NetTotalPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:NetTotalPrice</outputFieldName>
@@ -454,7 +454,7 @@
         <inputObjectName>QuoteLineItem</inputObjectName>
         <inputObjectQuerySequence>4.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -468,7 +468,7 @@
         <inputFieldName>Quote:CreatedDate</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
         <outputFieldName>CreatedDate</outputFieldName>
@@ -487,7 +487,7 @@
         <inputObjectName>QuoteLineRelationship</inputObjectName>
         <inputObjectQuerySequence>7.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -501,7 +501,7 @@
         <inputFieldName>Account:Name</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>AccountName</outputFieldName>
@@ -520,7 +520,7 @@
         <inputObjectName>Account</inputObjectName>
         <inputObjectQuerySequence>2.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Account</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -534,7 +534,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:Quantity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Integer</outputFieldFormat>
         <outputFieldName>Line:CQL:Quantity</outputFieldName>
@@ -550,7 +550,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine:RLM_ProductName__c</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:ProductName</outputFieldName>
@@ -566,7 +566,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine:Quantity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Integer</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:Quantity</outputFieldName>
@@ -582,7 +582,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:ListPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:ListPrice</outputFieldName>
@@ -598,7 +598,7 @@
         <inputFieldName>Quote:QuoteNumber</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>QuoteNumber</outputFieldName>
@@ -614,7 +614,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine:NetUnitPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:NetUnitPrice</outputFieldName>
@@ -633,7 +633,7 @@
         <inputObjectName>QuoteLineItem</inputObjectName>
         <inputObjectQuerySequence>4.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -647,7 +647,7 @@
         <inputFieldName>Quote:BillingCity</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>BillingCity</outputFieldName>
@@ -663,7 +663,7 @@
         <inputFieldName>Quote:QuoteLineItem:RLM_ProductName__c</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldName>Line:ProductName</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -681,7 +681,7 @@
         <inputObjectName>QuoteLineItem</inputObjectName>
         <inputObjectQuerySequence>6.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>0.0</outputCreationSequence>
         <outputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine</outputFieldName>
         <outputObjectName>json</outputObjectName>
@@ -695,7 +695,7 @@
         <inputFieldName>Quote:QuoteLineItem:QuoteLineRelationship:ChildQuoteLine:QuoteLineRelationship:ChildQuoteLine:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>Line:CQL:CQL2:Discount</outputFieldName>
@@ -711,7 +711,7 @@
         <inputFieldName>Quote:Discount</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Number</outputFieldFormat>
         <outputFieldName>QDiscount</outputFieldName>
@@ -727,7 +727,7 @@
         <inputFieldName>Quote:Id</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>String</outputFieldFormat>
         <outputFieldName>QuoteId</outputFieldName>
@@ -743,7 +743,7 @@
         <inputFieldName>Quote:QuoteLineItem:ListPrice</inputFieldName>
         <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
         <linkedObjectSequence>0.0</linkedObjectSequence>
-        <name>RCQuoteProposalExtract</name>
+        <name>RLMQuoteProposalExtract</name>
         <outputCreationSequence>1.0</outputCreationSequence>
         <outputFieldFormat>Currency</outputFieldFormat>
         <outputFieldName>Line:ListPrice</outputFieldName>
@@ -762,7 +762,7 @@
     <sourceObjectDefault>false</sourceObjectDefault>
     <synchronousProcessThreshold>0.0</synchronousProcessThreshold>
     <type>Extract</type>
-    <uniqueName>RCQuoteProposalExtract_1</uniqueName>
+    <uniqueName>RLMQuoteProposalExtract_1</uniqueName>
     <versionNumber>1.0</versionNumber>
     <xmlDeclarationRemoved>false</xmlDeclarationRemoved>
 </OmniDataTransform>
