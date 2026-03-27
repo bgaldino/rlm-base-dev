@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DocumentTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <documentGenerationMechanism>ServerSide</documentGenerationMechanism>
+    <extractOmniDataTransformName>RCQuoteProposalExtract</extractOmniDataTransformName>
+    <fileExtension>docx</fileExtension>
+    <hasBatchableSection>false</hasBatchableSection>
+    <isActive>true</isActive>
+    <isSectionProcessed>false</isSectionProcessed>
+    <mapperOmniDataTransformName>RCQuoteProposalTransform</mapperOmniDataTransformName>
+    <name>Sales_Proposal_Document</name>
+    <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
+    <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
+    <status>Active</status>
+    <tokenList>QuoteNumber,ExpDate,AccountName,BillingStreet,BillingCity,BillingState,BillingPostalCode,IF_has_discount:QDiscount,IF_has_discount:GrandTotal,IF_no_discount:GrandTotal,Line:ProductName,Line:Quantity,Line:ListPrice,Line:Discount,Line:NetUnitPrice,Line:NetTotalPrice,Line:CQL:ProductName,Line:CQL:Quantity,Line:CQL:ListPrice,Line:CQL:Discount,Line:CQL:NetUnitPrice,Line:CQL:NetTotalPrice,Line:CQL:CQL2:ProductName,Line:CQL:CQL2:Quantity,Line:CQL:CQL2:ListPrice,Line:CQL:CQL2:Discount,Line:CQL:CQL2:NetUnitPrice,Line:CQL:CQL2:NetTotalPrice</tokenList>
+    <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
+    <tokenMappingType>JSON</tokenMappingType>
+    <type>MicrosoftWord</type>
+    <uniqueName>Sales_Proposal_Document_1</uniqueName>
+    <usageType>Revenue_Lifecycle_Management</usageType>
+    <versionNumber>1</versionNumber>
+</DocumentTemplate>

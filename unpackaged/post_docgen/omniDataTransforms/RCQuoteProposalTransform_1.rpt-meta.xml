@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OmniDataTransform xmlns="http://soap.sforce.com/2006/04/metadata">
+    <active>false</active>
+    <assignmentRulesUsed>false</assignmentRulesUsed>
+    <deletedOnSuccess>false</deletedOnSuccess>
+    <errorIgnored>false</errorIgnored>
+    <expectedInputJson>{
+  &quot;BillingCity&quot; : &quot;New York&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Hs000003qDB4KAM&quot;,
+  &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;Line&quot; : [ {
+    &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$0.00&quot;,
+    &quot;CQL&quot; : [ {
+      &quot;NetUnitPrice&quot; : &quot;$45.00&quot;,
+      &quot;ProductName&quot; : &quot;API Access Requests (AEH)&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$4,500.00&quot;,
+      &quot;Quantity&quot; : 100,
+      &quot;ListPrice&quot; : &quot;$45.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QB API Management Solution&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Database&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$250.00&quot;,
+      &quot;ProductName&quot; : &quot;Professional Services Daily Rate&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$62,500.00&quot;,
+      &quot;Quantity&quot; : 250,
+      &quot;ListPrice&quot; : &quot;$250.00&quot;
+    } ]
+  }, {
+    &quot;NetUnitPrice&quot; : &quot;$7,225.00&quot;,
+    &quot;Discount&quot; : &quot;15&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Essentials Training&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$7,225.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$8,500.00&quot;
+  } ],
+  &quot;QuoteNumber&quot; : &quot;00000024&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;ExpirationDate&quot; : &quot;04/11/2026&quot;,
+  &quot;GrandTotal&quot; : &quot;$98,225.00&quot;,
+  &quot;CreatedDate&quot; : &quot;03/12/2026&quot;,
+  &quot;BillingPostalCode&quot; : &quot;31349&quot;,
+  &quot;QDiscount&quot; : 1.28,
+  &quot;BillingState&quot; : &quot;NY&quot;,
+  &quot;AccountName&quot; : &quot;Acme&quot;,
+  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+}</expectedInputJson>
+    <expectedOutputJson>{
+  &quot;BillingCity&quot; : &quot;New York&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Hs000003qDB4KAM&quot;,
+  &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;Line&quot; : [ {
+    &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$0.00&quot;,
+    &quot;CQL&quot; : [ {
+      &quot;NetUnitPrice&quot; : &quot;$45.00&quot;,
+      &quot;ProductName&quot; : &quot;API Access Requests (AEH)&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$4,500.00&quot;,
+      &quot;Quantity&quot; : 100,
+      &quot;ListPrice&quot; : &quot;$45.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QB API Management Solution&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Database&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$250.00&quot;,
+      &quot;ProductName&quot; : &quot;Professional Services Daily Rate&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$62,500.00&quot;,
+      &quot;Quantity&quot; : 250,
+      &quot;ListPrice&quot; : &quot;$250.00&quot;
+    } ]
+  }, {
+    &quot;NetUnitPrice&quot; : &quot;$7,225.00&quot;,
+    &quot;Discount&quot; : &quot;15&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Essentials Training&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$7,225.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$8,500.00&quot;
+  } ],
+  &quot;QuoteNumber&quot; : &quot;00000024&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;ExpirationDate&quot; : &quot;04/11/2026&quot;,
+  &quot;GrandTotal&quot; : &quot;$98,225.00&quot;,
+  &quot;CreatedDate&quot; : &quot;03/12/2026&quot;,
+  &quot;BillingPostalCode&quot; : &quot;31349&quot;,
+  &quot;QDiscount&quot; : 1.28,
+  &quot;BillingState&quot; : &quot;NY&quot;,
+  &quot;AccountName&quot; : &quot;Acme&quot;,
+  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+}</expectedOutputJson>
+    <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
+    <inputType>JSON</inputType>
+    <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
+    <name>RCQuoteProposalTransform</name>
+    <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>1158da44-acbb-4396-b15b-3ac7608f2706</globalKey>
+        <inputFieldName>Line:NetUnitPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:NetUnitPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>7857ad3c-1b87-48bf-98d6-a89f3a3e75b7</globalKey>
+        <inputFieldName>Line:CQL:CQL2:Quantity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:Quantity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>51ef7cdf-7a30-4c3c-b75d-10173419df2c</globalKey>
+        <inputFieldName>Line:ListPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ListPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>98c72778-e2d6-42c2-a3ab-15bbabda3d86</globalKey>
+        <inputFieldName>Line:NetTotalPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:NetTotalPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>82a59c0a-8be2-427f-ba26-5388d87ad8ee</globalKey>
+        <inputFieldName>Line:Discount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:Discount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>a395bcde-2f5d-416c-87a8-7c192754c0bf</globalKey>
+        <inputFieldName>Line:CQL:CQL2:NetUnitPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:NetUnitPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>3ec15c98-2835-401f-9b55-a4e56d0b624e</globalKey>
+        <inputFieldName>BillingStreet</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingStreet</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>0d8d658d-9392-4b1c-a9b6-37e7dc189b7f</globalKey>
+        <inputFieldName>BillingCity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingCity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>f849627a-8a02-4fbf-aa0c-15237e138819</globalKey>
+        <inputFieldName>QDiscount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Number(2)</outputFieldFormat>
+        <outputFieldName>QDiscount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted>| | var:QDiscount ABS 0 &gt; var:QDiscount &quot;&quot; = || true false IF</formulaConverted>
+        <formulaExpression>IF(ABS(QDiscount) &gt; 0 || QDiscount = &quot;&quot; , true, false)</formulaExpression>
+        <formulaResultPath>IF_has_discount</formulaResultPath>
+        <formulaSequence>1.0</formulaSequence>
+        <globalKey>36877892-d2b3-470e-93f3-f16110e7623a</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>04829deb-b57f-47df-b464-873bed40e313</globalKey>
+        <inputFieldName>BillingPostalCode</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingPostalCode</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>f71bf6a8-3571-45c1-a81d-2a4dd33a43b5</globalKey>
+        <inputFieldName>Line:Quantity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:Quantity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>36ece6d1-bdea-42e1-8e02-523bf98f8459</globalKey>
+        <inputFieldName>Line:CQL:CQL2:Discount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:Discount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>35b347d2-a09f-4880-afd5-f916707e08a7</globalKey>
+        <inputFieldName>QuoteId</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>QuoteId</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d00590be-73d0-47c7-811f-cf1e9adf3ac4</globalKey>
+        <inputFieldName>Line:CQL:NetUnitPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:NetUnitPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>ccfe0646-e72b-4050-82a5-756b836b31a0</globalKey>
+        <inputFieldName>Line:CQL:CQL2:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>7082dba8-f24b-4407-a3c6-68b2d3468cca</globalKey>
+        <inputFieldName>AccountName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>AccountName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d2b53d38-0401-44b1-be42-99d6c7a61633</globalKey>
+        <inputFieldName>Line:CQL:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>e80cf651-c78b-4cca-b3e0-c1b766b3323c</globalKey>
+        <inputFieldName>Line:CQL:CQL2:ListPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:ListPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>f32a9be1-9dbb-4f76-bc5d-a1d7288d36f8</globalKey>
+        <inputFieldName>QuoteNumber</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>QuoteNumber</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>b6415733-0641-42bf-92c9-59cf07a2b5c6</globalKey>
+        <inputFieldName>BillingState</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingState</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <formulaConverted>| | var:QDiscount ABS 0 &gt; var:QDiscount &quot;&quot; = || false true IF</formulaConverted>
+        <formulaExpression>IF(ABS(QDiscount) &gt; 0 || QDiscount = &quot;&quot; , false, true)</formulaExpression>
+        <formulaResultPath>IF_no_discount</formulaResultPath>
+        <formulaSequence>2.0</formulaSequence>
+        <globalKey>d5996526-12b7-4b5a-8843-b5c8ee6987a1</globalKey>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>0.0</outputCreationSequence>
+        <outputFieldName>Formula</outputFieldName>
+        <outputObjectName>Formula</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>e2d4c9ef-e6a5-4341-8bc9-99c05ff3adf6</globalKey>
+        <inputFieldName>Line:CQL:ListPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:ListPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>9be47a6c-109b-4c41-9c13-510a9702352b</globalKey>
+        <inputFieldName>Line:CQL:Quantity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:Quantity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>6ab2b375-72f2-47b5-9209-1fd1870cf88e</globalKey>
+        <inputFieldName>Line:CQL:CQL2:NetTotalPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:CQL2:NetTotalPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>561d1f86-42f1-48a5-8dc5-b9eecbd45460</globalKey>
+        <inputFieldName>IF_no_discount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Boolean</outputFieldFormat>
+        <outputFieldName>IF_no_discount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>22b4d915-eb6b-4454-84cb-6d5ec3bd1c58</globalKey>
+        <inputFieldName>ShippingStreet</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>ShippingStreet</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>b9f8a09d-99b1-4ee1-a0e9-a62daab14fe3</globalKey>
+        <inputFieldName>SalesRep</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>SalesRep</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>9062cb65-a315-4960-a7d9-cbd7d335eefe</globalKey>
+        <inputFieldName>GrandTotal</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Currency</outputFieldFormat>
+        <outputFieldName>GrandTotal</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>445830a7-4c27-493b-8566-aa1d77829576</globalKey>
+        <inputFieldName>CreatedDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>CreatedDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>784f884e-d74d-4cf1-9b5c-4b7ad56a2024</globalKey>
+        <inputFieldName>IF_has_discount</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>IF_has_discount</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>b47ba98b-9e5e-4326-a97f-ceb78dd27feb</globalKey>
+        <inputFieldName>Line:CQL:NetTotalPrice</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:CQL:NetTotalPrice</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>88ddbb7a-c410-40a2-871e-fb10e16089b5</globalKey>
+        <inputFieldName>ExpirationDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>ExpirationDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>4a26ac10-942d-48b6-be83-67854a08ad55</globalKey>
+        <inputFieldName>Line:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RCQuoteProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <outputType>JSON</outputType>
+    <previewJsonData>{
+  &quot;BillingCity&quot; : &quot;New York&quot;,
+  &quot;QuoteId&quot; : &quot;0Q0Hs000003qDB4KAM&quot;,
+  &quot;ShippingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;Line&quot; : [ {
+    &quot;NetUnitPrice&quot; : &quot;$0.00&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Complete Solution&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$0.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$0.00&quot;,
+    &quot;CQL&quot; : [ {
+      &quot;NetUnitPrice&quot; : &quot;$45.00&quot;,
+      &quot;ProductName&quot; : &quot;API Access Requests (AEH)&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$4,500.00&quot;,
+      &quot;Quantity&quot; : 100,
+      &quot;ListPrice&quot; : &quot;$45.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QB API Management Solution&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;ProductName&quot; : &quot;QuantumBit Database&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$12,000.00&quot;,
+      &quot;Quantity&quot; : 1,
+      &quot;ListPrice&quot; : &quot;$12,000.00&quot;
+    }, {
+      &quot;NetUnitPrice&quot; : &quot;$250.00&quot;,
+      &quot;ProductName&quot; : &quot;Professional Services Daily Rate&quot;,
+      &quot;NetTotalPrice&quot; : &quot;$62,500.00&quot;,
+      &quot;Quantity&quot; : 250,
+      &quot;ListPrice&quot; : &quot;$250.00&quot;
+    } ]
+  }, {
+    &quot;NetUnitPrice&quot; : &quot;$7,225.00&quot;,
+    &quot;Discount&quot; : &quot;15&quot;,
+    &quot;ProductName&quot; : &quot;QuantumBit Essentials Training&quot;,
+    &quot;NetTotalPrice&quot; : &quot;$7,225.00&quot;,
+    &quot;Quantity&quot; : 1,
+    &quot;ListPrice&quot; : &quot;$8,500.00&quot;
+  } ],
+  &quot;QuoteNumber&quot; : &quot;00000024&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;ExpirationDate&quot; : &quot;04/11/2026&quot;,
+  &quot;GrandTotal&quot; : &quot;$98,225.00&quot;,
+  &quot;CreatedDate&quot; : &quot;03/12/2026&quot;,
+  &quot;BillingPostalCode&quot; : &quot;31349&quot;,
+  &quot;QDiscount&quot; : &quot;10&quot;,
+  &quot;BillingState&quot; : &quot;NY&quot;,
+  &quot;AccountName&quot; : &quot;Acme&quot;,
+  &quot;SalesRep&quot; : &quot;John Rozsits&quot;
+}</previewJsonData>
+    <processSuperBulk>false</processSuperBulk>
+    <responseCacheTtlMinutes>0.0</responseCacheTtlMinutes>
+    <rollbackOnError>false</rollbackOnError>
+    <sourceObjectDefault>false</sourceObjectDefault>
+    <synchronousProcessThreshold>0.0</synchronousProcessThreshold>
+    <targetOutputFileName>Sales_Proposal_Document(Version 1)</targetOutputFileName>
+    <type>Transform</type>
+    <uniqueName>RCQuoteProposalTransform_1</uniqueName>
+    <versionNumber>1.0</versionNumber>
+    <xmlDeclarationRemoved>false</xmlDeclarationRemoved>
+</OmniDataTransform>
