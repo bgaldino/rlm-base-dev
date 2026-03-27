@@ -1,0 +1,63 @@
+erDiagram
+    ProductUsageGrant { string OwnerId, OwnerId, ProductOfferId, ProductSellingModelId, ProductUsageResourceId }
+    ProductUsageResource { string OwnerId, OwnerId, ProductId, TokenResourceId, UsageResourceId }
+    ProductUsageResourcePolicy { string ProductSellingModelId, UsageOveragePolicyId }
+    TransactionUsageEntitlement { string AccountId, AssetId, EntitlementUomClassId, EntitlementUomId, GrantBindingTargetId }
+    UnitOfMeasure
+    UnitOfMeasureClass { string BaseUnitOfMeasureId, DefaultUnitOfMeasureId }
+    UsageBillingPeriodItem { string AccountId, AssetId, GrantBindingTargetId, GrantBindingTargetId, GrantBindingTargetId }
+    UsageCmtAssetRelatedObj { string RelatedObjectId, RelatedObjectId, RelatedObjectId }
+    UsageCommitmentPolicy
+    UsageEntitlementAccount { string AccountId, GrantBindingTargetId, GrantBindingTargetId, GrantBindingTargetId, GrantBindingTargetId }
+    UsageEntitlementBucket { string BucketBalanceUomId, OwnerId, OwnerId, ParentId, ParentId }
+    UsageEntitlementEntry { string TransactionalBucketId, UomId, UsageSummaryId }
+    UsageGrantRenewalPolicy
+    UsageGrantRolloverPolicy
+    UsageOveragePolicy
+    UsagePrdGrantBindingPolicy { string Product2Id }
+    UsageRatableSummary { string AccountId, AssetId, GrantBindingTargetId, GrantBindingTargetId, GrantBindingTargetId }
+    UsageRatableSumCmtAssetRt { string CommitmentAssetId }
+    UsageResource { string DefaultUnitOfMeasureId, OwnerId, OwnerId, TokenResourceId, UnitOfMeasureClassId }
+    UsageResourcePolicy { string UsageOveragePolicyId }
+    UsageResourceBillingPolicy
+    UsageSummary { string AccountId, AssetId, GrantBindingTargetId, GrantBindingTargetId, GrantBindingTargetId }
+    ProductUsageGrant }o--|| ProductUsageResource : ProductUsageResourceId
+    ProductUsageGrant }o--|| UsageGrantRenewalPolicy : RenewalPolicyId
+    ProductUsageGrant }o--|| UsageGrantRolloverPolicy : RolloverPolicyId
+    ProductUsageGrant }o--|| UnitOfMeasureClass : UnitOfMeasureClassId
+    ProductUsageGrant }o--|| UnitOfMeasure : UnitOfMeasureId
+    ProductUsageGrant }o--|| UsageResource : UsageResourceId
+    ProductUsageResource }o--|| UsageResource : TokenResourceId
+    ProductUsageResource }o--|| UsageResource : UsageResourceId
+    ProductUsageResourcePolicy }o--|| UsageOveragePolicy : UsageOveragePolicyId
+    TransactionUsageEntitlement }o--|| UnitOfMeasureClass : EntitlementUomClassId
+    TransactionUsageEntitlement }o--|| UnitOfMeasure : EntitlementUomId
+    TransactionUsageEntitlement }o--|| UsageResource : TokenResourceId
+    TransactionUsageEntitlement }o--|| UsageResource : UsageResourceId
+    TransactionUsageEntitlement }o--|| UnitOfMeasureClass : UnitOfMeasureClassId
+    UnitOfMeasureClass }o--|| UnitOfMeasure : BaseUnitOfMeasureId
+    UnitOfMeasureClass }o--|| UnitOfMeasure : DefaultUnitOfMeasureId
+    UsageBillingPeriodItem }o--|| UnitOfMeasure : UoMId
+    UsageBillingPeriodItem }o--|| UsageResource : UsageResourceId
+    UsageEntitlementBucket }o--|| UnitOfMeasure : BucketBalanceUomId
+    UsageEntitlementBucket }o--|| UsageEntitlementAccount : ParentId
+    UsageEntitlementBucket }o--|| UsageEntitlementBucket : ParentId
+    UsageEntitlementBucket }o--|| UsageResource : UsageResourceId
+    UsageEntitlementEntry }o--|| UsageEntitlementBucket : TransactionalBucketId
+    UsageEntitlementEntry }o--|| UnitOfMeasure : UomId
+    UsageEntitlementEntry }o--|| UsageSummary : UsageSummaryId
+    UsageRatableSummary }o--|| UnitOfMeasure : NetUnitRateUomId
+    UsageRatableSummary }o--|| UnitOfMeasure : OverageQuantityUomId
+    UsageRatableSummary }o--|| UsageResource : SourceUsageResourceId
+    UsageRatableSummary }o--|| UnitOfMeasure : TierQuantityUomId
+    UsageRatableSummary }o--|| UsageResource : UsageResourceId
+    UsageResource }o--|| UnitOfMeasure : DefaultUnitOfMeasureId
+    UsageResource }o--|| UsageResource : TokenResourceId
+    UsageResource }o--|| UnitOfMeasureClass : UnitOfMeasureClassId
+    UsageResourcePolicy }o--|| UsageOveragePolicy : UsageOveragePolicyId
+    UsageSummary }o--|| UsageBillingPeriodItem : LiableSummaryId
+    UsageSummary }o--|| UsageSummary : ParentUsageSummaryId
+    UsageSummary }o--|| UsageRatableSummary : RatableSummaryId
+    UsageSummary }o--|| UnitOfMeasure : UomId
+    UsageSummary }o--|| UsageResource : UsageResourceId
+    UsageSummary }o--|| UsageSummary : UsageSummaryId

@@ -1,0 +1,34 @@
+erDiagram
+    AssetFulfillmentDecomp { string AttributeDefinitionId }
+    FulfillmentAsset { string FulfillmentAssetId, MainFulfillmentAssetId }
+    FulfillmentAssetAttribute { string FalloutQueueId }
+    FulfillmentAssetRelationship { string OwnerId, OwnerId }
+    FulfillmentFalloutRule { string AttributeDefinitionId }
+    FulfillmentLineAttribute
+    FulfillmentLineRel
+    FulfillmentLineSourceRel { string FulfilmentOrderLineId, OwnerId, OwnerId, SourceLineItemId, SourceLineItemId }
+    FulfillmentPlan { string ExecutionUserId, OwnerId, OwnerId }
+    FulfillmentStep
+    FulfillmentStepDefinition { string AssignedToId, AssignedToId, CompensatedStepId }
+    FulfillmentStepDefinitionGroup { string FalloutQueueId, FlowInterviewId }
+    FulfillmentStepDependency
+    FulfillmentStepDependencyDef { string OwnerId, OwnerId }
+    FulfillmentStepJeopardyRule { string ResumeOnRuleId, RunAsUserId }
+    FulfillmentStepSource { string TaskId }
+    FulfillmentTaskAssignmentRule { string AmendGroupId, AssignedToId, AssignedToId, CancelledGroupId }
+    FulfillmentWorkspace { string ExecuteOnRuleId }
+    FulfillmentWorkspaceItem
+    ProductDecompEnrichmentRule { string RunAsUserId, StepDefinitionGroupId }
+    ProdtDecompEnrchVarMap { string OwnerId, OwnerId }
+    ProductFulfillmentDecompRule { string DependencyDefinitionId, DependentStepId, DependsOnStepId }
+    ProductFulfillmentScenario
+    SalesTrxnDeleteEvent
+    SalesTransactionFulfillReq { string OwnerId, OwnerId }
+    ValTfrm { string SourceLineItemId, SourceLineItemId, StepId }
+    ValTfrmGrp { string ConditionId, DestinationId, DestinationId, OwnerId, OwnerId }
+    FulfillmentStepDefinition }o--|| FulfillmentStep : CompensatedStepId
+    FulfillmentTaskAssignmentRule }o--|| FulfillmentStepDefinitionGroup : AmendGroupId
+    FulfillmentTaskAssignmentRule }o--|| FulfillmentStepDefinitionGroup : CancelledGroupId
+    ProductFulfillmentDecompRule }o--|| FulfillmentStepDependencyDef : DependencyDefinitionId
+    ProductFulfillmentDecompRule }o--|| FulfillmentStep : DependentStepId
+    ProductFulfillmentDecompRule }o--|| FulfillmentStep : DependsOnStepId
