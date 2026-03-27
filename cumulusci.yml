@@ -2307,10 +2307,8 @@ flows:
         task: deactivate_expression_sets
       2:
         task: ensure_pricing_schedules
-        when: org_config.scratch
       3:
         task: deploy_expression_sets
-        when: org_config.scratch
   
   prepare_product_data:
     group: Revenue Lifecycle Management
@@ -2639,14 +2637,12 @@ flows:
     steps:
       1:
         task: activate_decision_tables
-        when: org_config.scratch
 
   prepare_price_adjustment_schedules:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: activate_price_adjustment_schedules
-        when: org_config.scratch
 
   prepare_procedureplans:
     group: Revenue Lifecycle Management
@@ -2782,7 +2778,6 @@ flows:
     steps:
       1:
         task: reconfigure_pricing_discovery
-        when: org_config.scratch
 
   prepare_ramp_builder:
     group: Revenue Lifecycle Management
