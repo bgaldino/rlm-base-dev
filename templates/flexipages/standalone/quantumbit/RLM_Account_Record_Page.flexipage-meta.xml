@@ -1214,55 +1214,55 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>flowArguments</name>
-                    <value>[{&quot;label&quot;:&quot;recordId&quot;,&quot;dataType&quot;:&quot;String&quot;,&quot;supportsRecordId&quot;:true,&quot;value&quot;:&quot;{!Record.Id}&quot;}]</value>
+                    <name>cardTitle</name>
+                    <value>Usage</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_Usage_Data_Tables_Concept_TJ</value>
+                    <name>usageObject</name>
+                    <value>TransactionJournal</value>
                 </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview6</identifier>
+                <componentName>rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>flowArguments</name>
-                    <value>[{&quot;label&quot;:&quot;recordId&quot;,&quot;dataType&quot;:&quot;String&quot;,&quot;supportsRecordId&quot;:true,&quot;value&quot;:&quot;{!Record.Id}&quot;}]</value>
+                    <name>cardTitle</name>
+                    <value>Usage Summaries</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_Usage_Data_Tables_Concept_US</value>
+                    <name>usageObject</name>
+                    <value>UsageSummary</value>
                 </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview7</identifier>
+                <componentName>rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable2</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>flowArguments</name>
-                    <value>[{&quot;label&quot;:&quot;recordId&quot;,&quot;dataType&quot;:&quot;String&quot;,&quot;supportsRecordId&quot;:true,&quot;value&quot;:&quot;{!Record.Id}&quot;}]</value>
+                    <name>cardTitle</name>
+                    <value>Liable Summaries</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_Usage_Data_Tables_Concept_LS</value>
+                    <name>usageObject</name>
+                    <value>UsageBillingPeriodItem</value>
                 </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview8</identifier>
+                <componentName>rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable3</identifier>
             </componentInstance>
         </itemInstances>
         <name>Facet-5c81d61a-1ee4-447a-b10f-fcecbbf1939e</name>

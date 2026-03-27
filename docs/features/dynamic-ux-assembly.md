@@ -80,6 +80,7 @@ templates/
 │       │   └── RLM_Quote_Record_Page.yml
 │       ├── tso/
 │       └── utils/
+│           └── RLM_Account_Record_Page.yml
 ├── layouts/
 │   ├── base/                           # 17 base layouts (moved from force-app/main/default/layouts/)
 │   ├── billing/                        # 3 billing-specific layouts
