@@ -3,6 +3,6 @@ feature_flag: qb
 # Adds the RLM QuickQuote flow action to the Account record page highlights panel.
 patches:
   - type: insert_action
-    after: "Account.RLM_New_Opportunity"
+    after: "PreviewInvoices"
     actions:
       - "Account.RLM_QuickQuote"
