@@ -155,8 +155,8 @@ export default class RlmUsageDataTable extends LightningElement {
             const valA = a[sortField];
             const valB = b[sortField];
             if (valA == null && valB == null) return 0;
-            if (valA == null) return 1 * reverse;
-            if (valB == null) return -1 * reverse;
+            if (valA == null) return 1;
+            if (valB == null) return -1;
             if (typeof valA === 'number' && typeof valB === 'number') {
                 return (valA - valB) * reverse;
             }

@@ -62,7 +62,6 @@ export default class RlmOrderRedirect extends NavigationMixin(LightningElement) 
       } catch (e) {
         this.errorMessage =
           e?.message ?? "An unexpected error occurred during navigation.";
-        this.hasNavigated = false;
       }
     });
   }

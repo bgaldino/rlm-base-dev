@@ -79,6 +79,7 @@ public with sharing class RLM_UsageDataController {
         Map<String, String> lookupRelNames = new Map<String, String>();   // fieldApiName -> relationship name
         Map<String, String> lookupNameFields = new Map<String, String>(); // fieldApiName -> related object's name field
         Set<String> nameFieldApis = new Set<String>();                    // tracks which fields are name fields
+        Map<Schema.SObjectType, String> nameFieldCache = new Map<Schema.SObjectType, String>(); // avoids redundant describes
 
         Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
 
@@ -99,7 +100,7 @@ public with sharing class RLM_UsageDataController {
                 queryFields.add(fieldApiName);
                 String relName = fieldDescribe.getRelationshipName();
                 if (relName != null) {
-                    String nameField = resolveNameField(fieldDescribe.getReferenceTo());
+                    String nameField = resolveNameField(fieldDescribe.getReferenceTo(), nameFieldCache);
                     queryFields.add(relName + '.' + nameField);
                     lookupRelNames.put(fieldApiName, relName);
                     lookupNameFields.put(fieldApiName, nameField);
@@ -197,14 +198,22 @@ public with sharing class RLM_UsageDataController {
      * @param refTypes List of SObjectType references from DescribeFieldResult.getReferenceTo()
      * @return The API name of the related object's name field, defaults to 'Name'
      */
-    private static String resolveNameField(List<Schema.SObjectType> refTypes) {
-        if (!refTypes.isEmpty()) {
-            for (Schema.SObjectField f : refTypes[0].getDescribe().fields.getMap().values()) {
-                if (f.getDescribe().isNameField()) {
-                    return f.getDescribe().getName();
-                }
+    private static String resolveNameField(List<Schema.SObjectType> refTypes, Map<Schema.SObjectType, String> cache) {
+        if (refTypes.isEmpty()) {
+            return 'Name';
+        }
+        Schema.SObjectType refType = refTypes[0];
+        if (cache.containsKey(refType)) {
+            return cache.get(refType);
+        }
+        String result = 'Name';
+        for (Schema.SObjectField f : refType.getDescribe().fields.getMap().values()) {
+            if (f.getDescribe().isNameField()) {
+                result = f.getDescribe().getName();
+                break;
             }
         }
-        return 'Name';
+        cache.put(refType, result);
+        return result;
     }
 }
