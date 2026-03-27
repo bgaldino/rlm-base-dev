@@ -1,0 +1,49 @@
+erDiagram
+    Asset { string AccountId, AssetProvidedById, AssetServicedById, AssetTypeId, ContactId }
+    AssetAction
+    AssetActionSource
+    AssetActionSrcPriceAdjustment
+    AssetContractRelationship
+    AssetDowntimePeriod { string LegalEntityId }
+    AssetOwnerSharingRule
+    AssetRateAdjustment { string ProductSellingModelId, ProductSellingModelId, ProrationPolicyId, ProrationPolicyId, ReferenceEntityItemId }
+    AssetRateCardEntry
+    AssetRelationship { string AssetActionSourceId, AssetId, PriceAdjustmentCauseId }
+    AssetShare { string AssetId, ContractId }
+    AssetStatePeriod
+    AssetStatePeriodAttribute
+    AssetTag
+    AssetTokenEvent
+    AssetWarranty { string UserOrGroupId, AssetRateCardEntryId }
+    ApprovalSubmission { string AssetId, BindingObjectId }
+    BindingObjUsageRsrcPlcy { string RateCardEntryId, RateCardId }
+    ContractItemPrice { string AttributeDefinitionId }
+    ContractItemPriceAdjTier { string RateUnitOfMeasureId, UsageResourceId, AssetId }
+    ContractItemPriceHistory { string ProductRelationshipTypeId }
+    OrderDeliveryMethod { string RelatedAssetId }
+    OrderItemAttribute { string AssetId }
+    OrderItemDetail { string UserOrGroupId, UserOrGroupId, AssetId }
+    OrderItemRateAdjustment { string LegalEntityId }
+    OrderItemRateCardEntry { string PriceRevisionPolicy }
+    OrderItemUsageRsrcGrant { string AssetStatePeriodId, AttributeDefinitionId }
+    OrderItemUsageRsrcPlcy
+    SalesTransactionType
+    QuoteAction
+    QuoteLineDetail { string OwnerId, OwnerId, RelatedRecordId, RelatedRecordId, RelatedRecordId }
+    QuoteLineGroup { string SubmittedById }
+    QuoteLineItemAttribute { string BindingObjectId, BindingObjectId, BindingObjectId, BindingObjectId }
+    QuotLineItmUseRsrcGrant { string UsageOveragePolicyId, UsageResourceId }
+    QuotLineItmUsageRsrcPlcy { string ContractId }
+    QuoteLineRateAdjustment { string ProductSellingModelId }
+    QuoteLineRateCardEntry { string ContractItemPriceId }
+    Asset }o--|| Asset : ParentId
+    Asset }o--|| Asset : RootAssetId
+    AssetRelationship }o--|| Asset : AssetId
+    AssetShare }o--|| Asset : AssetId
+    ApprovalSubmission }o--|| Asset : BindingObjectId
+    ContractItemPriceAdjTier }o--|| Asset : AssetId
+    OrderDeliveryMethod }o--|| Asset : RelatedAssetId
+    OrderItemAttribute }o--|| Asset : AssetId
+    OrderItemDetail }o--|| Asset : AssetId
+    QuoteLineDetail }o--|| ApprovalSubmission : RelatedRecordId
+    QuoteLineItemAttribute }o--|| Asset : BindingObjectId

@@ -1,0 +1,26 @@
+erDiagram
+    RateCard { string ProductId }
+    RateCardEntry { string RateCardId, RateUnitOfMeasureId }
+    RatingFrequencyPolicy
+    RatingRequest
+    RatingRequestBatchJob { string RatingRequestId }
+    RateAdjustmentByAttribute { string RateCardEntryId }
+    RateAdjustmentByTier { string RateCardEntryId }
+    RatingPlan { string ProductId }
+    RatingPlanAssignment { string RatingPlanId }
+    RatingPlanCriteria { string RatingPlanId }
+    RatingPlanEntry { string RatingPlanId, UsageResourceId }
+    RatingPlanEntryTier { string RatingPlanEntryId }
+    RatingPlanPrice { string RatingPlanEntryTierId }
+    UsageRate { string ProductId }
+    UsageRateDetail { string UsageRateId, UsageResourceId }
+    RateCardEntry ||--o{ RateCard : RateCardId
+    RatingRequestBatchJob }o--|| RatingRequest : RatingRequestId
+    RateAdjustmentByAttribute ||--o{ RateCardEntry : RateCardEntryId
+    RateAdjustmentByTier ||--o{ RateCardEntry : RateCardEntryId
+    RatingPlanAssignment ||--o{ RatingPlan : RatingPlanId
+    RatingPlanCriteria ||--o{ RatingPlan : RatingPlanId
+    RatingPlanEntry ||--o{ RatingPlan : RatingPlanId
+    RatingPlanEntryTier ||--o{ RatingPlanEntry : RatingPlanEntryId
+    RatingPlanPrice ||--o{ RatingPlanEntryTier : RatingPlanEntryTierId
+    UsageRateDetail ||--o{ UsageRate : UsageRateId
