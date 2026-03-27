@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>66.0</apiVersion>
+  <isExposed>true</isExposed>
+  <masterLabel>RLM Quote Redirect</masterLabel>
+  <description>Flow Screen component that navigates to a newly created Quote record.</description>
+  <targets>
+    <target>lightning__FlowScreen</target>
+  </targets>
+  <targetConfigs>
+    <targetConfig targets="lightning__FlowScreen">
+      <property
+        name="quoteId"
+        type="String"
+        role="inputOnly"
+        label="Quote Id"
+        description="The Id of the Quote to navigate to."
+      />
+      <property
+        name="disableAutoRedirect"
+        type="Boolean"
+        role="inputOnly"
+        label="Disable Auto Redirect"
+        description="For debugging, prevents automatic navigation when true."
+      />
+    </targetConfig>
+  </targetConfigs>
+</LightningComponentBundle>
