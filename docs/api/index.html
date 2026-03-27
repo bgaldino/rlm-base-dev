@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenue Cloud API Reference — Spring '26 v66.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#334155;
+  --text:#e2e8f0;--muted:#94a3b8;--faint:#64748b;
+  --accent:#60a5fa;--accent2:#3b82f6;
+  --get:#22c55e;--post:#3b82f6;--put:#f97316;--delete:#ef4444;--patch:#eab308;
+}
+body.light{
+  --bg:#f8fafc;--surface:#ffffff;--surface2:#f1f5f9;--border:#e2e8f0;
+  --text:#1e293b;--muted:#475569;--faint:#94a3b8;
+  --accent:#2563eb;--accent2:#1d4ed8;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* TOPBAR */
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0;z-index:100}
+.topbar h1{font-size:15px;color:var(--accent);font-weight:600;white-space:nowrap}
+.version-badge{font-size:10px;background:#1e3a5f;color:#93c5fd;padding:2px 8px;border-radius:10px;border:1px solid #2563eb;white-space:nowrap}
+.topbar-search{flex:1;max-width:400px;position:relative}
+.topbar-search input{width:100%;padding:6px 12px 6px 32px;background:var(--bg);border:1px solid var(--surface2);border-radius:6px;color:var(--text);font-size:12px;outline:none}
+.topbar-search input:focus{border-color:var(--accent)}
+.topbar-search input::placeholder{color:var(--faint)}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:13px;pointer-events:none}
+.search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:320px;overflow-y:auto;z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.search-results.open{display:block}
+.sr-item{padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)}
+.sr-item:last-child{border:none}
+.sr-item:hover{background:var(--surface2)}
+.sr-item .sr-title{color:var(--text);font-weight:500}
+.sr-item .sr-path{color:var(--faint);font-family:Menlo,Monaco,monospace;font-size:10px;margin-top:2px}
+.sr-item .sr-domain{font-size:10px;color:var(--accent);margin-bottom:2px}
+.theme-btn{margin-left:auto;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:11px;white-space:nowrap}
+.theme-btn:hover{color:var(--text)}
+
+/* LAYOUT */
+.app{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:2px}
+.nav-section{border-bottom:1px solid var(--border)}
+.nav-domain{padding:8px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.nav-domain:hover{background:var(--surface2)}
+.nav-domain .arrow{font-size:9px;transition:transform .15s}
+.nav-domain.collapsed .arrow{transform:rotate(-90deg)}
+.nav-items{overflow:hidden}
+.nav-items.hidden{display:none}
+.nav-item{display:block;padding:6px 14px 6px 22px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid transparent}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,130,246,.08)}
+.nav-item.tab-item{padding:8px 14px;font-size:13px;color:var(--text);font-weight:500;border-left:3px solid transparent}
+.nav-item.tab-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,130,246,.1)}
+.nav-item.tab-item:hover{background:var(--surface2)}
+
+/* MAIN CONTENT */
+.main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px}
+.main::-webkit-scrollbar{width:6px}
+.main::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+
+/* CONTENT SECTIONS */
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+h1.page-title{font-size:26px;color:var(--text);margin-bottom:6px;font-weight:700}
+h2.page-subtitle{font-size:13px;color:var(--muted);font-weight:400;margin-bottom:28px}
+h2.section-heading{font-size:18px;color:var(--text);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);font-weight:600}
+h3.endpoint-title{font-size:14px;color:var(--text);margin:0;font-weight:600}
+h4.sub-heading{font-size:13px;color:var(--muted);margin:16px 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;font-size:11px}
+
+/* ENDPOINT CARDS */
+.endpoint-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;overflow:hidden}
+.endpoint-header{padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.endpoint-header:hover{background:var(--surface2)}
+.endpoint-body{padding:16px;border-top:1px solid var(--border);display:none}
+.endpoint-body.open{display:block}
+.endpoint-toggle{margin-left:auto;color:var(--faint);font-size:11px}
+
+/* METHOD BADGES */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:Menlo,Monaco,monospace;letter-spacing:.5px;flex-shrink:0}
+.badge-GET{background:rgba(34,197,94,.15);color:var(--get);border:1px solid rgba(34,197,94,.3)}
+.badge-POST{background:rgba(59,130,246,.15);color:var(--post);border:1px solid rgba(59,130,246,.3)}
+.badge-PUT{background:rgba(249,115,22,.15);color:var(--put);border:1px solid rgba(249,115,22,.3)}
+.badge-DELETE{background:rgba(239,68,68,.15);color:var(--delete);border:1px solid rgba(239,68,68,.3)}
+.badge-PATCH{background:rgba(234,179,8,.15);color:var(--patch);border:1px solid rgba(234,179,8,.3)}
+.badge-DEPRECATED{background:rgba(100,116,139,.15);color:var(--faint);border:1px solid rgba(100,116,139,.3)}
+
+.endpoint-path{font-family:Menlo,Monaco,monospace;font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* TABLES */
+table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0 16px}
+th{text-align:left;padding:8px 10px;background:var(--surface2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:600;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid rgba(51,65,85,.4);color:var(--text);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:rgba(30,41,59,.4)}
+body.light tr:nth-child(even) td{background:rgba(241,245,249,.6)}
+td code{font-family:Menlo,Monaco,monospace;font-size:11px;background:var(--bg);padding:1px 4px;border-radius:3px;color:var(--accent)}
+
+/* CODE BLOCKS */
+pre{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px 14px;overflow-x:auto;font-size:11px;line-height:1.6;margin:8px 0}
+pre code{font-family:Menlo,Monaco,monospace;color:var(--muted)}
+code.inline{font-family:Menlo,Monaco,monospace;font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--accent)}
+
+/* DESCRIPTION */
+.desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.version-tag{font-size:10px;color:var(--faint);background:var(--surface2);padding:2px 6px;border-radius:4px;margin-left:8px}
+
+/* OVERVIEW LAYOUT */
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+.ov-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+.ov-card h3{font-size:13px;color:var(--accent);margin-bottom:8px;font-weight:600}
+.ov-card ul{list-style:none;padding:0}
+.ov-card ul li{font-size:12px;color:var(--muted);padding:3px 0;border-bottom:1px solid rgba(51,65,85,.3);display:flex;align-items:center;gap:6px}
+.ov-card ul li:last-child{border:none}
+
+.workflow-steps{counter-reset:steps}
+.workflow-step{display:flex;gap:12px;margin:8px 0;align-items:flex-start}
+.step-num{width:22px;height:22px;background:var(--accent2);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.step-text{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ALERT / INFO BOXES */
+.info-box{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:6px;padding:12px 14px;margin:12px 0;font-size:12px;color:var(--muted);line-height:1.5}
+.warn-box{background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:12px 14px;margin:12px 0;font-size:12px;color:var(--muted);line-height:1.5}
+
+/* QUICK REF TABLE */
+.qr-section{margin-bottom:24px}
+.qr-section h3{font-size:13px;color:var(--text);margin-bottom:8px;font-weight:600}
+.qr-list{display:flex;flex-direction:column;gap:4px}
+.qr-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:5px;font-size:12px}
+.qr-item .qr-path{font-family:Menlo,Monaco,monospace;font-size:11px;color:var(--muted);flex:1}
+
+/* MOBILE */
+@media(max-width:768px){
+  .sidebar{width:200px}
+  .main{padding:20px}
+  .overview-grid{grid-template-columns:1fr}
+  .topbar h1{font-size:13px}
+}
+@media(max-width:540px){
+  .sidebar{display:none}
+  .main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Revenue Cloud API Reference</h1>
+  <span class="version-badge">Spring '26 · v66.0</span>
+  <div class="topbar-search">
+    <span class="search-icon">&#9906;</span>
+    <input type="text" id="searchInput" placeholder="Search endpoints, paths, descriptions..." autocomplete="off">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <button class="theme-btn" id="themeBtn">Light Mode</button>
+</div>
+
+<div class="app">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main" id="mainContent"></main>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: '' },
+  { id: 'pcm', label: 'PCM', icon: '' },
+  { id: 'discovery', label: 'Product Discovery', icon: '' },
+  { id: 'configurator', label: 'Product Configurator', icon: '' },
+  { id: 'pricing', label: 'Pricing', icon: '' },
+  { id: 'rate', label: 'Rate Management', icon: '' },
+  { id: 'transaction', label: 'Transaction Management', icon: '' },
+  { id: 'usage', label: 'Usage Management', icon: '' },
+  { id: 'billing', label: 'Billing', icon: '' },
+  { id: 'context', label: 'Context Service', icon: '' },
+  { id: 'master', label: 'Master Reference', icon: '' },
+];
+
+const DOMAINS = {
+  pcm: {
+    title: 'Product Catalog Management',
+    subtitle: 'PCM APIs — Direct catalog access (19 endpoints)',
+    sections: [
+      {
+        id: 'pcm-catalog', title: 'Catalog APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/pcm/catalogs', title:'List Catalogs', version:'57.0',
+            desc:'Retrieve a paginated list of all product catalogs in the org.',
+            fields:[
+              {name:'pageSize',type:'Integer',req:false,desc:'Number of records to return per page (default: 100)'},
+              {name:'offset',type:'Integer',req:false,desc:'Pagination offset'},
+              {name:'q',type:'String',req:false,desc:'Search query string to filter catalogs by name'},
+            ]},
+          { method:'GET', path:'/connect/pcm/catalogs/{catalogId}', title:'Get Catalog', version:'57.0',
+            desc:'Retrieve details of a specific product catalog by its Salesforce record ID.',
+            params:[{name:'catalogId',desc:'Salesforce ID of the catalog record. Use {{defaultCatalogId}} from the Setup Runner.'}]},
+        ]
+      },
+      {
+        id: 'pcm-category', title: 'Category APIs',
+        endpoints: [
+          { method:'GET', path:'/connect/pcm/catalogs/{catalogId}/categories', title:'List Categories', version:'57.0',
+            desc:'List all categories belonging to a specific catalog.',
+            params:[{name:'catalogId',desc:'Salesforce ID of the catalog. Use {{defaultCatalogId}}.'}]},
+          { method:'GET', path:'/connect/pcm/categories/{categoryId}', title:'Get Category', version:'57.0',
+            desc:'Retrieve details of a specific product category by its Salesforce record ID.',
+            params:[{name:'categoryId',desc:'Salesforce ID of the category record. Use {{defaultCategoryId}} from the Setup Runner.'}]},
+        ]
+      },
+      {
+        id: 'pcm-product', title: 'Product APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/pcm/products', title:'List Products', version:'57.0',
+            desc:'Retrieve a paginated, filterable list of products from the catalog. Supports sorting and filter criteria.',
+            fields:[
+              {name:'pageSize',type:'Integer',req:false,desc:'Number of records to return (default: 100)'},
+              {name:'offset',type:'Integer',req:false,desc:'Pagination offset'},
+              {name:'filters',type:'Array',req:false,desc:'Array of filter objects to narrow results'},
+              {name:'sortBy',type:'String',req:false,desc:'Field to sort results by (e.g., "Name")'},
+              {name:'sortOrder',type:'String',req:false,desc:'Sort direction — "ASC" or "DESC"'},
+            ]},
+          { method:'GET', path:'/connect/pcm/products/{productId}', title:'Get Product', version:'57.0',
+            desc:'Retrieve the full details of a single product by its Salesforce record ID.',
+            params:[{name:'productId',desc:'Salesforce ID of the product.'}]},
+          { method:'POST', path:'/connect/pcm/products/bulk', title:'Bulk Product Details', version:'59.0',
+            desc:'Retrieve full product details for multiple products in a single request.',
+            fields:[{name:'productIds',type:'Array of String',req:true,desc:'List of Salesforce product record IDs'}]},
+          { method:'POST', path:'/connect/pcm/products/{productId}/related-records', title:'Product Related Records', version:'59.0',
+            desc:'Retrieve related records for a product, such as variants and bundles.',
+            params:[{name:'productId',desc:'Salesforce ID of the product'}],
+            fields:[{name:'relationshipTypes',type:'Array of String',req:true,desc:'Relationship types to retrieve: "VARIANTS", "BUNDLES"'}]},
+          { method:'POST', path:'/connect/pcm/products/classification', title:'Product Classification Details', version:'66.0',
+            desc:'Retrieve classification details including product hierarchy and attribute assignments. New in Spring \'26 (v66.0).',
+            fields:[
+              {name:'productIds',type:'Array of String',req:true,desc:'List of Salesforce product record IDs'},
+              {name:'includeHierarchy',type:'Boolean',req:false,desc:'When true, returns the full classification hierarchy (default: true)'},
+            ]},
+          { method:'POST', path:'/connect/pcm/products/{productId}/actions/deep-clone', title:'Deep Clone Product', version:'59.0',
+            desc:'Create a full deep copy of a product, including its attributes and relationships.',
+            params:[{name:'productId',desc:'Salesforce ID of the product to clone'}],
+            fields:[
+              {name:'cloneName',type:'String',req:true,desc:'Name for the cloned product'},
+              {name:'cloneAttributes',type:'Boolean',req:false,desc:'Include product attributes in the clone (default: true)'},
+              {name:'cloneRelationships',type:'Boolean',req:false,desc:'Include product relationships in the clone (default: true)'},
+            ]},
+        ]
+      },
+      {
+        id: 'pcm-index', title: 'Index APIs',
+        endpoints: [
+          { method:'GET', path:'/connect/pcm/index/configurations', title:'Index Configuration Collection', version:'61.0',
+            desc:'Retrieve the current product index configurations. The product index drives search performance in Product Discovery APIs.'},
+          { method:'PUT', path:'/connect/pcm/index/configurations', title:'Update Index Configuration', version:'61.0',
+            desc:'Replace the full set of product index configurations.',
+            fields:[{name:'indexConfigurations',type:'Array',req:true,desc:'Array of index config objects with id, name, and fields[]'}]},
+          { method:'GET', path:'/connect/pcm/index/setting', title:'Index Setting', version:'61.0',
+            desc:'Retrieve global index settings including whether indexing is enabled and the auto-index frequency.'},
+          { method:'PATCH', path:'/connect/pcm/index/setting', title:'Update Index Setting', version:'61.0',
+            desc:'Update global product index settings.',
+            fields:[
+              {name:'indexingEnabled',type:'Boolean',req:false,desc:'Enable or disable product indexing'},
+              {name:'autoIndexFrequency',type:'String',req:false,desc:'"DAILY", "WEEKLY", or "MANUAL"'},
+              {name:'batchSize',type:'Integer',req:false,desc:'Number of products to process per indexing batch'},
+            ]},
+          { method:'GET', path:'/connect/pcm/index/snapshots', title:'Snapshot Collection', version:'61.0',
+            desc:'List all available product index snapshots.'},
+          { method:'POST', path:'/connect/pcm/index/snapshots/{snapshotId}/actions/deploy', title:'Deploy Snapshot', version:'61.0',
+            desc:'Deploy a specific index snapshot. Snapshots must be deployed before product search reflects catalog changes.',
+            params:[{name:'snapshotId',desc:'ID of the snapshot to deploy'}],
+            fields:[{name:'options.deploymentStrategy',type:'String',req:false,desc:'"INCREMENTAL" or "FULL"'}]},
+          { method:'GET', path:'/connect/pcm/index/snapshots/{snapshotId}/errors', title:'Snapshot Index Error', version:'61.0',
+            desc:'Retrieve any errors that occurred during a snapshot deployment.',
+            params:[{name:'snapshotId',desc:'ID of the snapshot to check for errors'}]},
+        ]
+      },
+      {
+        id: 'pcm-uom', title: 'Unit of Measure APIs',
+        endpoints: [
+          { method:'GET', path:'/connect/pcm/unit-of-measure', title:'Unit of Measure Info', version:'59.0',
+            desc:'Retrieve metadata about all units of measure (UoM) configured in the org.'},
+          { method:'POST', path:'/connect/pcm/unit-of-measure/actions/round', title:'Unit of Measure Rounded Data', version:'59.0',
+            desc:'Calculate the rounded quantity for a given value based on a specified unit of measure and precision.',
+            fields:[
+              {name:'quantity',type:'Decimal',req:true,desc:'The raw quantity value to round'},
+              {name:'unitOfMeasure',type:'String',req:true,desc:'The UoM code to apply (e.g., "LITRE", "EACH", "GB")'},
+              {name:'decimalPlaces',type:'Integer',req:true,desc:'Number of decimal places to round to'},
+            ]},
+        ]
+      },
+    ]
+  },
+
+  discovery: {
+    title: 'Product Discovery',
+    subtitle: 'Context-aware catalog access — POST-only, buyer-session scoped (10 endpoints)',
+    sections: [
+      {
+        id: 'disc-catalog', title: 'Catalog APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/catalogs', title:'List Catalogs', version:'57.0',
+            desc:'Retrieve a list of catalogs visible to the current buyer context. Returns only catalogs the buyer is entitled to see.',
+            fields:[{name:'pageSize',type:'Integer',req:false,desc:'Number of catalog records to return (default: 100)'}]},
+          { method:'POST', path:'/connect/cpq/catalogs/{catalogId}', title:'Get Catalog', version:'57.0',
+            desc:'Retrieve details of a specific catalog in the buyer context.',
+            params:[{name:'catalogId',desc:'Salesforce ID of the catalog. Use {{defaultCatalogId}}.'}]},
+        ]
+      },
+      {
+        id: 'disc-category', title: 'Category APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/categories', title:'List Categories', version:'57.0',
+            desc:'List product categories available to the buyer. Filters out categories containing no entitled products.',
+            fields:[{name:'pageSize',type:'Integer',req:false,desc:'Number of category records to return (default: 100)'}]},
+          { method:'POST', path:'/connect/cpq/categories/{categoryId}', title:'Get Category', version:'57.0',
+            desc:'Retrieve details of a specific category in the buyer context.',
+            params:[{name:'categoryId',desc:'Salesforce ID of the category. Use {{defaultCategoryId}}.'}]},
+        ]
+      },
+      {
+        id: 'disc-product', title: 'Product APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/products', title:'List Products', version:'57.0',
+            desc:'Retrieve a filtered, paginated list of products for a buyer session. Applies entitlements and optionally pricing context.',
+            fields:[
+              {name:'pageSize',type:'Integer',req:false,desc:'Number of products to return per page (default: 100)'},
+              {name:'offset',type:'Integer',req:false,desc:'Pagination offset for subsequent pages'},
+              {name:'filters',type:'Array',req:false,desc:'Filter criteria objects to narrow the result set'},
+            ]},
+          { method:'POST', path:'/connect/cpq/products/{productId}', title:'Get Product', version:'57.0',
+            desc:'Retrieve the full details of a single product in a buyer context. Returns pricing, attribute, and entitlement data.',
+            params:[{name:'productId',desc:'Salesforce ID of the product'}]},
+          { method:'POST', path:'/connect/cpq/products/search', title:'Global Search', version:'61.0',
+            desc:'Perform a full-text search across the product catalog within the buyer context. Requires the product index to be deployed.',
+            fields:[
+              {name:'query',type:'String',req:true,desc:'Search string to match against product names, descriptions, and indexed fields'},
+              {name:'pageSize',type:'Integer',req:false,desc:'Number of results to return (default: 100)'},
+              {name:'filters',type:'Array',req:false,desc:'Additional filter criteria to narrow search results'},
+            ]},
+          { method:'POST', path:'/connect/cpq/products/bulk', title:'Bulk Product Details', version:'59.0',
+            desc:'Retrieve context-aware details for multiple products in a single request.',
+            fields:[{name:'productIds',type:'Array of String',req:true,desc:'List of Salesforce product record IDs to retrieve'}]},
+        ]
+      },
+      {
+        id: 'disc-guided', title: 'Guided Selling & Qualification',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/products/guided-selection', title:'Guided Selection', version:'59.0',
+            desc:'Execute a guided selling flow to recommend products based on account characteristics and buyer-provided criteria.',
+            fields:[
+              {name:'accountId',type:'String',req:true,desc:'Salesforce ID of the buyer account. Use {{defaultAccountId}}.'},
+              {name:'criteria',type:'Object',req:true,desc:'Key-value pairs representing the buyer\'s answers to guided selling questions'},
+            ]},
+          { method:'POST', path:'/connect/cpq/qualification', title:'Qualification', version:'59.0',
+            desc:'Evaluate whether an account qualifies for specific products or promotions based on configured qualification rules.',
+            fields:[
+              {name:'accountId',type:'String',req:true,desc:'Salesforce ID of the account to evaluate. Use {{defaultAccountId}}.'},
+              {name:'qualificationCriteria',type:'Object',req:true,desc:'Criteria specifying the qualification type (ACCOUNT_BASED, PRODUCT_BASED)'},
+            ]},
+        ]
+      },
+    ]
+  },
+
+  configurator: {
+    title: 'Product Configurator',
+    subtitle: 'Bundle configuration with session-based instance management (13 endpoints)',
+    sections: [
+      {
+        id: 'cfg-action', title: 'Configuration Actions',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/configurator/actions/configure', title:'Configure', version:'59.0',
+            desc:'Initialize a new configuration session for a product. Returns a configuration instance with option groups, rules, and constraints applied. Entry point for interactive configuration flows.',
+            fields:[
+              {name:'productId',type:'String',req:true,desc:'Salesforce ID of the product to configure'},
+              {name:'selectedOptions',type:'Array',req:false,desc:'Initial option selections to pre-populate the configuration'},
+            ]},
+        ]
+      },
+      {
+        id: 'cfg-saved', title: 'Saved Configuration APIs',
+        endpoints: [
+          { method:'GET', path:'/connect/cpq/configurator/saved-configuration', title:'List Saved Configurations', version:'59.0',
+            desc:'Retrieve all saved product configurations available in the org.'},
+          { method:'POST', path:'/connect/cpq/configurator/saved-configuration', title:'Create Saved Configuration', version:'59.0',
+            desc:'Save a product configuration for future reuse.',
+            fields:[
+              {name:'name',type:'String',req:true,desc:'Human-readable name for the saved configuration'},
+              {name:'productId',type:'String',req:true,desc:'Salesforce ID of the product being configured'},
+              {name:'configurationData',type:'Object',req:true,desc:'The complete configuration state to save'},
+            ]},
+          { method:'PUT', path:'/connect/cpq/configurator/saved-configuration/{configurationId}', title:'Update Saved Configuration', version:'59.0',
+            desc:'Replace the full contents of an existing saved configuration.',
+            params:[{name:'configurationId',desc:'ID of the saved configuration to update'}],
+            fields:[
+              {name:'name',type:'String',req:false,desc:'Updated display name'},
+              {name:'configurationData',type:'Object',req:true,desc:'Complete replacement configuration data'},
+            ]},
+          { method:'DELETE', path:'/connect/cpq/configurator/saved-configuration/{configurationId}', title:'Delete Saved Configuration', version:'59.0',
+            desc:'Permanently delete a saved product configuration. This action cannot be undone.',
+            params:[{name:'configurationId',desc:'ID of the saved configuration to delete'}]},
+        ]
+      },
+      {
+        id: 'cfg-instance', title: 'Instance Management APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/configurator/actions/get-instance', title:'Get Instance', version:'59.0',
+            desc:'Retrieve the current state of an active configuration instance. Returns all nodes, selected options, and applied rules.',
+            fields:[{name:'instanceId',type:'String',req:true,desc:'ID of the configuration instance to retrieve'}]},
+          { method:'POST', path:'/connect/cpq/configurator/actions/load-instance', title:'Load Instance', version:'59.0',
+            desc:'Load a previously saved configuration into a new active instance.',
+            fields:[{name:'configurationId',type:'String',req:true,desc:'ID of the saved configuration to load'}]},
+          { method:'POST', path:'/connect/cpq/configurator/actions/save-instance', title:'Save Instance', version:'59.0',
+            desc:'Persist the current state of a configuration instance as a saved configuration for future reuse.',
+            fields:[
+              {name:'instanceId',type:'String',req:true,desc:'ID of the active configuration instance to save'},
+              {name:'configurationData',type:'Object',req:false,desc:'Additional or overriding configuration data'},
+            ]},
+          { method:'POST', path:'/connect/cpq/configurator/actions/set-instance', title:'Set Instance', version:'59.0',
+            desc:'Fully replace the configuration data for an existing active instance.',
+            fields:[
+              {name:'instanceId',type:'String',req:true,desc:'ID of the configuration instance to replace'},
+              {name:'configurationData',type:'Object',req:true,desc:'Complete replacement configuration state'},
+            ]},
+        ]
+      },
+      {
+        id: 'cfg-nodes', title: 'Node Operation APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/cpq/configurator/actions/add-nodes', title:'Add Nodes', version:'59.0',
+            desc:'Add one or more product or option nodes to an existing configuration instance.',
+            fields:[
+              {name:'instanceId',type:'String',req:true,desc:'ID of the active configuration instance'},
+              {name:'nodesToAdd',type:'Array',req:true,desc:'List of nodes to add (parentNodeId, productId)'},
+            ]},
+          { method:'POST', path:'/connect/cpq/configurator/actions/delete-nodes', title:'Delete Nodes', version:'59.0',
+            desc:'Remove one or more nodes from an active configuration instance.',
+            fields:[
+              {name:'instanceId',type:'String',req:true,desc:'ID of the active configuration instance'},
+              {name:'nodeIdsToDelete',type:'Array of String',req:true,desc:'IDs of the nodes to remove'},
+            ]},
+          { method:'POST', path:'/connect/cpq/configurator/actions/update-nodes', title:'Update Nodes', version:'59.0',
+            desc:'Update the properties of one or more nodes in an active configuration instance.',
+            fields:[
+              {name:'instanceId',type:'String',req:true,desc:'ID of the active configuration instance'},
+              {name:'nodesToUpdate',type:'Array',req:true,desc:'List of node updates (nodeId, properties)'},
+            ]},
+          { method:'POST', path:'/connect/cpq/configurator/actions/set-product-quantity', title:'Set Product Quantity', version:'59.0',
+            desc:'Set the quantity for a specific product within a configuration instance. UoM rounding applied automatically.',
+            fields:[
+              {name:'instanceId',type:'String',req:true,desc:'ID of the active configuration instance'},
+              {name:'productId',type:'String',req:true,desc:'Salesforce ID of the product whose quantity to update'},
+              {name:'quantity',type:'Integer',req:true,desc:'New quantity value to set'},
+            ]},
+        ]
+      },
+    ]
+  },
+
+  pricing: {
+    title: 'Pricing',
+    subtitle: 'Core pricing engine, waterfall analysis, and procedure plans (19 endpoints)',
+    sections: [
+      {
+        id: 'price-core', title: 'Pricing Core APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/core-pricing/pbeDerivedPricingSourceProduct', title:'PBE Derived Pricing', version:'61.0',
+            desc:'Get the source product for the Price Book Entry (PBE) derived pricing.',
+            fields:[
+              {name:'productId',type:'String',req:true,desc:'ID of the price book'},
+              {name:'pricebookEntryId',type:'String',req:true,desc:'ID of the price book entry'},
+              {name:'effectiveFrom',type:'String',req:true,desc:'Date from when the price book entry is effective'},
+              {name:'effectiveTo',type:'String',req:true,desc:'Date until when the price book entry is effective'},
+            ]},
+          { method:'POST', path:'/connect/core-pricing/price-contexts/{contextId}', title:'Price Context', version:'60.0',
+            desc:'Perform a pricing request using the instance ID of a context. If price waterfall is disabled from Salesforce Pricing Setup, waterfall details are not returned.',
+            params:[{name:'contextId',desc:'ID of the pricing context instance'}],
+            fields:[
+              {name:'configurationOverrides',type:'Object',req:false,desc:'skipWaterfall, useSessionScopedContext, persistContext, taggedData'},
+              {name:'procedureName',type:'String',req:false,desc:'Name of the pricing procedure'},
+            ]},
+          { method:'POST', path:'/connect/core-pricing/pricing', title:'Pricing', version:'60.0',
+            desc:'Create and hydrate context instance in a single request. Provides comprehensive response with final pricing details per line items.',
+            fields:[
+              {name:'contextDefinitionId',type:'String',req:true,desc:'ID of the context definition'},
+              {name:'contextMappingId',type:'String',req:true,desc:'ID of context mapping'},
+              {name:'jsonDataString',type:'String',req:true,desc:'JSON data to hydrate the context (passed as stringified JSON)'},
+              {name:'pricingProcedureId',type:'String',req:false,desc:'ID or API name of the pricing procedure'},
+              {name:'configurationOverrides',type:'Object',req:false,desc:'skipWaterfall, persistContext, referenceKey, isHighVolumeLineItems'},
+            ]},
+          { method:'GET', path:'/connect/core-pricing/apiexecutionlogs/{executionId}', title:'API Execution Logs', version:'63.0',
+            desc:'Get the log details of a pricing API execution record by execution ID.',
+            params:[{name:'executionId',desc:'ID of the pricing process execution record'}]},
+          { method:'GET', path:'/connect/core-pricing/pricing-process-execution/{executionId}', title:'Pricing Process Execution', version:'63.0',
+            desc:'Get the execution details of a pricing process by execution ID.',
+            params:[{name:'executionId',desc:'ID of the pricing process execution record'}],
+            query:[{name:'executionType',desc:'API_Execution, Discovery, Discovery_Line, Pricing, Pricing_Line (optional)'}]},
+          { method:'GET', path:'/connect/core-pricing/pricing-process-execution/lineitems/{executionId}/{executionType}', title:'Pricing Process Execution for Line Items', version:'63.0',
+            desc:'Get the pricing execution details for the line items of a pricing process.',
+            params:[
+              {name:'executionId',desc:'ID of the pricing process execution record'},
+              {name:'executionType',desc:'Pricing_Line or Discovery_Line'},
+            ]},
+          { method:'GET', path:'/connect/core-pricing/sync/{pricingSyncOrigin}', title:'Pricing Data Sync', version:'60.0',
+            desc:'Sync pricing data to ensure that lookup tables contain the latest pricing data.'},
+          { method:'GET', path:'/connect/core-pricing/recipe', title:'Pricing Recipe', version:'60.0',
+            desc:'Get the mapping details of pricing recipes to the associated pricing recipe table.'},
+          { method:'POST', path:'/connect/core-pricing/recipe/mapping', title:'Pricing Recipe Mapping', version:'60.0',
+            desc:'Create a mapping between the pricing recipe and the Decision Tables.',
+            fields:[
+              {name:'recipeId',type:'String',req:true,desc:'ID of the pricing recipe'},
+              {name:'pricingRecipeLookUpTableInputRepresentations',type:'Array',req:true,desc:'Input representation of the recipe mapping'},
+              {name:'pricingRecipeProcedureInputRepresentation',type:'Object',req:true,desc:'Input representation of the procedure'},
+            ]},
+          { method:'POST', path:'/connect/core-pricing/versioned-revise-details', title:'Pricing Versioned Revision Details', version:'60.0',
+            desc:'Create revisions of a pricing request with versions for adjustment entities.',
+            fields:[
+              {name:'entityName',type:'String',req:true,desc:'Name of the entity (e.g., AttributeBasedAdjustment)'},
+              {name:'id',type:'String',req:true,desc:'ID of the record'},
+              {name:'adjustmentType',type:'String',req:true,desc:'percentage, amount, or override'},
+              {name:'adjustmentValue',type:'String',req:true,desc:'Value for the adjustment'},
+              {name:'effectiveFrom',type:'String',req:true,desc:'Date from when the adjustment is effective'},
+            ]},
+          { method:'GET', path:'/connect/core-pricing/waterfall/{lineItemId}/{executionId}', title:'Pricing Waterfall (GET)', version:'60.0',
+            desc:'Get the persisted price waterfall that stores the process logs. Provides insights into every step of the pricing process.',
+            params:[
+              {name:'lineItemId',desc:'Salesforce ID of the line item'},
+              {name:'executionId',desc:'ID of the specific pricing process execution'},
+            ],
+            query:[
+              {name:'tagsToFilter',desc:'Comma-separated tags to filter (v61.0+)'},
+              {name:'usageType',desc:'Pricing, Discovery, or Rating; default is Pricing (v62.0+)'},
+            ]},
+          { method:'POST', path:'/connect/core-pricing/waterfall', title:'Pricing Waterfall (POST)', version:'60.0',
+            desc:'Create a log of price waterfall.',
+            fields:[
+              {name:'executionId',type:'String',req:true,desc:'ID of the execution'},
+              {name:'lineItemId',type:'String',req:true,desc:'ID of the line item'},
+              {name:'waterfall',type:'Array',req:false,desc:'Waterfall step details (fieldToTagNameMapping, inputParameters, outputParameters, sequence)'},
+            ]},
+          { method:'GET', path:'/connect/core-pricing/simulationInputVariablesWithData', title:'Pricing Simulation Input Variables', version:'62.0',
+            desc:'Get details of the pricing simulation input variables along with associated data.'},
+        ]
+      },
+      {
+        id: 'price-plan', title: 'Procedure Plan Definition APIs',
+        endpoints: [
+          { method:'GET', path:'/connect/procedure-plan-definitions', title:'Procedure Plan Definitions (GET)', version:'62.0',
+            desc:'Get the records of procedure plan definitions.',
+            query:[{name:'isTemplate',desc:'true for file-based definitions, false for database-based (default)'}]},
+          { method:'POST', path:'/connect/procedure-plan-definitions', title:'Procedure Plan Definitions (POST)', version:'62.0',
+            desc:'Create a record of a procedure plan definition.',
+            fields:[
+              {name:'developerName',type:'String',req:true,desc:'Developer name of the procedure plan definition'},
+              {name:'processType',type:'String',req:true,desc:'Billing, DRO, DeepClone, ProductDiscovery, Revenue Cloud (v63.0+)'},
+              {name:'primaryObject',type:'String',req:false,desc:'Primary object (Quote, Account, Order)'},
+              {name:'procedurePlanDefinitionVersions',type:'Array',req:true,desc:'List of versions (active, contextDefinition, effectiveFrom, rank)'},
+            ]},
+          { method:'GET', path:'/connect/procedure-plan-definitions/{id}', title:'Procedure Plan Definition By ID (GET)', version:'62.0',
+            desc:'Get a procedure plan definition record by ID.',
+            params:[{name:'procedurePlanDefinitionId',desc:'ID of the procedure plan definition record'}]},
+          { method:'PATCH', path:'/connect/procedure-plan-definitions/{id}', title:'Procedure Plan Definition By ID (PATCH)', version:'62.0',
+            desc:'Update a procedure plan definition record.',
+            params:[{name:'procedurePlanDefinitionId',desc:'ID of the procedure plan definition record'}],
+            fields:[
+              {name:'recordId',type:'String',req:true,desc:'ID of the procedure plan definition record'},
+              {name:'developerName',type:'String',req:false,desc:'Developer name'},
+              {name:'description',type:'String',req:false,desc:'Description'},
+            ]},
+          { method:'DELETE', path:'/connect/procedure-plan-definitions/{id}', title:'Procedure Plan Definition By ID (DELETE)', version:'62.0',
+            desc:'Delete a procedure plan definition. Can only delete if it has no active procedure plan versions.',
+            params:[{name:'procedurePlanDefinitionId',desc:'ID of the procedure plan definition record'}]},
+          { method:'POST', path:'/connect/procedure-plan-definitions/evaluate', title:'Procedure Plan Evaluation By Object', version:'62.0',
+            desc:'Evaluate a procedure plan definition based on a primary object.',
+            fields:[
+              {name:'idList',type:'String[]',req:true,desc:'List of object IDs'},
+              {name:'evaluationDate',type:'String',req:true,desc:'Date when the evaluation is applicable'},
+              {name:'processType',type:'String',req:false,desc:'Business process type'},
+            ]},
+          { method:'POST', path:'/connect/procedure-plan-definitions/evaluate/{name}', title:'Procedure Plan Evaluation By Definition Name', version:'62.0',
+            desc:'Evaluate a procedure plan definition based on the name of a definition.',
+            params:[{name:'procedurePlanDefinitionName',desc:'Name of the procedure plan definition'}]},
+          { method:'POST', path:'/connect/procedure-plan-definitions/{id}/version', title:'Procedure Plan Version', version:'62.0+',
+            desc:'Create records of a procedure plan version with details.',
+            fields:[
+              {name:'active',type:'Boolean',req:false,desc:'Indicates whether the procedure plan version is active'},
+              {name:'contextDefinition',type:'String',req:false,desc:'Context definition reference'},
+              {name:'developerName',type:'String',req:false,desc:'Developer name for the version'},
+              {name:'effectiveFrom',type:'String',req:false,desc:'When the version becomes effective (ISO 8601)'},
+              {name:'rank',type:'Integer',req:false,desc:'Rank of the version'},
+            ]},
+          { method:'GET', path:'/connect/procedure-plan-definitions/versions/{versionId}', title:'Procedure Plan Version Details (GET)', version:'62.0+',
+            desc:'Get a procedure plan definition version record by ID.',
+            params:[{name:'procedurePlanVersionId',desc:'ID of the procedure plan version record'}]},
+          { method:'PATCH', path:'/connect/procedure-plan-definitions/versions/{versionId}', title:'Procedure Plan Version Details (PATCH)', version:'62.0+',
+            desc:'Update a procedure plan definition version record.',
+            params:[{name:'procedurePlanVersionId',desc:'ID of the procedure plan version record'}]},
+          { method:'DELETE', path:'/connect/procedure-plan-definitions/versions/{versionId}', title:'Procedure Plan Version Details (DELETE)', version:'62.0+',
+            desc:'Delete a procedure plan definition version record.',
+            params:[{name:'procedurePlanVersionId',desc:'ID of the procedure plan version record'}]},
+        ]
+      },
+    ]
+  },
+
+  rate: {
+    title: 'Rate Management',
+    subtitle: 'Rate plans and rating waterfall for usage-based billing (2 endpoints)',
+    sections: [
+      {
+        id: 'rate-apis', title: 'Rate APIs',
+        endpoints: [
+          { method:'GET', path:'/connect/core-rating/rate-plan', title:'Get Rate Plan', version:'63.0',
+            desc:'Retrieve the rate plan configuration from the rating engine. A rate plan defines the pricing model for usage-based products — including flat rates, tiered pricing, and volume-based adjustments.',
+            note:'Requires the Rate Management: Run Time User permission set and a default usage rating discovery procedure in Revenue Settings.'},
+          { method:'GET', path:'/connect/core-pricing/waterfall/{lineItemId}/{executionId}', title:'Get Rating Waterfall', version:'63.0',
+            desc:'Retrieve the detailed waterfall breakdown of how a price or rating was calculated for a specific line item and execution. Shows each step including rate card tiers, adjustments, and final computed price.',
+            params:[
+              {name:'lineItemId',desc:'Salesforce ID of the quote, order, or billing line item'},
+              {name:'executionId',desc:'ID of the specific pricing process execution'},
+            ],
+            query:[{name:'ratingParameters',desc:'When true, includes rating-specific parameters (usage amounts, tier boundaries, rate multipliers). Default: false.'}]},
+        ]
+      },
+    ]
+  },
+
+  transaction: {
+    title: 'Transaction Management',
+    subtitle: 'Sales transactions, asset lifecycle, and ramp deals (17 endpoints)',
+    sections: [
+      {
+        id: 'txn-sales', title: 'Sales Transaction Actions',
+        endpoints: [
+          { method:'POST', path:'/commerce/sales-transactions/actions/place', title:'Place Sales Transaction', version:'63.0',
+            desc:'Create and place a new sales transaction — a quote or order — for an account. Primary endpoint for Quote-to-Cash flows.',
+            fields:[
+              {name:'accountId',type:'String',req:true,desc:'Salesforce ID of the account. Use {{defaultAccountId}}.'},
+              {name:'effectiveDate',type:'String',req:true,desc:'Date the transaction takes effect (ISO 8601)'},
+              {name:'currencyCode',type:'String',req:false,desc:'ISO 4217 currency code (e.g., "USD")'},
+              {name:'lineItems',type:'Array',req:true,desc:'Line items: productId, quantity, term (optional), sellingModelId (optional)'},
+            ]},
+          { method:'POST', path:'/commerce/sales-transactions/actions/read', title:'Read Sales Transaction', version:'63.0',
+            desc:'Retrieve a complete, hydrated view of an existing sales transaction including all line items, pricing breakdown, approval status, and lifecycle state.',
+            fields:[{name:'transactionId',type:'String',req:true,desc:'Salesforce ID of the sales transaction to read'}]},
+          { method:'POST', path:'/commerce/sales-transactions/actions/clone', title:'Clone Sales Transaction', version:'63.0',
+            desc:'Create a copy of an existing sales transaction, optionally for a different account.',
+            fields:[
+              {name:'sourceTransactionId',type:'String',req:true,desc:'Salesforce ID of the transaction to clone'},
+              {name:'newAccountId',type:'String',req:false,desc:'Account ID for the cloned transaction (if different)'},
+            ]},
+          { method:'POST', path:'/industries/cpq/quotes/actions/get-instant-price', title:'Instant Pricing', version:'57.0',
+            desc:'Get real-time pricing for one or more line items without creating a persistent transaction record.',
+            fields:[
+              {name:'accountId',type:'String',req:true,desc:'Salesforce ID of the account context. Use {{defaultAccountId}}.'},
+              {name:'lineItems',type:'Array',req:true,desc:'Line items to price: productId, quantity'},
+            ]},
+          { method:'POST', path:'/commerce/sales-transactions/actions/preview-approval', title:'Preview Approval', version:'63.0',
+            desc:'Evaluate whether a sales transaction would trigger approval workflows without actually submitting for approval.',
+            fields:[{name:'transactionId',type:'String',req:true,desc:'Salesforce ID of the transaction to preview approval for'}]},
+          { method:'POST', path:'/commerce/sales-transactions/actions/get-eligible-promotions', title:'Get Eligible Promotions', version:'66.0',
+            desc:'Retrieve all promotions that can be applied to an existing sales transaction. New in Spring \'26 (v66.0).',
+            fields:[
+              {name:'transactionId',type:'String',req:true,desc:'Salesforce ID of the transaction to evaluate promotions for'},
+              {name:'effectiveDate',type:'String',req:true,desc:'Date to use for promotion eligibility evaluation (ISO 8601)'},
+            ]},
+          { method:'GET', path:'/commerce/sales-transactions/api-errors', title:'Retrieve API Errors', version:'63.0',
+            desc:'Retrieve logged errors from recent sales transaction API calls. Use for diagnostics when a place, read, or clone operation fails.'},
+          { method:'POST', path:'/commerce/sales-transactions/actions/place-supplemental', title:'Place Supplemental Transaction', version:'63.0',
+            desc:'Create a supplemental transaction against an existing parent transaction for mid-cycle amendments and modifications.',
+            fields:[
+              {name:'parentTransactionId',type:'String',req:true,desc:'Salesforce ID of the parent transaction'},
+              {name:'transactionType',type:'String',req:true,desc:'"AMENDMENT", "CANCELLATION", or "RENEWAL"'},
+              {name:'lineItems',type:'Array',req:true,desc:'Line items: productId, quantity, changeType (ADD/REMOVE/UPDATE)'},
+            ]},
+        ]
+      },
+      {
+        id: 'txn-asset', title: 'Asset Lifecycle APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/revenue-management/assets/actions/amend', title:'Asset Amendment', version:'57.0',
+            desc:'Initiate an amendment to an existing asset — changing quantity, upgrading a product, or modifying contract terms mid-cycle.',
+            fields:[
+              {name:'assetId',type:'String',req:true,desc:'Salesforce ID of the asset to amend. Use {{assetId}}.'},
+              {name:'effectiveDate',type:'String',req:true,desc:'Date the amendment takes effect (ISO 8601)'},
+              {name:'changes',type:'Array',req:true,desc:'List of field changes: fieldName, newValue'},
+            ]},
+          { method:'POST', path:'/connect/revenue-management/assets/actions/cancel', title:'Asset Cancellation', version:'57.0',
+            desc:'Initiate a cancellation of an existing asset. Creates a cancellation transaction that terminates the asset.',
+            fields:[
+              {name:'assetId',type:'String',req:true,desc:'Salesforce ID of the asset to cancel. Use {{assetId}}.'},
+              {name:'cancellationDate',type:'String',req:true,desc:'Effective date of the cancellation (ISO 8601)'},
+              {name:'reason',type:'String',req:false,desc:'"CUSTOMER_REQUEST", "NON_PAYMENT"'},
+            ]},
+          { method:'POST', path:'/connect/revenue-management/assets/actions/renew', title:'Asset Renewal', version:'57.0',
+            desc:'Initiate a renewal of an existing asset before it expires. Creates a renewal transaction extending the asset\'s term.',
+            fields:[
+              {name:'assetId',type:'String',req:true,desc:'Salesforce ID of the asset to renew. Use {{assetId}}.'},
+              {name:'renewalDate',type:'String',req:true,desc:'Start date for the renewed term (ISO 8601)'},
+              {name:'renewalTerm',type:'Integer',req:true,desc:'Duration of the new term in months'},
+            ]},
+        ]
+      },
+      {
+        id: 'txn-ramp', title: 'Ramp Deal APIs',
+        endpoints: [
+          { method:'POST', path:'/commerce/sales-transactions/ramp-deals', title:'Create Ramp Deal', version:'63.0',
+            desc:'Create a new ramp deal with multiple commitment segments for structured, multi-period pricing commitments.',
+            fields:[
+              {name:'name',type:'String',req:true,desc:'Display name for the ramp deal'},
+              {name:'accountId',type:'String',req:true,desc:'Salesforce ID of the account. Use {{defaultAccountId}}.'},
+              {name:'startDate',type:'String',req:true,desc:'Overall ramp deal start date (ISO 8601)'},
+              {name:'endDate',type:'String',req:true,desc:'Overall ramp deal end date (ISO 8601)'},
+              {name:'rampSegments',type:'Array',req:true,desc:'Commitment segments: segment, startDate, endDate, commitment'},
+            ]},
+          { method:'POST', path:'/commerce/sales-transactions/ramp-deals/actions/update', title:'Update Ramp Deal', version:'63.0',
+            desc:'Update the commitment values for one or more segments in an existing ramp deal.',
+            fields:[
+              {name:'rampDealId',type:'String',req:true,desc:'Salesforce ID of the ramp deal to update'},
+              {name:'rampSegments',type:'Array',req:true,desc:'Segments to update: segment number and commitment'},
+            ]},
+          { method:'POST', path:'/commerce/sales-transactions/ramp-deals/actions/delete', title:'Delete Ramp Deal', version:'63.0',
+            desc:'Permanently delete a ramp deal and all its segments. Cannot be undone.',
+            fields:[{name:'rampDealId',type:'String',req:true,desc:'Salesforce ID of the ramp deal to delete'}]},
+          { method:'GET', path:'/commerce/sales-transactions/ramp-deals', title:'View Ramp Deals', version:'63.0',
+            desc:'Retrieve all ramp deals for the org. Returns ramp deal records with all segment details, commitment values, and status.'},
+        ]
+      },
+      {
+        id: 'txn-deprecated', title: 'Deprecated APIs (v63.0+)',
+        endpoints: [
+          { method:'POST', path:'/commerce/sales-orders/actions/place', title:'Place Order [DEPRECATED]', version:'DEPRECATED',
+            desc:'Deprecated in v63.0. Place a sales order. Use /commerce/sales-transactions/actions/place instead.'},
+          { method:'POST', path:'/commerce/quotes/actions/place', title:'Place Quote [DEPRECATED]', version:'DEPRECATED',
+            desc:'Deprecated in v63.0. Place a quote. Use /commerce/sales-transactions/actions/place instead.'},
+        ]
+      },
+    ]
+  },
+
+  usage: {
+    title: 'Usage Management',
+    subtitle: 'Metered usage visibility across assets, orders, and quotes (6 endpoints)',
+    sections: [
+      {
+        id: 'usage-detail', title: 'Usage Detail APIs',
+        endpoints: [
+          { method:'GET', path:'/asset-management/assets/{assetId}/usage-details', title:'Asset Usage Details', version:'59.0',
+            desc:'Retrieve usage consumption details for a specific asset. Returns metered usage records including dimensions, measurement periods, and consumption amounts.',
+            params:[{name:'assetId',desc:'Salesforce ID of the asset. Use {{assetId}}.'}]},
+          { method:'GET', path:'/commerce/sales-orders/line-items/{orderItemId}/usage-details', title:'Order Item Usage Details', version:'59.0',
+            desc:'Retrieve usage details for a specific order line item.',
+            params:[{name:'orderItemId',desc:'Salesforce ID of the order line item (OrderItem)'}]},
+          { method:'GET', path:'/commerce/quotes/line-items/{quoteLineItemId}/usage-details', title:'Quote Line Item Usage Details', version:'59.0',
+            desc:'Retrieve usage details for a specific quote line item.',
+            params:[{name:'quoteLineItemId',desc:'Salesforce ID of the quote line item (QuoteLineItem)'}]},
+          { method:'GET', path:'/revenue/usage-management/binding-objects/{bindingObjectId}/actions/usage-details', title:'Binding Object Usage Details', version:'61.0',
+            desc:'Retrieve usage details for a specific binding object — the anchor point for usage attribution in complex multi-product accounts.',
+            params:[{name:'bindingObjectId',desc:'Salesforce ID of the binding object. Use {{bindingObjectId}}.'}]},
+        ]
+      },
+      {
+        id: 'usage-trace', title: 'Consumption Traceability APIs (v66.0)',
+        endpoints: [
+          { method:'POST', path:'/revenue/usage-management/consumption/actions/trace', title:'Consumption Traceabilities', version:'66.0',
+            desc:'Trace the full consumption lineage for a binding object over a specified date range. New in Spring \'26 (v66.0). Returns a detailed audit trail showing how usage events were ingested, attributed, and accumulated.',
+            fields:[
+              {name:'bindingObjectId',type:'String',req:true,desc:'Salesforce ID of the binding object to trace. Use {{bindingObjectId}}.'},
+              {name:'dateRange.startDate',type:'String',req:true,desc:'Start date in ISO 8601 format'},
+              {name:'dateRange.endDate',type:'String',req:true,desc:'End date in ISO 8601 format'},
+            ]},
+        ]
+      },
+      {
+        id: 'usage-validate', title: 'Usage Product Validation APIs (v66.0)',
+        endpoints: [
+          { method:'POST', path:'/revenue/usage-management/usage-products/actions/validate', title:'Usage Product Validation', version:'66.0',
+            desc:'Validate that one or more products are correctly configured for usage-based billing. New in Spring \'26 (v66.0).',
+            fields:[
+              {name:'productIds',type:'Array of String',req:true,desc:'Salesforce IDs of products to validate'},
+              {name:'usageAttributes.dimension',type:'String',req:true,desc:'The usage dimension (e.g., "GB", "UNIT", "MINUTES")'},
+              {name:'usageAttributes.metric',type:'String',req:true,desc:'The usage metric type (e.g., "DATA_CONSUMED", "API_CALLS")'},
+            ]},
+        ]
+      },
+    ]
+  },
+
+  billing: {
+    title: 'Billing',
+    subtitle: 'Invoices, payments, credit memos, billing schedules, and tax (30 endpoints)',
+    sections: [
+      {
+        id: 'bill-credits', title: 'Credits (4 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/commerce/invoicing/credit-memos/{creditMemoId}/actions/apply', title:'Apply Credit Memo', version:'60.0+',
+            desc:'Adjust or correct already issued invoices by applying an existing credit memo to an invoice.',
+            params:[{name:'creditMemoId',desc:'Salesforce ID of the credit memo'}]},
+          { method:'POST', path:'/commerce/invoicing/credit-memos/actions/generate', title:'Generate Credit Memo', version:'60.0+',
+            desc:'Create a credit memo without applying it to an invoice. You can credit the invoice at a later date.'},
+          { method:'POST', path:'/commerce/invoicing/invoices/{invoiceId}/actions/void', title:'Void Invoice', version:'60.0+',
+            desc:'Void a posted invoice to rebill the customer, if necessary.',
+            params:[{name:'invoiceId',desc:'Salesforce ID of the invoice'}]},
+          { method:'POST', path:'/commerce/invoicing/credit/collection/actions/post', title:'Post Credit Memo', version:'60.0+',
+            desc:'Post a draft credit memo to a credit memo record for review and approval.'},
+        ]
+      },
+      {
+        id: 'bill-schedules', title: 'Billing Schedules (3 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/commerce/invoicing/billing-schedules/actions/create', title:'Create Billing Schedules', version:'60.0+',
+            desc:'Generate billing schedules for orders by using context service.',
+            fields:[
+              {name:'billingScheduleGroupId',type:'String',req:false,desc:'ID of the billing schedule group'},
+              {name:'accountId',type:'String',req:false,desc:'ID of the account'},
+            ]},
+          { method:'POST', path:'/commerce/invoicing/actions/suspend-billing', title:'Suspend Billing', version:'60.0+',
+            desc:'Suspend billing for billing schedule groups or an account for a predefined period.',
+            fields:[
+              {name:'billingScheduleGroupId',type:'String',req:false,desc:'ID of the billing schedule group'},
+              {name:'accountId',type:'String',req:false,desc:'ID of the account'},
+              {name:'suspensionReason',type:'String',req:false,desc:'Reason for suspension'},
+              {name:'suspensionDate',type:'String',req:false,desc:'Date to begin suspension'},
+            ]},
+          { method:'POST', path:'/commerce/invoicing/actions/resume-billing', title:'Resume Billing', version:'60.0+',
+            desc:'Resume billing for billing schedule groups or an account that\'s currently on hold.',
+            fields:[
+              {name:'billingScheduleGroupId',type:'String',req:false,desc:'ID of the billing schedule group'},
+              {name:'resumptionDate',type:'String',req:false,desc:'Date to resume billing'},
+            ]},
+        ]
+      },
+      {
+        id: 'bill-invoices', title: 'Invoices (8 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/post', title:'Post Invoices', version:'60.0+',
+            desc:'Update the status of the invoice from Draft to Posted.',
+            fields:[{name:'invoiceId',type:'String',req:false,desc:'ID of the invoice (URI parameter)'}]},
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/preview', title:'Preview Invoices', version:'60.0+',
+            desc:'Generate preview invoices including estimated tax amounts for the next two billing periods.'},
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/ingest', title:'Ingest Invoice', version:'60.0+',
+            desc:'Ingest or generate an invoice from internal or external billing transaction data.'},
+          { method:'POST', path:'/commerce/invoicing/invoices/actions/write-off', title:'Write Off Invoice', version:'60.0+',
+            desc:'Create credit memos with the total charge amount on the invoice as the write-off amount and close the invoice.'},
+          { method:'POST', path:'/commerce/invoicing/invoice-batch-runs/actions/send-email', title:'Send Invoice Emails', version:'60.0+',
+            desc:'Send emails for the posted invoices of a specified invoice batch run ID.',
+            fields:[{name:'invoiceBatchRunId',type:'String',req:true,desc:'ID of the invoice batch run'}]},
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/generate', title:'Generate Invoice', version:'60.0+',
+            desc:'Create an invoice for an account, order, or a list of billing schedules.',
+            fields:[
+              {name:'accountId',type:'String',req:false,desc:'ID of the account'},
+              {name:'orderId',type:'String',req:false,desc:'ID of the order'},
+              {name:'billingScheduleIds',type:'Array',req:false,desc:'List of billing schedule IDs'},
+            ]},
+          { method:'POST', path:'/revenue/billing/transactions/actions/apply', title:'Apply Billing Transactions', version:'60.0+',
+            desc:'Apply payments and credits to an account\'s invoices based on rules defined on the Billing Settings page.',
+            fields:[{name:'billingTransactionId',type:'String',req:true,desc:'ID of the billing transaction'}]},
+          { method:'POST', path:'/revenue/billing/document/actions/generate', title:'Generate Billing Document', version:'60.0+',
+            desc:'Generate an invoice document for a record, and update any junction object record.'},
+        ]
+      },
+      {
+        id: 'bill-scheduler', title: 'Invoice Scheduler (1 Endpoint)',
+        endpoints: [
+          { method:'POST', path:'/commerce/invoicing/invoice-schedulers', title:'Create Invoice Scheduler', version:'60.0+',
+            desc:'Create or update an invoice scheduler to automatically generate invoices.',
+            fields:[
+              {name:'schedulerName',type:'String',req:true,desc:'Name of the invoice scheduler'},
+              {name:'status',type:'String',req:true,desc:'Draft or Active'},
+              {name:'invoiceStatus',type:'String',req:false,desc:'Posted or Draft'},
+              {name:'frequencyCadenceOptions',type:'Object',req:false,desc:'Frequency cadence configuration'},
+              {name:'filterCriteria',type:'Object',req:false,desc:'Filter criteria for the scheduler'},
+            ]},
+        ]
+      },
+      {
+        id: 'bill-sequencing', title: 'Invoice Sequencing (4 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/connect/sequences/policy', title:'Create Sequence Policy', version:'60.0+',
+            desc:'Create a sequence policy to configure a unique, sequential number for posted invoices or credit memos.',
+            fields:[
+              {name:'policyName',type:'String',req:true,desc:'Name of the sequence policy'},
+              {name:'patternPrefix',type:'String',req:false,desc:'Prefix pattern for sequence numbers'},
+              {name:'startNumber',type:'Integer',req:false,desc:'Starting sequence number'},
+              {name:'objectName',type:'String',req:false,desc:'Invoice or CreditMemo'},
+            ]},
+          { method:'PATCH', path:'/connect/sequences/policy/{sequencePolicyId}', title:'Update Sequence Policy', version:'60.0+',
+            desc:'Update the settings of a sequence policy.',
+            params:[{name:'sequencePolicyId',desc:'ID of the sequence policy to update'}]},
+          { method:'POST', path:'/connect/sequences/actions/assign', title:'Assign Sequence', version:'60.0+',
+            desc:'Assign sequence pattern values to objects based on the configured sequence policy.'},
+          { method:'POST', path:'/connect/sequences/gap-reconciliation', title:'Sequence Gap Reconciliation', version:'60.0+',
+            desc:'Restore a missing sequence value identified in gapless-enabled sequences.',
+            fields:[{name:'sequenceNumber',type:'Integer',req:true,desc:'The missing sequence number to restore'}]},
+        ]
+      },
+      {
+        id: 'bill-statement', title: 'Account Statement (1 Endpoint)',
+        endpoints: [
+          { method:'POST', path:'/revenue/billing/accounts/{accountId}/statement', title:'Generate Account Statement', version:'60.0+',
+            desc:'Generate comprehensive financial statements with transaction history and balance information.',
+            params:[{name:'accountId',desc:'Salesforce ID of the account'}],
+            fields:[
+              {name:'statementDate',type:'String',req:false,desc:'As-of date for the statement'},
+              {name:'startDate',type:'String',req:false,desc:'Start of the statement period'},
+              {name:'endDate',type:'String',req:false,desc:'End of the statement period'},
+            ]},
+        ]
+      },
+      {
+        id: 'bill-payments', title: 'Payments (2 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/commerce/billing/payments/{paymentId}/actions/apply', title:'Apply Payment', version:'60.0+',
+            desc:'Allocate the balance of a payment to reduce the balance of an invoice.',
+            params:[{name:'paymentId',desc:'ID of the payment'}],
+            fields:[
+              {name:'invoiceId',type:'String',req:true,desc:'ID of the invoice to apply payment to'},
+              {name:'paymentAmount',type:'Number',req:false,desc:'Amount to apply'},
+            ]},
+          { method:'POST', path:'/commerce/billing/refunds/{refundId}/actions/apply', title:'Apply Refund', version:'60.0+',
+            desc:'Make a refund transaction against a payment.',
+            params:[{name:'refundId',desc:'ID of the refund'}],
+            fields:[
+              {name:'refundAmount',type:'Number',req:false,desc:'Amount to refund'},
+              {name:'reason',type:'String',req:false,desc:'Reason for the refund'},
+            ]},
+        ]
+      },
+      {
+        id: 'bill-tax', title: 'Tax Calculation (2 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/commerce/taxes/actions/calculate', title:'Calculate Tax', version:'60.0+',
+            desc:'Calculate tax for a transaction.',
+            fields:[
+              {name:'transactionId',type:'String',req:true,desc:'ID of the transaction'},
+              {name:'taxDate',type:'String',req:false,desc:'Date for tax calculation'},
+              {name:'jurisdictionCode',type:'String',req:false,desc:'Tax jurisdiction code'},
+            ]},
+          { method:'POST', path:'/commerce/invoicing/invoices/collection/actions/calculate-estimated-tax', title:'Calculate Estimated Tax', version:'60.0+',
+            desc:'Calculate estimated tax for invoices with lines that have TaxProcessingStatus as Pending or Estimated.',
+            fields:[{name:'invoiceLineItems',type:'Array',req:true,desc:'Invoice line items to calculate tax for'}]},
+        ]
+      },
+      {
+        id: 'bill-commerce-payments', title: 'Salesforce Commerce Payments (6 Endpoints)',
+        endpoints: [
+          { method:'POST', path:'/commerce/payments/payment-methods', title:'Tokenize Payment Method', version:'60.0+',
+            desc:'Tokenize a payment method.',
+            fields:[{name:'paymentMethodDetails',type:'Object',req:true,desc:'Payment method details (cardDetails, gatewayId)'}]},
+          { method:'POST', path:'/commerce/payments/sales', title:'Payment Sale', version:'60.0+',
+            desc:'Make a payment sale.',
+            fields:[
+              {name:'amount',type:'Number',req:true,desc:'Payment amount'},
+              {name:'currency',type:'String',req:true,desc:'ISO 4217 currency code'},
+              {name:'gatewayId',type:'String',req:true,desc:'ID of the payment gateway'},
+            ]},
+          { method:'POST', path:'/commerce/payments/payments/{paymentId}/refunds', title:'Create Refund', version:'60.0+',
+            desc:'Create a refund for a payment.',
+            params:[{name:'paymentId',desc:'ID of the payment'}]},
+          { method:'POST', path:'/commerce/payments/authorizations', title:'Authorize Payment', version:'60.0+',
+            desc:'Authorize a payment.',
+            fields:[
+              {name:'amount',type:'Number',req:true,desc:'Amount to authorize'},
+              {name:'currency',type:'String',req:true,desc:'ISO 4217 currency code'},
+            ]},
+          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/reversals', title:'Reverse Authorization', version:'60.0+',
+            desc:'Reverse an authorized payment.',
+            params:[{name:'authorizationId',desc:'ID of the authorization'}]},
+          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/captures', title:'Capture Authorization', version:'60.0+',
+            desc:'Capture an authorized payment.',
+            params:[{name:'authorizationId',desc:'ID of the authorization'}]},
+        ]
+      },
+    ]
+  },
+
+  context: {
+    title: 'Context Service',
+    subtitle: 'Context definitions, nodes, and mappings for pricing and entitlements (5 endpoints)',
+    sections: [
+      {
+        id: 'ctx-def', title: 'Context Definition APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/context-definitions', title:'Create Context Definition', version:'59.0',
+            desc:'Create a new context definition in the org. A context definition specifies the schema of the context input record — the fields and data types populated at pricing time.',
+            fields:[
+              {name:'name',type:'String',req:true,desc:'API name for the context definition'},
+              {name:'description',type:'String',req:false,desc:'Human-readable description'},
+              {name:'contextType',type:'String',req:true,desc:'"PRICING", "CONFIGURATION", or "QUALIFICATION"'},
+            ]},
+          { method:'GET', path:'/connect/context-definitions', title:'List Context Definitions', version:'59.0',
+            desc:'Retrieve all context definitions configured in the org. Returns definition names, IDs, types, and associated node and mapping counts.'},
+          { method:'GET', path:'/connect/context-definitions/{contextDefinitionId}', title:'Get Context Definition', version:'59.0',
+            desc:'Retrieve the full details of a specific context definition, including its nodes, attributes, and all associated mappings.',
+            params:[{name:'contextDefinitionId',desc:'Salesforce ID of the context definition. Use {{contextDefinitionId}} from the Setup Runner.'}]},
+        ]
+      },
+      {
+        id: 'ctx-nodes', title: 'Context Node APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context', title:'Create Context Nodes', version:'59.0',
+            desc:'Add one or more nodes to a context definition. Nodes represent logical groupings of attributes within the context schema.',
+            params:[{name:'contextDefinitionId',desc:'Salesforce ID of the context definition'}],
+            fields:[{name:'nodes',type:'Array',req:true,desc:'List of node objects: name, value, attributes (optional)'}]},
+        ]
+      },
+      {
+        id: 'ctx-mapping', title: 'Context Mapping APIs',
+        endpoints: [
+          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context', title:'Create Context Mappings', version:'59.0',
+            desc:'Define field-to-context mappings for a context definition. Each mapping specifies which Salesforce object and field provides a value for a given context attribute.',
+            params:[{name:'contextDefinitionId',desc:'Salesforce ID of the context definition'}],
+            fields:[{name:'mappings',type:'Array',req:true,desc:'List of mapping objects: objectName, fieldName, contextAttribute'}]},
+        ]
+      },
+    ]
+  },
+};
+
+// ─── BUILD SEARCH INDEX ───────────────────────────────────────────────────────
+
+const searchIndex = [];
+Object.entries(DOMAINS).forEach(([domainId, domain]) => {
+  domain.sections.forEach(section => {
+    section.endpoints.forEach(ep => {
+      searchIndex.push({
+        domainId,
+        domainLabel: domain.title,
+        sectionId: section.id,
+        sectionTitle: section.title,
+        title: ep.title,
+        method: ep.method,
+        path: ep.path,
+        desc: ep.desc || '',
+        id: `ep-${section.id}-${ep.path.replace(/[^a-z0-9]/gi,'-')}`,
+      });
+    });
+  });
+});
+
+// ─── RENDER HELPERS ──────────────────────────────────────────────────────────
+
+function badge(method) {
+  const m = method === 'DEPRECATED' ? 'DEPRECATED' : method;
+  return `<span class="badge badge-${m}">${method}</span>`;
+}
+
+function renderTable(rows, cols) {
+  if (!rows || !rows.length) return '';
+  const headers = cols.map(c => `<th>${c.label}</th>`).join('');
+  const body = rows.map(r => {
+    const cells = cols.map(c => {
+      let v = r[c.key] || '';
+      if (c.key === 'req') v = r.req ? '<span style="color:var(--delete)">Required</span>' : '<span style="color:var(--faint)">Optional</span>';
+      if (c.key === 'name') v = `<code>${v}</code>`;
+      return `<td>${v}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return `<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function renderEndpoint(ep, sectionId) {
+  const epId = `ep-${sectionId}-${ep.path.replace(/[^a-z0-9]/gi,'-')}`;
+  const parts = [];
+
+  if (ep.desc) parts.push(`<p class="desc">${ep.desc}</p>`);
+  if (ep.note) parts.push(`<div class="info-box">${ep.note}</div>`);
+
+  if (ep.params && ep.params.length) {
+    parts.push('<h4 class="sub-heading">Path Parameters</h4>');
+    parts.push(renderTable(ep.params, [
+      {key:'name',label:'Parameter'},{key:'desc',label:'Description'}
+    ]));
+  }
+  if (ep.query && ep.query.length) {
+    parts.push('<h4 class="sub-heading">Query Parameters</h4>');
+    parts.push(renderTable(ep.query, [
+      {key:'name',label:'Parameter'},{key:'desc',label:'Description'}
+    ]));
+  }
+  if (ep.fields && ep.fields.length) {
+    parts.push('<h4 class="sub-heading">Request Body Fields</h4>');
+    parts.push(renderTable(ep.fields, [
+      {key:'name',label:'Field'},{key:'type',label:'Type'},{key:'req',label:'Required'},{key:'desc',label:'Description'}
+    ]));
+  }
+
+  const body = parts.length
+    ? `<div class="endpoint-body" id="body-${epId}">${parts.join('')}</div>`
+    : '';
+
+  return `
+  <div class="endpoint-card" id="${epId}">
+    <div class="endpoint-header" onclick="toggleEp('body-${epId}',this)">
+      ${badge(ep.method)}
+      <span class="endpoint-path">${ep.path}</span>
+      <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">${ep.title}</span>
+      <span class="version-tag">${ep.version}</span>
+      <span class="endpoint-toggle">${body ? '&#9662;' : ''}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function renderSection(section) {
+  const eps = section.endpoints.map(ep => renderEndpoint(ep, section.id)).join('');
+  return `
+  <div id="${section.id}">
+    <h2 class="section-heading">${section.title}</h2>
+    ${eps}
+  </div>`;
+}
+
+function renderDomainPage(domainId, domain) {
+  const sections = domain.sections.map(s => renderSection(s)).join('');
+  return `
+  <div class="tab-content" id="tab-${domainId}">
+    <h1 class="page-title">${domain.title}</h1>
+    <p class="page-subtitle">${domain.subtitle}</p>
+    ${sections}
+  </div>`;
+}
+
+// ─── OVERVIEW PAGE ────────────────────────────────────────────────────────────
+
+function renderOverview() {
+  return `
+  <div class="tab-content" id="tab-overview">
+    <h1 class="page-title">Revenue Cloud API Reference</h1>
+    <p class="page-subtitle">Agentforce Revenue Management APIs v66.0 — Spring '26 (Release 260)</p>
+
+    <div class="info-box">
+      <strong>Primary collection:</strong> Agentforce Revenue Management APIs (v66.0) — 204 endpoints across 13 API domains. Includes Setup Runner that auto-populates 35+ environment variables from your org.
+    </div>
+
+    <h2 class="section-heading">Collections</h2>
+    <div class="overview-grid">
+      <div class="ov-card">
+        <h3>Agentforce Revenue Management APIs (v66.0)</h3>
+        <ul>
+          <li>204 endpoints across 13 API domains</li>
+          <li>Pre-configured runners: Quote-to-Cash, eCommerce, Billing</li>
+          <li>Setup Runner auto-populates all environment variables</li>
+          <li>OAuth 2.0 client credentials with auto-refresh</li>
+        </ul>
+      </div>
+      <div class="ov-card">
+        <h3>RLM Collection (108 endpoints)</h3>
+        <ul>
+          <li>Core CPQ workflows</li>
+          <li>Product Catalog Management</li>
+          <li>Product Discovery</li>
+          <li>Asset Lifecycle</li>
+          <li>Context Service</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="section-heading">Setup</h2>
+    <div class="workflow-step"><div class="step-num">1</div><div class="step-text">Import <code class="inline">Agentforce Revenue Management APIs (v66.0).postman_collection.json</code> and <code class="inline">Agentforce Revenue Management v66.0.postman_environment.json</code> into Postman</div></div>
+    <div class="workflow-step"><div class="step-num">2</div><div class="step-text">Set <code class="inline">clientId</code> and <code class="inline">clientSecret</code> for your Connected App (client_credentials flow)</div></div>
+    <div class="workflow-step"><div class="step-num">3</div><div class="step-text">Set <code class="inline">url</code> (defaults to <code class="inline">https://login.salesforce.com</code>)</div></div>
+    <div class="workflow-step"><div class="step-num">4</div><div class="step-text">Run the <strong>Setup Runner</strong> folder — auto-discovers products, catalogs, pricing procedures, and context definitions, populating all 35 environment variable entries</div></div>
+    <div class="workflow-step"><div class="step-num">5</div><div class="step-text">Start making API calls</div></div>
+
+    <h2 class="section-heading">Authentication</h2>
+    <p class="desc">All requests use OAuth 2.0 client credentials flow. The collection-level pre-request script handles token acquisition and automatic refresh — no per-request configuration needed.</p>
+    <pre><code>{{_endpoint}}/services/data/v{{version}}/[service]/[resource]</code></pre>
+
+    <h2 class="section-heading">Required Environment Variables</h2>
+    <table>
+      <thead><tr><th>Variable</th><th>Description</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>url</code></td><td>Salesforce login URL</td><td>https://login.salesforce.com</td></tr>
+        <tr><td><code>clientId</code></td><td>Connected App consumer key</td><td>(from your org)</td></tr>
+        <tr><td><code>clientSecret</code></td><td>Connected App consumer secret</td><td>(from your org)</td></tr>
+        <tr><td><code>_endpoint</code></td><td>Salesforce org instance URL</td><td>https://your-org.my.salesforce.com</td></tr>
+        <tr><td><code>version</code></td><td>API version</td><td>66.0</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-heading">Auto-populated by Setup Runner</h2>
+    <table>
+      <thead><tr><th>Category</th><th>Variables</th></tr></thead>
+      <tbody>
+        <tr><td>Account &amp; Contact</td><td><code>defaultAccountId</code>, <code>defaultAccountName</code>, <code>contactId</code></td></tr>
+        <tr><td>Catalog</td><td><code>defaultCatalogId</code>, <code>defaultCatalogName</code></td></tr>
+        <tr><td>Category</td><td><code>defaultCategoryId</code>, <code>defaultCategoryName</code></td></tr>
+        <tr><td>Products</td><td><code>defaultOneTimeProductId</code>, <code>defaultEvergreenMonthlyProductId</code>, <code>defaultEvergreenAnnualProductId</code>, <code>defaultTermMonthlyProductId</code>, <code>defaultTermDefinedAnnualProductId</code></td></tr>
+        <tr><td>Product Selling Models</td><td><code>defaultOneTimePSMId</code>, <code>defaultEvergreenMonthlyPSMId</code>, <code>defaultEvergreenAnnualPSMId</code>, <code>defaultTermMonthlyPSMId</code>, <code>defaultTermDefinedAnnualPSMId</code></td></tr>
+        <tr><td>Pricebook</td><td><code>standardPricebookId</code></td></tr>
+        <tr><td>Context</td><td><code>contextDefinitionId</code>, <code>contextMappingId</code>, <code>pricingProcedureId</code>, <code>customContextDefinitionId</code>, <code>cartContextDefinitionId</code>, <code>pdContextDefinitionId</code></td></tr>
+        <tr><td>Transactions</td><td><code>quoteId</code>, <code>orderId</code>, <code>assetId</code></td></tr>
+        <tr><td>Billing</td><td><code>invoiceId</code>, <code>paymentId</code>, <code>creditMemoId</code>, <code>billingScheduleId</code></td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-heading">API Path Patterns</h2>
+    <table>
+      <thead><tr><th>Service Path</th><th>Domain</th></tr></thead>
+      <tbody>
+        <tr><td><code>/connect/pcm/</code></td><td>Product Catalog Management</td></tr>
+        <tr><td><code>/connect/cpq/</code></td><td>Product Discovery and Configurator</td></tr>
+        <tr><td><code>/connect/core-pricing/</code></td><td>Pricing Engine</td></tr>
+        <tr><td><code>/connect/core-rating/</code></td><td>Rate Management</td></tr>
+        <tr><td><code>/connect/revenue-management/</code></td><td>Asset Lifecycle</td></tr>
+        <tr><td><code>/connect/context-definitions/</code></td><td>Context Service</td></tr>
+        <tr><td><code>/commerce/sales-transactions/</code></td><td>Transaction Management (v63+)</td></tr>
+        <tr><td><code>/industries/cpq/</code></td><td>Instant Pricing</td></tr>
+        <tr><td><code>/asset-management/</code></td><td>Usage Management (assets)</td></tr>
+        <tr><td><code>/revenue/usage-management/</code></td><td>Usage Management (consumption, v66)</td></tr>
+        <tr><td><code>/commerce/invoicing/</code></td><td>Billing — Invoices &amp; Credit Memos</td></tr>
+        <tr><td><code>/commerce/billing/</code></td><td>Billing — Payments &amp; Refunds</td></tr>
+        <tr><td><code>/commerce/taxes/</code></td><td>Tax Calculation</td></tr>
+        <tr><td><code>/connect/sequences/</code></td><td>Invoice Sequencing</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-heading">Common Workflows</h2>
+    <div class="overview-grid">
+      <div class="ov-card">
+        <h3>Discover → Price → Order</h3>
+        <ul>
+          <li>1. Run Setup Runner</li>
+          <li>2. Product Discovery &gt; List Products</li>
+          <li>3. Pricing &gt; Instant Pricing</li>
+          <li>4. Transaction Management &gt; Place Sales Transaction</li>
+          <li>5. Asset Lifecycle &gt; Amendment / Renewal (as needed)</li>
+        </ul>
+      </div>
+      <div class="ov-card">
+        <h3>Full Quote-to-Cash</h3>
+        <ul>
+          <li>1. Run Setup Runner</li>
+          <li>2. Product Discovery → Guided Selection → Qualification</li>
+          <li>3. Product Configurator → Configure → Add/Update Nodes</li>
+          <li>4. Pricing → Price Context → Review Waterfall</li>
+          <li>5. Transaction Management → Place Sales Transaction</li>
+          <li>6. Billing → Create Invoice → Create Payment</li>
+        </ul>
+      </div>
+      <div class="ov-card">
+        <h3>Asset Lifecycle</h3>
+        <ul>
+          <li>1. Transaction Management → Asset Amendment/Cancellation/Renewal</li>
+          <li>2. Usage Management → Asset Usage Details</li>
+          <li>3. Rate Management → Rating Waterfall (audit pricing)</li>
+          <li>4. Billing → Create Invoice</li>
+        </ul>
+      </div>
+      <div class="ov-card">
+        <h3>Billing End-to-End</h3>
+        <ul>
+          <li>1. Place Sales Transaction (creates order and contract)</li>
+          <li>2. Billing → Create Invoice (from order)</li>
+          <li>3. Billing → Create Payment</li>
+          <li>4. Billing → Apply Payment (allocates to invoice)</li>
+          <li>5. Billing → Finalize Invoice</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="section-heading">Troubleshooting</h2>
+    <div class="warn-box"><strong>401 Unauthorized:</strong> Verify clientId and clientSecret. Confirm url is the correct login endpoint. Check that the Connected App has OAuth scopes api and refresh_token.</div>
+    <div class="warn-box"><strong>Missing Variables (blank {{variable}}):</strong> Run the Setup Runner first. Check the Postman console for test script errors. Ensure the correct environment is selected.</div>
+    <div class="warn-box"><strong>404 Not Found:</strong> Verify _endpoint is set to your org's instance URL (not the login URL). Confirm version is set to 66.0.</div>
+    <div class="warn-box"><strong>400 Bad Request:</strong> Inspect the request body JSON for syntax errors. Verify all required variables are populated. Check the Postman console response tab for the error message.</div>
+  </div>`;
+}
+
+// ─── MASTER REFERENCE PAGE ────────────────────────────────────────────────────
+
+function renderMaster() {
+  return `
+  <div class="tab-content" id="tab-master">
+    <h1 class="page-title">Master Reference</h1>
+    <p class="page-subtitle">RLM v260 Business APIs — Complete reference across all domains (API v66.0)</p>
+
+    <h2 class="section-heading">Rate Management Business APIs</h2>
+    <p class="desc">Pages 627–635 of the RLM Developer Guide</p>
+    <div class="endpoint-card">
+      <div class="endpoint-header" onclick="toggleEp('mr-rate1',this)">
+        ${badge('GET')} <span class="endpoint-path">/services/data/v66.0/connect/core-rating/rate-plan</span>
+        <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">Rate Plan</span>
+        <span class="version-tag">62.0</span>
+        <span class="endpoint-toggle">&#9662;</span>
+      </div>
+      <div class="endpoint-body" id="mr-rate1">
+        <p class="desc">Get a rate plan for a specified set of context input. Use to retrieve rate cards, rate card entries, and related adjustments based on filter criteria for the context input.</p>
+        <div class="warn-box">Requires: Rate Management: Run Time User permission set. Org must have a default usage rating discovery procedure in Revenue Settings.</div>
+        <h4 class="sub-heading">Query Parameters</h4>
+        <table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>contextId</code></td><td>String</td><td><span style="color:var(--delete)">Required</span></td><td>ID of the context to specify as input to the procedure</td></tr>
+          <tr><td><code>procedureApiName</code></td><td>String</td><td><span style="color:var(--delete)">Required</span></td><td>API name of the procedure to be executed</td></tr>
+        </tbody></table>
+        <h4 class="sub-heading">Response</h4>
+        <p class="desc"><strong>Rate Plan Response</strong> — success (Boolean), executionId (String), error (Rating Error Response[])</p>
+        <h4 class="sub-heading">Example URL</h4>
+        <pre><code>https://yourInstance.salesforce.com/services/data/v66.0/connect/core-rating/rate-plan
+?contextId=858a3ad3e5a0e5c319652a6ab92f6fdb2b4fa8be72b390506d014596c6da62c9
+&procedureApiName=SampleProcedure</code></pre>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header" onclick="toggleEp('mr-rate2',this)">
+        ${badge('GET')} <span class="endpoint-path">/services/data/v66.0/connect/core-pricing/waterfall/{lineItemId}/{executionId}</span>
+        <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">Rating Waterfall</span>
+        <span class="version-tag">62.0</span>
+        <span class="endpoint-toggle">&#9662;</span>
+      </div>
+      <div class="endpoint-body" id="mr-rate2">
+        <p class="desc">Get the persisted rating waterfall that stores the process logs. Provides insights into the internal rating process.</p>
+        <h4 class="sub-heading">Path Parameters</h4>
+        <table><thead><tr><th>Parameter</th><th>Description</th><th>Required</th></tr></thead>
+        <tbody>
+          <tr><td><code>lineItemId</code></td><td>Line item ID for which price is being calculated</td><td><span style="color:var(--delete)">Required</span></td></tr>
+          <tr><td><code>executionId</code></td><td>Execution ID of a particular execution of rating procedure</td><td><span style="color:var(--delete)">Required</span></td></tr>
+        </tbody></table>
+        <h4 class="sub-heading">Query Parameters</h4>
+        <table><thead><tr><th>Parameter</th><th>API Version</th><th>Valid Values</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>tagsToFilter</code></td><td>62.0</td><td>Comma-separated tags</td><td>—</td></tr>
+          <tr><td><code>usageType</code></td><td>62.0</td><td>Rating, Pricing</td><td>Pricing</td></tr>
+        </tbody></table>
+        <h4 class="sub-heading">Example URL</h4>
+        <pre><code>https://yourInstance.salesforce.com/services/data/v66.0/connect/core-pricing/waterfall/Gold/2yHdNNEFOZr9jAe4gHS7
+?tagsToFilter=UnitPrice&usageType=Rating</code></pre>
+      </div>
+    </div>
+
+    <h2 class="section-heading">Product Configurator Business APIs</h2>
+    <p class="desc">Pages 646–752 of the RLM Developer Guide</p>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header" onclick="toggleEp('mr-cfg1',this)">
+        ${badge('POST')} <span class="endpoint-path">/services/data/v66.0/connect/cpq/configurator/actions/configure</span>
+        <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">Configuration</span>
+        <span class="version-tag">60.0</span>
+        <span class="endpoint-toggle">&#9662;</span>
+      </div>
+      <div class="endpoint-body" id="mr-cfg1">
+        <p class="desc">Retrieve and update a product's configuration from a configurator. Execute configuration rules and notify users of any violations for changes to product bundle, attributes, or product quantity within a bundle.</p>
+        <h4 class="sub-heading">Request Body Fields</h4>
+        <table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th><th>API Version</th></tr></thead>
+        <tbody>
+          <tr><td><code>transactionId</code></td><td>String</td><td><span style="color:var(--delete)">Required</span></td><td>ID of sales transaction being configured (Quote or Order)</td><td>60.0</td></tr>
+          <tr><td><code>transactionLineId</code></td><td>String</td><td><span style="color:var(--faint)">Optional</span></td><td>ID of top-level line item being configured</td><td>60.0</td></tr>
+          <tr><td><code>correlationId</code></td><td>String</td><td><span style="color:var(--faint)">Optional</span></td><td>ID for traceability of logs</td><td>60.0</td></tr>
+          <tr><td><code>configuratorOptions</code></td><td>ConfiguratorOptionsInput[]</td><td><span style="color:var(--faint)">Optional</span></td><td>executePricing, returnProductCatalogData, etc.</td><td>60.0</td></tr>
+          <tr><td><code>contextResponseType</code></td><td>String</td><td><span style="color:var(--faint)">Optional</span></td><td>Full, Delta, None, or Product</td><td>65.0</td></tr>
+          <tr><td><code>addedNodes</code></td><td>ConfiguratorAddedNodeInput[]</td><td><span style="color:var(--faint)">Optional</span></td><td>List of added context nodes</td><td>60.0</td></tr>
+          <tr><td><code>updatedNodes</code></td><td>ConfiguratorUpdatedNodeInput[]</td><td><span style="color:var(--faint)">Optional</span></td><td>List of updated context nodes</td><td>60.0</td></tr>
+          <tr><td><code>deletedNodes</code></td><td>ConfiguratorDeletedNodeInput[]</td><td><span style="color:var(--faint)">Optional</span></td><td>List of deleted context nodes</td><td>60.0</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header" onclick="toggleEp('mr-cfg2',this)">
+        <span class="badge badge-GET">GET</span><span class="badge badge-POST" style="margin-left:4px">POST</span>
+        <span class="endpoint-path">/services/data/v66.0/connect/cpq/configurator/saved-configuration</span>
+        <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">Saved Configuration — List &amp; Create</span>
+        <span class="version-tag">63.0</span>
+        <span class="endpoint-toggle">&#9662;</span>
+      </div>
+      <div class="endpoint-body" id="mr-cfg2">
+        <p class="desc">Save and reuse a record's configurations, and get a list of the saved configurations for a record.</p>
+        <h4 class="sub-heading">GET — Query Parameters</h4>
+        <table><thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody><tr><td><code>referenceRecordId</code></td><td><span style="color:var(--delete)">Required</span></td><td>ID of record whose saved configurations must be retrieved</td></tr></tbody></table>
+        <h4 class="sub-heading">POST — Request Body Fields</h4>
+        <table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody><tr><td><code>data</code></td><td>String</td><td><span style="color:var(--delete)">Required</span></td><td>Configuration data as JSON string</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header" onclick="toggleEp('mr-cfg3',this)">
+        <span class="badge badge-DELETE">DELETE</span><span class="badge badge-PUT" style="margin-left:4px">PUT</span>
+        <span class="endpoint-path">/services/data/v66.0/connect/cpq/configurator/saved-configuration/{configurationId}</span>
+        <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">Saved Configuration — Update &amp; Delete</span>
+        <span class="version-tag">63.0</span>
+        <span class="endpoint-toggle">&#9662;</span>
+      </div>
+      <div class="endpoint-body" id="mr-cfg3">
+        <p class="desc">Update or delete a record's saved configuration by using the configuration ID.</p>
+        <h4 class="sub-heading">Path Parameters</h4>
+        <table><thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody><tr><td><code>configurationId</code></td><td><span style="color:var(--delete)">Required</span></td><td>ID of saved configuration to update or delete</td></tr></tbody></table>
+        <h4 class="sub-heading">PUT — Request Body</h4>
+        <table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody><tr><td><code>data</code></td><td>String</td><td><span style="color:var(--delete)">Required</span></td><td>Updated configuration data as JSON string</td></tr></tbody></table>
+      </div>
+    </div>
+
+    ${['get-instance','load-instance','save-instance','set-instance','add-nodes','delete-nodes','update-nodes','set-product-quantity'].map((action,i) => {
+      const titles = {
+        'get-instance':'Configuration Get Instance',
+        'load-instance':'Configuration Load Instance',
+        'save-instance':'Configuration Save Instance',
+        'set-instance':'Configuration Set Instance',
+        'add-nodes':'Configurator Add Nodes',
+        'delete-nodes':'Configurator Delete Nodes',
+        'update-nodes':'Configurator Update Nodes',
+        'set-product-quantity':'Product Set Quantity',
+      };
+      const descs = {
+        'get-instance':'Fetch the JSON representation of a product configuration.',
+        'load-instance':'Create a session for the product configuration instance using the transaction ID.',
+        'save-instance':'Save a configuration instance after a successful product configuration.',
+        'set-instance':'Set a product configuration instance. Used when configuration instance is in a different database.',
+        'add-nodes':'Add a node to the context through the runtime system.',
+        'delete-nodes':'Delete nodes from a product configuration.',
+        'update-nodes':'Update nodes in a product configuration.',
+        'set-product-quantity':'Set the quantity of a product through the runtime system.',
+      };
+      return `
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          ${badge('POST')} <span class="endpoint-path">/services/data/v66.0/connect/cpq/configurator/actions/${action}</span>
+          <span class="endpoint-title" style="font-size:12px;color:var(--text);white-space:nowrap;margin-left:8px">${titles[action]}</span>
+          <span class="version-tag">60.0</span>
+        </div>
+        <div style="padding:12px 16px 14px;border-top:1px solid var(--border)">
+          <p class="desc">${descs[action]}</p>
+        </div>
+      </div>`;
+    }).join('')}
+
+    <h2 class="section-heading">Summary — All Documented Business API Endpoints</h2>
+    <p class="desc">Total: 13 REST API endpoints across Rate Management and Product Configurator chapters (RLM Developer Guide v260).</p>
+    <table>
+      <thead><tr><th>#</th><th>Name</th><th>Method(s)</th><th>URI Path</th><th>API Version</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Rate Plan</td><td><span class="badge badge-GET">GET</span></td><td><code>/connect/core-rating/rate-plan</code></td><td>62.0</td></tr>
+        <tr><td>2</td><td>Rating Waterfall</td><td><span class="badge badge-GET">GET</span></td><td><code>/connect/core-pricing/waterfall/{lineItemId}/{executionId}</code></td><td>62.0</td></tr>
+        <tr><td>3</td><td>Configuration</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/configure</code></td><td>60.0</td></tr>
+        <tr><td>4</td><td>Saved Configuration</td><td><span class="badge badge-GET">GET</span> <span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/saved-configuration</code></td><td>63.0</td></tr>
+        <tr><td>5</td><td>Saved Configuration Details</td><td><span class="badge badge-DELETE">DELETE</span> <span class="badge badge-PUT">PUT</span></td><td><code>/connect/cpq/configurator/saved-configuration/{configurationId}</code></td><td>63.0</td></tr>
+        <tr><td>6</td><td>Configuration Get Instance</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/get-instance</code></td><td>60.0</td></tr>
+        <tr><td>7</td><td>Configuration Load Instance</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/load-instance</code></td><td>60.0</td></tr>
+        <tr><td>8</td><td>Configuration Save Instance</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/save-instance</code></td><td>60.0</td></tr>
+        <tr><td>9</td><td>Configuration Set Instance</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/set-instance</code></td><td>60.0</td></tr>
+        <tr><td>10</td><td>Configurator Add Nodes</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/add-nodes</code></td><td>60.0</td></tr>
+        <tr><td>11</td><td>Configurator Delete Nodes</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/delete-nodes</code></td><td>60.0</td></tr>
+        <tr><td>12</td><td>Configurator Update Nodes</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/update-nodes</code></td><td>60.0</td></tr>
+        <tr><td>13</td><td>Product Set Quantity</td><td><span class="badge badge-POST">POST</span></td><td><code>/connect/cpq/configurator/actions/set-product-quantity</code></td><td>60.0</td></tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ─── BUILD SIDEBAR ────────────────────────────────────────────────────────────
+
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  let html = '';
+
+  TABS.forEach(tab => {
+    const domain = DOMAINS[tab.id];
+    if (!domain) {
+      html += `<div class="nav-section">
+        <div class="nav-item tab-item${tab.id === currentTab ? ' active' : ''}" data-tab="${tab.id}" onclick="switchTab('${tab.id}')">${tab.label}</div>
+      </div>`;
+      return;
+    }
+    const collapsed = tab.id !== currentTab ? ' collapsed' : '';
+    const hidden = tab.id !== currentTab ? ' hidden' : '';
+    html += `<div class="nav-section">
+      <div class="nav-domain${collapsed}" data-tab="${tab.id}" onclick="toggleDomain(this,'${tab.id}')">
+        <span>${tab.label}</span><span class="arrow">&#9662;</span>
+      </div>
+      <div class="nav-items${hidden}" id="nav-items-${tab.id}">
+        ${domain.sections.map(s =>
+          `<div class="nav-item" data-section="${s.id}" onclick="switchTab('${tab.id}');setTimeout(()=>scrollTo('${s.id}'),80)">${s.title}</div>`
+        ).join('')}
+      </div>
+    </div>`;
+  });
+
+  sidebar.innerHTML = html;
+}
+
+// ─── BUILD CONTENT ────────────────────────────────────────────────────────────
+
+function buildContent() {
+  const main = document.getElementById('mainContent');
+  let html = renderOverview();
+  Object.entries(DOMAINS).forEach(([id, domain]) => {
+    html += renderDomainPage(id, domain);
+  });
+  html += renderMaster();
+  main.innerHTML = html;
+}
+
+// ─── STATE & NAVIGATION ───────────────────────────────────────────────────────
+
+let currentTab = 'overview';
+
+function switchTab(tabId) {
+  if (currentTab === tabId) return;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item.tab-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('tab-' + tabId);
+  if (el) el.classList.add('active');
+  document.querySelectorAll(`[data-tab="${tabId}"]`).forEach(el => el.classList.add('active'));
+  currentTab = tabId;
+  document.getElementById('mainContent').scrollTop = 0;
+  buildSidebar();
+}
+
+function toggleDomain(el, tabId) {
+  const items = document.getElementById('nav-items-' + tabId);
+  if (el.classList.contains('collapsed')) {
+    el.classList.remove('collapsed');
+    items.classList.remove('hidden');
+    switchTab(tabId);
+  } else {
+    el.classList.add('collapsed');
+    items.classList.add('hidden');
+  }
+}
+
+function scrollTo(sectionId) {
+  const el = document.getElementById(sectionId);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function toggleEp(bodyId, header) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  body.classList.toggle('open');
+  const toggle = header.querySelector('.endpoint-toggle');
+  if (toggle) toggle.innerHTML = body.classList.contains('open') ? '&#9652;' : '&#9662;';
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────────
+
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  if (!q) { searchResults.classList.remove('open'); return; }
+  const hits = searchIndex.filter(item =>
+    item.title.toLowerCase().includes(q) ||
+    item.path.toLowerCase().includes(q) ||
+    item.desc.toLowerCase().includes(q) ||
+    item.method.toLowerCase().includes(q)
+  ).slice(0, 12);
+
+  if (!hits.length) { searchResults.classList.remove('open'); return; }
+  searchResults.innerHTML = hits.map(h => `
+    <div class="sr-item" onclick="goToResult('${h.domainId}','${h.sectionId}','${h.id}')">
+      <div class="sr-domain">${h.domainLabel}</div>
+      <div class="sr-title">${badge(h.method)} ${h.title}</div>
+      <div class="sr-path">${h.path}</div>
+    </div>`).join('');
+  searchResults.classList.add('open');
+});
+
+function goToResult(domainId, sectionId, epId) {
+  searchResults.classList.remove('open');
+  searchInput.value = '';
+  switchTab(domainId);
+  setTimeout(() => {
+    const el = document.getElementById(epId) || document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+      // open the endpoint body
+      const body = el.querySelector('.endpoint-body');
+      if (body && !body.classList.contains('open')) {
+        body.classList.add('open');
+        const toggle = el.querySelector('.endpoint-toggle');
+        if (toggle) toggle.innerHTML = '&#9652;';
+      }
+    }
+  }, 100);
+}
+
+document.addEventListener('click', function(e) {
+  if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+    searchResults.classList.remove('open');
+  }
+});
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', function() {
+  document.body.classList.toggle('light');
+  this.textContent = document.body.classList.contains('light') ? 'Dark Mode' : 'Light Mode';
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+buildContent();
+buildSidebar();
+// activate initial tab
+document.getElementById('tab-overview').classList.add('active');
+</script>
+</body>
+</html>
