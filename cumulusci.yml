@@ -1624,7 +1624,7 @@ tasks:
 
   configure_revenue_settings:
     group: Revenue Lifecycle Management
-    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, and Create Orders from Quote flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
+    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders from Quote flow, and optionally Manage Assets flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
     class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
     options:
       suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
@@ -2788,6 +2788,12 @@ flows:
     steps:
       1:
         task: configure_revenue_settings
+        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
+      2:
+        task: configure_revenue_settings
+        when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
+        options:
+          manage_assets_flow: RLM_ARC_Assets
 
   prepare_pricing_discovery:
     group: Revenue Lifecycle Management
