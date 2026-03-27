@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-26T23:25:18.751743Z",
+  "assembled_at": "2026-03-27T17:50:00.302824Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -26,7 +26,12 @@
       "name": "RLM_Account_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Account_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/quantumbit/RLM_Account_Record_Page.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "utils",
+          "patch_type": "insert_action"
+        }
+      ]
     },
     {
       "type": "flexipage",
