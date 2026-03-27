@@ -7,7 +7,7 @@
     <isActive>true</isActive>
     <isSectionProcessed>false</isSectionProcessed>
     <mapperOmniDataTransformName>RCQuoteProposalTransform</mapperOmniDataTransformName>
-    <name>Sales_Proposal_Document</name>
+    <name>RLM_Sales_Proposal_Document</name>
     <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
     <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
     <status>Active</status>
@@ -15,7 +15,7 @@
     <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
     <tokenMappingType>JSON</tokenMappingType>
     <type>MicrosoftWord</type>
-    <uniqueName>Sales_Proposal_Document_1</uniqueName>
+    <uniqueName>RLM_Sales_Proposal_Document_1</uniqueName>
     <usageType>Revenue_Lifecycle_Management</usageType>
     <versionNumber>1</versionNumber>
 </DocumentTemplate>
