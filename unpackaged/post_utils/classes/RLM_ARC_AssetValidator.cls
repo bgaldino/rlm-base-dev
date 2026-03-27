@@ -31,10 +31,12 @@ public without sharing class RLM_ARC_AssetValidator {
 
         // 3. Query once for each validation dimension
         Set<Id> rampedAssetIds = getRampedAssetIds(allAssetIds);
-        Set<Id> expiredAssetIds = getExpiredAssetIds(allAssetIds);
 
-        // Build product-to-asset map once for usage-based and derived-price checks
-        Map<Id, Set<Id>> assetIdsByProductId = getAssetIdsByProductId(allAssetIds);
+        // Single Asset query for both expired check and product-to-asset mapping
+        Set<Id> expiredAssetIds = new Set<Id>();
+        Map<Id, Set<Id>> assetIdsByProductId = new Map<Id, Set<Id>>();
+        queryAssetsForExpiredAndProducts(allAssetIds, expiredAssetIds, assetIdsByProductId);
+
         Set<Id> usageBasedAssetIds = getUsageBasedAssetIds(assetIdsByProductId);
         Set<Id> derivedPriceAssetIds = getDerivedPriceAssetIds(assetIdsByProductId);
 
@@ -75,9 +77,9 @@ public without sharing class RLM_ARC_AssetValidator {
             }
 
             // Build action-specific error messages listing the exact blocking conditions
-            res.swapBlockedMessage = buildSwapMessage(res);
-            res.transferBlockedMessage = buildTransferMessage(res);
-            res.rollbackBlockedMessage = buildRollbackMessage(res);
+            res.swapBlockedMessage = buildBlockedMessage(res, 'swap, upgrade, or downgrade', true, true);
+            res.transferBlockedMessage = buildBlockedMessage(res, 'transfer', true, false);
+            res.rollbackBlockedMessage = buildBlockedMessage(res, 'rollback', false, false);
             results.add(res);
         }
 
@@ -160,46 +162,30 @@ public without sharing class RLM_ARC_AssetValidator {
     }
 
     /**
-     * Returns the IDs of assets whose LifecycleEndDate is in the past,
-     * indicating an expired subscription.
+     * Single Asset query that populates both the expired asset set and the
+     * product-to-asset map, saving one SOQL query vs. querying separately.
      */
-    private static Set<Id> getExpiredAssetIds(Set<Id> assetIds) {
-        Set<Id> expired = new Set<Id>();
+    private static void queryAssetsForExpiredAndProducts(
+        Set<Id> assetIds, Set<Id> expiredAssetIds, Map<Id, Set<Id>> assetIdsByProductId
+    ) {
         if (assetIds.isEmpty()) {
-            return expired;
+            return;
         }
         for (Asset a : [
-            SELECT Id
+            SELECT Id, Product2Id, LifecycleEndDate
             FROM Asset
             WHERE Id IN :assetIds
-            AND LifecycleEndDate < TODAY
         ]) {
-            expired.add(a.Id);
-        }
-        return expired;
-    }
-
-    /**
-     * Builds a map of Product2Id → Set<Asset Id> for all assets that have a product.
-     * Shared by usage-based and derived-price checks to avoid a duplicate SOQL query.
-     */
-    private static Map<Id, Set<Id>> getAssetIdsByProductId(Set<Id> assetIds) {
-        Map<Id, Set<Id>> assetIdsByProductId = new Map<Id, Set<Id>>();
-        if (assetIds.isEmpty()) {
-            return assetIdsByProductId;
-        }
-        for (Asset a : [
-            SELECT Id, Product2Id
-            FROM Asset
-            WHERE Id IN :assetIds
-            AND Product2Id != NULL
-        ]) {
-            if (!assetIdsByProductId.containsKey(a.Product2Id)) {
-                assetIdsByProductId.put(a.Product2Id, new Set<Id>());
+            if (a.LifecycleEndDate != null && a.LifecycleEndDate < Date.today()) {
+                expiredAssetIds.add(a.Id);
             }
-            assetIdsByProductId.get(a.Product2Id).add(a.Id);
+            if (a.Product2Id != null) {
+                if (!assetIdsByProductId.containsKey(a.Product2Id)) {
+                    assetIdsByProductId.put(a.Product2Id, new Set<Id>());
+                }
+                assetIdsByProductId.get(a.Product2Id).add(a.Id);
+            }
         }
-        return assetIdsByProductId;
     }
 
     /**
@@ -244,8 +230,7 @@ public without sharing class RLM_ARC_AssetValidator {
         return derived;
     }
 
-    // Swap/Upgrade/Downgrade: blocked by ramped, usage-based, expired, derived-price
-    private static String buildSwapMessage(Result res) {
+    private static String buildBlockedMessage(Result res, String action, Boolean includeExpired, Boolean includeDerived) {
         List<String> reasons = new List<String>();
         if (res.hasRampedAssets) {
             reasons.add('ramped (' + res.rampedAssetIds.size() + ')');
@@ -253,10 +238,10 @@ public without sharing class RLM_ARC_AssetValidator {
         if (res.hasUsageBasedAssets) {
             reasons.add('usage-based (' + res.usageBasedAssetIds.size() + ')');
         }
-        if (res.hasExpiredAssets) {
+        if (includeExpired && res.hasExpiredAssets) {
             reasons.add('expired (' + res.expiredAssetIds.size() + ')');
         }
-        if (res.hasDerivedPriceAssets) {
+        if (includeDerived && res.hasDerivedPriceAssets) {
             reasons.add('derived-price (' + res.derivedPriceAssetIds.size() + ')');
         }
         if (reasons.isEmpty()) {
@@ -264,44 +249,7 @@ public without sharing class RLM_ARC_AssetValidator {
         }
         return 'This action can\'t be completed. The selected assets include '
             + String.join(reasons, ', ')
-            + ' assets that don\'t support swap, upgrade, or downgrade. Remove the affected assets and try again.';
-    }
-
-    // Transfer: blocked by ramped, usage-based, expired
-    private static String buildTransferMessage(Result res) {
-        List<String> reasons = new List<String>();
-        if (res.hasRampedAssets) {
-            reasons.add('ramped (' + res.rampedAssetIds.size() + ')');
-        }
-        if (res.hasUsageBasedAssets) {
-            reasons.add('usage-based (' + res.usageBasedAssetIds.size() + ')');
-        }
-        if (res.hasExpiredAssets) {
-            reasons.add('expired (' + res.expiredAssetIds.size() + ')');
-        }
-        if (reasons.isEmpty()) {
-            return null;
-        }
-        return 'This transfer can\'t be completed. The selected assets include '
-            + String.join(reasons, ', ')
-            + ' assets that don\'t support transfer. Remove the affected assets and try again.';
-    }
-
-    // Rollback: blocked by ramped, usage-based
-    private static String buildRollbackMessage(Result res) {
-        List<String> reasons = new List<String>();
-        if (res.hasRampedAssets) {
-            reasons.add('ramped (' + res.rampedAssetIds.size() + ')');
-        }
-        if (res.hasUsageBasedAssets) {
-            reasons.add('usage-based (' + res.usageBasedAssetIds.size() + ')');
-        }
-        if (reasons.isEmpty()) {
-            return null;
-        }
-        return 'This rollback can\'t be completed. The selected assets include '
-            + String.join(reasons, ', ')
-            + ' assets that don\'t support rollback. Remove the affected assets and try again.';
+            + ' assets that don\'t support ' + action + '. Remove the affected assets and try again.';
     }
 
     private static List<Id> getIntersection(Set<Id> a, Set<Id> b) {
