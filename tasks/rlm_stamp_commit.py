@@ -363,8 +363,9 @@ class StampGitCommit(SFDXBaseTask):
                 f"Stderr: {result.stderr[:500]}"
             )
 
-        status = output.get("status")
-        if status is not None and status != 0:
+        # Prefer JSON 'status' but fall back to the process return code
+        status = output.get("status", result.returncode)
+        if status != 0:
             message = self._extract_deploy_error(output)
             self.logger.error(f"Deploy failed: {message}")
             raise CommandException(f"Deploy failed: {message}")

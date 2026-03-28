@@ -16,8 +16,8 @@ When debugging issues or auditing org configurations, there was no way to trace 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `RLM_Commit_Hash__c` | Text(7) | Short git commit hash |
-| `RLM_Full_Commit_Hash__c` | Text(40) | Full 40-character SHA for precise lookup |
+| `RLM_Commit_Hash__c` | Text(255) | Short git commit hash |
+| `RLM_Full_Commit_Hash__c` | Text(255) | Full 40-character SHA for precise lookup |
 | `RLM_Branch__c` | LongTextArea(1000) | Git branch name (handles detached HEAD: shows tag or `detached@<hash>`) |
 | `RLM_Dirty_Tree__c` | Checkbox | `true` when the build ran with uncommitted changes in the working tree |
 | `RLM_Build_Timestamp__c` | Text(25) | ISO 8601 timestamp of the CCI run |
