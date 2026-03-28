@@ -528,6 +528,67 @@ tasks:
       path: robot/rlm-base/tests
       output: robot/rlm-base/doc/rlm-base_tests.html
 
+  robot_e2e:
+    group: E2E Testing
+    description: >
+      Run the full Quote-to-Order UI test (headless Chrome). Validates the complete
+      sales workflow: Reset Account → Create Opportunity → Create Quote → Browse
+      Catalogs → Add Products → Create Order → Activate Order → Verify Assets.
+      Requires a provisioned org with qb=true (run prepare_rlm_org first).
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/quote_to_order.robot
+      outputdir: robot/rlm-base/results
+
+  robot_e2e_debug:
+    group: E2E Testing
+    description: >
+      Run the full Quote-to-Order UI test in headed Chrome with CDP debugging on
+      port 9222. Same flow as robot_e2e but visible browser for development and
+      debugging. Connect via chrome://inspect. Use -o pause_for_recording true
+      to add pause points for DOM inspection.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/quote_to_order.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_setup_quote:
+    group: E2E Testing
+    description: >
+      Reset Account and create an Opportunity + Quote (UI automation, headed Chrome).
+      Part 1 of the modular Quote-to-Order flow. Can be run standalone to prepare
+      a Quote for other tests.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/setup_quote.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_order_from_quote:
+    group: E2E Testing
+    description: >
+      Add products via Browse Catalogs, create and activate an Order, and verify
+      Assets (UI automation, headed Chrome). Part 2 of the modular Quote-to-Order
+      flow. If no QUOTE_ID is provided, creates a fresh Quote automatically.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/order_from_quote.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_reset_account:
+    group: E2E Testing
+    description: >
+      Reset the test Account via the RLM_Reset_Account QuickAction (UI automation).
+      Clears transactional data (Opportunities, Quotes, Orders, Assets) so E2E tests
+      can re-run from a clean state. Runs in headed Chrome.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/reset_account.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
   run_tests:
     options:
       required_org_code_coverage_percent: 75

@@ -677,6 +677,32 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
 
+### E2E Testing Tasks
+
+End-to-end UI tests validate the Quote-to-Order sales workflow via Robot Framework + SeleniumLibrary. See [E2E Test Framework](docs/features/e2e-test-framework.md) for full details.
+
+| Task Name | Suite | Description |
+|-----------|-------|-------------|
+| `robot_e2e` | `quote_to_order.robot` | Full Quote-to-Order flow (headless Chrome) |
+| `robot_e2e_debug` | `quote_to_order.robot` | Same flow in headed Chrome with CDP debugging (port 9222) |
+| `robot_setup_quote` | `setup_quote.robot` | Part 1: Reset Account + Create Opportunity + Create Quote |
+| `robot_order_from_quote` | `order_from_quote.robot` | Part 2: Add Products + Create Order + Activate + Verify Assets |
+| `robot_reset_account` | `reset_account.robot` | Reset test Account (clear transactional data) |
+
+```bash
+# Full flow (headless)
+cci task run robot_e2e --org beta
+
+# Full flow (headed + CDP debug + pause points)
+cci task run robot_e2e_debug -o pause_for_recording true --org beta
+
+# Modular: setup quote only
+cci task run robot_setup_quote --org beta
+
+# Modular: order from existing quote
+cci task run robot_order_from_quote --org beta
+```
+
 ### App Launcher
 
 `assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` and attempts a Metadata API deploy (step 29, gated by `ux=true`). When that deploy succeeds it becomes the **org-default** App Launcher order — new users inherit it automatically. The deploy is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references); in that case the template is **not** applied as the org default.
@@ -1037,6 +1063,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 ### Robot Framework
 
 - [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings)
+- [E2E Test Framework](docs/features/e2e-test-framework.md) -- End-to-end UI tests (Quote-to-Order flow), shadow DOM architecture, and debugging guide
 
 ### Configuration Files
 
@@ -1121,8 +1148,10 @@ rlm-base-dev/
 │   └── sfdmuload.py
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/
-│       ├── resources/          # Keywords, WebDriverManager helper
+│       ├── resources/          # Shared keywords (E2ECommon.robot), API library, WebDriver helpers
+│       ├── variables/          # Test data defaults, timeouts, feature flags (E2EVariables.robot)
 │       ├── tests/setup/        # Setup page automation (Document Builder, Constraints, Revenue Settings)
+│       ├── tests/e2e/          # E2E UI tests (quote_to_order, setup_quote, order_from_quote, reset_account)
 │       └── results/            # Runtime output (gitignored)
 ├── datasets/                   # Data plans
 │   ├── sfdmu/                  # SFDMU data plans
