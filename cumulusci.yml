@@ -2113,6 +2113,17 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  stamp_git_commit:
+    group: Revenue Lifecycle Management
+    description: >
+      Stamps the current git commit hash, branch, timestamp, org definition,
+      dirty-tree flag, and active feature flags into the org as a Custom
+      Metadata Type record (RLM_Build_Info__mdt.Latest). Non-fatal: deploy
+      failures are logged as warnings so this task never breaks a completed flow.
+    class_path: tasks.rlm_stamp_commit.StampGitCommit
+    options:
+      flow_name: manual
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -2186,7 +2197,11 @@ flows:
         when: project_config.project__custom__ux
       30:
         flow: refresh_all_decision_tables
-         
+      31:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org
+
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
