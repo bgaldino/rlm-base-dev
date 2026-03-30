@@ -28,6 +28,10 @@ class SalesforceAPI:
     # API version matching the project (Spring '26 / v66.0)
     API_VERSION = "v66.0"
 
+    # Default timeout (seconds) for all outbound REST requests.
+    # Prevents CI runners from blocking indefinitely on network stalls.
+    REQUEST_TIMEOUT = 30
+
     def __init__(self):
         self._access_token = None
         self._instance_url = None
@@ -176,6 +180,7 @@ class SalesforceAPI:
             self._sobject_url(sobject),
             headers=self._headers(),
             json=fields,
+            timeout=self.REQUEST_TIMEOUT,
         )
         if resp.status_code not in (200, 201):
             raise AssertionError(
@@ -212,6 +217,7 @@ class SalesforceAPI:
             self._query_url(),
             headers=self._headers(),
             params={"q": soql},
+            timeout=self.REQUEST_TIMEOUT,
         )
         if resp.status_code != 200:
             raise AssertionError(
@@ -236,6 +242,7 @@ class SalesforceAPI:
             self._sobject_url(sobject, record_id),
             headers=self._headers(),
             params={"fields": fields},
+            timeout=self.REQUEST_TIMEOUT,
         )
         if resp.status_code != 200:
             raise AssertionError(
@@ -343,6 +350,7 @@ class SalesforceAPI:
         resp = requests.delete(
             self._sobject_url(sobject, record_id),
             headers=self._headers(),
+            timeout=self.REQUEST_TIMEOUT,
         )
         if resp.status_code not in (200, 204):
             _logger.warning(
@@ -365,6 +373,7 @@ class SalesforceAPI:
                 resp = requests.delete(
                     self._sobject_url(sobject, record_id),
                     headers=self._headers(),
+                    timeout=self.REQUEST_TIMEOUT,
                 )
                 if resp.status_code in (200, 204):
                     _logger.info("Cleanup: deleted %s %s", sobject, record_id)
