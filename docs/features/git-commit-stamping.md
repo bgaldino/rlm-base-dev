@@ -18,12 +18,12 @@ When debugging issues or auditing org configurations, there was no way to trace 
 |-------|------|-------------|
 | `RLM_Commit_Hash__c` | Text(255) | Short git commit hash |
 | `RLM_Full_Commit_Hash__c` | Text(255) | Full 40-character SHA for precise lookup |
-| `RLM_Branch__c` | LongTextArea(1000) | Git branch name (handles detached HEAD: shows tag or `detached@<hash>`) |
+| `RLM_Branch__c` | Text(255) | Git branch name (handles detached HEAD: shows tag or `detached@<hash>`) |
 | `RLM_Dirty_Tree__c` | Checkbox | `true` when the build ran with uncommitted changes in the working tree |
-| `RLM_Build_Timestamp__c` | Text(25) | ISO 8601 timestamp of the CCI run |
-| `RLM_CCI_Flow__c` | LongTextArea(1000) | Name of the CCI flow or task that triggered the stamp |
-| `RLM_Org_Definition__c` | LongTextArea(1000) | Org definition used (e.g. `beta (scratch, orgs/beta.json)`) |
-| `RLM_Feature_Flags__c` | LongTextArea(32000) | Full `project__custom` config serialized as YAML (all feature flags and settings) |
+| `RLM_Build_Timestamp__c` | DateTime | ISO 8601 timestamp of the CCI run |
+| `RLM_CCI_Flow__c` | Text(255) | Name of the CCI flow or task that triggered the stamp |
+| `RLM_Org_Definition__c` | Text(255) | Org definition used (e.g. `beta (scratch, orgs/beta.json)`) |
+| `RLM_Feature_Flags__c` | LongTextArea(32000) | YAML-serialized scalar values from `project__custom` (feature flags and settings; list/dict values are excluded and sensitive values may be redacted) |
 
 ### CCI Task
 
