@@ -152,14 +152,13 @@ public with sharing class RLM_UsageDataController {
 
         List<SObject> records = Database.query(soql);
         Boolean truncated = records.size() > QUERY_LIMIT;
-        if (truncated) {
-            records = records.subList(0, QUERY_LIMIT);
-        }
+        Integer recordCount = truncated ? QUERY_LIMIT : records.size();
 
         // Flatten SObject records into simple maps for lightning-datatable consumption.
         // Lookup relationships are resolved into separate __url and __name keys.
         List<Map<String, Object>> flatRecords = new List<Map<String, Object>>();
-        for (SObject rec : records) {
+        for (Integer idx = 0; idx < recordCount; idx++) {
+            SObject rec = records[idx];
             Map<String, Object> row = new Map<String, Object>();
             row.put('Id', rec.get('Id'));
 

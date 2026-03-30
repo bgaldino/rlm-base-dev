@@ -9,22 +9,19 @@
      - Asset, UnitOfMeasure, UsageEntitlementAccount, UsageEntitlementBucket, UsageResource
        (related objects accessed via lookup field traversals)
 
-     Only non-default fields requiring explicit FLS grants are listed below; standard fields
-     that are readable by default on these objects (e.g. Name, Id) are intentionally omitted.
+     Only nillable fields requiring explicit FLS grants are listed below. Required
+     (non-nillable) fields are intentionally omitted — Salesforce rejects permset deploys
+     that reference required fields, and required fields are accessible without explicit grants.
      The controller enforces FLS at runtime via WITH SECURITY_ENFORCED. -->
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <classAccesses>
         <apexClass>RLM_UsageDataController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <!-- TransactionJournal nillable fields -->
     <fieldPermissions>
         <editable>false</editable>
         <field>TransactionJournal.AccountId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>TransactionJournal.ActivityDate</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -54,32 +51,13 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>TransactionJournal.Status</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
         <field>TransactionJournal.UsageResourceId</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageSummary.AccountId</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    <!-- UsageSummary nillable fields -->
     <fieldPermissions>
         <editable>false</editable>
         <field>UsageSummary.AssetId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageSummary.ConsumptionUnits</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageSummary.EndDateTime</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -89,22 +67,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>UsageSummary.StartDateTime</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageSummary.UomId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
         <field>UsageSummary.UsageEntitlementAccountId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageSummary.Status</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -112,11 +75,7 @@
         <field>UsageSummary.UsageResourceId</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.AccountId</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    <!-- UsageBillingPeriodItem nillable fields -->
     <fieldPermissions>
         <editable>false</editable>
         <field>UsageBillingPeriodItem.AssetId</field>
@@ -124,52 +83,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>UsageBillingPeriodItem.EndDateTime</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
         <field>UsageBillingPeriodItem.GrantBindingTargetId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.OverageAmount</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.OverageQuantity</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.StartDateTime</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.TotalUsedQuantity</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.UoMId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.UsageBillingPeriodItemNum</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.UsageEntitlementBucketId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>UsageBillingPeriodItem.Status</field>
         <readable>true</readable>
     </fieldPermissions>
     <objectPermissions>
