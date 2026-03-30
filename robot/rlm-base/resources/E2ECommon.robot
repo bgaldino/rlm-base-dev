@@ -68,14 +68,19 @@ Close Browser For E2E
 Get Authenticated Url
     [Documentation]    Gets an authenticated URL for a Lightning page path using
     ...    \`sf org open --url-only\`. Returns the full URL with session token.
+    ...    URL-handling steps are wrapped in Set Log Level NONE to prevent the
+    ...    session token from leaking into Robot log.html/CI artifacts.
     [Arguments]    ${page_path}
     Run Keyword If    "${ORG_ALIAS}" == ""    Fail    msg=ORG_ALIAS must be set
+    ${prev_level}=    Set Log Level    NONE
     ${result}=    Run Process    sf    org    open    -o    ${ORG_ALIAS}    --url-only    -p    ${page_path}    shell=False
+    Run Keyword If    ${result.rc} != 0    Set Log Level    ${prev_level}
     Run Keyword If    ${result.rc} != 0    Fail    msg=sf org open failed: ${result.stderr}
     ${raw}=    Strip String    ${result.stdout}
     ${raw}=    Evaluate    $raw.replace(chr(10), ' ').replace(chr(13), ' ').strip()
     ${url}=    Evaluate    $raw.split('with the following URL:')[-1].strip() if 'with the following URL:' in $raw else $raw
     ${url}=    Strip String    ${url}
+    Set Log Level    ${prev_level}
     RETURN    ${url}
 
 Navigate To App
