@@ -104,8 +104,17 @@ public with sharing class RLM_UsageDataController {
                     queryFields.add(relName + '.' + nameField);
                     lookupRelNames.put(fieldApiName, relName);
                     lookupNameFields.put(fieldApiName, nameField);
+                    columns.add(buildUrlColumn(label, fieldApiName + '__url', fieldApiName + '__name'));
+                } else {
+                    // Polymorphic reference: no relationship name, __name would never be populated
+                    // so fall back to a plain text column showing the Id.
+                    Map<String, Object> col = new Map<String, Object>();
+                    col.put('label', label);
+                    col.put('fieldName', fieldApiName);
+                    col.put('type', 'text');
+                    col.put('sortable', true);
+                    columns.add(col);
                 }
-                columns.add(buildUrlColumn(label, fieldApiName + '__url', fieldApiName + '__name'));
 
             } else {
                 // Standard fields use type-mapped datatable column types
