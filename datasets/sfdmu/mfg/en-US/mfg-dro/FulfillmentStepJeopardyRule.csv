@@ -1,0 +1,4 @@
+EstimatedDuration,EstimatedDurationUnit,FlowDefinition,IntegrationDefinition.DeveloperName,JeopardyThreshold,JeopardyThresholdUnit,Name,StepType
+1,Days,#N/A,,20,Hours,000000001,ManualTask
+1,Minutes,RLM_Assetize_Order_DRO_Fulfillment,,10,Seconds,000000002,AutoTask
+10,Seconds,#N/A,,5,Seconds,000000003,Callout

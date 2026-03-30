@@ -1,0 +1,582 @@
+{
+  "planName": "mfg",
+  "developerName": "MFG_SalesTransactionContext",
+  "contextMappings": {
+    "contextMappings": [
+      {
+        "name": "QuoteEntitiesMapping",
+        "description": "QuoteEntitiesMapping"
+      },
+      {
+        "name": "OrderEntitiesMapping",
+        "description": "OrderEntitiesMapping"
+      },
+      {
+        "name": "AssetEntitiesMapping",
+        "description": "AssetEntitiesMapping"
+      },
+      {
+        "name": "AssetToSalesTransactionMapping",
+        "description": "AssetToSalesTransactionMapping"
+      },
+      {
+        "name": "ContractNodeMapping",
+        "description": "ContractNodeMapping"
+      },
+      {
+        "name": "QuoteToContractSlsTrxnMapping",
+        "description": "QuoteToContractSlsTrxnMapping"
+      },
+      {
+        "name": "ContractToSalesTxnMapping",
+        "description": "ContractToSalesTxnMapping"
+      },
+      {
+        "name": "SalesAgreementEntitiesMapping",
+        "description": "SalesAgreementEntitiesMapping"
+      }
+    ],
+    "generateInputMappings": true,
+    "generateSObjectMappings": true
+  },
+  "contextAttributesByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "ConstraintEngineNodeStatus__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "AssetActionSource",
+      "name": "AssetConstraintEngineNodeStatus__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransaction",
+      "name": "SalesAgreement__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "SourceQuote__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "SalesAgreement_Contract__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "BillingStreet__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "BillingCity__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "BillingState__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "BillingPostalCode__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "BillingCountry__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "ShippingStreet__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "ShippingCity__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "ShippingState__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "ShippingPostalCode__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "Contract",
+      "name": "ShippingCountry__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    }
+  ],
+  "mappingRules": [
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "ConstraintEngineNodeStatus__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "TransactionType",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "TransactionType"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "ConstraintEngineNodeStatus__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem",
+      "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "TransactionType",
+      "mappingType": "SOBJECT",
+      "sObject": "Order",
+      "sObjectField": "TransactionType"
+    },
+    {
+      "mappingName": "AssetEntitiesMapping",
+      "contextNode": "AssetActionSource",
+      "contextAttribute": "AssetConstraintEngineNodeStatus__c",
+      "mappingType": "SOBJECT",
+      "sObject": "AssetActionSource",
+      "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "AssetToSalesTransactionMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "ConstraintEngineNodeStatus__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "AssetActionSource",
+      "sourceContextAttribute": "AssetConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "SalesAgreement__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "Sales_Agreement__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "SalesAgreement__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "SalesAgreementId"
+    },
+    {
+      "mappingName": "SalesAgreementEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "ConstraintEngineNodeStatus__c",
+      "mappingType": "SOBJECT",
+      "sObject": "SalesAgreementProduct",
+      "sObjectField": "ConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "SourceQuote__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "SourceQuoteId"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "SalesAgreement_Contract__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "SalesAgreementId"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingStreet__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "BillingStreet"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingCity__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "BillingCity"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingState__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "BillingState"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingPostalCode__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "BillingPostalCode"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingCountry__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "BillingCountry"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingStreet__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "ShippingStreet"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingCity__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "ShippingCity"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingState__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "ShippingState"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingPostalCode__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "ShippingPostalCode"
+    },
+    {
+      "mappingName": "ContractNodeMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingCountry__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Contract",
+      "sObjectField": "ShippingCountry"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "BillToContact",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "BillToContactId"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "BillingStreet",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "BillingStreet"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "BillingCity",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "BillingCity"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "BillingState",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "BillingState"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "BillingPostalCode",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "BillingPostalCode"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "BillingCountry",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "BillingCountry"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ShippingStreet",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "ShippingStreet"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ShippingCity",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "ShippingCity"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ShippingState",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "ShippingState"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ShippingPostalCode",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "ShippingPostalCode"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ShippingCountry",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "ShippingCountry"
+    },
+    {
+      "mappingName": "QuoteToContractSlsTrxnMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "SalesAgreement__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "Sales_Agreement__c"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "SourceQuote__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "SalesTransactionSource"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "SalesAgreement_Contract__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "SalesAgreement__c"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingStreet__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "BillingStreet"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingCity__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "BillingCity"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingState__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "BillingState"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingPostalCode__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "BillingPostalCode"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "BillingCountry__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "BillingCountry"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingStreet__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "ShippingStreet"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingCity__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "ShippingCity"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingState__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "ShippingState"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingPostalCode__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "ShippingPostalCode"
+    },
+    {
+      "mappingName": "ContractToSalesTxnMapping",
+      "contextNode": "Contract",
+      "contextAttribute": "ShippingCountry__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransaction",
+      "sourceContextAttribute": "ShippingCountry"
+    }
+  ],
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "ConstraintEngineNodeStatus__c",
+      "name": "ConstraintEngineNodeStatus__c"
+    },
+    {
+      "nodeName": "AssetActionSource",
+      "attributeName": "AssetConstraintEngineNodeStatus__c",
+      "name": "AssetConstraintEngineNodeStatus__c"
+    },
+    {
+      "nodeName": "SalesTransaction",
+      "attributeName": "SalesAgreement__c",
+      "name": "SalesAgreement__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "SourceQuote__c",
+      "name": "SourceQuote__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "SalesAgreement_Contract__c",
+      "name": "SalesAgreement_Contract__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "BillingStreet__c",
+      "name": "BillingStreet__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "BillingCity__c",
+      "name": "BillingCity__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "BillingState__c",
+      "name": "BillingState__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "BillingPostalCode__c",
+      "name": "BillingPostalCode__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "BillingCountry__c",
+      "name": "BillingCountry__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "ShippingStreet__c",
+      "name": "ShippingStreet__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "ShippingCity__c",
+      "name": "ShippingCity__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "ShippingState__c",
+      "name": "ShippingState__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "ShippingPostalCode__c",
+      "name": "ShippingPostalCode__c"
+    },
+    {
+      "nodeName": "Contract",
+      "attributeName": "ShippingCountry__c",
+      "name": "ShippingCountry__c"
+    }
+  ],
+  "contextMappingUpdates": {
+    "contextMappings": [
+      {
+        "name": "QuoteEntitiesMapping",
+        "isDefault": true
+      }
+    ]
+  },
+  "activate": true
+}
