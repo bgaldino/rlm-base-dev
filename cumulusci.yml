@@ -562,6 +562,67 @@ tasks:
       path: robot/rlm-base/tests
       output: robot/rlm-base/doc/rlm-base_tests.html
 
+  robot_e2e:
+    group: E2E Testing
+    description: >
+      Run the full Quote-to-Order UI test (headless Chrome). Validates the complete
+      sales workflow: Reset Account → Create Opportunity → Create Quote → Browse
+      Catalogs → Add Products → Create Order → Activate Order → Verify Assets.
+      Requires a provisioned org with qb=true (run prepare_rlm_org first).
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/quote_to_order.robot
+      outputdir: robot/rlm-base/results
+
+  robot_e2e_debug:
+    group: E2E Testing
+    description: >
+      Run the full Quote-to-Order UI test in headed Chrome with CDP debugging on
+      port 9222. Same flow as robot_e2e but visible browser for development and
+      debugging. Connect via chrome://inspect. Use -o pause_for_recording true
+      to add pause points for DOM inspection.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/quote_to_order.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_setup_quote:
+    group: E2E Testing
+    description: >
+      Reset Account and create an Opportunity + Quote (UI automation, headed Chrome).
+      Part 1 of the modular Quote-to-Order flow. Can be run standalone to prepare
+      a Quote for other tests.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/setup_quote.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_order_from_quote:
+    group: E2E Testing
+    description: >
+      Add products via Browse Catalogs, create and activate an Order, and verify
+      Assets (UI automation, headed Chrome). Part 2 of the modular Quote-to-Order
+      flow. If no QUOTE_ID is provided, creates a fresh Quote automatically.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/order_from_quote.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_reset_account:
+    group: E2E Testing
+    description: >
+      Reset the test Account via the RLM_Reset_Account QuickAction (UI automation).
+      Clears transactional data (Opportunities, Quotes, Orders, Assets) so E2E tests
+      can re-run from a clean state. Runs in headed Chrome.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/reset_account.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
   run_tests:
     options:
       required_org_code_coverage_percent: 75
@@ -970,8 +1031,9 @@ tasks:
 
   deploy_docgen_odt_seed:
     description: >
-      Seed-insert minimal RLMQuoteExtractBasic and RLMQuoteTransformBasic OmniDataTransform
-      records before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
+      Seed-insert minimal OmniDataTransform shell records (RLMQuoteExtractBasic,
+      RLMQuoteTransformBasic, RLMQuoteProposalExtract, RLMQuoteProposalTransform)
+      before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
       custom formula fields in inputFieldName (-692085439) but accepts UPDATE of existing
       records. This step creates the ODT stubs so the subsequent deploy_post_docgen runs
       as an UPDATE.
@@ -1929,7 +1991,7 @@ tasks:
 
   configure_revenue_settings:
     group: Revenue Lifecycle Management
-    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, and Create Orders from Quote flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
+    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders from Quote flow, and optionally Manage Assets flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
     class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
     options:
       suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
@@ -2502,6 +2564,17 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  stamp_git_commit:
+    group: Revenue Lifecycle Management
+    description: >
+      Stamps the current git commit hash, branch, timestamp, org definition,
+      dirty-tree flag, and active feature flags into the org as a Custom
+      Metadata Type record (RLM_Build_Info__mdt.Latest). Non-fatal: deploy
+      failures are logged as warnings so this task never breaks a completed flow.
+    class_path: tasks.rlm_stamp_commit.StampGitCommit
+    options:
+      flow_name: manual
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -2575,6 +2648,10 @@ flows:
         when: project_config.project__custom__ux
       30:
         flow: refresh_all_decision_tables
+      31:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org
 
 # Badger Master Flow
 
@@ -2611,7 +2688,6 @@ flows:
         flow: prepare_badger_rebates
       14:
         flow: prepare_badger_aaf
-         
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
@@ -3197,6 +3273,12 @@ flows:
     steps:
       1:
         task: configure_revenue_settings
+        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
+      2:
+        task: configure_revenue_settings
+        when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
+        options:
+          manage_assets_flow: RLM_ARC_Assets
 
   prepare_pricing_discovery:
     group: Revenue Lifecycle Management

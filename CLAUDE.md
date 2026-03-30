@@ -23,6 +23,7 @@ tasks/                      # Custom Python CCI task classes
   rlm_sfdmu.py              # SFDMU load, extract, delete, idempotency tasks
   rlm_apex_file.py          # Run Apex from file
   rlm_ux_assembly.py        # Dynamic UX assembly (flexipages, layouts, apps, profiles, objects)
+  rlm_stamp_commit.py       # Stamp git commit hash, branch, feature flags into org (RLM_Build_Info__mdt)
   rlm_manage_decision_tables.py
   rlm_manage_expression_sets.py
   ... (other custom tasks)
@@ -283,7 +284,7 @@ templates/
     utils/, payments/, docgen/, approvals/, tso/  — feature overrides (tso/ currently empty;
                               TSO builds inherit QB standalone via tso > qb > base priority)
   flexipages/patches/       — YAML semantic patch files per feature
-  layouts/base/             — 17 base layouts (moved from force-app)
+  layouts/base/             — 18 base layouts (moved from force-app + RLM_Build_Info__mdt)
   layouts/billing/          — billing-specific layouts
   layouts/constraints/      — OrderItem + QuoteLineItem overrides
   applications/             — RLM_Revenue_Cloud variants + conditional standalones
@@ -410,6 +411,12 @@ cci flow run prepare_ux --org dev-sb0
 # Skip UX assembly entirely for a run (set in org definition or pass via -o)
 # Set ux: false in orgs/<org>.json custom overrides, then:
 cci flow run prepare_rlm_org --org beta
+
+# Stamp the current git commit into an org (runs automatically as step 31 of prepare_rlm_org)
+cci task run stamp_git_commit --org beta
+
+# Query build info from the org
+sf data query -q "SELECT DeveloperName, RLM_Commit_Hash__c, RLM_Full_Commit_Hash__c, RLM_Branch__c, RLM_Dirty_Tree__c, RLM_Build_Timestamp__c, RLM_CCI_Flow__c, RLM_Org_Definition__c, RLM_Feature_Flags__c FROM RLM_Build_Info__mdt" --target-org <username>
 ```
 
 ---

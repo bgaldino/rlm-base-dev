@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <description>Dynamic FieldSet-driven datatable for displaying usage data (Transaction Journals, Usage Summaries, Liable Summaries) on Account record pages. Columns, sorting, and pagination are fully configurable via FieldSet metadata.</description>
+    <isExposed>true</isExposed>
+    <masterLabel>RLM Usage Datatable</masterLabel>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Account</object>
+            </objects>
+            <property name="usageObject" type="String" label="Usage Object"
+                description="The usage SObject to display. Each object must have a matching FieldSet deployed."
+                datasource="TransactionJournal,UsageSummary,UsageBillingPeriodItem" />
+            <property name="fieldSetName" type="String" label="Field Set Name"
+                description="Developer name of the FieldSet that defines which columns to display. Defaults to RLM_UsageDatatable."
+                default="RLM_UsageDatatable" />
+            <property name="cardTitle" type="String" label="Card Title"
+                description="Optional title for the card header. If left blank, defaults to the Usage Object API name." />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
