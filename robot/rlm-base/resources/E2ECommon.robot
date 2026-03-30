@@ -808,7 +808,7 @@ _Press Enter On Search Input
     # Try Selenium Press Keys on the active/focused element
     ${active}=    Execute JavaScript    return document.activeElement ? document.activeElement.tagName : 'NONE'
     IF    "${active}" == "INPUT"
-        Press Keys    None    RETURN
+        Press Keys    ${NONE}    RETURN
         RETURN
     END
     # Fallback: find the input and use Selenium

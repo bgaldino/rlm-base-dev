@@ -49,11 +49,19 @@ class SalesforceAPI:
                 "ORG_ALIAS variable must be set "
                 "(e.g. -v ORG_ALIAS:my-scratch)"
             )
-        result = subprocess.run(
-            ["sf", "org", "display", "-o", org_alias, "--json"],
-            capture_output=True,
-            text=True,
-        )
+        try:
+            result = subprocess.run(
+                ["sf", "org", "display", "-o", org_alias, "--json"],
+                capture_output=True,
+                text=True,
+                timeout=self.REQUEST_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise AssertionError(
+                f"sf org display timed out after {self.REQUEST_TIMEOUT} seconds "
+                f"for org alias '{org_alias}'. This likely indicates a hung sf CLI "
+                "auth refresh or a stalled network connection."
+            ) from exc
         if result.returncode != 0:
             raise AssertionError(
                 f"sf org display failed (rc={result.returncode}): {result.stderr}"

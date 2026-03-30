@@ -107,8 +107,8 @@ cci task run robot_order_from_quote --org beta
 # Reset Account only
 cci task run robot_reset_account --org beta
 
-# Override test data
-cci task run robot_e2e --org beta -v TEST_ACCOUNT_NAME:"Acme Corp"
+# Override test data (run Robot directly to pass --variable)
+robot -v TEST_ACCOUNT_NAME:"Acme Corp" -v ORG_ALIAS:beta robot/rlm-base/tests/e2e
 ```
 
 ### CCI Task Reference
