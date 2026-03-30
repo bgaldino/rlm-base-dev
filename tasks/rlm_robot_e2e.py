@@ -162,10 +162,17 @@ class RunE2ETests(BaseTask):
         )
 
         if result.returncode != 0:
+            tail_lines = 50
             if result.stdout:
-                self.logger.warning("Robot stdout:\n%s", result.stdout)
+                lines = result.stdout.splitlines()
+                tail = "\n".join(lines[-tail_lines:])
+                prefix = f"... (truncated, {len(lines) - tail_lines} lines omitted)\n" if len(lines) > tail_lines else ""
+                self.logger.warning("Robot stdout (last %d lines):\n%s%s", tail_lines, prefix, tail)
             if result.stderr:
-                self.logger.warning("Robot stderr:\n%s", result.stderr)
+                lines = result.stderr.splitlines()
+                tail = "\n".join(lines[-tail_lines:])
+                prefix = f"... (truncated, {len(lines) - tail_lines} lines omitted)\n" if len(lines) > tail_lines else ""
+                self.logger.warning("Robot stderr (last %d lines):\n%s%s", tail_lines, prefix, tail)
             raise RuntimeError(
                 f"E2E tests failed (exit code {result.returncode}). "
                 f"Check {out_path / 'log.html'} for details."
