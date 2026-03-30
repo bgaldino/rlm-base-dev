@@ -22,6 +22,10 @@ public with sharing class RLM_UsageDataController {
         'TransactionJournal', 'UsageSummary', 'UsageBillingPeriodItem'
     };
 
+    /** Defensive row limit to prevent query row / heap exhaustion on Accounts with many records.
+     *  When this limit is reached, the result includes truncated=true so the LWC can warn the user. */
+    private static final Integer QUERY_LIMIT = 2000;
+
     /** Maps Apex Schema.DisplayType values to lightning-datatable column type strings. */
     private static final Map<Schema.DisplayType, String> TYPE_MAP = new Map<Schema.DisplayType, String>{
         Schema.DisplayType.STRING => 'text',
@@ -48,9 +52,10 @@ public with sharing class RLM_UsageDataController {
      * @param accountId The Account record Id to filter by (WHERE AccountId = :accountId)
      * @param objectApiName API name of the SObject to query (must be in ALLOWED_OBJECTS)
      * @param fieldSetName Developer name of the FieldSet on the target SObject
-     * @return Map with two keys:
+     * @return Map with three keys:
      *         - 'columns': List<Map<String, Object>> - lightning-datatable column definitions
      *         - 'records': List<Map<String, Object>> - flattened record data with lookup URLs resolved
+     *         - 'truncated': Boolean - true when the result was capped at QUERY_LIMIT rows
      * @throws AuraHandledException if objectApiName is not in the allowlist or fieldSetName is invalid
      */
     @AuraEnabled(cacheable=true)
@@ -139,11 +144,17 @@ public with sharing class RLM_UsageDataController {
 
         // WITH SECURITY_ENFORCED enforces CRUD and FLS; `with sharing` enforces record access.
         // Users need the RLM_UsageDatatables permission set for the required object/field grants.
+        Integer fetchLimit = QUERY_LIMIT + 1;
         String soql = 'SELECT ' + String.join(queryFields, ', ') +
             ' FROM ' + objectApiName +
-            ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC';
+            ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC' +
+            ' LIMIT :fetchLimit';
 
         List<SObject> records = Database.query(soql);
+        Boolean truncated = records.size() > QUERY_LIMIT;
+        if (truncated) {
+            records = records.subList(0, QUERY_LIMIT);
+        }
 
         // Flatten SObject records into simple maps for lightning-datatable consumption.
         // Lookup relationships are resolved into separate __url and __name keys.
@@ -187,7 +198,8 @@ public with sharing class RLM_UsageDataController {
 
         return new Map<String, Object>{
             'columns' => columns,
-            'records' => flatRecords
+            'records' => flatRecords,
+            'truncated' => truncated
         };
     }
 

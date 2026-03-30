@@ -29,6 +29,7 @@ export default class RlmUsageDataTable extends LightningElement {
     columns;
     allData;
     error;
+    isTruncated = false;
     isLoading = true;
     sortedBy;
     sortDirection = 'asc';
@@ -105,6 +106,7 @@ export default class RlmUsageDataTable extends LightningElement {
     /** Imperatively calls the Apex controller to fetch column definitions and record data */
     async loadData() {
         this.isLoading = true;
+        this.isTruncated = false;
         try {
             const result = await getFieldSetData({
                 accountId: this.recordId,
@@ -113,12 +115,14 @@ export default class RlmUsageDataTable extends LightningElement {
             });
             this.columns = result.columns;
             this.allData = result.records;
+            this.isTruncated = result.truncated === true;
             this._buildSortFieldMap(result.columns);
             this.page = 1;
             this.error = undefined;
         } catch (e) {
             this.error = e;
             this.allData = undefined;
+            this.isTruncated = false;
         }
         this.isLoading = false;
     }
