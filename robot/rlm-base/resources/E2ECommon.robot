@@ -89,10 +89,12 @@ Navigate To App
     ...    Uses /lightning/app/<DeveloperName> with an authenticated URL.
     ...    The DeveloperName is derived by replacing spaces with underscores
     ...    and prepending the RLM namespace prefix.
+    ...    Set Log Level NONE wraps both URL retrieval and navigation to prevent
+    ...    the session token from appearing in Robot log.html/CI artifacts.
     [Arguments]    ${app_name}
     ${app_api_name}=    Evaluate    'RLM_' + $app_name.replace(' ', '_')
-    ${url}=    Get Authenticated Url    /lightning/app/c__${app_api_name}
     ${prev_level}=    Set Log Level    NONE
+    ${url}=    Get Authenticated Url    /lightning/app/c__${app_api_name}
     Go To    ${url}
     Set Log Level    ${prev_level}
     Wait Until Page Contains Element    css:body    timeout=${PAGE_LOAD_TIMEOUT}
@@ -101,9 +103,11 @@ Navigate To App
 
 Navigate To Record
     [Documentation]    Navigates to a Salesforce record page by SObject type and Id.
+    ...    Set Log Level NONE wraps both URL retrieval and navigation to prevent
+    ...    the session token from appearing in Robot log.html/CI artifacts.
     [Arguments]    ${sobject}    ${record_id}
-    ${url}=    Get Authenticated Url    /lightning/r/${sobject}/${record_id}/view
     ${prev_level}=    Set Log Level    NONE
+    ${url}=    Get Authenticated Url    /lightning/r/${sobject}/${record_id}/view
     Go To    ${url}
     Set Log Level    ${prev_level}
     Wait Until Page Contains Element    css:body    timeout=${PAGE_LOAD_TIMEOUT}
@@ -433,7 +437,9 @@ Advance Through Flow Screens
     [Documentation]    Iteratively advances through all screens in a Flow-based modal.
     ...    Clicks Next/Finish/Done/Create Order buttons until the flow completes or
     ...    no more flow buttons are found. Handles flows with 1 or more screens.
-    ${max_screens}=    Set Variable    ${10}
+    ...    Fails if the flow/modal is still open after max_screens iterations to
+    ...    surface stuck or unexpectedly deep flows rather than silently continuing.
+    [Arguments]    ${max_screens}=${10}
     FOR    ${i}    IN RANGE    ${max_screens}
         Capture Step Screenshot    flow_screen_${i}
         # Look for any actionable flow button via JavaScript (traverses shadow DOM)
@@ -500,6 +506,12 @@ Advance Through Flow Screens
             Log    Flow/modal closed after clicking ${btn_result}.
             RETURN
         END
+    END
+    # If we exhaust max_screens without the flow closing, fail explicitly
+    ${flow_still_open}=    Run Keyword And Return Status    Page Should Contain Element
+    ...    xpath=//flowruntime-flow | //div[contains(@class,'modal-container')] | //section[contains(@class,'slds-modal')]
+    IF    ${flow_still_open}
+        Fail    msg=Flow did not complete after ${max_screens} screens. The flow may have more screens than expected or may be stuck. Increase max_screens or investigate the flow state.
     END
 
 # ── Create Order ───────────────────────────────────────────────────

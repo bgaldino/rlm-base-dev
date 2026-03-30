@@ -214,11 +214,18 @@ class SalesforceAPI:
     def query_records(self, soql):
         """Execute a SOQL query and return the list of records.
 
+        Returns only the first page of results (up to 2,000 rows). Salesforce
+        returns done=false and a nextRecordsUrl when results exceed one page;
+        this method does not follow pagination. All callers should include a
+        LIMIT clause or use aggregate queries (e.g. COUNT) to stay within a
+        single page and avoid silently truncated results.
+
         Args:
-            soql: SOQL query string.
+            soql: SOQL query string. Must include LIMIT or be an aggregate
+                query to guarantee complete results.
 
         Returns:
-            List of record dictionaries.
+            List of record dictionaries (first page only).
         """
         self._ensure_authenticated()
         resp = requests.get(
