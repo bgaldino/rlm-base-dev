@@ -2,9 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Build_Timestamp__c</fullName>
     <label>Build Timestamp</label>
-    <type>Text</type>
-    <length>25</length>
+    <type>DateTime</type>
     <required>false</required>
-    <unique>false</unique>
     <externalId>false</externalId>
 </CustomField>

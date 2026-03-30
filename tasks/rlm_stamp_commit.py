@@ -271,7 +271,7 @@ class StampGitCommit(SFDXBaseTask):
         project = {
             "packageDirectories": [{"path": "force-app", "default": True}],
             "sfdcLoginUrl": "https://login.salesforce.com",
-            "sourceApiVersion": self.project_config.project__package__api_version,
+            "sourceApiVersion": str(self.project_config.project__package__api_version),
         }
         path = os.path.join(temp_dir, "sfdx-project.json")
         with open(path, "w", encoding="utf-8") as f:
@@ -318,7 +318,7 @@ class StampGitCommit(SFDXBaseTask):
             "    </values>\n"
             "    <values>\n"
             "        <field>RLM_Build_Timestamp__c</field>\n"
-            f'        <value xsi:type="xsd:string">'
+            f'        <value xsi:type="xsd:dateTime">'
             f"{escape(fields['build_timestamp'])}</value>\n"
             "    </values>\n"
             "    <values>\n"
