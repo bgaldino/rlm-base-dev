@@ -223,7 +223,7 @@ class StampGitCommit(SFDXBaseTask):
         }
         if not config:
             return "none"
-        serialized = yaml.dump(config, default_flow_style=False, sort_keys=True).strip()
+        serialized = yaml.safe_dump(config, default_flow_style=False, sort_keys=True).strip()
         # RLM_Feature_Flags__c is LongTextArea(32000); truncate if needed.
         max_len = 32000
         if len(serialized) > max_len:
