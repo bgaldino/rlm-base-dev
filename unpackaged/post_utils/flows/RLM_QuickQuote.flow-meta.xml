@@ -4,11 +4,6 @@
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <environments>Default</environments>
     <formulas>
-        <name>CloseDate</name>
-        <dataType>Date</dataType>
-        <expression>Today() + 30</expression>
-    </formulas>
-    <formulas>
         <name>CloseDateforOpportunity</name>
         <dataType>Date</dataType>
         <expression>IF( MONTH( TODAY() ) = 12,
@@ -21,11 +16,6 @@ DATE( YEAR( TODAY() ), MONTH( TODAY() ) + 1, 1) - 1)</expression>
         <expression>Today() + 30</expression>
     </formulas>
     <formulas>
-        <name>OpportunityName</name>
-        <dataType>String</dataType>
-        <expression>{!Opportunity_Associated_to_the_Quote.Name}</expression>
-    </formulas>
-    <formulas>
         <name>OpportunityNameFormula</name>
         <dataType>String</dataType>
         <expression>&quot;New Opportunity for &quot; + {!Get_Account_Details.Name}</expression>
@@ -34,11 +24,6 @@ DATE( YEAR( TODAY() ), MONTH( TODAY() ) + 1, 1) - 1)</expression>
         <name>QuoteName</name>
         <dataType>String</dataType>
         <expression>&quot;New Quote For&quot; + &quot; &quot; + {!Opportunity_Associated_to_the_Quote.Account.Name}</expression>
-    </formulas>
-    <formulas>
-        <name>Service_End_Date</name>
-        <dataType>Date</dataType>
-        <expression>DATE(YEAR(TODAY())+1,MONTH(TODAY()), DAY(TODAY()-1))</expression>
     </formulas>
     <formulas>
         <name>Service_Start_Date</name>
