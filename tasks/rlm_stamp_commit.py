@@ -40,7 +40,7 @@ except ImportError:
 DEPLOY_TIMEOUT_SECONDS = 300
 # --wait value passed to sf CLI (minutes); kept slightly below the subprocess
 # timeout so the CLI can return its JSON output before being force-killed.
-DEPLOY_WAIT_MINUTES = (DEPLOY_TIMEOUT_SECONDS - 30) // 60  # 4
+DEPLOY_WAIT_MINUTES = max(1, (DEPLOY_TIMEOUT_SECONDS - 30) // 60)  # 4
 
 
 class StampGitCommit(SFDXBaseTask):
@@ -178,10 +178,13 @@ class StampGitCommit(SFDXBaseTask):
         if not output:
             return False
         for line in output.splitlines():
-            # porcelain format: XY <path> or XY <path> -> <renamed>
-            path = line[3:].split(" -> ")[0]
-            if not any(path.startswith(bp) for bp in self.BUILD_OUTPUT_PATHS):
-                return True
+            # porcelain format: XY <path> or XY <old path> -> <new path>
+            # Check both sides of a rename: a rename from a build-output path
+            # to a non-build-output path (or vice versa) must still count as dirty.
+            paths = [p.strip() for p in line[3:].split(" -> ")]
+            for path in paths:
+                if path and not any(path.startswith(bp) for bp in self.BUILD_OUTPUT_PATHS):
+                    return True
         return False
 
     # ------------------------------------------------------------------
