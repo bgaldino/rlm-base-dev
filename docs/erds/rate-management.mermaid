@@ -1,0 +1,17 @@
+erDiagram
+    BindingObjectCustomExt
+    BindingObjectRateAdjustment
+    BindingObjectRateCardEntry
+    PriceBookRateCard
+    RateAdjustmentByAttribute
+    RateAdjustmentByTier
+    RateCard
+    RateCardEntry
+    RatingFrequencyPolicy
+    RatingRequest
+    RatingRequestBatchJob
+    RateAdjustmentByTier }o--|| RateCard : RateCardId
+    RateAdjustmentByAttribute }o--|| RateCardEntry : RateCardEntryId
+    RateAdjustmentByAttribute }o--|| RateCard : RateCardId
+    BindingObjectRateCardEntry }o--|| BindingObjectCustomExt : BindingObjectId
+    RateCardEntry }o--|| RateCard : RateCardId

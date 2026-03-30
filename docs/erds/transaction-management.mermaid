@@ -1,0 +1,99 @@
+erDiagram
+    Account
+    Asset
+    AssetAction
+    AssetActionSource
+    AssetActionSrcPriceAdjustment
+    AssetContractRelationship
+    AssetDowntimePeriod
+    AssetOwnerSharingRule
+    AssetRateAdjustment
+    AssetRateCardEntry
+    AssetRelationship
+    AssetShare
+    AssetStatePeriod
+    AssetStatePeriodAttribute
+    AssetTag
+    AssetTokenEvent
+    AssetWarranty
+    BindingObjUsageRsrcPlcy
+    Contact
+    Contract
+    ContractItemPriceAdjTier
+    ContractItemPriceHistory
+    ContractLineItem
+    Order
+    OrderDeliveryMethod
+    OrderItem
+    OrderItemAttribute
+    OrderItemDetail
+    OrderItemGroup
+    OrderItemRateAdjustment
+    OrderItemRateCardEntry
+    OrderItemUsageRsrcGrant
+    OrderItemUsageRsrcPlcy
+    QuotLineItmUsageRsrcPlcy
+    QuotLineItmUseRsrcGrant
+    Quote
+    QuoteAction
+    QuoteLineDetail
+    QuoteLineGroup
+    QuoteLineItem
+    QuoteLineItemAttribute
+    QuoteLineRateAdjustment
+    QuoteLineRateCardEntry
+    SalesTransactionType
+    QuoteAction }o--|| Quote : QuoteId
+    QuoteAction }o--|| Asset : SourceAssetId
+    AssetRelationship }o--|| Asset : AssetId
+    AssetRelationship }o--|| Asset : RelatedAssetId
+    QuoteLineRateCardEntry }o--|| OrderItemGroup : Field
+    QuoteLineRateCardEntry }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    AssetShare }o--|| Asset : Lookup
+    OrderItemGroup }o--|| OrderItemGroup : Field
+    OrderItemGroup }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    AssetContractRelationship }o--|| Asset : AssetId
+    AssetRateCardEntry }o--|| Asset : BindingObjectId
+    AssetWarranty }o--|| Asset : BindingObjectId
+    AssetActionSrcPriceAdjustment }o--|| Asset : AssetId
+    Order }o--|| SalesTransactionType : SalesTransactionTypeId
+    Asset }o--|| Asset : ParentId
+    Asset }o--|| Asset : RootAssetId
+    Quote }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    QuoteLineGroup }o--|| QuoteLineGroup : ParentQuoteLineGroupId
+    AssetAction }o--|| Asset : Lookup
+    AssetStatePeriod }o--|| Asset : AssetId
+    AssetStatePeriod }o--|| Asset : BindingInstanceTargetId
+    AssetActionSource }o--|| AssetAction : AssetActionId
+    AssetActionSource }o--|| AssetAction : Lookup
+    QuoteLineItem ||--o{ Quote : QuoteId
+    QuoteLineItem }o--|| QuoteLineGroup : QuoteLineGroupId
+    OrderItem ||--o{ Order : OrderId
+    OrderItem }o--|| OrderItemGroup : OrderItemGroupId
+    OrderItem }o--|| QuoteLineItem : QuoteLineItemId
+    OrderItem }o--|| OrderItem : OriginalOrderItemId
+    Order }o--|| Account : AccountId
+    Quote }o--|| Account : AccountId
+    Asset }o--|| Account : AccountId
+    Contract }o--|| Account : AccountId
+    Contact }o--|| Account : AccountId
+    Account }o--|| Account : ParentId
+    Quote }o--|| Contact : ContactId
+    Order }o--|| Contract : ContractId
+    Order }o--|| Quote : QuoteId
+    QuoteLineItemAttribute ||--o{ QuoteLineItem : QuoteLineItemId
+    QuoteLineDetail ||--o{ QuoteLineItem : QuoteLineItemId
+    QuoteLineRateAdjustment ||--o{ QuoteLineItem : QuoteLineItemId
+    QuoteLineRateCardEntry ||--o{ QuoteLineItem : QuoteLineItemId
+    QuotLineItmUsageRsrcPlcy ||--o{ QuoteLineItem : QuoteLineItemId
+    QuotLineItmUseRsrcGrant ||--o{ QuoteLineItem : QuoteLineItemId
+    OrderItemAttribute ||--o{ OrderItem : OrderItemId
+    OrderItemDetail ||--o{ OrderItem : OrderItemId
+    OrderItemRateAdjustment ||--o{ OrderItem : OrderItemId
+    OrderItemRateCardEntry }o--|| OrderItem : OrderItemId
+    OrderItemUsageRsrcPlcy ||--o{ OrderItem : OrderItemId
+    OrderItemUsageRsrcGrant ||--o{ OrderItem : OrderItemId
+    Asset }o--|| Contact : ContactId
+    AssetAction ||--o{ Asset : AssetId
+    AssetActionSource }o--|| OrderItem : OrderItemId
+    ContractLineItem }o--|| Asset : AssetId

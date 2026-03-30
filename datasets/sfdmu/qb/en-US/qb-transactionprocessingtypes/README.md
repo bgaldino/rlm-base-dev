@@ -1,6 +1,8 @@
 # qb-transactionprocessingtypes Data Plan
 
-SFDMU data plan for QuantumBit (QB) Transaction Processing Types. Creates the `TransactionProcessingType` metadata records required for the Standard and Advanced Configurator engines. These records must exist before constraint metadata can be deployed.
+SFDMU data plan for QuantumBit (QB) Transaction Processing Types. Creates the `TransactionProcessingType` metadata records required for the Standard Configurator, Advanced Configurator, and Advanced Config with Fetch Rates engines. These records must exist before constraint metadata can be deployed.
+
+Salesforce documentation: [TransactionProcessingType (Tooling API)](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/tooling_api_objects_transactionprocessingtype.htm)
 
 ## CCI Integration
 
@@ -8,12 +10,12 @@ SFDMU data plan for QuantumBit (QB) Transaction Processing Types. Creates the `T
 
 This plan is executed as **step 1** of the `prepare_constraints` flow (when `constraints=true`, `qb=true`).
 
-| Step | Task                                        | Description                                            |
-|------|---------------------------------------------|--------------------------------------------------------|
-| 1    | `insert_qb_transactionprocessingtypes_data` | Runs this SFDMU plan (single pass, Insert)             |
-| 2    | `deploy_post_constraints`                   | Deploys constraint metadata                            |
-| 3    | `assign_permission_sets`                    | Assigns constraint permission sets (TSO + ProcPlans)   |
-| 4    | `apply_context_constraint_engine_node_status` | Applies constraint engine node status               |
+| Step | Task                                        | Description                                          |
+|------|---------------------------------------------|------------------------------------------------------|
+| 1    | `insert_qb_transactionprocessingtypes_data` | Runs this SFDMU plan (single pass, Upsert)           |
+| 2    | `deploy_post_constraints`                   | Deploys constraint metadata                          |
+| 3    | `assign_permission_sets`                    | Assigns constraint permission sets (TSO + ProcPlans) |
+| 4    | `apply_context_constraint_engine_node_status` | Applies constraint engine node status              |
 
 ### Task Definition
 
@@ -26,159 +28,134 @@ insert_qb_transactionprocessingtypes_data:
 
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** with one Insert-only object.
+The plan uses a **single SFDMU pass** with one Upsert object. `excludeIdsFromCSVFiles: "true"` for cross-org portability.
 
-```
+```text
 Single Pass (SFDMU)
 ───────────────────────────────────
-Insert TransactionProcessingType
-(2 records: Standard + Advanced)
+Upsert TransactionProcessingType
+(3 records: Standard + Advanced + AdvFetchConfig)
 ```
 
 ### Objects
 
-| # | Object                      | Operation | External ID     | Records |
-|---|-----------------------------|-----------|-----------------|---------|
-| 1 | TransactionProcessingType   | Insert    | `DeveloperName` | 2       |
+| # | Object                    | Operation | External ID     | Records |
+|---|---------------------------|-----------|-----------------|---------|
+| 1 | TransactionProcessingType | Upsert    | `DeveloperName` | 3       |
 
 ### Records
 
-| DeveloperName          | MasterLabel              | RuleEngine              | SaveType |
-|------------------------|--------------------------|-------------------------|----------|
-| StandardConfigurator   | Standard Configurator    | StandardConfigurator    | Standard |
-| AdvancedConfigurator   | Advanced Configurator    | AdvancedConfigurator    | Standard |
-
-## Configuration
-
-### Notable Settings
-
-- **`operation: "Insert"`** — Uses Insert, not Upsert. This means:
-  - Re-runs will attempt to insert duplicates (unless SFDMU detects existing records by `DeveloperName`)
-  - The `externalId: "DeveloperName"` is specified but only used for CSV-to-record matching, not for upsert deduplication
-- **`excludeIdsFromCSVFiles: "false"`** — Raw Salesforce IDs may be present in CSV files (portability concern)
+| DeveloperName        | MasterLabel            | RuleEngine           | SaveType | PricingPreference | RatingPreference | TaxPreference |
+|----------------------|------------------------|----------------------|----------|-------------------|------------------|---------------|
+| AdvFetchConfig       | Adv Config Fetch Rates | AdvancedConfigurator | Standard | System            | Fetch            |               |
+| StandardConfigurator | Standard Configurator  | StandardConfigurator | Standard |                   |                  |               |
+| AdvancedConfigurator | Advanced Configurator  | AdvancedConfigurator | Standard |                   |                  |               |
 
 ## Portability
 
-- **External ID**: `DeveloperName` — fully portable across orgs ("StandardConfigurator", "AdvancedConfigurator")
+- **External ID**: `DeveloperName` — fully portable across orgs ("AdvFetchConfig", "StandardConfigurator", "AdvancedConfigurator")
 - **No auto-numbered fields**
 - **No composite keys or `$$` columns**
-
-### PORTABILITY CONCERN: `excludeIdsFromCSVFiles: "false"`
-
-Like qb-tax, this plan sets `excludeIdsFromCSVFiles: "false"`. The `source/` directory CSV contains raw Salesforce IDs. While the root `TransactionProcessingType.csv` does not include Id columns, the source/target files do.
-
-**Recommended fix:** Change to `excludeIdsFromCSVFiles: "true"` for consistency with other plans.
-
-## Idempotency
-
-### IDEMPOTENCY CONCERN: `Insert` Operation
-
-This plan uses `operation: "Insert"` instead of `"Upsert"`. This means:
-- On first run: 2 records are created successfully
-- On re-run: SFDMU may attempt to insert duplicates, which could fail if `DeveloperName` has a unique constraint, or succeed and create duplicate records
-
-**Recommended fix:** Change `operation` from `"Insert"` to `"Upsert"` so that re-runs match existing records by `DeveloperName` and skip them. This would make the plan idempotent.
-
-**Not yet validated** — idempotency testing against a 260 org is pending.
 
 ## Dependencies
 
 **Upstream:**
+
 - None — TransactionProcessingType has no parent object dependencies
 
 **Downstream:**
+
 - **Constraint metadata deployment** (`deploy_post_constraints`) depends on these records existing
 - The configurator engine references these records at runtime
 
 ## File Structure
 
-```
+```text
 qb-transactionprocessingtypes/
 ├── export.json                                # SFDMU data plan (single pass, 1 object)
 ├── README.md                                  # This file
-├── TransactionProcessingType.csv              # 2 records (Insert)
+├── TransactionProcessingType.csv              # 3 records (Upsert)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                                    # SFDMU-generated source snapshots
 └── target/                                    # SFDMU-generated target snapshots
 ```
 
-## 260 Schema Analysis (Confirmed via Org Describe)
+## Idempotency
 
-Schema was queried against a 260 scratch org. Findings below.
+Uses `Upsert` with `DeveloperName` as the external ID — when `DeveloperName` is unique per record in the org, re-runs match existing records and update in place, so no additional duplicates are created by this plan. Pre-existing duplicates (if any) are preserved.
 
-### Polymorphic Fields
+## Schema Analysis
 
-**None found.**
+### Creatable/Updatable Fields
 
-### Self-Referencing Fields
+| Field               | Type     | Creatable | Updatable | Nillable | Unique | IdLookup | In SOQL? |
+|---------------------|----------|-----------|-----------|----------|--------|----------|----------|
+| `Description`       | string   | Yes       | Yes       | Yes      | No     | No       | Yes      |
+| `DeveloperName`     | string   | Yes       | Yes       | No       | No     | No       | Yes      |
+| `Language`          | picklist | Yes       | Yes       | Yes      | No     | No       | Yes      |
+| `MasterLabel`       | string   | Yes       | Yes       | No       | No     | No       | Yes      |
+| `PricingPreference` | picklist | Yes       | Yes       | Yes      | No     | No       | Yes      |
+| `RatingPreference`  | picklist | Yes       | Yes       | Yes      | No     | No       | Yes      |
+| `RuleEngine`        | picklist | Yes       | Yes       | Yes      | No     | No       | Yes      |
+| `SaveType`          | picklist | Yes       | Yes       | No       | No     | No       | Yes      |
+| `TaxPreference`     | picklist | Yes       | Yes       | Yes      | No     | No       | Yes      |
 
-**None found.**
+### Read-Only / System Fields (not in SOQL)
 
-### Schema Changes
+| Field              | Type      |
+|--------------------|-----------|
+| `Id`               | id        |
+| `CreatedById`      | reference |
+| `CreatedDate`      | datetime  |
+| `LastModifiedById` | reference |
+| `LastModifiedDate` | datetime  |
+| `SystemModstamp`   | datetime  |
+| `IsDeleted`        | boolean   |
+| `ManageableState`  | picklist  |
+| `NamespacePrefix`  | string    |
 
-**`RuleEngine` field — NOT in 260 schema!**
+### Field Descriptions and Valid Values
 
-The current SOQL query includes `RuleEngine`:
-```sql
-SELECT Description, DeveloperName, Language, MasterLabel, RuleEngine, SaveType FROM TransactionProcessingType
-```
+**`Description`** (string, nillable) — Free-text description to help admins with configuration.
 
-However, the 260 schema describe does **not** return a `RuleEngine` field. The complete list of non-system fields is:
+**`DeveloperName`** (string, required) — API name (expected unique per org by convention). Alphanumeric and underscores only; must begin with a letter, no spaces, no trailing or consecutive underscores.
 
-| Field               | Type     | Updateable | In Current SOQL? |
-|---------------------|----------|------------|-------------------|
-| `DeveloperName`     | STRING   | Yes        | Yes               |
-| `Language`          | PICKLIST | Yes        | Yes               |
-| `MasterLabel`       | STRING   | Yes        | Yes               |
-| `NamespacePrefix`   | STRING   | No         | Yes (read-only)   |
-| `SaveType`          | PICKLIST | Yes        | Yes               |
-| `Description`       | STRING   | Yes        | Yes               |
-| `PricingPreference` | PICKLIST | Yes        | **No — MISSING**  |
-| `TaxPreference`     | PICKLIST | Yes        | **No — MISSING**  |
-| `RatingPreference`  | PICKLIST | Yes        | **No — MISSING**  |
+**`Language`** (picklist, restricted, nillable) — Language of the record. Valid values: `da` (Danish), `de` (German), `en_US` (English), `es` (Spanish), `es_MX` (Spanish Mexico), `fi` (Finnish), `fr` (French), `it` (Italian), `ja` (Japanese), `ko` (Korean), `nl_NL` (Dutch), `no` (Norwegian), `pt_BR` (Portuguese Brazil), `ru` (Russian), `sv` (Swedish), `th` (Thai), `zh_CN` (Chinese Simplified), `zh_TW` (Chinese Traditional).
 
-**Findings:**
-1. **`RuleEngine` may have been removed or renamed in 260** — the SOQL query will fail if this field no longer exists. This needs urgent validation: run the SFDMU plan against a 260 org to confirm. If removed, the SOQL and CSV must be updated.
-2. **3 new picklist fields not in SOQL** — `PricingPreference`, `TaxPreference`, `RatingPreference` control which pricing, tax, and rating engines are used by the transaction processing type. These are likely important for 260 configurator behavior.
+**`MasterLabel`** (string, required) — Display label for the record.
 
-### Impact Assessment
+**`PricingPreference`** (picklist, restricted, nillable) — Controls price calculation per sales transaction. Available in API v65.0+. Valid values:
 
-- **`RuleEngine` removal**: **Critical** — the SOQL query will fail if this field no longer exists. Must be validated immediately.
-- **`PricingPreference`**: Controls which pricing engine is used (e.g., standard vs. custom). **High priority** for full 260 support.
-- **`TaxPreference`**: Controls which tax engine is invoked. **High priority** for tax integration scenarios.
-- **`RatingPreference`**: Controls which rating engine is used. **High priority** for usage-based pricing scenarios.
+- `Force` — Reprices all lines.
+- `System` — Delta pricing on unprocessed lines (when Delta Pricing is enabled).
+- `Skip` — Skips pricing on all lines.
 
-### Cross-Object Dependencies
+**`RatingPreference`** (picklist, nillable) — Controls whether catalog rates are fetched during quote creation. Available in API v66.0+ (requires Rate Management enabled). Valid value:
 
-No lookup references — `TransactionProcessingType` is a standalone metadata-like object.
+- `Fetch` — Retrieves and saves catalog rates for usage resources. If not specified, catalog rates are not saved by default.
 
-## External ID / Composite Key Analysis (Confirmed via Org Describe)
+**`RuleEngine`** (picklist, restricted, nillable) — Rule engine for processing rules. Valid values:
 
-### Schema-Enforced Unique Fields
+- `AdvancedConfigurator`
+- `StandardConfigurator`
 
-**None found.** `DeveloperName` is **not schema-unique** (`isUnique=false`, `isIdLookup=false`). Neither is `MasterLabel`.
+**`SaveType`** (picklist, restricted, required) — How transaction results are processed on save. Valid values:
 
-This means the platform does not enforce uniqueness on TransactionProcessingType DeveloperName at the schema level. However, as a metadata-like object, Salesforce may enforce uniqueness via application logic (similar to CustomMetadataType records).
+- `Standard`
+- `Large` — Reserved for future use.
 
-### ExternalId Assessment
+**`TaxPreference`** (picklist, restricted, nillable) — Controls tax calculation per sales transaction. Available in API v65.0+. Valid value:
 
-| Field          | isUnique | isIdLookup | isExternalId | Assessment |
-|----------------|----------|------------|--------------|------------|
-| `DeveloperName`| No       | No         | No           | ⚠️ Used as externalId but no schema enforcement |
-| `MasterLabel`  | No       | No         | No           | Not an alternative |
+- `Skip` — Skips tax calculation. If not specified, tax calculation runs by default.
 
-The `DeveloperName` choice is correct for this object type (standard pattern for CMDT-like records), but the lack of schema-level uniqueness means SFDMU relies on data-level uniqueness. Combined with the `Insert` operation, this creates a duplicate risk.
+### Key Findings
 
-### Composite Key Simplification
-
-Single-field key (`DeveloperName`) — no composite keys, no simplification needed. The key is as simple as it can be.
+- **No polymorphic fields, no self-referencing fields, no lookup references** — standalone metadata-like object.
+- **`DeveloperName`** — not schema-unique (`IsUnique=false`, `IsIdLookup=false`). Used as `externalId` by convention (standard pattern for CMDT-like records). Platform may enforce uniqueness via application logic.
+- **No schema-enforced unique fields** — SFDMU relies on data-level uniqueness for `DeveloperName`. Uses `Upsert` with `DeveloperName` as externalId to ensure idempotency.
+- **Single-field key** (`DeveloperName`) — no composite keys needed.
 
 ## Optimization Opportunities
 
-1. **Fix `RuleEngine` field**: Validate whether `RuleEngine` exists in 260 — if removed, update SOQL query and CSV to remove it
-2. **Add new preference fields**: Add `PricingPreference`, `TaxPreference`, `RatingPreference` to the SOQL query and CSV
-3. **Fix idempotency**: Change `operation` from `"Insert"` to `"Upsert"` using `DeveloperName` as the external ID
-4. **Fix `excludeIdsFromCSVFiles`**: Change from `"false"` to `"true"` for portability
-5. **Extraction available**: Use `extract_qb_transactionprocessingtypes_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_transactionprocessingtypes_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
-6. **Consistency**: Uses `objectSets` wrapper with a misleading name "First Pass - Insert/Upsert with Draft Status" (there is no second pass and no Draft status involved) — simplify to flat `objects` array and remove the misleading name
+1. **Extraction available**: Use `extract_qb_transactionprocessingtypes_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_transactionprocessingtypes_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.

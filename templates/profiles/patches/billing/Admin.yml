@@ -1,0 +1,12 @@
+feature: billing
+feature_flag: billing
+# Adds layout assignments for billing-specific objects (General Ledger, Invoice Line, Usage Resource).
+patches:
+  - type: add_layout_assignment
+    layout: "GeneralLedgerAccount-RLM General Ledger Account Layout"
+
+  - type: add_layout_assignment
+    layout: "InvoiceLine-RLM Invoice Line Layout"
+
+  - type: add_layout_assignment
+    layout: "UsageResource-RLM Usage Resource Layout"

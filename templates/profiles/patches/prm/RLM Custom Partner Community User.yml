@@ -1,0 +1,40 @@
+feature: prm
+feature_flag: prm
+# Adds layout assignments for the Partner Community user.
+# This patch is applied to the PRM profile base template (when prm=true).
+patches:
+  - type: add_layout_assignment
+    layout: "Account-RLM Account Layout"
+
+  - type: add_layout_assignment
+    layout: "Asset-RLM Partner Asset Layout"
+
+  - type: add_layout_assignment
+    layout: "AssetAction-RLM Asset Action Layout"
+
+  - type: add_layout_assignment
+    layout: "AttributePicklist-RLM Attribute Picklist Layout"
+
+  - type: add_layout_assignment
+    layout: "Contract-RLM Contract Layout"
+
+  - type: add_layout_assignment
+    layout: "Opportunity-RLM Opportunity Layout"
+
+  - type: add_layout_assignment
+    layout: "PricebookEntry-RLM Price Book Entry"
+
+  - type: add_layout_assignment
+    layout: "Product2-RLM Product Layout"
+
+  - type: add_layout_assignment
+    layout: "ProductCatalog-RLM Catalog Layout"
+
+  - type: add_layout_assignment
+    layout: "Quote-RLM Quote Layout"
+
+  - type: add_layout_assignment
+    layout: "QuoteLineItem-RLM Quote Line Item Layout"
+
+  - type: add_layout_assignment
+    layout: "Order-RLM Order Layout"

@@ -119,3 +119,5 @@ retrieved_rlm_bundle/
 #MFG Ignored Files
 cumulusci.yml.backup
 dev
+postman/archive/
+core.code-workspace

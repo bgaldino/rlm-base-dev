@@ -35,13 +35,6 @@
                     <value>RLM_ProductCategoryQualification</value>
                 </parameters>
                 <parameters>
-                    <input>true</input>
-                    <name>DTId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDWL0000000n5Z2AQ</value>
-                </parameters>
-                <parameters>
                     <input>false</input>
                     <name>IsQualified</name>
                     <output>true</output>
@@ -97,13 +90,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>RLM_ProductQualification</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>DTId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDWL0000000n5a2AA</value>
                 </parameters>
                 <parameters>
                     <input>false</input>

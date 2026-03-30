@@ -3,16 +3,16 @@
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>RC Revenue Management Recalc Procedure</label>
+    <label>RLM Revenue Management Recalc Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
         <fullName>RLM_Revenue_Management_Recalc_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>
-        <description>RC Revenue Management Recalc Procedure</description>
+        <description>RLM Revenue Management Recalc Procedure</description>
         <expressionSetDefinition>RLM_Revenue_Management_Recalc_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>RC Revenue Management Recalc Procedure</label>
+        <label>RLM Revenue Management Recalc Procedure</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>

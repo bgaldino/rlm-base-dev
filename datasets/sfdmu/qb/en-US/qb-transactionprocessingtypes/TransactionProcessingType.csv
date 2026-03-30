@@ -1,3 +1,4 @@
-Description,DeveloperName,Language,MasterLabel,RuleEngine,SaveType
-Transaction Type for Standard Config,StandardConfigurator,en_US,Standard Configurator,StandardConfigurator,Standard
-Transaction Type for Advanced Config,AdvancedConfigurator,en_US,Advanced Configurator,AdvancedConfigurator,Standard
+Description,DeveloperName,Language,MasterLabel,RuleEngine,SaveType,PricingPreference,RatingPreference,TaxPreference
+Txn Type Adv Config and Fetch Rates,AdvFetchConfig,en_US,Adv Config Fetch Rates,AdvancedConfigurator,Standard,System,Fetch,
+Transaction Type for Standard Config,StandardConfigurator,en_US,Standard Configurator,StandardConfigurator,Standard,,,
+Transaction Type for Advanced Config,AdvancedConfigurator,en_US,Advanced Configurator,AdvancedConfigurator,Standard,,,
