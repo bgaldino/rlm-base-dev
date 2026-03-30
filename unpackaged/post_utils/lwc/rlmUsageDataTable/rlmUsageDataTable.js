@@ -46,9 +46,9 @@ export default class RlmUsageDataTable extends LightningElement {
         return this.cardTitle || this.usageObject;
     }
 
-    /** Both usageObject and fieldSetName must be set for the component to load data */
+    /** usageObject, fieldSetName, and recordId must all be set before loading data */
     get isConfigured() {
-        return this.usageObject && this.fieldSetName;
+        return this.usageObject && this.fieldSetName && this.recordId;
     }
 
     get hasData() {

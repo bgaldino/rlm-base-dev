@@ -249,7 +249,7 @@ DATE( YEAR( TODAY() ), MONTH( TODAY() ) + 1, 1) - 1)</expression>
         <label>Get First Contact from Account</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Create_Quote</targetReference>
         </connector>
