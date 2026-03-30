@@ -1,9 +1,9 @@
 """Run E2E functional tests via Robot Framework.
 
-Passes the org alias, feature flags, and browser mode to Robot Framework
-test suites. Feature flags are read from the CCI project custom settings
-and injected as Robot variables so tests can use ``Skip If`` to gate on
-feature availability.
+Passes the org identifier (username or alias), feature flags, and browser
+mode to Robot Framework test suites. Feature flags are read from the CCI
+project custom settings and injected as Robot variables so tests can use
+``Skip If`` to gate on feature availability.
 """
 
 import subprocess
@@ -85,7 +85,10 @@ class RunE2ETests(BaseTask):
         suite = self.options.get("suite") or DEFAULT_SUITE
         suite_path = repo_root / suite
         if not suite_path.exists():
-            raise FileNotFoundError(f"Robot suite not found: {suite_path}")
+            raise TaskOptionsError(
+                f"Robot suite not found at path: {suite_path}. "
+                "Check the 'suite' task option or update the default suite path."
+            )
 
         outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

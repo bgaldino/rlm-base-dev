@@ -52,9 +52,10 @@ public with sharing class RLM_UsageDataController {
      * @param accountId The Account record Id to filter by (WHERE AccountId = :accountId)
      * @param objectApiName API name of the SObject to query (must be in ALLOWED_OBJECTS)
      * @param fieldSetName Developer name of the FieldSet on the target SObject
-     * @return Map with two keys:
+     * @return Map with three keys:
      *         - 'columns': List<Map<String, Object>> - lightning-datatable column definitions
      *         - 'records': List<Map<String, Object>> - flattened record data with lookup URLs resolved
+     *         - 'truncated': Boolean - true when the result was capped at QUERY_LIMIT rows
      * @throws AuraHandledException if objectApiName is not in the allowlist or fieldSetName is invalid
      */
     @AuraEnabled(cacheable=true)
