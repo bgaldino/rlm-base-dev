@@ -119,7 +119,12 @@ class RunE2ETests(BaseTask):
         # Pass feature flags from project custom settings
         custom = getattr(self.project_config, "project__custom", {}) or {}
         for flag in FEATURE_FLAGS:
-            value = custom.get(flag, False)
+            raw_value = custom.get(flag, False)
+            if isinstance(raw_value, str):
+                normalized = raw_value.strip().lower()
+                value = normalized in ("true", "1", "yes", "y", "on")
+            else:
+                value = bool(raw_value)
             robot_value = "true" if value else "false"
             cmd.extend(["--variable", f"{flag.upper()}:{robot_value}"])
 
@@ -156,13 +161,11 @@ class RunE2ETests(BaseTask):
             text=True,
         )
 
-        # Always log output for visibility
-        if result.stdout:
-            self.logger.info("Robot stdout:\n%s", result.stdout)
-        if result.stderr:
-            self.logger.info("Robot stderr:\n%s", result.stderr)
-
         if result.returncode != 0:
+            if result.stdout:
+                self.logger.warning("Robot stdout:\n%s", result.stdout)
+            if result.stderr:
+                self.logger.warning("Robot stderr:\n%s", result.stderr)
             raise RuntimeError(
                 f"E2E tests failed (exit code {result.returncode}). "
                 f"Check {out_path / 'log.html'} for details."
