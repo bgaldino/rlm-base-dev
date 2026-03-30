@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-26T08:25:06.639718Z",
+  "assembled_at": "2026-03-26T23:25:18.751743Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -514,6 +514,13 @@
     },
     {
       "type": "layout",
+      "name": "RLM_Build_Info__mdt-RLM Build Info Layout.layout-meta.xml",
+      "dest": "unpackaged/post_ux/layouts/RLM_Build_Info__mdt-RLM Build Info Layout.layout-meta.xml",
+      "source_tier": "base",
+      "action": "copy"
+    },
+    {
+      "type": "layout",
       "name": "GeneralLedgerAccount-RLM General Ledger Account Layout.layout-meta.xml",
       "dest": "unpackaged/post_ux/layouts/GeneralLedgerAccount-RLM General Ledger Account Layout.layout-meta.xml",
       "source_tier": "billing",
@@ -564,7 +571,7 @@
       "name": "AppSwitcher.appMenu-meta.xml",
       "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
       "source_tier": "org + template priority ordering",
-      "items_total": 40,
+      "items_total": 41,
       "priority_applied": [
         "RLM_Revenue_Cloud",
         "standard__BillingConsole",
