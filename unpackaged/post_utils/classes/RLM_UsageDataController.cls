@@ -141,7 +141,7 @@ public with sharing class RLM_UsageDataController {
         // Users need the RLM_UsageDatatables permission set for the required object/field grants.
         String soql = 'SELECT ' + String.join(queryFields, ', ') +
             ' FROM ' + objectApiName +
-            ' WHERE AccountId = :accountId WITH SECURITY_ENFORCED ORDER BY Id ASC';
+            ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC';
 
         List<SObject> records = Database.query(soql);
 
