@@ -211,7 +211,14 @@ class StampGitCommit(SFDXBaseTask):
 
         config_file = getattr(self.org_config, "config_file", None)
         if config_file:
-            org_type_parts.append(config_file)
+            # Avoid leaking absolute filesystem paths (e.g. /home/runner/...) into
+            # the org; keep only the basename for absolute paths.
+            safe_config_file = (
+                os.path.basename(config_file)
+                if os.path.isabs(config_file)
+                else config_file
+            )
+            org_type_parts.append(safe_config_file)
 
         if org_type_parts:
             parts.append(f"({', '.join(org_type_parts)})")
@@ -401,7 +408,7 @@ class StampGitCommit(SFDXBaseTask):
         deploy_succeeded = deploy_result.get("success")
         if deploy_succeeded is False:
             message = self._extract_deploy_error(output)
-            self.logger.error(f"Deploy failed: {message}")
+            self.logger.warning(f"Deploy failed: {message}")
             raise CommandException(f"Deploy failed: {message}")
 
         # Fall back to top-level status / process return code when result.success
@@ -410,7 +417,7 @@ class StampGitCommit(SFDXBaseTask):
             status = output.get("status", result.returncode)
             if status != 0:
                 message = self._extract_deploy_error(output)
-                self.logger.error(f"Deploy failed: {message}")
+                self.logger.warning(f"Deploy failed: {message}")
                 raise CommandException(f"Deploy failed: {message}")
 
         self.logger.debug("CMDT record deployed successfully")
