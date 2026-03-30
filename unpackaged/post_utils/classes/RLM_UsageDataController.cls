@@ -22,6 +22,10 @@ public with sharing class RLM_UsageDataController {
         'TransactionJournal', 'UsageSummary', 'UsageBillingPeriodItem'
     };
 
+    /** Defensive row limit to prevent query row / heap exhaustion on Accounts with many records.
+     *  When this limit is reached, the result includes truncated=true so the LWC can warn the user. */
+    private static final Integer QUERY_LIMIT = 2000;
+
     /** Maps Apex Schema.DisplayType values to lightning-datatable column type strings. */
     private static final Map<Schema.DisplayType, String> TYPE_MAP = new Map<Schema.DisplayType, String>{
         Schema.DisplayType.STRING => 'text',
@@ -141,9 +145,11 @@ public with sharing class RLM_UsageDataController {
         // Users need the RLM_UsageDatatables permission set for the required object/field grants.
         String soql = 'SELECT ' + String.join(queryFields, ', ') +
             ' FROM ' + objectApiName +
-            ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC';
+            ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC' +
+            ' LIMIT :QUERY_LIMIT';
 
         List<SObject> records = Database.query(soql);
+        Boolean truncated = records.size() == QUERY_LIMIT;
 
         // Flatten SObject records into simple maps for lightning-datatable consumption.
         // Lookup relationships are resolved into separate __url and __name keys.
@@ -187,7 +193,8 @@ public with sharing class RLM_UsageDataController {
 
         return new Map<String, Object>{
             'columns' => columns,
-            'records' => flatRecords
+            'records' => flatRecords,
+            'truncated' => truncated
         };
     }
 

@@ -29,6 +29,7 @@ export default class RlmUsageDataTable extends LightningElement {
     columns;
     allData;
     error;
+    isTruncated = false;
     isLoading = true;
     sortedBy;
     sortDirection = 'asc';
@@ -113,6 +114,7 @@ export default class RlmUsageDataTable extends LightningElement {
             });
             this.columns = result.columns;
             this.allData = result.records;
+            this.isTruncated = result.truncated === true;
             this._buildSortFieldMap(result.columns);
             this.page = 1;
             this.error = undefined;

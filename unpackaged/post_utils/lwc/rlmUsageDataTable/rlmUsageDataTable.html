@@ -51,6 +51,15 @@
                 </template>
             </template>
 
+            <!-- Truncation warning: shown when the server-side QUERY_LIMIT was reached -->
+            <template if:true={isTruncated}>
+                <div class="slds-p-horizontal_medium slds-p-bottom_x-small">
+                    <p class="slds-text-color_weak slds-text-body_small">
+                        Showing the first 2,000 records. Refine your filters or export for the full result set.
+                    </p>
+                </div>
+            </template>
+
             <!-- Empty state -->
             <template if:true={isEmpty}>
                 <div class="slds-align_absolute-center slds-p-around_medium">
