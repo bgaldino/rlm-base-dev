@@ -289,7 +289,7 @@ class SalesforceAPI:
             Integer count of assets.
         """
         records = self.query_records(
-            f"SELECT COUNT(Id) cnt FROM Asset WHERE AccountId = '{account_id}'"
+            f"SELECT COUNT(Id) cnt FROM Asset WHERE AccountId = '{self._soql_escape(account_id)}'"
         )
         if records:
             return int(records[0].get("cnt", 0))
