@@ -87,7 +87,14 @@ public with sharing class RLM_UsageDataController {
             String fieldApiName = fsm.getFieldPath();
             Schema.DisplayType fieldType = fsm.getType();
             String label = fsm.getLabel();
-            Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldApiName).getDescribe();
+            Schema.SObjectField sObjField = fieldMap.get(fieldApiName);
+            if (sObjField == null) {
+                throw new AuraHandledException(
+                    'FieldSet entry "' + fieldApiName + '" on ' + objectApiName +
+                    ' is not a direct field on the object. Relationship paths and non-field entries are not supported.'
+                );
+            }
+            Schema.DescribeFieldResult fieldDescribe = sObjField.getDescribe();
 
             if (fieldDescribe.isNameField()) {
                 // Name fields (e.g. Name, UsageBillingPeriodItemNum) render as URLs to the record itself
