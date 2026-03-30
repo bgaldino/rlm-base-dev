@@ -59,6 +59,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>UsageSummary.AccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>UsageSummary.AssetId</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -95,6 +100,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>UsageSummary.UsageResourceId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.AccountId</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
