@@ -1,6 +1,5 @@
 *** Settings ***
 Documentation     Shared keywords for E2E functional tests. Provides navigation,
-...               QuickAction interaction, async polling, and verification keywords.
 ...               QuickAction interaction, async polling, browser lifecycle management,
 ...               and verification keywords. Authentication is handled by the calling suite.
 Library           SeleniumLibrary    timeout=15    implicit_wait=5
