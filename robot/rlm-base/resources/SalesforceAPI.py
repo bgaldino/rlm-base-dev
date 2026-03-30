@@ -296,6 +296,23 @@ class SalesforceAPI:
         return 0
 
     @keyword
+    def find_account_by_name(self, account_name):
+        """Find an Account record by Name.
+
+        Args:
+            account_name: Account name to search for.
+
+        Returns:
+            Account record Id, or raises if not found.
+        """
+        records = self.query_records(
+            f"SELECT Id, Name FROM Account WHERE Name = '{self._soql_escape(account_name)}' LIMIT 1"
+        )
+        if not records:
+            raise AssertionError(f"Account not found: {account_name}")
+        return records[0]["Id"]
+
+    @keyword
     def find_product_by_name(self, product_name):
         """Find a Product2 record by Name.
 

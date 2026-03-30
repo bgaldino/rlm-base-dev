@@ -982,12 +982,7 @@ _Click Save Quote Via JS
 Lookup Test Account
     [Documentation]    Looks up the test Account by name and sets ACCOUNT_ID as a suite variable.
     ...    Fails if the Account is not found in the org.
-    ${records}=    SalesforceAPI.Query Records    SELECT Id FROM Account WHERE Name = '${TEST_ACCOUNT_NAME}' LIMIT 1
-    ${count}=    Get Length    ${records}
-    IF    ${count} == 0
-        Fail    msg=Account "${TEST_ACCOUNT_NAME}" not found in org. Override via -v TEST_ACCOUNT_NAME:"Your Account"
-    END
-    ${acc_id}=    Set Variable    ${records}[0][Id]
+    ${acc_id}=    SalesforceAPI.Find Account By Name    ${TEST_ACCOUNT_NAME}
     Set Suite Variable    ${ACCOUNT_ID}    ${acc_id}
     Log    Using Account: ${TEST_ACCOUNT_NAME} (${acc_id})
 
