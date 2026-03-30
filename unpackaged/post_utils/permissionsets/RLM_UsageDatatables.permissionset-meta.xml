@@ -54,6 +54,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>TransactionJournal.Status</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>TransactionJournal.UsageResourceId</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -95,6 +100,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>UsageSummary.UsageEntitlementAccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageSummary.Status</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -155,6 +165,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>UsageBillingPeriodItem.UsageEntitlementBucketId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.Status</field>
         <readable>true</readable>
     </fieldPermissions>
     <objectPermissions>

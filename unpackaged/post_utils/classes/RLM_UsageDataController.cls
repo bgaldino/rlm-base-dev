@@ -154,6 +154,9 @@ public with sharing class RLM_UsageDataController {
 
                 } else if (fsm.getType() == Schema.DisplayType.REFERENCE) {
                     Object lookupId = rec.get(fieldApiName);
+                    // Always populate fieldApiName with the raw Id so that text-column
+                    // fallbacks (polymorphic/no-relationship-name fields) render correctly.
+                    row.put(fieldApiName, lookupId);
                     if (lookupId != null) {
                         row.put(fieldApiName + '__url', '/' + String.valueOf(lookupId));
                         String relName = lookupRelNames.get(fieldApiName);
