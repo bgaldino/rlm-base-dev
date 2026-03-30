@@ -105,8 +105,13 @@ class RunE2ETests(BaseTask):
         if headed:
             cmd.extend(["--variable", "HEADED:true"])
         pause = str(self.options.get("pause_for_recording", "false")).lower() == "true"
-        if pause:
+        if pause and headed:
             cmd.extend(["--variable", "PAUSE_FOR_RECORDING:true"])
+        elif pause and not headed:
+            self.logger.warning(
+                "pause_for_recording was requested but headed=false; "
+                "ignoring PAUSE_FOR_RECORDING to avoid hanging headless/CI runs."
+            )
 
         # Pass feature flags from project custom settings
         custom = getattr(self.project_config, "project__custom", {}) or {}
