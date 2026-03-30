@@ -24,6 +24,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>TransactionJournal.ActivityDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>TransactionJournal.EndDate</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -59,7 +64,27 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>UsageSummary.ConsumptionUnits</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageSummary.EndDateTime</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>UsageSummary.LiableSummaryId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageSummary.StartDateTime</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageSummary.UomId</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -79,7 +104,47 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>UsageBillingPeriodItem.EndDateTime</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>UsageBillingPeriodItem.GrantBindingTargetId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.OverageAmount</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.OverageQuantity</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.StartDateTime</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.TotalUsedQuantity</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.UoMId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.UsageBillingPeriodItemNum</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>UsageBillingPeriodItem.UsageEntitlementBucketId</field>
         <readable>true</readable>
     </fieldPermissions>
     <objectPermissions>

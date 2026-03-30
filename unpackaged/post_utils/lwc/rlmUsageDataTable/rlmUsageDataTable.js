@@ -7,7 +7,7 @@
  *              - Columns and fields are driven by FieldSet metadata (configurable without code changes)
  *              - Name and lookup fields render as clickable hyperlinks
  *              - Client-side sorting on all columns with type-aware comparison
- *              - Client-side pagination with configurable page size
+ *              - Client-side pagination with fixed page size (10 records per page)
  *              - Setup-required state when component properties are not configured
  */
 import { LightningElement, api } from 'lwc';
