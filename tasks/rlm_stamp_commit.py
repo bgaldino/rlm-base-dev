@@ -408,7 +408,6 @@ class StampGitCommit(SFDXBaseTask):
         deploy_succeeded = deploy_result.get("success")
         if deploy_succeeded is False:
             message = self._extract_deploy_error(output)
-            self.logger.warning(f"Deploy failed: {message}")
             raise CommandException(f"Deploy failed: {message}")
 
         # Fall back to top-level status / process return code when result.success
@@ -417,7 +416,6 @@ class StampGitCommit(SFDXBaseTask):
             status = output.get("status", result.returncode)
             if status != 0:
                 message = self._extract_deploy_error(output)
-                self.logger.warning(f"Deploy failed: {message}")
                 raise CommandException(f"Deploy failed: {message}")
 
         self.logger.debug("CMDT record deployed successfully")

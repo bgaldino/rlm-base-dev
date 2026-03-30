@@ -23,7 +23,7 @@ tasks/                      # Custom Python CCI task classes
   rlm_sfdmu.py              # SFDMU load, extract, delete, idempotency tasks
   rlm_apex_file.py          # Run Apex from file
   rlm_ux_assembly.py        # Dynamic UX assembly (flexipages, layouts, apps, profiles, objects)
-  rlm_stamp_commit.py        # Stamp git commit hash, branch, feature flags into org (RLM_Build_Info__mdt)
+  rlm_stamp_commit.py       # Stamp git commit hash, branch, feature flags into org (RLM_Build_Info__mdt)
   rlm_manage_decision_tables.py
   rlm_manage_expression_sets.py
   ... (other custom tasks)
