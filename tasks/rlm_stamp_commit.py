@@ -211,15 +211,32 @@ class StampGitCommit(SFDXBaseTask):
 
         return " ".join(parts) if parts else "unknown"
 
+    # Key name fragments that suggest a value may be a secret.
+    # Values for matching keys are redacted before storing in the org.
+    _SECRET_KEY_FRAGMENTS = (
+        "token", "secret", "password", "passwd", "credential",
+        "apikey", "api_key", "private_key", "auth",
+    )
+
+    @staticmethod
+    def _is_potential_secret_key(key):
+        """Return True if the key name suggests it may hold a sensitive value."""
+        lower = key.lower()
+        return any(frag in lower for frag in StampGitCommit._SECRET_KEY_FRAGMENTS)
+
     def _resolve_feature_flags(self):
         """Serialize project custom config as YAML for the feature flags field.
 
         Filters out YAML anchor lists (permission set arrays) and dicts,
         keeping only scalar config values (booleans, strings, numbers).
+        Keys whose names suggest secrets (token, password, key, etc.) have
+        their values replaced with '[REDACTED]' before storing in the org.
         """
         custom = getattr(self.project_config, "project__custom", {}) or {}
         config = {
-            k: v for k, v in custom.items() if not isinstance(v, (list, dict))
+            k: ("[REDACTED]" if self._is_potential_secret_key(k) else v)
+            for k, v in custom.items()
+            if not isinstance(v, (list, dict))
         }
         if not config:
             return "none"
@@ -369,12 +386,23 @@ class StampGitCommit(SFDXBaseTask):
                 f"Stderr: {result.stderr[:500]}"
             )
 
-        # Prefer JSON 'status' but fall back to the process return code
-        status = output.get("status", result.returncode)
-        if status != 0:
+        # Check result.success first — sf CLI can return top-level status=0
+        # even when the deploy itself failed (failure is in result.success/status).
+        deploy_result = output.get("result") or {}
+        deploy_succeeded = deploy_result.get("success")
+        if deploy_succeeded is False:
             message = self._extract_deploy_error(output)
             self.logger.error(f"Deploy failed: {message}")
             raise CommandException(f"Deploy failed: {message}")
+
+        # Fall back to top-level status / process return code when result.success
+        # is absent (e.g. auth errors that never reach the deploy phase).
+        if deploy_succeeded is None:
+            status = output.get("status", result.returncode)
+            if status != 0:
+                message = self._extract_deploy_error(output)
+                self.logger.error(f"Deploy failed: {message}")
+                raise CommandException(f"Deploy failed: {message}")
 
         self.logger.debug("CMDT record deployed successfully")
 
