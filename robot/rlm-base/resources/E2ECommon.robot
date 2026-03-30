@@ -86,7 +86,9 @@ Navigate To App
     [Arguments]    ${app_name}
     ${app_api_name}=    Evaluate    'RLM_' + $app_name.replace(' ', '_')
     ${url}=    Get Authenticated Url    /lightning/app/c__${app_api_name}
+    ${prev_level}=    Set Log Level    NONE
     Go To    ${url}
+    Set Log Level    ${prev_level}
     Wait Until Page Contains Element    css:body    timeout=${PAGE_LOAD_TIMEOUT}
     Sleep    ${LIGHTNING_RENDER_WAIT}    reason=Allow app to load
     Log    Navigated to app: ${app_name}
@@ -95,7 +97,9 @@ Navigate To Record
     [Documentation]    Navigates to a Salesforce record page by SObject type and Id.
     [Arguments]    ${sobject}    ${record_id}
     ${url}=    Get Authenticated Url    /lightning/r/${sobject}/${record_id}/view
+    ${prev_level}=    Set Log Level    NONE
     Go To    ${url}
+    Set Log Level    ${prev_level}
     Wait Until Page Contains Element    css:body    timeout=${PAGE_LOAD_TIMEOUT}
     Sleep    ${LIGHTNING_RENDER_WAIT}    reason=Allow Lightning to finish rendering
 

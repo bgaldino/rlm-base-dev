@@ -151,8 +151,9 @@ class SalesforceAPI:
             quote_id: Quote Id.
             product2_id: Product2 Id.
             quantity: Quantity (default: 1).
-            unit_price: Unit price. Required if no PricebookEntryId.
-            pricebook_entry_id: PricebookEntryId. If not provided, looks it up.
+            unit_price: Unit price override. Optional if PricebookEntryId is provided.
+            pricebook_entry_id: PricebookEntryId. Required — no automatic lookup
+                is performed. Use find_pricebook_entry() to obtain one if needed.
 
         Returns:
             The new QuoteLineItem record Id.
@@ -186,6 +187,15 @@ class SalesforceAPI:
         return record_id
 
     # ── Querying ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def _soql_escape(value):
+        """Escape a string value for embedding in a SOQL string literal.
+
+        Replaces single quotes with escaped single quotes to prevent
+        SOQL injection from user-supplied names or CLI overrides.
+        """
+        return str(value).replace("'", "\\'")
 
     @keyword
     def query_records(self, soql):
@@ -289,7 +299,7 @@ class SalesforceAPI:
             Product2 record Id, or raises if not found.
         """
         records = self.query_records(
-            f"SELECT Id, Name FROM Product2 WHERE Name = '{product_name}' LIMIT 1"
+            f"SELECT Id, Name FROM Product2 WHERE Name = '{self._soql_escape(product_name)}' LIMIT 1"
         )
         if not records:
             raise AssertionError(f"Product2 not found: {product_name}")
@@ -308,8 +318,8 @@ class SalesforceAPI:
         """
         records = self.query_records(
             f"SELECT Id, UnitPrice FROM PricebookEntry "
-            f"WHERE Product2Id = '{product2_id}' "
-            f"AND Pricebook2.Name = '{pricebook_name}' "
+            f"WHERE Product2Id = '{self._soql_escape(product2_id)}' "
+            f"AND Pricebook2.Name = '{self._soql_escape(pricebook_name)}' "
             f"AND IsActive = true LIMIT 1"
         )
         if not records:
