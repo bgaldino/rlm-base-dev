@@ -1025,6 +1025,7 @@ Create Opportunity From Account
     Wait For Modal
     Save Modal
     Sleep    3s    reason=Allow Opportunity creation to complete
+    SalesforceAPI.Validate Salesforce Id    ${account_id}
     ${opp_id}=    Wait For Related Record Via API
     ...    SELECT Id FROM Opportunity WHERE AccountId = '${account_id}' ORDER BY CreatedDate DESC LIMIT 1
     Dismiss Toast If Present
@@ -1040,6 +1041,7 @@ Create Quote From Opportunity
     Sleep    5s    reason=Allow Flow to initialize
     Save Modal    Save
     Sleep    3s    reason=Allow Quote creation to complete
+    SalesforceAPI.Validate Salesforce Id    ${opportunity_id}
     ${q_id}=    Wait For Related Record Via API
     ...    SELECT Id FROM Quote WHERE OpportunityId = '${opportunity_id}' ORDER BY CreatedDate DESC LIMIT 1
     Dismiss Toast If Present
@@ -1071,6 +1073,7 @@ Create Order From Quote
     Select Order Creation Method
     Advance Through Flow Screens
     Dismiss Toast If Present
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
     ${order_id}=    Wait For Related Record Via API
     ...    SELECT Id FROM Order WHERE QuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Created Order: ${order_id}

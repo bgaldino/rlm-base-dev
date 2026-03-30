@@ -2,14 +2,18 @@
 Documentation     Adds products to a Quote, creates and activates an Order, and verifies Assets.
 ...
 ...               Part 2 of the Quote-to-Order flow. Expects a Quote to already exist on
-...               the test Account (run setup_quote first, or pass QUOTE_ID directly).
+...               the test Account (run setup_quote first). To reuse an existing Quote by ID,
+...               run Robot directly and pass QUOTE_ID with: --variable QUOTE_ID:<id>
 ...
-...               If QUOTE_ID is not provided, creates a fresh Quote via setup_quote steps.
+...               If QUOTE_ID is not provided (or left empty when run via CCI wrapper),
+...               this suite creates a fresh Quote via setup_quote steps.
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
-...               Run via CCI:
+...               Run via CCI (no QUOTE_ID override; will create a new Quote if needed):
 ...                 cci task run robot_order_from_quote --org beta
+...               Run Robot directly with an existing Quote:
+...                 robot --variable QUOTE_ID:<id> robot/rlm-base/tests/e2e/order_from_quote.robot
 Resource          ../../resources/E2ECommon.robot
 Resource          ../../variables/E2EVariables.robot
 Suite Setup       Setup Order From Quote Test

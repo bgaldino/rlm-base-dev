@@ -202,6 +202,33 @@ class SalesforceAPI:
     # ── Querying ─────────────────────────────────────────────────────
 
     @staticmethod
+    def _validate_salesforce_id(value):
+        """Validate that value matches the Salesforce 15- or 18-character Id format.
+
+        Raises AssertionError if the value does not match [A-Za-z0-9]{15} or
+        [A-Za-z0-9]{18}, preventing malformed or injected values from reaching
+        SOQL string interpolation.
+        """
+        import re
+        if not re.fullmatch(r'[A-Za-z0-9]{15}|[A-Za-z0-9]{18}', str(value)):
+            raise AssertionError(
+                f"Invalid Salesforce Id format: '{value}'. "
+                "Expected 15 or 18 alphanumeric characters."
+            )
+
+    @keyword
+    def validate_salesforce_id(self, value):
+        """Validate that value matches the Salesforce 15- or 18-character Id format.
+
+        Args:
+            value: The Id string to validate.
+
+        Raises:
+            AssertionError: If the value is not a valid Salesforce Id.
+        """
+        self._validate_salesforce_id(value)
+
+    @staticmethod
     def _soql_escape(value):
         """Escape a string value for embedding in a SOQL string literal.
 
