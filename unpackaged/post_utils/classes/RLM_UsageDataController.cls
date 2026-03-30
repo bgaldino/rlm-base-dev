@@ -143,13 +143,17 @@ public with sharing class RLM_UsageDataController {
 
         // WITH SECURITY_ENFORCED enforces CRUD and FLS; `with sharing` enforces record access.
         // Users need the RLM_UsageDatatables permission set for the required object/field grants.
+        Integer fetchLimit = QUERY_LIMIT + 1;
         String soql = 'SELECT ' + String.join(queryFields, ', ') +
             ' FROM ' + objectApiName +
             ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC' +
-            ' LIMIT :QUERY_LIMIT';
+            ' LIMIT :fetchLimit';
 
         List<SObject> records = Database.query(soql);
-        Boolean truncated = records.size() == QUERY_LIMIT;
+        Boolean truncated = records.size() > QUERY_LIMIT;
+        if (truncated) {
+            records = records.subList(0, QUERY_LIMIT);
+        }
 
         // Flatten SObject records into simple maps for lightning-datatable consumption.
         // Lookup relationships are resolved into separate __url and __name keys.
