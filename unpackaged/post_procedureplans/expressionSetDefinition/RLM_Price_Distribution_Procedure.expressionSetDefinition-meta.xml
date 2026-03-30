@@ -3,7 +3,7 @@
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>RC Price Distribution Procedure</label>
+    <label>RLM Price Distribution Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
@@ -11,7 +11,7 @@
         <decimalScale>2</decimalScale>
         <expressionSetDefinition>RLM_Price_Distribution_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>RC Price Distribution Procedure V1</label>
+        <label>RLM Price Distribution Procedure V1</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>

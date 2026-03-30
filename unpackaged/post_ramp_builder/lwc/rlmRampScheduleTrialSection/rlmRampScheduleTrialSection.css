@@ -1,0 +1,102 @@
+.trial-container {
+    padding: 0.5rem;
+    border-top: 1px solid #e5e5e5;
+    margin-top: 0.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #181818;
+    margin-bottom: 0.375rem;
+}
+
+.form-label.required::before {
+    content: '*';
+    color: #c23934;
+    margin-right: 0.125rem;
+}
+
+.form-input {
+    width: 100%;
+}
+
+.lock-icon {
+    --slds-c-icon-color-foreground-default: #706e6b;
+    margin-left: 0.25rem;
+}
+
+.info-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #e6f2ff;
+    border-radius: 4px;
+    color: #0176d3;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.info-message lightning-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
+/* Radio buttons on separate line from label, stacked vertically */
+.radio-vertical-stacked {
+    display: block;
+    margin-top: 0.5rem;
+}
+
+/* Target the internal fieldset to stack radio options vertically */
+.radio-vertical-stacked lightning-radio-group {
+    display: block;
+}
+
+/* Stack the radio options */
+.form-group .slds-radio_faux,
+.form-group .slds-form-element__control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Duration label styling */
+.duration-label {
+    font-size: 0.8125rem;
+    color: #181818;
+    white-space: nowrap;
+    line-height: 2.5;
+}
+
+/* Duration and Unit on same line */
+.duration-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.duration-input {
+    flex: 1;
+    max-width: 100px;
+}
+
+.duration-unit-combobox {
+    flex: 0 0 auto;
+    min-width: 100px;
+}
+
+.unit-input {
+    flex: 1;
+    max-width: 120px;
+}

@@ -132,15 +132,12 @@ class CleanupSettingsForDev(BaseTask):
         """Clean up Industries settings based on feature availability."""
         # Map settings fields to required features
         fields_to_check = {
-            # CLM-related fields
-            "enableContractSearchPref": "ContractsAIClauseDesigner",  # May need CLM
-            "enableContractsAIPref": "ContractsAIClauseDesigner",  # Requires CLM
+            # CLM-related fields — accept both current and legacy Spring '25 feature key
+            "enableContractSearchPref": {"ContractsAI", "ContractsAIClauseDesigner"},
+            "enableContractsAIPref": {"ContractsAI", "ContractsAIClauseDesigner"},
             # Analytics/Scoring fields
-            "enableScoringFrameworkOrgPref": "CGAnalytics",  # Requires CGAnalytics
-            "enableScoringFrameworkCRMAPref": "CGAnalytics",  # Requires CGAnalytics
-            # Disclosure framework
-            "enableGnrcDisclsFrmwrk": "DisclosureFramework",  # Requires DisclosureFramework
-            "enableTurnOffDsclsReprtPbsrName": "DisclosureFramework",  # Requires DisclosureFramework
+            "enableScoringFrameworkOrgPref": "RevenueIntelligence",  # Requires AIAcceleratorPsl (RevenueIntelligence)
+            "enableScoringFrameworkCRMAPref": "RevenueIntelligence",  # Requires AIAcceleratorPsl (RevenueIntelligence)
             # AI/Intelligence fields
             "enableAIAccelerator": "RevenueIntelligence",  # May require RevenueIntelligence
             # Information library
@@ -148,10 +145,12 @@ class CleanupSettingsForDev(BaseTask):
         }
         
         for field, required_feature in fields_to_check.items():
-            if required_feature not in org_features:
+            accepted = required_feature if isinstance(required_feature, set) else {required_feature}
+            if not accepted & org_features:
                 self._remove_element_from_xml(industries_file, field)
             else:
-                self.logger.debug(f"Keeping {field} - {required_feature} feature enabled")
+                matched = accepted & org_features
+                self.logger.debug(f"Keeping {field} - {matched} feature enabled")
     
     def _cleanup_permission_set_groups(self, psg_path: Path, org_features: Set[str]):
         """Move permission sets from permission set groups to RLM_TSO based on feature availability."""
@@ -175,9 +174,9 @@ class CleanupSettingsForDev(BaseTask):
             "force__EinsteinAnalyticsPlusAdmin": "CGAnalytics",
             "force__CGAnalyticsAdmin": "CGAnalytics",
             # CLM permission sets
-            "force__ContractsAIClauseDesigner": "ContractsAIClauseDesigner",
-            "force__ContractsAIRuntimeUser": "ContractsAIClauseDesigner",
-            "force__CLMAnalyticsAdmin": "ContractsAIClauseDesigner",
+            "force__ContractsAIClauseDesigner": "ContractsAI",
+            "force__ContractsAIRuntimeUser": "ContractsAI",
+            "force__CLMAnalyticsAdmin": "ContractsAI",
         }
         
         # Permission sets that are never available in Enterprise dev scratch orgs

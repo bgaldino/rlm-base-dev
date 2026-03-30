@@ -1,0 +1,43 @@
+feature: ramp_builder
+feature_flag: ramps
+# Adds ramp scheduling action and repositions the proposal creation action
+# to appear before CreateOrder (earlier in the action list).
+# All approval fields are included as fallback (no-ops if already added by
+# the approvals or docgen patches).
+patches:
+  # Move RLM_Create_Proposal from after RLM_CreateContract (where docgen
+  # placed it) to before CreateOrder — skip if docgen wasn't active.
+  - type: remove_action
+    action: "Quote.RLM_Create_Proposal"
+    ignore_missing: true
+
+  # Insert ramp schedule creation and proposal actions right after BrowseCatalog
+  - type: insert_action
+    after: "BrowseCatalog"
+    actions:
+      - "Quote.RLM_Create_Ramp_Schedule_V4"
+      - "Quote.RLM_Create_Proposal"
+
+  # Ensure approval submission action is present (no-op if approvals patch ran)
+  - type: insert_action
+    after: "Quote.RLM_CreateContract"
+    actions:
+      - "Quote.RLM_Submit_for_Approval"
+
+  # Ensure approval display field is present (no-op if approvals/docgen ran)
+  - type: add_display_field
+    field: "QuoteLineItem.RLM_Approval__c"
+
+  # Ensure approval facet fields are present (no-ops if already added)
+  - type: add_facet_field
+    facet: "Quote Information"
+    after: "Description"
+    fields:
+      - "RLM_Approval_Status__c"
+      - "RLM_Payment_Terms__c"
+
+  - type: add_facet_field
+    facet: "System Information"
+    after: "ValidationResult"
+    fields:
+      - "RLM_Approval_Level__c"

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- actionOverrides patch applied when ramps=true -->
+<actionOverrides>
+    <actionName>View</actionName>
+    <comment>Action override created by Lightning App Builder during activation.</comment>
+    <content>RLM_Quote_Line_Group_Record_Page</content>
+    <formFactor>Large</formFactor>
+    <skipRecordTypeSelect>false</skipRecordTypeSelect>
+    <type>Flexipage</type>
+    <pageOrSobjectType>QuoteLineGroup</pageOrSobjectType>
+</actionOverrides>
+<actionOverrides>
+    <actionName>View</actionName>
+    <comment>Action override created by Lightning App Builder during activation.</comment>
+    <content>RLM_Quote_Line_Group_Record_Page</content>
+    <formFactor>Small</formFactor>
+    <skipRecordTypeSelect>false</skipRecordTypeSelect>
+    <type>Flexipage</type>
+    <pageOrSobjectType>QuoteLineGroup</pageOrSobjectType>
+</actionOverrides>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Message channel for real-time communication between ramp schedule LWC components in Flow</description>
+    <isExposed>true</isExposed>
+    <lightningMessageFields>
+        <description>Name of the ramp schedule</description>
+        <fieldName>scheduleName</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Annual or Custom</description>
+        <fieldName>scheduleType</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Start date in YYYY-MM-DD format</description>
+        <fieldName>startDate</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Total duration in months</description>
+        <fieldName>durationMonths</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Number of custom segments</description>
+        <fieldName>numberOfCustomSegments</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Start or End</description>
+        <fieldName>proRataPosition</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Yes or No</description>
+        <fieldName>includeTrialSegment</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Trial duration number</description>
+        <fieldName>trialDurationValue</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Months or Days</description>
+        <fieldName>trialDurationUnit</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Trial discount percentage</description>
+        <fieldName>trialDiscountPercent</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Which component sent the message</description>
+        <fieldName>source</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Validation status - true if segments are valid</description>
+        <fieldName>isValid</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Array of validation error messages</description>
+        <fieldName>validationErrors</fieldName>
+    </lightningMessageFields>
+    <masterLabel>Ramp Schedule Channel</masterLabel>
+</LightningMessageChannel>

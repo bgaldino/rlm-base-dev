@@ -1,0 +1,37 @@
+erDiagram
+    AttributeAdjustmentCondition
+    AttributeBasedAdjRule
+    AttributeBasedAdjustment
+    BundleBasedAdjustment
+    ContractItemPrice
+    CostBook
+    CostBookEntry
+    IndexRate
+    PriceAdjustmentSchedule
+    PriceAdjustmentTier
+    PriceBook2
+    PriceBookEntry
+    PriceBookEntryDerivedPrice
+    PriceRevisionPolicy
+    PricingAPIExecution
+    PricingAdjBatchJob
+    PricingAdjBatchJobLog
+    PricingProcedureResolution
+    PricingProcessExecution
+    ProcedurePlanCriterion
+    ProductPriceHistoryLog
+    ProductPriceRange
+    ProductSellingModel
+    ProductSellingModelDataTranslation
+    ProductSellingModelOption
+    ProrationPolicy
+    ContractItemPrice }o--|| ProductSellingModel : ProductSellingModelId
+    ProcedurePlanCriterion }o--|| ProrationPolicy : ProrationPolicyId
+    AttributeBasedAdjustment }o--|| ProductSellingModel : Lookup
+    PriceBookEntry }o--|| ProductSellingModel : ProductSellingModelId
+    AttributeAdjustmentCondition }o--|| AttributeBasedAdjRule : AttributeBasedAdjRuleId
+    PriceBookEntryDerivedPrice }o--|| ProductSellingModel : ProductSellingModelId
+    PriceAdjustmentTier }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
+    PriceAdjustmentTier }o--|| ProductSellingModel : ProductSellingModelId
+    PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
+    ProductSellingModelOption }o--|| ProductSellingModel : ProductSellingModelId

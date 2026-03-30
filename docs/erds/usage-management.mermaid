@@ -1,0 +1,50 @@
+erDiagram
+    ProductUsageGrant
+    ProductUsageResource
+    ProductUsageResourcePolicy
+    TransactionJournal
+    TransactionUsageEntitlement
+    UnitOfMeasure
+    UnitOfMeasureClass
+    UsageBillingPeriodItem
+    UsageCmtAssetRelatedObj
+    UsageCommitmentPolicy
+    UsageEntitlementAccount
+    UsageEntitlementBucket
+    UsageEntitlementEntry
+    UsageGrantRenewalPolicy
+    UsageGrantRolloverPolicy
+    UsageOveragePolicy
+    UsagePrdGrantBindingPolicy
+    UsageRatableSumCmtAssetRt
+    UsageRatableSummary
+    UsageResource
+    UsageResourceBillingPolicy
+    UsageResourcePolicy
+    UsageSummary
+    UsageGrantRenewalPolicy }o--|| UsageSummary : UsageSummaryId
+    TransactionJournal }o--|| UsageResource : UsageResourceId
+    UnitOfMeasureClass }o--|| UnitOfMeasure : BaseUnitOfMeasureId
+    UnitOfMeasureClass }o--|| UnitOfMeasure : DefaultUnitOfMeasureId
+    UnitOfMeasureClass }o--|| UnitOfMeasureClass : UnitOfMeasureClassId
+    UsageCmtAssetRelatedObj }o--|| UsageResource : UsageResourceId
+    UsageEntitlementEntry }o--|| UsageEntitlementBucket : ParentEntitlementBucketId
+    UsageEntitlementEntry }o--|| TransactionUsageEntitlement : TransactionUsageEntitlementId
+    UsageEntitlementEntry }o--|| UsageEntitlementBucket : TransactionalBucketId
+    UsageResourcePolicy }o--|| UsageResourceBillingPolicy : UsageAggregationPolicyId
+    UsageResourcePolicy }o--|| UsageCommitmentPolicy : UsageCommitmentPolicyId
+    UsageResourcePolicy }o--|| UsageOveragePolicy : UsageOveragePolicyId
+    TransactionUsageEntitlement }o--|| UsageCommitmentPolicy : UsageCommitmentPolicyId
+    TransactionUsageEntitlement }o--|| UsageOveragePolicy : UsageOveragePolicyId
+    ProductUsageGrant }o--|| ProductUsageResource : ProductUsageResourceId
+    ProductUsageGrant }o--|| UsageGrantRenewalPolicy : RenewalPolicyId
+    ProductUsageGrant }o--|| UsageGrantRolloverPolicy : RolloverPolicyId
+    ProductUsageGrant }o--|| UnitOfMeasureClass : UnitOfMeasureClassId
+    ProductUsageGrant }o--|| UsageResource : UsageResourceId
+    UsageResource }o--|| UsageResource : TokenResourceId
+    UsageResource }o--|| UnitOfMeasureClass : UnitOfMeasureClassId
+    UsageResource }o--|| UsageResourceBillingPolicy : UsageResourceBillingPolicyId
+    UsageSummary }o--|| UsageSummary : Field
+    UsageSummary }o--|| UsageResource : UsageResourceId
+    UsageEntitlementBucket }o--|| UnitOfMeasure : BucketBalanceUomId
+    UsageRatableSumCmtAssetRt }o--|| UsageResource : UsageResourceId

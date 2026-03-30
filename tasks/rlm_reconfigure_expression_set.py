@@ -61,6 +61,16 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
             ),
             "required": False,
         },
+        "fallback_expression_set_name": {
+            "description": (
+                "DeveloperName of a fallback Expression Set to activate when the "
+                "primary ExpressionSetVersion is not found in the org "
+                "(e.g. 'RLM_DefaultPricingDiscoveryProcedure'). "
+                "When provided and the primary is absent, this version is activated "
+                "instead of reconfiguring the autoproc one."
+            ),
+            "required": False,
+        },
     }
 
     # -- Auth / API helpers --------------------------------------------
@@ -178,8 +188,16 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         )
 
         # 1. Query ExpressionSetVersion
-        esv = self._get_expression_set_version(es_name)
+        fallback_name = self.options.get("fallback_expression_set_name")
+        esv = self._get_expression_set_version(es_name, warn_if_missing=not fallback_name)
         if esv is None:
+            if fallback_name:
+                self.logger.info(
+                    "Primary ExpressionSetVersion '%s' not found; activating fallback '%s'.",
+                    es_name,
+                    fallback_name,
+                )
+                self._activate_fallback(fallback_name)
             return
 
         esv_id = esv["Id"]
@@ -244,12 +262,15 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
 
     # -- Step helpers --------------------------------------------------
 
-    def _get_expression_set_version(self, es_name: str) -> Optional[dict]:
+    def _get_expression_set_version(self, es_name: str, warn_if_missing: bool = True) -> Optional[dict]:
         """Query ExpressionSetVersion by ApiName. Returns the record or None.
 
         Version ApiName conventions vary across expression sets (some use
         ``_V1``, others use ``V1`` with no underscore).  We try both patterns
         and also fall back to a LIKE query to handle any future variations.
+
+        Pass ``warn_if_missing=False`` when a missing primary is an expected
+        scenario (e.g. a fallback is configured) to suppress the WARNING log.
         """
         candidates = [f"{es_name}_V1", f"{es_name}V1"]
         for candidate in candidates:
@@ -281,9 +302,9 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
             )
             return records[0]
 
-        self.logger.warning(
-            "ExpressionSetVersion for '%s' not found. "
-            "The autoproc expression set may not exist in this org yet.",
+        log = self.logger.warning if warn_if_missing else self.logger.info
+        log(
+            "ExpressionSetVersion for '%s' not found in this org.",
             es_name,
         )
         return None
@@ -365,3 +386,45 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
                     f"for '{es_name}'"
                 )
             self.logger.info("Created context definition link -> %s", new_id)
+
+    def _activate_fallback(self, fallback_es_name: str):
+        """Activate the fallback ExpressionSetVersion.
+
+        Looks up the ExpressionSetVersion for *fallback_es_name* and sets
+        ``IsActive = True`` if it is not already active.  This is used when
+        the primary (autoproc) expression set does not exist in the org and a
+        hand-crafted RLM expression set should be used instead.
+        """
+        esv = self._get_expression_set_version(fallback_es_name, warn_if_missing=False)
+        if esv is None:
+            self.logger.warning(
+                "Fallback expression set '%s' not found in org; skipping activation.",
+                fallback_es_name,
+            )
+            return
+
+        esv_id = esv["Id"]
+        if esv.get("IsActive", False):
+            self.logger.info(
+                "Fallback ExpressionSetVersion '%s' is already active; no action needed.",
+                fallback_es_name,
+            )
+            return
+
+        self.logger.info(
+            "Activating fallback ExpressionSetVersion '%s' (%s) ...",
+            fallback_es_name,
+            esv_id,
+        )
+        if not self._patch_record(
+            "ExpressionSetVersion",
+            esv_id,
+            {"IsActive": True},
+            label=fallback_es_name,
+        ):
+            raise TaskOptionsError(
+                f"Failed to activate fallback ExpressionSetVersion for '{fallback_es_name}'"
+            )
+        self.logger.info(
+            "Successfully activated fallback expression set '%s'.", fallback_es_name
+        )

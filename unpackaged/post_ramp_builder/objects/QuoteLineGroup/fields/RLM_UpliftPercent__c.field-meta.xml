@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_UpliftPercent__c</fullName>
+    <description>The uplift percentage applied to this ramp segment</description>
+    <inlineHelpText>Percentage by which prices are increased for this segment (0-100)</inlineHelpText>
+    <label>Uplift Percent</label>
+    <precision>5</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Percent</type>
+</CustomField>

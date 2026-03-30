@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Ramp Schedule Preview Table</masterLabel>
+    <description>Preview table that updates in real-time via Lightning Message Service</description>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="hideDiscountColumn" type="Boolean" label="Hide Discount Column" description="Hide the Discount% column from the preview table" default="false"/>
+            <property name="hideUpliftColumn" type="Boolean" label="Hide Uplift Column" description="Hide the Uplift% column from the preview table" default="false"/>
+            <property name="defaultScheduleName" type="String" label="Default Schedule Name" description="Initial schedule name so preview matches form (e.g. 4 Year Ramp Schedule)"/>
+            <property name="defaultDuration" type="Integer" label="Default Duration (Months)" description="Initial duration in months so preview matches form"/>
+            <property name="defaultTrialDiscount" type="Integer" label="Default Trial Discount (%)" description="Initial trial discount so preview matches form"/>
+            <property name="defaultTrialDuration" type="Integer" label="Default Trial Duration (Days)" description="Initial trial duration in days so preview matches form"/>
+            <property name="defaultStartDate" type="String" label="Default Start Date (YYYY-MM-DD)" description="Initial start date so preview matches form"/>
+            <property name="validationStatus" type="Boolean" label="Validation Status" description="Output property indicating if segments are valid" role="outputOnly"/>
+            <property name="segmentsJson" type="String" label="Segments JSON" description="JSON string of segments for API" role="outputOnly"/>
+            <property name="scheduleNameOutput" type="String" label="Schedule Name" description="The schedule name entered by user" role="outputOnly"/>
+            <property name="scheduleTypeOutput" type="String" label="Schedule Type" description="YEARLY or CUSTOM" role="outputOnly"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

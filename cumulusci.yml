@@ -82,7 +82,7 @@ project:
 
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                 # Is Trialforce Source Org? (false for dev scratch orgs)
+    tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
@@ -96,6 +96,7 @@ project:
     rating: true              # Insert Rating Design Time Data
     rates: true               # Insert Rates
     ramps: true               # Insert and configure ramps
+    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
     einstein: true            # Use Einstein AI
     product_dataset: qb       # Default product dataset to use=
     agents: false             # Deploy Agentforce Agent Configurations
@@ -160,7 +161,7 @@ project:
       # AI-related permission set licenses
       # Note: Some PSLs removed for dev scratch org compatibility
       - AgentforceServiceAgentBuilderPsl
-      # - AIAcceleratorPsl  # Not available in Enterprise dev scratch orgs
+      # - AIAcceleratorPsl  # Assigned via rlm_clm_psl_api_names (requires RevenueIntelligence feature, included in all current org defs)
       # - EinsteinAnalyticsPlusPsl  # Not available in Enterprise dev scratch orgs
       # - EinsteinDisclsAndCmplHubUserPsl  # Not available in Enterprise dev scratch orgs
       - EinsteinGPTCopilotPsl
@@ -247,19 +248,20 @@ project:
 
     rlm_clm_psl_api_names: &rlm_clm_psl_api_names
       # Contract Lifecycle Management permission set licenses
+      - AIAcceleratorPsl
       - ClauseManagementUser
       - CLMAnalyticsPsl
       - ContractManagementUser
-      #- ContractsAIUserPsl
-      - DisclosureAndComplianceHubUserPsl
+      - ContractsAIUserPsl
+      #- DisclosureAndComplianceHubUserPsl
       - DocGenDesignerPsl
       - DocumentBuilderUserPsl
       - InsightsCGAnalyticsPsl
       - Microsoft365WordPsl
-      - NLPServicePsl
+      #- NLPServicePsl
       - ObligationManagementUser
       - OmniStudioDesigner
-      - ScoringFrameworkPsl
+      #- ScoringFrameworkPsl
 
     rlm_psg_api_names: &rlm_psg_api_names
       # Core permission set groups
@@ -303,6 +305,10 @@ project:
     ps_docgen: &ps_docgen
       # DocGen permission sets
       - RLM_DocGen
+
+    ps_ramp_builder: &ps_ramp_builder
+      # Ramp Builder (Create Ramp Schedule V4) permission sets
+      - RLM_RampSchedule
 
     ps_prm: &ps_prm
       # PRM-specific permission sets
@@ -522,6 +528,67 @@ tasks:
       path: robot/rlm-base/tests
       output: robot/rlm-base/doc/rlm-base_tests.html
 
+  robot_e2e:
+    group: E2E Testing
+    description: >
+      Run the full Quote-to-Order UI test (headless Chrome). Validates the complete
+      sales workflow: Reset Account → Create Opportunity → Create Quote → Browse
+      Catalogs → Add Products → Create Order → Activate Order → Verify Assets.
+      Requires a provisioned org with qb=true (run prepare_rlm_org first).
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/quote_to_order.robot
+      outputdir: robot/rlm-base/results
+
+  robot_e2e_debug:
+    group: E2E Testing
+    description: >
+      Run the full Quote-to-Order UI test in headed Chrome with CDP debugging on
+      port 9222. Same flow as robot_e2e but visible browser for development and
+      debugging. Connect via chrome://inspect. Use -o pause_for_recording true
+      to add pause points for DOM inspection.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/quote_to_order.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_setup_quote:
+    group: E2E Testing
+    description: >
+      Reset Account and create an Opportunity + Quote (UI automation, headed Chrome).
+      Part 1 of the modular Quote-to-Order flow. Can be run standalone to prepare
+      a Quote for other tests.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/setup_quote.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_order_from_quote:
+    group: E2E Testing
+    description: >
+      Add products via Browse Catalogs, create and activate an Order, and verify
+      Assets (UI automation, headed Chrome). Part 2 of the modular Quote-to-Order
+      flow. If no QUOTE_ID is provided, creates a fresh Quote automatically.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/order_from_quote.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
+  robot_reset_account:
+    group: E2E Testing
+    description: >
+      Reset the test Account via the RLM_Reset_Account QuickAction (UI automation).
+      Clears transactional data (Opportunities, Quotes, Orders, Assets) so E2E tests
+      can re-run from a clean state. Runs in headed Chrome.
+    class_path: tasks.rlm_robot_e2e.RunE2ETests
+    options:
+      suite: robot/rlm-base/tests/e2e/reset_account.robot
+      outputdir: robot/rlm-base/results
+      headed: true
+
   run_tests:
     options:
       required_org_code_coverage_percent: 75
@@ -584,6 +651,22 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *sales_transaction_context_default_mapping
       activate: true
+
+  apply_context_ramp_mode:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup)
+      context attributes to the Sales Transaction context definition and maps them to
+      QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping)
+      and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/RampMode/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
 
   apply_context_constraint_engine_node_status:
     group: Revenue Lifecycle Management
@@ -822,20 +905,10 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata (app launcher deploys separately via deploy_post_tso_app_menu when tso=true)
+    description: Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso
-
-  deploy_post_tso_app_menu:
-    group: Revenue Lifecycle Management
-    description: >
-      Deploy App Launcher (AppSwitcher) order. Only runs when tso=true. Deploys
-      after deploy_post_tso so org default persists; users with personalized
-      launchers may need to use "Reset to default" in the App Launcher to see it.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_tso_appmenu
 
   deploy_post_prm:
     description: Deploy Partner Relationship Management Metadata
@@ -897,8 +970,9 @@ tasks:
 
   deploy_docgen_odt_seed:
     description: >
-      Seed-insert minimal RLMQuoteExtractBasic and RLMQuoteTransformBasic OmniDataTransform
-      records before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
+      Seed-insert minimal OmniDataTransform shell records (RLMQuoteExtractBasic,
+      RLMQuoteTransformBasic, RLMQuoteProposalExtract, RLMQuoteProposalTransform)
+      before the full DocGen deploy. Salesforce rejects INSERT of ODTs that reference
       custom formula fields in inputFieldName (-692085439) but accepts UPDATE of existing
       records. This step creates the ODT stubs so the subsequent deploy_post_docgen runs
       as an UPDATE.
@@ -1009,6 +1083,65 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  assemble_and_deploy_ux:
+    group: UX Personalization
+    description: >
+      Assembles feature-conditional UX metadata (flexipages, layouts, applications,
+      app menus, profiles) from base templates and YAML patch files in templates/.
+      Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
+      deploys in a single sf project deploy start call. Supports granular invocation
+      via metadata_type and metadata_name options for development and debugging.
+    class_path: tasks.rlm_ux_assembly.AssembleAndDeployUX
+
+  reorder_app_launcher:
+    group: UX Personalization
+    description: >
+      Applies a priority order to the App Launcher. The Python task queries all AppMenuItem
+      records via the Salesforce REST API (SOQL), builds a priority-ordered ApplicationId
+      list (priority_app_labels first, remaining apps after in their current relative order),
+      and passes the list to a Robot Framework test. The Robot test navigates to the Lightning
+      home page and calls Aura AppLauncherController/saveOrder via synchronous XHR — no modal
+      or DOM scraping required. Required on Trialforce-based orgs where the Metadata API cannot
+      deploy an AppSwitcher containing managed ConnectedApp or Network entries and
+      AppMenuItem.SortOrder is platform read-only via all other APIs.
+    class_path: tasks.rlm_reorder_app_launcher.ReorderAppLauncher
+    options:
+      suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
+      outputdir: robot/rlm-base/results
+
+  deploy_post_collections:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Collections metadata from unpackaged/post_collections (flows, objects,
+      omniUiCard, permissionsets, queues, quickActions, tabs,
+      timelineObjectDefinitions). Flexipages and applications for collections are
+      deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded
+      here via .forceignore.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_collections
+
+  deploy_post_ramp_builder:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy all Ramp Schedule Builder (Create Ramp Schedule V4) metadata under
+      unpackaged/post_ramp_builder: RLM_RampMode__c (Picklist) on QuoteLineGroup,
+      QuoteLineItem, OrderItemGroup, and OrderItem; RLM_UpliftPercent__c (Percent) on
+      QuoteLineGroup only; Lightning Message Channel (RLM_RampScheduleChannel); Apex classes
+      and test classes (RLM_RampScheduleFlowAction, RLM_RampScheduleService,
+      RLM_RampScheduleValidator, RLM_RampScheduleRequest, RLM_RampScheduleResponse,
+      RLM_RampScheduleFlowException, RLM_RampMigrationQueueable, RLM_RampScheduleStatusController,
+      RLM_QuoteLineItemDiscountUpliftHandler, RLM_QuoteLineItemRampModeHandler,
+      RLM_QuoteLineItemRampHandler, and test classes); RLM_QuoteLineItemRampTrigger trigger; six LWC
+      bundles (rlmRampScheduleFlowModalAction, rlmRampScheduleForm, rlmRampScheduleTrialSection,
+      rlmRampSchedulePreviewTable, rlmRampScheduleStatus, rlmRampRefreshPage); the
+      RLM_Create_Ramp_Schedule_V4 screen flow; the Quote.RLM_Create_Ramp_Schedule_V4 quick
+      action; and the RLM_RampSchedule permission set (grants FLS on all custom fields and class
+      access for all production Apex classes).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_ramp_builder
 
   enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
@@ -1127,14 +1260,6 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: force-app/main/default/settings
-
-  setup_prm_org_email:
-    group: Partner Relationship Management
-    description: >
-      Create the steelbrick_demo@salesforce.com org-wide email address used as
-      the PRM community email sender. In scratch orgs no email verification is
-      required. Must run before deploy_post_prm.
-    class_path: tasks.rlm_community.SetupPrmOrgEmail
 
   patch_network_email_for_deploy:
     group: Partner Relationship Management
@@ -1560,7 +1685,7 @@ tasks:
 
   configure_revenue_settings:
     group: Revenue Lifecycle Management
-    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, and Create Orders from Quote flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
+    description: "Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders from Quote flow, and optionally Manage Assets flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh."
     class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
     options:
       suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
@@ -1571,13 +1696,14 @@ tasks:
 
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
-    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. Required before decision table refresh."
+    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh."
     class_path: tasks.rlm_reconfigure_expression_set.ReconfigureExpressionSet
     options:
       expression_set_name: Salesforce_Default_Pricing_Discovery_Procedure
       context_definition_name: *sales_transaction_context_name
       rank: 1
       start_date: "2020-01-01T00:00:00.000Z"
+      fallback_expression_set_name: RLM_DefaultPricingDiscoveryProcedure
 
   create_dro_rule_library:
     group: Revenue Lifecycle Management
@@ -2049,6 +2175,17 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  stamp_git_commit:
+    group: Revenue Lifecycle Management
+    description: >
+      Stamps the current git commit hash, branch, timestamp, org definition,
+      dirty-tree flag, and active feature flags into the org as a Custom
+      Metadata Type record (RLM_Build_Info__mdt.Latest). Non-fatal: deploy
+      failures are logged as warnings so this task never breaks a completed flow.
+    class_path: tasks.rlm_stamp_commit.StampGitCommit
+    options:
+      flow_name: manual
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -2068,8 +2205,7 @@ flows:
       3:
         flow: prepare_expression_sets
       4:
-        task: create_payments_webhook
-        when: project_config.project__custom__payments
+        flow: prepare_payments
       5:
         task: deploy_full
       6:
@@ -2113,13 +2249,21 @@ flows:
       25:
         flow: prepare_guidedselling
       26:
-        task: configure_revenue_settings
+        flow: prepare_revenue_settings
       27:
-        task: reconfigure_pricing_discovery
-        when: org_config.scratch and not project_config.project__custom__tso
+        flow: prepare_pricing_discovery
       28:
+        flow: prepare_ramp_builder
+      29:
+        flow: prepare_ux
+        when: project_config.project__custom__ux
+      30:
         flow: refresh_all_decision_tables
-         
+      31:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org
+
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
@@ -2240,10 +2384,8 @@ flows:
         task: deactivate_expression_sets
       2:
         task: ensure_pricing_schedules
-        when: org_config.scratch
       3:
         task: deploy_expression_sets
-        when: org_config.scratch
   
   prepare_product_data:
     group: Revenue Lifecycle Management
@@ -2282,19 +2424,16 @@ flows:
         task: deploy_post_utils
         when: project_config.project__custom__quantumbit
       2:
-        task: deploy_post_billing
-        when: project_config.project__custom__quantumbit and project_config.project__custom__billing
-      3:
         flow: prepare_approvals
-      4:
+      3:
         task: deploy_quantumbit
         when: project_config.project__custom__quantumbit
-      5:
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_quantumbit
-      6:
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
@@ -2320,14 +2459,11 @@ flows:
         task: deploy_post_tso
         when: project_config.project__custom__tso
       5:
-        task: deploy_post_tso_app_menu
-        when: project_config.project__custom__tso
-      6:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      7:
+      6:
         task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
@@ -2432,9 +2568,6 @@ flows:
         task: patch_network_email_for_deploy
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       3:
-        task: setup_prm_org_email
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
-      4:
         task: deploy_post_prm
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       5:
@@ -2503,21 +2636,27 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: delete_qb_rates_data
+        when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh
+      2:
+        task: delete_qb_rating_data
+        when: project_config.project__custom__rating and project_config.project__custom__qb and not project_config.project__custom__refresh
+      3:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      2:
+      4:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
-      3:
+      5:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      4:
+      6:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
-      5:
+      7:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      6:
+      8:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 
@@ -2575,14 +2714,12 @@ flows:
     steps:
       1:
         task: activate_decision_tables
-        when: org_config.scratch
 
   prepare_price_adjustment_schedules:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: activate_price_adjustment_schedules
-        when: org_config.scratch
 
   prepare_procedureplans:
     group: Revenue Lifecycle Management
@@ -2687,22 +2824,83 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: patch_payments_site_for_deploy
+        task: create_payments_webhook
         when: project_config.project__custom__payments
       2:
-        task: deploy_post_payments_site
+        task: patch_payments_site_for_deploy
         when: project_config.project__custom__payments
       3:
-        task: revert_payments_site_after_deploy
+        task: deploy_post_payments_site
         when: project_config.project__custom__payments
       4:
+        task: revert_payments_site_after_deploy
+        when: project_config.project__custom__payments
+      5:
         task: publish_community
         when: project_config.project__custom__payments
         options:
           name: Payments Webhook
-      5:
+      6:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+
+  prepare_revenue_settings:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: configure_revenue_settings
+        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
+      2:
+        task: configure_revenue_settings
+        when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
+        options:
+          manage_assets_flow: RLM_ARC_Assets
+
+  prepare_pricing_discovery:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: reconfigure_pricing_discovery
+
+  prepare_ramp_builder:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom
+      fields, Lightning Message Channel, all Apex classes, six LWC bundles, the
+      RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order.
+      Adds RampMode__c/GroupRampMode__c context attributes to the Sales Transaction context
+      definition mapped to QuoteLineItem, QuoteLineGroup, OrderItem, and OrderItemGroup.
+      After this flow runs, add the "Create Ramp Schedule" action to the Quote page layout
+      (or Dynamic Actions highlights panel) and ensure the flow is Active in Setup.
+    steps:
+      1:
+        task: deploy_post_ramp_builder
+        when: project_config.project__custom__ramps
+      2:
+        task: apply_context_ramp_mode
+        when: project_config.project__custom__ramps
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__ramps
+        options:
+          api_names: *ps_ramp_builder
+
+  prepare_ux:
+    group: UX Personalization
+    description: >
+      Assemble and deploy all project UX personalization metadata (flexipages, layouts,
+      applications, app menus, profiles) from feature-conditional templates. Runs at
+      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
+      all referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation — required on Trialforce
+      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
+    steps:
+      1:
+        task: assemble_and_deploy_ux
+        when: project_config.project__custom__ux
+      2:
+        task: reorder_app_launcher
+        when: project_config.project__custom__ux
 
   prepare_personas:
     group: Revenue Lifecycle Management
