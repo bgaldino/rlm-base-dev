@@ -112,7 +112,7 @@
   &quot;AccountName&quot; : &quot;Acme&quot;,
   &quot;SalesRep&quot; : &quot;Sample User&quot;
 }</expectedOutputJson>
-    <fieldLevelSecurityEnabled>true</fieldLevelSecurityEnabled>
+    <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
     <inputType>JSON</inputType>
     <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
     <name>RLMQuoteProposalTransform</name>
