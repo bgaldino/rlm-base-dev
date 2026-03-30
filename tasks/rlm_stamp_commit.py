@@ -103,7 +103,7 @@ class StampGitCommit(SFDXBaseTask):
             )
             try:
                 self._deploy(temp_dir, org_username)
-            except Exception as e:
+            except CommandException as e:
                 self.logger.warning(
                     f"Failed to stamp org (non-fatal): {e}\n"
                     "The org build completed successfully but the commit "
@@ -223,7 +223,13 @@ class StampGitCommit(SFDXBaseTask):
         }
         if not config:
             return "none"
-        return yaml.dump(config, default_flow_style=False, sort_keys=True).strip()
+        serialized = yaml.dump(config, default_flow_style=False, sort_keys=True).strip()
+        # RLM_Feature_Flags__c is LongTextArea(32000); truncate if needed.
+        max_len = 32000
+        if len(serialized) > max_len:
+            marker = f"\n\n[TRUNCATED: original length {len(serialized)} chars exceeds {max_len}]"
+            serialized = serialized[: max_len - len(marker)] + marker
+        return serialized
 
     # ------------------------------------------------------------------
     # SFDX project and CMDT record generation
