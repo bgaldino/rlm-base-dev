@@ -36,7 +36,11 @@ except ImportError:
     CommandException = Exception
     BaseProjectKeychain = object
 
-DEPLOY_TIMEOUT_SECONDS = 120
+# Total subprocess timeout for the deploy.
+DEPLOY_TIMEOUT_SECONDS = 300
+# --wait value passed to sf CLI (minutes); kept slightly below the subprocess
+# timeout so the CLI can return its JSON output before being force-killed.
+DEPLOY_WAIT_MINUTES = (DEPLOY_TIMEOUT_SECONDS - 30) // 60  # 4
 
 
 class StampGitCommit(SFDXBaseTask):
@@ -352,6 +356,8 @@ class StampGitCommit(SFDXBaseTask):
             "--target-org",
             org_username,
             "--ignore-conflicts",
+            "--wait",
+            str(DEPLOY_WAIT_MINUTES),
             "--json",
         ]
 
