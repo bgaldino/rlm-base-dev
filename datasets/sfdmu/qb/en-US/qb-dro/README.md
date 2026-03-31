@@ -65,7 +65,7 @@ Upsert all DRO objects in dependency order
 The plan uses a **runtime placeholder** `__DRO_ASSIGNED_TO_USER__` for the `AssignedTo.Name` field on `FulfillmentStepDefinition` records. At load time, the CCI task (`dynamic_assigned_to_user: true`) resolves this placeholder to the target org's default user name.
 
 Supporting files:
-- `User.csv` and `UserAndGroup.csv` contain the placeholder value `__DRO_ASSIGNED_TO_USER__` — SFDMU requires these for User/Group lookup resolution
+- `User.csv` contains the placeholder value `__DRO_ASSIGNED_TO_USER__` — SFDMU requires this for User lookup resolution
 - `FulfillmentStepDefinition.csv` references `AssignedTo.Name` with the same placeholder
 
 This ensures the plan works across any org without hardcoded user references.
@@ -129,7 +129,6 @@ Several CSV files exist in the directory but are **not referenced** in `export.j
 
 - `IntegrationProviderDef.csv` (1 record — `DeveloperName`)
 - `User.csv` (1 record — placeholder for dynamic user resolution; required for AssignedTo lookup)
-- `UserAndGroup.csv` (1 record — placeholder for dynamic user resolution)
 - `AttributeDefinition.csv` (empty)
 - `AttributePicklistValue.csv` (empty)
 - `ExpressionSet.csv` (empty)
@@ -181,7 +180,6 @@ qb-dro/
 │  Source CSVs — Supporting (not in export.json)
 ├── IntegrationProviderDef.csv           # 1 record (reference)
 ├── User.csv                             # 1 record (dynamic user placeholder; required for AssignedTo)
-├── UserAndGroup.csv                     # 1 record (dynamic user placeholder)
 ├── AttributeDefinition.csv              # 0 records (placeholder)
 ├── AttributePicklistValue.csv           # 0 records (placeholder)
 ├── ExpressionSet.csv                    # 0 records (placeholder)
@@ -205,7 +203,7 @@ This plan is idempotent — re-running on an org that already has the data produ
 
 ### Known limitations
 
-- **FulfillmentStepDefinition**: All 17 records insert successfully when `User.csv` and `UserAndGroup.csv` are present with the resolved user Name (via `dynamic_assigned_to_user: true`). The CSV must use `AssignedTo.Name` (not `AssignedToId$User.Name`) for SFDMU to resolve the lookup correctly.
+- **FulfillmentStepDefinition**: All 17 records insert successfully when `User.csv` is present with the resolved user Name (via `dynamic_assigned_to_user: true`). The CSV must use `AssignedTo.Name` (not `AssignedToId$User.Name`) for SFDMU to resolve the lookup correctly.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
