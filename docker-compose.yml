@@ -10,21 +10,20 @@ services:
     volumes:
       # Mount your project directory
       - .:/workspace
-      # Share CumulusCI config and orgs with host
-      - ${HOME}/.cumulusci:/root/.cumulusci
-      # Share SF CLI config with host
-      - ${HOME}/.sf:/root/.sf
-      # Share SFDX config if it exists (for backwards compatibility)
-      - ${HOME}/.sfdx:/root/.sfdx
+      # Isolated Docker auth/config state (prevents host keychain/auth drift)
+      - ./.docker/state/cumulusci:/root/.cumulusci
+      - ./.docker/state/sf:/root/.sf
+      - ./.docker/state/sfdx:/root/.sfdx
     working_dir: /workspace
     environment:
       # CumulusCI settings
       - CUMULUSCI_DISABLE_ANALYTICS=true
-      - CUMULUSCI_KEY=${CUMULUSCI_KEY:-}
-      - CUMULUSCI_KEYCHAIN_CLASS=${CUMULUSCI_KEYCHAIN_CLASS:-}
+      - CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.EnvironmentProjectKeychain
+      - SFDX_AUTH_URL=${SFDX_AUTH_URL:?Set SFDX_AUTH_URL in .env}
       # SF CLI settings
       - SF_AUTOUPDATE_DISABLE=true
-      - SF_DISABLE_ENCRYPTION=true
+      # Keep encryption enabled by default; allow explicit opt-out only for break-glass troubleshooting.
+      - SF_DISABLE_ENCRYPTION=${SF_DISABLE_ENCRYPTION:-false}
       # Robot Framework/Selenium settings for headless mode
       - CHROME_BIN=/usr/bin/chromium
       - CHROMIUM_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu
@@ -33,4 +32,4 @@ services:
     # Default to bridge for portability; set DOCKER_NETWORK_MODE=host for host networking.
     network_mode: ${DOCKER_NETWORK_MODE:-bridge}
 
-# No named volumes needed - using host directory mounts for full host/container sharing
+# Docker state is intentionally repo-local under ./.docker/state to isolate auth.

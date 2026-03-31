@@ -8,6 +8,7 @@
 #   ./docker-cci.sh bash  # Interactive shell
 
 set -euo pipefail
+DEFAULT_DOCKER_DEVHUB_ALIAS="dockerDevHub"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -38,10 +39,13 @@ preflight() {
         exit 1
     fi
 
-    mkdir -p "${HOME}/.cumulusci" "${HOME}/.sf" "${HOME}/.sfdx"
+    mkdir -p ./.docker/state/cumulusci ./.docker/state/sf ./.docker/state/sfdx
 
     if [ ! -f ".env" ]; then
-        echo -e "${YELLOW}Warning: .env not found. Copy .env.example to enable org sharing key config.${NC}"
+        echo -e "${YELLOW}Warning: .env not found. Copy .env.example and set SFDX_AUTH_URL.${NC}"
+    elif ! grep -q "^SFDX_AUTH_URL=force://" .env; then
+        echo -e "${YELLOW}Warning: SFDX_AUTH_URL is not configured in .env.${NC}"
+        echo -e "${YELLOW}Docker CCI/SF commands that need org auth may fail until this is set.${NC}"
     fi
 }
 
@@ -49,8 +53,8 @@ preflight
 
 if [ $# -eq 0 ]; then
     echo -e "${BLUE}Starting interactive shell in rlm-base Docker container...${NC}"
-    compose_cmd run --rm cci-robot bash
+    compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; if [ -n \"\${SFDX_AUTH_URL:-}\" ]; then tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; if ! sf org login sfdx-url -f \"\$tmp\" -a \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null 2>&1; then echo \"Warning: Docker Dev Hub bootstrap login failed. Commands requiring org auth may fail.\" >&2; fi; rm -f \"\$tmp\"; fi; exec bash"
 else
     echo -e "${GREEN}Running in Docker: $@${NC}"
-    compose_cmd run --rm cci-robot "$@"
+    compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; if [ -n \"\${SFDX_AUTH_URL:-}\" ]; then tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; if ! sf org login sfdx-url -f \"\$tmp\" -a \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null 2>&1; then echo \"Warning: Docker Dev Hub bootstrap login failed. Commands requiring org auth may fail.\" >&2; fi; rm -f \"\$tmp\"; fi; exec \"\$@\"" _ "$@"
 fi

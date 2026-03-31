@@ -23,7 +23,7 @@ services:
 
       # DevHub authentication via SFDX Auth URL
       # Generate this with: sf org display --verbose -o YourDevHub | grep "Sfdx Auth Url"
-      - SFDX_AUTH_URL=${SFDX_AUTH_URL:-}
+      - SFDX_AUTH_URL=${SFDX_AUTH_URL:?Set SFDX_AUTH_URL in environment}
 
       # Optional: Persistent org credentials
       # Format: CUMULUSCI_ORG_<orgname>=<sfdx_auth_url>
