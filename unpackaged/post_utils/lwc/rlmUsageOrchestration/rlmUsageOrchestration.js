@@ -6,33 +6,17 @@
  *  - Manual trigger button for usage processing
  *  - Static display of the 3-step workflow
  *  - Link to Monitor Workflow Services
- *  - Last run information display
  */
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import startOrchestration from '@salesforce/apex/RLM_UsageOrchestrationController.startOrchestration';
-import getLastRunInfo from '@salesforce/apex/RLM_UsageOrchestrationController.getLastRunInfo';
 
 export default class RlmUsageOrchestration extends NavigationMixin(LightningElement) {
     // Configuration
     @api orchestrationFlowApiName = 'RLM_Orchestrate_Usage_Management';
 
     isStarting = false;
-
-    // Last run info
-    lastRunInfo;
-
-    // ─── Wire Adapters ──────────────────────────────────────────────────
-
-    @wire(getLastRunInfo)
-    wiredLastRunInfo({ data, error }) {
-        if (data) {
-            this.lastRunInfo = data;
-        } else if (error) {
-            console.error('Error loading last run info:', error);
-        }
-    }
 
     // ─── Computed Properties ────────────────────────────────────────────
 
@@ -42,22 +26,6 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
 
     get processButtonLabel() {
         return this.isStarting ? 'Starting...' : 'Process Usage';
-    }
-
-    get lastRunTimestamp() {
-        if (!this.lastRunInfo || !this.lastRunInfo.startTime) return 'Never';
-        return new Date(this.lastRunInfo.startTime).toLocaleString();
-    }
-
-    get lastRunStatus() {
-        if (!this.lastRunInfo) return 'Unknown';
-        if (this.lastRunInfo.status === 'Finished') return 'Success';
-        if (this.lastRunInfo.status === 'Error') return 'Failed';
-        return this.lastRunInfo.status;
-    }
-
-    get showLastRunInfo() {
-        return this.lastRunInfo != null;
     }
 
     // ─── Event Handlers ─────────────────────────────────────────────────
@@ -70,9 +38,6 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
             await startOrchestration({ flowApiName: this.orchestrationFlowApiName });
 
             this.showToast('Processing Started', 'Usage orchestration has been initiated.', 'success');
-
-            // Refresh "last executed" summary after kick-off.
-            this.lastRunInfo = await getLastRunInfo();
 
         } catch (error) {
             this.showToast('Error', error.body?.message || error.message, 'error');

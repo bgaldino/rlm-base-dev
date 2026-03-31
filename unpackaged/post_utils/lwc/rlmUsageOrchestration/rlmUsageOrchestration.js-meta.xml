@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
-    <description>Usage orchestration component for manually triggering usage processing workflow. Displays last execution info and provides access to Monitor Workflow Services.</description>
+    <description>Usage orchestration component for manually triggering usage processing workflow with static step guidance and access to Monitor Workflow Services.</description>
     <isExposed>true</isExposed>
     <masterLabel>RLM Usage Orchestration</masterLabel>
     <targets>
