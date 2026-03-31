@@ -27,7 +27,7 @@ public with sharing class RLM_UsageDataController {
     private static final Map<String, Set<String>> ALLOWED_FILTER_FIELDS = new Map<String, Set<String>>{
         'TransactionJournal' => new Set<String>{ 'AccountId', 'ReferenceRecordId' },
         'UsageSummary' => new Set<String>{ 'AccountId', 'ReferenceRecordId', 'AssetId' },
-        'UsageBillingPeriodItem' => new Set<String>{ 'AccountId', 'BindingObject', 'AssetId' }
+        'UsageBillingPeriodItem' => new Set<String>{ 'AccountId', 'AssetId' }
     };
 
     /** Defensive row limit to prevent query row / heap exhaustion on Accounts with many records.
@@ -58,7 +58,7 @@ public with sharing class RLM_UsageDataController {
      * @description Queries records for the given SObject using fields defined in a FieldSet,
      *              and returns both the datatable column definitions and flattened record data.
      * @param recordId The Record Id to filter by (Account or Asset)
-     * @param filterField The field name to use in the WHERE clause (e.g. AccountId, ReferenceRecordId, BindingObject, Asset)
+     * @param filterField The field name to use in the WHERE clause (e.g. AccountId, ReferenceRecordId, AssetId)
      * @param objectApiName API name of the SObject to query (must be in ALLOWED_OBJECTS)
      * @param fieldSetName Developer name of the FieldSet on the target SObject
      * @return Map with three keys:

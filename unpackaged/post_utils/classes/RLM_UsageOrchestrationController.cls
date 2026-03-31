@@ -4,8 +4,8 @@
  * Apex controller for the rlmUsageOrchestration Lightning Web Component.
  * Provides methods to:
  *  - Trigger usage processing by invoking the RLM_Orchestrate_Usage_Management flow
- *  - Poll for orchestration status by querying FlowInterview records
- *  - Retrieve last run information
+ *  - Retrieve last run information for display in the component
+ *  - Retrieve interview status for optional diagnostics/extension use cases
  */
 public with sharing class RLM_UsageOrchestrationController {
 
@@ -29,7 +29,7 @@ public with sharing class RLM_UsageOrchestrationController {
      * Starts the usage orchestration flow asynchronously.
      *
      * @param flowApiName The API name of the autolaunched flow to invoke (optional, defaults to RLM_Orchestrate_Usage_Management)
-     * @return Interview ID that can be used to poll for status
+     * @return Interview ID of the started orchestration interview
      */
     @AuraEnabled
     public static String startOrchestration(String flowApiName) {
@@ -77,6 +77,10 @@ public with sharing class RLM_UsageOrchestrationController {
     @AuraEnabled
     public static OrchestrationStatus getOrchestrationStatus(String interviewId) {
         try {
+            if (String.isBlank(interviewId)) {
+                throw new AuraHandledException('Missing orchestration interview id');
+            }
+
             // Query the FlowInterview to get status
             List<FlowInterview> interviews = [
                 SELECT Id, InterviewLabel, InterviewStatus, CurrentElement,
@@ -85,6 +89,20 @@ public with sharing class RLM_UsageOrchestrationController {
                 WHERE Id = :interviewId
                 LIMIT 1
             ];
+
+            if (interviews.isEmpty()) {
+                // Fallback: resolve the user's most recent orchestration interview.
+                // This avoids hard failures when the initial interview id cannot be reused.
+                interviews = [
+                    SELECT Id, InterviewLabel, InterviewStatus, CurrentElement,
+                           CreatedDate, LastModifiedDate, Guid
+                    FROM FlowInterview
+                    WHERE CreatedById = :UserInfo.getUserId()
+                      AND InterviewLabel LIKE 'RLM Orchestrate Usage Management%'
+                    ORDER BY CreatedDate DESC
+                    LIMIT 1
+                ];
+            }
 
             if (interviews.isEmpty()) {
                 throw new AuraHandledException('Flow interview not found');

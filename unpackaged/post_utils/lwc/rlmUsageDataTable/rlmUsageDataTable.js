@@ -100,7 +100,7 @@ export default class RlmUsageDataTable extends LightningElement {
      * Determines which field to use for filtering based on context and object type.
      * - TransactionJournal: AccountId (Account context), ReferenceRecordId (Asset context)
      * - UsageSummary: AccountId (Account context), AssetId (Asset context)
-     * - UsageBillingPeriodItem: BindingObject (Account context), AssetId (Asset context)
+     * - UsageBillingPeriodItem: AccountId (Account context), AssetId (Asset context)
      */
     get filterField() {
         if (this.usageObject === 'TransactionJournal') {
@@ -108,7 +108,7 @@ export default class RlmUsageDataTable extends LightningElement {
         } else if (this.usageObject === 'UsageSummary') {
             return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
         } else if (this.usageObject === 'UsageBillingPeriodItem') {
-            return this.contextObject === 'Asset' ? 'AssetId' : 'BindingObject';
+            return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
         }
 
         return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';

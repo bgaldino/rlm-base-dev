@@ -81,7 +81,11 @@ export default class RlmAssetRatesGrants extends LightningElement {
      */
     get filteredRates() {
         if (this.usageResourceId) {
-            return this.rateEntries.filter(r => r.usageResourceId === this.usageResourceId);
+            return this.rateEntries.filter(r =>
+                r.usageResourceId === this.usageResourceId ||
+                r.usageResourceId === null ||
+                r.usageResourceId === undefined
+            );
         }
         return this.rateEntries;
     }
@@ -104,24 +108,26 @@ export default class RlmAssetRatesGrants extends LightningElement {
         if (!rates.length) return [];
 
         const grouped = {};
-        for (const rate of rates) {
-            const key = rate.usageResourceId;
+        rates.forEach((rate, rateIdx) => {
+            const isGlobalRate = rate.usageResourceId === null || rate.usageResourceId === undefined;
+            const key = rate.usageResourceId || (this.usageResourceId ? `global-for-${this.usageResourceId}` : `unknown-resource-${rateIdx}`);
             if (!grouped[key]) {
                 grouped[key] = {
-                    resourceName: rate.usageResourceName,
+                    resourceName: rate.usageResourceName || (isGlobalRate ? 'All usage resources' : 'Unknown Resource'),
                     resourceId: key,
                     cards: []
                 };
             }
+            const cardId = rate.rateCardEntryId || `${key}-${rate.rateCardName || 'rate-card'}-${rateIdx}`;
             const card = {
-                id: rate.rateCardEntryId,
+                id: cardId,
                 name: rate.rateCardName || 'Rate Card',
                 baseRate: rate.baseRate,
                 negotiatedRate: rate.negotiatedRate,
                 uom: rate.rateUomName || '',
                 hasTiers: rate.tiers && rate.tiers.length > 0,
                 tiers: (rate.tiers || []).map((t, idx) => ({
-                    id: `tier-${rate.rateCardEntryId}-${idx}`,
+                    id: `tier-${cardId}-${idx}`,
                     range: this._formatTierRange(t.lowerBound, t.upperBound),
                     type: t.adjustmentType,
                     value: this._formatTierValue(t.adjustmentType, t.adjustmentValue, t.rateUomName)
@@ -129,7 +135,7 @@ export default class RlmAssetRatesGrants extends LightningElement {
                 displayRate: this._formatRate(rate)
             };
             grouped[key].cards.push(card);
-        }
+        });
 
         return Object.values(grouped);
     }
@@ -142,11 +148,11 @@ export default class RlmAssetRatesGrants extends LightningElement {
         if (!grants.length) return [];
 
         const grouped = {};
-        for (const grant of grants) {
-            const key = grant.usageResourceId;
+        grants.forEach((grant, grantIdx) => {
+            const key = grant.usageResourceId || `unknown-grant-resource-${grantIdx}`;
             if (!grouped[key]) {
                 grouped[key] = {
-                    resourceName: grant.usageResourceName,
+                    resourceName: grant.usageResourceName || 'Unknown Resource',
                     resourceId: key,
                     grants: []
                 };
@@ -157,7 +163,7 @@ export default class RlmAssetRatesGrants extends LightningElement {
             const pct = total > 0 ? Math.round((consumed / total) * 100) : 0;
 
             grouped[key].grants.push({
-                id: grant.entitlementId,
+                id: grant.entitlementId || `${key}-grant-${grantIdx}`,
                 name: grant.entitlementName,
                 modelType: this._formatModelType(grant.usageModelType),
                 grantType: grant.grantType || 'Grant',
@@ -170,7 +176,7 @@ export default class RlmAssetRatesGrants extends LightningElement {
                 isHighUsage: pct >= DISPLAY_CONSTANTS.HIGH_USAGE_THRESHOLD,
                 isCriticalUsage: pct >= DISPLAY_CONSTANTS.CRITICAL_USAGE_THRESHOLD
             });
-        }
+        });
 
         return Object.values(grouped);
     }
@@ -188,6 +194,21 @@ export default class RlmAssetRatesGrants extends LightningElement {
     }
 
     _formatTierRange(lower, upper) {
+        const hasLower = lower !== null && lower !== undefined;
+        const hasUpper = upper !== null && upper !== undefined;
+
+        if (!hasLower && !hasUpper) {
+            return 'All usage';
+        }
+
+        if (hasLower && !hasUpper) {
+            return `${this._formatNumber(lower)}+`;
+        }
+
+        if (!hasLower && hasUpper) {
+            return `Up to ${this._formatNumber(upper)}`;
+        }
+
         if (upper >= 999999999) {
             return `${this._formatNumber(lower)}+`;
         }
@@ -217,6 +238,9 @@ export default class RlmAssetRatesGrants extends LightningElement {
     }
 
     _formatNumber(num) {
+        if (num === null || num === undefined || Number.isNaN(num)) {
+            return '';
+        }
         if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
         if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
         return String(num);
