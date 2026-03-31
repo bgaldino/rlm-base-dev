@@ -21,7 +21,6 @@
     <tabs>standard-RebateClaim</tabs>
     <tabs>standard-TransactionJournal</tabs>
     <uiType>Lightning</uiType>
-    <utilityBar>Rebates_UtilityBar</utilityBar>
     <workspaceConfig>
         <mappings>
             <tab>standard-Account</tab>

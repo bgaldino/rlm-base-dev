@@ -688,7 +688,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             "qb", "billing", "tax", "rating", "rates", "clm", "dro",
             "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
             "payments", "constraints", "analytics", "procedureplans",
-            "collections",
+            "collections", "mfg_ux",
         ]
         flags = {}
         for flag in known_flags:
@@ -727,15 +727,16 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # 2. Apply feature-specific complete files (standalone new pages + overrides)
         # Order matches the prepare_rlm_org deploy sequence.
         standalone_copy_order = [
-            ("payments",    features.get("payments", False)),
-            ("billing",     features.get("billing", False)),
-            ("quantumbit",  features.get("qb", False)),
-            ("tso",         features.get("tso", False)),
-            ("constraints", features.get("constraints", False)),
-            ("utils",       features.get("qb", False)),   # utils deploys with qb flow
-            ("docgen",      features.get("docgen", False)),
-            ("approvals",   features.get("qb", False)),   # approvals deploys with qb flow
-            ("collections", features.get("collections", False)),
+            ("payments",        features.get("payments", False)),
+            ("billing",         features.get("billing", False)),
+            ("quantumbit",      features.get("qb", False)),
+            ("tso",             features.get("tso", False)),
+            ("constraints",     features.get("constraints", False)),
+            ("utils",           features.get("qb", False)),   # utils deploys with qb flow
+            ("docgen",          features.get("docgen", False)),
+            ("approvals",       features.get("qb", False)),   # approvals deploys with qb flow
+            ("collections",     features.get("collections", False)),
+            ("manufacturing",   features.get("mfg_ux", False)),  # mfg_ux overrides applied last (highest priority)
         ]
         for feature_dir, active in standalone_copy_order:
             if not active:
@@ -771,6 +772,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
             ("collections", "collections"),
+            ("mfg_ux",      "manufacturing"),  # mfg_ux patches applied last
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -874,6 +876,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("base", templates_path / "layouts" / "base", True),
             ("billing", templates_path / "layouts" / "billing", features.get("billing", False)),
             ("constraints", templates_path / "layouts" / "constraints", features.get("constraints", False)),
+            ("manufacturing", templates_path / "layouts" / "manufacturing", features.get("mfg_ux", False)),
         ]
 
         copied_names: Set[str] = set()
@@ -965,12 +968,13 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ff_order.get((ao.findtext(f"{{{NS}}}formFactor") or "").strip(), 2),
         ))
 
-        # Re-insert before the first non-actionOverrides element after the overrides block
-        # Find insertion index: after existing leading non-actionOverride elements
+        # Re-insert before the first non-actionOverrides element (e.g. formFactors).
+        # Must not skip index 0 — formFactors sits at index 0 after all actionOverrides
+        # are removed, and the i > 0 guard would strand it at the top of the document.
         insert_before = None
         for i, child in enumerate(list(app_root)):
             tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-            if tag not in ("actionOverrides",) and i > 0:
+            if tag != "actionOverrides":
                 insert_before = i
                 break
 
@@ -996,11 +1000,12 @@ class AssembleAndDeployUX(SFDXBaseTask):
         Assemble application metadata from versioned templates.
 
         RLM_Revenue_Cloud selection priority (highest wins):
-          tso > quantumbit > base
+          tso > mfg_ux > quantumbit > base
 
         Conditional standalone apps:
           standard__BillingConsole  — when billing=true
           standard__CollectionConsole, RLM_Receivables_Management — when collections=true
+          Rebates                   — when mfg_ux=true
         """
         out_dir = output_path / "applications"
         app_base = templates_path / "applications"
@@ -1011,6 +1016,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if not filter_name or filter_name == rev_cloud_name:
             if features.get("tso"):
                 src_dir = app_base / "tso"
+            elif features.get("mfg_ux"):
+                src_dir = app_base / "manufacturing"
             elif features.get("qb"):
                 src_dir = app_base / "quantumbit"
             else:
@@ -1021,7 +1028,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
+                tier = "tso" if features.get("tso") else ("manufacturing" if features.get("mfg_ux") else ("quantumbit" if features.get("qb") else "base"))
 
                 # Apply feature-conditional actionOverride patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
@@ -1063,6 +1070,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 (app_base / "conditional" / "collections" / "standard__CollectionConsole.app-meta.xml", "collections"),
                 (app_base / "conditional" / "collections" / "RLM_Receivables_Management.app-meta.xml", "collections"),
             ]
+        if features.get("mfg_ux"):
+            conditional_apps.append(
+                (app_base / "conditional" / "manufacturing" / "Rebates.app-meta.xml", "manufacturing")
+            )
 
         for src_file, feature_name in conditional_apps:
             fname = src_file.name

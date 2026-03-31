@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-31T01:14:29.807890Z",
+  "assembled_at": "2026-03-31T02:21:33.048107Z",
   "feature_flags": {
     "qb": false,
     "billing": true,
@@ -18,238 +18,267 @@
     "constraints": true,
     "analytics": true,
     "procedureplans": false,
-    "collections": false
+    "collections": false,
+    "mfg": true
   },
   "assembled": [
     {
       "type": "flexipage",
+      "name": "MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Account_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Account_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Account_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/payments/RLM_Account_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Asset_Action_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Asset_Action_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Asset_Action_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Asset_Action_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Asset_Action_Source_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Asset_Action_Source_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Asset_Action_Source_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/constraints/RLM_Asset_Action_Source_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Asset_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Asset_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Asset_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Asset_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Attribute_Based_Adjustment_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Attribute_Based_Adjustment_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Attribute_Based_Adjustment_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Attribute_Based_Adjustment_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Attribute_Picklist_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Attribute_Picklist_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Attribute_Picklist_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Attribute_Picklist_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Billing_Schedule.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Schedule.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Billing_Schedule.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Billing_Schedule.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Billing_Schedule_Group.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Schedule_Group.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Billing_Schedule_Group.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Billing_Schedule_Group.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Contract_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Contract_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Contract_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Contract_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_FulfillmentOrderLineItem_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_FulfillmentOrderLineItem_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_FulfillmentOrderLineItem_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_FulfillmentOrderLineItem_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Fulfillment_Asset_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Fulfillment_Asset_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Fulfillment_Asset_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Fulfillment_Asset_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Fulfillment_Step_Definition_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Fulfillment_Step_Definition_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Fulfillment_Step_Definition_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Fulfillment_Step_Definition_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_General_Ledger_Account_Assignment_Rule_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_General_Ledger_Account_Assignment_Rule_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_General_Ledger_Account_Assignment_Rule_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_General_Ledger_Account_Assignment_Rule_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_General_Ledger_Account_Layout.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_General_Ledger_Account_Layout.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_General_Ledger_Account_Layout.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_General_Ledger_Account_Layout.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Home_Page_Default.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Home_Page_Default.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Home_Page_Default.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Home_Page_Default.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Index_Rate_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Index_Rate_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Index_Rate_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Index_Rate_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Invoice_Line_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Invoice_Line_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Invoice_Line_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Invoice_Line_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Invoice_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Invoice_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Invoice_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Invoice_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Liable_Summary_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Opportunity_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Opportunity_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Opportunity_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Opportunity_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_OrderItem_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_OrderItem_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_OrderItem_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_OrderItem_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Order_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Order_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/base/RLM_Order_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Order_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_Order_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Price_Adjustment_Schedule_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Price_Adjustment_Schedule_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Price_Adjustment_Schedule_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Price_Adjustment_Schedule_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Product_Configuration_Rule_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Product_Configuration_Rule_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Product_Configuration_Rule_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Configuration_Rule_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Product_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Product_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Product_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Product_Usage_Grant_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Product_Usage_Grant_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Product_Usage_Grant_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Usage_Grant_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Usage_Resource_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Quote_Line_Group_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Quote_Line_Group_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Quote_Line_Group_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Quote_Line_Group_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Quote_Line_Item_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Quote_Line_Item_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Quote_Line_Item_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Quote_Line_Item_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Quote_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_Quote_Record_Page.flexipage-meta.xml",
       "patches": [
         {
           "feature": "docgen",
@@ -296,266 +325,286 @@
     {
       "type": "flexipage",
       "name": "RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Unit_of_Measure_Class_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Unit_of_Measure_Class_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Unit_of_Measure_Class_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Unit_of_Measure_Class_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Unit_of_Measure_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Unit_of_Measure_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Unit_of_Measure_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Unit_of_Measure_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Aggregation_Policy_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Aggregation_Policy_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Aggregation_Policy_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Aggregation_Policy_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Entitlement_Bucket.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Entitlement_Bucket.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Entitlement_Bucket.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Entitlement_Bucket.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Entitlement_Bucket_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Entitlement_Bucket_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Entitlement_Bucket_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Entitlement_Bucket_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Entitlement_Entry_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Entitlement_Entry_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Entitlement_Entry_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Entitlement_Entry_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Product_Grant_Binding_Policy_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Product_Grant_Binding_Policy_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Product_Grant_Binding_Policy_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Product_Grant_Binding_Policy_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Ratable_Summary_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Ratable_Summary_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Ratable_Summary_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Ratable_Summary_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Resource_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Resource_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Resource_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Resource_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
       "name": "RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/Sales_Agreement_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "layout",
       "name": "Account-RLM Account Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Account-RLM Account Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Account-RLM Account Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Asset-RLM Asset Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Asset-RLM Asset Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Asset-RLM Asset Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Asset-RLM Partner Asset Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Asset-RLM Partner Asset Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Asset-RLM Partner Asset Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "AssetAction-RLM Asset Action Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/AssetAction-RLM Asset Action Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/AssetAction-RLM Asset Action Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/AssetStatePeriod-RLM Asset State Period Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "AttributePicklist-RLM Attribute Picklist Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/AttributePicklist-RLM Attribute Picklist Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/AttributePicklist-RLM Attribute Picklist Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Contract-RLM Contract Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Contract-RLM Contract Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Contract-RLM Contract Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "FulfillmentStepDefinition-RLM Fulfillment Step Definition Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/FulfillmentStepDefinition-RLM Fulfillment Step Definition Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/FulfillmentStepDefinition-RLM Fulfillment Step Definition Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Opportunity-RLM Opportunity Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Opportunity-RLM Opportunity Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Opportunity-RLM Opportunity Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Order-RLM Order Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Order-RLM Order Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Order-RLM Order Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "OrderItem-RLM Order Product Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/OrderItem-RLM Order Product Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/OrderItem-RLM Order Product Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "PricebookEntry-RLM Price Book Entry.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/PricebookEntry-RLM Price Book Entry.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/PricebookEntry-RLM Price Book Entry.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Product2-RLM Product Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Product2-RLM Product Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Product2-RLM Product Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "ProductCatalog-RLM Catalog Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/ProductCatalog-RLM Catalog Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/ProductCatalog-RLM Catalog Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "ProductUsageResource-RLM Product Usage Resource Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/ProductUsageResource-RLM Product Usage Resource Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/ProductUsageResource-RLM Product Usage Resource Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "Quote-RLM Quote Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/Quote-RLM Quote Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/Quote-RLM Quote Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "RLM_Build_Info__mdt-RLM Build Info Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/RLM_Build_Info__mdt-RLM Build Info Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/RLM_Build_Info__mdt-RLM Build Info Layout.layout-meta.xml",
       "source_tier": "base",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "GeneralLedgerAccount-RLM General Ledger Account Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/GeneralLedgerAccount-RLM General Ledger Account Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/GeneralLedgerAccount-RLM General Ledger Account Layout.layout-meta.xml",
       "source_tier": "billing",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "InvoiceLine-RLM Invoice Line Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/InvoiceLine-RLM Invoice Line Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/InvoiceLine-RLM Invoice Line Layout.layout-meta.xml",
       "source_tier": "billing",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "UsageResource-RLM Usage Resource Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/UsageResource-RLM Usage Resource Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/UsageResource-RLM Usage Resource Layout.layout-meta.xml",
       "source_tier": "billing",
       "action": "copy"
     },
     {
       "type": "layout",
       "name": "OrderItem-RLM Order Product Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/OrderItem-RLM Order Product Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/OrderItem-RLM Order Product Layout.layout-meta.xml",
       "source_tier": "constraints",
       "action": "override"
     },
     {
       "type": "layout",
       "name": "QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml",
-      "dest": "unpackaged/post_ux/layouts/QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml",
       "source_tier": "constraints",
       "action": "override"
     },
     {
+      "type": "layout",
+      "name": "SalesAgreement-MFG RCA Sales Agreement Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/SalesAgreement-MFG RCA Sales Agreement Layout.layout-meta.xml",
+      "source_tier": "manufacturing",
+      "action": "copy"
+    },
+    {
       "type": "application",
       "name": "RLM_Revenue_Cloud.app-meta.xml",
-      "dest": "unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml",
-      "source_tier": "base"
+      "dest": "unpackaged/post_manufacturing_ux/applications/RLM_Revenue_Cloud.app-meta.xml",
+      "source_tier": "manufacturing"
     },
     {
       "type": "application",
       "name": "standard__BillingConsole.app-meta.xml",
-      "dest": "unpackaged/post_ux/applications/standard__BillingConsole.app-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/applications/standard__BillingConsole.app-meta.xml",
       "source_tier": "conditional/billing"
+    },
+    {
+      "type": "application",
+      "name": "Rebates.app-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/applications/Rebates.app-meta.xml",
+      "source_tier": "conditional/manufacturing"
     },
     {
       "type": "appMenu",
       "name": "AppSwitcher.appMenu-meta.xml",
-      "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/appMenus/AppSwitcher.appMenu-meta.xml",
       "source_tier": "org + template priority ordering",
-      "items_total": 41,
+      "items_total": 42,
       "priority_applied": [
         "RLM_Revenue_Cloud",
         "standard__BillingConsole",
@@ -568,7 +617,7 @@
     {
       "type": "profile",
       "name": "Admin.profile-meta.xml",
-      "dest": "unpackaged/post_ux/profiles/Admin.profile-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/profiles/Admin.profile-meta.xml",
       "patches": [
         {
           "feature": "billing",
@@ -587,7 +636,7 @@
     {
       "type": "profile",
       "name": "RLM Custom Partner Community User.profile-meta.xml",
-      "dest": "unpackaged/post_ux/profiles/RLM Custom Partner Community User.profile-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/profiles/RLM Custom Partner Community User.profile-meta.xml",
       "patches": [
         {
           "feature": "prm",
@@ -642,91 +691,91 @@
     {
       "type": "CustomObject",
       "name": "Asset.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Asset/Asset.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Asset/Asset.object-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "CustomObject",
       "name": "FulfillmentOrderLineItem.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem.object-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "CustomObject",
       "name": "Order.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Order/Order.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Order/Order.object-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "CustomObject",
       "name": "OrderItem.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/OrderItem/OrderItem.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/OrderItem/OrderItem.object-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "CustomObject",
       "name": "Quote.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Quote/Quote.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Quote/Quote.object-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "CustomObject",
       "name": "QuoteLineItem.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/QuoteLineItem/QuoteLineItem.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/QuoteLineItem/QuoteLineItem.object-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "compactLayout",
       "name": "RLM_Asset_Compact_Layout.compactLayout-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Asset/compactLayouts/RLM_Asset_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Asset/compactLayouts/RLM_Asset_Compact_Layout.compactLayout-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "compactLayout",
       "name": "RLM_Quote_Compact_Layout.compactLayout-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Quote/compactLayouts/RLM_Quote_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Quote/compactLayouts/RLM_Quote_Compact_Layout.compactLayout-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
       "name": "All_Assets.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Asset/listViews/All_Assets.listView-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Asset/listViews/All_Assets.listView-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
       "name": "All_Products.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Product2/listViews/All_Products.listView-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Product2/listViews/All_Products.listView-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "CustomObject",
       "name": "TransactionJournal.object-meta.xml",
-      "dest": "unpackaged/post_ux/objects/TransactionJournal/TransactionJournal.object-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/TransactionJournal/TransactionJournal.object-meta.xml",
       "source": "objects/billing"
     },
     {
       "type": "compactLayout",
       "name": "RLM_Billing_Account_Compact_Layout.compactLayout-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Account/compactLayouts/RLM_Billing_Account_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Account/compactLayouts/RLM_Billing_Account_Compact_Layout.compactLayout-meta.xml",
       "source": "objects/billing"
     },
     {
       "type": "compactLayout",
       "name": "RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml",
-      "dest": "unpackaged/post_ux/objects/TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml",
       "source": "objects/billing"
     },
     {
       "type": "listView",
       "name": "RLM_All_Billing_Schedule_Groups.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml",
       "source": "objects/billing"
     },
     {
       "type": "listView",
       "name": "RLM_Failed_Invoices.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/objects/Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml",
       "source": "objects/billing"
     }
   ],

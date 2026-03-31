@@ -90,10 +90,10 @@ project:
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
     tax: true                 # Use Tax engine
-    billing: false             # Use Billing
+    billing: true             # Use Billing
     payments: true            # Use Payments
     approvals: true           # Use Approvals
-    clm: true                # Use Contract Lifecycle Management
+    clm: false                # Use Contract Lifecycle Management
     clm_data: false           # Use Contract Lifecycle Management Data
     dro: true                 # Use Dynamic Revenue Orchestration
     rating: true              # Insert Rating Design Time Data
@@ -107,11 +107,12 @@ project:
     prm: true                # Use Partner Relationship Management
     prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
     billing_portal: false     # Use Self-Service Billing Portal community
+    mfg_ux: true              # Use Manufacturing UX assembly (flexipages, layouts, applications)
     billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
-    docgen: false              # Use Document Generation
+    docgen: true              # Use Document Generation
     #psg_debug: false          # Debug Permission Set Groups
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
@@ -2977,7 +2978,7 @@ flows:
         when: project_config.project__custom__billing
       7:
         task: deploy_billing_id_settings
-        when: project_config.project__custom__billing
+        when: project_config.project__custom__billing and project_config.project__custom__qb
       8:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
@@ -3169,7 +3170,7 @@ flows:
     steps:
       1:
         task: insert_qb_transactionprocessingtypes_data
-        when: project_config.project__custom__constraints and project_config.project__custom__qb
+        when: project_config.project__custom__constraints
       2:
         task: deploy_post_constraints
         when: project_config.project__custom__constraints
@@ -3183,7 +3184,7 @@ flows:
         when: project_config.project__custom__constraints
       5:
         task: enable_constraints_settings
-        when: project_config.project__custom__constraints_data
+        when: project_config.project__custom__constraints
       6:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
@@ -3490,6 +3491,21 @@ flows:
       2:
         task: reorder_app_launcher
         when: project_config.project__custom__ux
+
+  prepare_mfg_ux:
+    group: Manufacturing
+    description: >
+      Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications)
+      from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/,
+      and templates/applications/manufacturing/. Output is written to
+      unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call.
+      Run this flow independently to test manufacturing UX assembly without running the full
+      prepare_rlm_org flow. Requires mfg_ux=true in project custom flags.
+    steps:
+      1:
+        task: assemble_and_deploy_ux
+        options:
+          output_path: unpackaged/post_manufacturing_ux
 
   prepare_personas:
     group: Revenue Lifecycle Management
