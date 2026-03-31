@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-31T02:21:33.048107Z",
+  "assembled_at": "2026-03-31T05:11:13.647220Z",
   "feature_flags": {
     "qb": false,
     "billing": true,
@@ -19,7 +19,7 @@
     "analytics": true,
     "procedureplans": false,
     "collections": false,
-    "mfg": true
+    "mfg_ux": true
   },
   "assembled": [
     {

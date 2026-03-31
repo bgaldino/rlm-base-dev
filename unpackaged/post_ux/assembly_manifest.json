@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-31T01:14:29.807890Z",
+  "assembled_at": "2026-03-31T04:48:20.280428Z",
   "feature_flags": {
     "qb": false,
     "billing": true,
@@ -18,9 +18,38 @@
     "constraints": true,
     "analytics": true,
     "procedureplans": false,
-    "collections": false
+    "collections": false,
+    "mfg_ux": true
   },
   "assembled": [
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
     {
       "type": "flexipage",
       "name": "RLM_Account_Record_Page.flexipage-meta.xml",
@@ -193,7 +222,7 @@
       "type": "flexipage",
       "name": "RLM_Order_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Order_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/base/RLM_Order_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_Order_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -249,7 +278,7 @@
       "type": "flexipage",
       "name": "RLM_Quote_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_Quote_Record_Page.flexipage-meta.xml",
       "patches": [
         {
           "feature": "docgen",
@@ -375,6 +404,13 @@
       "name": "RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Usage_Summary_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/Sales_Agreement_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -539,16 +575,29 @@
       "action": "override"
     },
     {
+      "type": "layout",
+      "name": "SalesAgreement-MFG RCA Sales Agreement Layout.layout-meta.xml",
+      "dest": "unpackaged/post_ux/layouts/SalesAgreement-MFG RCA Sales Agreement Layout.layout-meta.xml",
+      "source_tier": "manufacturing",
+      "action": "copy"
+    },
+    {
       "type": "application",
       "name": "RLM_Revenue_Cloud.app-meta.xml",
       "dest": "unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml",
-      "source_tier": "base"
+      "source_tier": "manufacturing"
     },
     {
       "type": "application",
       "name": "standard__BillingConsole.app-meta.xml",
       "dest": "unpackaged/post_ux/applications/standard__BillingConsole.app-meta.xml",
       "source_tier": "conditional/billing"
+    },
+    {
+      "type": "application",
+      "name": "Rebates.app-meta.xml",
+      "dest": "unpackaged/post_ux/applications/Rebates.app-meta.xml",
+      "source_tier": "conditional/manufacturing"
     },
     {
       "type": "appMenu",

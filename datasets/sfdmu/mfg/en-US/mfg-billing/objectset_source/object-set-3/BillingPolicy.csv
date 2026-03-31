@@ -1,0 +1,3 @@
+DefaultBillingTreatment.Name,BillingTreatmentSelection,Description,Name,Status
+Billing Treatment - USA - Advance,LegalEntity,,Billing Policy - Advance,Draft
+Billing Treatment - USA - Arrears,LegalEntity,,Billing Policy - Arrears,Draft

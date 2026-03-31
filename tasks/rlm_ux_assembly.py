@@ -549,6 +549,17 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ),
             "required": False,
         },
+        "extra_flags": {
+            "description": (
+                "Comma-separated feature flags to force-enable (or explicitly set) "
+                "regardless of the project config. Each entry is a flag name (sets it "
+                "to true) or a name=value pair. "
+                "Example: 'mfg_ux' or 'mfg_ux=true,billing=false'. "
+                "Use this to assemble a feature-specific output directory (e.g. "
+                "post_manufacturing_ux) when the flag is not set globally."
+            ),
+            "required": False,
+        },
     }
 
     def _validate_options(self):
@@ -682,7 +693,12 @@ class AssembleAndDeployUX(SFDXBaseTask):
             self._deploy(output_path)
 
     def _get_feature_flags(self) -> Dict[str, bool]:
-        """Read feature flags from project_config.project__custom__*."""
+        """Read feature flags from project_config.project__custom__*.
+
+        Task option ``extra_flags`` (comma-separated) may override individual flags,
+        allowing a flow to assemble a feature-specific output directory (e.g.
+        post_manufacturing_ux) without requiring the flag to be set globally.
+        """
         custom = getattr(self.project_config, "project__custom", {}) or {}
         known_flags = [
             "qb", "billing", "tax", "rating", "rates", "clm", "dro",
@@ -694,6 +710,21 @@ class AssembleAndDeployUX(SFDXBaseTask):
         for flag in known_flags:
             val = custom.get(flag, False)
             flags[flag] = process_bool_arg(val) if isinstance(val, (str, bool)) else bool(val)
+
+        # Apply per-invocation overrides from the extra_flags task option.
+        # Each entry is either a bare flag name (→ True) or a "name=value" pair.
+        extra_flags_str = self.options.get("extra_flags", "")
+        if extra_flags_str:
+            for entry in str(extra_flags_str).split(","):
+                entry = entry.strip()
+                if not entry:
+                    continue
+                if "=" in entry:
+                    k, v = entry.split("=", 1)
+                    flags[k.strip()] = process_bool_arg(v.strip())
+                else:
+                    flags[entry] = True
+
         return flags
 
     # ------------------------------------------------------------------

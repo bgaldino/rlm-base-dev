@@ -107,7 +107,6 @@ project:
     prm: true                # Use Partner Relationship Management
     prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
     billing_portal: false     # Use Self-Service Billing Portal community
-    mfg_ux: true              # Use Manufacturing UX assembly (flexipages, layouts, applications)
     billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
     commerce: false           # Use Commerce
     quantumbit: true          # Use QuantumBit
@@ -123,7 +122,7 @@ project:
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
     badger: true              #Badger Metadata & Dataset
-    badger_data: false        #Badger Data Insertion
+    badger_data: true        #Badger Data Insertion
     mfg_aaf: true             #Badger MFG Advanced Account Forecast
     mfg_rebates: true         #Badger MFG Rebates
 
@@ -540,6 +539,8 @@ project:
     badger_product_dataset: &badger_product_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"         # Badger product data
     badger_pricing_dataset: &badger_pricing_dataset "datasets/sfdmu/mfg/en-US/mfg-pricing"     # Badger pricing data
     badger_dro_dataset: &badger_dro_dataset "datasets/sfdmu/mfg/en-US/mfg-dro"     # Badger DRO dataset
+    badger_billing_dataset: &badger_billing_dataset "datasets/sfdmu/mfg/en-US/mfg-billing"     # Badger MFG billing data (BillingTreatment, BillingPolicy, PaymentTerm, GL accounts)
+    badger_tax_dataset: &badger_tax_dataset "datasets/sfdmu/mfg/en-US/mfg-tax"               # Badger MFG tax data (TaxPolicy, TaxTreatment, Product2 TaxPolicy assignments)
     genSet_mfg_cml: &genSet_mfg_cml "datasets/constraints/mfg/genSet" #Badger MFG Generator Set
     fuelCell_mfg_cml: &fuelCell_mfg_cml "datasets/constraints/mfg/fuelCell" #Badger MFG Fuel Cell
     badger_guidedselling_dataset: &badger_guidedselling_dataset "datasets/sfdmu/mfg/en-US/mfg-guidedselling" #Badger MFG Guided Selling
@@ -1741,6 +1742,27 @@ tasks:
     options:
       pathtoexportjson: *q3_billing_dataset
 
+  insert_mfg_billing_data:
+    group: Manufacturing
+    description: >
+      Insert Manufacturing billing seed data (BillingTreatment, BillingPolicy, PaymentTerm,
+      LegalEntity, AccountingPeriod, GeneralLedgerAccount, GeneralLedgerAcctAsgntRule) and
+      assign BillingPolicy to all MFG products. Required for order activation on badger orgs
+      when billing=true. Source: datasets/sfdmu/mfg/en-US/mfg-billing.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_billing_dataset
+
+
+  insert_mfg_tax_data:
+    group: Manufacturing
+    description: >
+      Insert Manufacturing tax seed data (TaxPolicy, TaxTreatment, Product2 TaxPolicy assignments).
+      Activates TaxPolicy and TaxTreatment via a two-pass SFDMU plan. Required for order activation
+      on badger orgs when tax=true. Source: datasets/sfdmu/mfg/en-US/mfg-tax.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_tax_dataset
 
   insert_qb_rating_data:
     group: Revenue Lifecycle Management
@@ -2689,6 +2711,9 @@ flows:
         flow: prepare_badger_rebates
       14:
         flow: prepare_badger_aaf
+      15:
+        flow: prepare_mfg_ux
+        when: project_config.project__custom__ux
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
@@ -3351,6 +3376,56 @@ flows:
       4:
         flow: import_mfg_cml
         when: project_config.project__custom__badger
+      5:
+        flow: prepare_mfg_tax
+        when: project_config.project__custom__badger and project_config.project__custom__tax
+      6:
+        flow: prepare_mfg_billing
+        when: project_config.project__custom__badger and project_config.project__custom__billing
+
+  prepare_mfg_billing:
+    group: Badger
+    description: >
+      Load and activate Manufacturing billing seed data (LegalEntity, AccountingPeriod,
+      BillingPolicy, BillingTreatment, BillingTreatmentItem, GeneralLedgerAccount,
+      GeneralLedgerAcctAsgntRule, Product2 billing policy assignments). Activates billing
+      records and deploys billing metadata. Runs when badger=true and billing=true.
+    steps:
+      1:
+        task: insert_mfg_billing_data
+        when: project_config.project__custom__billing
+      2:
+        task: activate_flow
+        when: project_config.project__custom__billing
+        options:
+          developer_names: RLM_Order_to_Billing_Schedule_Flow
+      3:
+        task: activate_default_payment_term
+        when: project_config.project__custom__billing
+      4:
+        task: activate_billing_records
+        when: project_config.project__custom__billing
+      5:
+        task: deploy_post_billing
+        when: project_config.project__custom__billing
+      6:
+        task: deploy_billing_template_settings
+        when: project_config.project__custom__billing
+
+  prepare_mfg_tax:
+    group: Badger
+    description: >
+      Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatment,
+      Product2 TaxPolicy assignments). Uses a two-pass SFDMU plan: Pass 1 inserts records in
+      Draft status; Pass 2 activates TaxTreatment and TaxPolicy and sets DefaultTaxTreatmentId.
+      Runs when badger=true and tax=true.
+    steps:
+      1:
+        task: insert_mfg_tax_data
+        when: project_config.project__custom__tax
+      2:
+        task: activate_tax_records
+        when: project_config.project__custom__tax
 
 # Badger Context Plan Flow
 
@@ -3392,6 +3467,12 @@ flows:
         when: project_config.project__custom__badger
         options:
           data_dir: *fuelCell_mfg_cml
+      3:
+        task: manage_expression_sets
+        when: project_config.project__custom__badger
+        options:
+          operation: activate_versions
+          version_full_names: "GeneratorSet_V1,Fuel_Cell_V1"
 
   prepare_badger_dro:
     group: Badger
@@ -3500,12 +3581,13 @@ flows:
       and templates/applications/manufacturing/. Output is written to
       unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call.
       Run this flow independently to test manufacturing UX assembly without running the full
-      prepare_rlm_org flow. Requires mfg_ux=true in project custom flags.
+      prepare_rlm_org flow. Gated by ux=true in prepare_badger_flow.
     steps:
       1:
         task: assemble_and_deploy_ux
         options:
           output_path: unpackaged/post_manufacturing_ux
+          extra_flags: mfg_ux
 
   prepare_personas:
     group: Revenue Lifecycle Management

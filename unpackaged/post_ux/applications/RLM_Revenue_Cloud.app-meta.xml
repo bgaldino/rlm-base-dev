@@ -65,9 +65,18 @@
     </actionOverrides>
     <actionOverrides>
         <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Contract_Record_Page</content>
+        <comment>Action override updated by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Contract_Record_Page</content>
         <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>Contract</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Contract_Record_Page</content>
+        <formFactor>Small</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
         <pageOrSobjectType>Contract</pageOrSobjectType>
@@ -107,24 +116,6 @@
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
         <pageOrSobjectType>FulfillmentAsset</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Fulfillment_Step_Definition_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>FulfillmentStepDefinition</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Fulfillment_Step_Definition_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>FulfillmentStepDefinition</pageOrSobjectType>
     </actionOverrides>
     <actionOverrides>
         <actionName>View</actionName>
@@ -227,9 +218,18 @@
     </actionOverrides>
     <actionOverrides>
         <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Order_Record_Page</content>
+        <comment>Action override updated by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Order_Record_Page</content>
         <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>Order</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Order_Record_Page</content>
+        <formFactor>Small</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
         <pageOrSobjectType>Order</pageOrSobjectType>
@@ -272,39 +272,21 @@
     </actionOverrides>
     <actionOverrides>
         <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Product_Usage_Grant_Record_Page</content>
+        <comment>Action override updated by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Quote_Record_Page</content>
         <formFactor>Large</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
-        <pageOrSobjectType>ProductUsageGrant</pageOrSobjectType>
+        <pageOrSobjectType>Quote</pageOrSobjectType>
     </actionOverrides>
     <actionOverrides>
         <actionName>View</actionName>
         <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Product_Usage_Grant_Record_Page</content>
+        <content>MFG_RLM_Quote_Record_Page</content>
         <formFactor>Small</formFactor>
         <skipRecordTypeSelect>false</skipRecordTypeSelect>
         <type>Flexipage</type>
-        <pageOrSobjectType>ProductUsageGrant</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Product_Usage_Resource_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>ProductUsageResource</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Product_Usage_Resource_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>ProductUsageResource</pageOrSobjectType>
+        <pageOrSobjectType>Quote</pageOrSobjectType>
     </actionOverrides>
     <actionOverrides>
         <actionName>View</actionName>
@@ -334,6 +316,24 @@
         <pageOrSobjectType>QuoteLineItem</pageOrSobjectType>
     </actionOverrides>
     <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Sales_Agreement_Record_Page</content>
+        <formFactor>Large</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>SalesAgreement</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <comment>Action override created by Lightning App Builder during activation.</comment>
+        <content>MFG_RLM_Sales_Agreement_Record_Page</content>
+        <formFactor>Small</formFactor>
+        <skipRecordTypeSelect>false</skipRecordTypeSelect>
+        <type>Flexipage</type>
+        <pageOrSobjectType>SalesAgreement</pageOrSobjectType>
+    </actionOverrides>
+    <actionOverrides>
         <actionName>Tab</actionName>
         <content>RLM_Home_Page_Default</content>
         <formFactor>Large</formFactor>
@@ -359,168 +359,12 @@
         <type>Flexipage</type>
         <pageOrSobjectType>TransactionJournal</pageOrSobjectType>
     </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Unit_of_Measure_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UnitOfMeasure</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Unit_of_Measure_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UnitOfMeasure</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Unit_of_Measure_Class_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UnitOfMeasureClass</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Unit_of_Measure_Class_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UnitOfMeasureClass</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Entitlement_Bucket_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageEntitlementBucket</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Entitlement_Bucket_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageEntitlementBucket</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Entitlement_Entry_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageEntitlementEntry</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Entitlement_Entry_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageEntitlementEntry</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Product_Grant_Binding_Policy_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsagePrdGrantBindingPolicy</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Product_Grant_Binding_Policy_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsagePrdGrantBindingPolicy</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Ratable_Summary_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageRatableSummary</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Ratable_Summary_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageRatableSummary</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Resource_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageResource</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Resource_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageResource</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Aggregation_Policy_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageResourceBillingPolicy</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Aggregation_Policy_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageResourceBillingPolicy</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Summary_Record_Page</content>
-        <formFactor>Large</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageSummary</pageOrSobjectType>
-    </actionOverrides>
-    <actionOverrides>
-        <actionName>View</actionName>
-        <comment>Action override created by Lightning App Builder during activation.</comment>
-        <content>RLM_Usage_Summary_Record_Page</content>
-        <formFactor>Small</formFactor>
-        <skipRecordTypeSelect>false</skipRecordTypeSelect>
-        <type>Flexipage</type>
-        <pageOrSobjectType>UsageSummary</pageOrSobjectType>
-    </actionOverrides>
+    <brand>
+        <headerColor>#CC0000</headerColor>
+        <logo>BadgerEquipmentprimarylogocolor1</logo>
+        <logoVersion>1</logoVersion>
+        <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
+    </brand>
     <formFactors>Small</formFactors>
     <formFactors>Large</formFactors>
     <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
@@ -534,10 +378,12 @@
     <tabs>standard-Account</tabs>
     <tabs>standard-Opportunity</tabs>
     <tabs>standard-Quote</tabs>
+    <tabs>standard-SalesAgreement</tabs>
     <tabs>standard-Order</tabs>
     <tabs>standard-Contract</tabs>
     <tabs>standard-Asset</tabs>
     <tabs>standard-Product2</tabs>
+    <tabs>standard-AdvAcctForecastSetPartner</tabs>
     <tabs>standard-report</tabs>
     <uiType>Lightning</uiType>
 </CustomApplication>
