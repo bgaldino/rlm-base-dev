@@ -1,0 +1,111 @@
+{
+  "orgName": "Salesforce Agentforce Revenue Management",
+  "country": "US",
+  "edition": "enterprise",
+  "features": [
+    "B2BCommerce",
+    "CGAnalytics",
+    "Chatbot",
+    "Communities",
+    "ContractsAI",
+    "CoreCpq",
+    "CustomerCommunityPlus",
+    "DocGen",
+    "Einstein1AIPlatform",
+    "EnablePRM",
+    "EnableSetPasswordInApi",
+    "ExternalClientApps",
+    "InsightsPlatform",
+    "OrderManagement",
+    "OrderSaveLogicEnabled",
+    "PartnerCommunity",
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "ServiceCloud"
+  ],
+  "settings": {
+    "communitiesSettings": {
+      "enableNetworksEnabled": true
+    },
+    "currencySettings": {
+      "enableMultiCurrency": true
+    },
+    "dynamicFulfillmentOrchestratorSettings": {
+      "enableDFOPref": true
+    },
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
+    },
+    "emailTemplateSettings": {
+      "enableTemplateEnhancedFolderPref": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
+    },
+    "industriesContextSettings": {
+      "enableContextDefinitions": true
+    },
+    "industriesPricingSettings": {
+      "enableHighAvailability": true,
+      "enablePricingWaterfall": true,
+      "enablePricingWaterfallPersistence": true,
+      "enableSalesforcePricing": true
+    },
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "omniChannelSettings": {
+      "enableOmniChannel": true
+    },
+    "opportunitySettings": {
+      "enableOpportunityTeam": true
+    },
+    "orderManagementSettings": {
+      "enableOrderManagement": true
+    },
+    "orderSettings": {
+      "enableEnhancedCommerceOrders": true,
+      "enableNegativeQuantity": true,
+      "enableOptionalPricebook": false,
+      "enableOrderEvents": true,
+      "enableOrders": true,
+      "enableOrderWithMultiplePriceBooks": false,
+      "enableReductionOrders": true,
+      "enableZeroQuantity": true
+    },
+    "productConfiguratorSettings": {
+      "enableProductConfigurator": true
+    },
+    "quoteSettings": {
+      "enableQuote": true,
+      "enableQuotesWithoutOppEnabled": true
+    },
+    "revenueManagementSettings": {
+      "enableAdvancedDetailLinePricing": true,
+      "enableAdvCreateOrdersFromQuote": true,
+      "enableAsIsRenewals": true,
+      "enableAutoAddDerivedAsset": true,
+      "enableCoreCPQ": true,
+      "enableDeltaPricing": true,
+      "enableFullEscalationHydration": true,
+      "enableGroupRampMultiSchedulePref": true,
+      "enableGroupRampPref": true,
+      "enableRampDeal": true,
+      "enableRevenueAdjustment": true,
+      "enableRevInstPricingDefaultPref": true,
+      "enableRevUnifiedSetup": true,
+      "enableTransactionCloning": true,
+      "enableTransactionProcessor": true,
+      "groupsEnabled": true,
+      "hidePriceRefreshNtfcn": false,
+      "relaxUniqueCipValidation": true,
+      "skipOrgSttPricing": false
+    },
+    "securitySettings": {
+      "enableAdminLoginAsAnyUser": true,
+      "sessionSettings": {
+        "forceRelogin": false
+      }
+    }
+  }
+}

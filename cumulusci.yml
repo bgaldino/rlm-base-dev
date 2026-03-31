@@ -61,6 +61,9 @@ orgs:
     dev_enhanced:
       config_file: orgs/dev-enhanced.json
       days: 30
+    dev-rca:
+      config_file: orgs/dev-rca.json
+      days: 30
 
 # Project configuration settings
 # Defines the project name, package details, and source format
