@@ -411,7 +411,16 @@ public with sharing class RLM_UsageUploaderController {
         }
 
         if (!toInsert.isEmpty()) {
-            Database.SaveResult[] saveResults = Database.insert(toInsert, false);
+            if (!Schema.sObjectType.TransactionJournal.isCreateable()) {
+                throw new AuraHandledException('You do not have permission to create usage records.');
+            }
+
+            SObjectAccessDecision accessDecision = Security.stripInaccessible(
+                AccessType.CREATABLE,
+                toInsert
+            );
+            List<TransactionJournal> sanitized = (List<TransactionJournal>) accessDecision.getRecords();
+            Database.SaveResult[] saveResults = Database.insert(sanitized, false);
             for (Integer i = 0; i < saveResults.size(); i++) {
                 if (saveResults[i].isSuccess()) {
                     result.successCount++;

@@ -253,13 +253,20 @@ export default class RlmUsageUploader extends LightningElement {
 
     handleAssetChange(event) {
         this.selectedAssetId = event.detail.value;
-        // Reset form when Asset changes
+        // Reset all resource/form state so the UI doesn't show stale data from the previous asset
+        this.usageResources = [];
+        this.resourceOptions = [];
+        this.resourcesLoaded = false;
+        this.resourceError = undefined;
         this.selectedResourceId = undefined;
         this.selectedUomId = undefined;
         this.singleQuantity = undefined;
         this.singleDate = this._todayISO();
         this.csvData = [];
+        this.csvFileName = undefined;
         this.csvValidated = false;
+        this.csvHasErrors = false;
+        this.validationResults = [];
     }
 
     // ─── Single Entry Handlers ─────────────────────────────────────────
@@ -336,10 +343,7 @@ export default class RlmUsageUploader extends LightningElement {
         const today = this._todayISO();
         const header = 'Usage Resource,Quantity,Transaction Date';
         const rows = this.usageResources.map(r => {
-            // Escape resource name in case it contains commas
-            const name = r.resourceName.includes(',')
-                ? `"${r.resourceName}"`
-                : r.resourceName;
+            const name = this._escapeCsvField(r.resourceName);
             return `${name},1,${today}`;
         });
 
@@ -700,6 +704,15 @@ export default class RlmUsageUploader extends LightningElement {
     }
 
     // ─── Utility ───────────────────────────────────────────────────────
+
+    _escapeCsvField(value) {
+        if (value == null) return '';
+        const str = String(value);
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    }
 
     _todayISO() {
         const d = new Date();

@@ -7,12 +7,11 @@
  *  - Static display of the 3-step workflow
  *  - Link to Monitor Workflow Services
  */
-import { LightningElement, api, wire } from 'lwc';
+import { LightningElement, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { NavigationMixin } from 'lightning/navigation';
 import startOrchestration from '@salesforce/apex/RLM_UsageOrchestrationController.startOrchestration';
 
-export default class RlmUsageOrchestration extends NavigationMixin(LightningElement) {
+export default class RlmUsageOrchestration extends LightningElement {
     // Configuration
     @api orchestrationFlowApiName = 'RLM_Orchestrate_Usage_Management';
 

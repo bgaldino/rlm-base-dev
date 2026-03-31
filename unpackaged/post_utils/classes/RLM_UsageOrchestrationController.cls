@@ -12,12 +12,16 @@ public with sharing class RLM_UsageOrchestrationController {
     /**
      * Starts the usage orchestration flow asynchronously.
      *
+     * The flowApiName parameter is intentionally open (no allowlist). This component
+     * is designed for demos and post-deployment customization — admins configure the
+     * flow API name via the Lightning App Builder property, allowing them to swap in
+     * custom orchestration flows without code changes.
+     *
      * @param flowApiName The API name of the autolaunched flow to invoke (optional, defaults to RLM_Orchestrate_Usage_Management)
      * @return Non-empty token indicating start was successful
      */
     @AuraEnabled
     public static String startOrchestration(String flowApiName) {
-        // Default to standard orchestration flow if not specified
         if (String.isBlank(flowApiName)) {
             flowApiName = ORCHESTRATION_FLOW_API_NAME;
         }

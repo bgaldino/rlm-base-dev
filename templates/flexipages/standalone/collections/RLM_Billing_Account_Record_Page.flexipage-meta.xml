@@ -534,7 +534,7 @@
                     <name>usageObject</name>
                     <value>TransactionJournal</value>
                 </componentInstanceProperties>
-                <componentName>rlmUsageDataTable</componentName>
+                <componentName>c:rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable</identifier>
             </componentInstance>
         </itemInstances>
@@ -552,7 +552,7 @@
                     <name>usageObject</name>
                     <value>UsageSummary</value>
                 </componentInstanceProperties>
-                <componentName>rlmUsageDataTable</componentName>
+                <componentName>c:rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable2</identifier>
             </componentInstance>
         </itemInstances>
@@ -570,7 +570,7 @@
                     <name>usageObject</name>
                     <value>UsageBillingPeriodItem</value>
                 </componentInstanceProperties>
-                <componentName>rlmUsageDataTable</componentName>
+                <componentName>c:rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable3</identifier>
             </componentInstance>
         </itemInstances>
