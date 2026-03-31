@@ -23,7 +23,13 @@
             <stringValue>LightningFlowBuilder</stringValue>
         </value>
     </processMetadataValues>
-    <processType>RecordTriggeredFlow</processType>
+    <!--
+      Metadata API note:
+      Record-triggered flows use processType=AutoLaunchedFlow plus start.triggerType
+      (for example, RecordAfterSave). RecordTriggeredFlow is not a valid FlowProcessType
+      enum value and fails deployment validation.
+    -->
+    <processType>AutoLaunchedFlow</processType>
     <recordUpdates>
         <name>Set_Parent_Asset</name>
         <label>Set Parent Asset</label>

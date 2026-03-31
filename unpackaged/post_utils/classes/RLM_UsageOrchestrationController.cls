@@ -46,10 +46,19 @@ public with sharing class RLM_UsageOrchestrationController {
             );
             interview.start();
 
-            // Return the interview ID directly to avoid nondeterministic "most recent" queries.
-            String interviewId = interview.getInterviewId();
-            if (String.isNotBlank(interviewId)) {
-                return interviewId;
+            // Resolve the most recent interview started by the current user in this transaction window.
+            // getInterviewId() is not available in all org runtimes, so we use a narrowed query.
+            DateTime recentTime = DateTime.now().addSeconds(-5);
+            List<FlowInterview> interviews = [
+                SELECT Id
+                FROM FlowInterview
+                WHERE CreatedById = :UserInfo.getUserId()
+                  AND CreatedDate >= :recentTime
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (!interviews.isEmpty()) {
+                return interviews[0].Id;
             }
 
             throw new AuraHandledException('Could not determine started flow interview ID');
