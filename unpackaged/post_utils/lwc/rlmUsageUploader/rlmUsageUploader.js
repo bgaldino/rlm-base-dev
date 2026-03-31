@@ -161,7 +161,7 @@ export default class RlmUsageUploader extends LightningElement {
     }
 
     get effectiveAccountId() {
-        return this.isAccountContext ? this.recordId : null;
+        return this.isAccountContext ? this.recordId : undefined;
     }
 
     get hasAssetOptions() {

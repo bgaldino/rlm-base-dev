@@ -218,6 +218,10 @@ public with sharing class RLM_UsageUploaderController {
         Date transactionDate,
         Id unitOfMeasureId
     ) {
+        if (!Schema.sObjectType.TransactionJournal.isCreateable()) {
+            throw new AuraHandledException('You do not have permission to create usage records.');
+        }
+
         // Resolve the AccountId from the Asset
         Asset ast = [
             SELECT Id, AccountId
@@ -226,16 +230,29 @@ public with sharing class RLM_UsageUploaderController {
             LIMIT 1
         ];
 
-        // Determine which UoM to use
-        Id resolvedUomId = unitOfMeasureId;
-        if (resolvedUomId == null) {
-            UsageResource ur = [
-                SELECT Id, DefaultUnitOfMeasureId
-                FROM UsageResource
-                WHERE Id = :usageResourceId
+        UsageResource ur = [
+            SELECT Id, DefaultUnitOfMeasureId, UnitOfMeasureClassId
+            FROM UsageResource
+            WHERE Id = :usageResourceId
+            LIMIT 1
+        ];
+
+        // Determine which UoM to use and validate any client-provided UoM.
+        Id resolvedUomId;
+        if (unitOfMeasureId == null) {
+            resolvedUomId = ur.DefaultUnitOfMeasureId;
+        } else {
+            List<UnitOfMeasure> candidates = [
+                SELECT Id, Status, UnitOfMeasureClassId
+                FROM UnitOfMeasure
+                WHERE Id = :unitOfMeasureId
+                  AND UnitOfMeasureClassId = :ur.UnitOfMeasureClassId
                 LIMIT 1
             ];
-            resolvedUomId = ur.DefaultUnitOfMeasureId;
+            if (candidates.isEmpty() || candidates[0].Status != 'Active') {
+                throw new AuraHandledException('The selected unit of measure is not valid for this usage resource.');
+            }
+            resolvedUomId = candidates[0].Id;
         }
 
         TransactionJournal tj = buildTransactionJournal(
@@ -247,8 +264,13 @@ public with sharing class RLM_UsageUploaderController {
             resolvedUomId
         );
 
-        insert tj;
-        return tj.Id;
+        SObjectAccessDecision accessDecision = Security.stripInaccessible(
+            AccessType.CREATABLE,
+            new List<TransactionJournal>{ tj }
+        );
+        TransactionJournal sanitized = (TransactionJournal) accessDecision.getRecords()[0];
+        insert sanitized;
+        return sanitized.Id;
     }
 
     /**

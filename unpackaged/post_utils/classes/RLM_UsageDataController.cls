@@ -171,7 +171,12 @@ public with sharing class RLM_UsageDataController {
             ' WHERE ' + filterField + ' = :recordId ORDER BY Id ASC' +
             ' LIMIT :fetchLimit';
 
-        List<SObject> records = Database.query(soql);
+        List<SObject> queriedRecords = Database.query(soql);
+        Security.StripInaccessibleResult stripResult = Security.stripInaccessible(
+            Security.AccessType.READABLE,
+            queriedRecords
+        );
+        List<SObject> records = stripResult.getRecords();
         Boolean truncated = records.size() > QUERY_LIMIT;
         Integer recordCount = truncated ? QUERY_LIMIT : records.size();
 
