@@ -149,11 +149,11 @@ export default class RlmUsageUploader extends LightningElement {
     }
 
     get showAssetPicker() {
-        return this.isAccountContext && !this.selectedAssetId;
+        return this.isAccountContext;
     }
 
     get shouldShowMainContent() {
-        return !this.showAssetPicker;
+        return this.isAccountContext ? !!this.selectedAssetId : true;
     }
 
     get effectiveAssetId() {
@@ -169,7 +169,7 @@ export default class RlmUsageUploader extends LightningElement {
     }
 
     get noAssetsMessage() {
-        return !this.hasAssetOptions && this.isAccountContext;
+        return this.isAccountContext && this.assetsLoaded && !this.hasAssetOptions;
     }
 
     get hasCsvData() {

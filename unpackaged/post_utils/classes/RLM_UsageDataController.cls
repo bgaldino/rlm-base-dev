@@ -172,8 +172,8 @@ public with sharing class RLM_UsageDataController {
             ' LIMIT :fetchLimit';
 
         List<SObject> queriedRecords = Database.query(soql);
-        Security.StripInaccessibleResult stripResult = Security.stripInaccessible(
-            Security.AccessType.READABLE,
+        SObjectAccessDecision stripResult = Security.stripInaccessible(
+            AccessType.READABLE,
             queriedRecords
         );
         List<SObject> records = stripResult.getRecords();

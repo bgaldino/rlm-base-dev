@@ -15,7 +15,7 @@
                         required>
                     </lightning-combobox>
                     <p class="slds-m-top_small slds-text-body_small slds-text-color_weak">
-                        Select an asset to begin uploading usage data. Only active assets with Anchor products are shown.
+                        Select an asset to upload usage data for this account. You can change the selected asset at any time.
                     </p>
                 </template>
                 <template if:true={noAssetsMessage}>
@@ -27,7 +27,7 @@
             </div>
         </template>
 
-        <!-- Main content (only show after Asset selected on Account, or always on Asset) -->
+        <!-- Main content (show after Asset selected on Account, or always on Asset) -->
         <template if:true={shouldShowMainContent}>
             <!-- Loading state -->
             <template if:true={isLoading}>
