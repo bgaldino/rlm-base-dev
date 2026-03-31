@@ -1037,6 +1037,25 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Docker Setup](docs/guides/docker-setup.md) | Docker-based CCI/SF/Robot workflow, org sharing model, CI usage, and verification checklist |
 | [Docker Workflow Examples](docs/references/docker-workflow-examples.md) | Practical local and CI command examples for containerized development and builds |
 
+#### Docker Org Transfer Quick Command
+
+Use this when you need to import a Docker-created org into host `sf` and host `cci` without touching existing host aliases/defaults:
+
+```bash
+./docker/docker-transfer-org-to-host.sh \
+  my-docker-org \
+  --host-sf-alias dock-xfer-my-docker-org \
+  --host-cci-org dock_xfer_my_docker_org
+```
+
+`<docker-org-alias>` is required positional input. Host alias/org names are optional and auto-generated when omitted.
+
+Safety defaults:
+
+- Fails if host alias already exists
+- Fails if host CCI org name already exists
+- Never sets host default org or default Dev Hub
+
 ### Analysis & Planning
 
 | Document | Description |

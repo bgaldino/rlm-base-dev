@@ -10,10 +10,9 @@ Current source-of-truth docs:
 Notes from earlier rollout:
 
 - Added Docker compose-based local and CI workflows.
-- Added explicit `CUMULUSCI_KEY` sharing via `.env`.
+- Current standard is `SFDX_AUTH_URL`-only for Docker auth bootstrap.
 - Added helper scripts:
-  - `docker/get-cci-key.sh`
-  - `docker/test-org-sharing.sh`
+  - `docker/docker-test-org-sharing.sh`
 - Added wrapper:
   - `docker-cci.sh`
 
@@ -21,4 +20,4 @@ As of current state:
 
 - Docker image builds successfully.
 - `cci` and `sf` run successfully in container.
-- org sharing smoke test may still fail in environments with pre-existing key/keychain mismatch; remediation is to align key source and re-auth org credentials.
+- Docker auth should be driven by `SFDX_AUTH_URL` and CCI EnvironmentProjectKeychain.

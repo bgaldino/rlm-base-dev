@@ -1,14 +1,17 @@
 #!/bin/bash
-# Test script to verify org sharing between host and Docker container
+# Test script to verify Docker scratch creation and host visibility.
 #
 # This script:
-# 1. Creates a test scratch org in the container
-# 2. Verifies it's visible on the host
-# 3. Cleans up the test org
+# 1. Creates a scratch org in Docker via SF CLI using SFDX_AUTH_URL.
+# 2. Safely transfers auth to new host sf/CCI names.
+# 3. Verifies host CCI can resolve the imported org.
+# 4. Cleans up only ephemeral test aliases and scratch org.
 #
-# Usage: ./docker/test-org-sharing.sh
+# Usage: ./docker/docker-test-org-sharing.sh
 
 set -euo pipefail
+CLEANUP_FAILED=false
+DEFAULT_DOCKER_DEVHUB_ALIAS="dockerDevHub"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -39,7 +42,7 @@ preflight() {
         exit 1
     fi
 
-    mkdir -p "${HOME}/.cumulusci" "${HOME}/.sf" "${HOME}/.sfdx"
+    mkdir -p ./.docker/state/cumulusci ./.docker/state/sf ./.docker/state/sfdx
 }
 
 echo -e "${BLUE}========================================${NC}"
@@ -49,18 +52,18 @@ echo ""
 
 preflight
 
-# Check if CUMULUSCI_KEY is set in .env file
+# Check if SFDX_AUTH_URL is set in .env file
 if [ -f .env ]; then
-    if grep -q "^CUMULUSCI_KEY=" .env && ! grep -q "^CUMULUSCI_KEY=$" .env; then
-        echo -e "${GREEN}✅ CUMULUSCI_KEY is configured in .env${NC}"
+    if grep -q "^SFDX_AUTH_URL=force://" .env; then
+        echo -e "${GREEN}✅ SFDX_AUTH_URL is configured in .env${NC}"
     else
-        echo -e "${YELLOW}⚠️  Warning: CUMULUSCI_KEY is not set in .env file${NC}"
-        echo -e "${YELLOW}   Org sharing may not work correctly${NC}"
+        echo -e "${YELLOW}⚠️  Warning: SFDX_AUTH_URL is not set in .env file${NC}"
+        echo -e "${YELLOW}   Scratch org creation from Dev Hub will fail${NC}"
         echo ""
         echo -e "To fix:"
-        echo "  1. Extract key: ./docker/get-cci-key.sh"
-        echo "  2. Add to .env: echo \"CUMULUSCI_KEY=\$(./docker/get-cci-key.sh 2>/dev/null)\" >> .env"
-        echo "  3. Rebuild: docker compose build"
+        echo "  1. Get auth URL: sf org display --verbose -o <DevHubAlias> | grep \"Sfdx Auth Url\""
+        echo "  2. Add to .env: SFDX_AUTH_URL=force://PlatformCLI::..."
+        echo "  3. Re-run this test"
         echo ""
         read -p "Continue anyway? (y/N): " -n 1 -r
         echo ""
@@ -70,13 +73,12 @@ if [ -f .env ]; then
     fi
 else
     echo -e "${YELLOW}⚠️  Warning: No .env file found${NC}"
-    echo -e "${YELLOW}   You need to set up the encryption key for org sharing${NC}"
+    echo -e "${YELLOW}   You need to set SFDX_AUTH_URL for Docker auth${NC}"
     echo ""
     echo -e "To set up:"
     echo "  1. cp .env.example .env"
-    echo "  2. ./docker/get-cci-key.sh"
-    echo "  3. echo \"CUMULUSCI_KEY=\$(./docker/get-cci-key.sh 2>/dev/null)\" >> .env"
-    echo "  4. docker compose build"
+    echo "  2. Add SFDX_AUTH_URL from your Dev Hub"
+    echo "  3. Re-run this script"
     echo ""
     exit 1
 fi
@@ -92,15 +94,16 @@ else
     HOST_CCI_AVAILABLE=true
 fi
 
-# Generate random org name to avoid conflicts
+# Generate random names to avoid collisions
 TEST_ORG_NAME="test-sharing-$(date +%s)"
+HOST_SF_ALIAS="dock-xfer-${TEST_ORG_NAME}"
+HOST_CCI_ORG="dock_xfer_${TEST_ORG_NAME//-/_}"
 
 echo -e "${BLUE}Step 1: Creating test scratch org in container...${NC}"
 echo -e "Org name: ${YELLOW}${TEST_ORG_NAME}${NC}"
 echo ""
 
-# Create scratch org in container
-if compose_cmd run --rm cci-robot cci org scratch dev "${TEST_ORG_NAME}" --days 1; then
+if compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; sf org login sfdx-url -f \"\$tmp\" -a \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null; rm -f \"\$tmp\"; sf org create scratch --definition-file orgs/dev.json --alias ${TEST_ORG_NAME} --duration-days 1 --target-dev-hub \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" --json >/dev/null"; then
     echo ""
     echo -e "${GREEN}✅ Scratch org created successfully in container${NC}"
 else
@@ -110,25 +113,27 @@ else
 fi
 
 echo ""
-echo -e "${BLUE}Step 2: Verifying org is visible on host...${NC}"
+echo -e "${BLUE}Step 2: Safely transferring org to host sf + CCI...${NC}"
 
 if [ "$HOST_CCI_AVAILABLE" = true ]; then
-    # Wait a moment for file system sync
-    sleep 2
-
-    # Check if org is visible on host
-    if cci org list | grep -q "${TEST_ORG_NAME}"; then
-        echo -e "${GREEN}✅ Org is visible on host!${NC}"
+    if ./docker/docker-transfer-org-to-host.sh \
+        "${TEST_ORG_NAME}" \
+        --host-sf-alias "${HOST_SF_ALIAS}" \
+        --host-cci-org "${HOST_CCI_ORG}"; then
+        echo -e "${GREEN}✅ Org transferred safely to host${NC}"
         echo ""
         echo -e "${GREEN}Org details from host:${NC}"
-        cci org info "${TEST_ORG_NAME}" || true
+        cci org info "${HOST_CCI_ORG}" || true
     else
-        echo -e "${RED}❌ Org is NOT visible on host${NC}"
+        echo -e "${RED}❌ Safe host transfer failed${NC}"
         echo ""
         echo -e "${YELLOW}Troubleshooting:${NC}"
-        echo "1. Ensure you've rebuilt the container: docker compose build"
-        echo "2. Check volume mounts in docker-compose.yml"
-        echo "3. Verify ~/.cumulusci directory exists: ls ~/.cumulusci"
+        echo "1. Confirm Docker org exists: ./docker-cci.sh sf org list"
+        echo "2. Ensure no host collisions:"
+        echo "   sf org list --all | rg ${HOST_SF_ALIAS}"
+        echo "   cci org list | rg ${HOST_CCI_ORG}"
+        echo "3. Retry transfer for detailed output:"
+        echo "   ./docker/docker-transfer-org-to-host.sh ${TEST_ORG_NAME} --host-sf-alias ${HOST_SF_ALIAS} --host-cci-org ${HOST_CCI_ORG}"
         CLEANUP_FAILED=true
     fi
 else
@@ -138,8 +143,11 @@ fi
 echo ""
 echo -e "${BLUE}Step 3: Cleaning up test org...${NC}"
 
-# Cleanup
-if compose_cmd run --rm cci-robot cci org scratch_delete "${TEST_ORG_NAME}"; then
+# Cleanup Docker scratch org.
+if compose_cmd run --rm cci-robot bash -lc "sf org delete scratch --target-org ${TEST_ORG_NAME} --no-prompt >/dev/null"; then
+    # Remove only host entities created by this test run.
+    cci org remove "${HOST_CCI_ORG}" >/dev/null 2>&1 || true
+    sf org logout --target-org "${HOST_SF_ALIAS}" --no-prompt >/dev/null 2>&1 || true
     echo -e "${GREEN}✅ Test org cleaned up${NC}"
 else
     echo -e "${YELLOW}⚠️  Warning: Failed to delete test org${NC}"
@@ -157,5 +165,5 @@ else
     echo -e "${BLUE}========================================${NC}"
     echo ""
     echo -e "${GREEN}Your Docker setup is correctly configured for org sharing.${NC}"
-    echo -e "Orgs created in the container will be accessible on the host and vice versa."
+    echo -e "Orgs created in Docker can be imported to host sf/CCI without touching existing host aliases."
 fi

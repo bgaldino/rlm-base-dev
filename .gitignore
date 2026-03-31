@@ -116,3 +116,7 @@ tmp-metadata/
 retrieved_rlm_bundle/
 postman/archive/
 core.code-workspace
+
+# Docker local auth/config state (contains sensitive tokens)
+.docker/state/
+.docker/*.authurl
