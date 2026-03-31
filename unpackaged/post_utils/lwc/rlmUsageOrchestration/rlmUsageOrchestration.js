@@ -74,12 +74,24 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
         return this.getStepIconName(this.step1Status);
     }
 
+    get step1IconVariant() {
+        return this.getStepIconVariant(this.step1Status);
+    }
+
     get step2IconName() {
         return this.getStepIconName(this.step2Status);
     }
 
+    get step2IconVariant() {
+        return this.getStepIconVariant(this.step2Status);
+    }
+
     get step3IconName() {
         return this.getStepIconName(this.step3Status);
+    }
+
+    get step3IconVariant() {
+        return this.getStepIconVariant(this.step3Status);
     }
 
     get step1Class() {
@@ -138,6 +150,19 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
                 return `${baseClass} step-error`;
             default:
                 return `${baseClass} step-pending`;
+        }
+    }
+
+    getStepIconVariant(status) {
+        switch (status) {
+            case STEP_STATUS.SUCCESS:
+                return 'success';
+            case STEP_STATUS.ERROR:
+                return 'error';
+            case STEP_STATUS.PROCESSING:
+                return 'warning';
+            default:
+                return 'inverse';
         }
     }
 
