@@ -8,7 +8,7 @@
 #
 # Usage: ./docker/test-org-sharing.sh
 
-set -e
+set -euo pipefail
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -17,16 +17,37 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        docker compose "$@"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        docker-compose "$@"
+    else
+        echo -e "${RED}❌ Error: neither 'docker compose' nor 'docker-compose' is available${NC}"
+        exit 1
+    fi
+}
+
+preflight() {
+    if ! command -v docker >/dev/null 2>&1; then
+        echo -e "${RED}❌ Error: docker is not installed${NC}"
+        exit 1
+    fi
+
+    if [ ! -f "docker-compose.yml" ]; then
+        echo -e "${RED}❌ Error: docker-compose.yml not found (run from repo root)${NC}"
+        exit 1
+    fi
+
+    mkdir -p "${HOME}/.cumulusci" "${HOME}/.sf" "${HOME}/.sfdx"
+}
+
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Docker Org Sharing Test${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}❌ Error: docker-compose is not installed${NC}"
-    exit 1
-fi
+preflight
 
 # Check if CUMULUSCI_KEY is set in .env file
 if [ -f .env ]; then
@@ -39,7 +60,7 @@ if [ -f .env ]; then
         echo -e "To fix:"
         echo "  1. Extract key: ./docker/get-cci-key.sh"
         echo "  2. Add to .env: echo \"CUMULUSCI_KEY=\$(./docker/get-cci-key.sh 2>/dev/null)\" >> .env"
-        echo "  3. Rebuild: docker-compose build"
+        echo "  3. Rebuild: docker compose build"
         echo ""
         read -p "Continue anyway? (y/N): " -n 1 -r
         echo ""
@@ -55,7 +76,7 @@ else
     echo "  1. cp .env.example .env"
     echo "  2. ./docker/get-cci-key.sh"
     echo "  3. echo \"CUMULUSCI_KEY=\$(./docker/get-cci-key.sh 2>/dev/null)\" >> .env"
-    echo "  4. docker-compose build"
+    echo "  4. docker compose build"
     echo ""
     exit 1
 fi
@@ -79,7 +100,7 @@ echo -e "Org name: ${YELLOW}${TEST_ORG_NAME}${NC}"
 echo ""
 
 # Create scratch org in container
-if docker-compose run --rm cci-robot cci org scratch dev "${TEST_ORG_NAME}" --days 1; then
+if compose_cmd run --rm cci-robot cci org scratch dev "${TEST_ORG_NAME}" --days 1; then
     echo ""
     echo -e "${GREEN}✅ Scratch org created successfully in container${NC}"
 else
@@ -105,7 +126,7 @@ if [ "$HOST_CCI_AVAILABLE" = true ]; then
         echo -e "${RED}❌ Org is NOT visible on host${NC}"
         echo ""
         echo -e "${YELLOW}Troubleshooting:${NC}"
-        echo "1. Ensure you've rebuilt the container: docker-compose build"
+        echo "1. Ensure you've rebuilt the container: docker compose build"
         echo "2. Check volume mounts in docker-compose.yml"
         echo "3. Verify ~/.cumulusci directory exists: ls ~/.cumulusci"
         CLEANUP_FAILED=true
@@ -118,7 +139,7 @@ echo ""
 echo -e "${BLUE}Step 3: Cleaning up test org...${NC}"
 
 # Cleanup
-if docker-compose run --rm cci-robot cci org scratch_delete "${TEST_ORG_NAME}"; then
+if compose_cmd run --rm cci-robot cci org scratch_delete "${TEST_ORG_NAME}"; then
     echo -e "${GREEN}✅ Test org cleaned up${NC}"
 else
     echo -e "${YELLOW}⚠️  Warning: Failed to delete test org${NC}"

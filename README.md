@@ -1034,6 +1034,8 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
+| [Docker Setup](docs/guides/docker-setup.md) | Docker-based CCI/SF/Robot workflow, org sharing model, CI usage, and verification checklist |
+| [Docker Workflow Examples](docs/references/docker-workflow-examples.md) | Practical local and CI command examples for containerized development and builds |
 
 ### Analysis & Planning
 

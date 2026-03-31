@@ -1,5 +1,5 @@
 # Docker Compose override for CI/CD environments
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.ci.yml run cci-robot
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml run cci-robot
 #
 # This configuration is optimized for headless CI/CD pipelines where:
 # - No interactive OAuth flows are available
@@ -13,7 +13,7 @@
 # Example:
 #   export SFDX_AUTH_URL="force://PlatformCLI::..."
 #   export CUMULUSCI_ORG_production="force://PlatformCLI::..."
-#   docker-compose -f docker-compose.yml -f docker-compose.ci.yml run cci-robot cci org list
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml run cci-robot cci org list
 
 services:
   cci-robot:
