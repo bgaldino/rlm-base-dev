@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     image: rlm-base-cci-robot:latest
     container_name: rlm-base-cci-robot
+    env_file:
+      - .env
     volumes:
       # Mount your project directory
       - .:/workspace
@@ -18,7 +20,8 @@ services:
     environment:
       # CumulusCI settings
       - CUMULUSCI_DISABLE_ANALYTICS=true
-      - CUMULUSCI_KEY=${CUMULUSCI_KEY}
+      - CUMULUSCI_KEY=${CUMULUSCI_KEY:-}
+      - CUMULUSCI_KEYCHAIN_CLASS=${CUMULUSCI_KEYCHAIN_CLASS:-}
       # SF CLI settings
       - SF_AUTOUPDATE_DISABLE=true
       - SF_DISABLE_ENCRYPTION=true
@@ -27,7 +30,7 @@ services:
       - CHROMIUM_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu
     stdin_open: true
     tty: true
-    # Use host network for easier Salesforce OAuth flows
-    network_mode: host
+    # Default to bridge for portability; set DOCKER_NETWORK_MODE=host for host networking.
+    network_mode: ${DOCKER_NETWORK_MODE:-bridge}
 
 # No named volumes needed - using host directory mounts for full host/container sharing

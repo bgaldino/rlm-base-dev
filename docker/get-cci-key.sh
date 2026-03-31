@@ -1,109 +1,101 @@
 #!/bin/bash
-# Extract CumulusCI encryption key from system keyring
-#
-# This script retrieves the encryption key that CumulusCI uses to encrypt
-# org credential files. The key is needed for Docker containers to read/write
-# encrypted org files that are compatible with your host CumulusCI installation.
-#
-# The key is stored in your system keyring:
-# - macOS: Keychain (via security command)
-# - Linux: keyring (via python keyring library)
-#
-# Usage:
-#   ./docker/get-cci-key.sh
-#
-# Output:
-#   Base64-encoded encryption key (or error message)
+# Extract CumulusCI encryption key from host keychain/keyring.
+# Supports:
+# - Explicit env passthrough via CUMULUSCI_KEY
+# - macOS Keychain via `security`
+# - Linux via python keyring library
+# - Linux Secret Service via `secret-tool`
 
-set -e
+set -euo pipefail
 
-# Colors for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Function to try macOS Keychain extraction
-extract_macos_key() {
-    # Try to find the CumulusCI service in Keychain
-    # The service name is "cumulusci" and account is typically the project name or a UUID
-    local key=$(security find-generic-password -s "cumulusci" -w 2>/dev/null)
-    if [ -n "$key" ]; then
-        echo "$key"
-        return 0
-    fi
-    return 1
+log() {
+    printf '%b\n' "$1" >&2
 }
 
-# Function to try Python keyring extraction
-extract_python_key() {
+extract_macos_key() {
+    security find-generic-password -s "cumulusci" -w 2>/dev/null || return 1
+}
+
+extract_linux_secret_tool_key() {
+    command -v secret-tool >/dev/null 2>&1 || return 1
+    secret-tool lookup service cumulusci account cumulusci 2>/dev/null || return 1
+}
+
+extract_python_keyring_key() {
+    command -v python3 >/dev/null 2>&1 || return 1
     python3 <<'EOF'
 import sys
 try:
     import keyring
-    # Try to get the key from keyring
-    key = keyring.get_password("cumulusci", "cumulusci")
-    if key:
-        print(key)
-        sys.exit(0)
+except Exception:
     sys.exit(1)
-except Exception as e:
-    sys.exit(1)
+
+for service, account in [
+    ("cumulusci", "cumulusci"),
+]:
+    try:
+        value = keyring.get_password(service, account)
+        if value:
+            print(value)
+            sys.exit(0)
+    except Exception:
+        pass
+
+sys.exit(1)
 EOF
 }
 
-# Main extraction logic
-echo -e "${YELLOW}Attempting to extract CumulusCI encryption key...${NC}" >&2
-echo "" >&2
-
-# Detect OS and try appropriate method
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo -e "${YELLOW}Detected macOS - trying Keychain...${NC}" >&2
-    if KEY=$(extract_macos_key); then
-        echo -e "${GREEN}✅ Successfully extracted key from macOS Keychain${NC}" >&2
-        echo "$KEY"
-        exit 0
-    else
-        echo -e "${YELLOW}⚠️  Key not found in Keychain, trying Python keyring...${NC}" >&2
-    fi
-fi
-
-# Try Python keyring (works on both macOS and Linux)
-echo -e "${YELLOW}Trying Python keyring...${NC}" >&2
-if KEY=$(extract_python_key); then
-    echo -e "${GREEN}✅ Successfully extracted key from Python keyring${NC}" >&2
-    echo "$KEY"
+# Highest-priority path: explicit env key.
+if [ -n "${CUMULUSCI_KEY:-}" ]; then
+    log "${GREEN}Using CUMULUSCI_KEY from environment.${NC}"
+    printf '%s\n' "${CUMULUSCI_KEY}"
     exit 0
 fi
 
-# If we get here, extraction failed
-echo "" >&2
-echo -e "${RED}❌ Unable to extract CumulusCI encryption key${NC}" >&2
-echo "" >&2
-echo -e "${YELLOW}This could mean:${NC}" >&2
-echo "  1. CumulusCI hasn't been used on this host yet (no key generated)" >&2
-echo "  2. The keyring is locked or inaccessible" >&2
-echo "  3. CumulusCI is using a different keyring service name" >&2
-echo "" >&2
-echo -e "${YELLOW}Solutions:${NC}" >&2
-echo "" >&2
-echo -e "${GREEN}Option 1: Generate a new key (simplest)${NC}" >&2
-echo "  Run this command to generate a new encryption key:" >&2
-echo "" >&2
-echo "    python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'" >&2
-echo "" >&2
-echo "  Then add it to your .env file:" >&2
-echo "    echo 'CUMULUSCI_KEY=<your_key>' >> .env" >&2
-echo "" >&2
-echo "  Note: You'll need to re-authenticate all your orgs." >&2
-echo "" >&2
-echo -e "${GREEN}Option 2: Use debug logging to find existing key${NC}" >&2
-echo "  Run CumulusCI with verbose logging and look for the key:" >&2
-echo "    CUMULUSCI_DEBUG=1 cci org list 2>&1 | grep -i key" >&2
-echo "" >&2
-echo -e "${GREEN}Option 3: Skip encryption (less secure)${NC}" >&2
-echo "  Set CUMULUSCI_KEYCHAIN_CLASS to use unencrypted storage:" >&2
-echo "    echo 'CUMULUSCI_KEYCHAIN_CLASS=cumulusci.core.keychain.BaseProjectKeychain' >> .env" >&2
-echo "" >&2
+log "${YELLOW}Attempting to extract CumulusCI encryption key...${NC}"
+
+if [[ "${OSTYPE:-}" == darwin* ]]; then
+    log "${YELLOW}Detected macOS; trying Keychain service 'cumulusci'.${NC}"
+    if KEY="$(extract_macos_key)"; then
+        log "${GREEN}Found key in macOS Keychain.${NC}"
+        printf '%s\n' "${KEY}"
+        exit 0
+    fi
+fi
+
+if [[ "${OSTYPE:-}" == linux* ]]; then
+    log "${YELLOW}Detected Linux; trying Secret Service keyring.${NC}"
+    if KEY="$(extract_linux_secret_tool_key)"; then
+        log "${GREEN}Found key via secret-tool.${NC}"
+        printf '%s\n' "${KEY}"
+        exit 0
+    fi
+fi
+
+log "${YELLOW}Trying Python keyring fallback...${NC}"
+if KEY="$(extract_python_keyring_key)"; then
+    log "${GREEN}Found key via python keyring.${NC}"
+    printf '%s\n' "${KEY}"
+    exit 0
+fi
+
+log ""
+log "${RED}Unable to extract a CumulusCI encryption key automatically.${NC}"
+log ""
+log "${YELLOW}Next steps:${NC}"
+log "1) If you already have the key, export it and retry:"
+log "   export CUMULUSCI_KEY='<existing_key>'"
+log "   ./docker/get-cci-key.sh"
+log ""
+log "2) Or generate a new key (requires re-auth in both host/container):"
+log "   python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+log ""
+log "3) Add the key to .env:"
+log "   echo \"CUMULUSCI_KEY=<your_key>\" >> .env"
 
 exit 1
