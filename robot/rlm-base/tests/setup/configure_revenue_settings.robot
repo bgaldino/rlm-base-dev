@@ -80,8 +80,10 @@ Set Procedure Field
         RETURN
     END
     Sleep    1s
-    # Click the step title to expand the content area
-    Click Element    ${title_span}
+    Dismiss Toast If Present
+    # Use JS click to bypass the Lightning fixed header that intercepts Selenium clicks at this viewport position.
+    # XPath is embedded directly in the JS string via Robot variable substitution to avoid WebElement argument passing.
+    Execute JavaScript    (function(){var el=document.evaluate("//span[contains(normalize-space(text()),'${step_title}')]",document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;if(el){el.scrollIntoView({block:'center'});el.click();}})()
     Sleep    2s    reason=Allow step content to render after expand
     # Check if pill already shows the correct value (scoped to this <li>)
     ${pill_label}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill__label')]
@@ -101,7 +103,7 @@ Set Procedure Field
         ${remove_btn}=    Set Variable    ${step_li}//button[contains(@class, 'pill__rem') or contains(@class, 'slds-pill__remove')]
         ${btn_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${remove_btn}    timeout=5s
         IF    ${btn_found}
-            Click Element    ${remove_btn}
+            Execute JavaScript    (function(){var li=document.evaluate("//li[.//span[contains(normalize-space(text()),'${step_title}')]]",document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;if(!li)return 'no_li';var btn=li.querySelector('button.slds-pill__remove,button[class*="pill__rem"]');if(!btn){var btns=li.querySelectorAll('button');for(var i=0;i<btns.length;i++){if(btns[i].className.indexOf('pill')>=0){btn=btns[i];break;}}}if(btn){btn.scrollIntoView({block:'center'});btn.click();return 'clicked';}return 'btn_not_found';})()
             Sleep    2s    reason=Allow pill to clear and dropdown to appear
         END
     END
@@ -168,7 +170,7 @@ Set Procedure Field
     END
     # Fallback: try clicking the step title again and re-check
     Log    No dropdown found on first attempt. Clicking step title again.    WARN
-    Click Element    ${title_span}
+    Execute JavaScript    (function(){var el=document.evaluate("//span[contains(normalize-space(text()),'${step_title}')]",document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;if(el){el.scrollIntoView({block:'center'});el.click();}})()
     Sleep    3s    reason=Retry: allow content to render
     ${is_select2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
     IF    ${is_select2}

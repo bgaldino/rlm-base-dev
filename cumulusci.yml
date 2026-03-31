@@ -125,6 +125,7 @@ project:
     badger_data: true        #Badger Data Insertion
     mfg_aaf: true             #Badger MFG Advanced Account Forecast
     mfg_rebates: true         #Badger MFG Rebates
+    mfg_visuals: true        # Badger MFG 3D Visualization (RenderDraw) and configuration flows
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -546,6 +547,7 @@ project:
     badger_guidedselling_dataset: &badger_guidedselling_dataset "datasets/sfdmu/mfg/en-US/mfg-guidedselling" #Badger MFG Guided Selling
     badger_rebates_dataset: &badger_rebates_dataset "datasets/sfdmu/mfg/en-US/mfg-rebates" #Badger MFG Rebates
     badger_aaf_dataset: &badger_aaf_dataset "datasets/sfdmu/mfg/en-US/mfg-aaf" #Badger MFG Advanced Account Forecast
+    badger_configflow_dataset: &badger_configflow_dataset "datasets/sfdmu/mfg/en-US/mfg-configflow" # Badger MFG product configuration flows (ProductConfigurationFlow, ProductConfigFlowAssignment)
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -1764,6 +1766,27 @@ tasks:
     options:
       pathtoexportjson: *badger_tax_dataset
 
+  deploy_badger_visualization:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing 3D Visualization metadata (LWC renderDraw3DConfigurationPrototype,
+      RenderDraw_Product_Configurator_Flow, X3DVisualization VF page, RenderDraw_SRC CSP Trusted Site).
+      Required when mfg_visuals=true. Source: unpackaged/post_manufacturing_visualization.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_manufacturing_visualization
+
+  insert_mfg_configflow_data:
+    group: Manufacturing
+    description: >
+      Insert Manufacturing product configuration flow assignments
+      (ProductConfigurationFlow, ProductConfigFlowAssignment). Maps MFG products to their
+      RenderDraw configuration flows. Required when mfg_visuals=true.
+      Source: datasets/sfdmu/mfg/en-US/mfg-configflow.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_configflow_dataset
+
   insert_qb_rating_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Rating Data
@@ -2022,6 +2045,28 @@ tasks:
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
       usage_rating_procedure: RLM Default Rating Discovery Procedure
       create_orders_flow: RLM_CreateOrdersFromQuote
+
+  configure_mfg_revenue_settings:
+    group: Manufacturing
+    description: "Configure Revenue Settings page defaults for Manufacturing (Badger) orgs. Same as configure_revenue_settings but sets pricing_procedure to the MFG pricing procedure (MFG Revenue Management Default Pricing Procedure) deployed via unpackaged/post_manufacturing/mfg_pricingsetup."
+    class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
+    options:
+      suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: MFG Revenue Management Default Pricing Procedure
+      usage_rating_procedure: RLM Default Rating Discovery Procedure
+      create_orders_flow: RLM_CreateOrdersFromQuote
+
+  activate_mfg_theme:
+    group: Manufacturing
+    description: >
+      Activate the Badger Lightning Experience Theme by deploying
+      LightningExperienceSettings with activeThemeName=Badger.
+      Source: unpackaged/post_manufacturing/3_theme/settings/LightningExperience.settings-meta.xml.
+      Idempotent: deploying the same activeThemeName twice is safe.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_manufacturing/3_theme
 
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
@@ -2670,8 +2715,11 @@ flows:
         flow: prepare_ux
         when: project_config.project__custom__ux
       30:
-        flow: refresh_all_decision_tables
+        flow: prepare_badger_flow
+        when: project_config.project__custom__badger
       31:
+        flow: refresh_all_decision_tables
+      32:
         task: stamp_git_commit
         options:
           flow_name: prepare_rlm_org
@@ -2706,14 +2754,30 @@ flows:
       11:
         flow: prepare_badger_data
       12:
-        flow: prepare_badger_guidedselling
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__dro and project_config.project__custom__badger
       13:
-        flow: prepare_badger_rebates
+        flow: prepare_badger_visuals
+        when: project_config.project__custom__mfg_visuals
       14:
-        flow: prepare_badger_aaf
+        flow: prepare_badger_guidedselling
       15:
+        flow: prepare_badger_rebates
+      16:
+        flow: prepare_badger_aaf
+      17:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      18:
+        task: configure_mfg_revenue_settings
+        when: project_config.project__custom__badger
+      19:
         flow: prepare_mfg_ux
         when: project_config.project__custom__ux
+      20:
+        task: activate_mfg_theme
+        when: project_config.project__custom__badger
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
@@ -3453,6 +3517,12 @@ flows:
       2:
         task: deploy_badger_pricing_2
         when: project_config.project__custom__badger
+      3:
+        task: manage_expression_sets
+        when: project_config.project__custom__badger
+        options:
+          operation: activate_versions
+          version_full_names: "MFG_Rev_Mgmt_Default_Pricing_Procedure_V1"
 
   import_mfg_cml:
     group: Badger
@@ -3652,3 +3722,20 @@ flows:
         task: test_qb_transactionprocessingtypes_idempotency
       9:
         task: test_qb_guidedselling_idempotency
+
+  prepare_badger_visuals:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing 3D Visualization metadata and load product configuration flow
+      assignments. Step 1 deploys unpackaged/post_manufacturing_visualization (LWC, VF page,
+      CSP Trusted Site, RenderDraw flow). Step 2 inserts ProductConfigurationFlow and
+      ProductConfigFlowAssignment records from datasets/sfdmu/mfg/en-US/mfg-configflow.
+      Gated by mfg_visuals=true. Run independently to test visualization deployment
+      before adding to prepare_badger_flow.
+    steps:
+      1:
+        task: deploy_badger_visualization
+        when: project_config.project__custom__mfg_visuals
+      2:
+        task: insert_mfg_configflow_data
+        when: project_config.project__custom__mfg_visuals
