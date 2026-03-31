@@ -10,7 +10,6 @@
  */
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import getAssetsForAccount from '@salesforce/apex/RLM_UsageUploaderController.getAssetsForAccount';
 import getUsageResourcesForAsset from '@salesforce/apex/RLM_UsageUploaderController.getUsageResourcesForAsset';
 import uploadUsage from '@salesforce/apex/RLM_UsageUploaderController.uploadUsage';
@@ -20,10 +19,17 @@ import bulkUploadUsage from '@salesforce/apex/RLM_UsageUploaderController.bulkUp
 const CSV_COLUMNS = [
     { label: 'Row', fieldName: 'rowNum', type: 'number', initialWidth: 60 },
     { label: 'Usage Resource', fieldName: 'usageResourceName', type: 'text' },
-    { label: 'Unit of Measure', fieldName: 'unitOfMeasure', type: 'text' },
     { label: 'Quantity', fieldName: 'quantity', type: 'number' },
     { label: 'Transaction Date', fieldName: 'transactionDate', type: 'date' },
-    { label: 'Status', fieldName: 'statusIcon', type: 'text', initialWidth: 120 }
+    {
+        label: 'Status',
+        fieldName: 'statusIcon',
+        type: 'text',
+        initialWidth: 120,
+        cellAttributes: {
+            class: { fieldName: '_cssClass' }
+        }
+    }
 ];
 
 const STATUS_ICONS = {
@@ -34,7 +40,6 @@ const STATUS_ICONS = {
 
 const COLUMN_PATTERNS = {
     RESOURCE: ['usage resource', 'resource', 'usageresourcename'],
-    UOM: ['unit of measure', 'uom', 'unitofmeasure'],
     QUANTITY: ['quantity', 'qty', 'amount'],
     DATE: ['date', 'transactiondate']
 };
@@ -241,7 +246,7 @@ export default class RlmUsageUploader extends LightningElement {
     // ─── Tab Handling ──────────────────────────────────────────────────
 
     handleTabChange(event) {
-        this.activeTab = event.target.value;
+        this.activeTab = event.detail.value;
     }
 
     // ─── Asset Selection (Account Context) ─────────────────────────────
@@ -329,15 +334,13 @@ export default class RlmUsageUploader extends LightningElement {
 
     handleDownloadSampleCsv() {
         const today = this._todayISO();
-        const header = 'Usage Resource,Unit of Measure,Quantity,Transaction Date';
+        const header = 'Usage Resource,Quantity,Transaction Date';
         const rows = this.usageResources.map(r => {
             // Escape resource name in case it contains commas
             const name = r.resourceName.includes(',')
                 ? `"${r.resourceName}"`
                 : r.resourceName;
-            const uom = r.unitOfMeasureName || r.unitOfMeasureCode || '';
-            const uomField = uom.includes(',') ? `"${uom}"` : uom;
-            return `${name},${uomField},1,${today}`;
+            return `${name},1,${today}`;
         });
 
         const csvContent = [header, ...rows].join('\n');
@@ -423,7 +426,6 @@ export default class RlmUsageUploader extends LightningElement {
         );
 
         const resourceIdx = matchColumn(COLUMN_PATTERNS.RESOURCE);
-        const uomIdx = matchColumn(COLUMN_PATTERNS.UOM);
         const qtyIdx = matchColumn(COLUMN_PATTERNS.QUANTITY);
         const dateIdx = matchColumn(COLUMN_PATTERNS.DATE);
 
@@ -436,12 +438,6 @@ export default class RlmUsageUploader extends LightningElement {
             return;
         }
 
-        // Build a resource name → UoM lookup for resolving UoM when not in CSV
-        const resourceUomMap = {};
-        for (const r of this.usageResources) {
-            resourceUomMap[r.resourceName.toLowerCase()] = r.unitOfMeasureName || r.unitOfMeasureCode || '';
-        }
-
         const parsed = [];
         for (let i = 1; i < lines.length; i++) {
             const values = this.parseCSVLine(lines[i]);
@@ -451,17 +447,10 @@ export default class RlmUsageUploader extends LightningElement {
             const normalizedDate = this.normalizeDate(rawDate);
             const resourceName = (values[resourceIdx] || '').trim();
 
-            // Resolve UoM: from CSV column if present, else from resource lookup
-            let uom = uomIdx >= 0 ? (values[uomIdx] || '').trim() : '';
-            if (!uom && resourceName) {
-                uom = resourceUomMap[resourceName.toLowerCase()] || '';
-            }
-
             parsed.push({
                 id: `row-${i}`,
                 rowNum: i,
                 usageResourceName: resourceName,
-                unitOfMeasure: uom,
                 quantity: parseFloat(values[qtyIdx]) || 0,
                 transactionDate: normalizedDate,
                 rawDate: rawDate,

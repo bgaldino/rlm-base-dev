@@ -46,22 +46,13 @@ public with sharing class RLM_UsageOrchestrationController {
             );
             interview.start();
 
-            // Query for the most recent FlowInterview created in the last second
-            // Since we just started it, it should be the most recent one
-            DateTime recentTime = DateTime.now().addSeconds(-2);
-            List<FlowInterview> interviews = [
-                SELECT Id
-                FROM FlowInterview
-                WHERE CreatedDate >= :recentTime
-                ORDER BY CreatedDate DESC
-                LIMIT 1
-            ];
-
-            if (!interviews.isEmpty()) {
-                return interviews[0].Id;
+            // Return the interview ID directly to avoid nondeterministic "most recent" queries.
+            String interviewId = interview.getInterviewId();
+            if (String.isNotBlank(interviewId)) {
+                return interviewId;
             }
 
-            throw new AuraHandledException('Could not find started flow interview');
+            throw new AuraHandledException('Could not determine started flow interview ID');
 
         } catch (Exception e) {
             throw new AuraHandledException('Failed to start orchestration: ' + e.getMessage());

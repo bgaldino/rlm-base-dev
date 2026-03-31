@@ -153,7 +153,6 @@ private class RLM_UsageUploaderControllerTest {
             ur.Id,
             150.0,
             Date.today(),
-            'Test upload',
             null
         );
         Test.stopTest();
@@ -180,13 +179,13 @@ private class RLM_UsageUploaderControllerTest {
     }
 
     @IsTest
-    static void testUploadUsage_NullDescription() {
+    static void testUploadUsage_DefaultUom() {
         Asset ast = getTestAsset();
         UsageResource ur = getTestUsageResource();
 
         Test.startTest();
         Id journalId = RLM_UsageUploaderController.uploadUsage(
-            ast.Id, ur.Id, 50.0, Date.today(), null, null
+            ast.Id, ur.Id, 50.0, Date.today(), null
         );
         Test.stopTest();
 
@@ -213,7 +212,7 @@ private class RLM_UsageUploaderControllerTest {
 
         Test.startTest();
         Id journalId = RLM_UsageUploaderController.uploadUsage(
-            ast.Id, ur.Id, 1024.0, Date.today(), 'Explicit UoM test', uom2.Id
+            ast.Id, ur.Id, 1024.0, Date.today(), uom2.Id
         );
         Test.stopTest();
 

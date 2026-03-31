@@ -23,7 +23,7 @@
             <stringValue>LightningFlowBuilder</stringValue>
         </value>
     </processMetadataValues>
-    <processType>AutoLaunchedFlow</processType>
+    <processType>RecordTriggeredFlow</processType>
     <recordUpdates>
         <name>Set_Parent_Asset</name>
         <label>Set Parent Asset</label>

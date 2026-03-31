@@ -90,8 +90,8 @@
                                     <span class="slds-text-body_small"><strong>{grant.remaining} remaining</strong></span>
                                 </div>
 
-                                <!-- Progress bar -->
-                                <lightning-progress-bar value={grant.percentUsed} size="small" variant={grant.progressVariant}></lightning-progress-bar>
+                                <!-- Progress indicator -->
+                                <lightning-progress-ring value={grant.percentUsed} size="small"></lightning-progress-ring>
                                 <div class="slds-grid slds-grid_align-spread slds-m-top_xxx-small">
                                     <span class="slds-text-body_small slds-text-color_weak">Used: {grant.consumed}</span>
                                     <span class="slds-text-body_small slds-text-color_weak">Total: {grant.total}</span>

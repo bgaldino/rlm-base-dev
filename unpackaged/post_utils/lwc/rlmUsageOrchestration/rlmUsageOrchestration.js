@@ -102,7 +102,7 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
     get lastRunStatus() {
         if (!this.lastRunInfo) return 'Unknown';
         if (this.lastRunInfo.status === 'Finished') return 'Success';
-        if (this.lastRunInfo.status === 'Failed') return 'Failed';
+        if (this.lastRunInfo.status === 'Error') return 'Failed';
         return this.lastRunInfo.status;
     }
 
@@ -202,7 +202,7 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
         }
 
         try {
-            const status = await getOrchestrationStatus({ interviewGuid: this.interviewGuid });
+            const status = await getOrchestrationStatus({ interviewId: this.interviewGuid });
 
             // Update step statuses based on current element
             this.updateStepStatusesFromInterview(status);
@@ -217,8 +217,9 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
                 this.showToast('Success', 'Usage orchestration completed successfully!', 'success');
 
                 // Refresh last run info
-                return getLastRunInfo();
-            } else if (status.status === 'Failed') {
+                this.lastRunInfo = await getLastRunInfo();
+                return;
+            } else if (status.status === 'Error') {
                 this.stopPolling();
                 this.isProcessing = false;
                 this.markCurrentStepAsError(status.currentElement);

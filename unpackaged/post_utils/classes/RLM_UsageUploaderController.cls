@@ -216,7 +216,6 @@ public with sharing class RLM_UsageUploaderController {
         Id usageResourceId,
         Decimal quantity,
         Date transactionDate,
-        String description,
         Id unitOfMeasureId
     ) {
         // Resolve the AccountId from the Asset

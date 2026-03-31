@@ -22,6 +22,14 @@ public with sharing class RLM_UsageDataController {
         'TransactionJournal', 'UsageSummary', 'UsageBillingPeriodItem'
     };
 
+    /** Allowlist of WHERE filter fields by object. Prevents client-provided filterField from
+     *  widening query scope to arbitrary fields (for example, CreatedById). */
+    private static final Map<String, Set<String>> ALLOWED_FILTER_FIELDS = new Map<String, Set<String>>{
+        'TransactionJournal' => new Set<String>{ 'AccountId', 'ReferenceRecordId' },
+        'UsageSummary' => new Set<String>{ 'AccountId', 'ReferenceRecordId' },
+        'UsageBillingPeriodItem' => new Set<String>{ 'BindingObject', 'AssetId' }
+    };
+
     /** Defensive row limit to prevent query row / heap exhaustion on Accounts with many records.
      *  When this limit is reached, the result includes truncated=true so the LWC can warn the user. */
     private static final Integer QUERY_LIMIT = 2000;
@@ -90,9 +98,13 @@ public with sharing class RLM_UsageDataController {
 
         Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
 
-        // Validate filterField exists on the object
+        // Validate filterField exists on the object and is explicitly allowlisted for this object
         if (!fieldMap.containsKey(filterField)) {
             throw new AuraHandledException('Invalid filter field: ' + filterField + ' on ' + objectApiName);
+        }
+        Set<String> allowedFilterFields = ALLOWED_FILTER_FIELDS.get(objectApiName);
+        if (allowedFilterFields == null || !allowedFilterFields.contains(filterField)) {
+            throw new AuraHandledException('Unsupported filter field: ' + filterField + ' on ' + objectApiName);
         }
 
         for (Schema.FieldSetMember fsm : fs.getFields()) {

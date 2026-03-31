@@ -17,8 +17,7 @@ import getGrantsForAsset from '@salesforce/apex/RLM_UsageUploaderController.getG
 const DISPLAY_CONSTANTS = {
     TIER_BASED_RATE: 'Tier-based',
     HIGH_USAGE_THRESHOLD: 80,
-    CRITICAL_USAGE_THRESHOLD: 95,
-    CRITICAL_PROGRESS_VARIANT: 'circular'
+    CRITICAL_USAGE_THRESHOLD: 95
 };
 
 export default class RlmAssetRatesGrants extends LightningElement {
@@ -168,7 +167,6 @@ export default class RlmAssetRatesGrants extends LightningElement {
                 consumed: consumed,
                 remaining: remaining,
                 percentUsed: pct,
-                progressVariant: pct >= DISPLAY_CONSTANTS.CRITICAL_USAGE_THRESHOLD ? DISPLAY_CONSTANTS.CRITICAL_PROGRESS_VARIANT : undefined,
                 isHighUsage: pct >= DISPLAY_CONSTANTS.HIGH_USAGE_THRESHOLD,
                 isCriticalUsage: pct >= DISPLAY_CONSTANTS.CRITICAL_USAGE_THRESHOLD
             });
