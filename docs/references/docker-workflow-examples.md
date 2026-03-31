@@ -62,6 +62,8 @@ docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm cci-robot
 ## Validate Org Sharing
 
 ```bash
+./docker/docker-verify.sh --quick
+./docker/docker-verify.sh --full
 ./docker/docker-test-org-sharing.sh
 ```
 
