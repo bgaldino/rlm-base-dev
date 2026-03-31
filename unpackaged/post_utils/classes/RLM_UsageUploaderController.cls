@@ -34,10 +34,10 @@ public with sharing class RLM_UsageUploaderController {
     }
 
     public class UsageEntry {
-        @AuraEnabled public Id usageResourceId;
-        @AuraEnabled public String usageResourceName;
-        @AuraEnabled public Decimal quantity;
-        @AuraEnabled public Date transactionDate;
+        @AuraEnabled public Id usageResourceId { get; set; }
+        @AuraEnabled public String usageResourceName { get; set; }
+        @AuraEnabled public Decimal quantity { get; set; }
+        @AuraEnabled public Date transactionDate { get; set; }
     }
 
     public class BulkUploadResult {

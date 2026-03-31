@@ -26,8 +26,8 @@ public with sharing class RLM_UsageDataController {
      *  widening query scope to arbitrary fields (for example, CreatedById). */
     private static final Map<String, Set<String>> ALLOWED_FILTER_FIELDS = new Map<String, Set<String>>{
         'TransactionJournal' => new Set<String>{ 'AccountId', 'ReferenceRecordId' },
-        'UsageSummary' => new Set<String>{ 'AccountId', 'ReferenceRecordId' },
-        'UsageBillingPeriodItem' => new Set<String>{ 'BindingObject', 'AssetId' }
+        'UsageSummary' => new Set<String>{ 'AccountId', 'ReferenceRecordId', 'AssetId' },
+        'UsageBillingPeriodItem' => new Set<String>{ 'AccountId', 'BindingObject', 'AssetId' }
     };
 
     /** Defensive row limit to prevent query row / heap exhaustion on Accounts with many records.

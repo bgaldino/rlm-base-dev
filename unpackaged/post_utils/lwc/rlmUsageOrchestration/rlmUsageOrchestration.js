@@ -191,12 +191,8 @@ export default class RlmUsageOrchestration extends NavigationMixin(LightningElem
     }
 
     handleMonitorWorkflow() {
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: {
-                url: '/lightning/setup/MonitorWorkflowServices/home'
-            }
-        });
+        // Open Setup page in a new tab so users keep their current record context.
+        window.open('/lightning/setup/MonitorWorkflowServices/home', '_blank');
     }
 
     // ─── Status Polling ─────────────────────────────────────────────────

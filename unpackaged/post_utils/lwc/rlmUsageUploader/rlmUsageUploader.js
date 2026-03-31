@@ -439,19 +439,29 @@ export default class RlmUsageUploader extends LightningElement {
         }
 
         const parsed = [];
+        const resourceIdByName = {};
+        for (const r of this.usageResources) {
+            if (r.resourceName) {
+                resourceIdByName[r.resourceName.toLowerCase()] = r.resourceId;
+            }
+        }
         for (let i = 1; i < lines.length; i++) {
             const values = this.parseCSVLine(lines[i]);
             if (values.length === 0) continue;
 
-            const rawDate = (values[dateIdx] || '').trim();
+            const rawDate = this.normalizeCsvCell(values[dateIdx]);
             const normalizedDate = this.normalizeDate(rawDate);
-            const resourceName = (values[resourceIdx] || '').trim();
+            const resourceName = this.normalizeCsvCell(values[resourceIdx]);
+            const rawQuantity = this.normalizeCsvCell(values[qtyIdx]);
+            const parsedQuantity = this.parseQuantity(rawQuantity);
 
             parsed.push({
                 id: `row-${i}`,
                 rowNum: i,
                 usageResourceName: resourceName,
-                quantity: parseFloat(values[qtyIdx]) || 0,
+                usageResourceId: resourceName ? (resourceIdByName[resourceName.toLowerCase()] || null) : null,
+                quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+                rawQuantity: rawQuantity,
                 transactionDate: normalizedDate,
                 rawDate: rawDate,
                 statusIcon: STATUS_ICONS.PENDING
@@ -499,9 +509,10 @@ export default class RlmUsageUploader extends LightningElement {
     async validateCsvData() {
         try {
             const entries = this.csvData.map(row => ({
-                usageResourceName: row.usageResourceName,
-                quantity: row.quantity,
-                transactionDate: row.transactionDate
+                usageResourceId: row.usageResourceId || null,
+                usageResourceName: this.normalizeCsvCell(row.usageResourceName) || null,
+                quantity: Number.isFinite(row.quantity) ? row.quantity : this.parseQuantity(row.rawQuantity),
+                transactionDate: row.transactionDate || this.normalizeDate(this.normalizeCsvCell(row.rawDate)) || null
             }));
 
             const results = await validateUsageEntries({
@@ -535,9 +546,10 @@ export default class RlmUsageUploader extends LightningElement {
         this.isCsvUploading = true;
         try {
             const entries = this.csvData.map(row => ({
-                usageResourceName: row.usageResourceName,
-                quantity: row.quantity,
-                transactionDate: row.transactionDate
+                usageResourceId: row.usageResourceId || null,
+                usageResourceName: this.normalizeCsvCell(row.usageResourceName) || null,
+                quantity: Number.isFinite(row.quantity) ? row.quantity : this.parseQuantity(row.rawQuantity),
+                transactionDate: row.transactionDate || this.normalizeDate(this.normalizeCsvCell(row.rawDate)) || null
             }));
 
             const result = await bulkUploadUsage({
@@ -593,7 +605,8 @@ export default class RlmUsageUploader extends LightningElement {
      */
     normalizeDate(raw) {
         if (!raw) return '';
-        const s = raw.trim();
+        // Normalize common Unicode dash variants and NBSP from spreadsheet exports.
+        const s = this.normalizeCsvCell(raw);
 
         // Already ISO: YYYY-MM-DD or YYYY/MM/DD
         const isoMatch = s.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
@@ -645,6 +658,22 @@ export default class RlmUsageUploader extends LightningElement {
         }
 
         return '';
+    }
+
+    normalizeCsvCell(value) {
+        if (value == null) return '';
+        return String(value)
+            .replace(/\uFEFF/g, '')              // UTF-8 BOM
+            .replace(/\u00A0/g, ' ')             // non-breaking space
+            .replace(/[\u2012\u2013\u2014\u2015]/g, '-') // en/em/horizontal dashes
+            .trim();
+    }
+
+    parseQuantity(value) {
+        const normalized = this.normalizeCsvCell(value).replace(/,/g, '');
+        if (!normalized) return null;
+        const parsed = parseFloat(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
     }
 
     _monthNameToNumber(name) {

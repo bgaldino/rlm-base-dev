@@ -98,27 +98,20 @@ export default class RlmUsageDataTable extends LightningElement {
 
     /**
      * Determines which field to use for filtering based on context and object type.
-     * Account context always uses AccountId.
-     * Asset context uses object-specific fields:
-     * - TransactionJournal: ReferenceRecordId (polymorphic)
-     * - UsageSummary: AssetId (direct lookup)
-     * - UsageBillingPeriodItem: AssetId (direct lookup)
+     * - TransactionJournal: AccountId (Account context), ReferenceRecordId (Asset context)
+     * - UsageSummary: AccountId (Account context), AssetId (Asset context)
+     * - UsageBillingPeriodItem: BindingObject (Account context), AssetId (Asset context)
      */
     get filterField() {
-        if (this.contextObject === 'Account') {
-            return 'AccountId';
-        }
-
-        // Asset context — different objects use different fields
         if (this.usageObject === 'TransactionJournal') {
-            return 'ReferenceRecordId';  // Polymorphic — points to Asset
+            return this.contextObject === 'Asset' ? 'ReferenceRecordId' : 'AccountId';
         } else if (this.usageObject === 'UsageSummary') {
-            return 'AssetId';            // Direct lookup to Asset
+            return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
         } else if (this.usageObject === 'UsageBillingPeriodItem') {
-            return 'AssetId';            // Direct lookup to Asset
+            return this.contextObject === 'Asset' ? 'AssetId' : 'BindingObject';
         }
 
-        return 'AccountId';  // Fallback
+        return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
     }
 
     connectedCallback() {
