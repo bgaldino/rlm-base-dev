@@ -76,7 +76,7 @@ cci task run manage_flows --operation activate --developer_names RLM_Refresh_Dec
 
 #### 13. Activate Multiple Flows
 ```bash
-cci task run manage_flows --operation activate --developer_names "RLM_Refresh_Decision_Tables,RLM_Account_Utilities"
+cci task run manage_flows --operation activate --developer_names "RLM_Refresh_Decision_Tables,RLM_Utils_AccountReset"
 ```
 
 #### 14. Deactivate All Draft Flows

@@ -16,7 +16,7 @@
                             <value>BillNow</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Account.RLM_Reset_Account</value>
+                            <value>Account.RLM_ResetAccount</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Global.NewTask</value>

@@ -580,7 +580,7 @@ tasks:
   robot_reset_account:
     group: E2E Testing
     description: >
-      Reset the test Account via the RLM_Reset_Account QuickAction (UI automation).
+      Reset the test Account via the RLM_ResetAccount QuickAction (UI automation).
       Clears transactional data (Opportunities, Quotes, Orders, Assets) so E2E tests
       can re-run from a clean state. Runs in headed Chrome.
     class_path: tasks.rlm_robot_e2e.RunE2ETests
