@@ -9,6 +9,7 @@ This project uses an `SFDX_AUTH_URL`-only Docker workflow for running CumulusCI,
 - `docker-compose.ci.yml` for CI usage
 - `docker-cci.sh` wrapper for day-to-day commands
 - `docker/docker-test-org-sharing.sh` smoke test
+- `docker/docker-verify.sh` quick/full verification entrypoint
 
 ## Quick Start
 
@@ -23,6 +24,7 @@ docker compose build
 ./docker-cci.sh cci version
 ./docker-cci.sh sf --version
 ./docker-cci.sh bash -lc "robot --version || true"
+./docker/docker-verify.sh --quick
 ```
 
 ## Fresh Environment Setup (Step-by-Step)
@@ -102,7 +104,7 @@ Container encryption remains enabled by default (`SF_DISABLE_ENCRYPTION=false` u
 
 While validating Docker workflow updates, host `sf org list` showed:
 
-- `BG_DEVHUB` -> `AuthDecryptError`
+- One Dev Hub alias -> `AuthDecryptError`
 - Other orgs remained `Connected`
 
 The observed error text was: `Failed to decipher auth data. reason: Unsupported state or unable to authenticate data.`
@@ -219,10 +221,12 @@ docker compose build
 ./docker-cci.sh cci version
 ./docker-cci.sh sf --version
 ./docker-cci.sh bash -lc "robot --version || true"
+./docker/docker-verify.sh --quick
 ./docker/docker-test-org-sharing.sh
 ```
 
 `docker/docker-test-org-sharing.sh` validates Docker scratch creation from Dev Hub plus safe host transfer via `docker/docker-transfer-org-to-host.sh`.
+`docker/docker-verify.sh` runs quick non-destructive checks (`--quick`) or the full smoke path (`--full`).
 
 ## Scratch Org Creation Pattern
 

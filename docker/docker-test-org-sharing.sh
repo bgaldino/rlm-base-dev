@@ -12,24 +12,11 @@
 set -euo pipefail
 CLEANUP_FAILED=false
 DEFAULT_DOCKER_DEVHUB_ALIAS="dockerDevHub"
+trap 'err_exit $? $LINENO' ERR
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-compose_cmd() {
-    if docker compose version >/dev/null 2>&1; then
-        docker compose "$@"
-    elif command -v docker-compose >/dev/null 2>&1; then
-        docker-compose "$@"
-    else
-        echo -e "${RED}❌ Error: neither 'docker compose' nor 'docker-compose' is available${NC}"
-        exit 1
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=docker/docker-lib.sh
+. "$SCRIPT_DIR/docker-lib.sh"
 
 preflight() {
     if ! command -v docker >/dev/null 2>&1; then
