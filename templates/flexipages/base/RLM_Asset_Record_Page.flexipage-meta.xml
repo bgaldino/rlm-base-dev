@@ -1102,6 +1102,64 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Transaction Journals</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>usageObject</name>
+                    <value>TransactionJournal</value>
+                </componentInstanceProperties>
+                <componentName>c:rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable_asset_tj</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Usage Summaries</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>usageObject</name>
+                    <value>UsageSummary</value>
+                </componentInstanceProperties>
+                <componentName>c:rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable_asset_us</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Liable Summaries</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>usageObject</name>
+                    <value>UsageBillingPeriodItem</value>
+                </componentInstanceProperties>
+                <componentName>c:rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable_asset_ubpi</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-usage-data-content</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
                     <name>active</name>
                     <value>true</value>
                 </componentInstanceProperties>
@@ -1171,6 +1229,20 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab3</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-usage-data-content</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Usage Data</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab_usage_data</identifier>
             </componentInstance>
         </itemInstances>
         <name>maintabs</name>

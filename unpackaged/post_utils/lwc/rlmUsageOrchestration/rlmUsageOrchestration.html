@@ -1,0 +1,129 @@
+<template>
+    <lightning-card title="Usage Orchestration" icon-name="standard:flow">
+        <div class="slds-p-around_medium">
+
+            <!-- Action Buttons -->
+            <div class="slds-grid slds-gutters_small slds-m-bottom_medium">
+                <div class="slds-col">
+                    <lightning-button
+                        variant="brand"
+                        label={processButtonLabel}
+                        onclick={handleProcessUsage}
+                        disabled={isStartDisabled}
+                        icon-name="utility:refresh">
+                    </lightning-button>
+                </div>
+                <div class="slds-col">
+                    <lightning-button
+                        variant="neutral"
+                        label="Monitor Workflow Services"
+                        onclick={handleMonitorWorkflow}
+                        icon-name="utility:open">
+                    </lightning-button>
+                </div>
+            </div>
+
+            <!-- Last Run Info -->
+            <template if:true={showLastRunInfo}>
+                <div class="slds-box slds-box_xx-small slds-theme_shade slds-m-bottom_medium">
+                    <div class="slds-grid slds-grid_vertical-align-center">
+                        <div class="slds-col slds-size_1-of-2">
+                            <p class="slds-text-body_small slds-text-color_weak">Last Run:</p>
+                            <p class="slds-text-body_regular">{lastRunTimestamp}</p>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+                            <p class="slds-text-body_small slds-text-color_weak">Status:</p>
+                            <p class="slds-text-body_regular">{lastRunStatus}</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Processing Steps -->
+            <template if:true={isProcessing}>
+                <div class="slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_small">Processing Steps:</h3>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                        Each step takes approximately 5 minutes. Total processing time: ~15 minutes.
+                    </p>
+
+                    <!-- Step 1: Usage Summary -->
+                    <div class={step1Class}>
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <div class="slds-col slds-size_1-of-12">
+                                <lightning-icon
+                                    icon-name={step1IconName}
+                                    size="small"
+                                    variant={step1Status}>
+                                </lightning-icon>
+                            </div>
+                            <div class="slds-col slds-size_11-of-12">
+                                <p class="slds-text-heading_small">1. Generate Usage Summary</p>
+                                <p class="slds-text-body_small slds-text-color_weak">
+                                    Aggregates transaction journals into usage summaries
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Usage Ratable Summary -->
+                    <div class={step2Class}>
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <div class="slds-col slds-size_1-of-12">
+                                <lightning-icon
+                                    icon-name={step2IconName}
+                                    size="small"
+                                    variant={step2Status}>
+                                </lightning-icon>
+                            </div>
+                            <div class="slds-col slds-size_11-of-12">
+                                <p class="slds-text-heading_small">2. Generate Usage Ratable Summary</p>
+                                <p class="slds-text-body_small slds-text-color_weak">
+                                    Calculates rates and applies pricing to usage summaries
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Liable Summary -->
+                    <div class={step3Class}>
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <div class="slds-col slds-size_1-of-12">
+                                <lightning-icon
+                                    icon-name={step3IconName}
+                                    size="small"
+                                    variant={step3Status}>
+                                </lightning-icon>
+                            </div>
+                            <div class="slds-col slds-size_11-of-12">
+                                <p class="slds-text-heading_small">3. Generate Liable Summary</p>
+                                <p class="slds-text-body_small slds-text-color_weak">
+                                    Creates billing-ready liable summaries from rated usage
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Idle State Info -->
+            <template if:false={isProcessing}>
+                <div class="slds-box slds-theme_default slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_small">Usage Processing Workflow</h3>
+                    <p class="slds-text-body_regular slds-m-bottom_small">
+                        Click "Process Usage" to trigger the following workflow:
+                    </p>
+                    <ol class="slds-list_ordered slds-text-body_small">
+                        <li class="slds-m-bottom_x-small">Generate Usage Summary (aggregates transaction journals)</li>
+                        <li class="slds-m-bottom_x-small">Generate Usage Ratable Summary (calculates rates)</li>
+                        <li class="slds-m-bottom_x-small">Generate Liable Summary (creates billing records)</li>
+                    </ol>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_small">
+                        Processing typically takes 15 minutes. Use "Monitor Workflow Services" to view detailed status and logs.
+                    </p>
+                </div>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

@@ -4,7 +4,7 @@
  *              to build lightning-datatable column definitions.
  *
  *              Supports TransactionJournal, UsageSummary, and UsageBillingPeriodItem.
- *              All queries are scoped to a single Account via AccountId.
+ *              All queries are scoped to a single Account or Asset via dynamic filterField.
  *
  *              Field handling:
  *              - Name fields (isNameField) render as clickable URLs linking to the record itself
@@ -49,7 +49,8 @@ public with sharing class RLM_UsageDataController {
     /**
      * @description Queries records for the given SObject using fields defined in a FieldSet,
      *              and returns both the datatable column definitions and flattened record data.
-     * @param accountId The Account record Id to filter by (WHERE AccountId = :accountId)
+     * @param recordId The Record Id to filter by (Account or Asset)
+     * @param filterField The field name to use in the WHERE clause (e.g. AccountId, ReferenceRecordId, BindingObject, Asset)
      * @param objectApiName API name of the SObject to query (must be in ALLOWED_OBJECTS)
      * @param fieldSetName Developer name of the FieldSet on the target SObject
      * @return Map with three keys:
@@ -60,7 +61,8 @@ public with sharing class RLM_UsageDataController {
      */
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getFieldSetData(
-        Id accountId,
+        Id recordId,
+        String filterField,
         String objectApiName,
         String fieldSetName
     ) {
@@ -87,6 +89,11 @@ public with sharing class RLM_UsageDataController {
         Map<Schema.SObjectType, String> nameFieldCache = new Map<Schema.SObjectType, String>(); // avoids redundant describes
 
         Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
+
+        // Validate filterField exists on the object
+        if (!fieldMap.containsKey(filterField)) {
+            throw new AuraHandledException('Invalid filter field: ' + filterField + ' on ' + objectApiName);
+        }
 
         for (Schema.FieldSetMember fsm : fs.getFields()) {
             String fieldApiName = fsm.getFieldPath();
@@ -142,12 +149,14 @@ public with sharing class RLM_UsageDataController {
             }
         }
 
-        // WITH SECURITY_ENFORCED enforces CRUD and FLS; `with sharing` enforces record access.
+        // Removed WITH SECURITY_ENFORCED due to Salesforce limitation:
+        // Polymorphic fields (ReferenceRecordId, GrantBindingTargetId) cannot be queried with SECURITY_ENFORCED.
+        // Security is still enforced: with sharing (record access), FLS on field reads, object allowlist, permission set required.
         // Users need the RLM_UsageDatatables permission set for the required object/field grants.
         Integer fetchLimit = QUERY_LIMIT + 1;
         String soql = 'SELECT ' + String.join(queryFields, ', ') +
             ' FROM ' + objectApiName +
-            ' WITH SECURITY_ENFORCED WHERE AccountId = :accountId ORDER BY Id ASC' +
+            ' WHERE ' + filterField + ' = :recordId ORDER BY Id ASC' +
             ' LIMIT :fetchLimit';
 
         List<SObject> records = Database.query(soql);

@@ -1,0 +1,249 @@
+<template>
+    <lightning-card title="Usage Uploader" icon-name="standard:asset_action">
+
+        <!-- Asset Picker (Account Context) -->
+        <template if:true={showAssetPicker}>
+            <div class="slds-p-around_medium">
+                <template if:true={hasAssetOptions}>
+                    <lightning-combobox
+                        name="assetPicker"
+                        label="Select Asset"
+                        placeholder="Choose an asset to upload usage"
+                        value={selectedAssetId}
+                        options={assetOptions}
+                        onchange={handleAssetChange}
+                        required>
+                    </lightning-combobox>
+                    <p class="slds-m-top_small slds-text-body_small slds-text-color_weak">
+                        Select an asset to begin uploading usage data. Only active assets with Anchor products are shown.
+                    </p>
+                </template>
+                <template if:true={noAssetsMessage}>
+                    <div class="slds-notify slds-notify_alert slds-alert_info" role="alert">
+                        <span class="slds-assistive-text">Info</span>
+                        <h2>No active assets found on this account with Anchor products.</h2>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- Main content (only show after Asset selected on Account, or always on Asset) -->
+        <template if:true={shouldShowMainContent}>
+            <!-- Loading state -->
+            <template if:true={isLoading}>
+                <div class="slds-p-around_large slds-align_absolute-center">
+                    <lightning-spinner alternative-text="Loading usage resources"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error state -->
+            <template if:true={resourceError}>
+                <div class="slds-p-around_medium">
+                    <div class="slds-notify slds-notify_alert slds-alert_warning" role="alert">
+                        <span class="slds-assistive-text">Warning</span>
+                        <h2>{resourceError}</h2>
+                    </div>
+                </div>
+            </template>
+
+            <!-- No resources state -->
+            <template if:false={isLoading}>
+                <template if:false={resourceError}>
+                    <template if:false={hasResources}>
+                        <div class="slds-p-around_medium slds-text-align_center">
+                            <p class="slds-text-body_regular slds-text-color_weak">
+                                No active usage resources found for this product.
+                            </p>
+                        </div>
+                    </template>
+                </template>
+            </template>
+
+            <!-- Tabs and forms -->
+            <template if:true={hasResources}>
+            <div class="slds-p-around_medium">
+
+                <!-- Tab bar -->
+                <lightning-tabset active-tab-value={activeTab} onchange={handleTabChange}>
+
+                    <!-- ─── Single Entry Tab ─── -->
+                    <lightning-tab label="Single Entry" value="single">
+                        <div class="slds-p-around_small">
+                            <div class="slds-grid slds-gutters_small slds-wrap">
+
+                                <!-- Left column: Upload form -->
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_7-of-12 slds-large-size_7-of-12">
+                                    <lightning-combobox
+                                        name="usageResource"
+                                        label="Usage Resource"
+                                        value={selectedResourceId}
+                                        placeholder="Select a usage resource"
+                                        options={resourceOptions}
+                                        onchange={handleResourceChange}
+                                        required>
+                                    </lightning-combobox>
+
+                                    <template if:true={hasUomOptions}>
+                                        <lightning-combobox
+                                            name="unitOfMeasure"
+                                            label="Unit of Measure"
+                                            value={selectedUomId}
+                                            options={uomOptions}
+                                            onchange={handleUomChange}
+                                            class="slds-m-top_small">
+                                        </lightning-combobox>
+                                    </template>
+
+                                    <lightning-input
+                                        type="number"
+                                        label="Quantity"
+                                        value={singleQuantity}
+                                        min="0.01"
+                                        step="0.01"
+                                        onchange={handleQuantityChange}
+                                        required
+                                        class="slds-m-top_small">
+                                    </lightning-input>
+
+                                    <lightning-input
+                                        type="date"
+                                        label="Transaction Date"
+                                        value={singleDate}
+                                        onchange={handleDateChange}
+                                        required
+                                        class="slds-m-top_small">
+                                    </lightning-input>
+
+                                    <div class="slds-m-top_medium">
+                                        <lightning-button
+                                            variant="brand"
+                                            label={singleUploadButtonLabel}
+                                            onclick={handleSingleUpload}
+                                            disabled={isSingleSubmitDisabled}>
+                                        </lightning-button>
+                                    </div>
+                                </div>
+
+                                <!-- Right column: Rates & Grants -->
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-large-size_5-of-12">
+                                    <template if:true={selectedResourceId}>
+                                        <div class="rates-grants-panel slds-border_left slds-p-left_small slds-scrollable_y">
+                                            <c-rlm-asset-rates-grants
+                                                record-id={effectiveAssetId}
+                                                usage-resource-id={selectedResourceId}>
+                                            </c-rlm-asset-rates-grants>
+                                        </div>
+                                    </template>
+                                </div>
+
+                            </div>
+                        </div>
+                    </lightning-tab>
+
+                    <!-- ─── CSV Upload Tab ─── -->
+                    <lightning-tab label="CSV Upload" value="csv">
+                        <div class="slds-p-around_small">
+
+                            <!-- SLDS File Selector -->
+                            <template if:false={hasCsvData}>
+                                <!-- Download Sample CSV -->
+                                <div class="slds-m-bottom_small">
+                                    <lightning-button
+                                        label="Download Sample CSV"
+                                        icon-name="utility:download"
+                                        variant="base"
+                                        onclick={handleDownloadSampleCsv}>
+                                    </lightning-button>
+                                </div>
+                                <div class="slds-form-element">
+                                    <div class="slds-form-element__control">
+                                        <div class="slds-file-selector slds-file-selector_files">
+                                            <div
+                                                class={dropzoneClass}
+                                                ondragover={handleDragOver}
+                                                ondragleave={handleDragLeave}
+                                                ondrop={handleDrop}>
+                                                <input
+                                                    type="file"
+                                                    accept=".csv"
+                                                    class="slds-file-selector__input slds-assistive-text"
+                                                    data-id="csv-file-input"
+                                                    onchange={handleFileChange} />
+                                                <span
+                                                    class="slds-file-selector__body"
+                                                    onclick={handleDropzoneClick}
+                                                    role="button"
+                                                    tabindex="0"
+                                                    onkeydown={handleDropzoneKeydown}>
+                                                    <span class="slds-file-selector__button slds-button slds-button_neutral">
+                                                        <lightning-icon icon-name="utility:upload" size="xx-small" class="slds-button__icon slds-button__icon_left"></lightning-icon>
+                                                        Upload CSV
+                                                    </span>
+                                                    <span class="slds-file-selector__text slds-medium-show">
+                                                        or Drop CSV File
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-form-element__help slds-p-top_xx-small">
+                                        Required columns: <strong>Usage Resource</strong>, <strong>Quantity</strong>, <strong>Transaction Date</strong>. Optional: <strong>Unit of Measure</strong>.
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Preview table -->
+                            <template if:true={hasCsvData}>
+                                <div class="slds-m-bottom_small">
+                                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                        <div>
+                                            <p class="slds-text-heading_small">
+                                                Preview: {csvFileName}
+                                            </p>
+                                            <p class="slds-text-body_small slds-text-color_weak">
+                                                {csvRowCount} row(s)
+                                                <template if:true={csvValidated}>
+                                                    &nbsp;•&nbsp;
+                                                    <span class="slds-text-color_success">{csvValidCount} valid</span>
+                                                    <template if:true={csvHasErrors}>
+                                                        &nbsp;•&nbsp;
+                                                        <span class="slds-text-color_error">{csvErrorCount} error(s)</span>
+                                                    </template>
+                                                </template>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="csv-preview-container slds-scrollable_x slds-scrollable_y">
+                                    <lightning-datatable
+                                        key-field="id"
+                                        data={csvData}
+                                        columns={csvColumns}
+                                        hide-checkbox-column>
+                                    </lightning-datatable>
+                                </div>
+
+                                <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                                    <lightning-button
+                                        label="Cancel"
+                                        onclick={handleCsvCancel}
+                                        class="slds-m-right_small">
+                                    </lightning-button>
+                                    <lightning-button
+                                        variant="brand"
+                                        label={csvUploadButtonLabel}
+                                        onclick={handleCsvUpload}
+                                        disabled={csvConfirmDisabled}>
+                                    </lightning-button>
+                                </div>
+                            </template>
+                        </div>
+                    </lightning-tab>
+
+                </lightning-tabset>
+            </div>
+        </template>
+        </template><!-- Close shouldShowMainContent -->
+    </lightning-card>
+</template>

@@ -1,0 +1,19 @@
+:host {
+    display: block;
+}
+
+/* Rates & Grants side panel scrollable container */
+.rates-grants-panel {
+    max-height: 50vh; /* 50% of viewport height - responsive to screen size */
+}
+
+/* CSV preview table scrollable container */
+.csv-preview-container {
+    max-height: 25rem; /* ~400px at default font, scales with user font size preferences */
+}
+
+/* SLDS file selector dropzone active state highlight */
+.slds-file-selector__dropzone.slds-has-drag-over {
+    border-color: var(--slds-g-color-brand-base-50, #1b96ff);
+    background-color: var(--slds-g-color-brand-base-95, #eef4ff);
+}
