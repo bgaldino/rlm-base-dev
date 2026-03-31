@@ -1,0 +1,22 @@
+.step-card {
+    border-left: 3px solid #c9c9c9;
+}
+
+.step-processing {
+    border-left-color: #0176d3;
+    background-color: #f3f8fc;
+}
+
+.step-success {
+    border-left-color: #2e844a;
+    background-color: #f3f8f3;
+}
+
+.step-error {
+    border-left-color: #c23934;
+    background-color: #fcf3f2;
+}
+
+.step-pending {
+    border-left-color: #c9c9c9;
+}

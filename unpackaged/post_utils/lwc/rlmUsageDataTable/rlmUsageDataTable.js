@@ -1,7 +1,7 @@
 /**
- * @description Dynamic FieldSet-driven datatable for displaying usage data on Account record pages.
+ * @description Dynamic FieldSet-driven datatable for displaying usage data on Account and Asset record pages.
  *              Queries TransactionJournal, UsageSummary, or UsageBillingPeriodItem records
- *              associated with the current Account using columns defined by a FieldSet.
+ *              associated with the current Account or Asset using columns defined by a FieldSet.
  *
  *              Features:
  *              - Columns and fields are driven by FieldSet metadata (configurable without code changes)
@@ -17,7 +17,7 @@ import getFieldSetData from '@salesforce/apex/RLM_UsageDataController.getFieldSe
 const PAGE_SIZE = 10;
 
 export default class RlmUsageDataTable extends LightningElement {
-    /** @api Account record Id, auto-populated by the record page */
+    /** @api Record Id (Account or Asset), auto-populated by the record page */
     @api recordId;
     /** @api SObject API name to query (TransactionJournal, UsageSummary, or UsageBillingPeriodItem) */
     @api usageObject;
@@ -34,6 +34,7 @@ export default class RlmUsageDataTable extends LightningElement {
     sortedBy;
     sortDirection = 'asc';
     page = 1;
+    contextObject; // 'Account' or 'Asset'
 
     /**
      * Maps URL column fieldNames to their label fieldNames for sort resolution.
@@ -95,7 +96,32 @@ export default class RlmUsageDataTable extends LightningElement {
         return `${start}\u2013${end} of ${this.allData.length}`;
     }
 
+    /**
+     * Determines which field to use for filtering based on context and object type.
+     * - TransactionJournal: AccountId (Account context), ReferenceRecordId (Asset context)
+     * - UsageSummary: AccountId (Account context), AssetId (Asset context)
+     * - UsageBillingPeriodItem: AccountId (Account context), AssetId (Asset context)
+     */
+    get filterField() {
+        if (this.usageObject === 'TransactionJournal') {
+            return this.contextObject === 'Asset' ? 'ReferenceRecordId' : 'AccountId';
+        } else if (this.usageObject === 'UsageSummary') {
+            return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
+        } else if (this.usageObject === 'UsageBillingPeriodItem') {
+            return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
+        }
+
+        return this.contextObject === 'Asset' ? 'AssetId' : 'AccountId';
+    }
+
     connectedCallback() {
+        // Detect context by object key prefix (Account: 001, Asset: 02i)
+        if (this.recordId) {
+            const prefix = this.recordId.substring(0, 3);
+            this.contextObject = prefix === '001' ? 'Account' :
+                               prefix === '02i' ? 'Asset' : 'Unknown';
+        }
+
         if (this.isConfigured) {
             this.loadData();
         } else {
@@ -109,7 +135,8 @@ export default class RlmUsageDataTable extends LightningElement {
         this.isTruncated = false;
         try {
             const result = await getFieldSetData({
-                accountId: this.recordId,
+                recordId: this.recordId,
+                filterField: this.filterField,
                 objectApiName: this.usageObject,
                 fieldSetName: this.fieldSetName
             });

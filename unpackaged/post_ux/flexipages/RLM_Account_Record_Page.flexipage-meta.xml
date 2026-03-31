@@ -1162,55 +1162,17 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>flowArguments</name>
-                    <value>[{"label":"recordId","dataType":"String","supportsRecordId":true,"value":"{!Record.Id}"}]</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_AddTransactionJournalScreenFlow</value>
-                </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-3df90e65-2369-4a8c-823d-927e7e3926a1</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_OrchestrateUsage</value>
-                </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview2</identifier>
+                <componentName>c:rlmUsageUploader</componentName>
+                <identifier>rlm_usage_uploader</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_MonitorWorkflowServicesScreenFlow</value>
-                </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview5</identifier>
+                <componentName>c:rlmUsageOrchestration</componentName>
+                <identifier>c_rlmUsageOrchestration</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-438c567b-fa0d-41ea-9d6e-19204f8abdbc</name>
+        <name>Facet-e287c589-6d23-46e6-b696-e3dd4f81c8f5</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -1268,74 +1230,6 @@
                 <identifier>c_rlmUsageDataTable3</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-5c81d61a-1ee4-447a-b10f-fcecbbf1939e</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>active</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-3df90e65-2369-4a8c-823d-927e7e3926a1</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Add Usage</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab8</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-438c567b-fa0d-41ea-9d6e-19204f8abdbc</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Mature Usage</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab12</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-5c81d61a-1ee4-447a-b10f-fcecbbf1939e</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>View Usage</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab13</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-bdb0b551-6a9f-45fb-bc61-c56e46737fd1</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>label</name>
-                    <value>Tabs</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>tabs</name>
-                    <value>Facet-bdb0b551-6a9f-45fb-bc61-c56e46737fd1</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tabset</componentName>
-                <identifier>flexipage_tabset4</identifier>
-            </componentInstance>
-        </itemInstances>
         <name>Facet-76337227-a895-4263-8ab3-adb5a209009d</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -1386,11 +1280,25 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
+                    <value>Facet-e287c589-6d23-46e6-b696-e3dd4f81c8f5</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Add Usage</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
                     <value>Facet-76337227-a895-4263-8ab3-adb5a209009d</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
-                    <value>Utilities</value>
+                    <value>View Usage</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab4</identifier>

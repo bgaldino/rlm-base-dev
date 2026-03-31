@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <description>Usage orchestration component for manually triggering usage processing workflow with static step guidance and access to Monitor Workflow Services.</description>
+    <isExposed>true</isExposed>
+    <masterLabel>RLM Usage Orchestration</masterLabel>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Account</object>
+            </objects>
+            <property name="orchestrationFlowApiName" type="String" label="Orchestration Flow API Name"
+                      description="The API name of the autolaunched flow to trigger (default: RLM_Orchestrate_Usage_Management)"
+                      default="RLM_Orchestrate_Usage_Management"/>
+        </targetConfig>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage">
+            <property name="orchestrationFlowApiName" type="String" label="Orchestration Flow API Name"
+                      description="The API name of the autolaunched flow to trigger (default: RLM_Orchestrate_Usage_Management)"
+                      default="RLM_Orchestrate_Usage_Management"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

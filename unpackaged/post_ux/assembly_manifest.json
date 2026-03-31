@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-27T17:50:00.302824Z",
+  "assembled_at": "2026-03-31T21:10:15.204477Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -576,7 +576,7 @@
       "name": "AppSwitcher.appMenu-meta.xml",
       "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
       "source_tier": "org + template priority ordering",
-      "items_total": 41,
+      "items_total": 39,
       "priority_applied": [
         "RLM_Revenue_Cloud",
         "standard__BillingConsole",

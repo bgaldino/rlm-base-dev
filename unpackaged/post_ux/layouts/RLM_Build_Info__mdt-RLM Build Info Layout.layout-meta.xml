@@ -75,7 +75,7 @@
         </layoutColumns>
         <layoutColumns>
             <layoutItems>
-                <behavior>Edit</behavior>
+                <behavior>Readonly</behavior>
                 <field>NamespacePrefix</field>
             </layoutItems>
         </layoutColumns>
