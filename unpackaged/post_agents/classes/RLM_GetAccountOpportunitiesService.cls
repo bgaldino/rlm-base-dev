@@ -13,16 +13,10 @@ public with sharing class RLM_GetAccountOpportunitiesService {
         public String message;
 
         @InvocableVariable
-        public String opportunities;
+        public String opportunityIds;
 
         @InvocableVariable
-        public Integer opportunityCount;
-
-        @InvocableVariable
-        public Integer openOpportunityCount;
-
-        @InvocableVariable
-        public String accountName;
+        public String openOpportunityIds;
     }
 
     @InvocableMethod(label='Get Account Opportunities' description='Retrieves open and recent opportunities for an account to support whitespace analysis and quoting')
@@ -31,8 +25,6 @@ public with sharing class RLM_GetAccountOpportunitiesService {
 
         for (Request req : requests) {
             Response resp = new Response();
-            resp.opportunityCount = 0;
-            resp.openOpportunityCount = 0;
 
             try {
                 List<Account> accounts = [
@@ -46,7 +38,7 @@ public with sharing class RLM_GetAccountOpportunitiesService {
                     resp.success = false;
                     resp.message = 'Account not found with ID: ' + req.accountId;
                 } else {
-                    resp.accountName = accounts[0].Name;
+                    String accountName = accounts[0].Name;
 
                     List<Opportunity> opps = [
                         SELECT Id, Name, StageName, Amount, CloseDate, IsClosed, IsWon,
@@ -63,53 +55,28 @@ public with sharing class RLM_GetAccountOpportunitiesService {
 
                     if (opps.isEmpty()) {
                         resp.success = true;
-                        resp.message = 'No opportunities found for account "' + accounts[0].Name + '". A new opportunity can be created to add recommended products.';
-                        resp.opportunities = 'None';
+                        resp.message = 'No opportunities found for account "' + accountName + '". A new opportunity can be created to add recommended products.';
                     } else {
+                        List<String> allOppIds = new List<String>();
+                        List<String> openOppIds = new List<String>();
                         Integer openCount = 0;
-                        List<String> oppDescriptions = new List<String>();
 
                         for (Opportunity opp : opps) {
+                            allOppIds.add(opp.Id);
                             if (!opp.IsClosed) {
+                                openOppIds.add(opp.Id);
                                 openCount++;
                             }
-
-                            String oppLine = opp.Name + ' | Stage: ' + opp.StageName;
-                            if (opp.Amount != null) {
-                                oppLine = oppLine + ' | Amount: $' + opp.Amount.format();
-                            }
-                            if (opp.CloseDate != null) {
-                                oppLine = oppLine + ' | Close: ' + String.valueOf(opp.CloseDate);
-                            }
-                            if (opp.IsClosed) {
-                                oppLine = oppLine + ' | Status: ' + (opp.IsWon ? 'Won' : 'Lost');
-                            } else {
-                                oppLine = oppLine + ' | Status: Open';
-                            }
-                            if (opp.Pricebook2 != null) {
-                                oppLine = oppLine + ' | Pricebook: ' + opp.Pricebook2.Name;
-                            }
-
-                            if (opp.OpportunityLineItems != null && !opp.OpportunityLineItems.isEmpty()) {
-                                List<String> lineItems = new List<String>();
-                                for (OpportunityLineItem li : opp.OpportunityLineItems) {
-                                    lineItems.add(li.Product2.Name + ' (Qty: ' + li.Quantity + ', $' + li.UnitPrice.format() + ')');
-                                }
-                                oppLine = oppLine + ' | Products: ' + String.join(lineItems, ', ');
-                            }
-
-                            oppDescriptions.add(oppLine);
                         }
 
-                        resp.opportunities = String.join(oppDescriptions, '; ');
-                        resp.opportunityCount = opps.size();
-                        resp.openOpportunityCount = openCount;
+                        resp.opportunityIds = String.join(allOppIds, ',');
+                        resp.openOpportunityIds = String.join(openOppIds, ',');
                         resp.success = true;
 
                         if (openCount > 0) {
-                            resp.message = 'Found ' + opps.size() + ' opportunity(ies) for "' + accounts[0].Name + '", of which ' + openCount + ' are open. Products from whitespace analysis can be added to an existing open opportunity or a new one.';
+                            resp.message = accountName + ' has ' + (openCount == 1 ? 'an' : openCount + '') + ' open opportunit' + (openCount == 1 ? 'y' : 'ies') + ' where these products can be added. Would you like to use ' + (openCount == 1 ? 'this opportunity' : 'an existing opportunity') + ' or create a new one?';
                         } else {
-                            resp.message = 'Found ' + opps.size() + ' opportunity(ies) for "' + accounts[0].Name + '", but none are currently open. A new opportunity would need to be created to add recommended products.';
+                            resp.message = accountName + ' has ' + opps.size() + ' opportunit' + (opps.size() == 1 ? 'y' : 'ies') + ', but none are currently open. A new opportunity would need to be created to add recommended products.';
                         }
                     }
                 }

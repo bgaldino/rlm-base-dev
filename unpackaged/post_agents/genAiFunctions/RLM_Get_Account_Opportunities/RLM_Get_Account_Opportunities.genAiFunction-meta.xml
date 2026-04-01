@@ -26,27 +26,15 @@
         <parameterType>output</parameterType>
     </mappingAttributes>
     <mappingAttributes>
-        <label>Opportunities</label>
-        <name>output_opportunities</name>
-        <parameterName>opportunities</parameterName>
+        <label>Opportunity IDs</label>
+        <name>output_opportunityIds</name>
+        <parameterName>opportunityIds</parameterName>
         <parameterType>output</parameterType>
     </mappingAttributes>
     <mappingAttributes>
-        <label>Opportunity Count</label>
-        <name>output_opportunityCount</name>
-        <parameterName>opportunityCount</parameterName>
-        <parameterType>output</parameterType>
-    </mappingAttributes>
-    <mappingAttributes>
-        <label>Open Opportunity Count</label>
-        <name>output_openOpportunityCount</name>
-        <parameterName>openOpportunityCount</parameterName>
-        <parameterType>output</parameterType>
-    </mappingAttributes>
-    <mappingAttributes>
-        <label>Account Name</label>
-        <name>output_accountName</name>
-        <parameterName>accountName</parameterName>
+        <label>Open Opportunity IDs</label>
+        <name>output_openOpportunityIds</name>
+        <parameterName>openOpportunityIds</parameterName>
         <parameterType>output</parameterType>
     </mappingAttributes>
     <masterLabel>RLM Get Account Opportunities</masterLabel>
