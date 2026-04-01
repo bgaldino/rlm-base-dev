@@ -56,7 +56,7 @@ def build_relationship_index(erd):
 def cmd_describe(erd, obj_name):
     obj_name_match = find_object(erd, obj_name)
     if not obj_name_match:
-        print(f"Object '{obj_name}' not found. Try: python scripts/query_erd.py search \"{obj_name}\"")
+        print(f"Object '{obj_name}' not found. Try: python scripts/ai/query_erd.py search \"{obj_name}\"")
         return
 
     obj_data = erd["objects"][obj_name_match]

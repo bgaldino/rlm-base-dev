@@ -32,11 +32,16 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 CCI_YML = ROOT / "cumulusci.yml"
 OUTPUT_DIR = ROOT / ".cursor" / "skills" / "cci-orchestration"
 
-HEADER_NOTE = (
-    "> **Auto-generated** by `scripts/ai/generate_cci_reference.py` from "
-    "`cumulusci.yml`.  \n"
-    "> Do not edit manually — re-run the script after changing `cumulusci.yml`."
-)
+def _header_note() -> str:
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return (
+        f"> **Auto-generated** by `scripts/ai/generate_cci_reference.py` from "
+        f"`cumulusci.yml` on {ts}.  \n"
+        "> Do not edit manually — re-run the script after changing `cumulusci.yml`."
+    )
+
+
+HEADER_NOTE = _header_note()
 
 
 # ---------------------------------------------------------------------------

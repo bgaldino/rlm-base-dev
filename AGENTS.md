@@ -199,8 +199,8 @@ same guidance, or use the parent skill which covers the same content:
 Scripts in `scripts/ai/` help agents query project data:
 
 ```bash
-python scripts/ai/query_erd.py --object Product2           # Query RLM data model
-python scripts/ai/query_erd.py --domain Pricing             # List domain objects
+python scripts/ai/query_erd.py describe Product2           # Query RLM data model
+python scripts/ai/query_erd.py domain Pricing               # List domain objects
 python scripts/ai/generate_cci_reference.py                 # Regenerate CCI docs
 ```
 

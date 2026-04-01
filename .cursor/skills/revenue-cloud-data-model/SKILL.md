@@ -1,7 +1,7 @@
 ---
 name: revenue-cloud-data-model
 description: >-
-  Revenue Cloud (RLM) data model reference covering 213 objects across 9 domains.
+  Revenue Cloud (RLM) data model reference covering 263 objects across 9 domains.
   Use when working with Revenue Cloud objects, understanding object relationships,
   writing SOQL queries, building data plans, or answering questions about the
   RLM schema. Covers PCM, Pricing, Rates, Configurator, Transactions, DRO,
@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v66.0 (Spring '26, API v260) — 213 objects, 2,835 fields, 351 relationships across 9 domains.
+Revenue Cloud v66.0 (Spring '26, API v260) — 263 objects, 4,919 fields across 9 domains.
 
 ## Quick Rules
 
