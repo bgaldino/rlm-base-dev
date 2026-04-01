@@ -31,6 +31,10 @@ cci task run deploy_customer_demo_staticresources --org <org-alias>
 ## `customer-pricebook-entries.csv` columns
 
 - Core pricing fields: `SKU`, `UnitPrice`, `CurrencyIsoCode`, `PSMName`, `PSMSellingModelType`, `IsActive`, `CategoryCode`
+- Recurring-model recommendation:
+  - prefer `PSMSellingModelType=TermDefined` for recurring offers (monthly/annual)
+  - this keeps proration and amend/cancel/replace scenarios demonstrable in customer demos
+  - use evergreen only when the target org does not provide compatible term-based models
 - Optional verification controls:
   - `ImageRequired` (default `true`) - when `true`, verify `Product2.DisplayUrl` exists
   - `BillingRequired` (default `true`) - when `true`, verify `Product2.BillingPolicyId` exists

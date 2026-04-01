@@ -53,6 +53,10 @@ For each customer:
 4. Keep categories to a practical **3-6 categories**.
 5. Build the SKU matrix (record book) with:
    - `SKU`, `Name`, `CategoryCode`, `Family`, `PSMName`, `PSMSellingModelType`, `UnitPrice`, `CurrencyIsoCode`, `Description`
+6. Prefer recurring SKUs to use **term-defined** selling models (typically monthly or annual) instead of evergreen:
+   - default recurring offers to `SellingModelType=TermDefined` where possible
+   - use org-native term model names in `PSMName` (for example "Term Monthly" / "Term Annual")
+   - use evergreen only as a fallback when term models are unavailable, and document that this limits proration and amend/cancel/replace demo scenarios
 
 If the plan needs more than 15 SKUs or more than 6 categories, document why and approve an exception before build.
 
@@ -70,6 +74,7 @@ If the plan needs more than 15 SKUs or more than 6 categories, document why and 
    - `ProductCategory.csv`
    - `ProductCategoryProduct.csv`
 4. Populate `scripts/customer-demo/customer-pricebook-entries.csv`.
+   - for recurring SKUs, keep `PSMSellingModelType=TermDefined` unless fallback is required
 5. Populate customer image dataset CSV:
    - `datasets/sfdmu/customer-template/en-US/customer-template-product-images/Product2.csv`
 6. Prepare customer logo static resource files:
