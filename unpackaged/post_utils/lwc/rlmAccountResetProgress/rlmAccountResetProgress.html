@@ -1,0 +1,82 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-gutters layout-grid">
+                <div class="slds-col slds-size_1-of-2">
+                    <h3 class="slds-text-title_caps slds-m-bottom_small">Selection</h3>
+
+                    <template for:each={selectionGroups} for:item="group">
+                        <div key={group.key} class="slds-box slds-theme_default slds-m-bottom_medium">
+                            <h4 class="slds-text-title_bold slds-m-bottom_x-small">{group.label}</h4>
+                            <lightning-input
+                                type="checkbox"
+                                label={group.toggleLabel}
+                                checked={group.toggleChecked}
+                                disabled={group.disabled}
+                                data-group={group.key}
+                                onchange={handleGroupToggle}
+                            ></lightning-input>
+                            <div class="slds-m-left_medium slds-m-top_x-small">
+                                <template for:each={group.items} for:item="item">
+                                    <lightning-input
+                                        key={item.key}
+                                        type="checkbox"
+                                        label={item.label}
+                                        checked={item.checked}
+                                        disabled={item.disabled}
+                                        data-key={item.key}
+                                        onchange={handleToggleChange}
+                                    ></lightning-input>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2">
+                    <h3 class="slds-text-title_caps slds-m-bottom_small">Progress</h3>
+                    <div class="slds-progress slds-progress_vertical">
+                        <ol class="slds-progress__list">
+                            <template for:each={progressRows} for:item="row">
+                                <template if:true={row.typeHeader}>
+                                    <li key={row.key} class="progress-group-header slds-m-bottom_x-small">{row.label}</li>
+                                </template>
+                                <template if:true={row.typeStep}>
+                                    <li key={row.key} class={row.itemClass}>
+                                        <div class={row.markerClass}>
+                                            <template if:true={row.markerIconName}>
+                                                <lightning-icon icon-name={row.markerIconName} size="xx-small" variant="inverse" alternative-text={row.statusLabel}></lightning-icon>
+                                            </template>
+                                            <span class="slds-assistive-text">{row.statusLabel}</span>
+                                        </div>
+                                        <div class="slds-progress__item_content">
+                                            <div>
+                                                <div class="slds-text-heading_small">{row.label}</div>
+                                                <div class={row.inlineClass} title={row.inlineText}>{row.inlineText}</div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </template>
+                            </template>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <template if:true={completionMessage}>
+                <div class="slds-text-body_small slds-text-color_success slds-m-top_medium slds-align_absolute-center">{completionMessage}</div>
+            </template>
+
+            <div class="reset-button-row slds-m-top_large">
+                <template if:false={isComplete}>
+                    <lightning-button variant="brand" label="Reset" onclick={startReset} disabled={isResetDisabled}></lightning-button>
+                </template>
+                <template if:true={isComplete}>
+                    <template if:true={canNavigateNext}>
+                        <lightning-button variant="brand" label="Done" onclick={handleDone}></lightning-button>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

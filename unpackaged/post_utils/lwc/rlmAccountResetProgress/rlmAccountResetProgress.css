@@ -1,0 +1,23 @@
+.layout-grid {
+    min-height: 420px;
+}
+
+.reset-button-row {
+    display: flex;
+    justify-content: center;
+}
+
+.step-inline {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+}
+
+.progress-group-header {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lwc-colorTextLabel, #54698d);
+}

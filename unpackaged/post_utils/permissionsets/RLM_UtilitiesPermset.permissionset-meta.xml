@@ -8,6 +8,14 @@
         <apexClass>RLM_Utils_AccountReset</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_Utils_AccountResetController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_Utils_StepResult</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <flowAccesses>
         <enabled>true</enabled>
         <flow>RLM_ARC_Assets</flow>
