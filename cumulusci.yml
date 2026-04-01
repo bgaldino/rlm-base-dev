@@ -878,6 +878,13 @@ tasks:
     options:
       path: unpackaged/post_agents/settings
 
+  deploy_agents_classes:
+    description: Deploy Agentforce Agent Apex Classes (must deploy before GenAI functions that reference them)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/classes
+
   deploy_agents_permissionsets:
     description: Deploy Agentforce Agent Permissionsets
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2671,6 +2678,9 @@ flows:
   
   prepare_agents:
     group: Revenue Lifecycle Management
+    description: >
+      Deploy Agentforce agent configurations in dependency order: settings, Apex classes,
+      GenAI functions, GenAI plugins, planner bundles, bots, flows, and permission sets.
     steps:
       1:
         task: assign_permission_set_groups
@@ -2681,9 +2691,27 @@ flows:
         task: deploy_agents_settings
         when: project_config.project__custom__agents
       3:
-        task: deploy_agents
+        task: deploy_agents_classes
         when: project_config.project__custom__agents
       4:
+        task: deploy_agents_genAiFunctions
+        when: project_config.project__custom__agents
+      5:
+        task: deploy_agents_genAiPlugins
+        when: project_config.project__custom__agents
+      6:
+        task: deploy_agents_genAiPlanners
+        when: project_config.project__custom__agents
+      7:
+        task: deploy_agents_bots
+        when: project_config.project__custom__agents
+      8:
+        task: deploy_agents_flows
+        when: project_config.project__custom__agents
+      9:
+        task: deploy_agents_permissionsets
+        when: project_config.project__custom__agents
+      10:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:
