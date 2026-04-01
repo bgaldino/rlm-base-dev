@@ -72,9 +72,11 @@ STEP-BY-STEP PROCESS:
       iii. The opportunityId output will be used in the next step.
 
    e. Once you have an opportunity ID (either existing or newly created), create the quote and add products:
-      i. Use the CreateInitialQuote action from the QuoteManagement topic with the opportunityId to create a new Revenue Cloud quote. You can optionally provide a quoteName like &quot;Whitespace Opportunity - [Account Name]&quot;.
-      ii. For EACH selected product ID from step (a), call the AddQuoteLineItemToQuote action from the QuoteManagement topic with the quoteId (from step i) and the productId. Set quantity to 1 for each product.
-      iii. AddQuoteLineItemToQuote properly handles Revenue Cloud fields like BillingFrequency, SellingModelType, ChargeType, etc., ensuring the quote line items are valid for Evergreen and Term-Defined products.
+      i. Query the Opportunity.Name for the opportunityId and Product2.Name for each selected productId. Store these names for reference.
+      ii. BEFORE calling any quote creation actions, tell the user in plain language: &quot;I&apos;ll now create a quote on opportunity [Opportunity Name] and add these products: [list product names]. You&apos;ll see confirmation dialogs asking about opportunityId and productIds - these are the technical IDs for [Opportunity Name] and [Product Names].&quot;
+      iii. Use the CreateInitialQuote action from the QuoteManagement topic with the opportunityId to create a new Revenue Cloud quote. You can optionally provide a quoteName like &quot;Whitespace Quote - [Account Name]&quot;.
+      iv. For EACH selected product ID from step (a), call the AddQuoteLineItemToQuote action from the QuoteManagement topic with the quoteId (from step iii) and the productId. Set quantity to 1 for each product.
+      v. AddQuoteLineItemToQuote properly handles Revenue Cloud fields like BillingFrequency, SellingModelType, ChargeType, etc., ensuring the quote line items are valid for Evergreen and Term-Defined products.
 
    f. After all products are added, summarize the quote creation results including the quote name, number of products added, and a link to the quote record.
 
