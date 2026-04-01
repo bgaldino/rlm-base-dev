@@ -1034,6 +1034,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
+| [Customer Demo Product Onboarding](docs/guides/customer-demo-product-onboarding.md) | Post-setup workflow for customer research, SKU matrix creation, record build, push, and verification |
 
 ### Analysis & Planning
 
@@ -1301,6 +1302,32 @@ cci task run insert_quantumbit_pcm_data
 # Load product images
 cci task run insert_quantumbit_product_image_data
 ```
+
+### Customer Demo Product Onboarding (post-setup)
+
+This workflow is separate from environment setup. Research the customer first, build a SKU matrix (recommended 10-15 SKUs across 3-6 categories), then load and verify records.
+
+**Standard conversation UX:** if a user asks to set up customer demo products, first ask for either a company description or website URL, research and propose the SKU/category vision, get confirmation, then deploy.
+
+```bash
+# Optional hard reset
+cci task run customer_demo_purge_records --org <org>
+
+# Load customer demo PCM foundation records
+cci task run insert_customer_demo_pcm_data --org <org>
+
+# Recreate Standard PricebookEntry rows via API (with ProductSellingModelId)
+cci task run customer_demo_recreate_pricebook_via_api --org <org>
+
+# Verify go/no-go checks
+cci task run customer_demo_verify_catalog --org <org>
+
+# Or run the full sequence
+cci flow run prepare_customer_demo_catalog --org <org>
+```
+
+Guide: [Customer Demo Product Onboarding](docs/guides/customer-demo-product-onboarding.md)  
+SKU matrix starter: [Customer SKU Matrix Template](docs/customer-sku-matrix-template.md)
 
 ### Load Billing Data
 

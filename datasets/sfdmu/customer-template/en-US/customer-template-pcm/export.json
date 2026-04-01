@@ -1,0 +1,37 @@
+{
+  "objects": [
+    {
+      "query": "SELECT DoesAutoRenewAssetByDefault, Id, Name, PricingTerm, PricingTermUnit, SellingModelType, Status FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
+      "operation": "Upsert",
+      "externalId": "Name;SellingModelType"
+    },
+    {
+      "query": "SELECT Description, Family, Id, IsActive, Name, ProductCode, StockKeepingUnit, Type FROM Product2 ORDER BY StockKeepingUnit ASC",
+      "operation": "Upsert",
+      "externalId": "StockKeepingUnit"
+    },
+    {
+      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC",
+      "operation": "Upsert",
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
+    },
+    {
+      "query": "SELECT CatalogType, Code, Description, EffectiveEndDate, EffectiveStartDate, Id, Name FROM ProductCatalog ORDER BY Code ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT CatalogId, Code, Description, Id, IsNavigational, Name, ParentCategoryId, SortOrder FROM ProductCategory ORDER BY Catalog.Code ASC, Name ASC",
+      "operation": "Upsert",
+      "externalId": "Code"
+    },
+    {
+      "query": "SELECT CatalogId, Id, IsPrimaryCategory, ProductCategoryId, ProductId FROM ProductCategoryProduct ORDER BY ProductCategory.Code ASC, Product.StockKeepingUnit ASC",
+      "operation": "Upsert",
+      "externalId": "ProductCategory.Code;Product.StockKeepingUnit"
+    }
+  ],
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "orgs": []
+}

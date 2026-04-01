@@ -503,6 +503,7 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
+    customer_demo_pcm_dataset: &customer_demo_pcm_dataset "datasets/sfdmu/customer-template/en-US/customer-template-pcm"  # Customer demo template dataset
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -1338,6 +1339,36 @@ tasks:
     description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
 
+  customer_demo_purge_records:
+    group: Revenue Lifecycle Management
+    description: Purge customer demo records in hard-reset order before reimport.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/customer-demo/customer-purge-and-reimport.apex
+
+  insert_customer_demo_pcm_data:
+    group: Revenue Lifecycle Management
+    description: Insert customer demo PCM foundation data (PSM, Product2, defaults, catalog, categories).
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *customer_demo_pcm_dataset
+
+  customer_demo_recreate_pricebook_via_api:
+    group: Revenue Lifecycle Management
+    description: Recreate Standard PricebookEntry rows with explicit ProductSellingModelId from CSV.
+    class_path: tasks.rlm_customer_demo.RecreateCustomerDemoPricebookViaApi
+    options:
+      input_csv: scripts/customer-demo/customer-pricebook-entries.csv
+      delete_first: true
+
+  customer_demo_verify_catalog:
+    group: Revenue Lifecycle Management
+    description: Verify customer demo go/no-go checks (Product Type, default PSM option, PBE model link, category mapping).
+    class_path: tasks.rlm_customer_demo.VerifyCustomerDemoCatalog
+    options:
+      input_csv: scripts/customer-demo/customer-pricebook-entries.csv
+      product_type_field: Type
+
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Data
@@ -1845,6 +1876,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_product_dataset
 
+  extract_customer_demo_pcm_data:
+    group: Data Management - Extract
+    description: "Extract customer-demo PCM template plan from org to CSV. Output in datasets/sfdmu/extractions/customer-template-pcm/<timestamp>."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *customer_demo_pcm_dataset
+
   extract_qb_pricing_data:
     group: Data Management - Extract
     description: "Extract qb-pricing from org to CSV. Output in datasets/sfdmu/extractions/qb-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -1921,6 +1959,15 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_product_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_customer_demo_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for customer-demo PCM template plan.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *customer_demo_pcm_dataset
       use_extraction_roundtrip: true
       persist_extraction_output: true
 
@@ -2399,6 +2446,22 @@ flows:
       3:
         task: insert_quantumbit_product_image_data
         when: project_config.project__custom__qb
+
+  prepare_customer_demo_catalog:
+    group: Revenue Lifecycle Management
+    description: >
+      Customer demo onboarding flow (post-setup): optional purge, load customer PCM
+      records, recreate standard pricebook rows via API with ProductSellingModelId,
+      and verify go/no-go checks.
+    steps:
+      1:
+        task: customer_demo_purge_records
+      2:
+        task: insert_customer_demo_pcm_data
+      3:
+        task: customer_demo_recreate_pricebook_via_api
+      4:
+        task: customer_demo_verify_catalog
 
   prepare_pricing_data:
     group: Revenue Lifecycle Management
