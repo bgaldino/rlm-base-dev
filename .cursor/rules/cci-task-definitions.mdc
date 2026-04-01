@@ -1,0 +1,175 @@
+---
+description: CumulusCI task and flow definition conventions — naming, groups, feature flags, flow/task authoring, YAML anchors
+globs: cumulusci.yml
+alwaysApply: false
+---
+
+# CCI Task/Flow Definition Rules
+
+## Auto-Generated References
+
+After editing `cumulusci.yml`, regenerate the CCI skill reference files:
+
+```bash
+python scripts/ai/generate_cci_reference.py
+```
+
+This updates `.cursor/skills/cci-orchestration/tasks-reference.md`,
+`flows-reference.md`, and `feature-flags.md` from the current YAML.
+
+## Task Naming
+- `insert_qb_{plan}_data` or `insert_quantumbit_{plan}_data` — loads a data plan
+- `delete_qb_{plan}_data` or `delete_quantumbit_{plan}_data` — deletes plan data
+- `extract_qb_{plan}_data` — extracts from org
+- `test_qb_{plan}_idempotency` — idempotency test
+- `activate_{thing}` — runs an Apex activation script
+- `deploy_*` — deploy metadata bundles
+- `refresh_dt_*` — refresh decision tables
+- `manage_*` — comprehensive management tasks (list, query, etc.)
+
+## Required Fields
+```yaml
+tasks:
+  my_task_name:
+    group: Data Maintenance    # Required — groups tasks in cci task list
+    description: >
+      Specific description of what objects/SObjects are affected.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: datasets/sfdmu/qb/en-US/qb-pricing
+```
+
+## Task Groups
+
+| Group | Purpose |
+|-------|---------|
+| `Revenue Lifecycle Management` | Core RLM tasks |
+| `Data Maintenance` | Delete/reset data plans |
+| `Data Management - Extract` | Extract data from org to CSV |
+| `Data Management - Idempotency` | Idempotency tests |
+| `UX Personalization` | Flexipage/layout/profile assembly |
+| `E2E Testing` | Robot Framework UI tests |
+| `Partner Relationship Management` | PRM-specific tasks |
+
+## Feature Flags
+- Defined under `project.custom` — boolean flags like `qb`, `billing`, `rating`, `rates`, `dro`, `ux`, `tso`
+- Use `when:` conditions in flows to gate steps on feature flags
+- `ux: true` enables `prepare_ux` (step 29). Set `false` to skip UX assembly.
+- `tso: false` (default) — when `true`, selects TSO application variant
+
+## `when:` Clause Syntax
+
+```yaml
+# Single flag
+when: project_config.project__custom__billing
+
+# Compound conditions
+when: project_config.project__custom__dro and project_config.project__custom__qb
+
+# Negation
+when: not project_config.project__custom__refresh
+
+# Scratch org detection
+when: org_config.scratch and not project_config.project__custom__tso
+
+# Complex conditions (quote to avoid YAML parsing issues)
+when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
+```
+
+## Flow Authoring
+
+### Step numbering
+Steps are integer keys. Use sequential numbers; gaps are allowed (Salesforce
+convention) but avoid them for readability.
+
+### Sub-flow nesting
+Flows can call other flows or tasks:
+```yaml
+flows:
+  my_flow:
+    group: Revenue Lifecycle Management
+    description: >
+      What this flow does. Be specific.
+    steps:
+      1:
+        flow: prepare_core        # call another flow
+      2:
+        task: deploy_full         # call a task
+        when: project_config.project__custom__billing
+      3:
+        task: activate_records
+        options:                  # override task options
+          api_names: *some_anchor
+```
+
+### Adding steps to `prepare_rlm_org`
+The main flow has strict ordering:
+- Foundation (PSLs, PSGs, context defs) before metadata deploy
+- Metadata deploy before data loading
+- Products (PCM) before pricing/billing/tax/rating
+- Rating before rates (FK dependency)
+- UX assembly near the end (step 29) after all referenced components exist
+- `stamp_git_commit` is always last
+
+## YAML Anchor Patterns
+
+This file uses YAML anchors extensively. Common patterns:
+
+### Permission set lists
+```yaml
+project:
+  custom:
+    rlm_psl_api_names: &rlm_psl_api_names
+      - BREDesigner
+      - CorePricingDesignTime
+      # ...
+
+# Referenced in task options:
+    options:
+      api_names: *rlm_psl_api_names
+```
+
+### Decision table lists
+```yaml
+    dt_rating_decision_tables: &dt_rating_decision_tables
+      - Asset_Rate_Card_Entry_Resolution_V2
+      # ...
+
+# Referenced in task options:
+    options:
+      developerNames: *dt_rating_decision_tables
+```
+
+### Dataset path anchors
+```yaml
+    quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb/en-US/qb-pricing"
+
+# Referenced in task options:
+    options:
+      pathtoexportjson: *quantumbit_pricing_dataset
+```
+
+### Context definition anchors
+```yaml
+    sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
+    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
+    sales_transaction_context_base_reference: &sales_transaction_context_base_reference SalesTransactionContext__stdctx
+```
+
+### Sleep duration
+```yaml
+    sleep_default: &sleep_default 30
+```
+
+## `org_config.scratch` Usage
+
+Use `org_config.scratch` in `when:` clauses to differentiate scratch org
+vs persistent (sandbox/prod) behavior:
+```yaml
+when: org_config.scratch and not project_config.project__custom__tso
+```
+
+## Description Accuracy
+- Don't list excluded objects in task descriptions
+- Be specific about which SObjects are loaded/deleted/extracted
+- For deploy tasks, mention what metadata types are included

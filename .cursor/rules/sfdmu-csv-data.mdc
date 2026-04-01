@@ -1,0 +1,27 @@
+---
+description: SFDMU CSV data file conventions — composite key columns, header alignment, empty CSV handling
+globs: datasets/sfdmu/**/*.csv
+alwaysApply: false
+---
+
+# SFDMU CSV Data Rules
+
+## Composite Key Columns (`$$`)
+- Header format: `$$Field1$Parent.Field2` — values concatenate the referenced fields
+- `$$` columns must exactly match the `externalId` fields in the corresponding export.json
+- SFDMU v5 does NOT write `$$` columns during extraction — run `scripts/post_process_extraction.py` to add them
+
+## Header Alignment
+- CSV headers must match the SOQL SELECT fields in export.json
+- Relationship traversal headers use dot notation: `Product2.StockKeepingUnit`
+- Do not include `Id` fields (export.json has `excludeIdsFromCSVFiles: true`)
+
+## Empty CSVs
+- An empty CSV (header only, no data rows) must have `excluded: true` in export.json
+- Without `excluded: true`, SFDMU treats empty CSV + `deleteOldData: true` as "delete all records"
+- Empty CSVs should still have the header row with a blank second line
+
+## Data Conventions
+- Boolean fields: `true` / `false` (lowercase)
+- Date fields: `YYYY-MM-DD` or `YYYY-MM-DDThh:mm:ss.SSSZ`
+- Lookup fields: Use the parent's externalId value, not the Salesforce ID

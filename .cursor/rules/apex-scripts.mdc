@@ -1,0 +1,31 @@
+---
+description: Apex script patterns for Revenue Cloud — bulk safety, activation ordering, deactivation-before-deletion
+globs: scripts/apex/**/*.apex
+alwaysApply: false
+---
+
+# Apex Script Rules
+
+## Bulk Safety
+- No SOQL inside loops — query once, iterate over results
+- Use `update records;` (bulk DML on list), never `update record;` inside a loop
+- Use `Database.update(records, false)` for partial success where appropriate
+
+## Activation Ordering
+- Rating objects (PUR, PUG) require specific platform activation ordering
+- See `activateRatingRecords.apex` for the 7-step pattern
+- Always set `Status = 'Active'` (or equivalent) — don't assume records activate automatically
+
+## Deactivation Before Deletion
+- PUR, PUG, RateCardEntry require deactivation before deletion
+- Pattern: query active records → set Status to Draft/Inactive → update → delete
+- See `deleteQbRatingData.apex` for the deactivate-then-delete pattern
+
+## Delete Scripts
+- Delete in child → parent order (reverse of load order)
+- Rates must be deleted before rating data (FK constraints)
+- Use `Database.delete(records)` — `delete records;` also works in anonymous Apex
+
+## Naming Convention
+- Activation: `activate{Feature}Records.apex`
+- Deletion: `delete{Plan}Data.apex` (e.g., `deleteQbRatingData.apex`)

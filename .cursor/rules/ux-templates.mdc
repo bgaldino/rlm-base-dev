@@ -1,0 +1,37 @@
+---
+description: UX template conventions — edit templates not post_ux, standalone vs patch, profile/layout/flexipage rules
+globs: templates/**
+alwaysApply: false
+---
+
+# UX Template Rules
+
+## Never Edit `unpackaged/post_ux/`
+That directory is fully regenerated on every `assemble_and_deploy_ux` run. Edit source templates here instead.
+
+## Flexipages
+- **Base**: `templates/flexipages/base/` — 25 base flexipages
+- **Standalone overrides**: `templates/flexipages/standalone/{feature}/` — complete page replacements
+- **Patches**: `templates/flexipages/patches/{feature}/` — YAML semantic patches applied on top of standalones/base
+- One canonical standalone per page — don't duplicate across features
+- Priority order (last wins): payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals
+- `EmailTemplatePage` flexipages cannot deploy via Metadata API — do NOT add them here
+
+## Layouts
+- **Base**: `templates/layouts/base/` — always assembled
+- **Feature**: `templates/layouts/{feature}/` — added when feature flag is true
+- Last write wins for same-named layout
+
+## Profiles
+- `force-app` profile is stripped to classAccesses only — never add layoutAssignment or applicationVisibilities there
+- Full profiles live in `templates/profiles/base/`
+- Feature patches in `templates/profiles/patches/{feature}/`
+
+## Objects
+- Compact layouts and list views in `templates/objects/{feature}/`
+- Object `.object-meta.xml` with actionOverrides/compactLayoutAssignment in `templates/objects/base/`
+- These are forceignored in `force-app/` — don't recreate them there
+
+## Applications
+- `RLM_Revenue_Cloud` variants: `tso > qb > base` priority
+- Feature-conditional actionOverrides via `templates/applications/patches/{feature}/`
