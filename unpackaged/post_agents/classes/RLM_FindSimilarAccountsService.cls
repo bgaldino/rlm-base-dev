@@ -91,6 +91,19 @@ public with sharing class RLM_FindSimilarAccountsService {
                         String criteriaJoin = useOr ? ' or ' : ' and ';
                         String criteriaLabel = String.join(criteriaUsed, criteriaJoin);
 
+                        // If AND logic found no results and we have both criteria, retry with OR logic
+                        if (similarAccounts.isEmpty() && !useOr && conditions.size() > 1) {
+                            String orQuery = 'SELECT Id, Name, Industry, Type FROM Account WHERE Id != \'' + String.escapeSingleQuotes(target.Id) + '\'';
+                            orQuery += ' AND (' + String.join(conditions, ' OR ') + ')';
+                            orQuery += ' ORDER BY Name LIMIT 50';
+                            similarAccounts = Database.query(orQuery);
+
+                            if (!similarAccounts.isEmpty()) {
+                                criteriaLabel = String.join(criteriaUsed, ' or ');
+                                criteriaJoin = ' or ';
+                            }
+                        }
+
                         if (similarAccounts.isEmpty()) {
                             resp.success = true;
                             resp.message = 'No similar accounts found matching ' + criteriaLabel + ' for "' + target.Name + '".';
