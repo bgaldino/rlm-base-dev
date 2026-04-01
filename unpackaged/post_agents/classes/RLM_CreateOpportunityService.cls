@@ -4,6 +4,9 @@ public with sharing class RLM_CreateOpportunityService {
         @InvocableVariable(required=true label='Account ID')
         public String accountId;
 
+        @InvocableVariable(required=false label='Account Name' description='Account name for display in confirmation dialog (optional)')
+        public String accountName;
+
         @InvocableVariable(required=false label='Opportunity Name')
         public String opportunityName;
 

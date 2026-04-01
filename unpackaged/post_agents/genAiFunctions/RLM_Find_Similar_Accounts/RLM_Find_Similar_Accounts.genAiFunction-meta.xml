@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Finds accounts similar to a given account. Requires two parameters: accountId (the account to analyze) and matchCriteria (must be one of: &quot;industry&quot;, &quot;type&quot;, or &quot;both&quot;). Always pass matchCriteria - extract it from the user&apos;s message or default to &quot;both&quot;. Returns similar account IDs for whitespace analysis.</description>
+    <description>Finds accounts similar to a given account. Requires two parameters: accountId (the account to analyze) and matchCriteria (must be one of: &quot;industry&quot;, &quot;type&quot;, &quot;both&quot;, or &quot;either&quot;). Always pass matchCriteria - extract it from the user&apos;s message or default to &quot;either&quot; (matches accounts with same Industry OR same Type). Returns similar account IDs for whitespace analysis.</description>
     <developerName>RLM_Find_Similar_Accounts</developerName>
     <invocationTarget>RLM_FindSimilarAccountsService</invocationTarget>
     <invocationTargetType>apex</invocationTargetType>

@@ -19,7 +19,7 @@ public with sharing class RLM_FindSimilarAccountsService {
         public String similarAccountIds;
     }
 
-    @InvocableMethod(label='Find Similar Accounts' description='Finds accounts similar to the given account based on user-chosen criteria: Industry only, Type only, or both Industry and Type. Defaults to both if not specified.')
+    @InvocableMethod(label='Find Similar Accounts' description='Finds accounts similar to the given account based on user-chosen criteria: Industry only, Type only, either Industry or Type (default), or both Industry and Type.')
     public static List<Response> findSimilar(List<Request> requests) {
         List<Response> responses = new List<Response>();
 
@@ -27,15 +27,17 @@ public with sharing class RLM_FindSimilarAccountsService {
             Response resp = new Response();
 
             try {
-                // Parse match criteria - default to "both" if not specified
-                String criteria = String.isNotBlank(req.matchCriteria) ? req.matchCriteria.toLowerCase().trim() : 'both';
-                Boolean useIndustry = criteria.contains('industry') || criteria == 'both' || criteria == 'all';
-                Boolean useType = criteria.contains('type') || criteria == 'both' || criteria == 'all';
+                // Parse match criteria - default to "either" (OR) if not specified
+                String criteria = String.isNotBlank(req.matchCriteria) ? req.matchCriteria.toLowerCase().trim() : 'either';
+                Boolean useIndustry = criteria.contains('industry') || criteria == 'both' || criteria == 'either' || criteria == 'all' || criteria == 'or';
+                Boolean useType = criteria.contains('type') || criteria == 'both' || criteria == 'either' || criteria == 'all' || criteria == 'or';
+                Boolean useOr = criteria == 'either' || criteria == 'or' || criteria == 'any';
 
-                // If neither was explicitly matched, default to both
+                // If neither was explicitly matched, default to both with OR
                 if (!useIndustry && !useType) {
                     useIndustry = true;
                     useType = true;
+                    useOr = true;
                 }
 
                 List<Account> targetAccounts = [
@@ -80,12 +82,14 @@ public with sharing class RLM_FindSimilarAccountsService {
                         }
 
                         if (!conditions.isEmpty()) {
-                            query += ' AND (' + String.join(conditions, ' AND ') + ')';
+                            String joinOperator = useOr ? ' OR ' : ' AND ';
+                            query += ' AND (' + String.join(conditions, joinOperator) + ')';
                         }
                         query += ' ORDER BY Name LIMIT 50';
 
                         List<Account> similarAccounts = Database.query(query);
-                        String criteriaLabel = String.join(criteriaUsed, ' and ');
+                        String criteriaJoin = useOr ? ' or ' : ' and ';
+                        String criteriaLabel = String.join(criteriaUsed, criteriaJoin);
 
                         if (similarAccounts.isEmpty()) {
                             resp.success = true;

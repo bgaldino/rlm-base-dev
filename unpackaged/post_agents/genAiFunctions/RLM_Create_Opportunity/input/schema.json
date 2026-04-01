@@ -8,6 +8,13 @@
       "lightning:isPII" : false,
       "copilotAction:isUserInput" : true
     },
+    "accountName" : {
+      "title" : "accountName",
+      "description" : "Account name for display in confirmation dialog (optional - query from Account.Name before calling this function)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
     "opportunityName" : {
       "title" : "opportunityName",
       "description" : "Optional name for the opportunity. If not provided, a default name will be generated.",

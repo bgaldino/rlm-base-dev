@@ -28,11 +28,12 @@ STEP-BY-STEP PROCESS:
       SCAN the user&apos;s message for these keywords and set matchCriteria accordingly:
       - If user says &quot;industry&quot;, &quot;by industry&quot;, &quot;industry only&quot;, &quot;same industry&quot;, &quot;match industry&quot; → set matchCriteria = &quot;industry&quot;
       - If user says &quot;type&quot;, &quot;by type&quot;, &quot;type only&quot;, &quot;account type&quot;, &quot;match type&quot; → set matchCriteria = &quot;type&quot;
-      - If user says &quot;both&quot;, &quot;industry and type&quot;, or does NOT mention any criteria → set matchCriteria = &quot;both&quot;
+      - If user says &quot;both&quot;, &quot;industry and type&quot; (requiring exact match on BOTH fields) → set matchCriteria = &quot;both&quot;
+      - If user does NOT mention any specific criteria → set matchCriteria = &quot;either&quot; (matches accounts with same Industry OR same Type)
 
       You MUST ALWAYS pass the matchCriteria parameter when calling Find Similar Accounts. Never omit it.
       Example: If user says &quot;run whitespace for this account by industry&quot;, call Find Similar Accounts with accountId AND matchCriteria=&quot;industry&quot;.
-      Example: If user says &quot;analyze whitespace for account 001xx&quot; with no criteria mentioned, call Find Similar Accounts with accountId AND matchCriteria=&quot;both&quot;.
+      Example: If user says &quot;analyze whitespace for account 001xx&quot; with no criteria mentioned, call Find Similar Accounts with accountId AND matchCriteria=&quot;either&quot;.
 
    b. Call &quot;Find Similar Accounts&quot; with BOTH the accountId AND the matchCriteria parameter to identify peer accounts.
    c. Then, use &quot;Analyze Whitespace&quot; with the account ID and the similarAccountIds from step (b) to compare product ownership and identify gaps.
@@ -65,7 +66,10 @@ STEP-BY-STEP PROCESS:
 
    c. If open opportunities exist, ask the user whether to use an existing opportunity or create a new one.
 
-   d. If no open opportunities exist, or the user wants a new one, use &quot;Create Opportunity&quot; with the account ID. The opportunityId output will be used in the next step.
+   d. If no open opportunities exist, or the user wants a new one:
+      i. Query the Account.Name for the accountId from the whitespace analysis.
+      ii. Call &quot;Create Opportunity&quot; with both the accountId and accountName parameters. The accountName will display in the confirmation dialog instead of the raw ID, making it easier for the user to verify they&apos;re creating the opportunity on the correct account.
+      iii. The opportunityId output will be used in the next step.
 
    e. Once you have an opportunity ID (either existing or newly created), create the quote and add products:
       i. Use the CreateInitialQuote action from the QuoteManagement topic with the opportunityId to create a new Revenue Cloud quote. You can optionally provide a quoteName like &quot;Whitespace Opportunity - [Account Name]&quot;.
@@ -76,7 +80,7 @@ STEP-BY-STEP PROCESS:
 
 IMPORTANT GUIDELINES:
 - Always start with Find Similar Accounts before running Analyze Whitespace.
-- ALWAYS pass the matchCriteria parameter to Find Similar Accounts. Extract it from the user&apos;s message: &quot;industry&quot;, &quot;type&quot;, or &quot;both&quot;. Default to &quot;both&quot; if the user does not specify any preference.
+- ALWAYS pass the matchCriteria parameter to Find Similar Accounts. Extract it from the user&apos;s message: &quot;industry&quot; (Industry only), &quot;type&quot; (Type only), &quot;both&quot; (Industry AND Type), or &quot;either&quot; (Industry OR Type). Default to &quot;either&quot; if the user does not specify any preference.
 - The similarAccountIds output from Find Similar Accounts must be passed as input to Analyze Whitespace.
 - The whitespaceProductIds from Analyze Whitespace are in the same order as the numbered product list - use position to map user selections to IDs.
 - Create Opportunity requires confirmation before executing since it creates records. CreateInitialQuote and AddQuoteLineItemToQuote may also require confirmation depending on org settings.

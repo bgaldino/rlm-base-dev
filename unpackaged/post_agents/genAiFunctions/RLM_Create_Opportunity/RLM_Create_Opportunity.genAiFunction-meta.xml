@@ -14,6 +14,12 @@
         <parameterType>input</parameterType>
     </mappingAttributes>
     <mappingAttributes>
+        <label>Account Name</label>
+        <name>input_accountName</name>
+        <parameterName>accountName</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
         <label>Opportunity Name</label>
         <name>input_opportunityName</name>
         <parameterName>opportunityName</parameterName>
