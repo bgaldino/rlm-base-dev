@@ -6,6 +6,13 @@ alwaysApply: false
 
 # CCI Python Task Authoring Rules
 
+## DO NOT
+
+- Pass `access_token` to `sf` CLI commands — use `org_config.username`
+- Log access tokens or session IDs
+- Use `org_config.name` (CCI alias) as `--target-org` — use `.username`
+- Write SOQL in loops (batch-query before processing)
+
 ## Base Class Selection
 
 | Need | Base Class | Import |
@@ -74,6 +81,16 @@ def _run_task(self):
 billing = self.project_config.project__custom__billing
 tso = self.project_config.project__custom__tso
 ```
+
+## Org Identity — CLI vs REST
+
+- **`sf` CLI calls** (`sf data query`, `sf apex run`, `sf org open`):
+  use `self.org_config.username` as `--target-org`. Never pass `access_token`
+  to CLI commands (fails auth, leaks secrets).
+- **REST API calls** (`requests.get/post/patch`): use
+  `self.org_config.access_token` + `self.org_config.instance_url`.
+- **`self.org_config.name`** returns the CCI alias (e.g. `beta`), NOT
+  the SF CLI alias (`rlm-base__beta`). Use only for logging.
 
 ## Coding Standards
 

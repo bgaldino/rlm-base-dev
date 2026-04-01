@@ -6,6 +6,13 @@ alwaysApply: false
 
 # Apex Script Rules
 
+## DO NOT
+
+- Write SOQL inside loops (query once, iterate results)
+- Use single-record DML in loops (`update record;`) — use `update records;`
+- Delete PUR/PUG/RateCardEntry without deactivating first
+- Delete rating data before deleting rates data (FK constraint)
+
 ## Bulk Safety
 - No SOQL inside loops — query once, iterate over results
 - Use `update records;` (bulk DML on list), never `update record;` inside a loop

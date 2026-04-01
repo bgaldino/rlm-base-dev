@@ -6,28 +6,36 @@ alwaysApply: false
 
 # CCI Task/Flow Definition Rules
 
-## Auto-Generated References
+## After Editing
 
-After editing `cumulusci.yml`, regenerate the CCI skill reference files:
+Regenerate the CCI skill reference files:
 
 ```bash
 python scripts/ai/generate_cci_reference.py
 ```
 
-This updates `.cursor/skills/cci-orchestration/tasks-reference.md`,
-`flows-reference.md`, and `feature-flags.md` from the current YAML.
+## DO NOT
+
+- Skip `group:` on tasks or flows
+- List excluded objects in task descriptions
+- Use `$$` syntax in `when:` conditions (use `project_config.project__custom__<flag>`)
+- Add steps to `prepare_rlm_org` before their dependencies are deployed
 
 ## Task Naming
-- `insert_qb_{plan}_data` or `insert_quantumbit_{plan}_data` — loads a data plan
-- `delete_qb_{plan}_data` or `delete_quantumbit_{plan}_data` — deletes plan data
-- `extract_qb_{plan}_data` — extracts from org
-- `test_qb_{plan}_idempotency` — idempotency test
-- `activate_{thing}` — runs an Apex activation script
-- `deploy_*` — deploy metadata bundles
-- `refresh_dt_*` — refresh decision tables
-- `manage_*` — comprehensive management tasks (list, query, etc.)
+
+| Pattern | Purpose |
+|---------|---------|
+| `insert_qb_{plan}_data` | Load a data plan |
+| `delete_qb_{plan}_data` | Delete plan data |
+| `extract_qb_{plan}_data` | Extract from org |
+| `test_qb_{plan}_idempotency` | Idempotency test |
+| `activate_{thing}` | Apex activation script |
+| `deploy_*` | Deploy metadata bundles |
+| `refresh_dt_*` | Refresh decision tables |
+| `manage_*` | Comprehensive management tasks |
 
 ## Required Fields
+
 ```yaml
 tasks:
   my_task_name:
@@ -52,124 +60,29 @@ tasks:
 | `Partner Relationship Management` | PRM-specific tasks |
 
 ## Feature Flags
-- Defined under `project.custom` — boolean flags like `qb`, `billing`, `rating`, `rates`, `dro`, `ux`, `tso`
-- Use `when:` conditions in flows to gate steps on feature flags
-- `ux: true` enables `prepare_ux` (step 29). Set `false` to skip UX assembly.
-- `tso: false` (default) — when `true`, selects TSO application variant
 
-## `when:` Clause Syntax
+- Defined under `project.custom` — boolean flags
+- `when: project_config.project__custom__billing`
+- Compound: `when: project_config.project__custom__dro and project_config.project__custom__qb`
+- Negation: `when: not project_config.project__custom__refresh`
+- Scratch org: `when: org_config.scratch and not project_config.project__custom__tso`
 
-```yaml
-# Single flag
-when: project_config.project__custom__billing
+## Flow Steps
 
-# Compound conditions
-when: project_config.project__custom__dro and project_config.project__custom__qb
+Steps are integer keys. Flows can call other flows or tasks:
 
-# Negation
-when: not project_config.project__custom__refresh
-
-# Scratch org detection
-when: org_config.scratch and not project_config.project__custom__tso
-
-# Complex conditions (quote to avoid YAML parsing issues)
-when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
-```
-
-## Flow Authoring
-
-### Step numbering
-Steps are integer keys. Use sequential numbers; gaps are allowed (Salesforce
-convention) but avoid them for readability.
-
-### Sub-flow nesting
-Flows can call other flows or tasks:
 ```yaml
 flows:
   my_flow:
     group: Revenue Lifecycle Management
-    description: >
-      What this flow does. Be specific.
+    description: What this flow does.
     steps:
       1:
-        flow: prepare_core        # call another flow
+        flow: prepare_core
       2:
-        task: deploy_full         # call a task
+        task: deploy_full
         when: project_config.project__custom__billing
-      3:
-        task: activate_records
-        options:                  # override task options
-          api_names: *some_anchor
 ```
 
-### Adding steps to `prepare_rlm_org`
-The main flow has strict ordering:
-- Foundation (PSLs, PSGs, context defs) before metadata deploy
-- Metadata deploy before data loading
-- Products (PCM) before pricing/billing/tax/rating
-- Rating before rates (FK dependency)
-- UX assembly near the end (step 29) after all referenced components exist
-- `stamp_git_commit` is always last
-
-## YAML Anchor Patterns
-
-This file uses YAML anchors extensively. Common patterns:
-
-### Permission set lists
-```yaml
-project:
-  custom:
-    rlm_psl_api_names: &rlm_psl_api_names
-      - BREDesigner
-      - CorePricingDesignTime
-      # ...
-
-# Referenced in task options:
-    options:
-      api_names: *rlm_psl_api_names
-```
-
-### Decision table lists
-```yaml
-    dt_rating_decision_tables: &dt_rating_decision_tables
-      - Asset_Rate_Card_Entry_Resolution_V2
-      # ...
-
-# Referenced in task options:
-    options:
-      developerNames: *dt_rating_decision_tables
-```
-
-### Dataset path anchors
-```yaml
-    quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb/en-US/qb-pricing"
-
-# Referenced in task options:
-    options:
-      pathtoexportjson: *quantumbit_pricing_dataset
-```
-
-### Context definition anchors
-```yaml
-    sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
-    sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
-    sales_transaction_context_base_reference: &sales_transaction_context_base_reference SalesTransactionContext__stdctx
-```
-
-### Sleep duration
-```yaml
-    sleep_default: &sleep_default 30
-```
-
-## `org_config.scratch` Usage
-
-Use `org_config.scratch` in `when:` clauses to differentiate scratch org
-vs persistent (sandbox/prod) behavior:
-```yaml
-when: org_config.scratch and not project_config.project__custom__tso
-```
-
-## Description Accuracy
-- Don't list excluded objects in task descriptions
-- Be specific about which SObjects are loaded/deleted/extracted
-- For deploy tasks, mention what metadata types are included
+For detailed YAML anchor patterns, `prepare_rlm_org` step ordering, and
+`org_config.scratch` usage, see `.cursor/skills/cci-orchestration/SKILL.md`.

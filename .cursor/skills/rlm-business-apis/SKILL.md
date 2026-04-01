@@ -12,6 +12,14 @@ description: >-
 
 API v66.0 (Spring '26, Release 260). All endpoints use `/services/data/v66.0/connect/` prefix.
 
+## Quick Rules
+
+1. All endpoints: `/services/data/v66.0/connect/<domain>/`.
+2. Auth: Bearer token from `org_config.access_token`.
+3. Context Service: must activate context definition before use.
+4. Pricing API computes prices — never write PBE records directly via API.
+5. Load per-domain reference docs from `postman/docs/` for full endpoint details.
+
 ## API Domain Index
 
 | Domain | Base Path | Key Operations | Reference Doc |

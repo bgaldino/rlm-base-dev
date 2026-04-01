@@ -6,6 +6,12 @@ alwaysApply: false
 
 # SFDMU CSV Data Rules
 
+## DO NOT
+
+- Include `Id` fields in CSV (export.json has `excludeIdsFromCSVFiles: true`)
+- Leave empty CSVs without `excluded: true` in export.json
+- Mismatch `$$` column headers with the `externalId` fields
+
 ## Composite Key Columns (`$$`)
 - Header format: `$$Field1$Parent.Field2` — values concatenate the referenced fields
 - `$$` columns must exactly match the `externalId` fields in the corresponding export.json

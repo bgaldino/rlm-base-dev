@@ -12,6 +12,14 @@ description: >-
 
 Revenue Cloud v66.0 (Spring '26, API v260) — 213 objects, 2,835 fields, 351 relationships across 9 domains.
 
+## Quick Rules
+
+1. Use `scripts/ai/query_erd.py` to query object details on demand.
+2. Load per-domain files (e.g., `domains/pricing.md`) for detailed field/relationship info.
+3. Cross-domain FKs are documented in `cross-domain-relationships.md`.
+4. Product2 is the central object — most domains reference it.
+5. Standard fields often have API names without `__c` suffix.
+
 ## Domain Overview
 
 | Domain | Objects | Key Entities | Purpose |

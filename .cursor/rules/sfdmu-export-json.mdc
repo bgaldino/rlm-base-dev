@@ -6,6 +6,13 @@ alwaysApply: false
 
 # SFDMU v5 export.json Rules
 
+## DO NOT
+
+- Change `Upsert` to `Insert+deleteOldData` without user approval
+- Use `$$Field1$Field2` in `externalId` (v4 syntax — use `;`)
+- Leave empty CSVs without `excluded: true`
+- Put child objects before parent objects in the `objects` array
+
 ## externalId Format
 - Use `;` delimiters: `Field1;Field2` — NOT `$$Field1$Field2` (v4 syntax)
 - Relationship traversals: `Parent.Field` (1-hop), `GrandParent.Parent.Field` (2-hop)

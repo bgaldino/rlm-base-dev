@@ -11,6 +11,22 @@ description: >-
 
 SFDMU v5.0.0+ is required. v4 syntax is not supported.
 
+## Quick Rules
+
+1. externalId delimiter is `;` — NOT `$$` (that's v4).
+2. Relationship-traversal in externalId → use `Insert` + `deleteOldData: true`.
+3. Never change Upsert → Insert+deleteOldData without explicit user approval.
+4. Empty CSV → set `excluded: true` (prevents destructive wipe).
+5. Parent → child order in `objects` array (deletion runs reverse).
+6. `$$` CSV column must match externalId fields exactly.
+7. After extraction: run `post_process_extraction.py` to add `$$` columns.
+
+## DO NOT
+
+- **DO NOT** use `$$Field1$Field2` syntax in `externalId` (v4, not v5)
+- **DO NOT** change `Upsert` to `Insert+deleteOldData` without user approval
+- **DO NOT** leave empty CSVs without `excluded: true`
+
 ## export.json Structure
 
 ```json

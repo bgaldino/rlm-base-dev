@@ -4,6 +4,22 @@ Use this skill when working with CumulusCI (CCI) — the automation engine for
 this Salesforce project. It covers general CCI concepts, CLI usage, and this
 project's specific configuration.
 
+## Quick Rules
+
+1. CCI alias `beta` ≠ SF CLI alias `rlm-base__beta`. Never mix them.
+2. Every task needs `group:` and `description:`. Every flow needs `group:`.
+3. After editing `cumulusci.yml`: `python scripts/ai/generate_cci_reference.py`
+4. Use `when: project_config.project__custom__<flag>` to gate steps.
+5. In Python tasks: `self.org_config.username` for CLI, `.access_token` for REST only.
+6. `prepare_rlm_org` has strict ordering — don't add steps out of dependency order.
+
+## DO NOT
+
+- **DO NOT** pass `access_token` to `sf` CLI commands — use `org_config.username`
+- **DO NOT** skip `group:` on tasks or flows — required for `cci task/flow list`
+- **DO NOT** use CCI alias with `sf` CLI (`sf data query --target-org beta` fails)
+- **DO NOT** add steps to `prepare_rlm_org` before their dependencies are deployed
+
 ---
 
 ## What is CumulusCI?
@@ -63,6 +79,82 @@ cci org browser <alias>                 # open org in browser
 
 ---
 
+## Org Identity: CCI vs SF CLI
+
+CCI and the `sf` CLI maintain **separate org registries** with different
+alias formats. This is the most common source of "org not found" errors.
+
+### How it works
+
+When CCI creates a scratch org (`cci org scratch`) or connects a persistent
+org (`cci org connect`), it registers the org with `sf` CLI using a
+**prefixed alias**: `<project_name>__<cci_alias>`.
+
+For this project (`rlm-base`):
+
+| CCI Alias | SF CLI Alias | Username (example) |
+|-----------|-------------|-------------------|
+| `beta` | `rlm-base__beta` | `test-ngmbbmqzezhx@example.com` |
+| `dev-sb0` | `rlm-base__dev-sb0` | `test-abc123def456@example.com` |
+| `tfid-cdo` | `rlm-base__cdo_mar4` | `test-jfzdy5ykbhi1@example.com` |
+
+### Which identifier to use where
+
+| Context | Use | Example |
+|---------|-----|---------|
+| `cci task run` / `cci flow run` | CCI alias (`--org`) | `cci task run insert_quantumbit_pricing_data --org beta` |
+| `sf data query` / `sf apex run` | SF CLI alias or username (`--target-org`) | `sf data query -q "SELECT Id FROM Account" --target-org rlm-base__beta` |
+| `sf org open` | SF CLI alias or username (`-o`) | `sf org open -o rlm-base__beta` |
+| Python task `self.org_config` | Always use `.username` for CLI calls | `self.org_config.username` returns the full username |
+| Python task REST API | Use `.access_token` + `.instance_url` | Never pass `access_token` to CLI commands |
+| Robot Framework `ORG_ALIAS` | Username (passed by the Python wrapper) | The wrapper reads `self.org_config.username` |
+
+### Finding the right identifier
+
+```bash
+# List CCI orgs (shows CCI aliases)
+cci org list
+
+# List SF CLI orgs (shows sf aliases with rlm-base__ prefix)
+sf org list
+
+# Get full details for a CCI org (shows username, instance URL, etc.)
+cci org info beta
+
+# Get SF CLI details
+sf org display --target-org rlm-base__beta
+```
+
+### Critical rules for Python tasks
+
+1. **Never pass `access_token` to `sf` CLI commands** — it fails auth
+   and leaks secrets via logs/shell history
+2. **Always use `org_config.username`** when building `sf` CLI commands
+   (e.g., `sf apex run --target-org {username}`)
+3. **Use `access_token` + `instance_url` only** for direct REST API calls
+   via `requests`
+4. **CCI org name != SF CLI alias** — `self.org_config.name` returns
+   the CCI alias (e.g., `beta`), not the SF CLI alias
+   (`rlm-base__beta`). For CLI commands, always prefer
+   `self.org_config.username` (the actual Salesforce username)
+
+### Connected (non-scratch) orgs
+
+Orgs connected via `cci org connect <alias>` follow the same prefix
+pattern. The username is typically the user's actual Salesforce login
+(e.g., `user@company.com`), not a generated test address.
+
+```bash
+# Connect a sandbox
+cci org connect my-sandbox
+
+# CCI uses: --org my-sandbox
+# SF CLI uses: --target-org rlm-base__my-sandbox
+#   or: --target-org user@company.sandbox.com
+```
+
+---
+
 ## Project Configuration (`cumulusci.yml`)
 
 This project's `cumulusci.yml` (~3000 lines) is organized into these sections:
@@ -115,7 +207,7 @@ when: org_config.scratch and not project_config.project__custom__tso
 ```
 
 > For the complete list of flags, defaults, and every `when:` clause referencing
-> them, load `feature-flags.md` in this skill directory.
+> them, read `.cursor/skills/cci-orchestration/feature-flags.md`.
 
 ### 4. YAML Anchors (`project.custom`)
 
@@ -143,8 +235,8 @@ These anchors are referenced with `*name` in task/flow options.
 Every task must have a `group` and `description`. The `class_path` points to
 either a built-in CCI class or a custom class in `tasks/`.
 
-> For the complete task listing by group with descriptions and options, load
-> `tasks-reference.md` in this skill directory.
+> For the complete task listing by group with descriptions and options, read
+> `.cursor/skills/cci-orchestration/tasks-reference.md`.
 
 ### 6. Flows (`flows`)
 
@@ -186,8 +278,8 @@ prepare_rlm_org
 └── 31. stamp_git_commit
 ```
 
-> For the complete flow listing with all steps and `when:` conditions, load
-> `flows-reference.md` in this skill directory.
+> For the complete flow listing with all steps and `when:` conditions, read
+> `.cursor/skills/cci-orchestration/flows-reference.md`.
 
 ---
 
@@ -229,13 +321,13 @@ classes. They fall into these categories:
 | CML (Constraints) | `ExportCML`, `ImportCML`, `ValidateCML` | `SFDXBaseTask` |
 
 > For detailed task authoring guidance (base class selection, option patterns,
-> `_run_task` conventions), load `custom-task-authoring.md` in this skill directory.
+> `_run_task` conventions), read `.cursor/skills/cci-orchestration/custom-task-authoring.md`.
 
 ---
 
 ## Self-Updating Reference Files
 
-Three files in this directory are **auto-generated** from `cumulusci.yml`:
+Three files in `.cursor/skills/cci-orchestration/` are **auto-generated** from `cumulusci.yml`:
 
 - `tasks-reference.md` — all tasks by group
 - `flows-reference.md` — all flows with step trees
@@ -299,9 +391,9 @@ cci flow info prepare_rlm_org
 
 ---
 
-## Related Skills and Rules
+## Related Skills
 
-- **SFDMU Data Plans** — `../.cursor/skills/sfdmu-data-plans/SKILL.md`
-- **Revenue Cloud Data Model** — `../.cursor/skills/revenue-cloud-data-model/SKILL.md`
-- **CCI Task Definitions Rule** — `../.cursor/rules/cci-task-definitions.mdc` (triggers on `cumulusci.yml`)
-- **CCI Python Tasks Rule** — `../.cursor/rules/cci-python-tasks.mdc` (triggers on `tasks/**/*.py`)
+- **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
+- **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
+- **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
+- **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`

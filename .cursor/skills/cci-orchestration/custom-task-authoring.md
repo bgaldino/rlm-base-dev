@@ -3,6 +3,20 @@
 How to write Python task classes for this CumulusCI project. All custom tasks
 live in `tasks/` and are registered in `cumulusci.yml`.
 
+## Quick Rules
+
+1. Use `BaseTask` unless you need `sf` CLI (then `SFDXBaseTask`).
+2. Use `org_config.username` for CLI calls, `access_token` for REST only.
+3. Every task needs `task_options` dict + `_run_task()` method.
+4. Register in `cumulusci.yml` with `group:` and `description:`.
+5. Robot wrappers: `BaseTask` + `subprocess.run(robot_cmd)`.
+
+## DO NOT
+
+- **DO NOT** pass `access_token` as `--target-org` — use `username`
+- **DO NOT** log access tokens or session IDs
+- **DO NOT** call SOQL in loops (Apex governor limits)
+
 ---
 
 ## Base Class Selection
@@ -222,6 +236,62 @@ custom = dict(self.project_config.config.get("project", {}).get("custom", {}))
 # API version
 api_version = self.project_config.project__package__api_version  # "66.0"
 ```
+
+---
+
+## Org Identity in Python Tasks
+
+CCI and `sf` CLI use different org registries with different alias formats.
+Getting this wrong causes "org not found" or "auth failed" errors.
+
+### Resolving the org for `sf` CLI subprocess calls
+
+```python
+# CORRECT — use username for CLI commands
+org_target = self.org_config.username  # e.g. "test-abc123@example.com"
+cmd = ["sf", "data", "query", "-q", soql, "--target-org", org_target]
+
+# WRONG — never pass access_token to CLI
+cmd = ["sf", "data", "query", "--target-org", self.org_config.access_token]  # FAILS + leaks secret
+```
+
+### Resolving the org for REST API calls
+
+```python
+# CORRECT — use access_token + instance_url directly
+headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
+url = f"{self.org_config.instance_url}/services/data/v66.0/query/"
+```
+
+### `org_config` properties reference
+
+| Property | Returns | Use For |
+|----------|---------|---------|
+| `self.org_config.username` | Salesforce username (e.g. `test-abc@example.com`) | `sf` CLI `--target-org` |
+| `self.org_config.access_token` | OAuth token | REST API `Authorization` header |
+| `self.org_config.instance_url` | `https://xx.my.salesforce.com` | REST API base URL |
+| `self.org_config.name` | CCI alias (e.g. `beta`) | Logging only — NOT valid for `sf` CLI |
+| `self.org_config.scratch` | `True` if scratch org | Conditional logic |
+
+### Robot Framework wrapper pattern for org resolution
+
+All Robot task wrappers resolve the org the same way — prefer `username`,
+fall back to `name`/`alias`:
+
+```python
+org_name = getattr(self.org_config, "username", None)
+if not org_name:
+    org_name = getattr(self.org_config, "name", None) or getattr(
+        self.org_config, "alias", None
+    )
+if not org_name:
+    raise TaskOptionsError("Task requires an org")
+```
+
+The resolved `org_name` is passed to Robot as `--variable ORG_ALIAS:{org_name}`.
+Inside the Robot suite, `sf org open -o ${ORG_ALIAS}` uses it for authenticated
+browser sessions. Since `sf org open` accepts both usernames and SF CLI aliases,
+the username always works.
 
 ---
 

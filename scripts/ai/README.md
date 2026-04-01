@@ -3,9 +3,9 @@
 Scripts that support AI agent workflows by providing queryable interfaces to
 project data and auto-generating reference documentation for AI skills.
 
-These scripts are consumed by AI agents (via the Shell tool) and the
-`.cursor/skills/` progressive-disclosure skill system. They are **not** part of
-the CCI deployment pipeline.
+These scripts are consumed by AI agents and the progressive-disclosure skill
+system (`.cursor/skills/`). They are **not** part of the CCI deployment
+pipeline and work with any AI coding agent.
 
 ---
 
@@ -63,6 +63,6 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
 
 ## Related
 
-- `.cursor/skills/` — AI skills that consume outputs from these scripts
-- `.cursor/rules/` — File-specific Cursor rules for contextual AI guidance
-- `CLAUDE.md` — Always-applied workspace context for AI agents
+- `AGENTS.md` — Canonical AI agent instructions (repo root)
+- `.cursor/skills/` — Per-topic skill guides (plain markdown, any agent)
+- `.cursor/rules/` — File-specific auto-injection rules (Cursor only)
