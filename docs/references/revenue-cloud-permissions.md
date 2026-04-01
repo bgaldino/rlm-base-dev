@@ -266,7 +266,7 @@ These Salesforce-managed PSGs are assigned in two contexts:
 
 ## Feature-Gated Permission Sets
 
-Individual permission sets deployed from `unpackaged/post_*` directories and assigned conditionally. These grant access to custom fields, Apex classes, or agent configurations specific to each feature.
+Individual permission sets defined in project metadata (for example under `force-app/` and `unpackaged/post_*` directories) and assigned conditionally. These grant access to custom fields, Apex classes, or agent configurations specific to each feature.
 
 ### Explicitly Assigned Permission Sets
 
