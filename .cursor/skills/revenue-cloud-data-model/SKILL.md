@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v66.0 (Spring '26, API v260) — 263 objects, 4,919 fields across 9 domains.
+Revenue Cloud v66.0 (Spring '26, API v66.0 / Release 260) — 263 objects, 4,919 fields across 9 domains.
 
 ## Quick Rules
 
@@ -121,7 +121,7 @@ For cross-domain FK mappings: [cross-domain-relationships.md](cross-domain-relat
 
 ## Querying the Data Model
 
-Use `scripts/ai/query_erd.py` for targeted lookups against the full 213-object schema:
+Use `scripts/ai/query_erd.py` for targeted lookups against the full 263-object schema:
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain
@@ -136,7 +136,7 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — complete machine-readable schema (213 objects, all fields and relationships)
+- `docs/erds/erd-data.json` — complete machine-readable schema (263 objects, all fields and relationships)
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
 - `docs/erds/validation-report.md` — ERD vs org schema gap analysis

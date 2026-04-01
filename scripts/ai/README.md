@@ -55,7 +55,7 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
 
 ## Dependencies
 
-- **Python 3.12+**
+- **Python 3.8+** (scripts use only stdlib + PyYAML; no 3.12-specific features required)
 - **PyYAML** — used by `generate_cci_reference.py` (available in the CCI venv)
 - No other external dependencies
 

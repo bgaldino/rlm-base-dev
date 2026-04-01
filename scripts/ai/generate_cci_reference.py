@@ -5,7 +5,7 @@ Parses the project's cumulusci.yml and writes three auto-generated skill
 reference files into .cursor/skills/cci-orchestration/:
 
   - tasks-reference.md   — all tasks organised by group
-  - flows-reference.md   — all flows with step trees and when: conditions
+  - flows-reference.md   — all flows with their steps and when: conditions
   - feature-flags.md     — all feature flags with defaults and usage index
 
 Usage:
@@ -18,12 +18,9 @@ Usage:
 No external dependencies beyond PyYAML.
 """
 import argparse
-import os
 import re
 import sys
-import textwrap
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -32,16 +29,11 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 CCI_YML = ROOT / "cumulusci.yml"
 OUTPUT_DIR = ROOT / ".cursor" / "skills" / "cci-orchestration"
 
-def _header_note() -> str:
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    return (
-        f"> **Auto-generated** by `scripts/ai/generate_cci_reference.py` from "
-        f"`cumulusci.yml` on {ts}.  \n"
-        "> Do not edit manually — re-run the script after changing `cumulusci.yml`."
-    )
-
-
-HEADER_NOTE = _header_note()
+HEADER_NOTE = (
+    "> **Auto-generated** by `scripts/ai/generate_cci_reference.py` from "
+    "`cumulusci.yml`.  \n"
+    "> Do not edit manually — re-run the script after changing `cumulusci.yml`."
+)
 
 
 # ---------------------------------------------------------------------------

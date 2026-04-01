@@ -19,8 +19,16 @@ ERD_PATH = Path(__file__).resolve().parent.parent.parent / "docs" / "erds" / "er
 
 
 def load_erd():
-    with open(ERD_PATH) as f:
-        return json.load(f)
+    try:
+        with open(ERD_PATH) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Error: ERD data file not found at {ERD_PATH}")
+        print("Ensure docs/erds/erd-data.json exists in the repository root.")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to parse {ERD_PATH}: {e}")
+        sys.exit(1)
 
 
 def get_domain_short(obj_data):
