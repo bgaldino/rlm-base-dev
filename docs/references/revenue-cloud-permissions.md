@@ -315,19 +315,19 @@ These are normally covered by their parent PSGs (RLM_RCB, RLM_PCM). The `psg_deb
 
 ### Deploy-Only Permission Sets (Not Explicitly Assigned)
 
-These permission sets are deployed as metadata but not assigned to the running user via `assign_permission_sets`. They are available for manual assignment or assignment via persona PSGs.
+These permission sets are stored as metadata in this repository but are not assigned to the running user via `assign_permission_sets`. Most are deployed by standard `post_*` metadata deploy tasks; some (as noted below) are present only for manual deploy. All are available for manual assignment or assignment via persona PSGs.
 
 | Permission Set | Deployed From | Purpose |
 |---|---|---|
 | `RLM_QB_Admin_Class_Access` | `unpackaged/post_quantumbit/` | Apex class access for QB admin |
 | `RLM_UsageDatatables` | `unpackaged/post_utils/` | Read access to usage objects + `RLM_UsageDataController` Apex class for Usage Datatable LWC |
-| `RLM_Collection_Plan_Activity` | `unpackaged/post_collections/` | CRUD on `Collection_Plan_Activity__c` custom object |
+| `RLM_Collection_Plan_Activity` | `unpackaged/post_collections/` | CRUD on `Collection_Plan_Activity__c` custom object (present in repo; not deployed by any standard flow — deploy manually if needed) |
 | `RLM_Custom_Sales_Rep_Perm_Set` | `unpackaged/post_personas/` | Custom sales rep permissions (deploy-only; available for manual or future persona PSG assignment) |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS |
 | `RLM_BillingEmployeeAgent` | `unpackaged/post_agents/` | Agentforce billing employee agent access |
 | `RLM_BillingServiceAgent` | `unpackaged/post_agents/` | Agentforce billing service agent access |
 | `DRO_Integrations` | `unpackaged/post_tso/` | DRO integration permissions (TSO only) |
-| `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions |
+| `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions (present in repo; not deployed by any standard task/flow — deploy manually if needed) |
 
 ### Tableau Permission Sets (`rlm_tableaunext_ps_api_names`) -- Not Assigned by Default
 
