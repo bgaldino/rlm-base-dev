@@ -1,0 +1,59 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "Customer Demo Billing Foundation",
+      "objects": [
+        {
+          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, IsDefault, Name, Status FROM PaymentTerm ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, PaymentTermId, PaymentTerm.Name, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem ORDER BY PaymentTerm.Name ASC, Type ASC",
+          "operation": "Upsert",
+          "externalId": "PaymentTerm.Name;Type",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingTreatmentSelection, Description, Name, Status FROM BillingPolicy ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingPolicyId, BillingPolicy.Name, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, LegalEntity.Name, Name, Status FROM BillingTreatment ORDER BY BillingPolicy.Name ASC, Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name;BillingPolicy.Name;LegalEntity.Name",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingTreatmentId, BillingTreatment.Name, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount FROM BillingTreatmentItem ORDER BY BillingTreatment.Name ASC, Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name;BillingTreatment.Name",
+          "skipExistingRecords": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT BillingPolicyId, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

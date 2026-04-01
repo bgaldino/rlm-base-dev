@@ -151,6 +151,18 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
             "description": "Product2 field API name that must be populated (default: Type).",
             "required": False,
         },
+        "verify_images": {
+            "description": "Require Product2.DisplayUrl when image is expected (default true).",
+            "required": False,
+        },
+        "verify_billing": {
+            "description": "Require Product2.BillingPolicyId when billing is expected (default true).",
+            "required": False,
+        },
+        "require_internal_image_urls": {
+            "description": "If true, require image URLs to use /resource/<StaticResourceName> for image-required rows.",
+            "required": False,
+        },
     }
 
     def _api(self, path: str, soql: str) -> List[Dict]:
@@ -178,9 +190,21 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
                     rows.append(row)
         return rows
 
+    @staticmethod
+    def _is_truthy(value: str, default: bool = True) -> bool:
+        if value is None:
+            return default
+        return str(value).strip().lower() not in {"0", "false", "no", "n"}
+
     def _run_task(self):
         rows = self._read_rows()
         product_type_field = self.options.get("product_type_field", "Type")
+        verify_images = self._is_truthy(self.options.get("verify_images"), default=True)
+        verify_billing = self._is_truthy(self.options.get("verify_billing"), default=True)
+        require_internal_image_urls = self._is_truthy(
+            self.options.get("require_internal_image_urls"),
+            default=False,
+        )
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", product_type_field):
             raise TaskOptionsError(f"Invalid product_type_field: {product_type_field}")
 
@@ -197,7 +221,7 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
             category_code = row["CategoryCode"]
 
             product = self._query(
-                f"SELECT Id, IsActive, {product_type_field} FROM Product2 "
+                f"SELECT Id, IsActive, {product_type_field}, DisplayUrl, BillingPolicyId, BillingPolicy.Name FROM Product2 "
                 f"WHERE StockKeepingUnit = '{_escape_soql(sku)}' LIMIT 1"
             )
             if not product:
@@ -208,6 +232,34 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
                 failures.append(f"{sku}: Product2 not active")
             if not product[0].get(product_type_field):
                 failures.append(f"{sku}: Product type field {product_type_field} is blank")
+            image_required = self._is_truthy(row.get("ImageRequired"), default=True)
+            display_url = (product[0].get("DisplayUrl") or "").strip()
+            if verify_images and image_required and not display_url:
+                failures.append(f"{sku}: Product2.DisplayUrl is blank")
+            if (
+                verify_images
+                and image_required
+                and require_internal_image_urls
+                and display_url
+                and not display_url.startswith("/resource/")
+            ):
+                failures.append(
+                    f"{sku}: Product2.DisplayUrl must use /resource/<StaticResourceName> (found {display_url})"
+                )
+            billing_required = self._is_truthy(row.get("BillingRequired"), default=True)
+            if verify_billing and billing_required and not product[0].get("BillingPolicyId"):
+                failures.append(f"{sku}: Product2.BillingPolicyId is blank")
+            expected_billing_policy = (row.get("BillingPolicyName") or "").strip()
+            if (
+                verify_billing
+                and billing_required
+                and expected_billing_policy
+                and product[0].get("BillingPolicy", {}).get("Name") != expected_billing_policy
+            ):
+                failures.append(
+                    f"{sku}: BillingPolicy mismatch (expected {expected_billing_policy}, "
+                    f"found {product[0].get('BillingPolicy', {}).get('Name') or 'blank'})"
+                )
 
             psm = self._query(
                 "SELECT Id FROM ProductSellingModel "

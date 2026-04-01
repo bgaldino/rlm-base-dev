@@ -503,7 +503,9 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
-    customer_demo_pcm_dataset: &customer_demo_pcm_dataset "datasets/sfdmu/customer-template/en-US/customer-template-pcm"  # Customer demo template dataset
+    customer_demo_pcm_dataset: &customer_demo_pcm_dataset "datasets/sfdmu/customer-template/en-US/customer-template-pcm"  # Customer demo template PCM dataset
+    customer_demo_product_images_dataset: &customer_demo_product_images_dataset "datasets/sfdmu/customer-template/en-US/customer-template-product-images"  # Customer demo template product image dataset
+    customer_demo_billing_dataset: &customer_demo_billing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-billing"  # Customer demo template billing dataset
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -1346,12 +1348,47 @@ tasks:
     options:
       path: scripts/customer-demo/customer-purge-and-reimport.apex
 
+  prepare_customer_demo_logo_staticresource:
+    group: Revenue Lifecycle Management
+    description: >
+      Download a customer logo and generate a square static resource payload + metadata
+      in unpackaged/post_customer_demo/staticresources. Run before deploying customer demo
+      static resources.
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: >-
+        python3 scripts/customer-demo/prepare_customer_logo_static_resource.py
+        --company-name "{company_name}"
+        --logo-url "{logo_url}"
+        --resource-name "{resource_name}"
+
+  deploy_customer_demo_staticresources:
+    group: Revenue Lifecycle Management
+    description: Deploy customer demo static resources (logos) from unpackaged/post_customer_demo/staticresources.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_customer_demo/staticresources
+
   insert_customer_demo_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert customer demo PCM foundation data (PSM, Product2, defaults, catalog, categories).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *customer_demo_pcm_dataset
+
+  insert_customer_demo_product_images_data:
+    group: Revenue Lifecycle Management
+    description: Update customer demo product images by SKU (Product2.DisplayUrl).
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *customer_demo_product_images_dataset
+
+  insert_customer_demo_billing_data:
+    group: Revenue Lifecycle Management
+    description: Insert customer demo billing foundation records and assign BillingPolicy to billable SKUs.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *customer_demo_billing_dataset
 
   customer_demo_recreate_pricebook_via_api:
     group: Revenue Lifecycle Management
@@ -1363,7 +1400,7 @@ tasks:
 
   customer_demo_verify_catalog:
     group: Revenue Lifecycle Management
-    description: Verify customer demo go/no-go checks (Product Type, default PSM option, PBE model link, category mapping).
+    description: Verify customer demo go/no-go checks (Product Type, images, billing assignment, default PSM option, PBE model link, category mapping).
     class_path: tasks.rlm_customer_demo.VerifyCustomerDemoCatalog
     options:
       input_csv: scripts/customer-demo/customer-pricebook-entries.csv
@@ -2451,16 +2488,22 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Customer demo onboarding flow (post-setup): optional purge, load customer PCM
-      records, recreate standard pricebook rows via API with ProductSellingModelId,
-      and verify go/no-go checks.
+      records, apply product images and billing assignments, recreate standard
+      pricebook rows via API with ProductSellingModelId, and verify go/no-go checks.
     steps:
       1:
         task: customer_demo_purge_records
       2:
         task: insert_customer_demo_pcm_data
       3:
-        task: customer_demo_recreate_pricebook_via_api
+        task: deploy_customer_demo_staticresources
       4:
+        task: insert_customer_demo_product_images_data
+      5:
+        task: insert_customer_demo_billing_data
+      6:
+        task: customer_demo_recreate_pricebook_via_api
+      7:
         task: customer_demo_verify_catalog
 
   prepare_pricing_data:

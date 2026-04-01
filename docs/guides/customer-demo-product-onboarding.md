@@ -19,8 +19,10 @@ Use this contract whenever a user says they want to set up products for a custom
    - the company website URL.
 3. Encourage richer input (the more the user shares, the better):
    - service lines, pricing motions, known SKUs, bundles, add-ons, annual/monthly offers.
+   - billing expectations (payment terms, invoice timing, billing policies by SKU).
+   - product image preferences/sources (which SKUs need images, customer logo URL source).
 4. Produce a draft product vision:
-   - product families, categories, 10-15 SKU proposal, expected selling models, and pricing assumptions.
+   - product families, categories, 10-15 SKU proposal, expected selling models, pricing assumptions, billing assumptions, and image coverage assumptions.
 5. Ask the user to confirm or adjust the proposal before any record creation/deploy.
 6. After confirmation, build datasets and run the onboarding tasks/flow.
 
@@ -68,6 +70,12 @@ If the plan needs more than 15 SKUs or more than 6 categories, document why and 
    - `ProductCategory.csv`
    - `ProductCategoryProduct.csv`
 4. Populate `scripts/customer-demo/customer-pricebook-entries.csv`.
+5. Populate customer image dataset CSV:
+   - `datasets/sfdmu/customer-template/en-US/customer-template-product-images/Product2.csv`
+6. Prepare customer logo static resource files:
+   - `python3 scripts/customer-demo/prepare_customer_logo_static_resource.py --company-name "<Customer Name>" --logo-url "<Logo URL>"`
+7. Populate customer billing dataset CSVs (as needed for your billing model):
+   - `datasets/sfdmu/customer-template/en-US/customer-template-billing/*.csv`
 
 ## Phase 3: Push records to Salesforce
 
@@ -80,10 +88,19 @@ cci task run customer_demo_purge_records --org <org-alias>
 # 2) Load customer PCM records
 cci task run insert_customer_demo_pcm_data --org <org-alias>
 
-# 3) Recreate Standard PricebookEntry rows through API (with ProductSellingModelId)
+# 3) Deploy customer static resources (logo assets)
+cci task run deploy_customer_demo_staticresources --org <org-alias>
+
+# 4) Apply product images by SKU
+cci task run insert_customer_demo_product_images_data --org <org-alias>
+
+# 5) Load lightweight billing foundation + product billing assignments
+cci task run insert_customer_demo_billing_data --org <org-alias>
+
+# 6) Recreate Standard PricebookEntry rows through API (with ProductSellingModelId)
 cci task run customer_demo_recreate_pricebook_via_api --org <org-alias>
 
-# 4) Verify go/no-go checks
+# 7) Verify go/no-go checks
 cci task run customer_demo_verify_catalog --org <org-alias>
 ```
 
@@ -99,6 +116,8 @@ For every SKU:
 
 - Product exists and is active.
 - Product Type field is populated.
+- Product image URL is populated when required for demo UX.
+- Billing policy assignment exists when SKU is billable.
 - Default `ProductSellingModelOption` exists.
 - Standard `PricebookEntry` exists and is active.
 - `PricebookEntry.ProductSellingModelId` matches expected model.

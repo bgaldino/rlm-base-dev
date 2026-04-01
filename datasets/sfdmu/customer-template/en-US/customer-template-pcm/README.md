@@ -14,6 +14,12 @@ This template intentionally includes only the baseline records needed by the onb
 
 Pricebook rows are intentionally excluded from this plan. Use API-based creation with explicit `ProductSellingModelId`.
 
+This template is part of a hybrid customer onboarding set:
+
+- `customer-template-pcm` (this folder): product/catalog foundation
+- `customer-template-product-images`: `Product2.DisplayUrl` updates by SKU
+- `customer-template-billing`: lightweight billing foundation + product billing assignment
+
 ## How to use
 
 1. Copy this directory to a customer plan path, for example:

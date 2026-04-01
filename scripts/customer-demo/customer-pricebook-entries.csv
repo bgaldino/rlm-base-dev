@@ -1,1 +1,1 @@
-SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode
+SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName
