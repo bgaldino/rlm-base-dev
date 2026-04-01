@@ -1,3 +1,5 @@
-$$ProcedurePlanSection.SubSectionType$Priority,CriteriaLogic,ExpressionSetDefinition.DeveloperName,Priority,ProcedurePlanSection.$$SubSectionType$Sequence,ReadContextMapping,SaveContextMapping
-DefaultPricing;1,,RLM_DefaultPricingProcedure,1,DefaultPricing;1,,
-HeaderDistribution;1,,RLM_Price_Distribution_Procedure,1,HeaderDistribution;2,,
+﻿"Priority","CriteriaLogic","ReadContextMapping","SaveContextMapping","ProcedurePlanSection.SubSectionType","ProcedurePlanSection.Sequence","ExpressionSetDefinition.DeveloperName"
+"1","#N/A","#N/A","#N/A","DefaultPricing","1","RLM_Revenue_Management_Procedure_Plan_Base"
+"1","#N/A","#N/A","#N/A","HeaderDistribution","4","RLM_Price_Distribution_Procedure"
+"1","#N/A","#N/A","#N/A","ManualDiscounting","3","RLM_Procedure_Plan_Manual_Discount_Procedure"
+"1","#N/A","#N/A","#N/A","Promotions","2","RLM_Procedure_Plan_Promotions_Procedure"

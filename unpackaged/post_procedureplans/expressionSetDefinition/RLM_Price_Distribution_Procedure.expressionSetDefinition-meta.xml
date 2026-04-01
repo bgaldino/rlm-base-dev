@@ -3,7 +3,7 @@
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>RLM Price Distribution Procedure</label>
+    <label>RC Price Distribution Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
@@ -11,13 +11,14 @@
         <decimalScale>2</decimalScale>
         <expressionSetDefinition>RLM_Price_Distribution_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>RLM Price Distribution Procedure V1</label>
+        <label>RC Price Distribution Procedure V1</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
         <startDate>2026-01-01T08:40:02.000Z</startDate>
         <status>Active</status>
         <steps>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Amount-Based Header Discount</label>
             <name>AmountBasedHeaderDiscount</name>
             <resultIncluded>false</resultIncluded>
@@ -88,6 +89,7 @@
                 </parameters>
             </customElement>
             <description>Assignment</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Assign Header Discount Amount</label>
             <name>AssignHeaderDiscountAmount</name>
             <parentStep>AmountBasedHeaderDiscount</parentStep>
@@ -159,6 +161,7 @@
                 </parameters>
             </customElement>
             <description>Assignment</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Assign Header Override Amount</label>
             <name>AssignHeaderOverrideAmount</name>
             <parentStep>OverrideBasedHeaderDiscount</parentStep>
@@ -230,6 +233,7 @@
                 </parameters>
             </customElement>
             <description>Assignment</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Assign Header Percentage Amount</label>
             <name>AssignHeaderPercentageAmount</name>
             <parentStep>PercentageBasedHeaderDiscount</parentStep>
@@ -364,6 +368,7 @@
                 </parameters>
             </customElement>
             <description>Discount Distribution Service</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Discount Distribution Service</label>
             <name>DiscountDistributionService</name>
             <resultIncluded>false</resultIncluded>
@@ -392,6 +397,7 @@
                     <sourceFieldName>TotalPriceOverride__std</sourceFieldName>
                 </criteria>
             </advancedCondition>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Header Amount Discount was Input</label>
             <name>HeaderAmountDiscountwasInput</name>
             <parentStep>AmountBasedHeaderDiscount</parentStep>
@@ -421,6 +427,7 @@
                     <sourceFieldName>TotalPriceOverride__std</sourceFieldName>
                 </criteria>
             </advancedCondition>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Header Override Discount was Input</label>
             <name>HeaderOverrideDiscountwasInput</name>
             <parentStep>OverrideBasedHeaderDiscount</parentStep>
@@ -450,6 +457,7 @@
                     <sourceFieldName>TotalPriceOverride__std</sourceFieldName>
                 </criteria>
             </advancedCondition>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Header Percent Discount was Input</label>
             <name>HeaderPercentDiscountwasInput</name>
             <parentStep>PercentageBasedHeaderDiscount</parentStep>
@@ -461,6 +469,7 @@
             <stepType>AdvancedListFilter</stepType>
         </steps>
         <steps>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Override-Based Header Discount</label>
             <name>OverrideBasedHeaderDiscount</name>
             <resultIncluded>false</resultIncluded>
@@ -471,6 +480,7 @@
             <stepType>ListGroup</stepType>
         </steps>
         <steps>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Percentage-Based Header Discount</label>
             <name>PercentageBasedHeaderDiscount</name>
             <resultIncluded>false</resultIncluded>
@@ -548,6 +558,7 @@
                 </parameters>
             </customElement>
             <description>Pricing Setting</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Pricing Setting</label>
             <name>PricingSetting</name>
             <resultIncluded>false</resultIncluded>

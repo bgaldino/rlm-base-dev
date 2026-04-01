@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
+    <executionMode>Cloud</executionMode>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>RC Revenue Management Recalc Procedure</label>
+    <label>RLM Revenue Management Procedure Plan Base</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>RLM_Revenue_Management_Recalc_Procedure_V1</fullName>
+        <fullName>RLM_Revenue_Management_Procedure_Plan_Base_V1</fullName>
         <decimalScale>2</decimalScale>
-        <description>RC Revenue Management Recalc Procedure</description>
-        <expressionSetDefinition>RLM_Revenue_Management_Recalc_Procedure</expressionSetDefinition>
+        <description>RLM Revenue Management Procedure Plan Base</description>
+        <expressionSetDefinition>RLM_Revenue_Management_Procedure_Plan_Base</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>RC Revenue Management Recalc Procedure</label>
+        <label>RLM Revenue Management Procedure Plan Base</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
-        <startDate>2020-01-01T19:15:17.000Z</startDate>
-        <status>Draft</status>
+        <startDate>2020-01-01T08:00:00.000Z</startDate>
+        <status>Active</status>
         <steps>
             <actionType>PriceRevision</actionType>
             <customElement>
@@ -93,6 +94,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1UEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -147,13 +155,6 @@
                     <type>Parameter</type>
                     <value>Subtotal</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1UEAQ</value>
-                </parameters>
             </customElement>
             <description>Price Revision</description>
             <hasNestedExplainability>false</hasNestedExplainability>
@@ -169,17 +170,6 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Apply amount-based and percentage-based discounts</label>
-            <name>Applyamountbasedandpercentagebaseddiscounts</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>17</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>ListGroup</stepType>
-        </steps>
-        <steps>
-            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Apply bundle-based adjustments</label>
             <name>Applybundlebasedadjustments</name>
             <resultIncluded>false</resultIncluded>
@@ -191,21 +181,10 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Apply manual discounts to lines without derived pricing</label>
-            <name>Applymanualdiscountstolineswithoutderivedpricing</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>16</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>ListGroup</stepType>
-        </steps>
-        <steps>
-            <hasNestedExplainability>false</hasNestedExplainability>
             <label>Apply non-prorated pricing for lines without term-defined or evergreen pricing</label>
             <name>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>23</sequenceNumber>
+            <sequenceNumber>21</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -216,7 +195,7 @@
             <label>Apply non-prorated pricing to term-defined and evergreen lines</label>
             <name>Applynonproratedpricingtotermdefinedandevergreenlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>25</sequenceNumber>
+            <sequenceNumber>23</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -227,7 +206,7 @@
             <label>Apply price revision for lines with subscription and without derived pricing</label>
             <name>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>18</sequenceNumber>
+            <sequenceNumber>16</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -238,7 +217,7 @@
             <label>Apply prorated pricing to evergreen lines</label>
             <name>Applyproratedpricingtoevergreenlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>22</sequenceNumber>
+            <sequenceNumber>20</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -249,7 +228,7 @@
             <label>Apply prorated pricing to term-defined lines</label>
             <name>Applyproratedpricingtotermdefinedlines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>21</sequenceNumber>
+            <sequenceNumber>19</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -260,7 +239,7 @@
             <label>Apply uplifts to ramped subscriptions items during amendment</label>
             <name>Applyupliftstorampedsubscriptionsitemsduringamendment</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>19</sequenceNumber>
+            <sequenceNumber>17</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -560,6 +539,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1REAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -634,13 +620,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>IsContracted</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1REAQ</value>
                 </parameters>
             </customElement>
             <description>List Price</description>
@@ -873,7 +852,7 @@
             <label>Assign TotalLineAmount to ItemSubtotal and ItemNetTotalPrice to ItemTotalPrice</label>
             <name>AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>30</sequenceNumber>
+            <sequenceNumber>28</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -884,7 +863,7 @@
             <label>Assign pricing term count to evergreen lines with non-prorated pricing</label>
             <name>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>24</sequenceNumber>
+            <sequenceNumber>22</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -996,7 +975,7 @@
             <label>Assign total line amount for lines with inclusive price</label>
             <name>Assigntotallineamountforlineswithinclusiveprice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>26</sequenceNumber>
+            <sequenceNumber>24</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1098,6 +1077,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1LEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -1140,20 +1126,6 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>AdjustmentType</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentType</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>AdjustmentValue</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentValue</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
                     <name>NetUnitPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
@@ -1172,13 +1144,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>IsContracted</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1LEAQ</value>
                 </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
@@ -1289,6 +1254,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1LEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -1331,20 +1303,6 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>AdjustmentType</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentType</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>AdjustmentValue</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentValue</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
                     <name>NetUnitPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
@@ -1356,13 +1314,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1LEAQ</value>
                 </parameters>
             </customElement>
             <description>Attribute-Based Price</description>
@@ -1540,7 +1491,7 @@
             <label>Calculate item group subtotal by adding item net total prices of all the lines</label>
             <name>Calculateitemgroupsubtotalbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>29</sequenceNumber>
+            <sequenceNumber>27</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1811,6 +1762,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1MEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -1853,20 +1811,6 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>AdjustmentType</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentType</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>AdjustmentValue</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentValue</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
                     <name>NetUnitPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
@@ -1878,13 +1822,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1MEAQ</value>
                 </parameters>
             </customElement>
             <description>Bundle-Based Price</description>
@@ -1894,264 +1831,6 @@
             <parentStep>Applybundlebasedadjustments</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <actionType>ManualDiscount</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>AdjustmentType</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>AmountStringConstant</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>AdjustmentValue</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>ItemDiscountAmount</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>Quantity</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>LineItemQuantity</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>InputUnitPrice</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>HideWaterfall</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>selectedFunction</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Get</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsRealTime</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>NetUnitPrice</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemNetTotalPrice</value>
-                </parameters>
-            </customElement>
-            <description>Manual Discount</description>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculate net unit and item net total prices after amount-based discount</label>
-            <name>Calculatenetunitanditemnettotalpricesafteramountbaseddiscount</name>
-            <parentStep>Applyamountbasedandpercentagebaseddiscounts</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <actionType>ManualDiscount</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>AdjustmentType</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>ItemContractDiscountType</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>AdjustmentValue</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>ItemContractDiscountValue</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>Quantity</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>LineItemQuantity</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>InputUnitPrice</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>HideWaterfall</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>selectedFunction</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Get</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsRealTime</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>NetUnitPrice</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemNetTotalPrice</value>
-                </parameters>
-            </customElement>
-            <description>Manual Discount</description>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculate net unit and item net total prices after manual discount</label>
-            <name>Calculatenetunitanditemnettotalpricesaftermanualdiscount</name>
-            <parentStep>Applymanualdiscountstolineswithoutderivedpricing</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <actionType>ManualDiscount</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>AdjustmentType</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>PercentageStringConstant</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>AdjustmentValue</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>ItemDiscountPercentage</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>Quantity</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>LineItemQuantity</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>InputUnitPrice</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>HideWaterfall</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>selectedFunction</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Get</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsRealTime</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>NetUnitPrice</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>NetUnitPrice</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemNetTotalPrice</value>
-                </parameters>
-            </customElement>
-            <description>Manual Discount</description>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculate net unit and item net total prices after percentage-based discount</label>
-            <name>Calculatenetunitanditemnettotalpricesafterpercentagebaseddiscount</name>
-            <parentStep>Applyamountbasedandpercentagebaseddiscounts</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -2246,6 +1925,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1SEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -2288,20 +1974,6 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>TierType</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentType</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>TierValue</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentValue</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
                     <name>NetUnitPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
@@ -2320,13 +1992,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>IsContracted</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1SEAQ</value>
                 </parameters>
             </customElement>
             <description>Volume Discount</description>
@@ -2430,6 +2095,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1OEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -2472,20 +2144,6 @@
                 </parameters>
                 <parameters>
                     <input>false</input>
-                    <name>TierType</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentType</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>TierValue</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>AdjustmentValue</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
                     <name>NetUnitPrice</name>
                     <output>true</output>
                     <type>Parameter</type>
@@ -2497,13 +2155,6 @@
                     <output>true</output>
                     <type>Parameter</type>
                     <value>ItemNetTotalPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1OEAQ</value>
                 </parameters>
             </customElement>
             <description>Volume Discount</description>
@@ -3211,7 +2862,7 @@
             <label>Calculate subtotal by adding total line amounts of all the lines</label>
             <name>Calculatesubtotalbyaddingtotallineamountsofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>28</sequenceNumber>
+            <sequenceNumber>26</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3493,7 +3144,7 @@
             <label>Calculate total amount by adding item net total prices of all the lines</label>
             <name>Calculatetotalamountbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>27</sequenceNumber>
+            <sequenceNumber>25</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3795,7 +3446,7 @@
             <label>Filter lines with last-transaction pricing and assign net total price</label>
             <name>Filterlineswithlasttransactionpricingandassignnettotalprice</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>20</sequenceNumber>
+            <sequenceNumber>18</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3974,60 +3625,6 @@
             <label>Filter lines without derived or last-trxn pricing, and with price adj schedule</label>
             <name>Filterlineswithoutderivedorlasttrxnpricingandwithpriceadjschedule</name>
             <parentStep>Setattributebasedpricingforlineswithoutderivedpricing</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>AdvancedListFilter</stepType>
-        </steps>
-        <steps>
-            <advancedCondition>
-                <conditionLogic>1 AND 2 AND 3</conditionLogic>
-                <criteria>
-                    <operator>IsNotNull</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
-                </criteria>
-                <criteria>
-                    <operator>Equals</operator>
-                    <sequenceNumber>2</sequenceNumber>
-                    <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
-                    <value>false</value>
-                    <valueType>Literal</valueType>
-                </criteria>
-                <criteria>
-                    <operator>IsNotNull</operator>
-                    <sequenceNumber>3</sequenceNumber>
-                    <sourceFieldName>ItemContractDiscountValue</sourceFieldName>
-                </criteria>
-            </advancedCondition>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filter lines without derived pricing and with discount</label>
-            <name>Filterlineswithoutderivedpricingandwithdiscount</name>
-            <parentStep>Applymanualdiscountstolineswithoutderivedpricing</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>AdvancedListFilter</stepType>
-        </steps>
-        <steps>
-            <advancedCondition>
-                <conditionLogic>1</conditionLogic>
-                <criteria>
-                    <operator>NotEquals</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
-                    <valueType>Literal</valueType>
-                </criteria>
-            </advancedCondition>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filter lines without last-transaction pricing</label>
-            <name>Filterlineswithoutlasttransactionpricing</name>
-            <parentStep>Applyamountbasedandpercentagebaseddiscounts</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4296,6 +3893,13 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0lDao0000008o1NEAQ</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -4350,13 +3954,6 @@
                     <type>Parameter</type>
                     <value>ListPrice</value>
                 </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0lDao0000008o1NEAQ</value>
-                </parameters>
             </customElement>
             <description>List Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
@@ -4378,13 +3975,6 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>LineItem</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>CurrencyIsoCode</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>CurrencyIsoCode</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -4637,7 +4227,7 @@
             <name>AttributePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>84Xao000001AggaEAC</value>
+            <value>84Xao000001AggXEAS</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4648,7 +4238,7 @@
             <name>BundlePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>84Xao000001AggbEAC</value>
+            <value>84Xao000001AggYEAS</value>
         </variables>
         <variables>
             <collection>false</collection>
@@ -4824,7 +4414,7 @@
             <name>VolumePASIdConstant</name>
             <output>false</output>
             <type>Constant</type>
-            <value>84Xao000001AggcEAC</value>
+            <value>84Xao000001AggZEAS</value>
         </variables>
         <versionNumber>1</versionNumber>
     </versions>

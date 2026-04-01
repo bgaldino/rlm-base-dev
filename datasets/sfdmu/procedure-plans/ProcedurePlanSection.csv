@@ -1,3 +1,5 @@
-$$SubSectionType$Sequence,Description,Phase,ProcedurePlanVersion.DeveloperName,ResolutionType,SectionType,Sequence,SubSectionType
-DefaultPricing;1,,0,RLM_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,1,DefaultPricing
-HeaderDistribution;2,,0,RLM_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,2,HeaderDistribution
+﻿"Description","Phase","ResolutionType","SectionType","Sequence","SubSectionType","ProcedurePlanVersion.DeveloperName"
+"#N/A","0","Default","PricingProcedure","1","DefaultPricing","RLM_Quote_Pricing_Procedure_Plan"
+"#N/A","0","Default","PricingProcedure","4","HeaderDistribution","RLM_Quote_Pricing_Procedure_Plan"
+"#N/A","0","Default","PricingProcedure","3","ManualDiscounting","RLM_Quote_Pricing_Procedure_Plan"
+"#N/A","0","Default","PricingProcedure","2","Promotions","RLM_Quote_Pricing_Procedure_Plan"
