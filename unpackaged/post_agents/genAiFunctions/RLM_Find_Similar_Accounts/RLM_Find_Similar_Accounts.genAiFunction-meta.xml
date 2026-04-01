@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Finds accounts similar to a given account. Requires two parameters: accountId (the account to analyze) and matchCriteria (must be one of: &quot;industry&quot;, &quot;type&quot;, or &quot;both&quot;). Always pass matchCriteria - extract it from the user&apos;s message or default to &quot;both&quot;. Returns similar account IDs for whitespace analysis.</description>
+    <developerName>RLM_Find_Similar_Accounts</developerName>
+    <invocationTarget>RLM_FindSimilarAccountsService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>RLM_Find_Similar_Accounts</localDeveloperName>
+    <mappingAttributes>
+        <label>Account ID</label>
+        <name>input_accountId</name>
+        <parameterName>accountId</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Match Criteria</label>
+        <name>input_matchCriteria</name>
+        <parameterName>matchCriteria</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Success</label>
+        <name>output_success</name>
+        <parameterName>success</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Message</label>
+        <name>output_message</name>
+        <parameterName>message</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Similar Account IDs</label>
+        <name>output_similarAccountIds</name>
+        <parameterName>similarAccountIds</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <masterLabel>RLM Find Similar Accounts</masterLabel>
+    <progressIndicatorMessage>Finding similar accounts...</progressIndicatorMessage>
+</GenAiFunction>

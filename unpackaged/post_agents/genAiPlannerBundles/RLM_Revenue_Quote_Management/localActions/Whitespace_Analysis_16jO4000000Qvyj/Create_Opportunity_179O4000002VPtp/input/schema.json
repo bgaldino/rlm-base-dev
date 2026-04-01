@@ -1,0 +1,35 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "accountId" : {
+      "title" : "accountId",
+      "description" : "The Salesforce Account ID to create the opportunity for",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "opportunityName" : {
+      "title" : "opportunityName",
+      "description" : "Optional name for the opportunity. If not provided, a default name will be generated.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "stageName" : {
+      "title" : "stageName",
+      "description" : "Optional opportunity stage. Defaults to Prospecting if not provided.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "closeDate" : {
+      "title" : "closeDate",
+      "description" : "Optional close date in YYYY-MM-DD format. Defaults to 30 days from today.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

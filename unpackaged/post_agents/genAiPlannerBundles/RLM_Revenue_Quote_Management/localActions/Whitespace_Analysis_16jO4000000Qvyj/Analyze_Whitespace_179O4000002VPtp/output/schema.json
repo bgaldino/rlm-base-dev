@@ -1,0 +1,71 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "success" : {
+      "title" : "success",
+      "description" : "Whether the analysis was successful",
+      "lightning:type" : "lightning__booleanType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "message" : {
+      "title" : "message",
+      "description" : "Summary of the whitespace analysis results",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "whitespaceProducts" : {
+      "title" : "whitespaceProducts",
+      "description" : "Products that similar accounts own but this account does not, ranked by peer adoption rate. Format: ProductName [Family] - X/Y peers (Z% adoption)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "whitespaceProductIds" : {
+      "title" : "whitespaceProductIds",
+      "description" : "Comma-separated Product2 IDs for whitespace products, useful for creating quotes",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "whitespaceCount" : {
+      "title" : "whitespaceCount",
+      "description" : "Number of product gaps identified",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "currentProducts" : {
+      "title" : "currentProducts",
+      "description" : "Products the account currently owns",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "currentProductCount" : {
+      "title" : "currentProductCount",
+      "description" : "Number of products the account currently owns",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "peerAccountCount" : {
+      "title" : "peerAccountCount",
+      "description" : "Number of similar accounts used in the comparison",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

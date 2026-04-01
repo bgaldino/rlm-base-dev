@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Retrieves open and recent opportunities for an account including their products and pricing details. Use this to identify existing opportunities where recommended whitespace products could be added, or to determine if a new opportunity needs to be created.</description>
+    <developerName>RLM_Get_Account_Opportunities</developerName>
+    <invocationTarget>RLM_GetAccountOpportunitiesService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>RLM_Get_Account_Opportunities</localDeveloperName>
+    <mappingAttributes>
+        <label>Account ID</label>
+        <name>input_accountId</name>
+        <parameterName>accountId</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Success</label>
+        <name>output_success</name>
+        <parameterName>success</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Message</label>
+        <name>output_message</name>
+        <parameterName>message</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Opportunities</label>
+        <name>output_opportunities</name>
+        <parameterName>opportunities</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Opportunity Count</label>
+        <name>output_opportunityCount</name>
+        <parameterName>opportunityCount</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Open Opportunity Count</label>
+        <name>output_openOpportunityCount</name>
+        <parameterName>openOpportunityCount</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Account Name</label>
+        <name>output_accountName</name>
+        <parameterName>accountName</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <masterLabel>RLM Get Account Opportunities</masterLabel>
+    <progressIndicatorMessage>Retrieving account opportunities...</progressIndicatorMessage>
+</GenAiFunction>

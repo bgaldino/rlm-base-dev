@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Creates a new Opportunity for the specified account. Use this when the user wants to create an opportunity to attach a whitespace quote to, or when no open opportunities exist for the account.</description>
+    <developerName>RLM_Create_Opportunity</developerName>
+    <invocationTarget>RLM_CreateOpportunityService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>true</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>RLM_Create_Opportunity</localDeveloperName>
+    <mappingAttributes>
+        <label>Account ID</label>
+        <name>input_accountId</name>
+        <parameterName>accountId</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Opportunity Name</label>
+        <name>input_opportunityName</name>
+        <parameterName>opportunityName</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Stage Name</label>
+        <name>input_stageName</name>
+        <parameterName>stageName</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Close Date</label>
+        <name>input_closeDate</name>
+        <parameterName>closeDate</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Success</label>
+        <name>output_success</name>
+        <parameterName>success</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Message</label>
+        <name>output_message</name>
+        <parameterName>message</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Opportunity ID</label>
+        <name>output_opportunityId</name>
+        <parameterName>opportunityId</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <masterLabel>RLM Create Opportunity</masterLabel>
+    <progressIndicatorMessage>Creating opportunity...</progressIndicatorMessage>
+</GenAiFunction>

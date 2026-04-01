@@ -1,0 +1,22 @@
+{
+  "required" : [ "accountId", "similarAccountIds" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "accountId" : {
+      "title" : "accountId",
+      "description" : "The Salesforce ID of the target account to analyze",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "similarAccountIds" : {
+      "title" : "similarAccountIds",
+      "description" : "Comma-separated list of similar account IDs from the Find Similar Accounts action",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

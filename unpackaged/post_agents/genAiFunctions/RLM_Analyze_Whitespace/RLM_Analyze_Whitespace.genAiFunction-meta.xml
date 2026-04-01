@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Compares assets between a target account and similar accounts to identify product gaps (whitespace). Returns products that peers own but the target does not, ranked by adoption rate. Use the output from Find Similar Accounts as input for the similarAccountIds parameter.</description>
+    <developerName>RLM_Analyze_Whitespace</developerName>
+    <invocationTarget>RLM_AnalyzeWhitespaceService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>RLM_Analyze_Whitespace</localDeveloperName>
+    <mappingAttributes>
+        <label>Account ID</label>
+        <name>input_accountId</name>
+        <parameterName>accountId</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Similar Account IDs</label>
+        <name>input_similarAccountIds</name>
+        <parameterName>similarAccountIds</parameterName>
+        <parameterType>input</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Success</label>
+        <name>output_success</name>
+        <parameterName>success</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Message</label>
+        <name>output_message</name>
+        <parameterName>message</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
+        <label>Whitespace Product IDs</label>
+        <name>output_whitespaceProductIds</name>
+        <parameterName>whitespaceProductIds</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <masterLabel>RLM Analyze Whitespace</masterLabel>
+    <progressIndicatorMessage>Analyzing product gaps...</progressIndicatorMessage>
+</GenAiFunction>

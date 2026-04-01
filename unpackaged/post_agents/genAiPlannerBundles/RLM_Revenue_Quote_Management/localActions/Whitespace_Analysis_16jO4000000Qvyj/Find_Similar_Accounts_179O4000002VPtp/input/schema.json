@@ -1,0 +1,22 @@
+{
+  "required" : [ "accountId", "matchCriteria" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "accountId" : {
+      "title" : "accountId",
+      "description" : "The Salesforce ID of the account to find similar accounts for",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "matchCriteria" : {
+      "title" : "matchCriteria",
+      "description" : "REQUIRED. Must be one of: 'industry', 'type', or 'both'. Extract from user message: if user mentions industry, use 'industry'. If user mentions type, use 'type'. Otherwise use 'both'.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

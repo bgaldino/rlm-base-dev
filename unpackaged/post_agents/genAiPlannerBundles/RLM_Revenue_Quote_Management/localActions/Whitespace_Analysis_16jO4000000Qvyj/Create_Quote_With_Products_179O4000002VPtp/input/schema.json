@@ -1,0 +1,28 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "opportunityId" : {
+      "title" : "opportunityId",
+      "description" : "The Salesforce Opportunity ID to create the quote on. Use the opportunityId from Create Opportunity or Get Account Opportunities.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "productIds" : {
+      "title" : "productIds",
+      "description" : "Comma-separated Product2 IDs to add as quote line items. Use the whitespaceProductIds from Analyze Whitespace, or a subset based on user selection.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quoteName" : {
+      "title" : "quoteName",
+      "description" : "Optional name for the quote. If not provided, a default name is generated.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
