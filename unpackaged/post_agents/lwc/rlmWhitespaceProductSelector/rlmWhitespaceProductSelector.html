@@ -1,0 +1,20 @@
+<template>
+    <lightning-card title="Whitespace Products" icon-name="standard:product">
+        <div class="slds-p-around_small">
+            <div class="slds-box slds-box_xx-small slds-theme_info slds-m-bottom_small">
+                <p class="slds-text-body_small">
+                    <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                    Select the products you'd like to add, then type <strong>"create quote with these products"</strong> or <strong>"add these to a quote"</strong> below to continue.
+                </p>
+            </div>
+        </div>
+        <lightning-datatable
+            data={products}
+            columns={columns}
+            key-field="productId"
+            onrowselection={handleRowSelection}
+            selected-rows={selectedIds}
+            max-row-selection="50">
+        </lightning-datatable>
+    </lightning-card>
+</template>

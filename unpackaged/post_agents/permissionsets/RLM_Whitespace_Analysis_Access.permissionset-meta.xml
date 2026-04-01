@@ -13,10 +13,6 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>RLM_CreateQuoteWithProductsService</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>RLM_FindSimilarAccountsService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -24,7 +20,11 @@
         <apexClass>RLM_GetAccountOpportunitiesService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>Grants access to RLM Whitespace Analysis Agentforce functions including Find Similar Accounts, Analyze Whitespace, Get Account Opportunities, Create Opportunity, and Create Quote With Products</description>
+    <classAccesses>
+        <apexClass>RLM_WhitespaceProduct</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Grants access to RLM Whitespace Analysis Agentforce functions including Find Similar Accounts, Analyze Whitespace, Get Account Opportunities, and Create Opportunity</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Whitespace Analysis Access</label>
     <objectPermissions>

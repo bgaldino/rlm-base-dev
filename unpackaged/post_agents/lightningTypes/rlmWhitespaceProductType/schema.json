@@ -1,0 +1,5 @@
+{
+  "title": "RLM Whitespace Product",
+  "description": "A product identified as a whitespace opportunity from peer account analysis",
+  "lightning:type": "@apexClassType/c__RLM_WhitespaceProduct"
+}

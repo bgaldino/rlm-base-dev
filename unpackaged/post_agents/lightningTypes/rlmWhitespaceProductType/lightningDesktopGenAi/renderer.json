@@ -1,0 +1,11 @@
+{
+  "collection": {
+    "renderer": {
+      "componentOverrides": {
+        "$": {
+          "definition": "c/rlmWhitespaceProductSelector"
+        }
+      }
+    }
+  }
+}

@@ -32,6 +32,12 @@
         <parameterType>output</parameterType>
     </mappingAttributes>
     <mappingAttributes>
+        <label>Whitespace Product List</label>
+        <name>output_whitespaceProductList</name>
+        <parameterName>whitespaceProductList</parameterName>
+        <parameterType>output</parameterType>
+    </mappingAttributes>
+    <mappingAttributes>
         <label>Whitespace Product IDs</label>
         <name>output_whitespaceProductIds</name>
         <parameterName>whitespaceProductIds</parameterName>

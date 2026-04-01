@@ -99,7 +99,7 @@ project:
     ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
     einstein: true            # Use Einstein AI
     product_dataset: qb       # Default product dataset to use=
-    agents: false             # Deploy Agentforce Agent Configurations
+    agents: true             # Deploy Agentforce Agent Configurations
     refresh: false            # Data refresh flag
     prm: true                # Use Partner Relationship Management
     prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
@@ -295,7 +295,7 @@ project:
 
     ps_aea: &ps_aea
       # Agent-specific permission sets
-      - RLM_QuotingAgent
+      - RLM_Whitespace_Analysis_Access
 
 
     ps_constraints: &ps_constraints
@@ -884,6 +884,21 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents/classes
+
+  # IMPORTANT: This task MUST use SalesforceCommand (not Deploy) due to circular dependency:
+  # - rlmWhitespaceProductSelector.js-meta.xml references itemTypeName="c__rlmWhitespaceProductType"
+  # - rlmWhitespaceProductType/renderer.json references definition="c/rlmWhitespaceProductSelector"
+  # Both must deploy simultaneously using multiple --source-dir flags. The Deploy task does not support
+  # multiple paths, so we use SalesforceCommand to invoke sf CLI directly.
+  deploy_agents_lwc_and_types:
+    description: >
+      Deploy Agentforce LWC components and Custom Lightning Types together (resolves circular dependency).
+      Uses SalesforceCommand with multiple --source-dir flags since the LWC references the Lightning Type
+      and the Lightning Type references the LWC, requiring simultaneous deployment.
+    class_path: cumulusci.tasks.command.SalesforceCommand
+    group: Revenue Lifecycle Management
+    options:
+      command: sf project deploy start --source-dir unpackaged/post_agents/lwc --source-dir unpackaged/post_agents/lightningTypes
 
   deploy_agents_permissionsets:
     description: Deploy Agentforce Agent Permissionsets
@@ -2680,7 +2695,8 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Deploy Agentforce agent configurations in dependency order: settings, Apex classes,
-      GenAI functions, GenAI plugins, planner bundles, bots, flows, and permission sets.
+      LWC components and Custom Lightning Types, GenAI functions, GenAI plugins, planner bundles,
+      bots, flows, and permission sets.
     steps:
       1:
         task: assign_permission_set_groups
@@ -2694,24 +2710,27 @@ flows:
         task: deploy_agents_classes
         when: project_config.project__custom__agents
       4:
-        task: deploy_agents_genAiFunctions
+        task: deploy_agents_lwc_and_types
         when: project_config.project__custom__agents
       5:
-        task: deploy_agents_genAiPlugins
+        task: deploy_agents_genAiFunctions
         when: project_config.project__custom__agents
       6:
-        task: deploy_agents_genAiPlanners
+        task: deploy_agents_genAiPlugins
         when: project_config.project__custom__agents
       7:
-        task: deploy_agents_bots
+        task: deploy_agents_genAiPlanners
         when: project_config.project__custom__agents
       8:
-        task: deploy_agents_flows
+        task: deploy_agents_bots
         when: project_config.project__custom__agents
       9:
-        task: deploy_agents_permissionsets
+        task: deploy_agents_flows
         when: project_config.project__custom__agents
       10:
+        task: deploy_agents_permissionsets
+        when: project_config.project__custom__agents
+      11:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:

@@ -16,6 +16,9 @@ public with sharing class RLM_AnalyzeWhitespaceService {
         public String message;
 
         @InvocableVariable
+        public List<RLM_WhitespaceProduct> whitespaceProductList;
+
+        @InvocableVariable
         public String whitespaceProductIds;
     }
 
@@ -25,6 +28,7 @@ public with sharing class RLM_AnalyzeWhitespaceService {
 
         for (Request req : requests) {
             Response resp = new Response();
+            resp.whitespaceProductList = new List<RLM_WhitespaceProduct>();
 
             try {
                 List<String> similarIds = new List<String>();
@@ -212,6 +216,16 @@ public with sharing class RLM_AnalyzeWhitespaceService {
 
                     for (Integer i = 0; i < whitespaceItems.size(); i++) {
                         WhitespaceItem wi = whitespaceItems[i];
+
+                        // Add to structured list for rich UI rendering
+                        resp.whitespaceProductList.add(new RLM_WhitespaceProduct(
+                            wi.productId,
+                            wi.productName,
+                            wi.productFamily,
+                            wi.adoptionCount,
+                            similarIds.size()
+                        ));
+
                         String prodDesc = wi.productName;
                         if (String.isNotBlank(wi.productFamily)) {
                             prodDesc = prodDesc + ' [' + wi.productFamily + ']';
@@ -226,24 +240,18 @@ public with sharing class RLM_AnalyzeWhitespaceService {
                     resp.success = true;
 
                     if (whitespaceItems.isEmpty()) {
-                        resp.message = 'Great news! This account already owns all the same products as its ' + similarIds.size() + ' peer accounts. No product gaps were identified.';
+                        resp.message = 'No product gaps found. This account has all products owned by its ' + similarIds.size() + ' peer accounts.';
                     } else {
-                        String msg = '';
+                        String msg = 'Found ' + whitespaceItems.size() + ' product opportunit';
+                        msg += (whitespaceItems.size() == 1 ? 'y' : 'ies');
+                        msg += ' based on ' + similarIds.size() + ' similar account';
+                        msg += (similarIds.size() == 1 ? '' : 's') + '.';
 
-                        // Current products section
-                        if (currentProductNames.isEmpty()) {
-                            msg += 'This account has no active products yet.\n\n';
-                        } else {
-                            msg += 'Current Products (' + currentProductIds.size() + '): ' + String.join(currentProductNames, ', ') + '\n\n';
+                        if (!currentProductNames.isEmpty()) {
+                            msg += ' This account currently has ' + currentProductIds.size() + ' product';
+                            msg += (currentProductIds.size() == 1 ? '' : 's') + '.';
                         }
 
-                        // Product gaps as numbered list for easy reference
-                        msg += whitespaceItems.size() + ' product opportunities found across ' + similarIds.size() + ' similar accounts:\n\n';
-                        for (Integer j = 0; j < productDescriptions.size(); j++) {
-                            msg += (j + 1) + '. ' + productDescriptions[j] + '\n';
-                        }
-
-                        msg += '\nWhich products would you like to add to a quote? You can say "all" or list specific numbers (e.g. 1, 3, 5).';
                         resp.message = msg;
                     }
                 }

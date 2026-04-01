@@ -17,6 +17,17 @@
       "copilotAction:isDisplayable" : true,
       "copilotAction:isUsedByPlanner" : true
     },
+    "whitespaceProductList" : {
+      "title" : "whitespaceProductList",
+      "description" : "Structured list of whitespace products for rich UI display with interactive selection",
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : false,
+      "items" : {
+        "lightning:type" : "c__rlmWhitespaceProductType"
+      }
+    },
     "whitespaceProductIds" : {
       "title" : "whitespaceProductIds",
       "description" : "Comma-separated Product2 IDs for whitespace products, useful for creating quotes. Do not display this to the user.",
