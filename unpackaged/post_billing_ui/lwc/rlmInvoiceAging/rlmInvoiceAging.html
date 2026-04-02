@@ -19,7 +19,8 @@
         </div>
 
         <!-- Content -->
-        <div class="slds-card__body slds-card__body_inner" id="invoice-aging-content" if:true={isExpanded}>
+        <template lwc:if={isExpanded}>
+            <div class="slds-card__body slds-card__body_inner" id="invoice-aging-content">
             <!-- Loading Spinner -->
             <template if:true={isLoading}>
                 <div class="slds-text-align_center slds-m-vertical_large">
@@ -133,6 +134,7 @@
                     </template>
                 </template>
             </template>
-        </div>
+            </div>
+        </template>
     </article>
 </template>

@@ -119,12 +119,16 @@ export default class RlmInvoiceAging extends LightningElement {
     }
 
     formatCurrency(amount) {
-        if (amount >= 1000000) {
-            return `$${(amount / 1000000).toFixed(2)}M`;
-        } else if (amount >= 1000) {
-            return `$${(amount / 1000).toFixed(2)}K`;
+        if (amount === null || amount === undefined) return '--';
+        const currency = this.currencyCode || 'USD';
+        const opts = { style: 'currency', currency, minimumFractionDigits: 2 };
+        if (Math.abs(amount) >= 1000000) {
+            return new Intl.NumberFormat('en-US', opts).format(amount / 1000000) + 'M';
         }
-        return `$${amount.toFixed(2)}`;
+        if (Math.abs(amount) >= 1000) {
+            return new Intl.NumberFormat('en-US', opts).format(amount / 1000) + 'K';
+        }
+        return new Intl.NumberFormat('en-US', opts).format(amount);
     }
 
     toggleSection() {
