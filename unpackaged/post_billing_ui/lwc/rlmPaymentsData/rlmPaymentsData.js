@@ -73,7 +73,9 @@ export default class RlmPaymentsData extends NavigationMixin(LightningElement) {
     }
     
     get effectiveRecordId() {
-        return this.selectedAccountId && this.selectedAccountId !== '' ? this.selectedAccountId : null;
+        // Return undefined (not null) when no account is selected so the wire adapter
+        // does not fire until a valid ID is available.
+        return this.selectedAccountId && this.selectedAccountId !== '' ? this.selectedAccountId : undefined;
     }
     
     @wire(getPaymentScheduleItems, { recordId: '$effectiveRecordId', currencyCode: '$selectedCurrency' })
@@ -140,7 +142,7 @@ export default class RlmPaymentsData extends NavigationMixin(LightningElement) {
     }
     
     get noAccountSelected() {
-        return false;
+        return !this.selectedAccountId || this.selectedAccountId === '';
     }
     
     get totalAccountsReceivables() {

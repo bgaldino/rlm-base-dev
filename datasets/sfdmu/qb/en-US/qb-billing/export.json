@@ -72,9 +72,9 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, CreditGeneralLedgerAccountId, DebitGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
+          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, CreditGeneralLedgerAccountId, DebitGeneralLedgerAccountId, LegalEntityId, LegalEntity.Name, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "Name;LegalEntityId",
           "excluded": false
         },
         {

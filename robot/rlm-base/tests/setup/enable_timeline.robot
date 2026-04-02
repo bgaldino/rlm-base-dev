@@ -70,7 +70,7 @@ Enable Timeline Toggle
         ...    })()
         IF    "${turn_on_btn}" != "clicked"
             Capture Page Screenshot
-            Fail    msg="Turn On" button not found in the Timeline confirmation modal.
+            Fail    "Turn On" button not found in the Timeline confirmation modal.
         END
         Sleep    3s    reason=Allow save to complete
         Wait Until Page Contains    Timeline was enabled.    timeout=15s
@@ -78,5 +78,5 @@ Enable Timeline Toggle
         Log    Timeline enabled and confirmed via toast.
     ELSE
         Capture Page Screenshot
-        Fail    msg=Timeline toggle JS returned unexpected result: ${result}. Check the page manually.
+        Fail    Timeline toggle JS returned unexpected result: ${result}. Check the page manually.
     END

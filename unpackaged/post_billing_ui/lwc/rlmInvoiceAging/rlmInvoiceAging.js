@@ -88,26 +88,29 @@ export default class RlmInvoiceAging extends LightningElement {
     get chartData() {
         const maxValue = Math.max(this.lessThan30Days, this.days30To60, this.moreThan60Days);
         const chartHeight = 150;
-        
+        const barStyle = (count) => {
+            const px = maxValue > 0 ? (count / maxValue) * chartHeight : 0;
+            return `height: ${px}px;`;
+        };
         return [
             {
                 label: '<30 days',
                 count: this.lessThan30Days,
-                height: maxValue > 0 ? (this.lessThan30Days / maxValue) * chartHeight : 0,
+                barStyle: barStyle(this.lessThan30Days),
                 color: '#1bc5bd',
                 key: 'less30'
             },
             {
                 label: '30-60 days',
                 count: this.days30To60,
-                height: maxValue > 0 ? (this.days30To60 / maxValue) * chartHeight : 0,
+                barStyle: barStyle(this.days30To60),
                 color: '#ffa800',
                 key: 'days3060'
             },
             {
                 label: '60+ days',
                 count: this.moreThan60Days,
-                height: maxValue > 0 ? (this.moreThan60Days / maxValue) * chartHeight : 0,
+                barStyle: barStyle(this.moreThan60Days),
                 color: '#f64e60',
                 key: 'more60'
             }
