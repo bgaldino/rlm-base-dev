@@ -1,4 +1,4 @@
-:return-link {
+.return-link {
     color: var(--lwc-colorTextLink, #0176d3);
     text-decoration: none;
 }

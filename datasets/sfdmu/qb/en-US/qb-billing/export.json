@@ -84,7 +84,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, Description, IntervalUnit, IntervalValue, MaximumRetryCount, PaymentGatewayErrorCategory, PaymentGatewayErrorCode, PaymentGatewayId, PaymentRetryRuleSetId, RetryIntervalType FROM PaymentRetryRule",
+          "query": "SELECT CurrencyIsoCode, Description, IntervalUnit, IntervalValue, MaximumRetryCount, PaymentGatewayErrorCategory, PaymentGatewayErrorCode, PaymentGatewayId, PaymentRetryRuleSetId, PaymentRetryRuleSet.Name, RetryIntervalType FROM PaymentRetryRule",
           "operation": "Upsert",
           "externalId": "PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType",
           "excluded": false

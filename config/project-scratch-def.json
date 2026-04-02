@@ -2,6 +2,30 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "enterprise",
+  "features": [
+    "B2BCommerce",
+    "BillingAdvanced",
+    "CGAnalytics",
+    "Chatbot",
+    "Communities",
+    "ContractsAI",
+    "CoreCpq",
+    "CustomerCommunityPlus",
+    "DocGen",
+    "Einstein1AIPlatform",
+    "EnablePRM",
+    "EnableSetPasswordInApi",
+    "ExternalClientApps",
+    "InsightsPlatform",
+    "OrderManagement",
+    "OrderSaveLogicEnabled",
+    "PartnerCommunity",
+    "RevenueIntelligence",
+    "SalesCloudEinstein",
+    "ServiceCloud",
+    "UsageManagement",
+    "UnifiedCatalog"
+  ],
   "settings": {
     "agentPlatformSettings": {
       "enableAgentPlatform": true
