@@ -1,0 +1,57 @@
+<template>
+    <lightning-card title="Billing Operations" icon-name="standard:case_milestone">
+        <div class="slds-p-horizontal_medium slds-p-vertical_small">
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasData}>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon icon-cases">
+                                <lightning-icon icon-name="standard:case" size="small"></lightning-icon>
+                            </div>
+                            <div class="metric-body">
+                                <span class="metric-value">{metrics.openBillingCases}</span>
+                                <span class="metric-label">Open Billing Cases</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon icon-disputes">
+                                <lightning-icon icon-name="standard:currency" size="small"></lightning-icon>
+                            </div>
+                            <div class="metric-body">
+                                <span class="metric-value">{metrics.openDisputes}</span>
+                                <span class="metric-label">Open Disputes</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon icon-invoices">
+                                <lightning-icon icon-name="standard:invoice" size="small"></lightning-icon>
+                            </div>
+                            <div class="metric-body">
+                                <span class="metric-value">{metrics.disputedInvoices}</span>
+                                <span class="metric-label">Disputed Invoices</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon icon-amount">
+                                <lightning-icon icon-name="utility:moneybag" size="small"></lightning-icon>
+                            </div>
+                            <div class="metric-body">
+                                <span class="metric-value value-amount">{metrics.totalDisputedAmount}</span>
+                                <span class="metric-label">Total Disputed Amount</span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

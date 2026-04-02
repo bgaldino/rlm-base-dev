@@ -8,13 +8,20 @@ SFDMU data plan for QuantumBit (QB) billing configuration. Creates accounting pe
 
 This plan is executed as **step 1** of the `prepare_billing` flow (when `billing=true`, `qb=true`, `refresh=false`).
 
-| Step | Task                           | Description                                                    |
-|------|--------------------------------|----------------------------------------------------------------|
-| 1    | `insert_billing_data`          | Runs this SFDMU plan (3 passes)                                |
-| 3    | `activate_flow`                | Activates `RLM_Order_to_Billing_Schedule_Flow`                 |
-| 4    | `activate_default_payment_term`| Runs `activateDefaultPaymentTerm.apex`                         |
-| 5    | `activate_billing_records`     | Runs `activateBillingRecords.apex`                             |
-| 6    | `deploy_post_billing`          | Deploys billing metadata from `unpackaged/post_billing`        |
+| Step | Task                              | When           | Description                                                                             |
+|------|-----------------------------------|----------------|-----------------------------------------------------------------------------------------|
+| 1    | `insert_billing_data`             | billing+qb     | Runs this SFDMU plan (3 passes)                                                         |
+| 2    | `insert_q3_billing_data`          | billing+q3     | Loads Q3 billing data (gated by q3 flag)                                                |
+| 3    | `activate_flow`                   | billing        | Activates `RLM_Order_to_Billing_Schedule_Flow`                                          |
+| 4    | `activate_default_payment_term`   | billing        | Runs `activateDefaultPaymentTerm.apex`                                                  |
+| 5    | `activate_billing_records`        | billing        | Runs `activateBillingRecords.apex` (BTI → BT → BP)                                     |
+| 6    | `enable_timeline`                 | billing_ui     | Enables industries_common:timeline (required before billing_ui flexipages)               |
+| 7    | `deploy_post_billing`             | billing        | Deploys billing settings/metadata from `unpackaged/post_billing`                        |
+| 8    | `deploy_billing_id_settings`      | billing        | Deploys `post_billing_id_settings` — sets GL accounts, legal entity, treatment, tax IDs |
+| 9    | `deploy_billing_template_settings`| billing        | Re-enables Invoice Email/PDF toggles (cycled off in step 8 to avoid template ID errors) |
+| 10   | `deploy_post_billing_ui`          | billing_ui     | Deploys Billing UI LWC components, Apex, fields, permset from `unpackaged/post_billing_ui` |
+| 11   | `assign_permission_sets`          | billing_ui     | Assigns `RLM_BillingUI` permission set to the running user                              |
+| 12   | `apply_context_billing_order`     | billing+billing_ui | Patches `RLM_BillingContext` Order node — maps `BillingArrangement__std` → `RLM_Billing_Arrangement__c` and `BillingProfile__std` → `RLM_Billing_Profile__c` |
 
 ### Task Definition
 
@@ -42,36 +49,40 @@ to Product2
 
 | #  | Object                       | Operation | External ID                                | Records |
 |----|------------------------------|-----------|--------------------------------------------|---------|
-| 1  | AccountingPeriod             | Upsert    | `Name;FinancialYear`                       | 24      |
+| 1  | AccountingPeriod             | Upsert    | `Name;FinancialYear`                       | 84      |
 | 2  | LegalEntity                  | Upsert    | `Name`                                     | 2       |
-| 3  | LegalEntyAccountingPeriod    | Upsert    | `Name`                                     | 48      |
+| 3  | LegalEntyAccountingPeriod    | Upsert    | `Name`                                     | 168     |
 | 4  | PaymentTerm                  | Upsert    | `Name`                                     | 2       |
-| 5  | PaymentTermItem              | Upsert    | `$$PaymentTerm.Name$Type`                  | 2       |
+| 5  | PaymentTermItem              | Upsert    | `PaymentTerm.Name;Type`                    | 2       |
 | 6  | BillingPolicy                | Upsert    | `Name`                                     | 3       |
-| 7  | BillingTreatment             | Upsert    | `Name;BillingPolicy.Name;LegalEntity.Name` | 5       |
-| 8  | BillingTreatmentItem         | Upsert    | `$$Name$BillingTreatment.Name`             | 8       |
+| 7  | BillingTreatment             | Upsert    | `Name`                                     | 5       |
+| 8  | BillingTreatmentItem         | Upsert    | `Name;BillingTreatment.Name`               | 8       |
 | 9  | Product2                     | Update    | `StockKeepingUnit`                         | 164     |
-| 10 | GeneralLedgerAccount         | Upsert    | `Name;LegalEntity.Name`                    | 51      |
-| 11 | GeneralLedgerAcctAsgntRule   | Upsert    | `Name;LegalEntity.Name`                    | 8       |
+| 10 | GeneralLedgerAccount         | Upsert    | `AccountingCode`                           | 51      |
+| 11 | GeneralLedgerAcctAsgntRule   | Upsert    | `Name`                                     | 8       |
+| 12 | PaymentRetryRuleSet          | Upsert    | `Name`                                     | 1       |
+| 13 | PaymentRetryRule             | Upsert    | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | 6 |
 
-**Note:** PaymentTerm, PaymentTermItem, BillingPolicy, BillingTreatment, and BillingTreatmentItem all use `skipExistingRecords: true` to avoid overwriting existing records. Product2 is Update-only (sets `BillingPolicyId`).
+**Note:** PaymentTerm, PaymentTermItem, BillingPolicy, BillingTreatment, and BillingTreatmentItem all use `skipExistingRecords: true` to avoid overwriting existing records. Product2 is Update-only (sets `BillingPolicyId`). See [Optimization Opportunities](#optimization-opportunities) for known issues with `skipExistingRecords`.
+
+**FK ID pattern:** All parent-lookup fields include both the FK ID field (e.g. `PaymentTermId`, `BillingTreatmentId`, `BillingPolicyId`, `LegalEntityId`) in the SOQL SELECT and the traversal column (e.g. `PaymentTerm.Name`, `BillingTreatment.Name`) in the CSV header. SFDMU v5 requires the FK ID in the SELECT to know which field to write; the traversal column in the CSV provides the lookup value. Omitting the FK ID results in null FKs even when the traversal column resolves correctly.
 
 ### Pass 2 — Activate BillingTreatmentItem
 
 | # | Object              | Operation | External ID                    | Records |
 |---|---------------------|-----------|--------------------------------|---------|
-| 1 | BillingTreatmentItem| Update    | `$$Name$BillingTreatment.Name` | (Draft) |
+| 1 | BillingTreatmentItem| Update    | `Name;BillingTreatment.Name`   | (Draft) |
 
 Activates BillingTreatmentItem records that are still in Draft status.
 
 ### Pass 3 — Activate BillingTreatment and Set BillingPolicy Defaults
 
-| # | Object           | Operation | External ID                                | Records |
-|---|------------------|-----------|--------------------------------------------|---------|
-| 1 | BillingTreatment | Update    | `Name;BillingPolicy.Name;LegalEntity.Name` | (Draft) |
-| 2 | BillingPolicy    | Update    | `Name`                                     | (Draft) |
+| # | Object           | Operation | External ID | Records |
+|---|------------------|-----------|-------------|---------|
+| 1 | BillingTreatment | Update    | `Name`      | (Draft) |
+| 2 | BillingPolicy    | Update    | `Name`      | (Draft) |
 
-Activates BillingTreatment records and sets `DefaultBillingTreatmentId` on BillingPolicy. The BillingPolicy query uses a nested `$$` column for the default treatment lookup: `DefaultBillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name`.
+Activates BillingTreatment records and sets `DefaultBillingTreatmentId` on BillingPolicy. BillingPolicy.csv includes a `DefaultBillingTreatment.Name` traversal column so SFDMU can resolve the FK at load time.
 
 ## Apex Activation Scripts
 
@@ -102,7 +113,7 @@ Both scripts are idempotent — all queries filter on non-Active status.
 
 ### Financial Infrastructure (Objects 1-3)
 
-AccountingPeriod (24 monthly periods for 2024-2025), LegalEntity (US and Canada), and their mapping via LegalEntyAccountingPeriod (48 records = 24 periods x 2 entities).
+AccountingPeriod (84 monthly periods for 2024-2030), LegalEntity (US and Canada), and their mapping via LegalEntyAccountingPeriod (168 records = 84 periods x 2 entities).
 
 ### Payment Terms (Objects 4-5)
 
@@ -118,16 +129,14 @@ Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction t
 
 ## Composite External IDs
 
-| Object                     | Composite Key                                    | CSV `$$` Column |
-|----------------------------|--------------------------------------------------|-----------------|
-| AccountingPeriod           | `Name;FinancialYear`                             | Yes             |
-| PaymentTermItem            | `PaymentTerm.Name;Type`                          | Yes             |
-| BillingTreatment           | `Name;BillingPolicy.Name;LegalEntity.Name`       | Yes             |
-| BillingTreatmentItem       | `Name;BillingTreatment.Name`                     | Yes             |
-| GeneralLedgerAccount       | `Name;LegalEntity.Name`                          | Yes             |
-| GeneralLedgerAcctAsgntRule | `Name;LegalEntity.Name`                          | Yes             |
+| Object               | Composite Key                                                            | CSV `$$` Column |
+|----------------------|--------------------------------------------------------------------------|-----------------|
+| AccountingPeriod     | `Name;FinancialYear`                                                     | Yes             |
+| PaymentTermItem      | `PaymentTerm.Name;Type`                                                  | Yes             |
+| BillingTreatmentItem | `Name;BillingTreatment.Name`                                             | Yes             |
+| PaymentRetryRule     | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | Yes             |
 
-GL assignment rules also use nested `$$` columns for debit/credit account lookups: `DebitGeneralLedgerAccount.$$Name$LegalEntity.Name` and `CreditGeneralLedgerAccount.$$Name$LegalEntity.Name`.
+GL assignment rules reference debit/credit accounts via `DebitGeneralLedgerAccount.AccountingCode` and `CreditGeneralLedgerAccount.AccountingCode` traversal columns in the CSV (resolved to `CreditGeneralLedgerAccountId`/`DebitGeneralLedgerAccountId` FK IDs in SELECT).
 
 ## Portability
 
@@ -137,6 +146,20 @@ All external IDs use portable, human-readable fields:
 - **LegalEntyAccountingPeriod.Name**: Descriptive composite strings (e.g., "Default Legal Entity - US-2024-January1-January31")
 - **StockKeepingUnit** for Product2 references
 - **No auto-numbered Name fields**
+
+## Billing Context Plan (`apply_context_billing_order`)
+
+Step 12 of `prepare_billing` patches the `RLM_BillingContext` context definition using the plan at `datasets/context_plans/Billing/contexts/billing_order_attributes.json`. It adds two attribute mappings to the `OrderEntitiesMapping` mapping on the `BillingTransaction` node:
+
+| Context Attribute         | sObject | sObjectField               | Purpose |
+|---------------------------|---------|----------------------------|---------|
+| `BillingArrangement__std` | Order   | `RLM_Billing_Arrangement__c` | Maps billing arrangement lookup from Order to BillingTransaction context |
+| `BillingProfile__std`     | Order   | `RLM_Billing_Profile__c`    | Maps billing profile lookup from Order to BillingTransaction context |
+
+**Notes:**
+- `SavedPaymentMethod__std` is intentionally excluded — the platform already has an inherited mapping for this attribute; adding a custom one fails with `INVALID_INPUT: An Inherited mapping for ContextAttribute: SavedPaymentMethod already exists.`
+- Task verification logs `hasHydrationDetail: false` for both `__std` attributes — this is a **known false negative**. The Connect API GET does not expose hydration records for `__std` attributes in `contextAttrHydrationDetailList`; the records exist and are confirmed via Tooling API.
+- Step 12 is gated by `billing AND billing_ui` because `RLM_Billing_Arrangement__c` and `RLM_Billing_Profile__c` are Order fields deployed by `post_billing_ui` (step 10).
 
 ## Dependencies
 
@@ -152,13 +175,13 @@ All external IDs use portable, human-readable fields:
 
 ```
 qb-billing/
-├── export.json                          # SFDMU data plan (3 passes, 14 objects)
+├── export.json                          # SFDMU data plan (3 passes, 16 objects)
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
-├── AccountingPeriod.csv                 # 24 records
+├── AccountingPeriod.csv                 # 84 records (2024–2030)
 ├── LegalEntity.csv                      # 2 records
-├── LegalEntyAccountingPeriod.csv        # 48 records
+├── LegalEntyAccountingPeriod.csv        # 168 records (84 periods x 2 entities)
 ├── PaymentTerm.csv                      # 2 records
 ├── PaymentTermItem.csv                  # 2 records
 ├── BillingPolicy.csv                    # 3 records
@@ -167,6 +190,8 @@ qb-billing/
 ├── Product2.csv                         # 164 records (Update only)
 ├── GeneralLedgerAccount.csv             # 51 records
 ├── GeneralLedgerAcctAsgntRule.csv       # 8 records
+├── PaymentRetryRuleSet.csv
+├── PaymentRetryRule.csv
 │
 │  Source CSVs (Pass 2 - Activate BTI)
 ├── objectset_source/
@@ -191,7 +216,7 @@ Pass 1 uses `skipExistingRecords: true` on billing objects, so re-runs will skip
 
 The Apex activation scripts filter on `Status != 'Active'`, making them idempotent.
 
-**Not yet validated** — idempotency testing against a 260 org is pending.
+**Validated** — `test_qb_billing_idempotency` passes on Release 260. All 13 objects confirmed idempotent.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
@@ -209,7 +234,7 @@ Schema was queried against a 260 scratch org. Findings below.
 
 | Object                     | Field                       | Type     | Updateable | Notes                                           |
 |----------------------------|-----------------------------|----------|------------|--------------------------------------------------|
-| **BillingTreatment**       | `CanChangeBillingFrequency` | BOOLEAN  | Yes        | Allows billing frequency changes post-creation   |
+| **BillingTreatment**       | `CanChangeBillingFrequency` | BOOLEAN  | Yes        | Allows billing frequency changes post-creation — **added to plan** |
 | **LegalEntyAccountingPeriod** | `ClosureStage`           | PICKLIST | Yes        | Accounting period closure tracking               |
 
 ### Field Coverage Audit
@@ -222,7 +247,7 @@ Schema was queried against a 260 scratch org. Findings below.
 | PaymentTerm                | ✅     | All 4 fields present                                         |
 | PaymentTermItem            | ✅     | All fields present                                           |
 | BillingPolicy              | ✅     | All fields present (including DefaultBillingTreatmentId in Pass 3) |
-| BillingTreatment           | ⚠️     | Missing `CanChangeBillingFrequency` (new boolean)            |
+| BillingTreatment           | ✅     | `CanChangeBillingFrequency` added                            |
 | BillingTreatmentItem       | ✅     | All fields present; `Handling0Amount` confirmed valid in 260  |
 | Product2                   | ✅     | Only updates BillingPolicyId — correct for this plan         |
 | GeneralLedgerAccount       | ✅     | All fields present                                           |
@@ -250,46 +275,29 @@ Schema was queried against a 260 scratch org. Findings below.
 
 ### Schema-Enforced Unique Fields
 
-| Object               | Field            | isUnique | isIdLookup | Current ExternalId Uses It? |
-|----------------------|------------------|----------|------------|------------------------------|
-| GeneralLedgerAccount | `AccountingCode` | **Yes**  | Yes        | **No** — uses `Name;LegalEntity.Name` |
-
-### Simplification Opportunity: GeneralLedgerAccount
-
-`GeneralLedgerAccount.AccountingCode` is **schema-enforced unique**. The current externalId is `Name;LegalEntity.Name` (2-field composite), but since `AccountingCode` alone guarantees uniqueness, both components are **redundant**. This simplification would:
-- Reduce the composite key to a single field
-- Remove the need for `$$` composite key columns
-- Simplify the GeneralLedgerAcctAsgntRule lookups (`DebitGeneralLedgerAccount.$$Name$LegalEntity.Name` and `CreditGeneralLedgerAccount.$$Name$LegalEntity.Name` could become `DebitGeneralLedgerAccount.AccountingCode` and `CreditGeneralLedgerAccount.AccountingCode`)
-
-**Recommendation:** Simplify GeneralLedgerAccount externalId from `Name;LegalEntity.Name` to just `AccountingCode`. This cascades to simplify GeneralLedgerAcctAsgntRule's debit/credit account lookups.
+| Object               | Field            | isUnique | isIdLookup | ExternalId |
+|----------------------|------------------|----------|------------|------------|
+| GeneralLedgerAccount | `AccountingCode` | **Yes**  | Yes        | `AccountingCode` ✅ |
 
 ### ExternalId Assessment
 
-| Object                     | Current ExternalId                               | Name Auto-Num | Assessment |
-|----------------------------|--------------------------------------------------|---------------|------------|
-| AccountingPeriod           | `Name;FinancialYear`                             | No            | ✅ OK — 2 fields necessary (period name + year) |
-| LegalEntity                | `Name`                                           | No            | ✅ OK — human-readable |
-| LegalEntyAccountingPeriod  | `Name`                                           | No (read-only)| ✅ OK — descriptive composite string |
-| PaymentTerm                | `Name`                                           | No            | ✅ OK — human-readable |
-| PaymentTermItem            | `$$PaymentTerm.Name$Type`                        | **Yes**        | ✅ Good — composite from parent + type |
-| BillingPolicy              | `Name`                                           | No            | ✅ OK — human-readable |
-| BillingTreatment           | `Name;BillingPolicy.Name;LegalEntity.Name`       | No            | ✅ OK — 3-field composite for cross-entity uniqueness |
-| BillingTreatmentItem       | `$$Name$BillingTreatment.Name`                   | No            | ✅ OK — composite from parent |
-| GeneralLedgerAccount       | `Name;LegalEntity.Name`                          | No (read-only)| ⚠️ Can simplify to `AccountingCode` (schema-unique) |
-| GeneralLedgerAcctAsgntRule | `Name;LegalEntity.Name`                          | No            | ✅ OK — 2-field composite |
-| Product2                   | `StockKeepingUnit`                               | No*           | ✅ OK — platform-enforced unique when RLM enabled |
-
-### Composite Key Complexity
-
-All keys are relatively simple (1-3 fields). The main simplification opportunity is GeneralLedgerAccount (see above), which cascades to simplify the GL Assignment Rule lookups.
+| Object                     | ExternalId                                                               | Name Auto-Num | Assessment |
+|----------------------------|--------------------------------------------------------------------------|---------------|------------|
+| AccountingPeriod           | `Name;FinancialYear`                                                     | No            | ✅ 2 fields necessary (period name + year) |
+| LegalEntity                | `Name`                                                                   | No            | ✅ Human-readable |
+| LegalEntyAccountingPeriod  | `Name`                                                                   | No (read-only)| ✅ Descriptive composite string |
+| PaymentTerm                | `Name`                                                                   | No            | ✅ Human-readable |
+| PaymentTermItem            | `PaymentTerm.Name;Type`                                                  | **Yes**        | ✅ Composite from parent + type |
+| BillingPolicy              | `Name`                                                                   | No            | ✅ Human-readable |
+| BillingTreatment           | `Name`                                                                   | No            | ✅ Unique within org |
+| BillingTreatmentItem       | `Name;BillingTreatment.Name`                                             | No            | ✅ Composite from parent |
+| GeneralLedgerAccount       | `AccountingCode`                                                         | No (read-only)| ✅ Schema-enforced unique |
+| GeneralLedgerAcctAsgntRule | `Name`                                                                   | No            | ✅ Names are unique in this dataset |
+| PaymentRetryRule           | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | No            | ✅ Composite uniqueness |
+| Product2                   | `StockKeepingUnit`                                                       | No*           | ✅ Platform-enforced unique when RLM enabled |
 
 ## Optimization Opportunities
 
-1. **Simplify GeneralLedgerAccount externalId**: `AccountingCode` is schema-unique — replace `Name;LegalEntity.Name` composite and cascade simplification to GL Assignment Rule debit/credit lookups
-2. **Add `CanChangeBillingFrequency` to BillingTreatment SOQL**: New 260 field needed for complete billing treatment configuration
-3. **Add extraction support**: Create `extract_qb_billing_data` CCI task for bidirectional operation
-4. **Review CSVIssuesReport**: Investigate the 10-line CSVIssuesReport.csv for any existing data quality issues
-5. **Simplify activation**: The 3-pass SFDMU activation + 2 Apex activation scripts is complex — consider whether the Apex scripts alone could handle all activation, reducing to a simpler 1-pass SFDMU plan
-6. **Extend accounting periods**: Current periods cover 2024-2025 only — may need extension for longer-running orgs
-7. **LegalEntity field gap**: Same missing geo/email fields as qb-tax — coordinate update across both plans
-8. **Consider `excludeIdsFromCSVFiles` consistency**: Already set to `"true"` — good for portability (unlike qb-tax which uses `"false"`)
+1. **Simplify activation**: The 3-pass SFDMU activation + 2 Apex activation scripts is complex — consider whether the Apex scripts alone could handle all activation, reducing to a simpler 1-pass SFDMU plan
+2. **LegalEntity field gap**: Same missing geo/email fields as qb-tax — coordinate update across both plans
+3. **Investigate `skipExistingRecords` behavior**: PaymentTerm, PaymentTermItem, BillingPolicy, BillingTreatment, and BillingTreatmentItem use `skipExistingRecords: true`. This prevents overwriting existing records but may silently skip new records added to the CSV if any existing record is already present. The exact SFDMU v5 behavior of `skipExistingRecords` — whether it skips the entire object or only matched records — needs verification. If it skips the whole object when any record exists, new CSV rows will never load after initial install.

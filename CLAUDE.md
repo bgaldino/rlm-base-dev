@@ -244,6 +244,17 @@ When reviewing `export.json` changes:
 - [ ] Empty CSVs have `excluded: true` (prevents destructive wipe when records are added later)
 - [ ] Objects ordered parent → child (deleteOldData reverse-order safety)
 - [ ] `$$` composite key columns in CSV headers match the `externalId` fields exactly
+- [ ] **CSV headers are validated after every export.json change** — SELECT field additions/removals and externalId changes must be reflected in the corresponding CSV headers before running. Never change export.json without checking the CSV.
+
+### SELECT and externalId — CSV alignment rules
+
+| export.json change | CSV impact |
+|--------------------|------------|
+| Add FK ID field to SELECT (e.g. `AccountingPeriodId`) | Keep corresponding traversal column in CSV (e.g. `AccountingPeriod.Name` or `AccountingPeriod.$$Name$FinancialYear`) — SFDMU uses it to resolve the FK value from the target org |
+| Remove traversal from SELECT, add FK ID | Keep the traversal column in CSV — the traversal is what SFDMU reads for parent lookup when source is CSV |
+| Change externalId from composite to single field | Remove the `$$Field1$Field2` composite key column from CSV header and all data rows |
+| Change externalId — add a traversal component (e.g. `Name;LegalEntity.Name`) | Add a `$$Name$LegalEntity.Name` composite key column to CSV; also verify the traversal value is a standalone column |
+| externalId is all-traversal components | Bug 3 risk — SFDMU may always insert instead of match. Use a direct field in the externalId or `Insert + deleteOldData`. Test idempotency immediately. |
 
 ---
 

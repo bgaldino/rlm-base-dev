@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Charge_Type__c</fullName>
+    <externalId>false</externalId>
+    <formula>IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;One-Time&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;
+),
+&apos;One time&apos;,
+
+IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;Billing Milestone Plan&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;
+),
+&apos;Milestone Plan&apos;,
+
+IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;Month&apos;,
+OR(
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Evergreen&apos;
+)
+),
+&apos;Monthly Subscription&apos;,
+
+IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;Quarter&apos;,
+OR(
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Evergreen&apos;
+)
+),
+&apos;Quarterly Subscription&apos;,
+
+IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;Semi-Annual&apos;,
+OR(
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Evergreen&apos;
+)
+),
+&apos;Semi-Annual Subscription&apos;,
+
+IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;Year&apos;,
+OR(
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Evergreen&apos;
+)
+),
+&apos;Annual Subscription&apos;,
+
+IF(
+AND(
+TEXT(BillingScheduleGroup.BillingTermUnit) = &apos;Day&apos;,
+OR(
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Order Amount&apos;,
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Evergreen&apos;
+)
+),
+&apos;Daily Subscription&apos;,
+
+IF(
+TEXT(BillingScheduleGroup.BillingMethod) = &apos;Usage&apos;,
+&apos;Usage Resource&apos;,
+
+&apos;Other&apos;
+)
+)
+)
+)
+)
+)
+)
+)</formula>
+    <label>Charge Type</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

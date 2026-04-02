@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultEmailTemplate>__DEFAULT_EMAIL_TEMPLATE_ID__</defaultEmailTemplate>
+    <defaultInvPreviewTemplate>__DEFAULT_INV_PREVIEW_TEMPLATE_ID__</defaultInvPreviewTemplate>
+    <defaultInvoiceDocTemplate>__DEFAULT_INVOICE_DOC_TEMPLATE_ID__</defaultInvoiceDocTemplate>
+</BillingSettings>

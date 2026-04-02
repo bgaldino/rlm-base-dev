@@ -1,0 +1,188 @@
+<template>
+    <lightning-card>
+        <div slot="title">
+            <div class="slds-grid slds-grid_vertical-align-center">
+                <lightning-icon icon-name="standard:event" size="small" class="slds-m-right_x-small"></lightning-icon>
+                <span class="slds-text-heading_small">Billing Schedules ({scheduleCount})</span>
+            </div>
+        </div>
+        
+        <div slot="actions">
+            <div class="slds-grid slds-gutters_x-small">
+                <div class="slds-col">
+                    <span class="legend-item">
+                        <span class="legend-color active-color"></span>
+                        <span class="slds-text-body_small">Active</span>
+                    </span>
+                </div>
+                <div class="slds-col">
+                    <span class="legend-item">
+                        <span class="legend-color billed-color"></span>
+                        <span class="slds-text-body_small">Completely Billed</span>
+                    </span>
+                </div>
+                <div class="slds-col">
+                    <span class="legend-item">
+                        <span class="legend-color planned-color"></span>
+                        <span class="slds-text-body_small">Planned</span>
+                    </span>
+                </div>
+                <div class="slds-col">
+                    <span class="legend-item">
+                        <span class="legend-color cancelled-color"></span>
+                        <span class="slds-text-body_small">Cancelled</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+            
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-p-around_medium">
+                    {error}
+                </div>
+            </template>
+            
+            <template if:true={hasData}>
+                <!-- Timeline Header with Month Labels -->
+                <div class="timeline-container">
+                    <div class="timeline-header">
+                        <div class="name-column-header">Name / Category</div>
+                        <div class="timeline-months">
+                            <template for:each={monthLabels} for:item="month">
+                                <div key={month.key} class="month-label" style={month.style}>
+                                    {month.label}
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Billing Schedule Rows -->
+                    <div class="timeline-rows">
+                        <template for:each={billingSchedules} for:item="schedule">
+                            <div key={schedule.id} class="schedule-row" data-schedule-id={schedule.id} onclick={handleScheduleClick}>
+                                <div class="name-column">
+                                    <div class="schedule-name">
+                                        <lightning-button 
+                                            variant="base" 
+                                            label={schedule.scheduleNumber} 
+                                            class="schedule-link"
+                                            data-schedule-id={schedule.id}
+                                            onclick={handleScheduleClick}>
+                                        </lightning-button>
+                                    </div>
+                                    <div class="schedule-category">
+                                        <lightning-badge label={schedule.category} class={schedule.categoryClass}></lightning-badge>
+                                        <span class="quantity-label">Qty {schedule.quantity}</span>
+                                    </div>
+                                </div>
+                                <div class="timeline-bar-container">
+                                    <div class={schedule.barClass} style={schedule.barStyle}>
+                                        <span class="bar-amount">{schedule.displayAmount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Selected Schedule Details -->
+                <template if:true={selectedSchedule}>
+                    <div class="slds-m-top_large">
+                        <lightning-card title={selectedScheduleTitle}>
+                            <div slot="actions">
+                                <lightning-button 
+                                    icon-name="utility:close" 
+                                    variant="bare" 
+                                    onclick={closeScheduleDetails}>
+                                </lightning-button>
+                            </div>
+                            
+                            <div class="slds-p-around_medium">
+                                <!-- Billing Amount Information -->
+                                <div class="slds-text-heading_small slds-m-bottom_small">Billing Amount Information</div>
+                                <div class="slds-grid slds-wrap slds-gutters_small slds-m-bottom_large">
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Total Amount</div>
+                                        <div class="detail-value">{selectedSchedule.formattedTotalAmount}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billed Amount</div>
+                                        <div class="detail-value">{selectedSchedule.formattedBilledAmount}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Pending Amount</div>
+                                        <div class="detail-value">{selectedSchedule.formattedPendingAmount}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Period Amount</div>
+                                        <div class="detail-value">{selectedSchedule.formattedBillingPeriodAmount}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Quantity</div>
+                                        <div class="detail-value">{selectedSchedule.quantity}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Unit Price</div>
+                                        <div class="detail-value">{selectedSchedule.formattedUnitPrice}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Net Unit Price</div>
+                                        <div class="detail-value">{selectedSchedule.formattedNetUnitPrice}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Billing Date Information -->
+                                <div class="slds-text-heading_small slds-m-bottom_small">Billing Date Information</div>
+                                <div class="slds-grid slds-wrap slds-gutters_small">
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Schedule Start Date</div>
+                                        <div class="detail-value">{selectedSchedule.formattedStartDate}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Schedule End Date</div>
+                                        <div class="detail-value">{selectedSchedule.formattedEndDate}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Next Billing Date</div>
+                                        <div class="detail-value">{selectedSchedule.formattedNextBillingDate}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Type</div>
+                                        <div class="detail-value">{selectedSchedule.billingType}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Method</div>
+                                        <div class="detail-value">{selectedSchedule.billingMethod}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Term</div>
+                                        <div class="detail-value">{selectedSchedule.billingTerm}</div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="detail-label">Billing Term Unit</div>
+                                        <div class="detail-value">{selectedSchedule.billingTermUnit}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="slds-m-top_medium">
+                                    <div class="detail-label slds-m-bottom_x-small">Billed vs Pending</div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-filled" style={selectedSchedule.progressBarStyle}>
+                                            {selectedSchedule.progressPercentage}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </lightning-card>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

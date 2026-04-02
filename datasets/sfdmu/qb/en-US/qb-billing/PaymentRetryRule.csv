@@ -1,0 +1,7 @@
+$$PaymentGatewayErrorCategory$PaymentRetryRuleSet.Name$RetryIntervalType,CurrencyIsoCode,Description,IntervalUnit,IntervalValue,MaximumRetryCount,PaymentGatewayErrorCategory,PaymentGatewayErrorCode,PaymentGatewayId,PaymentRetryRuleSet.Name,RetryIntervalType
+CardLimit;Retry Rules - Default;Fixed,USD,,Minutes,1,5,CardLimit,,,Retry Rules - Default,Fixed
+PaymentProcessing;Retry Rules - Default;Staggered,USD,,Minutes,"1,2,3",,PaymentProcessing,,,Retry Rules - Default,Staggered
+PaymentInformation;Retry Rules - Default;Fixed,USD,,Minutes,5,3,PaymentInformation,,,Retry Rules - Default,Fixed
+Security;Retry Rules - Default;Staggered,USD,,Minutes,"5,10,15",,Security,,,Retry Rules - Default,Staggered
+GatewayConnection;Retry Rules - Default;Staggered,USD,,Minutes,"1,2,3",,GatewayConnection,,,Retry Rules - Default,Staggered
+ValidationFailure;Retry Rules - Default;Fixed,USD,,Minutes,4,2,ValidationFailure,,,Retry Rules - Default,Fixed

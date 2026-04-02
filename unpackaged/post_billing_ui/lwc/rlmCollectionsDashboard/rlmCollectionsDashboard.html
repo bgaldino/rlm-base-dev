@@ -1,0 +1,359 @@
+<template>
+    <div class="mission-control">
+        <header class="filter-bar">
+            <div class="filter-grid">
+                <lightning-combobox name="account" label="Account" value={selectedAccountId} options={accountOptions} onchange={handleAccountChange} placeholder="All Accounts" class="filter-input"></lightning-combobox>
+                <lightning-combobox name="currency" label="Currency" value={selectedCurrency} options={currencyOptions} onchange={handleCurrencyChange} placeholder="Currency" class="filter-input"></lightning-combobox>
+            </div>
+            <div class="filter-context"><span class="context-label">Viewing:</span> {selectedAccountLabel} · {selectedCurrencyLabel}</div>
+        </header>
+
+        <main class="dashboard-body">
+            <template if:true={isLoadingOptions}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoadingOptions}>
+                <template if:true={dataError}>
+                    <div class="error-banner"><lightning-icon icon-name="utility:error" size="x-small"></lightning-icon> {dataError}</div>
+                </template>
+
+                <template if:false={dataError}>
+                    <div class="dashboard-layout">
+                    <div class="dashboard-main">
+                    <!-- THE PULSE: KPI cards -->
+                    <section class="pulse-section">
+                        <div class="pulse-cards">
+                            <div class="pulse-card card-receivables">
+                                <div class="pulse-card-label">Receivables Outstanding</div>
+                                <div class="pulse-card-value">{formatCurrency(receivablesOutstandingValue)}</div>
+                                <div class="pulse-card-meta">{invoiceCount} invoices</div>
+                            </div>
+                            <div class="pulse-card card-current">
+                                <div class="pulse-card-label">Current Due</div>
+                                <div class="pulse-card-value">{formatCurrency(currentDueValue)}</div>
+                            </div>
+                            <div class="pulse-card card-overdue pulse-urgency">
+                                <div class="pulse-card-label">Overdue</div>
+                                <div class="pulse-card-value pulse-value-urgency">{formatCurrency(overdueValue)}</div>
+                            </div>
+                            <div class="pulse-card card-unapplied pulse-action">
+                                <div class="pulse-card-label">Unapplied Payments</div>
+                                <div class="pulse-card-value pulse-value-action">{formatCurrency(unappliedPaymentBalanceValue)}</div>
+                                <div class="pulse-card-meta">{unappliedPaymentCount} records · Action required</div>
+                            </div>
+                            <div class="pulse-card card-total-balance">
+                                <div class="pulse-card-label">Total Balance</div>
+                                <div class="pulse-card-value">{formatCurrency(totalBalanceValue)}</div>
+                                <div class="pulse-card-breakdown">
+                                    <template for:each={totalBalanceBreakdown} for:item="row">
+                                        <div key={row.label} class={row.lineClass}><span>{row.label}</span><span>{row.formatted}</span></div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- AGING RAINBOW -->
+                    <section class="aging-section">
+                        <div class="aging-label">Aging</div>
+                        <div class="aging-bar" role="list">
+                            <template for:each={agingBuckets} for:item="bucket">
+                                <div key={bucket.key} class="aging-segment" class:aging-segment-selected={bucket.isSelected} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} role="button" tabindex="0" title={bucket.label}></div>
+                            </template>
+                        </div>
+                        <div class="aging-legend">
+                            <template for:each={agingBuckets} for:item="bucket">
+                                <button key={bucket.key} type="button" class="legend-item" class:legend-item-selected={bucket.isSelected} data-key={bucket.key} onclick={handleAgingBucketClick}>
+                                    <span class="legend-dot" style={bucket.dotStyle}></span>
+                                    <span class="legend-text">{bucket.label}</span>
+                                    <span class="legend-amount">{bucket.formatted}</span>
+                                </button>
+                            </template>
+                        </div>
+                    </section>
+
+                    <!-- Payment Promises: Total requested amount on PSIs by status (Ready for Processing, Draft, Failed, In Processing) -->
+                    <section class="payment-promises-section" aria-label="Payment Promises by status">
+                        <div class="payment-promises-label">Payment Promises ({paymentPromisesTotalFormatted})</div>
+                        <template if:true={hasPaymentPromises}>
+                            <div class="payment-promises-bar" role="img" aria-label="Total requested amount by status">
+                                <template for:each={paymentPromisesBuckets} for:item="bucket">
+                                    <div key={bucket.key} class="payment-promises-segment" style={bucket.segmentStyle} title={bucket.tooltip} data-status={bucket.key} onclick={handlePaymentPromiseClick} role="button" tabindex="0"></div>
+                                </template>
+                            </div>
+                            <div class="payment-promises-legend">
+                                <template for:each={paymentPromisesBuckets} for:item="bucket">
+                                    <button key={bucket.key} type="button" class="payment-promises-legend-item" title={bucket.tooltip} data-status={bucket.key} onclick={handlePaymentPromiseClick}>
+                                        <span class="legend-dot" style={bucket.dotStyle} role="presentation"></span>
+                                        <span class="legend-text">{bucket.label}</span>
+                                        <span class="legend-amount">{bucket.formatted}</span>
+                                    </button>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:false={hasPaymentPromises}>
+                            <p class="payment-promises-empty">No payment promises.</p>
+                        </template>
+                    </section>
+
+                    <!-- ACTION ZONE: Worklist -->
+                    <section class="action-zone" aria-label="Action Zone worklist">
+                        <div class="action-zone-header" role="tablist" aria-label="Worklist tabs">
+                            <button type="button" class="folder-tab" role="tab" aria-selected={worklistTabCriticalActive} aria-controls="worklist-panel" id="tab-critical" tabindex={criticalTabIndex} data-tab="critical" onclick={handleWorklistTab} onkeydown={handleWorklistTabKeydown}>Critical Follow-ups</button>
+                            <button type="button" class="folder-tab" role="tab" aria-selected={worklistTabHighValueActive} aria-controls="worklist-panel" id="tab-highValue" tabindex={highValueTabIndex} data-tab="highValue" onclick={handleWorklistTab} onkeydown={handleWorklistTabKeydown}>High-Value Delinquents</button>
+                            <button type="button" class="folder-tab" role="tab" aria-selected={worklistTabDisputedActive} aria-controls="worklist-panel" id="tab-disputed" tabindex={disputedTabIndex} data-tab="disputed" onclick={handleWorklistTab} onkeydown={handleWorklistTabKeydown}>Disputed Invoices</button>
+                        </div>
+                        <template if:true={worklistError}>
+                            <div class="error-banner"><lightning-icon icon-name="utility:error" size="x-small"></lightning-icon> Worklist: {worklistError}</div>
+                        </template>
+                        <div class="worklist-table-wrapper" id="worklist-panel" role="tabpanel" aria-labelledby={worklistPanelLabelledBy}>
+                            <table class="worklist-table" role="grid">
+                                <thead>
+                                    <tr>
+                                        <template if:true={worklistTabCriticalActive}>
+                                            <th scope="col">Billing Account</th>
+                                            <th scope="col">Invoice Number</th>
+                                            <th scope="col">Balance</th>
+                                            <th scope="col">Days Invoice Overdue</th>
+                                            <th scope="col">Bill To Contact</th>
+                                            <th scope="col">Collection Plan ID</th>
+                                            <th scope="col">Actions</th>
+                                        </template>
+                                        <template if:false={worklistTabCriticalActive}>
+                                            <th scope="col">Customer</th>
+                                            <th scope="col">Balance</th>
+                                            <th scope="col">Days Overdue</th>
+                                            <th scope="col">PTP Date</th>
+                                            <th scope="col">Dispute Reason</th>
+                                            <template if:true={showActionButtons}>
+                                                <th scope="col">Collection Plan ID</th>
+                                            </template>
+                                            <template if:false={showActionButtons}>
+                                                <th scope="col">Case Number</th>
+                                            </template>
+                                            <th scope="col">Actions</th>
+                                        </template>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={worklistItems} for:item="row" for:index="idx">
+                                        <tr key={row.uniqueKey}>
+                                            <template if:true={worklistTabCriticalActive}>
+                                                <td>
+                                                    <template if:true={row.accountUrl}>
+                                                        <a href={row.accountUrl} class="customer-name">{row.billingAccountName}</a>
+                                                    </template>
+                                                    <template if:false={row.accountUrl}>
+                                                        <span>{row.billingAccountName}</span>
+                                                    </template>
+                                                </td>
+                                                <td class="num">
+                                                    <template if:true={row.invoiceId}>
+                                                        <a href={row.invoiceUrl} class="customer-name">{row.invoiceNumber}</a>
+                                                    </template>
+                                                    <template if:false={row.invoiceId}>
+                                                        <span>{row.invoiceNumber}</span>
+                                                    </template>
+                                                </td>
+                                                <td class="num">{formatCurrency(row.balance)}</td>
+                                                <td class="num"><template if:true={row.daysInvoiceOverdue}>{row.daysInvoiceOverdue}</template><template if:false={row.daysInvoiceOverdue}>—</template></td>
+                                                <td>
+                                                    <template if:true={row.contactUrl}>
+                                                        <a href={row.contactUrl} class="customer-name">{row.billToContactId}</a>
+                                                    </template>
+                                                    <template if:false={row.contactUrl}>
+                                                        <template if:true={row.billToContactId}>{row.billToContactId}</template>
+                                                        <template if:false={row.billToContactId}>—</template>
+                                                    </template>
+                                                </td>
+                                                <td class="num">
+                                                    <template if:true={row.collectionPlanUrl}>
+                                                        <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
+                                                    </template>
+                                                    <template if:false={row.collectionPlanUrl}>—</template>
+                                                </td>
+                                                <td class="actions-cell">
+                                                    <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                    <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleWriteOff}>Write Off</button>
+                                                    <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleLogTask}>Log a Task</button>
+                                                </td>
+                                            </template>
+                                            <template if:false={worklistTabCriticalActive}>
+                                                <td>
+                                                    <span class="health-dot health-{row.healthScore}" title={row.healthScore}></span>
+                                                    <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
+                                                </td>
+                                                <td class="num">{formatCurrency(row.balance)}</td>
+                                                <td class="num"><template if:true={row.daysOverdue}>{row.daysOverdue}</template><template if:false={row.daysOverdue}>—</template></td>
+                                                <td class="num">{row.ptpDateFormatted}</td>
+                                                <td class="dispute-cell" title={row.disputeReason}>{row.disputeReasonShort}</td>
+                                                <template if:true={showActionButtons}>
+                                                    <td class="num">
+                                                        <template if:true={row.collectionPlanUrl}>
+                                                            <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
+                                                        </template>
+                                                        <template if:false={row.collectionPlanUrl}>—</template>
+                                                    </td>
+                                                </template>
+                                                <template if:false={showActionButtons}>
+                                                    <td class="num">
+                                                        <template if:true={row.caseUrl}>
+                                                            <a href={row.caseUrl} class="customer-name">{row.caseNumber}</a>
+                                                        </template>
+                                                        <template if:false={row.caseUrl}>—</template>
+                                                    </td>
+                                                </template>
+                                                <td class="actions-cell">
+                                                    <template if:true={showActionButtons}>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleWriteOff}>Write Off</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
+                                                    </template>
+                                                    <template if:false={showActionButtons}>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogCall}>Log Call</button>
+                                                        <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve</button>
+                                                    </template>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                            <template if:true={noWorklistItems}>
+                                <p class="worklist-empty">No items in this view. Change filters or aging selection.</p>
+                            </template>
+                        </div>
+                    </section>
+                    </div>
+                    <!-- SIDEBAR -->
+                    <aside class="dashboard-sidebar">
+                        <!-- COLLECTIONS PROGRESS CARD -->
+                        <section class="progress-section">
+                            <div class="progress-header">
+                                <h2 class="progress-title">Collections Progress</h2>
+                                <div class="progress-avg-stats">
+                                    <div class="progress-avg-item">
+                                        <span class="progress-avg-label">Avg Days to Close</span>
+                                        <span class="progress-avg-value">{progressAvgDaysToClose}</span>
+                                    </div>
+                                    <div class="progress-avg-item">
+                                        <span class="progress-avg-label">Avg Days Past Due</span>
+                                        <span class="progress-avg-value">{progressAvgDaysPastDue}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <template if:true={hasCollectionsProgress}>
+                                <div class="progress-body">
+                                    <div class="progress-pie-container">
+                                        <svg class="progress-pie" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="40" fill="#e2e8f0"></circle>
+                                            <path d={pieSvgRecoveredPath} fill="#22c55e"></path>
+                                            <path d={pieSvgNotRecoveredPath} fill="#f59e0b"></path>
+                                            <circle cx="50" cy="50" r="22" fill="#fff"></circle>
+                                        </svg>
+                                    </div>
+                                    <div class="progress-legend">
+                                        <div class="progress-legend-row">
+                                            <span class="legend-dot" style="background:#22c55e"></span>
+                                            <span class="progress-legend-label">Recovered</span>
+                                            <span class="progress-legend-pct">{progressRecoveredPercentFormatted}</span>
+                                        </div>
+                                        <div class="progress-legend-amount">{progressRecoveredAmount}</div>
+                                        <div class="progress-legend-row">
+                                            <span class="legend-dot" style="background:#f59e0b"></span>
+                                            <span class="progress-legend-label">Yet to Recover</span>
+                                            <span class="progress-legend-pct">{progressNotRecoveredPercentFormatted}</span>
+                                        </div>
+                                        <div class="progress-legend-amount">{progressNotRecoveredAmount}</div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template if:false={hasCollectionsProgress}>
+                                <p class="progress-empty">No collection plan data available.</p>
+                            </template>
+                        </section>
+
+                        <!-- COLLECTION PLAN TASKS CARD -->
+                        <section class="cp-tasks-section">
+                            <div class="cp-tasks-header">
+                                <h2 class="cp-tasks-title">My Tasks</h2>
+                                <span class="cp-tasks-meta">{cpTasksCount}</span>
+                            </div>
+                            <div class="cp-tasks-table-wrapper">
+                                <table class="cp-tasks-table" role="grid">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Subject</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Due</th>
+                                            <th scope="col">CP ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={cpTasks} for:item="task">
+                                            <tr key={task.uniqueKey}>
+                                                <td><a href={task.taskUrl} class="cp-task-subject" title={task.subject}>{task.subjectShort}</a></td>
+                                                <td>{task.status}</td>
+                                                <td class="num">{task.activityDateFormatted}</td>
+                                                <td><a href={task.cpUrl} class="cp-task-cpid" title={task.collectionPlanId}>{task.cpIdShort}</a></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                                <template if:false={hasCpTasks}>
+                                    <p class="cp-tasks-empty">No tasks linked to Collection Plans.</p>
+                                </template>
+                            </div>
+                        </section>
+
+                        <!-- MY COLLECTION PLANS CARD -->
+                        <section class="my-cp-section">
+                            <div class="my-cp-header">
+                                <div class="my-cp-header-left">
+                                    <h2 class="my-cp-title">My Collection Plans</h2>
+                                    <span class="my-cp-meta">{myCollectionPlansCount}</span>
+                                </div>
+                                <button type="button" class="btn-create-new" onclick={handleCreateNewCollectionPlan}>Create New</button>
+                            </div>
+                            <div class="my-cp-table-wrapper">
+                                <table class="my-cp-table" role="grid">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Collection Plan ID</th>
+                                            <th scope="col">Due Date</th>
+                                            <th scope="col">Account</th>
+                                            <th scope="col">To Recover</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={myCollectionPlans} for:item="plan">
+                                            <tr key={plan.uniqueKey}>
+                                                <td><a href={plan.cpUrl} class="customer-name" title={plan.name}>{plan.name}</a></td>
+                                                <td class="num">{plan.dueDateFormatted}</td>
+                                                <td>
+                                                    <template if:true={plan.accountUrl}>
+                                                        <a href={plan.accountUrl} class="customer-name">{plan.accountName}</a>
+                                                    </template>
+                                                    <template if:false={plan.accountUrl}>
+                                                        <span>{plan.accountName}</span>
+                                                    </template>
+                                                </td>
+                                                <td class="num">{plan.toRecoverFormatted}</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                                <template if:false={hasMyCollectionPlans}>
+                                    <p class="my-cp-empty">No collection plans assigned to you.</p>
+                                </template>
+                            </div>
+                        </section>
+                    </aside>
+                    </div>
+                </template>
+            </template>
+        </main>
+    </div>
+</template>

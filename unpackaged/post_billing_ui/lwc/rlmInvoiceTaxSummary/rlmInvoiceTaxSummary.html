@@ -1,0 +1,18 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:calibration">
+        <template if:true={hasRows}>
+            <lightning-datatable
+                key-field="taxName"
+                data={rows}
+                columns={columns}
+                hide-checkbox-column>
+            </lightning-datatable>
+        </template>
+
+        <template if:false={hasRows}>
+            <div class="slds-p-around_medium slds-text-color_weak">
+                No invoice line tax records found for this invoice.
+            </div>
+        </template>
+    </lightning-card>
+</template>

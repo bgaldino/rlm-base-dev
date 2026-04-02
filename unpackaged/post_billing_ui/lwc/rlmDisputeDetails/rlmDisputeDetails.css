@@ -1,0 +1,242 @@
+/* ── Custom Card Header ── */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-icon {
+    flex-shrink: 0;
+}
+
+.header-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.header-name-link {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #014a7f;
+    text-decoration: none;
+}
+
+.header-name-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Loading ── */
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 0;
+}
+
+/* ── Sections ── */
+.detail-section {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--lwc-colorBorder, #e5e5e5);
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+/* ── Field Grid ── */
+.field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.25rem 2rem;
+}
+
+.detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.detail-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    line-height: 1.4;
+}
+
+.detail-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextDefault, #181818);
+    line-height: 1.5;
+}
+
+.detail-value-muted {
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.detail-link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #014a7f;
+    text-decoration: none;
+    line-height: 1.5;
+}
+
+.detail-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Amounts ── */
+.amount-disputed {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #b91c1c;
+}
+
+.amount-approved {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #065f46;
+}
+
+/* ── Disputed Lines ── */
+.items-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.items-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.items-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #475569;
+    background: #e2e8f0;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+}
+
+/* ── Items Table ── */
+.items-table {
+    border: 1px solid var(--lwc-colorBorder, #e5e5e5);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.items-table-header,
+.items-table-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.4fr 0.7fr 0.9fr 0.9fr;
+    gap: 1rem;
+    padding: 0.625rem 1.25rem;
+    align-items: center;
+}
+
+.items-table-header {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--lwc-colorBorder, #e5e5e5);
+}
+
+.items-table-header .items-col {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    white-space: nowrap;
+}
+
+.items-table-row {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.items-table-row:last-child {
+    border-bottom: none;
+}
+
+.items-col-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.detail-link-sm {
+    font-size: 0.8125rem;
+}
+
+.items-col-balance {
+    text-align: right;
+}
+
+.items-balance-value {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.items-col-amount {
+    text-align: right;
+}
+
+.items-col-approved {
+    text-align: right;
+}
+
+.items-type-value {
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.items-period-value {
+    font-size: 0.75rem;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.amount-disputed-sm {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #b91c1c;
+}
+
+.amount-approved-sm {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #065f46;
+}
+
+/* ── Save Bar ── */
+.save-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.75rem;
+}
+
+/* ── Empty State ── */
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 0;
+}
+
+.empty-icon {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+
+.empty-text {
+    font-size: 0.875rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}

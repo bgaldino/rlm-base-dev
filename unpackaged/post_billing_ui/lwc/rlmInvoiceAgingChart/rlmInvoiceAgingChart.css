@@ -1,0 +1,153 @@
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+/* Metrics Row */
+.metrics-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.metric-card {
+    flex: 1;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid var(--lwc-colorBorder, #e5e5e5);
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-align: center;
+}
+
+.metric-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--lwc-colorTextDefault, #181818);
+    line-height: 1.2;
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    margin-top: 0.25rem;
+}
+
+.metric-open .metric-value {
+    color: #0369a1;
+}
+
+.metric-overdue .metric-value {
+    color: #b91c1c;
+}
+
+/* Age Stats below chart */
+.age-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--lwc-colorBorder, #e5e5e5);
+}
+
+.age-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.age-stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.age-stat-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.age-stat-max {
+    color: #b91c1c;
+}
+
+/* Chart Section */
+.chart-section {
+    margin-top: 0.5rem;
+}
+
+.chart-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+    margin-bottom: 0.75rem;
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.chart-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-label {
+    width: 70px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.chart-bar-container {
+    flex: 1;
+    height: 20px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.chart-bar {
+    height: 100%;
+    border-radius: 4px;
+    min-width: 4px;
+    transition: width 0.3s ease;
+}
+
+.bar-green {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.bar-yellow {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.bar-orange {
+    background: linear-gradient(90deg, #ea580c 0%, #f97316 100%);
+}
+
+.bar-red {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+}
+
+.chart-value {
+    width: 32px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+    text-align: left;
+    flex-shrink: 0;
+}

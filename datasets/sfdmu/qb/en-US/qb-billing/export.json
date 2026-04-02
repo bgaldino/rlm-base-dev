@@ -19,7 +19,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT AccountingPeriodId, AccountingPeriod.Name, LegalEntityId, LegalEntity.Name, Name, Status FROM LegalEntyAccountingPeriod",
+          "query": "SELECT AccountingPeriodId, LegalEntityId, Name, Status FROM LegalEntyAccountingPeriod",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -46,7 +46,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT BillingPolicyId, BillingPolicy.Name, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, LegalEntity.Name, Name, Status FROM BillingTreatment",
+          "query": "SELECT BillingPolicyId, BillingPolicy.Name, CanChangeBillingFrequency, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, LegalEntity.Name, Name, Status FROM BillingTreatment",
           "operation": "Upsert",
           "externalId": "Name",
           "skipExistingRecords": true,
@@ -66,15 +66,27 @@
           "excluded": false
         },
         {
-          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, LegalEntity.Name, Name, Type FROM GeneralLedgerAccount",
+          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name, Type FROM GeneralLedgerAccount",
+          "operation": "Upsert",
+          "externalId": "AccountingCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, CreditGeneralLedgerAccountId, DebitGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, DebitGeneralLedgerAccountId, CreditGeneralLedgerAccountId, LegalEntityId, LegalEntity.Name, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
+          "query": "SELECT CanUseAltrnPaymentMethod, CurrencyIsoCode, DefaultIntervalUnit, DefaultIntervalValue, DefaultMaximumRetryCount, DefaultRetryIntervalType, Description, IsDefaultRuleSet, Name, Status FROM PaymentRetryRuleSet",
           "operation": "Upsert",
-          "externalId": "Name;LegalEntity.Name",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT CurrencyIsoCode, Description, IntervalUnit, IntervalValue, MaximumRetryCount, PaymentGatewayErrorCategory, PaymentGatewayErrorCode, PaymentGatewayId, PaymentRetryRuleSetId, RetryIntervalType FROM PaymentRetryRule",
+          "operation": "Upsert",
+          "externalId": "PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType",
           "excluded": false
         }
       ]

@@ -1,0 +1,173 @@
+<template>
+    <lightning-card>
+        <!-- Header with Summary -->
+        <div slot="title" class="custom-header">
+            <div class="header-title">
+                <lightning-icon icon-name="custom:custom57" size="small" class="header-icon"></lightning-icon>
+                <h2 class="slds-text-heading_medium">Billing Schedule Groups</h2>
+            </div>
+            <p class="header-summary">{summaryText}</p>
+        </div>
+
+        <div class="slds-card__body slds-card__body_inner">
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-around_medium">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error Message -->
+            <template if:true={error}>
+                <div class="slds-m-around_medium">
+                    <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                        <span class="slds-assistive-text">error</span>
+                        <h2>{error}</h2>
+                    </div>
+                </div>
+            </template>
+
+            <!-- No Data Message -->
+            <template if:false={hasGroups}>
+                <template if:false={isLoading}>
+                    <template if:false={error}>
+                        <div class="slds-align_absolute-center slds-m-around_large">
+                            <p class="slds-text-color_weak">No Billing Schedule Groups found for this account.</p>
+                        </div>
+                    </template>
+                </template>
+            </template>
+
+            <!-- Summary Statistics Cards -->
+            <template if:true={hasGroups}>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">TOTAL BSGS</div>
+                        <div class="summary-value">{totalBsgs}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">ACTIVE</div>
+                        <div class="summary-value summary-value-success">{activeBsgs}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">BILLED AMOUNT</div>
+                        <div class="summary-value summary-value-info">{formattedTotalAmount}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">PENDING AMOUNT</div>
+                        <div class="summary-value summary-value-warning">{formattedPendingAmount}</div>
+                    </div>
+                </div>
+
+                <!-- Billing Schedule Groups List -->
+                <div class="bsg-list">
+                    <template for:each={flattenedGroups} for:item="bsg">
+                        <div key={bsg.id} class={bsg.indentClass}>
+                            <!-- Parent BSG Row -->
+                            <div class="bsg-row">
+                                <!-- Left Section: Expand Icon + Name -->
+                                <div class="bsg-left">
+                                    <template if:true={bsg.hasChildren}>
+                                        <template if:true={bsg.isExpanded}>
+                                            <lightning-button-icon
+                                                icon-name="utility:chevrondown"
+                                                alternative-text="Collapse"
+                                                variant="bare"
+                                                size="small"
+                                                onclick={handleToggle}
+                                                data-id={bsg.id}
+                                                class="toggle-icon">
+                                            </lightning-button-icon>
+                                        </template>
+                                        <template if:false={bsg.isExpanded}>
+                                            <lightning-button-icon
+                                                icon-name="utility:chevronright"
+                                                alternative-text="Expand"
+                                                variant="bare"
+                                                size="small"
+                                                onclick={handleToggle}
+                                                data-id={bsg.id}
+                                                class="toggle-icon">
+                                            </lightning-button-icon>
+                                        </template>
+                                    </template>
+                                    
+                                    <lightning-icon icon-name="standard:document" size="x-small" class="bsg-icon"></lightning-icon>
+                                    
+                                    <a href="#" onclick={handleNavigate} data-id={bsg.id} class="bsg-name">
+                                        {bsg.name}
+                                    </a>
+                                    
+                                    <template if:true={bsg.hasChildren}>
+                                        <span class="child-count">{bsg.childCount} items</span>
+                                    </template>
+                                </div>
+
+                                <!-- Right Section: Status + Progress + Percentage + Actions -->
+                                <div class="bsg-right">
+                                    <template if:true={bsg.status}>
+                                        <span class="status-badge" data-status={bsg.status}>{bsg.status}</span>
+                                    </template>
+                                    
+                                    <div class="progress-container">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" data-percentage={bsg.billingPercentage}></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <span class="percentage-badge">{bsg.billingPercentage}%</span>
+                                    
+                                    <lightning-button-icon
+                                        icon-name="utility:overflow"
+                                        variant="bare"
+                                        alternative-text="More actions"
+                                        size="small"
+                                        class="action-menu">
+                                    </lightning-button-icon>
+                                </div>
+                            </div>
+
+                            <!-- Details Row (Always Visible for Parent, Hidden for Children by Default) -->
+                            <div class="bsg-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">START DATE</span>
+                                    <span class="detail-value">{bsg.startDate}</span>
+                                </div>
+                                <template if:true={bsg.hasEndDate}>
+                                    <div class="detail-item">
+                                        <span class="detail-label">END DATE</span>
+                                        <span class="detail-value">{bsg.endDate}</span>
+                                    </div>
+                                </template>
+                                <div class="detail-item">
+                                    <span class="detail-label">BILLING TERM</span>
+                                    <span class="detail-value">{bsg.billingTermLabel}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">BILLED AMOUNT</span>
+                                    <span class="detail-value detail-value-amount">
+                                        <lightning-formatted-number
+                                            value={bsg.totalAmount}
+                                            format-style="currency"
+                                            currency-code="USD">
+                                        </lightning-formatted-number>
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">PENDING AMOUNT</span>
+                                    <span class="detail-value detail-value-pending">
+                                        <lightning-formatted-number
+                                            value={bsg.pendingAmount}
+                                            format-style="currency"
+                                            currency-code="USD">
+                                        </lightning-formatted-number>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

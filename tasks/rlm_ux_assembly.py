@@ -685,7 +685,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         """Read feature flags from project_config.project__custom__*."""
         custom = getattr(self.project_config, "project__custom", {}) or {}
         known_flags = [
-            "qb", "billing", "tax", "rating", "rates", "clm", "dro",
+            "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
             "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
             "payments", "constraints", "analytics", "procedureplans",
             "collections",
@@ -729,6 +729,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         standalone_copy_order = [
             ("payments",    features.get("payments", False)),
             ("billing",     features.get("billing", False)),
+            ("billing_ui",  features.get("billing_ui", False)),
             ("quantumbit",  features.get("qb", False)),
             ("tso",         features.get("tso", False)),
             ("constraints", features.get("constraints", False)),
@@ -764,6 +765,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("qb",          "quantumbit"),
             ("qb",          "utils"),
             ("billing",     "billing"),
+            ("billing_ui",  "billing_ui"),
             ("payments",    "payments"),
             ("qb",          "approvals"),
             ("docgen",      "docgen"),

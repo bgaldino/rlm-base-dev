@@ -1,0 +1,2 @@
+CanUseAltrnPaymentMethod,CurrencyIsoCode,DefaultIntervalUnit,DefaultIntervalValue,DefaultMaximumRetryCount,DefaultRetryIntervalType,Description,IsDefaultRuleSet,Name,Status
+true,USD,Hours,2,4,Fixed,,true,Retry Rules - Default,Active

@@ -1,0 +1,208 @@
+<template>
+    <div class="page-container">
+
+        <!-- Page Header -->
+        <div class="slds-page-header slds-m-bottom_medium page-header-custom">
+            <div class="slds-page-header__row">
+                <div class="slds-page-header__col-title">
+                    <div class="slds-media">
+                        <div class="slds-media__figure">
+                            <lightning-icon icon-name="standard:strategy" size="large"></lightning-icon>
+                        </div>
+                        <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                                <div class="slds-page-header__name-title">
+                                    <span class="slds-page-header__title slds-truncate" title="Collection Rule Builder">
+                                        Collection Rule Builder
+                                    </span>
+                                </div>
+                            </div>
+                            <p class="slds-page-header__name-meta">Define automation rules for Collection Plans</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rule Details Card -->
+        <lightning-card title="Rule Details" icon-name="standard:record">
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <div class="slds-grid slds-gutters slds-wrap slds-grid_vertical-align-end">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-p-bottom_small">
+                        <lightning-input
+                            label="Rule Name"
+                            value={rule.ruleName}
+                            onchange={handleRuleNameChange}
+                            required
+                            placeholder="e.g., High Risk Overdue Accounts">
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_small">
+                        <lightning-input
+                            type="number"
+                            label="Execution Priority"
+                            value={rule.priority}
+                            onchange={handlePriorityChange}
+                            min="1"
+                            step="1"
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_4-of-12 slds-p-bottom_small">
+                        <lightning-input
+                            type="toggle"
+                            label="Rule Status"
+                            checked={rule.isActive}
+                            onchange={handleActiveToggle}
+                            message-toggle-active="Active"
+                            message-toggle-inactive="Inactive">
+                        </lightning-input>
+                    </div>
+                </div>
+            </div>
+        </lightning-card>
+
+        <!-- Conditions Section (IF) -->
+        <lightning-card title="Conditions" icon-name="standard:filter" class="slds-m-top_medium">
+            <span slot="actions">
+                <lightning-badge label="IF" class="slds-m-right_small badge-if"></lightning-badge>
+                <lightning-button
+                    label="Add Condition"
+                    icon-name="utility:add"
+                    onclick={handleAddCondition}
+                    variant="brand">
+                </lightning-button>
+            </span>
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <template lwc:if={hasConditions}>
+                    <template for:each={conditionsWithMeta} for:item="condition">
+                        <div key={condition.id} class="condition-block">
+
+                            <!-- AND/OR Logic Toggle (between rows) -->
+                            <template lwc:if={condition.showLogic}>
+                                <div class="logic-operator-row slds-grid slds-grid_align-center slds-m-vertical_xx-small">
+                                    <div class="logic-pill-group">
+                                        <button
+                                            class={condition.andClass}
+                                            data-id={condition.id}
+                                            data-value="AND"
+                                            onclick={handleLogicChange}>AND</button>
+                                        <button
+                                            class={condition.orClass}
+                                            data-id={condition.id}
+                                            data-value="OR"
+                                            onclick={handleLogicChange}>OR</button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Condition Row -->
+                            <div class="slds-box slds-box_x-small condition-row">
+                                <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-end slds-wrap">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-p-bottom_xx-small">
+                                        <lightning-combobox
+                                            label="Field"
+                                            value={condition.field}
+                                            options={fieldOptions}
+                                            data-id={condition.id}
+                                            data-field="field"
+                                            onchange={handleConditionChange}
+                                            placeholder="Select field...">
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-p-bottom_xx-small">
+                                        <lightning-combobox
+                                            label="Operator"
+                                            value={condition.operator}
+                                            options={operatorOptions}
+                                            data-id={condition.id}
+                                            data-field="operator"
+                                            onchange={handleConditionChange}
+                                            placeholder="Select operator...">
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-p-bottom_xx-small">
+                                        <lightning-input
+                                            label="Value"
+                                            value={condition.value}
+                                            data-id={condition.id}
+                                            data-field="value"
+                                            onchange={handleConditionChange}
+                                            placeholder="Enter value...">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-12 slds-p-bottom_xx-small slds-text-align_right">
+                                        <lightning-button-icon
+                                            icon-name="utility:delete"
+                                            alternative-text="Remove condition"
+                                            variant="bare"
+                                            size="medium"
+                                            class="remove-btn"
+                                            data-id={condition.id}
+                                            onclick={handleRemoveCondition}>
+                                        </lightning-button-icon>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                <template lwc:if={noConditions}>
+                    <div class="slds-p-vertical_large slds-text-align_center empty-state">
+                        <lightning-icon icon-name="utility:filterList" size="large" class="slds-m-bottom_small empty-icon"></lightning-icon>
+                        <p class="slds-text-body_regular slds-text-color_weak">
+                            No conditions added yet. Click <strong>Add Condition</strong> to define your rule criteria.
+                        </p>
+                    </div>
+                </template>
+            </div>
+        </lightning-card>
+
+        <!-- Actions Section (THEN) -->
+        <lightning-card title="Actions" icon-name="standard:action_list_component" class="slds-m-top_medium">
+            <span slot="actions">
+                <lightning-badge label="THEN" class="badge-then"></lightning-badge>
+            </span>
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <div class="slds-grid slds-gutters slds-wrap">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-bottom_small">
+                        <lightning-combobox
+                            label="Assign To Queue"
+                            value={rule.actions.assignToQueue}
+                            options={queueOptions}
+                            onchange={handleQueueChange}
+                            placeholder="Select a queue..."
+                            required>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-p-bottom_small">
+                        <lightning-combobox
+                            label="Select Collection Timeline"
+                            value={rule.actions.collectionTimeline}
+                            options={timelineOptions}
+                            onchange={handleTimelineChange}
+                            placeholder="Select a timeline..."
+                            required>
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </div>
+        </lightning-card>
+
+        <!-- Footer Actions -->
+        <div class="slds-m-top_large slds-p-vertical_medium footer-actions slds-grid slds-grid_align-end">
+            <lightning-button
+                label="Cancel"
+                onclick={handleCancel}
+                class="slds-m-right_small">
+            </lightning-button>
+            <lightning-button
+                label="Save Rule"
+                variant="brand"
+                onclick={handleSave}
+                icon-name="utility:save">
+            </lightning-button>
+        </div>
+
+    </div>
+</template>

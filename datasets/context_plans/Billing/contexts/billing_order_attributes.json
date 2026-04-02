@@ -1,0 +1,23 @@
+{
+  "planName": "BillingOrderAttributes",
+  "developerName": "RLM_BillingContext",
+  "mappingRules": [
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "BillingTransaction",
+      "contextAttribute": "BillingArrangement__std",
+      "mappingType": "SOBJECT",
+      "sObject": "Order",
+      "sObjectField": "RLM_Billing_Arrangement__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "BillingTransaction",
+      "contextAttribute": "BillingProfile__std",
+      "mappingType": "SOBJECT",
+      "sObject": "Order",
+      "sObjectField": "RLM_Billing_Profile__c"
+    }
+  ],
+  "activate": true
+}

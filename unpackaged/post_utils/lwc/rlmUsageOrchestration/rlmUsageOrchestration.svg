@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100px" height="100px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#1589EE">
+        <!-- Three connected circles representing the three-step orchestration -->
+        <circle cx="20" cy="50" r="12" fill="#1589EE"/>
+        <circle cx="50" cy="50" r="12" fill="#1589EE"/>
+        <circle cx="80" cy="50" r="12" fill="#1589EE"/>
+
+        <!-- Connecting lines -->
+        <line x1="32" y1="50" x2="38" y2="50" stroke="#1589EE" stroke-width="3"/>
+        <line x1="62" y1="50" x2="68" y2="50" stroke="#1589EE" stroke-width="3"/>
+
+        <!-- Gear icon in center circle representing processing -->
+        <path d="M 50 43 L 52 43 L 52 41 L 48 41 L 48 43 L 50 43 M 50 57 L 48 57 L 48 59 L 52 59 L 52 57 L 50 57 M 57 50 L 57 48 L 59 48 L 59 52 L 57 52 L 57 50 M 43 50 L 43 52 L 41 52 L 41 48 L 43 48 L 43 50"
+              fill="white" stroke="white" stroke-width="0.5"/>
+
+        <!-- Checkmark in left circle -->
+        <polyline points="17,50 19,52 23,47" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Arrow in right circle -->
+        <polyline points="77,47 80,50 77,53" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+</svg>

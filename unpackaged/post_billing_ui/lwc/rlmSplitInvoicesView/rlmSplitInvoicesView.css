@@ -1,0 +1,10 @@
+:return-link {
+    color: var(--lwc-colorTextLink, #0176d3);
+    text-decoration: none;
+}
+.return-link:hover {
+    text-decoration: underline;
+}
+:host {
+    display: block;
+}

@@ -740,6 +740,75 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>actionNames</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>New</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>adminFilters</name>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxRecordsToDisplay</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>parentFieldApiName</name>
+                    <value>Asset.Id</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListApiName</name>
+                    <value>PrimaryAssets</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListDisplayType</name>
+                    <value>ADVGRID</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListFieldAliases</name>
+                    <valueList>
+                        <valueListItems>
+                            <value>Name</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>RelatedAsset</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>RelationshipType</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>FromDate</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ToDate</value>
+                        </valueListItems>
+                    </valueList>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>relatedListLabel</name>
+                    <value>Related Assets</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showActionBar</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldAlias</name>
+                    <value>__DEFAULT__</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>sortFieldOrder</name>
+                    <value>Default</value>
+                </componentInstanceProperties>
+                <componentName>lst:dynamicRelatedList</componentName>
+                <identifier>lst_dynamicRelatedList9</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>actionNames</name>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>adminFilters</name>
@@ -1081,6 +1150,12 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>runtime_industries_usage:dashViewWrapper</componentName>
+                <identifier>runtime_industries_usage_dashViewWrapper</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentName>runtime_revenue_foundation:usageBasedPricingResources</componentName>
                 <identifier>runtime_revenue_foundation_usageBasedPricingResources</identifier>
             </componentInstance>
@@ -1091,11 +1166,69 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>runtime_industries_usage:dashViewWrapper</componentName>
-                <identifier>runtime_industries_usage_dashViewWrapper</identifier>
+                <componentName>c:rlmUsageUploader</componentName>
+                <identifier>c_rlmUsageUploader</identifier>
             </componentInstance>
         </itemInstances>
         <name>Facet-c97bf6b4-42eb-45a7-9332-c17db7efd09f</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Transaction Journals</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>usageObject</name>
+                    <value>TransactionJournal</value>
+                </componentInstanceProperties>
+                <componentName>c:rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable_asset_tj</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Usage Summaries</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>usageObject</name>
+                    <value>UsageSummary</value>
+                </componentInstanceProperties>
+                <componentName>c:rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable_asset_us</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Liable Summaries</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>fieldSetName</name>
+                    <value>RLM_UsageDatatable</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>usageObject</name>
+                    <value>UsageBillingPeriodItem</value>
+                </componentInstanceProperties>
+                <componentName>c:rlmUsageDataTable</componentName>
+                <identifier>c_rlmUsageDataTable_asset_ubpi</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-usage-data-content</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -1153,7 +1286,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
-                    <value>Usage Rates</value>
+                    <value>Wallets &amp; Rates</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab2</identifier>
@@ -1167,10 +1300,24 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
-                    <value>Standard.Tab.WalletTab</value>
+                    <value>Usage Upload</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab3</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-usage-data-content</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Usage Data</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>flexipage_tab_usage_data</identifier>
             </componentInstance>
         </itemInstances>
         <name>maintabs</name>

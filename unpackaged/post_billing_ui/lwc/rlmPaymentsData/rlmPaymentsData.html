@@ -1,0 +1,353 @@
+<template>
+    <div class="payment-plans-page">
+        <div class="filter-bar slds-grid slds-gutters_small slds-wrap slds-p-around_medium slds-border_bottom">
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                <lightning-combobox
+                    name="account"
+                    label="Account"
+                    value={selectedAccountId}
+                    options={accountOptions}
+                    onchange={handleAccountChange}
+                    placeholder="All Accounts">
+                </lightning-combobox>
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                <lightning-combobox
+                    name="currency"
+                    label="Currency"
+                    value={selectedCurrency}
+                    options={currencyOptions}
+                    onchange={handleCurrencyChange}
+                    placeholder="Select Currency">
+                </lightning-combobox>
+            </div>
+        </div>
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+            
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-p-around_medium">
+                    <lightning-icon icon-name="utility:error" size="small" variant="error"></lightning-icon>
+                    <span class="slds-m-left_x-small">{error}</span>
+                </div>
+            </template>
+            
+            <template if:true={hasData}>
+                <div class="summary-and-bar slds-m-bottom_medium">
+                    <div class="total-ar-box slds-p-around_medium slds-border_bottom">
+                        <span class="total-ar-label">Total Accounts Receivables (Requested Amount)</span>
+                        <span class="total-ar-value">
+                            <lightning-formatted-number
+                                value={totalAccountsReceivables}
+                                format-style="currency"
+                                currency-code={displayCurrency}>
+                            </lightning-formatted-number>
+                        </span>
+                    </div>
+                    <div class="progress-bar-wrapper slds-m-top_small">
+                        <div class="progress-bar" role="img" aria-label="Payment schedule items by status">
+                            <template for:each={progressBarSegments} for:item="seg">
+                                <div
+                                    key={seg.key}
+                                    class="progress-segment {seg.segmentClass}"
+                                    style={seg.segmentStyle}
+                                    title={seg.tooltip}>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="progress-bar-legend slds-m-top_small slds-text-body_small">
+                            <template for:each={progressBarSegments} for:item="seg">
+                                <span key={seg.key} class="progress-legend-item" title={seg.tooltip}>
+                                    <span class="legend-dot" style={seg.dotStyle} role="presentation"></span>
+                                    <span class="legend-label">{seg.label}</span>
+                                    <span class="legend-count">({seg.itemCount})</span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <div class="three-regions">
+                    <div class="region">
+                        <h3 class="region-title">Region 1</h3>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <template for:each={region1Summaries} for:item="summary">
+                                <div key={summary.status} class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-around_x-small">
+                            <div class={summary.cardClass}>
+                                <div class="card-header">
+                                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <lightning-icon icon-name={summary.iconName} size="small" class="slds-m-right_small"></lightning-icon>
+                                            <span class="status-title">{summary.status}</span>
+                                        </div>
+                                        <lightning-badge label={summary.itemCount} class="item-count-badge"></lightning-badge>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="amount-section">
+                                        <span class="amount-label">Total Requested Amount</span>
+                                        <span class="amount-value">
+                                            <lightning-formatted-number 
+                                                value={summary.totalRequestedAmount} 
+                                                format-style="currency" 
+                                                currency-code="USD">
+                                            </lightning-formatted-number>
+                                        </span>
+                                    </div>
+                                    <template if:true={summary.hasItems}>
+                                        <div class="items-section">
+                                            <div class="items-header">
+                                                <span class="items-label">Payment Schedule Items</span>
+                                            </div>
+                                            <ul class="items-list">
+                                                <template for:each={summary.items} for:item="item">
+                                                    <li key={item.id} class="item-card">
+                                                        <div class="item-header">
+                                                            <div class="item-info">
+                                                                <a href={item.recordUrl} class="item-link">{item.itemNumber}</a>
+                                                                <span class="item-amount">
+                                                                    <lightning-formatted-number 
+                                                                        value={item.requestedAmount} 
+                                                                        format-style="currency" 
+                                                                        currency-code={item.currencyCode}>
+                                                                    </lightning-formatted-number>
+                                                                </span>
+                                                            </div>
+                                                            <template if:true={item.hasPayment}>
+                                                                <a href={item.paymentUrl} class="payment-link">
+                                                                    <lightning-icon icon-name="utility:money" size="xx-small" class="payment-icon"></lightning-icon>
+                                                                    <span>View Payment</span>
+                                                                </a>
+                                                            </template>
+                                                        </div>
+                                                        
+                                                        <!-- Invoice Details Section -->
+                                                        <template if:true={item.hasInvoices}>
+                                                            <div class="invoices-section">
+                                                                <div class="invoices-header">
+                                                                    <lightning-icon icon-name="utility:file" size="xx-small" class="invoice-header-icon"></lightning-icon>
+                                                                    <span class="invoices-label">Applied to Invoices</span>
+                                                                </div>
+                                                                <ul class="invoices-list">
+                                                                    <template for:each={item.invoices} for:item="invoice">
+                                                                        <li key={invoice.id} class={invoice.invoiceClass}>
+                                                                            <div class={invoice.statusLineClass}></div>
+                                                                            <div class="invoice-content">
+                                                                                <div class="invoice-main">
+                                                                                    <a href={invoice.recordUrl} class="invoice-link">{invoice.displayNumber}</a>
+                                                                                    <span class={invoice.statusBadgeClass}>{invoice.statusLabel}</span>
+                                                                                </div>
+                                                                                <div class="invoice-amounts">
+                                                                                    <div class="invoice-amount-item">
+                                                                                        <span class="amount-label-small">Applied</span>
+                                                                                        <span class="amount-value-small">
+                                                                                            <lightning-formatted-number 
+                                                                                                value={invoice.appliedAmount} 
+                                                                                                format-style="currency" 
+                                                                                                currency-code={invoice.currencyCode}>
+                                                                                            </lightning-formatted-number>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div class="invoice-amount-item">
+                                                                                        <span class="amount-label-small">Balance</span>
+                                                                                        <span class={invoice.balanceClass}>
+                                                                                            <lightning-formatted-number 
+                                                                                                value={invoice.balance} 
+                                                                                                format-style="currency" 
+                                                                                                currency-code={invoice.currencyCode}>
+                                                                                            </lightning-formatted-number>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div class="invoice-amount-item">
+                                                                                        <span class="amount-label-small">Total</span>
+                                                                                        <span class="amount-value-small">
+                                                                                            <lightning-formatted-number 
+                                                                                                value={invoice.totalAmount} 
+                                                                                                format-style="currency" 
+                                                                                                currency-code={invoice.currencyCode}>
+                                                                                            </lightning-formatted-number>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </li>
+                                                                    </template>
+                                                                </ul>
+                                                            </div>
+                                                        </template>
+                                                        <template if:false={item.hasInvoices}>
+                                                            <div class="no-invoices">
+                                                                <span class="slds-text-color_weak">No invoices linked</span>
+                                                            </div>
+                                                        </template>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                    <template if:false={summary.hasItems}>
+                                        <div class="no-items">
+                                            <span class="slds-text-color_weak">No items</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                        </div>
+                    </div>
+                    <div class="region">
+                        <h3 class="region-title">Region 2</h3>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <template for:each={region2Summaries} for:item="summary">
+                                <div key={summary.status} class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-around_x-small">
+                                    <div class={summary.cardClass}>
+                                        <div class="card-header">
+                                            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                                <div class="slds-grid slds-grid_vertical-align-center">
+                                                    <lightning-icon icon-name={summary.iconName} size="small" class="slds-m-right_small"></lightning-icon>
+                                                    <span class="status-title">{summary.status}</span>
+                                                </div>
+                                                <lightning-badge label={summary.itemCount} class="item-count-badge"></lightning-badge>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="amount-section">
+                                                <span class="amount-label">Total Requested Amount</span>
+                                                <span class="amount-value">
+                                                    <lightning-formatted-number value={summary.totalRequestedAmount} format-style="currency" currency-code="USD"></lightning-formatted-number>
+                                                </span>
+                                            </div>
+                                            <template if:true={summary.hasItems}>
+                                                <div class="items-section">
+                                                    <div class="items-header"><span class="items-label">Payment Schedule Items</span></div>
+                                                    <ul class="items-list">
+                                                        <template for:each={summary.items} for:item="item">
+                                                            <li key={item.id} class="item-card">
+                                                                <div class="item-header">
+                                                                    <div class="item-info">
+                                                                        <a href={item.recordUrl} class="item-link">{item.itemNumber}</a>
+                                                                        <span class="item-amount"><lightning-formatted-number value={item.requestedAmount} format-style="currency" currency-code={item.currencyCode}></lightning-formatted-number></span>
+                                                                    </div>
+                                                                    <template if:true={item.hasPayment}><a href={item.paymentUrl} class="payment-link"><lightning-icon icon-name="utility:money" size="xx-small" class="payment-icon"></lightning-icon><span>View Payment</span></a></template>
+                                                                </div>
+                                                                <template if:true={item.hasInvoices}>
+                                                                    <div class="invoices-section">
+                                                                        <div class="invoices-header"><lightning-icon icon-name="utility:file" size="xx-small" class="invoice-header-icon"></lightning-icon><span class="invoices-label">Applied to Invoices</span></div>
+                                                                        <ul class="invoices-list">
+                                                                            <template for:each={item.invoices} for:item="invoice">
+                                                                                <li key={invoice.id} class={invoice.invoiceClass}>
+                                                                                    <div class={invoice.statusLineClass}></div>
+                                                                                    <div class="invoice-content">
+                                                                                        <div class="invoice-main"><a href={invoice.recordUrl} class="invoice-link">{invoice.displayNumber}</a><span class={invoice.statusBadgeClass}>{invoice.statusLabel}</span></div>
+                                                                                        <div class="invoice-amounts">
+                                                                                            <div class="invoice-amount-item"><span class="amount-label-small">Applied</span><span class="amount-value-small"><lightning-formatted-number value={invoice.appliedAmount} format-style="currency" currency-code={invoice.currencyCode}></lightning-formatted-number></span></div>
+                                                                                            <div class="invoice-amount-item"><span class="amount-label-small">Balance</span><span class={invoice.balanceClass}><lightning-formatted-number value={invoice.balance} format-style="currency" currency-code={invoice.currencyCode}></lightning-formatted-number></span></div>
+                                                                                            <div class="invoice-amount-item"><span class="amount-label-small">Total</span><span class="amount-value-small"><lightning-formatted-number value={invoice.totalAmount} format-style="currency" currency-code={invoice.currencyCode}></lightning-formatted-number></span></div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </li>
+                                                                            </template>
+                                                                        </ul>
+                                                                    </div>
+                                                                </template>
+                                                                <template if:false={item.hasInvoices}><div class="no-invoices"><span class="slds-text-color_weak">No invoices linked</span></div></template>
+                                                            </li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                            <template if:false={summary.hasItems}><div class="no-items"><span class="slds-text-color_weak">No items</span></div></template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="region">
+                        <h3 class="region-title">Region 3</h3>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <template for:each={region3Summaries} for:item="summary">
+                                <div key={summary.status} class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-around_x-small">
+                                    <div class={summary.cardClass}>
+                                        <div class="card-header">
+                                            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                                <div class="slds-grid slds-grid_vertical-align-center">
+                                                    <lightning-icon icon-name={summary.iconName} size="small" class="slds-m-right_small"></lightning-icon>
+                                                    <span class="status-title">{summary.status}</span>
+                                                </div>
+                                                <lightning-badge label={summary.itemCount} class="item-count-badge"></lightning-badge>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="amount-section">
+                                                <span class="amount-label">Total Requested Amount</span>
+                                                <span class="amount-value"><lightning-formatted-number value={summary.totalRequestedAmount} format-style="currency" currency-code="USD"></lightning-formatted-number></span>
+                                            </div>
+                                            <template if:true={summary.hasItems}>
+                                                <div class="items-section">
+                                                    <div class="items-header"><span class="items-label">Payment Schedule Items</span></div>
+                                                    <ul class="items-list">
+                                                        <template for:each={summary.items} for:item="item">
+                                                            <li key={item.id} class="item-card">
+                                                                <div class="item-header">
+                                                                    <div class="item-info"><a href={item.recordUrl} class="item-link">{item.itemNumber}</a><span class="item-amount"><lightning-formatted-number value={item.requestedAmount} format-style="currency" currency-code={item.currencyCode}></lightning-formatted-number></span></div>
+                                                                    <template if:true={item.hasPayment}><a href={item.paymentUrl} class="payment-link"><lightning-icon icon-name="utility:money" size="xx-small" class="payment-icon"></lightning-icon><span>View Payment</span></a></template>
+                                                                </div>
+                                                                <template if:true={item.hasInvoices}>
+                                                                    <div class="invoices-section">
+                                                                        <div class="invoices-header"><lightning-icon icon-name="utility:file" size="xx-small" class="invoice-header-icon"></lightning-icon><span class="invoices-label">Applied to Invoices</span></div>
+                                                                        <ul class="invoices-list">
+                                                                            <template for:each={item.invoices} for:item="invoice">
+                                                                                <li key={invoice.id} class={invoice.invoiceClass}>
+                                                                                    <div class={invoice.statusLineClass}></div>
+                                                                                    <div class="invoice-content">
+                                                                                        <div class="invoice-main"><a href={invoice.recordUrl} class="invoice-link">{invoice.displayNumber}</a><span class={invoice.statusBadgeClass}>{invoice.statusLabel}</span></div>
+                                                                                        <div class="invoice-amounts">
+                                                                                            <div class="invoice-amount-item"><span class="amount-label-small">Applied</span><span class="amount-value-small"><lightning-formatted-number value={invoice.appliedAmount} format-style="currency" currency-code={invoice.currencyCode}></lightning-formatted-number></span></div>
+                                                                                            <div class="invoice-amount-item"><span class="amount-label-small">Balance</span><span class={invoice.balanceClass}><lightning-formatted-number value={invoice.balance} format-style="currency" currency-code={invoice.currencyCode}></lightning-formatted-number></span></div>
+                                                                                            <div class="invoice-amount-item"><span class="amount-label-small">Total</span><span class="amount-value-small"><lightning-formatted-number value={invoice.totalAmount} format-style="currency" currency-code={invoice.currencyCode}></lightning-formatted-number></span></div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </li>
+                                                                            </template>
+                                                                        </ul>
+                                                                    </div>
+                                                                </template>
+                                                                <template if:false={item.hasInvoices}><div class="no-invoices"><span class="slds-text-color_weak">No invoices linked</span></div></template>
+                                                            </li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                            <template if:false={summary.hasItems}><div class="no-items"><span class="slds-text-color_weak">No items</span></div></template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            
+            <template if:false={hasData}>
+                <template if:false={isLoading}>
+                    <template if:false={error}>
+                        <div class="slds-illustration slds-illustration_small slds-p-around_large">
+                            <div class="slds-text-longform">
+                                <h3 class="slds-text-heading_medium">No Payment Schedule Items Found</h3>
+                                <template if:true={selectedAccountId}>
+                                    <p class="slds-text-body_regular">There are no payment schedule items for the selected account and currency.</p>
+                                </template>
+                                <template if:false={selectedAccountId}>
+                                    <p class="slds-text-body_regular">Filters are set to All Accounts and selected currency. Change filters to view payment schedule items.</p>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </div>
+</template>

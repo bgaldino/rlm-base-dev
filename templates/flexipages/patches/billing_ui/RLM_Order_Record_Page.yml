@@ -1,0 +1,281 @@
+feature: billing_ui
+feature_flag: billing_ui
+# Adds billing arrangement accounts tab, enhanced billing schedules + hierarchy,
+# related invoices, and attached content documents to the Order Record Page.
+patches:
+  # After the detailTabContent Facet, insert three new billing Facet regions:
+  #   1. billingArrangementAccounts — shows billing arrangement details
+  #   2. BillingSchedules (enhanced) + rlmBillingScheduleGroupHierarchy
+  #   3. RelatedInvoices
+  - type: insert_after_xml
+    anchor: "<name>detailTabContent</name>\n        <type>Facet</type>\n    </flexiPageRegions>"
+    xml: |
+      <flexiPageRegions>
+          <itemInstances>
+              <componentInstance>
+                  <componentInstanceProperties>
+                      <name>billingArrangementField</name>
+                      <value>RLM_Billing_Arrangement__c</value>
+                  </componentInstanceProperties>
+                  <componentName>runtime_revenue_billing_arrangement:billingArrangementAccounts</componentName>
+                  <identifier>runtime_revenue_billing_arrangement_billingArrangementAccounts</identifier>
+              </componentInstance>
+          </itemInstances>
+          <name>Facet-f7488eda-07cf-455a-8fed-bc9e07f6bc95</name>
+          <type>Facet</type>
+      </flexiPageRegions>
+      <flexiPageRegions>
+          <itemInstances>
+              <componentInstance>
+                  <componentInstanceProperties>
+                      <name>actionNames</name>
+                      <valueList>
+                          <valueListItems>
+                              <value>New</value>
+                          </valueListItems>
+                      </valueList>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>adminFilters</name>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>maxRecordsToDisplay</name>
+                      <value>10</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>parentFieldApiName</name>
+                      <value>Order.Id</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListApiName</name>
+                      <value>BillingSchedules</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListDisplayType</name>
+                      <value>ADVGRID</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListFieldAliases</name>
+                      <valueList>
+                          <valueListItems>
+                              <value>Name</value>
+                          </valueListItems>
+                          <valueListItems>
+                              <value>BillingScheduleGroup</value>
+                          </valueListItems>
+                          <valueListItems>
+                              <value>Status</value>
+                          </valueListItems>
+                          <valueListItems>
+                              <value>NextBillingDate</value>
+                          </valueListItems>
+                          <valueListItems>
+                              <value>PendingAmount</value>
+                          </valueListItems>
+                          <valueListItems>
+                              <value>UsageResource</value>
+                          </valueListItems>
+                      </valueList>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListLabel</name>
+                      <value>Billing Schedules</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>showActionBar</name>
+                      <value>true</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>sortFieldAlias</name>
+                      <value>Name</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>sortFieldOrder</name>
+                      <value>Descending</value>
+                  </componentInstanceProperties>
+                  <componentName>lst:dynamicRelatedList</componentName>
+                  <identifier>lst_dynamicRelatedList6</identifier>
+              </componentInstance>
+          </itemInstances>
+          <itemInstances>
+              <componentInstance>
+                  <componentName>rlmBillingScheduleGroupHierarchy</componentName>
+                  <identifier>c_rlmBillingScheduleGroupHierarchy</identifier>
+              </componentInstance>
+          </itemInstances>
+          <name>Facet-c6b0e164-14cf-4cc0-bf4c-355b43eccbe0</name>
+          <type>Facet</type>
+      </flexiPageRegions>
+      <flexiPageRegions>
+          <itemInstances>
+              <componentInstance>
+                  <componentInstanceProperties>
+                      <name>parentFieldApiName</name>
+                      <value>Order.Id</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListApiName</name>
+                      <value>RelatedInvoices</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListComponentOverride</name>
+                      <value>ADVGRID</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>rowsToDisplay</name>
+                      <value>10</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>showActionBar</name>
+                      <value>true</value>
+                  </componentInstanceProperties>
+                  <componentName>force:relatedListSingleContainer</componentName>
+                  <identifier>force_relatedListSingleContainer3</identifier>
+              </componentInstance>
+          </itemInstances>
+          <name>Facet-2c22c5ac-cf79-4e4e-84dc-6fe8f8bf757b</name>
+          <type>Facet</type>
+      </flexiPageRegions>
+
+  # After the relatedListTabContent Facet, insert the AttachedContentDocuments region.
+  - type: insert_after_xml
+    anchor: "<name>relatedListTabContent</name>\n        <type>Facet</type>\n    </flexiPageRegions>"
+    xml: |
+      <flexiPageRegions>
+          <itemInstances>
+              <componentInstance>
+                  <componentInstanceProperties>
+                      <name>parentFieldApiName</name>
+                      <value>Order.Id</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListApiName</name>
+                      <value>AttachedContentDocuments</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>relatedListComponentOverride</name>
+                      <value>ADVGRID</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>rowsToDisplay</name>
+                      <value>10</value>
+                  </componentInstanceProperties>
+                  <componentInstanceProperties>
+                      <name>showActionBar</name>
+                      <value>true</value>
+                  </componentInstanceProperties>
+                  <componentName>force:relatedListSingleContainer</componentName>
+                  <identifier>force_relatedListSingleContainer4</identifier>
+              </componentInstance>
+          </itemInstances>
+          <name>Facet-0be68d2d-1647-4b3e-9ea6-203c9b0cb811</name>
+          <type>Facet</type>
+      </flexiPageRegions>
+
+  # In the maintabs Facet, insert tab entries for the three new billing Facet regions
+  # after the detailTab entry (Billing Arrangement, Schedules, All Invoices).
+  - type: insert_after_xml
+    anchor: "<identifier>detailTab</identifier>\n            </componentInstance>\n        </itemInstances>"
+    xml: |
+      <itemInstances>
+          <componentInstance>
+              <componentInstanceProperties>
+                  <name>body</name>
+                  <value>Facet-f7488eda-07cf-455a-8fed-bc9e07f6bc95</value>
+              </componentInstanceProperties>
+              <componentInstanceProperties>
+                  <name>title</name>
+                  <value>Billing Arrangement</value>
+              </componentInstanceProperties>
+              <componentName>flexipage:tab</componentName>
+              <identifier>flexipage_tab2</identifier>
+          </componentInstance>
+      </itemInstances>
+      <itemInstances>
+          <componentInstance>
+              <componentInstanceProperties>
+                  <name>body</name>
+                  <value>Facet-c6b0e164-14cf-4cc0-bf4c-355b43eccbe0</value>
+              </componentInstanceProperties>
+              <componentInstanceProperties>
+                  <name>title</name>
+                  <value>Schedules</value>
+              </componentInstanceProperties>
+              <componentName>flexipage:tab</componentName>
+              <identifier>flexipage_tab5</identifier>
+          </componentInstance>
+      </itemInstances>
+      <itemInstances>
+          <componentInstance>
+              <componentInstanceProperties>
+                  <name>body</name>
+                  <value>Facet-2c22c5ac-cf79-4e4e-84dc-6fe8f8bf757b</value>
+              </componentInstanceProperties>
+              <componentInstanceProperties>
+                  <name>title</name>
+                  <value>All Invoices</value>
+              </componentInstanceProperties>
+              <componentName>flexipage:tab</componentName>
+              <identifier>flexipage_tab3</identifier>
+          </componentInstance>
+      </itemInstances>
+
+  # In the maintabs Facet, insert the Files tab after the relatedListsTab entry.
+  - type: insert_after_xml
+    anchor: "<identifier>relatedListsTab</identifier>\n            </componentInstance>\n        </itemInstances>"
+    xml: |
+      <itemInstances>
+          <componentInstance>
+              <componentInstanceProperties>
+                  <name>body</name>
+                  <value>Facet-0be68d2d-1647-4b3e-9ea6-203c9b0cb811</value>
+              </componentInstanceProperties>
+              <componentInstanceProperties>
+                  <name>title</name>
+                  <value>Files</value>
+              </componentInstanceProperties>
+              <componentName>flexipage:tab</componentName>
+              <identifier>flexipage_tab4</identifier>
+          </componentInstance>
+      </itemInstances>
+
+  # In the highlights panel actionNames list, insert PreviewInvoices and BillNow after BrowseCatalog.
+  - type: insert_after_xml
+    anchor: "<value>BrowseCatalog</value>\n                        </valueListItems>"
+    xml: |
+      <valueListItems>
+          <value>PreviewInvoices</value>
+      </valueListItems>
+      <valueListItems>
+          <value>BillNow</value>
+      </valueListItems>
+
+  # Inside the detail Facet containing FulfillmentPlanId, append RLM_Billing_Profile__c field.
+  - type: insert_after_xml
+    anchor: "<identifier>RecordFulfillmentPlanIdField</identifier>\n            </fieldInstance>\n        </itemInstances>"
+    xml: |
+      <itemInstances>
+          <fieldInstance>
+              <fieldInstanceProperties>
+                  <name>uiBehavior</name>
+                  <value>none</value>
+              </fieldInstanceProperties>
+              <fieldItem>Record.RLM_Billing_Profile__c</fieldItem>
+              <identifier>RecordBilling_Profile__cField</identifier>
+          </fieldInstance>
+      </itemInstances>
+
+  # Inside the detail Facet containing LegalEntityId, append RLM_Billing_Arrangement__c field.
+  - type: insert_after_xml
+    anchor: "<identifier>RecordLegalEntityIdField</identifier>\n            </fieldInstance>\n        </itemInstances>"
+    xml: |
+      <itemInstances>
+          <fieldInstance>
+              <fieldInstanceProperties>
+                  <name>uiBehavior</name>
+                  <value>none</value>
+              </fieldInstanceProperties>
+              <fieldItem>Record.RLM_Billing_Arrangement__c</fieldItem>
+              <identifier>RecordBilling_Arrangement_cField</identifier>
+          </fieldInstance>
+      </itemInstances>
