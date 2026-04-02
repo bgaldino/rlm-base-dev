@@ -8,7 +8,7 @@ This template includes both baseline and advanced customer-specific PCM records 
 
 1. Core products and selling models:
    - `ProductSellingModel`
-   - `Product2` (including `Type` or org-specific product type field)
+   - `Product2` (including `Type`, `ConfigureDuringSale`, or org-specific product type/config fields)
    - `ProductSellingModelOption` (`IsDefault=true`)
    - `ProrationPolicy` and `ProductRampSegment` (when recurring/ramp behavior is needed)
 2. Catalog and categorization:
@@ -44,6 +44,11 @@ This template is part of a hybrid customer onboarding set:
    - `datasets/sfdmu/acme/en-US/acme-pcm`
 2. Populate CSV rows from your customer SKU matrix.
 3. When bundles/configuration are in scope, populate component groups, related components, and attribute CSVs in the same pass as products.
+   - decide `Product2.Type` before first insert:
+     - parent bundle products: `Type=Bundle`
+     - component or standalone products: `Type` blank/null unless org rules require otherwise
+   - for any product with `Type=Bundle`, set `ConfigureDuringSale=Allowed` on initial insert
+   - avoid setting bundle children to `Base`/`Set` in orgs that enforce child-type restrictions
 4. Ensure `ProductSellingModel.Name` values used in `ProductSellingModelOption` and pricebook seed input exactly match selling models available in the target org.
    - Prefer term-based recurring models (`SellingModelType=TermDefined`) so demo flows can show proration and cancel/replace/amend behavior.
    - Use evergreen recurring models only when no suitable term model exists in the target org.

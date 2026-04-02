@@ -14,6 +14,7 @@ When a user asks to set up products for a customer demonstration:
    - 10-15 SKU set,
    - selling model assumptions (prefer term-defined subscriptions over evergreen for recurring offers),
    - bundle assumptions (parent bundles, component groups, required vs optional components),
+   - initial Product2 typing assumptions (which SKUs are `Type=Bundle` vs `Type` blank/null),
    - attribute/configuration assumptions (definitions, picklists, product attribute behavior),
    - relationship assumptions (relationship types, related components, qualification/disqualification rules when needed),
    - pricing assumptions,
@@ -28,6 +29,10 @@ When a user asks to set up products for a customer demonstration:
    - model customer-specific PCM using `datasets/sfdmu/qb/en-US/qb-pcm` as the reference shape for advanced objects (attributes, classifications, bundles, related components, ramp/proration, qualifications)
   - before running import/deploy, validate that all `ProductSellingModel.Name` + `SellingModelType` values used in customer CSVs exist in the target org; adjust to org-native names if needed
   - default recurring offers to term-based models (for example `TermDefined` monthly/annual) so proration and cancel/replace/amend can be demonstrated; use evergreen only when the org lacks usable term models and call out that trade-off
+  - decide `Product2.Type` before first insert for each SKU; treat it as effectively immutable in onboarding runs
+    - `Type=Bundle` for parent bundle SKUs
+    - `Type` blank/null for component or standalone SKUs (orgs may reject `Base`/`Set` as bundle children)
+  - for any SKU inserted with `Type=Bundle`, set `Product2.ConfigureDuringSale=Allowed` in the initial dataset row
    - flow: `prepare_customer_demo_catalog`
    - logo preparation task: `prepare_customer_demo_logo_staticresource`
    - logo deployment task: `deploy_customer_demo_staticresources`

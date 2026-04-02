@@ -53,12 +53,25 @@ For each customer:
 4. Keep categories to a practical **3-6 categories**.
 5. Build the SKU matrix (record book) with:
    - `SKU`, `Name`, `CategoryCode`, `Family`, `PSMName`, `PSMSellingModelType`, `UnitPrice`, `CurrencyIsoCode`, `Description`
+   - initial product structure fields: `Type`, `ConfigureDuringSale`
 6. Prefer recurring SKUs to use **term-defined** selling models (typically monthly or annual) instead of evergreen:
    - default recurring offers to `SellingModelType=TermDefined` where possible
    - use org-native term model names in `PSMName` (for example "Term Monthly" / "Term Annual")
    - use evergreen only as a fallback when term models are unavailable, and document that this limits proration and amend/cancel/replace demo scenarios
 
 If the plan needs more than 15 SKUs or more than 6 categories, document why and approve an exception before build.
+
+### Product2 type and bundle design (required before first load)
+
+Treat `Product2.Type` as a first-load decision during onboarding. In practice, changing type later is restricted or blocked in many orgs, so set it correctly in the initial `Product2.csv`.
+
+- `Type=Bundle` for parent bundle products.
+- `Type` blank/null for component or standalone products unless the org requires a different value.
+- For bundle parents, set `ConfigureDuringSale=Allowed` on initial insert so configuration is enabled at sale time.
+
+Light discovery note from active demo orgs:
+- Observed `ConfigureDuringSale` values in use are `Allowed` and null.
+- Observed bundle validation can reject child products typed as `Base` or `Set`; null child type is safer when bundle components are also sold separately.
 
 ## Phase 2: Build records locally
 
@@ -73,6 +86,7 @@ If the plan needs more than 15 SKUs or more than 6 categories, document why and 
    - `ProductCatalog.csv`
    - `ProductCategory.csv`
    - `ProductCategoryProduct.csv`
+   - include `Product2.Type` and `Product2.ConfigureDuringSale` decisions in `Product2.csv` at this step
 4. Populate `scripts/customer-demo/customer-pricebook-entries.csv`.
    - for recurring SKUs, keep `PSMSellingModelType=TermDefined` unless fallback is required
 5. Populate customer image dataset CSV:

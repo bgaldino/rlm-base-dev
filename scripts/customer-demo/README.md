@@ -7,6 +7,19 @@ This directory contains reusable templates for customer-specific product onboard
 - `customer-pricebook-entries.csv`: input for API-based PricebookEntry recreation and verification checks.
 - `prepare_customer_logo_static_resource.py`: downloads a customer logo URL and generates a square static resource payload/metadata.
 
+## Product2 bootstrap rules for onboarding
+
+Set Product2 structure fields correctly on the initial import:
+
+- `Product2.Type` should be treated as a one-time onboarding decision per SKU.
+- Use `Type=Bundle` for parent bundle SKUs.
+- Use blank/null `Type` for component or standalone SKUs unless target-org rules require a specific value.
+- For SKUs inserted with `Type=Bundle`, set `Product2.ConfigureDuringSale=Allowed` on initial insert.
+
+Light discovery from active demo orgs:
+- `ConfigureDuringSale` commonly appears as `Allowed` or null.
+- Bundle relationship validation may reject child SKUs typed as `Base`/`Set`; null child type is safer.
+
 ## Customer logo static resource
 
 Use this script to create a deployable static resource for customer demo product images:
