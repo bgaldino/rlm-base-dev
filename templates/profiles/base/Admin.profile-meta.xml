@@ -53,7 +53,16 @@
         <layout>Contract-RLM Contract Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
+        <layout>FulfillmentStepDefinition-RLM Fulfillment Step Definition Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
         <layout>Opportunity-RLM Opportunity Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Order-RLM Order Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>OrderItem-RLM Order Product Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
         <layout>PricebookEntry-RLM Price Book Entry</layout>
