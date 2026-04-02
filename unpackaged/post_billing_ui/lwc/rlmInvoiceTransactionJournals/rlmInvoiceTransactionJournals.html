@@ -1,0 +1,26 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:report">
+        <template if:true={error}>
+            <div class="slds-p-around_medium slds-text-color_error">
+                {error}
+            </div>
+        </template>
+
+        <template if:true={hasRows}>
+            <lightning-datatable
+                key-field="Id"
+                data={rows}
+                columns={columns}
+                hide-checkbox-column>
+            </lightning-datatable>
+        </template>
+
+        <template if:false={hasRows}>
+            <template if:false={error}>
+                <div class="slds-p-around_medium slds-text-color_weak">
+                    No transaction journals found for this invoice.
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

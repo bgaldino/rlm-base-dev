@@ -251,29 +251,29 @@ prepare_rlm_org
 ├── 4. prepare_payments
 ├── 5. deploy_full (force-app/main/default)
 ├── 6. prepare_price_adjustment_schedules
-├── 7. prepare_scratch (scratch-only data)
-├── 8. prepare_payments (re-run)
-├── 9. prepare_quantumbit (utils, approvals, QB metadata)
-├── 10. prepare_product_data (PCM, Q3, product images)
-├── 11. prepare_pricing_data (pricing delete + insert)
-├── 12. prepare_docgen
-├── 13. prepare_dro
-├── 14. prepare_tax
-├── 15. prepare_billing
-├── 16. prepare_analytics
-├── 17. prepare_clm
-├── 18. prepare_rating (delete, insert, activate for rating+rates)
-├── 19. activate_and_deploy_expression_sets
-├── 20. prepare_tso (TSO-specific PSLs, PSGs, deploy)
-├── 21. prepare_procedureplans
-├── 22. prepare_prm
-├── 23. prepare_agents
-├── 24. prepare_constraints
-├── 25. prepare_guidedselling
-├── 26. prepare_revenue_settings
-├── 27. prepare_pricing_discovery
-├── 28. prepare_ramp_builder
-├── 29. prepare_ux (when: ux=true)
+├── 7. prepare_payments (re-run)
+├── 8. prepare_quantumbit (utils, approvals, QB metadata)
+├── 9. prepare_product_data (PCM, Q3, product images)
+├── 10. prepare_pricing_data (pricing delete + insert)
+├── 11. prepare_docgen
+├── 12. prepare_dro
+├── 13. prepare_tax
+├── 14. prepare_billing
+├── 15. prepare_analytics
+├── 16. prepare_clm
+├── 17. prepare_rating (delete, insert, activate for rating+rates)
+├── 18. activate_and_deploy_expression_sets
+├── 19. prepare_tso (TSO-specific PSLs, PSGs, deploy)
+├── 20. prepare_procedureplans
+├── 21. prepare_prm
+├── 22. prepare_agents
+├── 23. prepare_constraints
+├── 24. prepare_guidedselling
+├── 25. prepare_revenue_settings
+├── 26. prepare_pricing_discovery
+├── 27. prepare_ramp_builder
+├── 28. prepare_ux (when: ux=true)
+├── 29. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
 ├── 30. refresh_all_decision_tables
 └── 31. stamp_git_commit
 ```

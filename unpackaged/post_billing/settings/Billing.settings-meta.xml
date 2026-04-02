@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <billingContextDefinition>RLM_BillingContext</billingContextDefinition>
-    <enableBillingDisputeManagement>false</enableBillingDisputeManagement>
+    <enableBillingDisputeManagement>true</enableBillingDisputeManagement>
     <enableBillingSetup>true</enableBillingSetup>
     <enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>
-    <enableFailedPaymentsRetry>false</enableFailedPaymentsRetry>
-    <enableForeignExchangeTrxnJrnlCreation>false</enableForeignExchangeTrxnJrnlCreation>
+    <enableCreditMemoSequenceService>true</enableCreditMemoSequenceService>
+    <enableFailedPaymentsRetry>true</enableFailedPaymentsRetry>
+    <enableForeignExchangeTrxnJrnlCreation>true</enableForeignExchangeTrxnJrnlCreation>
     <enableInvoiceEmailDelivery>true</enableInvoiceEmailDelivery>
     <enableInvoicePdfGeneration>true</enableInvoicePdfGeneration>
+    <enableInvoiceSequenceService>true</enableInvoiceSequenceService>
     <enableNegInvoiceLnConversionToCrMemoLn>true</enableNegInvoiceLnConversionToCrMemoLn>
     <enablePaymentSchedulesAndItemsCreation>true</enablePaymentSchedulesAndItemsCreation>
     <enableTransactionJournalCreation>true</enableTransactionJournalCreation>

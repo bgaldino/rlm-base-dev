@@ -1,0 +1,110 @@
+<template>
+    <lightning-card>
+        <!-- Custom Card Header -->
+        <div class="card-header" slot="title">
+            <lightning-icon icon-name="standard:currency" size="small" class="header-icon"></lightning-icon>
+            <span class="header-text">Dispute</span>
+            <template if:true={disputeName}>
+                <a href={disputeRecordUrl} class="header-name-link" data-id={disputeRecordId} onclick={handleLinkClick}>{disputeName}</a>
+            </template>
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-vertical_small">
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                    <span class="slds-text-body_small slds-text-color_weak slds-m-left_small">Loading dispute…</span>
+                </div>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-m-vertical_small">{errorMessage}</div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasData}>
+                    <!-- Dispute Details Grid -->
+                    <div class="detail-section">
+                        <div class="field-grid">
+                            <div class="detail-field">
+                                <span class="detail-label">Invoice</span>
+                                <template if:true={disputeData.hasInvoice}>
+                                    <a href={disputeData.invoiceUrl} class="detail-link" data-id={disputeData.invoiceId} onclick={handleLinkClick}>{disputeData.invoiceDisplayName}</a>
+                                </template>
+                                <template if:false={disputeData.hasInvoice}>
+                                    <span class="detail-value detail-value-muted">—</span>
+                                </template>
+                            </div>
+                            <div class="detail-field">
+                                <span class="detail-label">Total Disputed Amount</span>
+                                <span class="detail-value amount-disputed">{disputeData.formattedDisputedAmount}</span>
+                            </div>
+                            <div class="detail-field">
+                                <span class="detail-label">Total Approved Amount</span>
+                                <span class="detail-value amount-approved">{disputeData.formattedApprovedAmount}</span>
+                            </div>
+                            <div class="detail-field">
+                                <span class="detail-label">Received Date</span>
+                                <span class="detail-value">{disputeData.formattedReceivedDate}</span>
+                            </div>
+                            <div class="detail-field">
+                                <span class="detail-label">Resolution Action</span>
+                                <span class="detail-value">{disputeData.resolutionAction}</span>
+                            </div>
+                            <div class="detail-field">
+                                <span class="detail-label">Resolution Action Status</span>
+                                <span class="detail-value">{disputeData.resolutionActionStatus}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disputed Lines -->
+                    <template if:true={hasItems}>
+                        <div class="detail-section">
+                            <div class="items-header">
+                                <span class="items-title">Disputed Lines</span>
+                                <span class="items-badge">{itemCount}</span>
+                            </div>
+                            <div class="items-table">
+                                <div class="items-table-header">
+                                    <span class="items-col items-col-line">Invoice Line</span>
+                                    <span class="items-col items-col-type">Charge Type</span>
+                                    <span class="items-col items-col-period">Billing Period</span>
+                                    <span class="items-col items-col-balance">Balance</span>
+                                    <span class="items-col items-col-amount">Disputed Amount</span>
+                                    <span class="items-col items-col-approved">Approved Amount</span>
+                                </div>
+                                <template for:each={disputeItems} for:item="item">
+                                    <div key={item.id} class="items-table-row">
+                                        <span class="items-col items-col-line">
+                                            <template if:true={item.hasInvoiceLine}>
+                                                <a href={item.invoiceLineUrl} class="detail-link detail-link-sm" data-id={item.invoiceLineId} onclick={handleLinkClick}>{item.invoiceLineName}</a>
+                                            </template>
+                                            <template if:false={item.hasInvoiceLine}>
+                                                <span class="detail-value-muted">—</span>
+                                            </template>
+                                        </span>
+                                        <span class="items-col items-col-type items-type-value">{item.chargeType}</span>
+                                        <span class="items-col items-col-period items-period-value">{item.billingPeriod}</span>
+                                        <span class="items-col items-col-balance items-balance-value">{item.balance}</span>
+                                        <span class="items-col items-col-amount amount-disputed-sm">{item.formattedDisputedAmount}</span>
+                                        <span class="items-col items-col-approved amount-approved-sm">{item.formattedApprovedAmount}</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:false={hasData}>
+                    <template if:false={error}>
+                        <div class="empty-state">
+                            <lightning-icon icon-name="utility:info" size="small" variant="inverse" class="empty-icon"></lightning-icon>
+                            <span class="empty-text">No dispute found for this case.</span>
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

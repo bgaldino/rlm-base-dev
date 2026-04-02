@@ -5,7 +5,7 @@
 Plans must load in dependency order. Arrows show "depends on" relationships.
 
 ```
-scratch_data (Account, Contact)
+scratch_data (Account, Contact, BillingAccount)
     │
     └──→ qb-pcm (ROOT — 28 objects)
             │   Product2, attributes, classifications, bundles, categories
@@ -13,8 +13,9 @@ scratch_data (Account, Contact)
             ├──→ qb-pricing (16 objects)
             │       PriceBook2, PBE, PAS, PAT, adjustments
             │
-            ├──→ qb-billing (14 objects, 3 passes)
-            │       BillingPolicy, treatments, PaymentTerm, LegalEntity, GL accounts
+            ├──→ qb-billing (18 object entries, 3 passes)
+            │       BillingPolicy, treatments, PaymentTerm, LegalEntity (Readonly), GL accounts,
+            │       PaymentRetryRuleSet/Rule, SequencePolicy, SeqPolicySelectionCondition
             │       │
             │       └──→ qb-accounting (4 objects)
             │               GeneralLedgerAccount, GL rules, journal entry rules

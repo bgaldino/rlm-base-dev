@@ -55,21 +55,21 @@ Billing Policy - Arrears,QB-DATA-STORAGE-BLNG
 Billing Policy - Arrears,QB-DATA-THPT-BLNG
 Billing Policy - Advance,QB-DB
 Billing Policy - Advance,QB-DB-TOKEN
-,QB-DRO-AACR
-,QB-DRO-AAPI
-,QB-DRO-AAQBC
-,QB-DRO-AEH
-,QB-DRO-AFBQ
-,QB-DRO-AM
-,QB-DRO-APIPLAT
-,QB-DRO-BILL
-,QB-DRO-BILLING
-,QB-DRO-LICACT
-,QB-DRO-OR
-,QB-DRO-PERMS
-,QB-DRO-PROJ
-,QB-DRO-PROVISION
-,QB-DRO-QBD
+#N/A,QB-DRO-AACR
+#N/A,QB-DRO-AAPI
+#N/A,QB-DRO-AAQBC
+#N/A,QB-DRO-AEH
+#N/A,QB-DRO-AFBQ
+#N/A,QB-DRO-AM
+#N/A,QB-DRO-APIPLAT
+#N/A,QB-DRO-BILL
+#N/A,QB-DRO-BILLING
+#N/A,QB-DRO-LICACT
+#N/A,QB-DRO-OR
+#N/A,QB-DRO-PERMS
+#N/A,QB-DRO-PROJ
+#N/A,QB-DRO-PROVISION
+#N/A,QB-DRO-QBD
 Billing Policy - Advance,QB-FLO-ENTR
 Billing Policy - Advance,QB-FLO-STRT
 Billing Policy - Advance,QB-GEN-AI-LIC
@@ -108,8 +108,8 @@ Billing Policy - Advance,QB-NET-10G
 Billing Policy - Advance,QB-NET-25G
 Billing Policy - Advance,QB-NETSECURE-10G
 Billing Policy - Advance,QB-NO-OSYS
-Billing Policy - Advance,QB-NVExpand-200
 Billing Policy - Advance,QB-NovaX150
+Billing Policy - Advance,QB-NVExpand-200
 Billing Policy - Advance,QB-PDU-2022
 Billing Policy - Advance,QB-PDU-2023
 Billing Policy - Advance,QB-PDU-2024
@@ -157,9 +157,9 @@ Billing Policy - Arrears,QB-TOKEN-DEF
 Billing Policy - Arrears,QB-TOKENS-PACK
 Billing Policy - Advance,QB-TRN-ESSNTLS
 Billing Policy - Advance,QB-TRN-FUND
+Billing Policy - Advance,QB-VegaX200
 Billing Policy - Advance,QB-VMW-D
 Billing Policy - Advance,QB-VMW-E
 Billing Policy - Advance,QB-VMW-S
-Billing Policy - Advance,QB-VegaX200
 Billing Policy - Arrears,RES-USD-DEF
 Billing Policy - Advance,TEST-SUB

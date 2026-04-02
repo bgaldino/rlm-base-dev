@@ -1,8 +1,9 @@
 {
-  "assembled_at": "2026-03-31T21:10:15.204477Z",
+  "assembled_at": "2026-04-02T06:49:48.304146Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
+    "billing_ui": true,
     "tax": true,
     "rating": true,
     "rates": true,
@@ -70,6 +71,20 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Billing_Account_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Billing_Invoice_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Invoice_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Invoice_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Billing_Schedule.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Schedule.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Billing_Schedule.flexipage-meta.xml",
@@ -84,6 +99,13 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Billing_Schedule_Group_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Schedule_Group_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Schedule_Group_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Billing_Schedule_Record_Page.flexipage-meta.xml",
@@ -94,6 +116,27 @@
       "name": "RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Bundle_Based_Adjustment_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Case_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Case_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Case_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Collection_Rule_Builder.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Collection_Rule_Builder.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Collection_Rule_Builder.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Collections_Dashboard.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Dashboard.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Collections_Dashboard.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -198,7 +241,43 @@
       "type": "flexipage",
       "name": "RLM_Order_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Order_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/quantumbit/RLM_Order_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/base/RLM_Order_Record_Page.flexipage-meta.xml",
+      "patches": [
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml"
+        }
+      ]
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Payment_Plans.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Payment_Plans.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Payment_Plans.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -319,6 +398,13 @@
       "name": "RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing/RLM_Receivables_Management_UtilityBar.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Sequence_Policy_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Sequence_Policy_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing/RLM_Sequence_Policy_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -576,7 +662,7 @@
       "name": "AppSwitcher.appMenu-meta.xml",
       "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
       "source_tier": "org + template priority ordering",
-      "items_total": 39,
+      "items_total": 41,
       "priority_applied": [
         "RLM_Revenue_Cloud",
         "standard__BillingConsole",

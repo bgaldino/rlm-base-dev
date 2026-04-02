@@ -88,6 +88,7 @@ project:
     calmdelete: true          # Use CALM Delete
     tax: true                 # Use Tax engine
     billing: true             # Use Billing
+    billing_ui: true          # Deploy Billing UI LWC components (post_billing_ui)
     payments: true            # Use Payments
     approvals: true           # Use Approvals
     clm: true                # Use Contract Lifecycle Management
@@ -680,6 +681,21 @@ tasks:
       activate: true
       verify: true
 
+  apply_context_billing_order:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds BillingArrangement__std and BillingProfile__std Order field mappings to the
+      RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node).
+      Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c.
+      SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      plan_file: datasets/context_plans/Billing/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   apply_context_docgen:
     group: Revenue Lifecycle Management
     description: >
@@ -1051,6 +1067,26 @@ tasks:
     options:
       path: unpackaged/post_billing
 
+  deploy_post_billing_ui:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components
+      (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus,
+      rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder,
+      rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart,
+      rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary,
+      rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards,
+      rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account),
+      2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c),
+      2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
+      2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
+      the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
+      (field access + Apex class access + RunFlow). Flexipages for billing_ui are
+      deployed via assemble_and_deploy_ux (billing_ui feature flag).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_billing_ui
+
   deploy_billing_id_settings:
     description: Deploy Billing Settings with org-specific record IDs (resolved via XPath transform queries at deploy time)
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1069,6 +1105,46 @@ tasks:
                 api: rest
               - xpath: //BillingSettings/defaultTaxTreatment[text()="__DEFAULT_TAX_TREATMENT_ID__"]
                 replace_record_id_query: SELECT Id FROM TaxTreatment WHERE Name = 'Default Tax Policy' AND Status = 'Active' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/acctRecGlAccount[text()="__ACCT_REC_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '1100' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/realisedGainGlAccount[text()="__REALISED_GAIN_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4610' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/realisedLossGlAccount[text()="__REALISED_LOSS_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8510' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/unrealisedGainGlAccount[text()="__UNREALISED_GAIN_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4600' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/unrealisedLossGlAccount[text()="__UNREALISED_LOSS_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
+                api: rest
+
+  deploy_billing_template_id_settings:
+    description: >
+      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with
+      auto-generated template IDs (resolved after deploy_billing_template_settings
+      triggers template auto-creation). Sets defaultEmailTemplate,
+      defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings
+      auto-default these values; explicit deployment is not required.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_billing_template_id_settings
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE Name = 'Default Invoice Email Template' ORDER BY CreatedDate DESC LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultInvPreviewTemplate[text()="__DEFAULT_INV_PREVIEW_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoicePreviewTemplate' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultInvoiceDocTemplate[text()="__DEFAULT_INVOICE_DOC_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoiceTemplate' LIMIT 1
                 api: rest
 
   deploy_billing_template_settings:
@@ -1658,6 +1734,17 @@ tasks:
       suite: robot/rlm-base/tests/setup/enable_document_builder.robot
       outputdir: robot/rlm-base/results
 
+  enable_timeline:
+    group: Revenue Lifecycle Management
+    description: >
+      Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium).
+      Required before billing_ui flexipages that reference industries_common:timeline can be deployed.
+      Once enabled, this toggle cannot be disabled.
+    class_path: tasks.rlm_enable_timeline.EnableTimeline
+    options:
+      suite: robot/rlm-base/tests/setup/enable_timeline.robot
+      outputdir: robot/rlm-base/results
+
   enable_constraints_settings:
     group: Revenue Lifecycle Management
     description: "Set Default Transaction Type, Asset Context for Product Configurator, and enable Constraints Engine toggle on Revenue Settings (Robot test). Required before CML constraint data import."
@@ -1732,6 +1819,28 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateBillingRecords.apex
+
+  create_sequence_policies:
+    group: Revenue Lifecycle Management
+    description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
+    class_path: tasks.rlm_billing.CreateSequencePolicies
+
+  update_currency_rates_csv:
+    group: Data Management - Currency
+    description: >
+      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update
+      CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch
+      org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP').
+      Use dry_run true to preview without writing.
+    class_path: tasks.rlm_currency.UpdateCurrencyRatesCsv
+
+  update_currency_rates:
+    group: Data Management - Currency
+    description: >
+      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch
+      CurrencyType.ConversionRate for all active non-corporate currencies in a running org.
+      Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+    class_path: tasks.rlm_currency.UpdateCurrencyRates
 
   query_billing_state:
     group: Revenue Lifecycle Management
@@ -1915,6 +2024,28 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_prm_dataset
 
+  extract_scratch_data:
+    group: Data Management - Extract
+    description: "Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: "datasets/sfdmu/scratch_data"
+      extractions_base_dir: "datasets/sfdmu/extractions"
+
+  extract_qb_billing_data:
+    group: Data Management - Extract
+    description: "Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in datasets/sfdmu/extractions/qb-billing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_billing_dataset
+
+  extract_qb_tax_data:
+    group: Data Management - Extract
+    description: "Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_tax_dataset
+
   test_qb_pcm_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for qb-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<timestamp>.
@@ -2003,6 +2134,22 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_prm_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_billing_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_billing_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_tax_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-tax (tax policies and treatments).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_tax_dataset
       use_extraction_roundtrip: false
 
 #------------------#
@@ -2211,58 +2358,56 @@ flows:
       6:
         flow: prepare_price_adjustment_schedules
       7:
-        flow: prepare_scratch
-      8:
         flow: prepare_payments
-      9:
+      8:
         flow: prepare_quantumbit
-      10:
+      9:
         flow: prepare_product_data
-      11:
+      10:
         flow: prepare_pricing_data
-      12:
+      11:
         flow: prepare_docgen
-      13:
+      12:
         flow: prepare_dro
-      14:
+      13:
         flow: prepare_tax
-      15:
+      14:
         flow: prepare_billing
-      16:
+      15:
         flow: prepare_analytics
-      17:
+      16:
         flow: prepare_clm
-      18:
+      17:
         flow: prepare_rating
-      19:
+      18:
         task: activate_and_deploy_expression_sets
-      20:
+      19:
         flow: prepare_tso
-      21:
+      20:
         flow: prepare_procedureplans
-      22:
+      21:
         flow: prepare_prm
-      23:
+      22:
         flow: prepare_agents
-      24:
+      23:
         flow: prepare_constraints
-      25:
+      24:
         flow: prepare_guidedselling
-      26:
+      25:
         flow: prepare_revenue_settings
-      27:
+      26:
         flow: prepare_pricing_discovery
-      28:
+      27:
         flow: prepare_ramp_builder
-      29:
+      28:
         flow: prepare_ux
         when: project_config.project__custom__ux
+      29:
+        flow: prepare_scratch
       30:
         flow: refresh_all_decision_tables
       31:
-        task: stamp_git_commit
-        options:
-          flow_name: prepare_rlm_org
+        flow: stamp_git_commit
 
   prepare_core:
     group: Revenue Lifecycle Management
@@ -2532,31 +2677,49 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: deploy_post_billing
+        when: project_config.project__custom__billing
+      2:
         task: insert_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
-      2:
+      3:
         task: insert_q3_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
-      3:
+      4:
+        task: create_sequence_policies
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+      5:
         task: activate_flow
         when: project_config.project__custom__billing
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      4:
+      6:
         task: activate_default_payment_term
         when: project_config.project__custom__billing
-      5:
+      7:
         task: activate_billing_records
         when: project_config.project__custom__billing
-      6:
-        task: deploy_post_billing
-        when: project_config.project__custom__billing
-      7:
+      8:
+        task: enable_timeline
+        when: project_config.project__custom__billing_ui
+      9:
         task: deploy_billing_id_settings
         when: project_config.project__custom__billing
-      8:
+      10:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
+      11:
+        task: deploy_post_billing_ui
+        when: project_config.project__custom__billing_ui
+      12:
+        task: assign_permission_sets
+        when: project_config.project__custom__billing_ui
+        options:
+          api_names:
+            - RLM_BillingUI
+      13:
+        task: apply_context_billing_order
+        when: project_config.project__custom__billing and project_config.project__custom__billing_ui
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -2745,13 +2908,13 @@ flows:
     steps:
       1:
         task: insert_qb_transactionprocessingtypes_data
-        when: project_config.project__custom__constraints and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__quantumbit
       2:
         task: deploy_post_constraints
         when: project_config.project__custom__constraints
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__tso and project_config.project__custom__constraints
+        when: project_config.project__custom__constraints
         options:
           api_names: *ps_constraints
       4:
@@ -2801,7 +2964,7 @@ flows:
           api_names: *ps_approvals
       4:
         task: insert_qb_approvals_data
-        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        when: project_config.project__custom__qb and project_config.project__custom__approvals
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management
@@ -2954,3 +3117,12 @@ flows:
         task: test_qb_transactionprocessingtypes_idempotency
       9:
         task: test_qb_guidedselling_idempotency
+
+  stamp_git_commit:
+    group: RLM Administration
+    description: Stamp the git commit hash into the org
+    steps:
+      1:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org

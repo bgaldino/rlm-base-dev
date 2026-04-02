@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <acctRecGlAccount>__ACCT_REC_GL_ACCOUNT_ID__</acctRecGlAccount>
     <billingContextSourceMapping>OrderEntitiesMapping</billingContextSourceMapping>
     <defaultAPClosureDPEDefnName>LegalEntityAccountingPeriodClosure</defaultAPClosureDPEDefnName>
     <defaultBillingTreatment>__DEFAULT_BILLING_TREATMENT_ID__</defaultBillingTreatment>
     <defaultFxGLDPEDefnName>CreateUnrealizedFXGainLossTrxnJrnls</defaultFxGLDPEDefnName>
+    <defaultLeapReopDPEDefnName>DelUnrealizedFXGainLossTransactionJrnls</defaultLeapReopDPEDefnName>
     <defaultLeapSumDPEDefnName>CreateGLAcctPrdSummaryRecMultiCurr</defaultLeapSumDPEDefnName>
     <defaultLegalEntity>__DEFAULT_LEGAL_ENTITY_ID__</defaultLegalEntity>
     <defaultTaxTreatment>__DEFAULT_TAX_TREATMENT_ID__</defaultTaxTreatment>
     <enableInvoiceEmailDelivery>false</enableInvoiceEmailDelivery>
     <enableInvoicePdfGeneration>false</enableInvoicePdfGeneration>
+    <realisedGainGlAccount>__REALISED_GAIN_GL_ACCOUNT_ID__</realisedGainGlAccount>
+    <realisedLossGlAccount>__REALISED_LOSS_GL_ACCOUNT_ID__</realisedLossGlAccount>
+    <ruleBasedCrAndPymtAppln>{"first":"Payments","rules":["EA","OI","HI"]}</ruleBasedCrAndPymtAppln>
+    <unrealisedGainGlAccount>__UNREALISED_GAIN_GL_ACCOUNT_ID__</unrealisedGainGlAccount>
+    <unrealisedLossGlAccount>__UNREALISED_LOSS_GL_ACCOUNT_ID__</unrealisedLossGlAccount>
 </BillingSettings>

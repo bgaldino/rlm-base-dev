@@ -1,0 +1,9 @@
+<template>
+    <template if:true={showSuspended}>
+        <div class="status-pill suspended">
+            <lightning-icon icon-name="utility:ban" size="xx-small" class="pill-icon"></lightning-icon>
+            <span class="pill-text">Billing Suspended</span>
+            <span class="pill-dates">{statusData.formattedSuspensionDate} – {statusData.formattedResumptionDate}</span>
+        </div>
+    </template>
+</template>

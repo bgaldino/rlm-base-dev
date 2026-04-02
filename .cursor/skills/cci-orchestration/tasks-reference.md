@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**182 tasks** across **8 groups**.
+**192 tasks** across **9 groups**.
 
 ---
 
@@ -59,9 +59,29 @@
 
 ---
 
+## Data Management - Currency
+
+*2 task(s)*
+
+### `update_currency_rates`
+
+**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch CurrencyType.ConversionRate for all active non-corporate currencies in a running org. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+
+**Class:** `tasks.rlm_currency.UpdateCurrencyRates`
+
+---
+
+### `update_currency_rates_csv`
+
+**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without writing.
+
+**Class:** `tasks.rlm_currency.UpdateCurrencyRatesCsv`
+
+---
+
 ## Data Management - Extract
 
-*11 task(s)*
+*14 task(s)*
 
 ### `extract_qb_approvals_data`
 
@@ -72,6 +92,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
+
+---
+
+### `extract_qb_billing_data`
+
+**Description:** Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in datasets/sfdmu/extractions/qb-billing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-billing`
 
 ---
 
@@ -183,6 +215,18 @@
 
 ---
 
+### `extract_qb_tax_data`
+
+**Description:** Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+
+---
+
 ### `extract_qb_transactionprocessingtypes_data`
 
 **Description:** Extract qb-transactionprocessingtypes from org to CSV. Output in datasets/sfdmu/extractions/qb-transactionprocessingtypes/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -195,9 +239,22 @@
 
 ---
 
+### `extract_scratch_data`
+
+**Description:** Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/scratch_data`
+- `extractions_base_dir`: `datasets/sfdmu/extractions`
+
+---
+
 ## Data Management - Idempotency
 
-*11 task(s)*
+*13 task(s)*
 
 ### `test_qb_approvals_idempotency`
 
@@ -208,6 +265,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
+- `use_extraction_roundtrip`: `False`
+
+---
+
+### `test_qb_billing_idempotency`
+
+**Description:** Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-billing`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -331,6 +401,19 @@
 
 ---
 
+### `test_qb_tax_idempotency`
+
+**Description:** Idempotency test for qb-tax (tax policies and treatments).
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+- `use_extraction_roundtrip`: `False`
+
+---
+
 ### `test_qb_transactionprocessingtypes_idempotency`
 
 **Description:** Idempotency test for qb-transactionprocessingtypes.
@@ -391,7 +474,7 @@
 
 ### `robot_reset_account`
 
-**Description:** Reset the test Account via the RLM_ResetAccount QuickAction (UI automation). Clears transactional data (Opportunities, Quotes, Orders, Assets) so E2E tests can re-run from a clean state. Runs in headed Chrome.
+**Description:** Reset the test Account via the RLM_Reset_Account QuickAction (UI automation). Clears transactional data (Opportunities, Quotes, Orders, Assets) so E2E tests can re-run from a clean state. Runs in headed Chrome.
 
 **Class:** `tasks.rlm_robot_e2e.RunE2ETests`
 
@@ -451,7 +534,7 @@
 
 ## Revenue Lifecycle Management
 
-*118 task(s)*
+*121 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -598,6 +681,22 @@
 **Options:**
 
 - `path`: `scripts/apex/activateTaxRecords.apex`
+
+---
+
+### `apply_context_billing_order`
+
+**Description:** Adds BillingArrangement__std and BillingProfile__std Order field mappings to the RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node). Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c. SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `plan_file`: `datasets/context_plans/Billing/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
 
 ---
 
@@ -777,6 +876,14 @@
 
 ---
 
+### `create_sequence_policies`
+
+**Description:** Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
+
+**Class:** `tasks.rlm_billing.CreateSequencePolicies`
+
+---
+
 ### `create_tax_engine`
 
 **Description:** Create Tax Engine
@@ -838,18 +945,6 @@
 
 ---
 
-### `deploy_agents_classes`
-
-**Description:** Deploy Agentforce Agent Apex Classes (must deploy before GenAI functions that reference them)
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/classes`
-
----
-
 ### `deploy_agents_flows`
 
 **Description:** Deploy Agentforce Agent Flows
@@ -898,18 +993,6 @@
 
 ---
 
-### `deploy_agents_lwc_and_types`
-
-**Description:** Deploy Agentforce LWC components and Custom Lightning Types together (resolves circular dependency). Uses SalesforceCommand with multiple --source-dir flags since the LWC references the Lightning Type and the Lightning Type references the LWC, requiring simultaneous deployment.
-
-**Class:** `cumulusci.tasks.command.SalesforceCommand`
-
-**Options:**
-
-- `command`: `sf project deploy start --source-dir unpackaged/post_agents/lwc --source-dir unpackaged/post_agents/lightningTypes`
-
----
-
 ### `deploy_agents_permissionsets`
 
 **Description:** Deploy Agentforce Agent Permissionsets
@@ -944,6 +1027,19 @@
 
 - `path`: `unpackaged/post_billing_id_settings`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultBillingTreatment[text()="...`
+
+---
+
+### `deploy_billing_template_id_settings`
+
+**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with auto-generated template IDs (resolved after deploy_billing_template_settings triggers template auto-creation). Sets defaultEmailTemplate, defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings auto-default these values; explicit deployment is not required.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_template_id_settings`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultEmailTemplate[text()="__D...`
 
 ---
 
@@ -1045,6 +1141,18 @@
 
 ---
 
+### `deploy_post_billing_ui`
+
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access + Apex class access + RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_ui`
+
+---
+
 ### `deploy_post_collections`
 
 **Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore.
@@ -1117,6 +1225,19 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/enable_document_builder.robot`
+- `outputdir`: `robot/rlm-base/results`
+
+---
+
+### `enable_timeline`
+
+**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled.
+
+**Class:** `tasks.rlm_enable_timeline.EnableTimeline`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/enable_timeline.robot`
 - `outputdir`: `robot/rlm-base/results`
 
 ---

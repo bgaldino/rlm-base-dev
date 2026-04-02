@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="Split Invoices View" icon-name="standard:invoice">
+        <div class="slds-p-horizontal_medium slds-p-vertical_small">
+            <!-- Table / Loading / Empty / Error -->
+            <template if:true={isLoading}>
+                <div class="slds-m-vertical_small slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                    <div class="slds-text-body_small slds-text-color_weak">Loading split invoices…</div>
+                    <lightning-spinner size="small" alternative-text="Loading" variant="brand"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-m-vertical_small">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <template if:true={rows.length}>
+                <lightning-datatable
+                    key-field="Id"
+                    data={rows}
+                    columns={columns}
+                    sorted-by={sortedBy}
+                    sorted-direction={sortedDirection}
+                    onsort={handleSort}
+                    onrowaction={handleRowAction}
+                    hide-checkbox-column
+                ></lightning-datatable>
+            </template>
+
+            <template if:false={rows.length}>
+                <template if:false={isLoading}>
+                    <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                        No split invoices found for this invoice.
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

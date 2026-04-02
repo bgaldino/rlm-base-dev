@@ -1,0 +1,232 @@
+/* ── Card header ──────────────────────────────────────────────────────────── */
+.card-header { display: flex; flex-direction: column; gap: 2px; }
+.header-subtitle { font-size: 12px; color: #706e6b; font-weight: 400; margin: 0; }
+
+/* ── Info strip ───────────────────────────────────────────────────────────── */
+.info-strip {
+    display: flex; align-items: center; gap: 8px;
+    background: #e8f4ff; border-left: 3px solid #0176d3;
+    padding: 7px 16px; font-size: 12px; color: #014486;
+}
+.info-icon { flex-shrink: 0; --sds-c-icon-color-foreground-default: #0176d3; }
+
+/* ── Column header bar ────────────────────────────────────────────────────── */
+.col-header {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) 60px 130px 110px 130px;
+    padding: 7px 16px;
+    background: #fafaf9;
+    border-top: 1px solid #dddbda;
+    border-bottom: 1px solid #dddbda;
+    gap: 8px;
+}
+.col-header > div {
+    font-size: 11px; font-weight: 700; color: #3e3e3c;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.col-amount-right { text-align: right; padding-right: 16px; }
+
+/* ── Column sizing (shared) ───────────────────────────────────────────────── */
+.col-product { grid-column: 1; }
+.col-lines   { grid-column: 2; text-align: right; }
+.col-amount  { grid-column: auto; }
+
+/* ── Product summary row ─────────────────────────────────────────────────── */
+.product-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) 60px 130px 110px 130px;
+    gap: 8px; border-bottom: 1px solid #f3f2f2;
+    cursor: pointer; transition: background 0.1s ease;
+}
+.product-row:hover { background: #f3f2f2; }
+
+/* ── Cells ────────────────────────────────────────────────────────────────── */
+.product-cell { display: flex; align-items: center; gap: 6px; padding: 9px 16px; }
+.cell-right {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 9px 16px; font-size: 13px; font-variant-numeric: tabular-nums;
+}
+
+/* ── Product info ─────────────────────────────────────────────────────────── */
+.product-info { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.product-name {
+    font-size: 13px; font-weight: 600; color: #0176d3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.line-count-sub { font-size: 11px; color: #706e6b; flex-basis: 100%; }
+.chevron-btn { flex-shrink: 0; }
+
+/* ── Amount states ────────────────────────────────────────────────────────── */
+.amount-positive { color: #181818; font-weight: 500; }
+.amount-negative { color: #ba0517; font-weight: 500; }
+.amount-zero     { color: #aeaeae; }
+
+/* ── Charge type pills ────────────────────────────────────────────────────── */
+.pill {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 1px 7px; border-radius: 10px; white-space: nowrap;
+}
+.pill-monthly { background: #d8edff; color: #014486; }
+.pill-annual  { background: #fce4e4; color: #8e0b0b; }
+.pill-onetime { background: #e8f6e8; color: #1a5c1a; }
+.pill-default { background: #f3f2f2; color: #444; }
+
+/* ── Expanded section wrapper ─────────────────────────────────────────────── */
+.expanded-section {
+    background: #f9f8f7;
+    border-top: 1px solid #e4e2e0;
+    border-bottom: 1px solid #dddbda;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* ── Collapsible Attributes section ──────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────── */
+.attr-section {
+    padding: 8px 16px 10px 16px;
+    border-bottom: 1px solid #e4e2e0;
+    background: #ffffff;
+}
+
+.attr-toggle-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: none; cursor: pointer; padding: 0;
+    margin-bottom: 0;
+}
+.attr-toggle-btn:focus { outline: 1px solid #0176d3; border-radius: 2px; }
+
+.attr-chevron { --sds-c-icon-color-foreground-default: #706e6b; flex-shrink: 0; }
+
+.attr-section-title {
+    display: inline-block;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #706e6b;
+    background: #f3f2f2; border: 1px solid #dddbda;
+    border-radius: 3px; padding: 2px 8px;
+}
+
+/* Chip grid — shown when expanded */
+.asset-block { margin-top: 8px; }
+.attr-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 20px; }
+
+.attr-chip {
+    display: flex; flex-direction: column; gap: 2px;
+    background: #f9f8f7; border: 1px solid #e4e2e0;
+    border-top: 2px solid #7b5ea7; border-radius: 4px;
+    padding: 5px 10px; min-width: 90px;
+}
+.attr-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #706e6b; white-space: nowrap;
+}
+.attr-value { font-size: 12px; font-weight: 500; color: #181818; word-break: break-word; }
+
+/* ── Sub-lines container ──────────────────────────────────────────────────── */
+.sub-lines { background: #f9f8f7; }
+
+/* ── Base sub-line row ────────────────────────────────────────────────────── */
+.sub-line {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) 60px 130px 110px 130px;
+    gap: 8px; border-bottom: 1px solid #f0eeec;
+}
+.sub-line:last-child { border-bottom: none; }
+
+/* ── Bundle parent line ───────────────────────────────────────────────────── */
+.parent-line {
+    background: #f3f2f2;
+    border-bottom: 1px solid #e4e2e0;
+}
+
+.bundle-header-row {
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+.bundle-header-row:hover { background: #eae8e8; }
+
+.bundle-header-nameline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bundle-chevron {
+    flex-shrink: 0;
+    --sds-c-icon-color-foreground-default: #706e6b;
+}
+
+/* ── Bundle component line (indented) ────────────────────────────────────── */
+.component-line {
+    background: #fafaf9;
+    border-bottom: 1px dashed #e4e2e0;
+}
+.component-line:last-child { border-bottom: none; }
+
+/* ── Sub-line cells ───────────────────────────────────────────────────────── */
+.sub-cell {
+    font-size: 12px; color: #3e3e3c; font-variant-numeric: tabular-nums;
+}
+.sub-name-cell {
+    padding: 8px 16px 8px 48px;
+    display: flex; align-items: flex-start; gap: 4px;
+}
+/* Depth-based indentation for nested bundles */
+.indent-1 { padding-left: 56px; }
+.indent-2 { padding-left: 72px; }
+.indent-3 { padding-left: 88px; }
+
+.sub-name { display: flex; flex-direction: column; gap: 2px; }
+
+/* Parent line name */
+.parent-name { font-size: 12px; font-weight: 600; color: #181818; }
+
+/* Flat / component line name */
+.sub-line-name { font-size: 12px; color: #3e3e3c; font-style: italic; }
+.component-name { font-size: 12px; color: #706e6b; font-style: italic; }
+
+/* Bundle parent expand indicator */
+.bundle-parent-icon { font-size: 14px; color: #706e6b; flex-shrink: 0; margin-top: 1px; }
+
+/* Component indent glyph */
+.component-indent { font-size: 12px; color: #aeaeae; flex-shrink: 0; margin-top: 1px; }
+
+/* Bundle role pill */
+.bundle-role-pill {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: #5a3d8a; background: #f0e8ff;
+    border: 1px solid #c9a8f5; border-radius: 10px;
+    padding: 1px 6px; white-space: nowrap;
+}
+
+/* Date range */
+.date-range { font-size: 11px; color: #706e6b; }
+
+/* Description */
+.line-description { font-size: 11px; color: #706e6b; }
+
+/* Usage overage label */
+.usage-label {
+    display: inline-block; margin-top: 3px;
+    font-size: 11px; font-weight: 600; color: #7a5c00;
+    background: #fef7c3; border: 1px solid #f0d000;
+    border-radius: 3px; padding: 1px 7px; font-style: normal;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.card-footer {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) 60px 130px 110px 130px;
+    gap: 8px; border-top: 2px solid #dddbda; background: #f3f2f2;
+}
+.footer-label {
+    display: flex; align-items: center; gap: 6px;
+    padding: 11px 16px; font-size: 13px; font-weight: 700; color: #181818;
+}
+.footer-icon { --sds-c-icon-color-foreground-default: #2e844a; }
+.footer-cell {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 11px 16px; font-size: 13px; font-weight: 700;
+    color: #181818; font-variant-numeric: tabular-nums;
+}
+.footer-total { font-size: 14px; }
