@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>65.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Split Invoices View</masterLabel>
     <description>Shows related split invoices sharing the same CorrelationIdentifier as the current Invoice. Searchable, filterable, and navigable.</description>

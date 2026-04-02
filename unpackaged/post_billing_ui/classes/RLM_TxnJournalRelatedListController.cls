@@ -16,6 +16,7 @@ public with sharing class RLM_TxnJournalRelatedListController {
                 DebitGeneralLedgerAccount.Name
             FROM TransactionJournal
             WHERE ReferenceTransactionRecordId = :invoiceId
+            WITH SECURITY_ENFORCED
             ORDER BY CreatedDate DESC
         ];
     }

@@ -18,7 +18,7 @@ DEFAULT_CURRENCY_CSV = "datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv"
 
 
 def _fetch_rates(logger) -> Dict[str, float]:
-    """Fetch live USD-based exchange rates from Open Exchange Rates (no auth required)."""
+    """Fetch live USD-based exchange rates from ExchangeRate-API (open.er-api.com, no auth required)."""
     logger.info(f"Fetching exchange rates from {RATES_API_URL}")
     try:
         with urllib.request.urlopen(RATES_API_URL, timeout=10) as resp:

@@ -63,7 +63,11 @@ export default class RlmBillingStatus extends LightningElement {
 
         const suspensionDate = node?.BillingSuspensionDate?.value;
         const resumptionDate = node?.BillingResumptionDate?.value;
-        const isSuspended = !!suspensionDate && !!resumptionDate;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const resumptionDateValue = resumptionDate ? new Date(resumptionDate) : null;
+        if (resumptionDateValue) resumptionDateValue.setHours(0, 0, 0, 0);
+        const isSuspended = !!suspensionDate && (!resumptionDateValue || resumptionDateValue >= today);
 
         this.statusData = {
             isSuspended,
