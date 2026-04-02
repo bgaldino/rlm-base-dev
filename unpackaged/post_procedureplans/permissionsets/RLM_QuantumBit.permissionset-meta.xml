@@ -175,6 +175,14 @@
         <field>QuoteLineItem.RLM_Renewal_ARR__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <classAccesses>
+        <apexClass>RLM_AssetStatePeriodSignalingHook</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_AssetStatePeriodSignalingHookTest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM QuantumBit</label>
 </PermissionSet>
