@@ -69,10 +69,13 @@ public with sharing class RLM_DisputeDetailsController {
             throw new AuraHandledException('DisputeItem object not found.');
         }
 
-        // Find the approved amount field by scanning all fields
+        // Find the approved amount field by scanning all fields.
+        // Sort keys first so selection is deterministic across orgs.
         Map<String, Schema.SObjectField> fieldMap = diType.getDescribe().fields.getMap();
+        List<String> sortedKeys = new List<String>(fieldMap.keySet());
+        sortedKeys.sort();
         String approvedFieldApi = null;
-        for (String key : fieldMap.keySet()) {
+        for (String key : sortedKeys) {
             Schema.DescribeFieldResult fd = fieldMap.get(key).getDescribe();
             String label = fd.getLabel().toLowerCase();
             if (label.contains('approved') && label.contains('amount')) {
@@ -83,7 +86,7 @@ public with sharing class RLM_DisputeDetailsController {
 
         if (approvedFieldApi == null) {
             // Fallback: search by API name pattern
-            for (String key : fieldMap.keySet()) {
+            for (String key : sortedKeys) {
                 if (key.contains('approved')) {
                     approvedFieldApi = fieldMap.get(key).getDescribe().getName();
                     break;

@@ -27,7 +27,8 @@ public with sharing class RLM_InvoiceAgingController {
             return processInvoiceData(invoices);
             
         } catch (Exception e) {
-            throw new AuraHandledException('Error retrieving invoice data: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'RLM_InvoiceAgingController error for accountId=' + accountId + ': ' + e.getTypeName() + ': ' + e.getMessage());
+            throw new AuraHandledException('Unable to load invoice aging data. Contact your administrator.');
         }
     }
     

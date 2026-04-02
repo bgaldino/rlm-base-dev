@@ -17,6 +17,7 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
     @track pendingAmount = 0;
 
     accountId; // The resolved account ID to query
+    currencyCode = 'USD';
     hasInitialized = false;
 
     connectedCallback() {
@@ -79,6 +80,9 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         
         data.forEach(item => {
             if (item.bsg) {
+                if (!this.currencyCode || this.currencyCode === 'USD') {
+                    this.currencyCode = item.bsg.CurrencyIsoCode || 'USD';
+                }
                 total += item.bsg.TotalBilledAmount || 0;
                 pending += item.bsg.TotalPendingAmount || 0;
                 // Count active BSGs (started and not expired)
@@ -301,10 +305,10 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
     }
 
     formatCurrency(value) {
-        if (value === null || value === undefined) return '$0.00';
+        if (value === null || value === undefined) return '--';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: this.currencyCode || 'USD',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(value);

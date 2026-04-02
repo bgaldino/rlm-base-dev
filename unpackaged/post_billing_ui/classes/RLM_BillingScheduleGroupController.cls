@@ -16,14 +16,15 @@ public with sharing class RLM_BillingScheduleGroupController {
         try {
             // Query all BSGs for the account
             List<BillingScheduleGroup> bsgs = [
-                SELECT Id, 
-                       ProductName, 
+                SELECT Id,
+                       ProductName,
                        ReferenceEntityId,
-                       StartDate, 
-                       EndDate, 
+                       StartDate,
+                       EndDate,
                        BillingTermUnit,
-                       TotalBilledAmount, 
-                       TotalPendingAmount, 
+                       CurrencyIsoCode,
+                       TotalBilledAmount,
+                       TotalPendingAmount,
                        BillingType,
                        BillingAccountId
                 FROM BillingScheduleGroup 

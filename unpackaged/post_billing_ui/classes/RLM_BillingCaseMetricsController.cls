@@ -8,7 +8,7 @@ public with sharing class RLM_BillingCaseMetricsController {
     public static Map<String, Object> getMetrics() {
         Map<String, Object> result = new Map<String, Object>();
 
-        // Open Billing Cases: Cases with Type containing 'Billing' and Status is open
+        // Open Billing Cases: Cases with Type = 'Billing' and Status is open
         Integer openBillingCases = 0;
         try {
             List<AggregateResult> caseAgg = [
