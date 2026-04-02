@@ -1,238 +1,174 @@
-# Repository Audit Findings — 2026-04-01
+# Repository Cleanup Review And Tracker
 
-Full audit of the rlm-base-dev repository against `AGENTS.md` rules,
-`.cursor/skills/`, and `.cursor/rules/`. Findings ranked by priority.
+Branch reviewed: `chore/repo-audit-cleanup`  
+Baseline: `main`  
+Last validated: 2026-04-02
+
+This single document replaces the old split between feature-flag cleanup planning and repo-audit findings. It tracks what was changed on this branch, what still needs action, and what remains as backlog.
 
 ---
+
+## Branch Validation Summary
+
+The branch changes compared to `main` are largely valid and coherent:
+
+- moved Product2 UX-binding object metadata from `force-app` to `templates`
+- bulkified SOQL-in-loop logic in `RLM_QuoteModelUtility`
+- redacted token exposure in `tasks/rlm_sfdmu.py` logs
+- cleaned up dead constraints dataset anchors/tasks and updated related docs
+- fixed org config filename mismatch (`dev_datacloud` -> `dev-datacloud`)
+- removed stale sample/legacy tax DX JSON and helper script files
+
+No regressions were found in those changed files during static review. Remaining work is mostly unfinished security/reliability follow-up from the original audit.
+
+---
+
+## Completed On This Branch
+
+### Security / Reliability
+
+- `tasks/rlm_sfdmu.py`
+  - added `_redact_token(...)`
+  - redacted command/stdout/stderr token output
+  - redacted `accessToken` in logged `export.json`
+
+### Deploy Correctness
+
+- Product2 object binding moved to template source-of-truth:
+  - added `templates/objects/base/Product2/Product2.object-meta.xml`
+  - added ignore rule in `.forceignore` for `force-app/main/default/objects/Product2/Product2.object-meta.xml`
+
+- `RLM_QuoteModelUtility.cls`
+  - removed SOQL-in-loop pattern
+  - replaced with preloaded maps by quote line id
+
+### Feature-Flag / Config Hygiene
+
+- declared `project.custom.psg_debug` in `cumulusci.yml`
+- removed deprecated constraints dataset anchors/tasks
+- tightened constraints-data `when:` conditions to require `constraints=true`
+- fixed scratch org config filename reference:
+  - `orgs/dev_datacloud.json` -> `orgs/dev-datacloud.json`
+- clarified feature-flag comments and TSO terminology in docs/config
+
+---
+
+## Remaining Items (Actionable)
 
 ## P0 — Security
 
-### 1. `access_token` leaked via CLI and logs (`rlm_sfdmu.py`)
+### 1) SFDMU CLI identity still falls back to access token
 
-- **`LoadSFDMUData`** (line 336): falls back to `org_config.access_token` as
-  `--targetusername` for non-scratch orgs. Token visible in `ps`, shell
-  history, and logged at line 355 (`Executing command: ...`).
-- **`ExtractSFDMUData`** (line 1092): same pattern — `access_token` used as
-  `--sourceusername`.
-- **Export.json logged in cleartext** (line 201): full `json.dumps` of
-  export.json including the `accessToken` field.
-- **Correct pattern exists** in `TestSFDMUIdempotency._get_org_for_cli()`
-  (line 686) — uses `username`, raises error if unavailable.
+In `tasks/rlm_sfdmu.py`, CLI identity for non-scratch paths still uses:
 
-**Fix:** Use `org_config.username` for CLI calls. Suppress or redact
-`accessToken` from export.json log output.
+- `LoadSFDMUData`: `targetusername = ... or self.org_config.access_token`
+- `ExtractSFDMUData`: `sourceusername = ... or self.org_config.access_token`
 
-### 2. Session token in Robot `log.html` (`SetupToggles.robot`)
+Risk: token still appears in process args/shell history if this fallback path is used.
 
-- `Get Authenticated Setup Page Url` (line 16) runs `sf org open --url-only`
-  without `Set Log Level NONE` wrapping.
-- Affects all 5 setup test suites: `configure_revenue_settings`,
-  `enable_analytics`, `enable_document_builder`,
-  `enable_constraints_settings`, `reorder_app_launcher`.
-- `E2ECommon.robot` does this correctly — use as reference.
+Action:
 
-**Fix:** Add `Set Log Level NONE` / `Set Log Level INFO` around
-`Run Process sf org open` and the subsequent `Go To` call.
+- require username for CLI calls (same pattern used by `_get_org_for_cli()` in idempotency task)
+- raise explicit error when `org_config.username` is unavailable
 
----
+### 2) Setup Robot suite still exposes auth URL/session in logs
 
-## P1 — Deploy Correctness
+`robot/rlm-base/resources/SetupToggles.robot` still runs:
 
-### 3. `Product2.object-meta.xml` still in `force-app/`
+- `sf org open --url-only`
+- `Go To ${target}`
 
-- `force-app/main/default/objects/Product2/Product2.object-meta.xml`
-  contains **48 `<actionOverrides>`** and a `<compactLayoutAssignment>`.
-- Per the strip-and-build rule, this should be in
-  `templates/objects/base/Product2/` and deployed at step 29.
-- All other 6 named objects (Asset, Quote, Order, OrderItem,
-  QuoteLineItem, FulfillmentOrderLineItem) have been correctly moved.
-- `.forceignore` needs an entry for this file.
+without temporary `Set Log Level NONE` wrapping.
 
-**Fix:** Move to `templates/objects/base/Product2/`, add `.forceignore`
-entry, update `rlm_ux_assembly.py` if needed.
+Action:
 
-### 4. SOQL in loop — `RLM_QuoteModelUtility.cls`
-
-- Lines 18-24: two `[SELECT ...]` queries inside
-  `for(QuoteLineItem ql : qls)` loop.
-  - `QuoteLineItemAttribute WHERE QuoteLineItemId =: ql.Id`
-  - `QuoteLineRelationship WHERE AssociatedQuoteLineId =: ql.Id`
-- Risks hitting governor limits with large line item sets.
-
-**Fix:** Bulk-query both objects before the loop using `IN :ids`, build
-`Map<Id, List<...>>`, access from map inside loop.
+- wrap URL fetch and navigation with `Set Log Level NONE` + restore prior level
 
 ---
 
 ## P2 — Reliability / Usability
 
-### 5. Robot wrappers fall back to `org_config.name` (CCI alias)
+### 3) Robot wrappers still allow unreliable alias fallback
 
-6 files use `org_config.name` as fallback when `username` is None:
-- `rlm_robot_e2e.py` (line 74)
-- `rlm_reorder_app_launcher.py` (line 128)
-- `rlm_analytics.py` (line 46)
-- `rlm_enable_document_builder_toggle.py` (line 44)
-- `rlm_enable_constraints_settings.py` (line 57)
-- `rlm_configure_revenue_settings.py` (line 67)
+These wrappers still fallback to `org_config.name`/alias patterns if username is missing:
 
-The CCI alias (e.g., `beta`) won't resolve for `sf org open`. Should
-raise an error instead of silently using a bad identifier.
+- `tasks/rlm_robot_e2e.py`
+- `tasks/rlm_reorder_app_launcher.py`
+- `tasks/rlm_analytics.py`
+- `tasks/rlm_enable_document_builder_toggle.py`
+- `tasks/rlm_enable_constraints_settings.py`
+- `tasks/rlm_configure_revenue_settings.py`
 
-**Fix:** Remove fallback; raise `TaskOptionsError` if `username` is None.
+Action:
 
-### 6. 25 tasks missing `group:` in `cumulusci.yml`
+- require `org_config.username` for `sf org open` usage; raise `TaskOptionsError` otherwise
 
-Mostly `deploy_*` tasks (lines 895-1299). These don't appear grouped in
-`cci task list` output.
+### 4) `access_token` remains exposed in task options
 
-**Fix:** Add appropriate `group:` to each (most should be
-`Revenue Lifecycle Management`).
+Still present in:
 
-### 7. `access_token` exposed as `task_options` entry
+- `tasks/rlm_context_service.py`
+- `tasks/rlm_extend_stdctx.py`
+- `tasks/rlm_modify_context.py`
+- `tasks/rlm_sync_pricing_data.py`
+- `tasks/rlm_refresh_decision_table.py`
 
-5 files allow `access_token` to be passed via CLI `-o access_token <TOKEN>`:
-- `rlm_context_service.py`
-- `rlm_extend_stdctx.py`
-- `rlm_modify_context.py`
-- `rlm_sync_pricing_data.py`
-- `rlm_refresh_decision_table.py`
+Action:
 
-Token would be visible in `ps` output and shell history.
-
-**Fix:** Remove `access_token` from `task_options`; use
-`self.org_config.access_token` directly.
+- remove `access_token` from `task_options`
+- always use `self.org_config.access_token` for REST auth
 
 ---
 
-## P3 — Code Quality / Documentation
+## P3 — Quality / Documentation
 
-### 8. 28 flows missing `description:`
+### 5) Duplicate class access in Admin profile
 
-Only 7 of 35 flows have descriptions. Missing on major flows including
-`prepare_rlm_org`, `prepare_core`, `prepare_billing`, etc.
+`force-app/main/default/profiles/Admin.profile-meta.xml` has duplicate `RLM_OrderItemContractingUtility`.
 
-**Fix:** Add `description:` to all flows.
+Action: remove duplicate entry.
 
-### 9. Missing import guards (5 files)
+### 6) Missing `composed: true` on submit event helper
 
-These files import CCI modules without `try/except ImportError`:
-- `rlm_context_service.py`
-- `rlm_extend_stdctx.py`
-- `rlm_modify_context.py`
-- `rlm_sync_pricing_data.py`
-- `rlm_refresh_decision_table.py`
+`robot/rlm-base/resources/E2ECommon.robot` dispatches:
 
-`rlm_sfdmu.py` has an import guard but doesn't define fallback symbols
-(commented out).
+- `new Event('submit', {bubbles: true, cancelable: true})`
 
-**Fix:** Add standard `try/except ImportError` with fallback symbols.
+Action: add `composed: true` for shadow DOM boundary consistency.
 
-### 10. `composed: true` missing on form submit event
+### 7) Import guards still missing in several Python tasks
 
-`E2ECommon.robot` line 856: `new Event('submit', {bubbles: true, cancelable: true})`
-is missing `composed: true`. Low risk since the form and listener are
-likely in the same shadow tree.
+These still import CCI modules without fallback guards:
 
-**Fix:** Add `composed: true` for consistency.
+- `tasks/rlm_context_service.py`
+- `tasks/rlm_extend_stdctx.py`
+- `tasks/rlm_modify_context.py`
+- `tasks/rlm_sync_pricing_data.py`
+- `tasks/rlm_refresh_decision_table.py`
 
-### 11. Duplicate `classAccesses` in Admin profile
-
-`force-app/main/default/profiles/Admin.profile-meta.xml` has
-`RLM_OrderItemContractingUtility` listed twice. May cause deploy warnings.
-
-**Fix:** Remove the duplicate entry.
-
-### 12. Undeclared `psg_debug` feature flag
-
-Used in `when:` clauses at lines 2315 and 2342 of `cumulusci.yml` but
-not declared in `project.custom`. These steps will never execute.
-
-**Fix:** Either declare the flag (default `false`) or remove the steps.
-
-### 13. `Input Text` on LWC inputs (`configure_revenue_settings.robot`)
-
-Two uses of standard Selenium `Input Text` on Revenue Settings LWC
-page (lines 278, 327). May not trigger LWC reactive change detection.
-Currently works because `Press Keys CTRL+a DELETE` precedes the input.
-
-**Investigate:** Verify these inputs are reliably saved. If not, switch
-to the native setter pattern from `E2ECommon.robot` line 797.
-
-### 14. Mixed `qb_` / `quantumbit_` naming prefixes
-
-Older tasks use `insert_quantumbit_*_data`, newer use `insert_qb_*_data`.
-Both patterns coexist. Not a functional issue but reduces discoverability.
-
-**Consider:** Standardize on `qb_` prefix for all new tasks.
+Action: add standard `try/except ImportError` fallback symbols.
 
 ---
 
-## Backlog — SFDMU v5 Bug 3 Violations
+## Deferred Backlog
 
-~80+ objects across 20 export.json files use `Upsert` with
-relationship-traversal externalId. These will create duplicates on
-re-run (v5 Bug 3). Changing to `Insert + deleteOldData: true` requires
-explicit user approval per plan since it's destructive.
+## SFDMU v5 Bug 3 Data-Plan Migrations
 
-### Compliant plans (reference)
+Large backlog remains where relationship-traversal `externalId` uses `Upsert` and is not idempotent under SFDMU v5.
 
-`qb-pricing`, `qb-rates`, `qb-guidedselling` — use
-`Insert + deleteOldData: true` with `$comment` fields.
+Critical rule for this backlog:
 
-### Non-compliant plans
+- do not switch to `Insert + deleteOldData: true` without explicit approval and object-level rationale (destructive behavior)
 
-**Older QB plans (~15 objects):**
-- `qb-pcm` (6 objects including ProductRelatedComponent, ProductCategoryProduct)
-- `qb-billing` (3: PaymentTermItem, BillingTreatmentItem, GeneralLedgerAcctAsgntRule)
-- `qb-dro` (1: FulfillmentWorkspaceItem)
-- `qb-clm` (1: DocumentClauseSet)
-- `qb-prm` (1: ChannelProgramMember)
-- `qb-rating` (1: UsagePrdGrantBindingPolicy)
-
-**Q3 family (~30 objects):**
-- `q3-multicurrency` (21 objects — largest single file)
-- `q3-rates` (3: PriceBookRateCard, RateCardEntry, RateAdjustmentByTier)
-- `q3-rating` (2: ProductUsageGrant, UsagePrdGrantBindingPolicy)
-- `q3-dro` (5: FulfillmentStepDefinition, etc.)
-- `q3-billing` (5: PaymentTermItem, BillingTreatment, etc.)
-
-**MFG family (~25 objects):**
-- `mfg-multicurrency` (21 objects — mirrors q3-multicurrency)
-- `mfg-constraints-p` (1: ExpressionSetConstraintObj)
-- `mfg-constraints-prc` (1: ExpressionSetConstraintObj)
-- `mfg-configflow` (1: ProductConfigFlowAssignment)
-
-**Procedure plans (1 object):**
-- `procedure-plans` (ProcedurePlanOption)
-
-### Idempotency note
-
-`qb-pricing` uses `Insert` without `deleteOldData: true` for 6 objects
-(PriceAdjustmentTier, AttributeAdjustmentCondition, etc.). These avoid
-the v5 bug crashes but are **not idempotent** — re-runs create duplicates.
+Impacted plan families include `qb-*`, `q3-*`, `mfg-*`, and `procedure-plans` as previously documented.
 
 ---
 
-## Passed Audits (No Action Needed)
+## Historical Notes
 
-| Area | Status |
-|------|--------|
-| PRM Network email placeholder | PASS — `rlm-network-sender@example.com` |
-| Payments site username placeholder | PASS — `payments-site-admin@example.com` |
-| .forceignore alignment | PASS — all 6 objects + flexipages/layouts/compactLayouts covered |
-| UX template traceability | PASS — `assembly_manifest.json` with 86 items |
-| No EmailTemplatePage in templates | PASS |
-| AppSwitcher template exists | PASS |
-| Force-app has no flexipages/layouts | PASS |
-| SFDMU externalId delimiter format | PASS — all use `;` |
-| SFDMU apiVersion | PASS — all `66.0` |
-| SFDMU object ordering | PASS — parent → child |
-| SFDMU empty CSV handling | PASS |
-| Apex deactivation-before-deletion | PASS |
-| Apex deletion ordering | PASS — child → parent |
-| No `//` comments in Robot JS | PASS |
-| Robot E2E auth wrapping | PASS |
-| All CCI tasks have descriptions | PASS |
-| All CCI flows have groups | PASS |
-| All Python tasks have `_run_task()` | PASS |
+This document supersedes prior split planning/finding docs:
+
+- feature-flag cleanup planning content
+- repo-audit findings status content
+
+All future updates should be made here so there is a single source of truth.
