@@ -1166,7 +1166,7 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>c:rlmUsageUploader</componentName>
+                <componentName>rlmUsageUploader</componentName>
                 <identifier>c_rlmUsageUploader</identifier>
             </componentInstance>
         </itemInstances>
@@ -1188,7 +1188,7 @@
                     <name>usageObject</name>
                     <value>TransactionJournal</value>
                 </componentInstanceProperties>
-                <componentName>c:rlmUsageDataTable</componentName>
+                <componentName>rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable_asset_tj</identifier>
             </componentInstance>
         </itemInstances>
@@ -1206,7 +1206,7 @@
                     <name>usageObject</name>
                     <value>UsageSummary</value>
                 </componentInstanceProperties>
-                <componentName>c:rlmUsageDataTable</componentName>
+                <componentName>rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable_asset_us</identifier>
             </componentInstance>
         </itemInstances>
@@ -1224,7 +1224,7 @@
                     <name>usageObject</name>
                     <value>UsageBillingPeriodItem</value>
                 </componentInstanceProperties>
-                <componentName>c:rlmUsageDataTable</componentName>
+                <componentName>rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable_asset_ubpi</identifier>
             </componentInstance>
         </itemInstances>
