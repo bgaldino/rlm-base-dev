@@ -1,59 +1,10 @@
-# Repository Cleanup Review And Tracker
+# Repository Audit Backlog
 
-Branch reviewed: `chore/repo-audit-cleanup`  
-Baseline: `main`  
-Last validated: 2026-04-02
-
-This single document replaces the old split between feature-flag cleanup planning and repo-audit findings. It tracks what was changed on this branch, what still needs action, and what remains as backlog.
+This document tracks only future cleanup work that remains after the current branch work. PR-specific completed changes are intentionally excluded.
 
 ---
 
-## Branch Validation Summary
-
-The branch changes compared to `main` are largely valid and coherent:
-
-- moved Product2 UX-binding object metadata from `force-app` to `templates`
-- bulkified SOQL-in-loop logic in `RLM_QuoteModelUtility`
-- redacted token exposure in `tasks/rlm_sfdmu.py` logs
-- cleaned up dead constraints dataset anchors/tasks and updated related docs
-- fixed org config filename mismatch (`dev_datacloud` -> `dev-datacloud`)
-- removed stale sample/legacy tax DX JSON and helper script files
-
-No regressions were found in those changed files during static review. Remaining work is mostly unfinished security/reliability follow-up from the original audit.
-
----
-
-## Completed On This Branch
-
-### Security / Reliability
-
-- `tasks/rlm_sfdmu.py`
-  - added `_redact_token(...)`
-  - redacted command/stdout/stderr token output
-  - redacted `accessToken` in logged `export.json`
-
-### Deploy Correctness
-
-- Product2 object binding moved to template source-of-truth:
-  - added `templates/objects/base/Product2/Product2.object-meta.xml`
-  - added ignore rule in `.forceignore` for `force-app/main/default/objects/Product2/Product2.object-meta.xml`
-
-- `RLM_QuoteModelUtility.cls`
-  - removed SOQL-in-loop pattern
-  - replaced with preloaded maps by quote line id
-
-### Feature-Flag / Config Hygiene
-
-- declared `project.custom.psg_debug` in `cumulusci.yml`
-- removed deprecated constraints dataset anchors/tasks
-- tightened constraints-data `when:` conditions to require `constraints=true`
-- fixed scratch org config filename reference:
-  - `orgs/dev_datacloud.json` -> `orgs/dev-datacloud.json`
-- clarified feature-flag comments and TSO terminology in docs/config
-
----
-
-## Remaining Items (Actionable)
+## Remaining Items
 
 ## P0 — Security
 
@@ -152,7 +103,7 @@ Action: add standard `try/except ImportError` fallback symbols.
 
 ## Deferred Backlog
 
-## SFDMU v5 Bug 3 Data-Plan Migrations
+### SFDMU v5 Bug 3 Data-Plan Migrations
 
 Large backlog remains where relationship-traversal `externalId` uses `Upsert` and is not idempotent under SFDMU v5.
 
@@ -160,15 +111,4 @@ Critical rule for this backlog:
 
 - do not switch to `Insert + deleteOldData: true` without explicit approval and object-level rationale (destructive behavior)
 
-Impacted plan families include `qb-*`, `q3-*`, `mfg-*`, and `procedure-plans` as previously documented.
-
----
-
-## Historical Notes
-
-This document supersedes prior split planning/finding docs:
-
-- feature-flag cleanup planning content
-- repo-audit findings status content
-
-All future updates should be made here so there is a single source of truth.
+Impacted plan families include `qb-*`, `q3-*`, `mfg-*`, and `procedure-plans`.
