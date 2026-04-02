@@ -1,0 +1,10 @@
+<design:component label="RLM Collapsible Sidebar Record Template">
+    <flexipage:template>
+        <flexipage:region name="header" defaultWidth="Large" />
+        <flexipage:region name="main" defaultWidth="Large" />
+        <flexipage:region name="sidebar" defaultWidth="Small" />
+    </flexipage:template>
+    <design:supportedFormFactors>
+        <design:supportedFormFactor type="Large" />
+    </design:supportedFormFactors>
+</design:component>

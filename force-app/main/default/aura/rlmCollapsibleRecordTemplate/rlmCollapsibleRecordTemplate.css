@@ -1,0 +1,66 @@
+.THIS .rlmSplitView {
+    --rlm-kx-duration-short: var(--kx-duration-short, 150ms);
+    --rlm-kx-duration-normal: var(--kx-duration-normal, 250ms);
+    --rlm-kx-ease-out: var(--kx-ease-out, cubic-bezier(0, 0.3, 0.15, 1));
+    width: 100%;
+}
+
+.THIS .rlmSplitViewToggleAction {
+    min-height: 2rem;
+    min-width: 8.5rem;
+}
+
+.THIS .rlmSplitViewToggleAction .slds-button {
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.875rem;
+}
+
+.THIS .rlmSplitViewBody {
+    display: grid;
+    column-gap: 0;
+    grid-template-columns: minmax(0, 3fr) 1rem minmax(280px, 1fr);
+    overflow-x: hidden;
+    transition: grid-template-columns var(--rlm-kx-duration-normal) var(--rlm-kx-ease-out);
+}
+
+.THIS .rlmSplitViewToggleRow {
+    padding-top: 0.125rem;
+}
+
+.THIS .rlmSplitViewBody.is-collapsed {
+    grid-template-columns: minmax(0, 1fr) 0 0;
+}
+
+.THIS .rlmSplitViewMain,
+.THIS .rlmSplitViewSidebar {
+    min-width: 0;
+}
+
+.THIS .rlmSplitViewBody.is-collapsed .rlmSplitViewDivider {
+    display: none;
+}
+
+.THIS .rlmSplitViewSidebar {
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+        opacity var(--rlm-kx-duration-short) var(--rlm-kx-ease-out),
+        transform var(--rlm-kx-duration-short) var(--rlm-kx-ease-out);
+    visibility: visible;
+}
+
+.THIS .rlmSplitViewBody.is-collapsed .rlmSplitViewSidebar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(0.25rem);
+    visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .THIS .rlmSplitViewBody,
+    .THIS .rlmSplitViewSidebar {
+        transition: none;
+    }
+}
