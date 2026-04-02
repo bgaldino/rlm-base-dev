@@ -9,7 +9,7 @@
     <aura:attribute name="isSidebarCollapsed" type="Boolean" default="false" />
     <aura:handler name="init" value="{!this}" action="{!c.initializeSidebarState}" />
 
-    <div class="rlmSplitView slds-split-view_container">
+    <div class="rlmSplitView slds-split-view_container" onkeydown="{!c.handleKeydown}">
         <div>
             {!v.header}
         </div>

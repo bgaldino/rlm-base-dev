@@ -8,7 +8,8 @@
         }
 
         var defaultState = component.get("v.defaultSidebarCollapsed") === true;
-        var storageKey = "rlmCollapsibleRecordTemplate:" + window.location.pathname;
+        var recordId = component.get("v.recordId") || "default";
+        var storageKey = "rlmCollapsibleRecordTemplate:" + window.location.pathname + ":" + recordId;
         var collapsed = defaultState;
 
         try {
@@ -23,22 +24,19 @@
         component.set("v.isSidebarCollapsed", collapsed);
     },
 
-    toggleSidebar: function(component) {
-        var href = (window.location && window.location.href) ? window.location.href.toLowerCase() : "";
-        var isDesignTimeContext = href.indexOf("flexipageeditor") !== -1 || href.indexOf("/setup/") !== -1;
-        var nextValue = !component.get("v.isSidebarCollapsed");
-        var storageKey = "rlmCollapsibleRecordTemplate:" + window.location.pathname;
+    toggleSidebar: function(component, event, helper) {
+        helper.toggleSidebar(component);
+    },
 
-        component.set("v.isSidebarCollapsed", nextValue);
+    handleKeydown: function(component, event, helper) {
+        // Check for Ctrl+\ or Cmd+\ (backslash key)
+        var key = event.keyCode || event.which;
+        var isModifierKey = event.ctrlKey || event.metaKey;
 
-        if (isDesignTimeContext) {
-            return;
-        }
-
-        try {
-            window.localStorage.setItem(storageKey, nextValue ? "true" : "false");
-        } catch (e) {
-            // Ignore storage access issues; toggle still works for current page session.
+        // KeyCode 220 is backslash
+        if (isModifierKey && key === 220) {
+            event.preventDefault();
+            helper.toggleSidebar(component);
         }
     }
 })

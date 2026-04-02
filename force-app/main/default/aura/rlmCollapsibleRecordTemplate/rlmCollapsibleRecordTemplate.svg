@@ -1,9 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
-    <rect width="240" height="180" fill="#f3f2f2" />
-    <rect x="10" y="10" width="220" height="22" rx="3" fill="#0176d3" />
-    <rect x="10" y="40" width="160" height="130" rx="3" fill="#ffffff" stroke="#dddbda" />
-    <rect x="178" y="40" width="52" height="130" rx="3" fill="#fafaf9" stroke="#dddbda" />
-    <rect x="188" y="60" width="32" height="8" rx="2" fill="#c9c7c5" />
-    <rect x="188" y="76" width="32" height="8" rx="2" fill="#c9c7c5" />
-    <rect x="188" y="92" width="24" height="8" rx="2" fill="#c9c7c5" />
+    <!-- Background -->
+    <rect width="240" height="180" fill="#ECEBEA" rx="4"/>
+
+    <!-- Header region (1) -->
+    <rect x="12" y="12" width="216" height="32" rx="2" fill="#54698D"/>
+    <text x="120" y="32" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">1</text>
+
+    <!-- Main region (2) -->
+    <rect x="12" y="52" width="138" height="116" rx="2" fill="#54698D"/>
+    <text x="81" y="115" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">2</text>
+
+    <!-- Collapse/Expand button indicator -->
+    <circle cx="156" cy="58" r="8" fill="#FFFFFF" stroke="#54698D" stroke-width="1.5"/>
+    <path d="M153 58 L159 58 M156 55 L156 61" stroke="#54698D" stroke-width="1.5" stroke-linecap="round"/>
+
+    <!-- Sidebar region (3) -->
+    <rect x="158" y="52" width="70" height="116" rx="2" fill="#54698D"/>
+    <text x="193" y="115" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">3</text>
 </svg>

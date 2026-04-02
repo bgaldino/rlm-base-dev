@@ -1,3 +1,15 @@
+<!--
+    IMPORTANT: Desktop-only template (Large form factor only).
+
+    NOTE: If this component was previously deployed with Small form factor support,
+    Salesforce will NOT allow removing it via metadata updates. The org will retain
+    Small form factor support even though the source code does not declare it.
+
+    To truly remove Small form factor from an org, the component must be:
+    1. Removed from all Lightning pages using it
+    2. Deleted from the org
+    3. Redeployed without Small form factor
+-->
 <design:component label="RLM Collapsible Sidebar Record Template">
     <flexipage:template>
         <flexipage:region name="header" defaultWidth="Large" />
