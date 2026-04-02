@@ -83,6 +83,8 @@ project:
   custom:
     qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
     tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
+    pde: false                # Partner Development Environment (Developer Edition, no qbrix, no custom UX)
+    trial: false              # Public Trial (Enterprise Edition, no qbrix, no custom UX)
     qb: true                  # Is QuantumBit?
     q3: false                 # Include Q3 data
     calmdelete: true          # Use CALM Delete
