@@ -13,8 +13,8 @@
           "excluded": false
         },
         {
-          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
-          "operation": "Upsert",
+          "query": "SELECT Name FROM LegalEntity",
+          "operation": "Readonly",
           "externalId": "Name",
           "excluded": false
         },
@@ -39,7 +39,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT BillingTreatmentSelection, Description, Name, Status FROM BillingPolicy",
+          "query": "SELECT BillingTreatmentSelection, DefaultBillingTreatmentId, DefaultBillingTreatment.Name, Description, Name, Status FROM BillingPolicy",
           "operation": "Upsert",
           "externalId": "Name",
           "skipExistingRecords": true,
@@ -60,13 +60,13 @@
           "excluded": false
         },
         {
-          "query": "SELECT BillingPolicyId, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "query": "SELECT BillingPolicyId, BillingPolicy.Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
           "operation": "Update",
           "externalId": "StockKeepingUnit",
           "excluded": false
         },
         {
-          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name, Type FROM GeneralLedgerAccount",
+          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, LegalEntity.Name, Name, Type FROM GeneralLedgerAccount",
           "operation": "Upsert",
           "externalId": "AccountingCode",
           "excluded": false
@@ -74,7 +74,7 @@
         {
           "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, CreditGeneralLedgerAccountId, DebitGeneralLedgerAccountId, LegalEntityId, LegalEntity.Name, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
           "operation": "Upsert",
-          "externalId": "Name;LegalEntityId",
+          "externalId": "Name",
           "excluded": false
         },
         {

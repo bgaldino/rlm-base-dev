@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 1 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `billing` | `True` | 18 flow step(s) |
+| `billing` | `True` | 19 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -37,13 +37,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 5 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 18 flow step(s) |
+| `qb` | `True` | 19 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 3 flow step(s) |
 | `rates` | `True` | 5 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
-| `refresh` | `False` | 10 flow step(s) |
+| `refresh` | `False` | 11 flow step(s) |
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `tso` | `False` | 14 flow step(s) |
@@ -76,18 +76,19 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_core` step 20 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
-- `prepare_billing` step 1 → `insert_billing_data`
-- `prepare_billing` step 2 → `insert_q3_billing_data`
-- `prepare_billing` step 3 → `activate_flow`
-- `prepare_billing` step 4 → `activate_default_payment_term`
-- `prepare_billing` step 5 → `activate_billing_records`
-- `prepare_billing` step 6 → `enable_timeline`
-- `prepare_billing` step 7 → `deploy_post_billing`
-- `prepare_billing` step 8 → `deploy_billing_id_settings`
-- `prepare_billing` step 9 → `deploy_billing_template_settings`
-- `prepare_billing` step 10 → `deploy_post_billing_ui`
-- `prepare_billing` step 11 → `assign_permission_sets`
-- `prepare_billing` step 12 → `apply_context_billing_order`
+- `prepare_billing` step 1 → `deploy_post_billing`
+- `prepare_billing` step 2 → `insert_billing_data`
+- `prepare_billing` step 3 → `insert_q3_billing_data`
+- `prepare_billing` step 4 → `create_sequence_policies`
+- `prepare_billing` step 5 → `activate_flow`
+- `prepare_billing` step 6 → `activate_default_payment_term`
+- `prepare_billing` step 7 → `activate_billing_records`
+- `prepare_billing` step 8 → `enable_timeline`
+- `prepare_billing` step 9 → `deploy_billing_id_settings`
+- `prepare_billing` step 10 → `deploy_billing_template_settings`
+- `prepare_billing` step 11 → `deploy_post_billing_ui`
+- `prepare_billing` step 12 → `assign_permission_sets`
+- `prepare_billing` step 13 → `apply_context_billing_order`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
 - `prepare_billing_portal` step 3 → `publish_community`
@@ -104,10 +105,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing_ui` (default: `True`)
 
-- `prepare_billing` step 6 → `enable_timeline`
-- `prepare_billing` step 10 → `deploy_post_billing_ui`
-- `prepare_billing` step 11 → `assign_permission_sets`
-- `prepare_billing` step 12 → `apply_context_billing_order`
+- `prepare_billing` step 8 → `enable_timeline`
+- `prepare_billing` step 11 → `deploy_post_billing_ui`
+- `prepare_billing` step 12 → `assign_permission_sets`
+- `prepare_billing` step 13 → `apply_context_billing_order`
 
 ### `breconfig` (default: `False`)
 
@@ -228,7 +229,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_product_data` step 2 → `insert_q3_data`
 - `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 3 → `insert_q3_dro_data_prod`
-- `prepare_billing` step 2 → `insert_q3_billing_data`
+- `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 4 → `insert_q3_rating_data`
 - `prepare_rating` step 6 → `insert_q3_rates_data`
@@ -240,7 +241,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
 - `prepare_dro` step 1 → `insert_qb_dro_data`
-- `prepare_billing` step 1 → `insert_billing_data`
+- `prepare_billing` step 2 → `insert_billing_data`
+- `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_prm` step 9 → `insert_quantumbit_prm_data`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
@@ -299,8 +301,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `refresh` (default: `False`)
 
-- `prepare_billing` step 1 → `insert_billing_data`
-- `prepare_billing` step 2 → `insert_q3_billing_data`
+- `prepare_billing` step 2 → `insert_billing_data`
+- `prepare_billing` step 3 → `insert_q3_billing_data`
+- `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
@@ -340,7 +343,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 29 → `prepare_ux`
+- `prepare_rlm_org` step 28 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 

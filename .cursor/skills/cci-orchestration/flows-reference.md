@@ -115,20 +115,21 @@ Extract rating and rates data from an org into CSV files
 
 **Steps:**
 
-1. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
-2. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3`
-3. **task** `activate_flow`  `when: project_config.project__custom__billing`
+1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
+2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3`
+4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+5. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
-4. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
-5. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-6. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
-7. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-8. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
-9. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
-10. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
-11. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
+6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
+7. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
+8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
+9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
+10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
+11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
+12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
-12. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
 
 ---
 
@@ -428,29 +429,29 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 4. **flow** `prepare_payments`
 5. **task** `deploy_full`
 6. **flow** `prepare_price_adjustment_schedules`
-7. **flow** `prepare_scratch`
-8. **flow** `prepare_payments`
-9. **flow** `prepare_quantumbit`
-10. **flow** `prepare_product_data`
-11. **flow** `prepare_pricing_data`
-12. **flow** `prepare_docgen`
-13. **flow** `prepare_dro`
-14. **flow** `prepare_tax`
-15. **flow** `prepare_billing`
-16. **flow** `prepare_analytics`
-17. **flow** `prepare_clm`
-18. **flow** `prepare_rating`
-19. **task** `activate_and_deploy_expression_sets`
-20. **flow** `prepare_tso`
-21. **flow** `prepare_procedureplans`
-22. **flow** `prepare_prm`
-23. **flow** `prepare_agents`
-24. **flow** `prepare_constraints`
-25. **flow** `prepare_guidedselling`
-26. **flow** `prepare_revenue_settings`
-27. **flow** `prepare_pricing_discovery`
-28. **flow** `prepare_ramp_builder`
-29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+7. **flow** `prepare_payments`
+8. **flow** `prepare_quantumbit`
+9. **flow** `prepare_product_data`
+10. **flow** `prepare_pricing_data`
+11. **flow** `prepare_docgen`
+12. **flow** `prepare_dro`
+13. **flow** `prepare_tax`
+14. **flow** `prepare_billing`
+15. **flow** `prepare_analytics`
+16. **flow** `prepare_clm`
+17. **flow** `prepare_rating`
+18. **task** `activate_and_deploy_expression_sets`
+19. **flow** `prepare_tso`
+20. **flow** `prepare_procedureplans`
+21. **flow** `prepare_prm`
+22. **flow** `prepare_agents`
+23. **flow** `prepare_constraints`
+24. **flow** `prepare_guidedselling`
+25. **flow** `prepare_revenue_settings`
+26. **flow** `prepare_pricing_discovery`
+27. **flow** `prepare_ramp_builder`
+28. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+29. **flow** `prepare_scratch`
 30. **flow** `refresh_all_decision_tables`
 31. **task** `stamp_git_commit`
    - `flow_name`: `prepare_rlm_org`

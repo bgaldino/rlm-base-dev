@@ -1820,6 +1820,28 @@ tasks:
     options:
       path: scripts/apex/activateBillingRecords.apex
 
+  create_sequence_policies:
+    group: Revenue Lifecycle Management
+    description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
+    class_path: tasks.rlm_billing.CreateSequencePolicies
+
+  update_currency_rates_csv:
+    group: Data Management - Currency
+    description: >
+      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update
+      CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch
+      org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP').
+      Use dry_run true to preview without writing.
+    class_path: tasks.rlm_currency.UpdateCurrencyRatesCsv
+
+  update_currency_rates:
+    group: Data Management - Currency
+    description: >
+      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch
+      CurrencyType.ConversionRate for all active non-corporate currencies in a running org.
+      Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+    class_path: tasks.rlm_currency.UpdateCurrencyRates
+
   query_billing_state:
     group: Revenue Lifecycle Management
     description: Query billing record state (PaymentTerm, BillingTreatment, BillingPolicy, BillingTreatmentItem) for validation; check debug logs for output.
@@ -2001,6 +2023,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_dataset
+
+  extract_scratch_data:
+    group: Data Management - Extract
+    description: "Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: "datasets/sfdmu/scratch_data"
+      extractions_base_dir: "datasets/sfdmu/extractions"
 
   extract_qb_billing_data:
     group: Data Management - Extract
@@ -2328,58 +2358,56 @@ flows:
       6:
         flow: prepare_price_adjustment_schedules
       7:
-        flow: prepare_scratch
-      8:
         flow: prepare_payments
-      9:
+      8:
         flow: prepare_quantumbit
-      10:
+      9:
         flow: prepare_product_data
-      11:
+      10:
         flow: prepare_pricing_data
-      12:
+      11:
         flow: prepare_docgen
-      13:
+      12:
         flow: prepare_dro
-      14:
+      13:
         flow: prepare_tax
-      15:
+      14:
         flow: prepare_billing
-      16:
+      15:
         flow: prepare_analytics
-      17:
+      16:
         flow: prepare_clm
-      18:
+      17:
         flow: prepare_rating
-      19:
+      18:
         task: activate_and_deploy_expression_sets
-      20:
+      19:
         flow: prepare_tso
-      21:
+      20:
         flow: prepare_procedureplans
-      22:
+      21:
         flow: prepare_prm
-      23:
+      22:
         flow: prepare_agents
-      24:
+      23:
         flow: prepare_constraints
-      25:
+      24:
         flow: prepare_guidedselling
-      26:
+      25:
         flow: prepare_revenue_settings
-      27:
+      26:
         flow: prepare_pricing_discovery
-      28:
+      27:
         flow: prepare_ramp_builder
-      29:
+      28:
         flow: prepare_ux
         when: project_config.project__custom__ux
+      29:
+        flow: prepare_scratch
       30:
         flow: refresh_all_decision_tables
       31:
-        task: stamp_git_commit
-        options:
-          flow_name: prepare_rlm_org
+        flow: stamp_git_commit
 
   prepare_core:
     group: Revenue Lifecycle Management
@@ -2649,44 +2677,47 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: deploy_post_billing
+        when: project_config.project__custom__billing
+      2:
         task: insert_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
-      2:
+      3:
         task: insert_q3_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
-      3:
+      4:
+        task: create_sequence_policies
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+      5:
         task: activate_flow
         when: project_config.project__custom__billing
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      4:
+      6:
         task: activate_default_payment_term
         when: project_config.project__custom__billing
-      5:
+      7:
         task: activate_billing_records
         when: project_config.project__custom__billing
-      6:
+      8:
         task: enable_timeline
         when: project_config.project__custom__billing_ui
-      7:
-        task: deploy_post_billing
-        when: project_config.project__custom__billing
-      8:
+      9:
         task: deploy_billing_id_settings
         when: project_config.project__custom__billing
-      9:
+      10:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
-      10:
+      11:
         task: deploy_post_billing_ui
         when: project_config.project__custom__billing_ui
-      11:
+      12:
         task: assign_permission_sets
         when: project_config.project__custom__billing_ui
         options:
           api_names:
             - RLM_BillingUI
-      12:
+      13:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
 
@@ -3086,3 +3117,12 @@ flows:
         task: test_qb_transactionprocessingtypes_idempotency
       9:
         task: test_qb_guidedselling_idempotency
+
+  stamp_git_commit:
+    group: RLM Administration
+    description: Stamp the git commit hash into the org
+    steps:
+      1:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org

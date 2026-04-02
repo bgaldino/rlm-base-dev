@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-03-31T16:50:35.298864Z",
+  "assembled_at": "2026-04-02T06:49:48.304146Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -402,6 +402,13 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Sequence_Policy_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Sequence_Policy_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing/RLM_Sequence_Policy_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/quantumbit/RLM_Transaction_Journal_Record_Page.flexipage-meta.xml",
@@ -655,7 +662,7 @@
       "name": "AppSwitcher.appMenu-meta.xml",
       "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
       "source_tier": "org + template priority ordering",
-      "items_total": 40,
+      "items_total": 41,
       "priority_applied": [
         "RLM_Revenue_Cloud",
         "standard__BillingConsole",

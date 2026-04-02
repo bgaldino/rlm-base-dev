@@ -54,16 +54,20 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | SObject | externalId | Operation | Pass | Notes |
 |---------|-----------|-----------|------|-------|
 | AccountingPeriod | `Name;FinancialYear` | Upsert | 1 | |
-| LegalEntity | `Name` | Upsert | 1 | Shared with qb-tax |
+| LegalEntity | `Name` | Readonly | 1 | Loaded by qb-tax (runs first) |
 | LegalEntyAccountingPeriod | `Name` | Upsert | 1 | |
 | PaymentTerm | `Name` | Upsert | 1 | |
 | PaymentTermItem | `PaymentTerm.Name;Type` | Upsert | 1 | |
 | BillingPolicy | `Name` | Upsert | 1 | |
-| BillingTreatment | `Name` | Upsert | 1 | |
-| BillingTreatmentItem | `Name;BillingTreatment.Name` | Upsert | 1 | |
+| BillingTreatment | `Name` | Upsert | 1 | 9 treatments: US/CA/EU/UK × Advance/Arrears + Milestone |
+| BillingTreatmentItem | `Name;BillingTreatment.Name` | Upsert | 1 | One item per treatment |
 | Product2 | `StockKeepingUnit` | Update | 1 | Sets BillingPolicyId |
 | GeneralLedgerAccount | `Name` | Upsert | 1 | |
-| GeneralLedgerAcctAsgntRule | `Name;LegalEntity.Name` | Upsert | 1 | |
+| GeneralLedgerAcctAsgntRule | `Name` | Upsert | 1 | |
+| PaymentRetryRuleSet | `Name` | Upsert | 1 | |
+| PaymentRetryRule | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | Upsert | 1 | |
+| SequencePolicy | `Name` | Upsert | 1 | 8 policies (US/CA/EU/UK × Invoice/CreditMemo) |
+| SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name` | Upsert | 1 | FilterValue stores LegalEntity name; resolved to ID by resolveSeqPolicyConditionRefs.apex |
 | BillingTreatmentItem | — | Update | 2 | Activate |
 | BillingTreatment | — | Update | 3 | Activate |
 | BillingPolicy | — | Update | 3 | Set DefaultBillingTreatmentId |
@@ -72,7 +76,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 
 | SObject | externalId | Operation | Pass | Notes |
 |---------|-----------|-----------|------|-------|
-| LegalEntity | `Name` | Upsert | 1 | Shared with qb-billing |
+| LegalEntity | `Name` | Upsert | 1 | Authoritative source (4 entities: US, Canada, EU, UK) |
 | TaxEngineProvider | `DeveloperName` | Upsert | 1 | |
 | TaxEngine | `TaxEngineName` | Upsert | 1 | |
 | TaxTreatment | `Name` | Upsert | 1 | |
@@ -167,3 +171,4 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | qb-approvals | EmailTemplate | — | ReadOnly |
 | scratch_data | Account | `Name` | Upsert |
 | scratch_data | Contact | `Name` | Upsert |
+| scratch_data | BillingAccount | `Name` | Upsert |

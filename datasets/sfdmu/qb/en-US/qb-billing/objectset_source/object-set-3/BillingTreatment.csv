@@ -3,4 +3,8 @@ Billing Policy - Advance,Default Legal Entity - US,Billing Treatment - USA - Adv
 Billing Policy - Arrears,Default Legal Entity - US,Billing Treatment - USA - Arrears,Draft
 Billing Policy - Advance,Default Legal Entity - Canada,Billing Treatment - Advance - Canada,Draft
 Billing Policy - Arrears,Default Legal Entity - Canada,Billing Treatment - Canada - Arrears,Draft
+Billing Policy - Advance,Default Legal Entity - EU,Billing Treatment - EU - Advance,Draft
+Billing Policy - Arrears,Default Legal Entity - EU,Billing Treatment - EU - Arrears,Draft
+Billing Policy - Advance,Default Legal Entity - UK,Billing Treatment - UK - Advance,Draft
+Billing Policy - Arrears,Default Legal Entity - UK,Billing Treatment - UK - Arrears,Draft
 Milestone Billing Policy - Software,,Milestone Billing Treatment,Draft

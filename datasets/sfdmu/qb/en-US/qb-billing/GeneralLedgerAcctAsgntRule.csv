@@ -1,9 +1,9 @@
 Name,CreditGeneralLedgerAccount.AccountingCode,CurrencyIsoCode,DebitGeneralLedgerAccount.AccountingCode,FilterCriteria,FilterLogic,LegalEntity.Name,Priority,Status,TransactionAmountField,TransactionType
-USD Intercompany Revenue Rule,4240,USD,1240,All,,Default Legal Entity - US,2,Active,ChargeAmount,InvoiceLine
-USD Revenue Rule,4100,USD,1100,,,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
-USD CML Taxes,1100,USD,2400,,,Default Legal Entity - US,1,Active,TaxAmount,CreditMemoLineTax
-USD Invoice Line Taxes,2400,USD,1100,,,Default Legal Entity - US,1,Active,TaxAmount,InvoiceLineTax
-USD CML Charges,1100,USD,4100,,,Default Legal Entity - US,1,Active,ChargeAmount,CreditMemoLine
-USD PMT,1100,USD,1000,,,Default Legal Entity - US,1,Active,Amount,Payment
-USD Invoice Line Hardware,4100,USD,1100,All,,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
-USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),2200,USD,1100,Any,,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
+USD Intercompany Revenue Rule,4240,USD,1240,All,#N/A,Default Legal Entity - US,2,Active,ChargeAmount,InvoiceLine
+USD Revenue Rule,4100,USD,1100,#N/A,#N/A,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
+USD CML Taxes,1100,USD,2400,#N/A,#N/A,Default Legal Entity - US,1,Active,TaxAmount,CreditMemoLineTax
+USD Invoice Line Taxes,2400,USD,1100,#N/A,#N/A,Default Legal Entity - US,1,Active,TaxAmount,InvoiceLineTax
+USD CML Charges,1100,USD,4100,#N/A,#N/A,Default Legal Entity - US,1,Active,ChargeAmount,CreditMemoLine
+USD PMT,1100,USD,1000,#N/A,#N/A,Default Legal Entity - US,1,Active,Amount,Payment
+USD Invoice Line Hardware,4100,USD,1100,All,#N/A,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine
+USD Invoice Line Journal Entry Rule - SaaS Subscription Invoice (Deferred Revenue),2200,USD,1100,Any,#N/A,Default Legal Entity - US,1,Active,ChargeAmount,InvoiceLine

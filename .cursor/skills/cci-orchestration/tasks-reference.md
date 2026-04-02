@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**188 tasks** across **8 groups**.
+**192 tasks** across **9 groups**.
 
 ---
 
@@ -59,9 +59,29 @@
 
 ---
 
+## Data Management - Currency
+
+*2 task(s)*
+
+### `update_currency_rates`
+
+**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch CurrencyType.ConversionRate for all active non-corporate currencies in a running org. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+
+**Class:** `tasks.rlm_currency.UpdateCurrencyRates`
+
+---
+
+### `update_currency_rates_csv`
+
+**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without writing.
+
+**Class:** `tasks.rlm_currency.UpdateCurrencyRatesCsv`
+
+---
+
 ## Data Management - Extract
 
-*13 task(s)*
+*14 task(s)*
 
 ### `extract_qb_approvals_data`
 
@@ -216,6 +236,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes`
+
+---
+
+### `extract_scratch_data`
+
+**Description:** Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/scratch_data`
+- `extractions_base_dir`: `datasets/sfdmu/extractions`
 
 ---
 
@@ -501,7 +534,7 @@
 
 ## Revenue Lifecycle Management
 
-*120 task(s)*
+*121 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -840,6 +873,14 @@
 **Options:**
 
 - `path`: `scripts/apex/createRuleLibrary.apex`
+
+---
+
+### `create_sequence_policies`
+
+**Description:** Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
+
+**Class:** `tasks.rlm_billing.CreateSequencePolicies`
 
 ---
 

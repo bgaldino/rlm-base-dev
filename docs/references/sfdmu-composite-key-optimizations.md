@@ -35,13 +35,18 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **BillingTreatment**: externalId simplified to `Name` (was `Name;BillingPolicy.Name;LegalEntity.Name`)
 - **BillingTreatmentItem**: externalId simplified to `Name;BillingTreatment.Name`
 - **PaymentTermItem**: externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
-- **GeneralLedgerAcctAsgntRule**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
+- **GeneralLedgerAcctAsgntRule**: externalId is `Name` (names are unique in this dataset; composite key caused duplicate inserts)
 - CSV references updated; `BillingPolicy.DefaultBillingTreatment` reference simplified
 - **Pass 3 objectset_source fix**: BillingPolicy and BillingTreatment CSVs updated to use simplified externalId formats
+- **LegalEntity**: changed to `Readonly` — qb-tax (runs first at step 13) is now the authoritative source for LegalEntity data; qb-billing only resolves IDs
+- **SequencePolicy + SeqPolicySelectionCondition**: created via Connect API (`/connect/sequences/policy`) by `create_sequence_policies` task — standard REST/Bulk API silently fails for these objects (required fields `DateStampFormat` and `IncrementByNumber` are not createable via DML). Data sourced from `SequencePolicies.json` (policies with selection conditions inline); LegalEntity names are resolved to org IDs at task runtime. Not in SFDMU export.json.
+- **BillingTreatments expanded**: US/CA/EU/UK × Advance/Arrears (8 treatments); EU uses EUR, UK uses GBP
+- **LegalEntities expanded**: 4 entities (US, Canada, EU/France, UK/London) with corresponding LegalEntyAccountingPeriod coverage (336 rows, 2024–2030)
 
 #### qb-tax
 - **TaxTreatment**: externalId simplified to `Name` (was `Name;LegalEntity.Name;TaxPolicy.Name`)
 - CSV references updated
+- **LegalEntity**: now the authoritative source (was shared with qb-billing); owns all 4 entities (US, Canada, EU, UK) with full address data; qb-billing defers to qb-tax via Readonly
 
 #### qb-clm
 - **ObjectStateActionDefinition**: externalId simplified to `Name` (was `Name;ReferenceObject.Name`); duplicate `Name` column removed from CSV
@@ -114,7 +119,7 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
 **Recent Fixes Applied:**
 
 - **qb-billing/export.json**: PaymentTermItem externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
-- **qb-billing/GeneralLedgerAcctAsgntRule.csv**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
+- **qb-billing/GeneralLedgerAcctAsgntRule.csv**: externalId reverted to `Name` — composite key `Name;LegalEntity.Name` broke SFDMU upsert matching and caused duplicate inserts
 - **qb-billing/objectset_source/object-set-3/**: Updated Pass 3 CSVs to use simplified BillingTreatment externalId (`Name` only, not composite)
 - **Empty CSV headers added**: GeneralLedgerJrnlEntryRule, ProductQualification, ProductDisqualification, ProductCategoryQualification, ProductCategoryDisqualification, CostBook, CostBookEntry
 
