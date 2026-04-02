@@ -150,8 +150,9 @@ public with sharing class RLM_BSGTimelineController {
                 return new List<ConsolidatedSegment>();
             }
             
-            // Create a map to track overlapping periods
-            Map<String, ConsolidatedSegment> segmentMap = new Map<String, ConsolidatedSegment>();
+            // Build segments in a List (insertion order = chronological order since allDates is sorted).
+            // A Map was previously used but Map.values() iteration order is not guaranteed in Apex.
+            List<ConsolidatedSegment> segments = new List<ConsolidatedSegment>();
             List<Date> allDates = new List<Date>();
             
             // Collect all unique start and end dates
@@ -209,10 +210,10 @@ public with sharing class RLM_BSGTimelineController {
                     }
                 }
                 
-                segmentMap.put(String.valueOf(periodNum - 1), segment);
+                segments.add(segment);
             }
-            
-            return segmentMap.values();
+
+            return segments;
             
         } catch (Exception e) {
             throw new AuraHandledException('Error calculating consolidated timeline: ' + e.getMessage());

@@ -20,7 +20,12 @@ export default class RlmInvoiceTaxSummary extends LightningElement {
     @wire(getTaxSummaryByInvoice, { invoiceId: '$recordId' })
     wiredSummary({ data, error }) {
         if (data) {
-            this.rows = data;
+            // Composite rowKey avoids key-field collision when the same tax name
+            // appears in multiple currencies (multi-currency orgs).
+            this.rows = data.map(row => ({
+                ...row,
+                rowKey: `${row.taxName}_${row.currencyIsoCode}`
+            }));
             this.error = undefined;
         } else if (error) {
             this.error = error;
