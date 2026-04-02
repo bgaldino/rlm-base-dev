@@ -185,6 +185,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             rows.add(buildLineContextRow(itemNode));
         }
         System.debug(LoggingLevel.DEBUG, DBG + '.querySalesTransactionItems: exit parsedRows=' + rows.size());
+        System.debug(LoggingLevel.DEBUG, DBG + '.querySalesTransactionItems: rows=' + rows);
         return rows;
     }
 
@@ -205,7 +206,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         }
 
         List<AssetStatePeriod> periods = [
-            SELECT StartDate, EndDate, Amount
+            SELECT StartDate, EndDate, Amount, Mrr
             FROM AssetStatePeriod
             WHERE Asset.AccountId = :accountId
                 AND Asset.Product2Id = :productId
@@ -218,7 +219,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         for (AssetStatePeriod asp : periods) {
             Date aspS = asp.StartDate == null ? null : asp.StartDate.dateGMT();
             Date aspE = asp.EndDate == null ? null : asp.EndDate.dateGMT();
-            sum += proratedAmountForOverlap(lineStart, lineEnd, aspS, aspE, asp.Amount);
+            sum += proratedAmountForOverlap(lineStart, lineEnd, aspS, aspE, asp.Mrr);
         }
         System.debug(LoggingLevel.DEBUG, DBG + '.computeInstallBaseForLine: exit sum=' + sum);
         return sum;
@@ -240,8 +241,153 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
     }
 
     /**
-     * Pro-rated Amount for the intersection of [lineStart,lineEnd] and [aspStart,aspEnd].
-     * Uses inclusive days; null Amount treated as 0. If ASP span is zero days, returns full Amount when overlap exists.
+     * Inclusive overlap of [lineStart,lineEnd] and [aspStart,aspEnd]. Returns null if invalid or no overlap.
+     */
+    private static List<Date> overlapInclusiveSegment(
+        Date lineStart,
+        Date lineEnd,
+        Date aspStart,
+        Date aspEnd
+    ) {
+        if (lineStart == null || lineEnd == null || aspStart == null || aspEnd == null) {
+            return null;
+        }
+        if (lineEnd < lineStart || aspEnd < aspStart) {
+            return null;
+        }
+        Date ovStart = lineStart > aspStart ? lineStart : aspStart;
+        Date ovEnd = lineEnd < aspEnd ? lineEnd : aspEnd;
+        if (ovEnd < ovStart) {
+            return null;
+        }
+        return new List<Date>{ ovStart, ovEnd };
+    }
+
+    private static Date firstDayOfMonth(Date d) {
+        return Date.newInstance(d.year(), d.month(), 1);
+    }
+
+    private static Date lastDayOfMonth(Date d) {
+        return firstDayOfMonth(d).addMonths(1).addDays(-1);
+    }
+
+    private static Integer daysInMonth(Date d) {
+        Date f = firstDayOfMonth(d);
+        return f.daysBetween(lastDayOfMonth(d)) + 1;
+    }
+
+    /**
+     * Count of full calendar months fully contained in the overlap of line and ASP windows
+     * (month runs 1st through last day, all days must lie in the inclusive overlap).
+     */
+    @TestVisible
+    static Integer wholeMonthsInOverlap(Date lineStart, Date lineEnd, Date aspStart, Date aspEnd) {
+        System.debug(
+            LoggingLevel.DEBUG,
+            DBG + '.wholeMonthsInOverlap: line=' + lineStart + '..' + lineEnd + ' asp=' + aspStart + '..' + aspEnd
+        );
+        List<Date> seg = overlapInclusiveSegment(lineStart, lineEnd, aspStart, aspEnd);
+        if (seg == null) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.wholeMonthsInOverlap: no overlap -> 0');
+            return 0;
+        }
+        Date ovS = seg[0];
+        Date ovE = seg[1];
+        Integer count = 0;
+        Date m = firstDayOfMonth(ovS);
+        while (m <= ovE) {
+            Date mEnd = m.addMonths(1).addDays(-1);
+            if (m >= ovS && mEnd <= ovE) {
+                count++;
+            }
+            m = m.addMonths(1);
+        }
+        System.debug(LoggingLevel.DEBUG, DBG + '.wholeMonthsInOverlap: count=' + count);
+        return count;
+    }
+
+    /**
+     * Fractions of a calendar month for partial overlap at the start and end of the line/ASP intersection.
+     * Same-calendar-month overlap uses startFraction only (endFraction 0). Full single-month overlap returns 0,0.
+     */
+    @TestVisible
+    static MonthOverlapRemainders overlapMonthRemainderFractions(
+        Date lineStart,
+        Date lineEnd,
+        Date aspStart,
+        Date aspEnd
+    ) {
+        System.debug(
+            LoggingLevel.DEBUG,
+            DBG + '.overlapMonthRemainderFractions: line=' + lineStart + '..' + lineEnd + ' asp=' + aspStart + '..' + aspEnd
+        );
+        MonthOverlapRemainders out = new MonthOverlapRemainders();
+        out.startFraction = 0;
+        out.endFraction = 0;
+        List<Date> seg = overlapInclusiveSegment(lineStart, lineEnd, aspStart, aspEnd);
+        if (seg == null) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.overlapMonthRemainderFractions: no overlap -> 0,0');
+            return out;
+        }
+        Date ovS = seg[0];
+        Date ovE = seg[1];
+
+        if (ovS.year() == ovE.year() && ovS.month() == ovE.month()) {
+            Integer dim = daysInMonth(ovS);
+            if (dim > 0) {
+                Boolean fullMonth =
+                    ovS == firstDayOfMonth(ovS) &&
+                    ovE == lastDayOfMonth(ovE) &&
+                    inclusiveDayCount(ovS, ovE) >= dim;
+                if (!fullMonth) {
+                    out.startFraction = Decimal.valueOf(inclusiveDayCount(ovS, ovE)) / Decimal.valueOf(dim);
+                }
+            }
+            System.debug(
+                LoggingLevel.DEBUG,
+                DBG + '.overlapMonthRemainderFractions: same month start=' + out.startFraction + ' end=' + out.endFraction
+            );
+            return out;
+        }
+
+        Date lastS = lastDayOfMonth(ovS);
+        Date endLead = ovE < lastS ? ovE : lastS;
+        Integer dimS = daysInMonth(ovS);
+        if (dimS > 0 && endLead >= ovS) {
+            Boolean startMonthWhole = (ovS.day() == 1) && (lastS <= ovE);
+            if (!startMonthWhole) {
+                out.startFraction = Decimal.valueOf(inclusiveDayCount(ovS, endLead)) / Decimal.valueOf(dimS);
+            }
+        }
+
+        Date firstE = firstDayOfMonth(ovE);
+        Date startTrail = ovS > firstE ? ovS : firstE;
+        Integer dimE = daysInMonth(ovE);
+        if (dimE > 0 && startTrail <= ovE) {
+            Boolean endMonthWhole = (ovE == lastDayOfMonth(ovE)) && (firstE >= ovS);
+            if (!endMonthWhole) {
+                out.endFraction = Decimal.valueOf(inclusiveDayCount(startTrail, ovE)) / Decimal.valueOf(dimE);
+            }
+        }
+
+        System.debug(
+            LoggingLevel.DEBUG,
+            DBG + '.overlapMonthRemainderFractions: start=' + out.startFraction + ' end=' + out.endFraction
+        );
+        return out;
+    }
+
+    /**
+     * Start/end partial-month fractions for an overlap (see overlapMonthRemainderFractions).
+     */
+    public class MonthOverlapRemainders {
+        public Decimal startFraction;
+        public Decimal endFraction;
+    }
+
+    /**
+     * Pro-rated MRR for the intersection of [lineStart,lineEnd] and [aspStart,aspEnd].
+     * Uses inclusive days; null Mrr treated as 0.
      */
     @TestVisible
     static Decimal proratedAmountForOverlap(
@@ -249,14 +395,14 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         Date lineEnd,
         Date aspStart,
         Date aspEnd,
-        Decimal amount
+        Decimal mrr
     ) {
         System.debug(
             LoggingLevel.DEBUG,
-            DBG + '.proratedAmountForOverlap: line=' + lineStart + '..' + lineEnd + ' asp=' + aspStart + '..' + aspEnd + ' amount=' + amount
+            DBG + '.proratedAmountForOverlap: line=' + lineStart + '..' + lineEnd + ' asp=' + aspStart + '..' + aspEnd + ' mrr=' + mrr
         );
-        if (amount == null) {
-            amount = 0;
+        if (mrr == null) {
+            mrr = 0;
         }
         if (lineStart == null || lineEnd == null || aspStart == null || aspEnd == null) {
             System.debug(LoggingLevel.DEBUG, DBG + '.proratedAmountForOverlap: null date -> 0');
@@ -278,12 +424,16 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             return 0;
         }
         Integer aspDays = inclusiveDayCount(aspStart, aspEnd);
+        /*
         if (aspDays <= 0) {
             System.debug(LoggingLevel.DEBUG, DBG + '.proratedAmountForOverlap: aspDays<=0 -> full amount=' + amount);
             return amount;
         }
-        Decimal fraction = Decimal.valueOf(overlapDays) / Decimal.valueOf(aspDays);
-        Decimal result = amount * fraction;
+        */
+
+        MonthOverlapRemainders remainders = overlapMonthRemainderFractions(lineStart, lineEnd, aspStart, aspEnd);
+        Decimal fraction = wholeMonthsInOverlap(lineStart, lineEnd, aspStart, aspEnd) + remainders.startFraction + remainders.endFraction;
+        Decimal result = mrr * fraction;
         System.debug(
             LoggingLevel.DEBUG,
             DBG + '.proratedAmountForOverlap: overlapDays=' + overlapDays + ' aspDays=' + aspDays + ' fraction=' + fraction + ' result=' + result
@@ -346,9 +496,10 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         String s = null;
         if (raw instanceof Map<String, Object>) {
             Object tv = ((Map<String, Object>) raw).get('tagValue');
-            if (tv instanceof String) {
-                s = (String) tv;
-            }
+            system.debug('tv=' + tv);
+            
+            s = String.valueOf(tv);
+            system.debug('Date s=' + s);
         } else if (raw instanceof String) {
             s = (String) raw;
         }
