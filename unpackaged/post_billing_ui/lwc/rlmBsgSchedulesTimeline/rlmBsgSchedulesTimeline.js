@@ -71,9 +71,10 @@ export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningEl
             const totalDays = this.daysBetween(minDate, maxDate);
             const startOffset = this.daysBetween(minDate, startDate);
             const duration = this.daysBetween(startDate, endDate);
-            
-            const leftPercent = (startOffset / totalDays) * 100;
-            const widthPercent = (duration / totalDays) * 100;
+
+            // Guard against totalDays === 0 (single-day or same-date range)
+            const leftPercent = totalDays > 0 ? (startOffset / totalDays) * 100 : 0;
+            const widthPercent = totalDays > 0 ? (duration / totalDays) * 100 : 100;
             
             // Determine status class
             let statusClass = 'active';
@@ -131,20 +132,21 @@ export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningEl
         const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
         
         const totalDays = this.daysBetween(minDate, maxDate);
-        
+
         while (current <= end) {
             const monthStart = new Date(current);
             const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
-            
+
             // Calculate visible portion of this month in timeline
             const visibleStart = monthStart < minDate ? minDate : monthStart;
             const visibleEnd = monthEnd > maxDate ? maxDate : monthEnd;
-            
+
             const startOffset = this.daysBetween(minDate, visibleStart);
             const width = this.daysBetween(visibleStart, visibleEnd);
-            
-            const leftPercent = (startOffset / totalDays) * 100;
-            const widthPercent = (width / totalDays) * 100;
+
+            // Guard against totalDays === 0 (single-day range)
+            const leftPercent = totalDays > 0 ? (startOffset / totalDays) * 100 : 0;
+            const widthPercent = totalDays > 0 ? (width / totalDays) * 100 : 100;
             
             labels.push({
                 key: `${current.getFullYear()}-${current.getMonth()}`,
