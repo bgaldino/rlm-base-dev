@@ -1,3 +1,5 @@
+import copy
+import csv
 import json
 import os
 import re
@@ -8,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from abc import abstractmethod
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 # ANSI escape code pattern for stripping color codes from subprocess output.
@@ -42,6 +45,13 @@ DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv", "UserAn
 def strip_ansi_codes(text: str) -> str:
     """Strip ANSI escape codes from subprocess output for readable logs."""
     return ANSI_ESCAPE_PATTERN.sub('', text)
+
+
+def _redact_token(text: str, token: Optional[str]) -> str:
+    """Replace access token with a placeholder to avoid logging secrets."""
+    if not token or not text:
+        return text
+    return text.replace(token, "***REDACTED***")
 
 
 def run_post_process_script(
@@ -198,7 +208,11 @@ class LoadSFDMUData(SFDXBaseTask):
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
 
-            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(export_json, indent=2)}')
+            log_json = copy.deepcopy(export_json)
+            for org in log_json.get("orgs", []):
+                if "accessToken" in org:
+                    org["accessToken"] = "***REDACTED***"
+            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(log_json, indent=2)}')
         except json.JSONDecodeError as e:
             self.logger.error(f"Error parsing export.json: {e}")
             raise
@@ -352,17 +366,17 @@ class LoadSFDMUData(SFDXBaseTask):
             self.logger.info(f'Current Working Directory: {self.options.get("dir")}')
             
             cmd = self._get_command()
-            self.logger.info(f'Executing command: {cmd}')  # Log the command being executed
+            self.logger.info(f'Executing command: {_redact_token(cmd, self.accesstoken)}')
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
             
             if result.returncode != 0:
                 self.logger.error(f"Command failed with exit code {result.returncode}")
-                self.logger.error(f"STDOUT: {strip_ansi_codes(result.stdout)}")
-                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
+                self.logger.error(f"STDOUT: {_redact_token(strip_ansi_codes(result.stdout), self.accesstoken)}")
+                self.logger.error(f"STDERR: {_redact_token(strip_ansi_codes(result.stderr), self.accesstoken)}")
                 raise CommandException(f"Command failed with exit code {result.returncode}")
 
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(_redact_token(strip_ansi_codes(line), self.accesstoken))
             
         except Exception as e:
             self.logger.error(f"An error occurred: {str(e)}")
@@ -833,7 +847,6 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             self.logger.info("Extraction roundtrip: extract -> post-process -> load from processed (validates v5 re-import)")
             persist_output = str(self.options.get("persist_extraction_output", "")).lower() in {"1", "true", "yes"}
             if persist_output:
-                from datetime import datetime
                 plan_name = os.path.basename(os.path.normpath(plan_dir))
                 # Path calculation: dirname(plan_dir) goes up to the locale dir (e.g. en-US),
                 # then two ".." steps reach the sfdmu root (e.g. datasets/sfdmu), then
@@ -1054,7 +1067,6 @@ class ExtractSFDMUData(SFDXBaseTask):
         if not output_dir:
             # Default: timestamped subdirectory under datasets/sfdmu/extractions/<plan_name>/
             plan_name = os.path.basename(os.path.normpath(plan_dir))
-            from datetime import datetime
             timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
             output_dir = os.path.join(
                 os.path.dirname(plan_dir), "..", "..", "extractions", plan_name, timestamp
@@ -1103,18 +1115,18 @@ class ExtractSFDMUData(SFDXBaseTask):
                 sourceusername=self.sourceusername,
                 pathtoexportjson=work_dir,
             )
-            self.logger.info(f"Executing extraction: {cmd}")
+            self.logger.info(f"Executing extraction: {_redact_token(cmd, self.accesstoken)}")
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True,
                 cwd=self.options.get("dir"),
             )
 
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(_redact_token(strip_ansi_codes(line), self.accesstoken))
 
             if result.returncode != 0:
                 self.logger.error(f"SFDMU extraction failed (exit {result.returncode})")
-                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
+                self.logger.error(f"STDERR: {_redact_token(strip_ansi_codes(result.stderr), self.accesstoken)}")
                 raise CommandException(
                     f"SFDMU extraction failed with exit code {result.returncode}"
                 )
@@ -1149,3 +1161,175 @@ class ExtractSFDMUData(SFDXBaseTask):
             if work_dir and os.path.isdir(work_dir):
                 shutil.rmtree(work_dir, ignore_errors=True)
                 self.logger.info("Cleaned up extraction working directory.")
+
+
+def _parse_object_name_from_query(query: str) -> Optional[str]:
+    """Extract sObject API name from SOQL query (e.g. SELECT ... FROM Product2 -> Product2)."""
+    if not query:
+        return None
+    match = re.search(r"FROM\s+(\w+)(?:\s|$|,)", query, re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def _count_csv_rows(csv_path: str) -> int:
+    """Count data rows in CSV (excluding header). Returns -1 if file not found or unreadable."""
+    if not os.path.isfile(csv_path):
+        return -1
+    try:
+        with open(csv_path, newline="", encoding="utf-8", errors="replace") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            if not header:
+                return 0
+            return sum(1 for _ in reader)
+    except (IOError, csv.Error):
+        return -1
+
+
+class ValidateSFDMUData(SFDXBaseTask):
+    """Validate SFDMU-loaded data by comparing expected record counts (from source CSVs)
+    with actual org counts. Produces a JSON report of pass/fail per object.
+    """
+
+    keychain_class = BaseProjectKeychain
+    task_options: Dict[str, Dict[str, Any]] = {
+        "pathtoexportjson": {
+            "description": "Directory path to the export.json (same as LoadSFDMUData)",
+            "required": True,
+        },
+        "object_sets": {
+            "description": "Optional list of 0-based object set indices to validate. If omitted, all sets are validated.",
+            "required": False,
+        },
+        "fail_on_mismatch": {
+            "description": "If true, raise CommandException when any object has count mismatch. Default: false.",
+            "required": False,
+        },
+        "report_path": {
+            "description": "Path to write JSON report. Default: {plan_dir}/validation_report.json",
+            "required": False,
+        },
+    }
+
+    def _run_task(self) -> None:
+        plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        if not os.path.isdir(plan_dir):
+            raise FileNotFoundError(f"Plan directory not found: {plan_dir}")
+
+        export_json_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
+        if not os.path.isfile(export_json_path):
+            raise FileNotFoundError(f"export.json not found: {export_json_path}")
+
+        with open(export_json_path, "r", encoding="utf-8") as f:
+            export_json = json.load(f)
+
+        objects_to_validate = self._flatten_objects(export_json)
+        if not objects_to_validate:
+            self.logger.warning("No objects to validate in export.json")
+            self.return_values = {"report": {"summary": {"total": 0, "passed": 0, "failed": 0}, "objects": []}}
+            return
+
+        if not hasattr(self, "org_config") or not self.org_config:
+            raise CommandException("Org configuration required for validation. Run with --org <alias>.")
+
+        sf = self.org_config.salesforce_client
+        results: List[Dict[str, Any]] = []
+        passed = 0
+        failed = 0
+
+        for obj_def in objects_to_validate:
+            obj_name = obj_def["object"]
+            pass_index = obj_def.get("pass_index", 0)
+            expected = self._get_expected_count(plan_dir, obj_name, pass_index)
+            if expected is None:
+                self.logger.warning(f"Skipping {obj_name}: CSV not found")
+                continue
+
+            try:
+                qr = sf.query(f"SELECT COUNT() FROM {obj_name}")
+                actual = qr.get("totalSize", 0)
+            except Exception as e:
+                self.logger.warning(f"Query failed for {obj_name}: {e}")
+                results.append({"object": obj_name, "expected": expected, "actual": None, "status": "fail", "error": str(e)})
+                failed += 1
+                continue
+
+            status = "pass" if expected == actual else "fail"
+            diff = (actual - expected) if status == "fail" else 0
+            results.append({"object": obj_name, "expected": expected, "actual": actual, "status": status, "diff": diff})
+
+            if status == "pass":
+                passed += 1
+                self.logger.info(f"  {obj_name}: {expected} (pass)")
+            else:
+                failed += 1
+                self.logger.warning(f"  {obj_name}: expected={expected}, actual={actual}, diff={diff} (fail)")
+
+        summary = {"total": len(results), "passed": passed, "failed": failed}
+        report = {
+            "plan": plan_dir,
+            "timestamp": datetime.now().isoformat(),
+            "summary": summary,
+            "objects": results,
+        }
+
+        report_path = self.options.get("report_path") or os.path.join(plan_dir, "validation_report.json")
+        report_path = os.path.normpath(report_path)
+        os.makedirs(os.path.dirname(report_path) or ".", exist_ok=True)
+        with open(report_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+        self.logger.info(f"Validation report written to {report_path}")
+        self.logger.info(f"Validation summary: {passed} passed, {failed} failed of {len(results)} objects")
+
+        self.return_values = {"report": report, "report_path": report_path}
+
+        if self.options.get("fail_on_mismatch") and failed > 0:
+            raise CommandException(
+                f"SFDMU validation failed: {failed} object(s) have count mismatch. See report: {report_path}"
+            )
+
+    def _flatten_objects(self, export_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Flatten objects from export.json, supporting both flat objects and objectSets."""
+        object_sets_opt = self.options.get("object_sets")
+        if object_sets_opt is not None:
+            if isinstance(object_sets_opt, str):
+                object_sets_opt = json.loads(object_sets_opt)
+            object_sets_opt = [int(i) for i in object_sets_opt]
+
+        out: List[Dict[str, Any]] = []
+        object_sets = export_json.get("objectSets", [])
+        flat_objects = export_json.get("objects", [])
+
+        if object_sets:
+            indices = object_sets_opt if object_sets_opt is not None else range(len(object_sets))
+            for orig_idx in [i for i in indices if 0 <= i < len(object_sets)]:
+                for obj in object_sets[orig_idx].get("objects", []):
+                    if obj.get("excluded") or obj.get("operation") == "Readonly":
+                        continue
+                    name = _parse_object_name_from_query(obj.get("query", ""))
+                    if name:
+                        out.append({"object": name, "pass_index": orig_idx, "query": obj.get("query", "")})
+        else:
+            for obj in flat_objects:
+                if obj.get("excluded") or obj.get("operation") == "Readonly":
+                    continue
+                name = _parse_object_name_from_query(obj.get("query", ""))
+                if name:
+                    out.append({"object": name, "pass_index": 0, "query": obj.get("query", "")})
+
+        return out
+
+    def _get_expected_count(self, plan_dir: str, obj_name: str, pass_index: int) -> Optional[int]:
+        """Resolve CSV path and return row count. Returns None if CSV not found in any candidate location."""
+        csv_name = f"{obj_name}.csv"
+        candidates: List[str] = [
+            os.path.join(plan_dir, csv_name),
+            os.path.join(plan_dir, "source", csv_name),
+            os.path.join(plan_dir, "source", f"object-set-{pass_index + 1}", csv_name),
+            os.path.join(plan_dir, "objectset_source", f"object-set-{pass_index + 1}", csv_name),
+        ]
+        for path in candidates:
+            count = _count_csv_rows(path)
+            if count >= 0:
+                return count
+        return None
