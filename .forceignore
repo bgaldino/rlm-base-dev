@@ -90,3 +90,4 @@ force-app/main/default/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem
 force-app/main/default/objects/Order/Order.object-meta.xml
 force-app/main/default/objects/OrderItem/OrderItem.object-meta.xml
 force-app/main/default/objects/QuoteLineItem/QuoteLineItem.object-meta.xml
+force-app/main/default/objects/Product2/Product2.object-meta.xml

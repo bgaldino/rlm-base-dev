@@ -12,16 +12,46 @@ public class RLM_QuoteModelUtility {
         SalesContext.SalesTransaction.CurrencyIsoCode = q.CurrencyIsoCode;
         SalesContext.SalesTransaction.SalesTransactionItem = new List<SalesTransactionItemModel>();
 
+        Set<Id> quoteLineIds = new Set<Id>();
+        for (QuoteLineItem ql : qls) {
+            quoteLineIds.add(ql.Id);
+        }
+
+        Map<Id, List<QuoteLineItemAttribute>> attrsByQuoteLineId = new Map<Id, List<QuoteLineItemAttribute>>();
+        Map<Id, List<QuoteLineRelationship>> relsByQuoteLineId = new Map<Id, List<QuoteLineRelationship>>();
+        if (!quoteLineIds.isEmpty()) {
+            for (QuoteLineItemAttribute qlAtt : [
+                SELECT QuoteLineItemId, AttributeName, AttributeValue
+                FROM QuoteLineItemAttribute
+                WHERE QuoteLineItemId IN :quoteLineIds
+            ]) {
+                if (!attrsByQuoteLineId.containsKey(qlAtt.QuoteLineItemId)) {
+                    attrsByQuoteLineId.put(qlAtt.QuoteLineItemId, new List<QuoteLineItemAttribute>());
+                }
+                attrsByQuoteLineId.get(qlAtt.QuoteLineItemId).add(qlAtt);
+            }
+
+            for (QuoteLineRelationship qlRel : [
+                SELECT AssociatedQuoteLineId, AssociatedQuoteLine.ProductSellingModelId, AssociatedQuoteLine.Product2Id,
+                    AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
+                FROM QuoteLineRelationship
+                WHERE AssociatedQuoteLineId IN :quoteLineIds
+            ]) {
+                if (!relsByQuoteLineId.containsKey(qlRel.AssociatedQuoteLineId)) {
+                    relsByQuoteLineId.put(qlRel.AssociatedQuoteLineId, new List<QuoteLineRelationship>());
+                }
+                relsByQuoteLineId.get(qlRel.AssociatedQuoteLineId).add(qlRel);
+            }
+        }
+
         for(QuoteLineItem ql: qls){
             SalesTransactionItemModel item = new SalesTransactionItemModel();
-
-            List<QuoteLineItemAttribute> qlAtts = [SELECT QuoteLineItemId, AttributeName, AttributeValue
-                                                    FROM QuoteLineItemAttribute 
-                                                    WHERE QuoteLineItemId =: ql.Id];
-                                                    
-            List<QuoteLineRelationship> qlRs =  [SELECT  AssociatedQuoteLineId, AssociatedQuoteLine.ProductSellingModelId, AssociatedQuoteLine.Product2Id,
-                                                    AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
-                                                     FROM QuoteLineRelationship WHERE AssociatedQuoteLineId =: ql.Id];
+            List<QuoteLineItemAttribute> qlAtts = attrsByQuoteLineId.containsKey(ql.Id)
+                ? attrsByQuoteLineId.get(ql.Id)
+                : new List<QuoteLineItemAttribute>();
+            List<QuoteLineRelationship> qlRs = relsByQuoteLineId.containsKey(ql.Id)
+                ? relsByQuoteLineId.get(ql.Id)
+                : new List<QuoteLineRelationship>();
 
             item.SalesTransactionItemParent = ql.QuoteId;
             item.price_water_fall = '';

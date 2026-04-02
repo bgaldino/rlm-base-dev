@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import re
@@ -42,6 +43,13 @@ DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv")
 def strip_ansi_codes(text: str) -> str:
     """Strip ANSI escape codes from subprocess output for readable logs."""
     return ANSI_ESCAPE_PATTERN.sub('', text)
+
+
+def _redact_token(text: str, token: Optional[str]) -> str:
+    """Replace access token with a placeholder to avoid logging secrets."""
+    if not token or not text:
+        return text
+    return text.replace(token, "***REDACTED***")
 
 
 def run_post_process_script(
@@ -198,7 +206,11 @@ class LoadSFDMUData(SFDXBaseTask):
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
 
-            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(export_json, indent=2)}')
+            log_json = copy.deepcopy(export_json)
+            for org in log_json.get("orgs", []):
+                if "accessToken" in org:
+                    org["accessToken"] = "***REDACTED***"
+            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(log_json, indent=2)}')
         except json.JSONDecodeError as e:
             self.logger.error(f"Error parsing export.json: {e}")
             raise
@@ -352,17 +364,17 @@ class LoadSFDMUData(SFDXBaseTask):
             self.logger.info(f'Current Working Directory: {self.options.get("dir")}')
             
             cmd = self._get_command()
-            self.logger.info(f'Executing command: {cmd}')  # Log the command being executed
+            self.logger.info(f'Executing command: {_redact_token(cmd, self.accesstoken)}')
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
             
             if result.returncode != 0:
                 self.logger.error(f"Command failed with exit code {result.returncode}")
-                self.logger.error(f"STDOUT: {strip_ansi_codes(result.stdout)}")
-                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
+                self.logger.error(f"STDOUT: {_redact_token(strip_ansi_codes(result.stdout), self.accesstoken)}")
+                self.logger.error(f"STDERR: {_redact_token(strip_ansi_codes(result.stderr), self.accesstoken)}")
                 raise CommandException(f"Command failed with exit code {result.returncode}")
 
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(_redact_token(strip_ansi_codes(line), self.accesstoken))
             
         except Exception as e:
             self.logger.error(f"An error occurred: {str(e)}")
@@ -1103,18 +1115,18 @@ class ExtractSFDMUData(SFDXBaseTask):
                 sourceusername=self.sourceusername,
                 pathtoexportjson=work_dir,
             )
-            self.logger.info(f"Executing extraction: {cmd}")
+            self.logger.info(f"Executing extraction: {_redact_token(cmd, self.accesstoken)}")
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True,
                 cwd=self.options.get("dir"),
             )
 
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(_redact_token(strip_ansi_codes(line), self.accesstoken))
 
             if result.returncode != 0:
                 self.logger.error(f"SFDMU extraction failed (exit {result.returncode})")
-                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
+                self.logger.error(f"STDERR: {_redact_token(strip_ansi_codes(result.stderr), self.accesstoken)}")
                 raise CommandException(
                     f"SFDMU extraction failed with exit code {result.returncode}"
                 )
