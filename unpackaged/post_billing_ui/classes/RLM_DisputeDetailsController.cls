@@ -43,7 +43,7 @@ public with sharing class RLM_DisputeDetailsController {
                 for (SObject il : lines) {
                     Object balVal = il.get('Balance');
                     if (balVal != null) {
-                        lineBalances.put((String) il.get('Id'), (Decimal) balVal);
+                        lineBalances.put(String.valueOf(il.get('Id')), (Decimal) balVal);
                     }
                 }
             } catch (Exception e) {

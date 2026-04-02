@@ -41,7 +41,8 @@ public with sharing class RLM_BillingScheduleGroupController {
                 bsgIds.add(bsg.Id);
             }
             
-            // Query all relationships where BSGs are either main or associated
+            // Query relationships where each BSG is the main (parent) BSG.
+            // The UI displays associated BSGs from the main side only.
             List<BsgRelationship> allRelationships = [
                 SELECT Id,
                        MainBsgId,
@@ -49,8 +50,7 @@ public with sharing class RLM_BillingScheduleGroupController {
                        AssociatedBsgRole,
                        AssociatedBsgPricing
                 FROM BsgRelationship
-                WHERE MainBsgId IN :bsgIds 
-                   OR AssociatedBsgId IN :bsgIds
+                WHERE MainBsgId IN :bsgIds
             ];
             
             // Create a map of BSG Id to its relationships where it is the main BSG

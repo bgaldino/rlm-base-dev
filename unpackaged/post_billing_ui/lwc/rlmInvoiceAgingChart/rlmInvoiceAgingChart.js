@@ -34,9 +34,11 @@ export default class RlmInvoiceAgingChart extends LightningElement {
     })
     wiredInvoices({ data, errors }) {
         if (!this.recordId) {
-            this.isLoading = false;
+            // recordId not yet available; keep the initial loading state so the
+            // spinner is still shown when recordId arrives and the wire re-fires.
             return;
         }
+        this.isLoading = true;
         if (errors && errors.length) {
             this.error = errors;
             this.errorMessage = this.readableError(errors[0]);
