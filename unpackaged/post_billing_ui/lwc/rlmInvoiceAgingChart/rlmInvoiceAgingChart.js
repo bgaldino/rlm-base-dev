@@ -55,29 +55,32 @@ export default class RlmInvoiceAgingChart extends LightningElement {
         return this.recordId ? { accountId: this.recordId } : undefined;
     }
 
-    queryInvoices = gql`
-        query InvoicesForAccount($accountId: ID!) {
-            uiapi {
-                query {
-                    Invoice(
-                        where: { BillingAccountId: { eq: $accountId } }
-                        first: 2000
-                    ) {
-                        edges {
-                            node {
-                                Id
-                                Status { value }
-                                DaysInvoiceOpen { value }
-                                DaysInvoiceOverdue { value }
-                                SettlementStatus { value }
-                                Balance { value }
+    get queryInvoices() {
+        if (!this.recordId) return undefined;
+        return gql`
+            query InvoicesForAccount($accountId: ID!) {
+                uiapi {
+                    query {
+                        Invoice(
+                            where: { BillingAccountId: { eq: $accountId } }
+                            first: 2000
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Status { value }
+                                    DaysInvoiceOpen { value }
+                                    DaysInvoiceOverdue { value }
+                                    SettlementStatus { value }
+                                    Balance { value }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-    `;
+        `;
+    }
 
     processInvoices(data) {
         const edges = data?.uiapi?.query?.Invoice?.edges || [];

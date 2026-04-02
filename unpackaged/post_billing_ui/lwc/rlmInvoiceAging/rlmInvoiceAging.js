@@ -121,6 +121,10 @@ export default class RlmInvoiceAging extends LightningElement {
         return Math.max(this.lessThan30Days, this.days30To60, this.moreThan60Days, 1);
     }
 
+    get halfChartValue() {
+        return Math.round(this.maxChartValue / 2);
+    }
+
     formatCurrency(amount) {
         if (amount === null || amount === undefined) return '--';
         const currency = this.currencyCode || 'USD';

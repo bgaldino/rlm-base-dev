@@ -8,6 +8,7 @@ public with sharing class RLM_BSGTimelineController {
         @AuraEnabled public String groupNumber;
         @AuraEnabled public String productName;
         @AuraEnabled public String accountName;
+        @AuraEnabled public String currencyCode;
         @AuraEnabled public Decimal totalBilledAmount;
         @AuraEnabled public Decimal totalPendingAmount;
         @AuraEnabled public String billingTerm;
@@ -66,7 +67,7 @@ public with sharing class RLM_BSGTimelineController {
             // Query BSG with all required fields using correct field names
             List<BillingScheduleGroup> bsgList = [
                 SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name,
-                       TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit,
+                       CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit,
                        BillDayOfMonth, CancellationDate, StartDate, EndDate
                 FROM BillingScheduleGroup
                 WHERE Id = :recordId
@@ -96,6 +97,7 @@ public with sharing class RLM_BSGTimelineController {
             data.groupNumber = bsg.BillingScheduleGroupNumber;
             data.productName = bsg.ProductName;
             data.accountName = bsg.BillingAccount?.Name;
+            data.currencyCode = bsg.CurrencyIsoCode;
             data.totalBilledAmount = bsg.TotalBilledAmount;
             data.totalPendingAmount = bsg.TotalPendingAmount;
             data.billingTerm = String.valueOf(bsg.BillingTerm);

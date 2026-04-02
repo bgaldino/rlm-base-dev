@@ -170,7 +170,6 @@ export default class RlmCollectionRuleBuilder extends LightningElement {
             actions: { ...this.rule.actions }
         };
 
-        console.log('Collection Rule Saved:', JSON.stringify(output, null, 2));
         this._showToast('Success', `Rule "${this.rule.ruleName}" saved successfully.`, 'success');
     }
 

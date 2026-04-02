@@ -64,13 +64,13 @@ public with sharing class RLM_SplitInvoicesController {
                 rows.add(new InvoiceRow(inv));
             }
         } catch (QueryException e) {
-            String detail = 'SOQL failed. Exception: ' + e.getTypeName() + '. '
-                + 'Message: ' + e.getMessage() + '. '
-                + 'Run this SOQL in Developer Console (Query tab) to verify object/field names: '
-                + soql.replace(':correlationId', '\'' + correlationId + '\'');
-            throw new AuraHandledException(detail);
+            System.debug(LoggingLevel.ERROR, 'RLM_SplitInvoicesController SOQL failed: '
+                + e.getTypeName() + ': ' + e.getMessage()
+                + ' | SOQL: ' + soql.replace(':correlationId', '\'' + correlationId + '\''));
+            throw new AuraHandledException('Unable to load split invoices. Contact your administrator.');
         } catch (Exception e) {
-            throw new AuraHandledException(e.getTypeName() + ': ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'RLM_SplitInvoicesController error: ' + e.getTypeName() + ': ' + e.getMessage());
+            throw new AuraHandledException('Unable to load split invoices. Contact your administrator.');
         }
         return rows;
     }

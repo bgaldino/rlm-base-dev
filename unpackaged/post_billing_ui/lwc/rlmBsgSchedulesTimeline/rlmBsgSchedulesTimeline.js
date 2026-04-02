@@ -198,10 +198,11 @@ export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningEl
     }
     
     formatCurrency(amount) {
-        if (amount === null || amount === undefined) return '$0.00';
+        if (amount === null || amount === undefined) return '--';
+        const currency = this.bsgData?.currencyCode || 'USD';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency,
             minimumFractionDigits: 2
         }).format(amount);
     }

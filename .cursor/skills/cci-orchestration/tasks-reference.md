@@ -653,7 +653,7 @@
 
 ### `apply_context_billing_order`
 
-**Description:** Adds BillingArrangement__std, BillingProfile__std, and SavedPaymentMethod Order field mappings to the RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node). Maps to Order.RLM_Billing_Arrangement__c, Order.RLM_Billing_Profile__c, and Order.SavedPaymentMethodId respectively.
+**Description:** Adds BillingArrangement__std and BillingProfile__std Order field mappings to the RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node). Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c. SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
 
 **Class:** `tasks.rlm_context_service.ManageContextDefinition`
 

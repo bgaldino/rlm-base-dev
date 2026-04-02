@@ -67,12 +67,11 @@
                             <div key={schedule.id} class="schedule-row" data-schedule-id={schedule.id} onclick={handleScheduleClick}>
                                 <div class="name-column">
                                     <div class="schedule-name">
-                                        <lightning-button 
-                                            variant="base" 
-                                            label={schedule.scheduleNumber} 
+                                        <lightning-button
+                                            variant="base"
+                                            label={schedule.scheduleNumber}
                                             class="schedule-link"
-                                            data-schedule-id={schedule.id}
-                                            onclick={handleScheduleClick}>
+                                            data-schedule-id={schedule.id}>
                                         </lightning-button>
                                     </div>
                                     <div class="schedule-category">
