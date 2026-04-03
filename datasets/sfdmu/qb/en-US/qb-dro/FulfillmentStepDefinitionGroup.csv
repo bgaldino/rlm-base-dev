@@ -1,11 +1,11 @@
 Name,UsageType
 Order Processing,
-Finance,
+Finance,Generic
 Billing and Invoicing,
 License Activation,
 Tenant Provisioning + Activation,
 Platform Provisioning,
-Platform,
-Services,
-Feature/License Provisioning + Activation,
+Platform,IntegrationOrchestrator
+Services,StageManagement
+Feature/License Provisioning + Activation,Fulfillment
 Asset Conversion,

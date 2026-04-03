@@ -111,6 +111,7 @@ unpackaged/*bak/**
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak
+datasets/bre/exports/**
 tmp-metadata/
 .cursor/plans/**
 retrieved_rlm_bundle/

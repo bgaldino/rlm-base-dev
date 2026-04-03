@@ -1985,6 +1985,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_dro_dataset
 
+  export_bre_rule_library:
+    group: Data Management - Extract
+    description: "Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all."
+    class_path: tasks.rlm_bre.ExportBRE
+    options:
+      output_dir: datasets/bre/exports
+
   extract_qb_clm_data:
     group: Data Management - Extract
     description: "Extract qb-clm from org to CSV. Output in datasets/sfdmu/extractions/qb-clm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -2639,6 +2646,16 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
+
+  upsert_fulfillment_scope_cnfg:
+    group: Revenue Lifecycle Management
+    description: Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
+    steps:
+      1:
+        task: manage_fulfillment_scope_cnfg
+        options:
+          operation: upsert
+          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
 
   prepare_dro:
     group: Revenue Lifecycle Management

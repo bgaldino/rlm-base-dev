@@ -26,6 +26,8 @@ SFDMU v5.0.0+ is required. v4 syntax is not supported.
 - **DO NOT** use `$$Field1$Field2` syntax in `externalId` (v4, not v5)
 - **DO NOT** change `Upsert` to `Insert+deleteOldData` without user approval
 - **DO NOT** leave empty CSVs without `excluded: true`
+- **DO NOT** use `$$` composite notation for lookup reference columns in CSVs (Bug 4 — self-referential and cross-object `$$` references fail on import; use simple field references)
+- **DO NOT** rely on composite `externalId` with all-traversal fields (e.g. `Parent.Name;OtherParent.Name`) for upsert matching (Bug 5 — SFDMU cannot resolve composite keys composed entirely of relationship traversals; use `deleteOldData: true` instead)
 
 ## export.json Structure
 
@@ -66,6 +68,32 @@ SFDMU v5.0.0+ is required. v4 syntax is not supported.
 | Read-only reference (already loaded by another plan) | `Readonly` | `false` | Just resolves IDs for child lookups |
 | Updating existing records (set fields) | `Update` | `false` | Only modifies matched records |
 | Empty CSV (no records yet) | mark `excluded: true` | — | Prevents destructive delete-on-load |
+
+## Bug 4 — `$$` Composite Key Self-References Fail on Import
+
+**Problem:** When an object has a self-referential lookup (e.g., `ProductComponentGroup.ParentGroupId` → `ProductComponentGroup`) and the CSV uses `$$` composite key notation for that reference (e.g., `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`), SFDMU cannot resolve the parent record. The MissingParentRecordsReport shows anonymized hashes instead of matched records, and the lookup fields are left null after import — even though the parent records exist and SFDMU runs multiple passes.
+
+**Root cause:** SFDMU's `$$` composite notation works for the *primary* record's externalId matching (source↔target), but fails when used as a *lookup reference column* for self-referential relationships. SFDMU cannot decompose a composite `$$` value back into individual fields to find the referenced parent record.
+
+**Fix:** Use simple single-field references for self-referential lookups:
+- Change `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` → `ParentGroup.Code`
+- Ensure the `externalId` for the object is the simple field (e.g., `Code`) — not a composite
+- This works when the simple field is unique (or unique within the context of the plan)
+
+**Example (ProductComponentGroup):**
+```
+# BROKEN — ParentGroup reference uses $$ composite, SFDMU cannot resolve
+Header: $$Code$ParentProduct.StockKeepingUnit,...,ParentGroup.$$Code$ParentProduct.StockKeepingUnit
+Value:  Cooling;QB-QRack-750,...,Computing;QB-QRack-750
+externalId: "Code;ParentProduct.StockKeepingUnit"
+
+# WORKS — ParentGroup reference uses simple field
+Header: Code,...,ParentGroup.Code
+Value:  Cooling,...,Computing
+externalId: "Code"
+```
+
+**Audit required:** All data plans with `$$` composite columns used as *lookup references* (not just primary keys) should be reviewed. Cross-object `$$` references (e.g., `ProductComponentGroup.$$Code$...` referenced from `ProductRelatedComponent`) may also be affected — test each case.
 
 ## The Three v5 Bugs
 
@@ -125,6 +153,8 @@ Example: `qb-billing` uses 3 passes: draft insert → activate treatment items �
 - [ ] Objects ordered parent → child
 - [ ] `$$` composite key CSV headers match externalId fields exactly
 - [ ] deleteOldData only used where justified (Bug 2/3)
+- [ ] No `$$` composite notation used for lookup reference columns (Bug 4 — use simple field references instead)
+- [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
 
 ## Validation Tool
 
