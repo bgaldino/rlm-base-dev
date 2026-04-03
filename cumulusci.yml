@@ -28,11 +28,11 @@ orgs:
     dev_previous:
       config_file: orgs/dev_previous.json
       days: 30
-    dev_datacloud:
-      config_file: orgs/dev_datacloud.json
-      days: 30
     dev_enhanced:
       config_file: orgs/dev-enhanced.json
+      days: 30
+    dev_datacloud:
+      config_file: orgs/dev-datacloud.json
       days: 30
     ent:
       config_file: orgs/ent.json
