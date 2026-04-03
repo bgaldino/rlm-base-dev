@@ -64,6 +64,10 @@ datasets/**/target/**
 datasets/**/CSVIssuesReport.csv
 datasets/**/MissingParentRecordsReport.csv
 datasets/sfdmu/test/**
+datasets/sfdmu/reconcile/**
+datasets/sfdmu/extractions/**
+datasets/sfdmu/**/*.csv.bak
+datasets/bre/exports/**
 
 # QBranch
 .qbrix
@@ -105,14 +109,9 @@ selenium-screenshot*.png
 /.illuminatedCloud/
 **/tsconfig*.json
 **/*.tsbuildinfo
-agents256*/**
 unpackaged/*bak/**
 .claude/
-datasets/sfdmu/reconcile/**
-datasets/sfdmu/extractions/**
-datasets/sfdmu/**/*.csv.bak
 tmp-metadata/
 .cursor/plans/**
-retrieved_rlm_bundle/
 postman/archive/
 core.code-workspace

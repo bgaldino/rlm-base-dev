@@ -2,6 +2,7 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "developer",
+  "instance": "USA1000",
   "features": [
     "B2BCommerce",
     "BillingAdvanced",
