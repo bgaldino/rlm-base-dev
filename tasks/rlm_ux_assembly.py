@@ -702,6 +702,11 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         # AppSwitcher (appmenus) is no longer assembled — app launcher
         # ordering is handled dynamically by reorder_app_launcher.
+        # Clean up stale appMenus dir from previous assembler versions.
+        stale_appmenus = output_path / "appMenus"
+        if stale_appmenus.exists():
+            shutil.rmtree(stale_appmenus)
+            self.logger.info("Removed stale appMenus/ directory")
 
         if should_run("profiles"):
             items = self._assemble_profiles(

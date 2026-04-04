@@ -11,8 +11,6 @@ Usage examples:
 """
 import base64
 import io
-import json
-import shutil
 import time
 import xml.etree.ElementTree as ET
 import zipfile
@@ -35,10 +33,6 @@ _SUPPORTED_TYPES = {
 }
 
 _SF_MDAPI_NS = "http://soap.sforce.com/2006/04/metadata"
-_SF_SOAP_NS = "http://schemas.xmlsoap.org/soap/envelope/"
-
-# Maximum members per retrieve (Salesforce limit is 10,000)
-_BATCH_SIZE = 50
 
 
 class RetrieveUXFromOrg(BaseSalesforceTask):
