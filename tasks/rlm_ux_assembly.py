@@ -11,7 +11,6 @@ Supported metadata types:
                   add_facet_field, add_component, raw insert_after_xml)
   layouts      — copy base + conditional overrides (billing, constraints)
   applications — copy from versioned templates based on active features
-  appmenus     — conditional copy (tso feature gates AppSwitcher)
   profiles     — strip-and-build: base grants + feature layout patches
 
 Usage examples:
@@ -25,6 +24,7 @@ Usage examples:
 import datetime
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -63,14 +63,13 @@ SUFFIX_TO_TYPE: Dict[str, str] = {
     ".flexipage-meta.xml": "flexipages",
     ".layout-meta.xml": "layouts",
     ".app-meta.xml": "applications",
-    ".appMenu-meta.xml": "appmenus",
     ".profile-meta.xml": "profiles",
     ".compactLayout-meta.xml": "objects",
     ".listView-meta.xml": "objects",
     ".object-meta.xml": "objects",
 }
 
-VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "appmenus", "profiles", "objects"}
+VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "profiles", "objects"}
 
 # Register default namespace so ElementTree serializes without ns0: prefix
 ET.register_namespace("", SF_NS)
@@ -89,13 +88,30 @@ def _write_xml(root: ET.Element, dest: Path) -> None:
     ET.indent(root, space="    ")
     tree = ET.ElementTree(root)
     tree.write(str(dest), encoding="unicode", xml_declaration=True)
-    # ElementTree writes encoding="us-ascii" in the declaration when using
-    # encoding="unicode". Fix it to UTF-8 to match Salesforce convention.
+    # ElementTree uses single quotes and writes encoding="us-ascii" in the
+    # declaration when using encoding="unicode". Fix both to match Salesforce
+    # convention: double quotes, UTF-8, and trailing newline.
     text = dest.read_text(encoding="utf-8")
-    if "encoding='us-ascii'" in text:
-        text = text.replace("encoding='us-ascii'", 'encoding="UTF-8"')
-    elif "encoding='utf-8'" in text:
-        text = text.replace("encoding='utf-8'", 'encoding="UTF-8"')
+    # Normalize the XML declaration to Salesforce convention (double quotes).
+    # ET may produce: version='1.0', encoding='us-ascii'|'utf-8'|'UTF-8'
+    text = text.replace("<?xml version='1.0'", '<?xml version="1.0"')
+    for sq_enc in ("encoding='us-ascii'", "encoding='utf-8'", "encoding='UTF-8'"):
+        if sq_enc in text:
+            text = text.replace(sq_enc, 'encoding="UTF-8"')
+            break
+    # Re-encode quotes as &quot; inside <value> elements containing escaped
+    # HTML (&lt;) or JSON ([{/{"}).  ET unescapes &quot; on parse since raw "
+    # is valid in XML text, but Salesforce metadata expects &quot; in these
+    # contexts (HTML attribute quotes, JSON property names/values).
+    def _requote_value(m):
+        content = m.group(2)
+        if "&lt;" in content or content.lstrip().startswith(("[{", '{"')):
+            content = content.replace('"', "&quot;")
+        return m.group(1) + content + m.group(3)
+
+    text = re.sub(r"(<value>)(.*?)(</value>)", _requote_value, text)
+    if not text.endswith("\n"):
+        text += "\n"
     dest.write_text(text, encoding="utf-8")
 
 
@@ -382,6 +398,43 @@ def _patch_add_component(
     return False
 
 
+def _patch_description(patch: Dict[str, Any]) -> str:
+    """Return a short human-readable description of a patch for manifests."""
+    ptype = patch.get("type", "")
+    if ptype == "insert_action":
+        actions = patch.get("actions", [])
+        return f"insert actions: {', '.join(actions)}"
+    if ptype == "remove_action":
+        return f"remove action: {patch.get('action', '?')}"
+    if ptype == "add_display_field":
+        return f"add display field: {patch.get('field', '?')}"
+    if ptype == "add_facet_field":
+        fields = patch.get("fields", [])
+        facet = patch.get("facet", "")
+        return f"add fields to {facet}: {', '.join(fields)}"
+    if ptype == "add_component":
+        return f"add component: {patch.get('component', '?')}"
+    if ptype == "insert_after_xml":
+        anchor = patch.get("anchor", "")
+        # Extract a recognizable identifier from the anchor
+        for tag in ("identifier", "name", "value"):
+            m = re.search(rf"<{tag}>(.*?)</{tag}>", anchor)
+            if m:
+                return f"insert XML after <{tag}>{m.group(1)}"
+        return "insert XML block"
+    return ptype
+
+
+def _profile_patch_description(patch: Dict[str, Any]) -> str:
+    """Return a short description of a profile patch for manifests."""
+    ptype = patch.get("type", "")
+    if ptype == "add_layout_assignment":
+        return f"layout: {patch.get('layout', '?')}"
+    if ptype == "add_app_visibility":
+        return f"app: {patch.get('application', '?')}"
+    return ptype
+
+
 def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None) -> None:
     """Apply a single patch operation to a flexipage XML root element."""
     ptype = patch.get("type")
@@ -602,7 +655,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
             "flexipages": output_path / "flexipages",
             "layouts":    output_path / "layouts",
             "applications": output_path / "applications",
-            "appmenus":   output_path / "appMenus",
             "profiles":   output_path / "profiles",
             "objects":    output_path / "objects",
         }
@@ -648,11 +700,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
             )
             manifest["assembled"].extend(items)
 
-        if should_run("appmenus"):
-            items = self._assemble_appmenus(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
+        # AppSwitcher (appmenus) is no longer assembled — app launcher
+        # ordering is handled dynamically by reorder_app_launcher.
 
         if should_run("profiles"):
             items = self._assemble_profiles(
@@ -810,11 +859,18 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     else:
                         _apply_flexipage_patch(root, patch, logger=self.logger)
                     patches_applied.append(
-                        {"feature": patch_feature, "patch_type": patch.get("type")}
+                        {"feature": patch_feature, "patch_type": patch.get("type"),
+                         "description": _patch_description(patch)}
                     )
 
             dest = out_dir / fname
-            _write_xml(root, dest)
+            if patches_applied:
+                _write_xml(root, dest)
+            else:
+                # No patches — copy source directly to preserve original
+                # encoding (avoids ET entity re-encoding differences).
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(str(src_file), str(dest))
             assembled.append(
                 {
                     "type": "flexipage",
@@ -1338,7 +1394,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 for patch in patch_data.get("patches", []):
                     self._apply_profile_patch(root, patch)
                     patches_applied.append(
-                        {"feature": feature_dir, "patch_type": patch.get("type")}
+                        {"feature": feature_dir, "patch_type": patch.get("type"),
+                         "description": _profile_patch_description(patch)}
                     )
 
             dest = out_dir / fname
@@ -1478,18 +1535,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if not username:
             raise TaskOptionsError(
                 "Org config has no username. Cannot deploy without a target org."
-            )
-
-        # Always exclude AppSwitcher from the Metadata API deploy — it fails on any
-        # org whose AppMenu contains managed ConnectedApp or Network entries (which
-        # Salesforce cannot validate in a customer deploy). App Launcher ordering is
-        # handled entirely by the reorder_app_launcher Robot task (step 2 of prepare_ux).
-        appmenu_file = output_path / "appMenus" / "AppSwitcher.appMenu-meta.xml"
-        if appmenu_file.exists():
-            appmenu_file.unlink()
-            self.logger.info(
-                "AppSwitcher excluded from Metadata API deploy — ordering will be "
-                "applied by reorder_app_launcher (step 2 of prepare_ux)."
             )
 
         cmd = [

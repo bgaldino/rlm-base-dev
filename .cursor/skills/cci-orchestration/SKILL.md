@@ -315,6 +315,7 @@ classes. They fall into these categories:
 | SFDMU data ops | `LoadSFDMUData`, `ExtractSFDMUData`, `DeleteSFDMUData`, `TestSFDMUIdempotency` | `SFDXBaseTask` |
 | REST/Connect API | `RefreshDecisionTable`, `ExtendStandardContext`, `ManageContextDefinition`, `ManageDecisionTables`, `ManageExpressionSets`, `ManageFlows`, `ManageTransactionProcessingTypes` | `SFDXBaseTask` / `BaseTask` |
 | Metadata deploy | `AssembleAndDeployUX`, `StampGitCommit`, `CleanupSettingsForDev`, `FixDocumentTemplateBinaries` | `SFDXBaseTask` |
+| UX drift/writeback | `RetrieveUXFromOrg`, `DiffUXTemplates`, `WriteBackUXTemplates` | `SFDXBaseTask` / `BaseTask` |
 | Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings` | `BaseTask` |
 | Local-only (no org) | `ValidateSetup` | `BaseTask` |
 | Community/PRM | `PatchNetworkEmailForDeploy`, `RevertNetworkEmailAfterDeploy`, `PatchPaymentsSiteForDeploy`, `RevertPaymentsSiteAfterDeploy` | varies |
@@ -375,6 +376,15 @@ cci task run assemble_and_deploy_ux --org dev-sb0
 
 # UX dry-run (assemble only, no deploy)
 cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+
+# Capture UX drift from org
+cci flow run capture_ux_drift --org dev-sb0
+
+# Apply org drift back to templates (writeback + reassemble + verify)
+cci flow run apply_ux_drift --org dev-sb0
+
+# Writeback single page (dry-run)
+cci task run writeback_ux_templates --org dev-sb0
 
 # Stamp git commit
 cci task run stamp_git_commit --org beta

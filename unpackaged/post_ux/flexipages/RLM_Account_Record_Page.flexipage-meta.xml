@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
     <flexiPageRegions>
         <itemInstances>
@@ -1162,13 +1162,13 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>c:rlmUsageUploader</componentName>
+                <componentName>rlmUsageUploader</componentName>
                 <identifier>rlm_usage_uploader</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>c:rlmUsageOrchestration</componentName>
+                <componentName>rlmUsageOrchestration</componentName>
                 <identifier>c_rlmUsageOrchestration</identifier>
             </componentInstance>
         </itemInstances>
@@ -1190,7 +1190,7 @@
                     <name>usageObject</name>
                     <value>TransactionJournal</value>
                 </componentInstanceProperties>
-                <componentName>c:rlmUsageDataTable</componentName>
+                <componentName>rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable</identifier>
             </componentInstance>
         </itemInstances>
@@ -1208,7 +1208,7 @@
                     <name>usageObject</name>
                     <value>UsageSummary</value>
                 </componentInstanceProperties>
-                <componentName>c:rlmUsageDataTable</componentName>
+                <componentName>rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable2</identifier>
             </componentInstance>
         </itemInstances>
@@ -1226,7 +1226,7 @@
                     <name>usageObject</name>
                     <value>UsageBillingPeriodItem</value>
                 </componentInstanceProperties>
-                <componentName>c:rlmUsageDataTable</componentName>
+                <componentName>rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable3</identifier>
             </componentInstance>
         </itemInstances>
@@ -2123,7 +2123,7 @@
         <name>flexipage:recordHomeTemplateDesktop</name>
         <properties>
             <name>saveOptions</name>
-            <value>[{"name":"UseDefaultAssignmentRule","value":"NONE"}]</value>
+            <value>[{&quot;name&quot;:&quot;UseDefaultAssignmentRule&quot;,&quot;value&quot;:&quot;NONE&quot;}]</value>
         </properties>
     </template>
     <type>RecordPage</type>

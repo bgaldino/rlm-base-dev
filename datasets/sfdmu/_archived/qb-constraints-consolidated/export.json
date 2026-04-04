@@ -1,0 +1,64 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "Reference Objects (Products, Classifications, PRCs)",
+      "objects": [
+        {
+          "query": "SELECT Name FROM Product2 WHERE Id IN (SELECT ReferenceObjectId FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Type' AND ReferenceObject.Type = 'Product2')",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name FROM ProductClassification WHERE Id IN (SELECT ReferenceObjectId FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Type' AND ReferenceObject.Type = 'ProductClassification')",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name FROM ProductRelatedComponent WHERE Id IN (SELECT ReferenceObjectId FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent')",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Expression Sets",
+      "objects": [
+        {
+          "query": "SELECT Name, ApiName FROM ExpressionSet WHERE Id IN (SELECT ExpressionSetId FROM ExpressionSetConstraintObj)",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Constraint Associations (Types and Ports)",
+      "objects": [
+        {
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObjectId$Product2 FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Type' AND ReferenceObject.Type = 'Product2'",
+          "operation": "Upsert",
+          "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObjectId$ProductClassification FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Type' AND ReferenceObject.Type = 'ProductClassification'",
+          "operation": "Upsert",
+          "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObjectId$ProductRelatedComponent FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent'",
+          "operation": "Upsert",
+          "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

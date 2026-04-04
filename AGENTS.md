@@ -118,6 +118,9 @@ cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta
 cci task run assemble_and_deploy_ux --org dev-sb0
 cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0   # dry-run
+cci flow run capture_ux_drift --org dev-sb0                          # retrieve + diff
+cci flow run apply_ux_drift --org dev-sb0                            # writeback + reassemble + verify
+cci task run writeback_ux_templates --org dev-sb0                    # dry-run writeback
 cci task run validate_setup                                          # no org needed
 python scripts/validate_sfdmu_v5_datasets.py
 python scripts/ai/generate_cci_reference.py                         # after cumulusci.yml edits
@@ -154,6 +157,7 @@ that topic.
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
+| Capture/apply UX drift from org | `docs/features/dynamic-ux-assembly.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 
 Each skill has a **Quick Rules** section at the top for fast reference,
