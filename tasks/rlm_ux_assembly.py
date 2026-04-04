@@ -420,7 +420,7 @@ def _patch_description(patch: Dict[str, Any]) -> str:
         for tag in ("identifier", "name", "value"):
             m = re.search(rf"<{tag}>(.*?)</{tag}>", anchor)
             if m:
-                return f"insert XML after <{tag}>{m.group(1)}"
+                return f"insert XML after <{tag}>{m.group(1)}</{tag}>"
         return "insert XML block"
     return ptype
 

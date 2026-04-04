@@ -15,7 +15,7 @@ import time
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
