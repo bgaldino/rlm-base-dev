@@ -134,6 +134,12 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
         dest_dir = output_path / "flexipages"
         dest_dir.mkdir(parents=True, exist_ok=True)
 
+        # Full retrieve: clear existing files to prevent stale leftovers
+        if not filter_name:
+            import shutil
+            for old_file in dest_dir.glob("*.flexipage-meta.xml"):
+                old_file.unlink()
+
         # Retrieve via Metadata API SOAP
         instance_url = self.org_config.instance_url
         access_token = self.org_config.access_token

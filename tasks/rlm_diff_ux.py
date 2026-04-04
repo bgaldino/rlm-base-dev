@@ -128,7 +128,11 @@ class DiffUXTemplates(BaseTask):
         )
         self.logger.info(f"Drift report written to: {report_path}")
 
-        n_drifted = report["summary"]["drifted"] + report["summary"]["org_only"]
+        n_drifted = (
+            report["summary"]["drifted"]
+            + report["summary"]["org_only"]
+            + report["summary"]["templates_only"]
+        )
         if n_drifted == 0:
             self.logger.info(
                 "No drift detected — templates are in sync with org state."

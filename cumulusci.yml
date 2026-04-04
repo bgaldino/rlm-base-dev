@@ -1166,7 +1166,7 @@ tasks:
     group: UX Personalization
     description: >
       Assembles feature-conditional UX metadata (flexipages, layouts, applications,
-      app menus, profiles) from base templates and YAML patch files in templates/.
+      profiles) from base templates and YAML patch files in templates/.
       Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
@@ -3082,11 +3082,10 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, app menus, profiles) from feature-conditional templates. Runs at
-      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
-      all referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation — required on Trialforce
-      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
+      applications, profiles) from feature-conditional templates. Runs at step 28 of
+      prepare_rlm_org, after all feature provisioning is complete, ensuring all
+      referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation.
     steps:
       1:
         task: assemble_and_deploy_ux
