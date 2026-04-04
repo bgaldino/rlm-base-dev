@@ -13,8 +13,35 @@ orgs:
     beta:
       config_file: orgs/beta.json
       days: 30
+    dev:
+      config_file: orgs/dev.json
+      days: 30
+    dev-r1:
+      config_file: orgs/dev-r1.json
+      days: 30
     dev-sb0:
       config_file: orgs/dev-sb0.json
+      days: 30
+    dev_preview:
+      config_file: orgs/dev_preview.json
+      days: 30
+    dev_previous:
+      config_file: orgs/dev_previous.json
+      days: 30
+    dev_enhanced:
+      config_file: orgs/dev-enhanced.json
+      days: 30
+    dev_datacloud:
+      config_file: orgs/dev-datacloud.json
+      days: 30
+    ent:
+      config_file: orgs/ent.json
+      days: 30
+    ent-r1:
+      config_file: orgs/ent-r1.json
+      days: 30
+    ent-sb0:
+      config_file: orgs/ent-sb0.json
       days: 30
     test-sb0:
       config_file: orgs/test-sb0.json
@@ -45,21 +72,6 @@ orgs:
       days: 30
     tfid-enable:
       config_file: orgs/tfid-enable.json
-      days: 30
-    dev_preview:
-      config_file: orgs/dev_preview.json
-      days: 30
-    dev_previous:
-      config_file: orgs/dev_previous.json
-      days: 30
-    dev_datacloud:
-      config_file: orgs/dev_datacloud.json
-      days: 30
-    dev:
-      config_file: orgs/dev.json
-      days: 30
-    dev_enhanced:
-      config_file: orgs/dev-enhanced.json
       days: 30
 
 # Project configuration settings
