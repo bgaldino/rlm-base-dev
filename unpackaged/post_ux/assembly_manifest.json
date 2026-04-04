@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-04-04T03:46:16.576392Z",
+  "assembled_at": "2026-04-04T16:00:02.585470Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -247,27 +247,27 @@
         {
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <name>detailTabContent"
+          "description": "insert XML after <name>detailTabContent</name>"
         },
         {
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <identifier>detailTab"
+          "description": "insert XML after <identifier>detailTab</identifier>"
         },
         {
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <value>BrowseCatalog"
+          "description": "insert XML after <value>BrowseCatalog</value>"
         },
         {
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <identifier>RecordFulfillmentPlanIdField"
+          "description": "insert XML after <identifier>RecordFulfillmentPlanIdField</identifier>"
         },
         {
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <identifier>RecordLegalEntityIdField"
+          "description": "insert XML after <identifier>RecordLegalEntityIdField</identifier>"
         }
       ]
     },

@@ -745,7 +745,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path: Path,
         features: Dict[str, bool],
         filter_name: Optional[str] = None,
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
         base_dir = templates_path / "flexipages" / "base"
         patches_dir = templates_path / "flexipages" / "patches"
         standalone_dir = templates_path / "flexipages" / "standalone"
@@ -753,7 +753,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         if not base_dir.exists():
             self.logger.warning(f"Flexipage base directory not found: {base_dir}")
-            return []
+            return [], []
 
         # Build a map of page filename → authoritative source file.
         # Feature directories are applied in deploy-order priority (last wins).
@@ -793,7 +793,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     f"Flexipage '{filter_name}' not found in templates "
                     f"(base or standalone directories)"
                 )
-                return []
+                return [], []
             page_sources = {filter_name: page_sources[filter_name]}
 
         # 3. For each resolved source, apply YAML patches and write to output
