@@ -209,13 +209,11 @@
     </platformActionList>
     <relatedLists>
         <fields>Name</fields>
-        <fields>FulfillmentStepDefinition</fields>
         <fields>DependencyScope</fields>
         <relatedList>DependsOnStepDefinitions</relatedList>
     </relatedLists>
     <relatedLists>
         <fields>Name</fields>
-        <fields>DependsOnStepDefinition</fields>
         <fields>DependencyScope</fields>
         <relatedList>DependentStepDefinitions</relatedList>
     </relatedLists>
