@@ -572,7 +572,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         "metadata_type": {
             "description": (
                 "Which metadata type(s) to assemble. One of: all, flexipages, "
-                "layouts, applications, appmenus, profiles, objects. "
+                "layouts, applications, profiles, objects. "
                 "Defaults to 'all'. 'objects' covers compactLayouts and listViews."
             ),
             "required": False,

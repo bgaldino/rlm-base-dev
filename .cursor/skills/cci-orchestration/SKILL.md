@@ -315,7 +315,7 @@ classes. They fall into these categories:
 | SFDMU data ops | `LoadSFDMUData`, `ExtractSFDMUData`, `DeleteSFDMUData`, `TestSFDMUIdempotency` | `SFDXBaseTask` |
 | REST/Connect API | `RefreshDecisionTable`, `ExtendStandardContext`, `ManageContextDefinition`, `ManageDecisionTables`, `ManageExpressionSets`, `ManageFlows`, `ManageTransactionProcessingTypes` | `SFDXBaseTask` / `BaseTask` |
 | Metadata deploy | `AssembleAndDeployUX`, `StampGitCommit`, `CleanupSettingsForDev`, `FixDocumentTemplateBinaries` | `SFDXBaseTask` |
-| UX drift/writeback | `RetrieveUXFromOrg`, `DiffUXTemplates`, `WriteBackUXTemplates` | `SFDXBaseTask` / `BaseTask` |
+| UX drift/writeback | `RetrieveUXFromOrg`, `DiffUXTemplates`, `WriteBackUXTemplates` | `BaseSalesforceTask` / `BaseTask` |
 | Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings` | `BaseTask` |
 | Local-only (no org) | `ValidateSetup` | `BaseTask` |
 | Community/PRM | `PatchNetworkEmailForDeploy`, `RevertNetworkEmailAfterDeploy`, `PatchPaymentsSiteForDeploy`, `RevertPaymentsSiteAfterDeploy` | varies |
