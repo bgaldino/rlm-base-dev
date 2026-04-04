@@ -18,7 +18,7 @@ import re
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 try:
     from cumulusci.core.tasks import BaseTask

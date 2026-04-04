@@ -136,7 +136,6 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
 
         # Full retrieve: clear existing files to prevent stale leftovers
         if not filter_name:
-            import shutil
             for old_file in dest_dir.glob("*.flexipage-meta.xml"):
                 old_file.unlink()
 
