@@ -29,7 +29,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 import xml.etree.ElementTree as ET
 
 try:
@@ -745,7 +745,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path: Path,
         features: Dict[str, bool],
         filter_name: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
         base_dir = templates_path / "flexipages" / "base"
         patches_dir = templates_path / "flexipages" / "patches"
         standalone_dir = templates_path / "flexipages" / "standalone"

@@ -1,7 +1,7 @@
 {
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
-  "edition": "enterprise",
+  "edition": "developer",
   "instance": "USA794",
   "features": [
     "B2BCommerce",
@@ -22,7 +22,6 @@
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
     "RevenueIntelligence",
-    "SalesCloudEinstein",
     "ServiceCloud",
     "UsageManagement",
     "UnifiedCatalog"
