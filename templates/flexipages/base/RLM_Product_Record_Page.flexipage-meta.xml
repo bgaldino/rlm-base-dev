@@ -148,6 +148,16 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
+                <fieldItem>Record.BasedOnId</fieldItem>
+                <identifier>RecordBasedOnIdField2</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
                 <fieldItem>Record.StockKeepingUnit</fieldItem>
                 <identifier>RecordStockKeepingUnitField</identifier>
             </fieldInstance>

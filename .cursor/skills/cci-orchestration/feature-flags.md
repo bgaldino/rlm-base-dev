@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**35 feature flags**, **77 configuration values**, **29 YAML anchors** under `project.custom`.
+**37 feature flags**, **77 configuration values**, **29 YAML anchors** under `project.custom`.
 
 ---
 
@@ -32,6 +32,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `einstein` | `True` | 2 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
+| `pde` | `False` | — |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
@@ -46,6 +47,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `refresh` | `False` | 11 flow step(s) |
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
+| `trial` | `False` | — |
 | `tso` | `False` | 14 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 

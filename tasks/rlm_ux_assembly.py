@@ -11,7 +11,6 @@ Supported metadata types:
                   add_facet_field, add_component, raw insert_after_xml)
   layouts      — copy base + conditional overrides (billing, constraints)
   applications — copy from versioned templates based on active features
-  appmenus     — conditional copy (tso feature gates AppSwitcher)
   profiles     — strip-and-build: base grants + feature layout patches
 
 Usage examples:
@@ -25,6 +24,7 @@ Usage examples:
 import datetime
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -63,14 +63,13 @@ SUFFIX_TO_TYPE: Dict[str, str] = {
     ".flexipage-meta.xml": "flexipages",
     ".layout-meta.xml": "layouts",
     ".app-meta.xml": "applications",
-    ".appMenu-meta.xml": "appmenus",
     ".profile-meta.xml": "profiles",
     ".compactLayout-meta.xml": "objects",
     ".listView-meta.xml": "objects",
     ".object-meta.xml": "objects",
 }
 
-VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "appmenus", "profiles", "objects"}
+VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "profiles", "objects"}
 
 # Register default namespace so ElementTree serializes without ns0: prefix
 ET.register_namespace("", SF_NS)
@@ -89,13 +88,30 @@ def _write_xml(root: ET.Element, dest: Path) -> None:
     ET.indent(root, space="    ")
     tree = ET.ElementTree(root)
     tree.write(str(dest), encoding="unicode", xml_declaration=True)
-    # ElementTree writes encoding="us-ascii" in the declaration when using
-    # encoding="unicode". Fix it to UTF-8 to match Salesforce convention.
+    # ElementTree uses single quotes and writes encoding="us-ascii" in the
+    # declaration when using encoding="unicode". Fix both to match Salesforce
+    # convention: double quotes, UTF-8, and trailing newline.
     text = dest.read_text(encoding="utf-8")
-    if "encoding='us-ascii'" in text:
-        text = text.replace("encoding='us-ascii'", 'encoding="UTF-8"')
-    elif "encoding='utf-8'" in text:
-        text = text.replace("encoding='utf-8'", 'encoding="UTF-8"')
+    # Normalize the XML declaration to Salesforce convention (double quotes).
+    # ET may produce: version='1.0', encoding='us-ascii'|'utf-8'|'UTF-8'
+    text = text.replace("<?xml version='1.0'", '<?xml version="1.0"')
+    for sq_enc in ("encoding='us-ascii'", "encoding='utf-8'", "encoding='UTF-8'"):
+        if sq_enc in text:
+            text = text.replace(sq_enc, 'encoding="UTF-8"')
+            break
+    # Re-encode quotes as &quot; inside <value> elements containing escaped
+    # HTML (&lt;) or JSON ([{/{"}).  ET unescapes &quot; on parse since raw "
+    # is valid in XML text, but Salesforce metadata expects &quot; in these
+    # contexts (HTML attribute quotes, JSON property names/values).
+    def _requote_value(m):
+        content = m.group(2)
+        if "&lt;" in content or content.lstrip().startswith(("[{", '{"')):
+            content = content.replace('"', "&quot;")
+        return m.group(1) + content + m.group(3)
+
+    text = re.sub(r"(<value>)(.*?)(</value>)", _requote_value, text)
+    if not text.endswith("\n"):
+        text += "\n"
     dest.write_text(text, encoding="utf-8")
 
 
@@ -382,6 +398,43 @@ def _patch_add_component(
     return False
 
 
+def _patch_description(patch: Dict[str, Any]) -> str:
+    """Return a short human-readable description of a patch for manifests."""
+    ptype = patch.get("type", "")
+    if ptype == "insert_action":
+        actions = patch.get("actions", [])
+        return f"insert actions: {', '.join(actions)}"
+    if ptype == "remove_action":
+        return f"remove action: {patch.get('action', '?')}"
+    if ptype == "add_display_field":
+        return f"add display field: {patch.get('field', '?')}"
+    if ptype == "add_facet_field":
+        fields = patch.get("fields", [])
+        facet = patch.get("facet", "")
+        return f"add fields to {facet}: {', '.join(fields)}"
+    if ptype == "add_component":
+        return f"add component: {patch.get('component', '?')}"
+    if ptype == "insert_after_xml":
+        anchor = patch.get("anchor", "")
+        # Extract a recognizable identifier from the anchor
+        for tag in ("identifier", "name", "value"):
+            m = re.search(rf"<{tag}>(.*?)</{tag}>", anchor)
+            if m:
+                return f"insert XML after <{tag}>{m.group(1)}</{tag}>"
+        return "insert XML block"
+    return ptype
+
+
+def _profile_patch_description(patch: Dict[str, Any]) -> str:
+    """Return a short description of a profile patch for manifests."""
+    ptype = patch.get("type", "")
+    if ptype == "add_layout_assignment":
+        return f"layout: {patch.get('layout', '?')}"
+    if ptype == "add_app_visibility":
+        return f"app: {patch.get('application', '?')}"
+    return ptype
+
+
 def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None) -> None:
     """Apply a single patch operation to a flexipage XML root element."""
     ptype = patch.get("type")
@@ -500,26 +553,11 @@ class AssembleAndDeployUX(SFDXBaseTask):
     """
 
     keychain_class = BaseProjectKeychain
-    APPMENU_FEATURE_REQUIREMENTS: Dict[str, Set[str]] = {
-        "RLM_Revenue_Cloud": set(),
-        "standard__BillingConsole": {"billing"},
-        "standard__IndustriesEpc": {"qb"},
-        "standard__PriceManagement": {"qb"},
-        "standard__IndustriesDfo": {"dro"},
-        "standard__RatingManagement": {"rating"},
-        "standard__UsageManagement": {"rating"},
-        "standard__Approvals": {"qb"},
-        "standard__SalesforceContracts": {"clm"},
-        "standard__PaymentsManagement": {"payments"},
-        "standard__CollectionConsole": {"collections"},
-        "standard__OperationsConsole": {"qb"},
-    }
-
     task_options: Dict[str, Dict[str, Any]] = {
         "metadata_type": {
             "description": (
                 "Which metadata type(s) to assemble. One of: all, flexipages, "
-                "layouts, applications, appmenus, profiles, objects. "
+                "layouts, applications, profiles, objects. "
                 "Defaults to 'all'. 'objects' covers compactLayouts and listViews."
             ),
             "required": False,
@@ -602,7 +640,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
             "flexipages": output_path / "flexipages",
             "layouts":    output_path / "layouts",
             "applications": output_path / "applications",
-            "appmenus":   output_path / "appMenus",
             "profiles":   output_path / "profiles",
             "objects":    output_path / "objects",
         }
@@ -648,11 +685,13 @@ class AssembleAndDeployUX(SFDXBaseTask):
             )
             manifest["assembled"].extend(items)
 
-        if should_run("appmenus"):
-            items = self._assemble_appmenus(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
+        # AppSwitcher (appmenus) is no longer assembled — app launcher
+        # ordering is handled dynamically by reorder_app_launcher.
+        # Clean up stale appMenus dir from previous assembler versions.
+        stale_appmenus = output_path / "appMenus"
+        if stale_appmenus.exists():
+            shutil.rmtree(stale_appmenus)
+            self.logger.info("Removed stale appMenus/ directory")
 
         if should_run("profiles"):
             items = self._assemble_profiles(
@@ -706,7 +745,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path: Path,
         features: Dict[str, bool],
         filter_name: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
         base_dir = templates_path / "flexipages" / "base"
         patches_dir = templates_path / "flexipages" / "patches"
         standalone_dir = templates_path / "flexipages" / "standalone"
@@ -714,7 +753,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         if not base_dir.exists():
             self.logger.warning(f"Flexipage base directory not found: {base_dir}")
-            return []
+            return [], []
 
         # Build a map of page filename → authoritative source file.
         # Feature directories are applied in deploy-order priority (last wins).
@@ -754,7 +793,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     f"Flexipage '{filter_name}' not found in templates "
                     f"(base or standalone directories)"
                 )
-                return []
+                return [], []
             page_sources = {filter_name: page_sources[filter_name]}
 
         # 3. For each resolved source, apply YAML patches and write to output
@@ -810,11 +849,18 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     else:
                         _apply_flexipage_patch(root, patch, logger=self.logger)
                     patches_applied.append(
-                        {"feature": patch_feature, "patch_type": patch.get("type")}
+                        {"feature": patch_feature, "patch_type": patch.get("type"),
+                         "description": _patch_description(patch)}
                     )
 
             dest = out_dir / fname
-            _write_xml(root, dest)
+            if patches_applied:
+                _write_xml(root, dest)
+            else:
+                # No patches — copy source directly to preserve original
+                # encoding (avoids ET entity re-encoding differences).
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(str(src_file), str(dest))
             assembled.append(
                 {
                     "type": "flexipage",
@@ -1089,200 +1135,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
         return assembled
 
     # ------------------------------------------------------------------
-    # AppMenus assembly
-    # ------------------------------------------------------------------
-
-    def _assemble_appmenus(
-        self,
-        templates_path: Path,
-        output_path: Path,
-        features: Dict[str, bool],
-        filter_name: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
-        assembled = []
-        src_file = templates_path / "appMenus" / "base" / "AppSwitcher.appMenu-meta.xml"
-        fname = src_file.name
-        if filter_name and fname != filter_name:
-            return assembled
-        if not src_file.exists():
-            self.logger.warning(f"AppSwitcher template not found: {src_file}")
-            return assembled
-
-        out_dir = output_path / "appMenus"
-        dest = out_dir / fname
-        dest.parent.mkdir(parents=True, exist_ok=True)
-
-        # Template provides the feature-gated priority order for our apps. The org's
-        # full AppSwitcher provides complete membership. The assembled output is the
-        # org's full list reordered so our priority apps come first. Salesforce
-        # requires ALL registered apps to be present in an AppSwitcher deploy when
-        # the org already has a populated AppMenu — deploying a subset fails.
-        # If the org retrieval fails we fall back to just the priority template items
-        # (priority-only fallback — only safe on fresh orgs before all apps are installed).
-        priority_names = [n for n, _ in self._get_feature_gated_template_items(src_file, features)]
-
-        username = getattr(self.org_config, "username", None)
-        if username:
-            org_items = self._retrieve_org_appswitcher_items(username)
-        else:
-            org_items = []
-
-        if org_items:
-            # Ensure our primary app is first even if not yet in the org's menu.
-            rlm_key = ("RLM_Revenue_Cloud", "CustomApplication")
-            if rlm_key not in org_items:
-                org_items = [rlm_key] + org_items
-
-            # Reorder: priority apps first (template order), remaining apps follow.
-            priority_set = set(priority_names)
-            ordered: List[Tuple[str, str]] = []
-            for pname in priority_names:
-                ordered.extend((n, t) for n, t in org_items if n == pname)
-            remainder = [(n, t) for n, t in org_items if n not in priority_set]
-            final_items = ordered + remainder
-            source_tier = "org + template priority ordering"
-        else:
-            # Fallback: deploy only the priority template items. This works on
-            # fresh orgs (before all apps are installed) but will fail on orgs
-            # that already have a full AppMenu populated.
-            self.logger.warning(
-                "Could not retrieve org AppSwitcher; falling back to template priority items only. "
-                "This may fail if the org already has a populated AppMenu."
-            )
-            priority_type_map = {
-                n: t for n, t in self._get_feature_gated_template_items(src_file, features)
-            }
-            final_items = [(n, priority_type_map[n]) for n in priority_names if n in priority_type_map]
-            source_tier = "template fallback"
-
-        if not final_items:
-            self.logger.warning("AppSwitcher: no items to assemble; skipping.")
-            return assembled
-
-        root = _make_elem("AppMenu")
-        for item_name, item_type in final_items:
-            item = _sub_elem(root, "appMenuItems")
-            _sub_elem(item, "name", item_name)
-            _sub_elem(item, "type", item_type)
-
-        _write_xml(root, dest)
-        assembled.append(
-            {
-                "type": "appMenu",
-                "name": fname,
-                "dest": str(dest.relative_to(output_path.parent.parent)),
-                "source_tier": source_tier,
-                "items_total": len(final_items),
-                "priority_applied": priority_names,
-            }
-        )
-        self.logger.info(f"  [appMenu] {fname} ({len(final_items)} items)")
-        return assembled
-
-    def _get_feature_gated_template_items(
-        self,
-        src_file: Path,
-        features: Dict[str, bool],
-    ) -> List[Tuple[str, str]]:
-        """Parse template, gate each item by APPMENU_FEATURE_REQUIREMENTS, return ordered (name, type) list."""
-        template_root = ET.parse(str(src_file)).getroot()
-        items: List[Tuple[str, str]] = []
-        for item in _findall_elem(template_root, "appMenuItems"):
-            name_el = _find_elem(item, "name")
-            type_el = _find_elem(item, "type")
-            if name_el is None or type_el is None or not name_el.text or not type_el.text:
-                continue
-            name = name_el.text.strip()
-            itype = type_el.text.strip()
-            required = self.APPMENU_FEATURE_REQUIREMENTS.get(name, set())
-            if all(features.get(flag, False) for flag in required):
-                items.append((name, itype))
-        return items
-
-    def _retrieve_org_appswitcher_items(self, username: str) -> List[Tuple[str, str]]:
-        """Retrieve AppSwitcher metadata from org and return exact ordered items."""
-        repo_root = Path(self.project_config.repo_root)
-        expected_path = repo_root / "force-app" / "main" / "default" / "appMenus" / "AppSwitcher.appMenu-meta.xml"
-        existed_before = expected_path.exists()
-        cmd = [
-            "sf",
-            "project",
-            "retrieve",
-            "start",
-            "--metadata",
-            "AppMenu:AppSwitcher",
-            "--target-org",
-            username,
-            "--json",
-        ]
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=600,
-            )
-        except Exception as exc:
-            self.logger.warning(f"Unable to retrieve org AppSwitcher metadata: {exc}")
-            return []
-
-        if result.returncode != 0:
-            return []
-
-        try:
-            payload = json.loads(result.stdout or "{}")
-        except json.JSONDecodeError:
-            return []
-
-        files = payload.get("result", {}).get("files", []) if isinstance(payload, dict) else []
-        if not isinstance(files, list):
-            return []
-
-        appmenu_path: Optional[str] = None
-        for f in files:
-            if not isinstance(f, dict):
-                continue
-            if f.get("type") == "AppMenu" and f.get("fullName") == "AppSwitcher":
-                appmenu_path = f.get("filePath")
-                break
-        if not appmenu_path:
-            return []
-
-        p = Path(appmenu_path)
-        if not p.exists():
-            return []
-
-        try:
-            root = ET.parse(str(p)).getroot()
-        except Exception:
-            return []
-
-        items: List[Tuple[str, str]] = []
-        for item in _findall_elem(root, "appMenuItems"):
-            name_el = _find_elem(item, "name")
-            type_el = _find_elem(item, "type")
-            if (
-                name_el is None
-                or type_el is None
-                or not name_el.text
-                or not type_el.text
-            ):
-                continue
-            items.append((name_el.text.strip(), type_el.text.strip()))
-        # Discard transient retrieved file so it does not linger under force-app.
-        if not existed_before and p.exists():
-            try:
-                p.unlink()
-                parent = p.parent
-                if parent.exists() and not any(parent.iterdir()):
-                    parent.rmdir()
-            except Exception:
-                # Non-fatal cleanup failure; continue with parsed items.
-                pass
-        return items
-
-    # ------------------------------------------------------------------
     # Profiles assembly
     # ------------------------------------------------------------------
 
@@ -1338,7 +1190,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 for patch in patch_data.get("patches", []):
                     self._apply_profile_patch(root, patch)
                     patches_applied.append(
-                        {"feature": feature_dir, "patch_type": patch.get("type")}
+                        {"feature": feature_dir, "patch_type": patch.get("type"),
+                         "description": _profile_patch_description(patch)}
                     )
 
             dest = out_dir / fname
@@ -1478,18 +1331,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if not username:
             raise TaskOptionsError(
                 "Org config has no username. Cannot deploy without a target org."
-            )
-
-        # Always exclude AppSwitcher from the Metadata API deploy — it fails on any
-        # org whose AppMenu contains managed ConnectedApp or Network entries (which
-        # Salesforce cannot validate in a customer deploy). App Launcher ordering is
-        # handled entirely by the reorder_app_launcher Robot task (step 2 of prepare_ux).
-        appmenu_file = output_path / "appMenus" / "AppSwitcher.appMenu-meta.xml"
-        if appmenu_file.exists():
-            appmenu_file.unlink()
-            self.logger.info(
-                "AppSwitcher excluded from Metadata API deploy — ordering will be "
-                "applied by reorder_app_launcher (step 2 of prepare_ux)."
             )
 
         cmd = [

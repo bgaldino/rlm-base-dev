@@ -1178,7 +1178,7 @@ tasks:
     group: UX Personalization
     description: >
       Assembles feature-conditional UX metadata (flexipages, layouts, applications,
-      app menus, profiles) from base templates and YAML patch files in templates/.
+      profiles) from base templates and YAML patch files in templates/.
       Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
@@ -1199,6 +1199,34 @@ tasks:
     options:
       suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
       outputdir: robot/rlm-base/results
+
+  retrieve_ux_from_org:
+    group: UX Personalization
+    description: >
+      Retrieves live UX metadata (flexipages) from the target org into
+      unpackaged/post_ux/, replacing the assembled output with the org's current
+      state. Use before diff_ux_templates to capture drift between the org and
+      the assembler templates. Scope to a single page with the metadata_name option.
+    class_path: tasks.rlm_retrieve_ux.RetrieveUXFromOrg
+
+  diff_ux_templates:
+    group: UX Personalization
+    description: >
+      Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against
+      what the assembler would produce from current templates/. Reports added,
+      removed, modified, and repositioned flexiPageRegions per page. Writes a
+      drift_report.json to unpackaged/post_ux/. Does not modify any files.
+    class_path: tasks.rlm_diff_ux.DiffUXTemplates
+
+  writeback_ux_templates:
+    group: UX Personalization
+    description: >
+      Reverse-applies active feature patches against org-retrieved flexipages
+      and writes the result as updated base templates. Computes
+      new_base = org_state - patches so the assembler reproduces org state
+      without double-applying non-idempotent patches. Defaults to dry_run mode.
+      Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
+    class_path: tasks.rlm_writeback_ux.WriteBackUXTemplates
 
   deploy_post_collections:
     group: Revenue Lifecycle Management
@@ -3066,11 +3094,10 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, app menus, profiles) from feature-conditional templates. Runs at
-      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
-      all referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation — required on Trialforce
-      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
+      applications, profiles) from feature-conditional templates. Runs at step 28 of
+      prepare_rlm_org, after all feature provisioning is complete, ensuring all
+      referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3078,6 +3105,39 @@ flows:
       2:
         task: reorder_app_launcher
         when: project_config.project__custom__ux
+
+  capture_ux_drift:
+    group: UX Personalization
+    description: >
+      Retrieves live flexipages from the target org into unpackaged/post_ux/, then
+      diffs them against what the assembler would produce from current templates/.
+      Reports added, removed, modified, and repositioned flexiPageRegions and writes
+      drift_report.json. Does not modify templates/. After reviewing the report,
+      edit templates/ manually then run assemble_and_deploy_ux to deploy.
+    steps:
+      1:
+        task: retrieve_ux_from_org
+      2:
+        task: diff_ux_templates
+
+  apply_ux_drift:
+    group: UX Personalization
+    description: >
+      Writes back org-retrieved flexipages into base templates by reverse-applying
+      active feature patches (new_base = org_state - patches), then re-assembles
+      and diffs to verify zero drift. Run capture_ux_drift first to review drift,
+      then run this flow to update templates/ automatically.
+    steps:
+      1:
+        task: writeback_ux_templates
+        options:
+          dry_run: false
+      2:
+        task: assemble_and_deploy_ux
+        options:
+          deploy: false
+      3:
+        task: diff_ux_templates
 
   prepare_personas:
     group: Revenue Lifecycle Management

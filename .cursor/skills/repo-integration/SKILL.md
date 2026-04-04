@@ -46,6 +46,26 @@ capabilities to the rlm-base-dev repository.
 | Context definition plan | `datasets/context_plans/<Name>/manifest.json` |
 | Constraint model data | `datasets/constraints/qb/<Name>/` |
 
+## Drift Capture and Writeback
+
+When UX changes are made directly in the org, use the drift capture workflow to
+update templates:
+
+```bash
+# 1. Capture drift (retrieve org state + diff against templates)
+cci flow run capture_ux_drift --org dev-sb0
+
+# 2. Review drift_report.json, then apply to templates
+cci flow run apply_ux_drift --org dev-sb0
+```
+
+The writeback task computes `new_base = org_state - patches` and also
+auto-updates YAML patch files. Profile writeback requires manual oversight.
+
+For full details, see `docs/features/dynamic-ux-assembly.md`.
+
+---
+
 ## How Do I Configure Something?
 
 | I need to... | Mechanism | Example |

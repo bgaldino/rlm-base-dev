@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>RLM_Revenue_Cloud</application>
@@ -53,7 +53,16 @@
         <layout>Contract-RLM Contract Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
+        <layout>FulfillmentStepDefinition-RLM Fulfillment Step Definition Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
         <layout>Opportunity-RLM Opportunity Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Order-RLM Order Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>OrderItem-RLM Order Product Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
         <layout>PricebookEntry-RLM Price Book Entry</layout>
@@ -71,10 +80,7 @@
         <layout>QuoteLineItem-RLM Quote Line Item Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
-        <layout>Order-RLM Order Layout</layout>
-    </layoutAssignments>
-    <layoutAssignments>
-        <layout>OrderItem-RLM Order Product Layout</layout>
+        <layout>RLM_Build_Info__mdt-RLM Build Info Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
         <layout>GeneralLedgerAccount-RLM General Ledger Account Layout</layout>
