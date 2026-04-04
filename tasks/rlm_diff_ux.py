@@ -90,6 +90,11 @@ class DiffUXTemplates(BaseTask):
             raise TaskOptionsError(
                 f"metadata_type must be 'flexipages', got: '{mtype}'"
             )
+        mname = self.options.get("metadata_name")
+        if mname and not mname.endswith(".flexipage-meta.xml"):
+            raise TaskOptionsError(
+                f"metadata_name must end in '.flexipage-meta.xml', got: '{mname}'"
+            )
 
     def _run_task(self):
         repo_root = Path(self.project_config.repo_root)
