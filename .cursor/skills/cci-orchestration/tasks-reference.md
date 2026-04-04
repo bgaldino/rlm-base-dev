@@ -2134,7 +2134,7 @@
 
 ### `assemble_and_deploy_ux`
 
-**Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, app menus, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
+**Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
 
 **Class:** `tasks.rlm_ux_assembly.AssembleAndDeployUX`
 
