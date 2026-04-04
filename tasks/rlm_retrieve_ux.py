@@ -169,7 +169,7 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
 
         # Step 1: Start the retrieve
         members_xml = "\n".join(
-            f"            <members>{m}</members>" for m in members
+            f"            <md:members>{m}</md:members>" for m in members
         )
         retrieve_body = f"""<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
@@ -185,8 +185,8 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
         <md:apiVersion>{api_version}</md:apiVersion>
         <md:unpackaged>
           <md:types>
-            <md:name>{metadata_type}</md:name>
 {members_xml}
+            <md:name>{metadata_type}</md:name>
           </md:types>
         </md:unpackaged>
       </md:retrieveRequest>
