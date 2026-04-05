@@ -14,7 +14,18 @@ except ImportError:
 
 class AssignPermissionSetGroupsTolerant(AssignPermissionSetGroups):
     """Assign Permission Set Groups, but continue on warnings about unavailable permissions."""
-    
+
+    task_options = {
+        **AssignPermissionSetGroups.task_options,
+        # Override the inherited `user_alias` option to add explicit type and required keys,
+        # suppressing the CCI "Unknown option type <class 'dict'>" deprecation warning.
+        "user_alias": {
+            "description": "Alias of target user (if not the current running user, the default).",
+            "required": False,
+            "type": str,
+        },
+    }
+
     def _run_task(self):
         """Override to handle warnings gracefully."""
         try:
