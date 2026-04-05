@@ -1102,8 +1102,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         # --- Conditional standalone apps ---
         conditional_apps = []
-        if features.get("billing"):
-            # billing_ui=true wins over billing=true — provides the Billing Account Record Page override
+        if features.get("billing") or features.get("billing_ui"):
+            # billing_ui=true wins over billing=true — provides the Billing Account Record Page override.
+            # Guard covers either flag so billing_ui can be enabled independently of billing.
             billing_subdir = "billing_ui" if features.get("billing_ui") else "billing"
             conditional_apps.append(
                 (app_base / "conditional" / billing_subdir / "standard__BillingConsole.app-meta.xml", billing_subdir)

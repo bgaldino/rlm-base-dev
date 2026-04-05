@@ -2520,7 +2520,8 @@ flows:
         task: assign_permission_set_licenses
         when: project_config.project__custom__analytics
         options:
-          api_names: EinsteinAnalyticsPlusPsl
+          api_names:
+            - EinsteinAnalyticsPlusPsl
       4:
         task: assign_permission_set_licenses
         when: project_config.project__custom__tso
