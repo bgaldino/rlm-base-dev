@@ -98,7 +98,7 @@ project:
     tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
     pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
     trial: false              # Public Trial org (EE, no qbrix or custom UX)
-    dev_ed: false             # Developer Edition org
+    dev_ed: false             # Developer Edition org — set true for non-standard dev orgs to suppress Enterprise-only PS assignments
     refresh: false            # Data refresh mode — skips insert steps during re-runs
 
     # ── Core Revenue Cloud Features ────────────────────────────────────────────
@@ -2444,55 +2444,53 @@ flows:
       6:
         flow: prepare_price_adjustment_schedules
       7:
-        flow: prepare_payments
-      8:
         flow: prepare_quantumbit
-      9:
+      8:
         flow: prepare_product_data
-      10:
+      9:
         flow: prepare_pricing_data
-      11:
+      10:
         flow: prepare_docgen
-      12:
+      11:
         flow: prepare_dro
-      13:
+      12:
         flow: prepare_tax
-      14:
+      13:
         flow: prepare_billing
-      15:
+      14:
         flow: prepare_analytics
-      16:
+      15:
         flow: prepare_clm
-      17:
+      16:
         flow: prepare_rating
-      18:
+      17:
         task: activate_and_deploy_expression_sets
-      19:
+      18:
         flow: prepare_tso
-      20:
+      19:
         flow: prepare_procedureplans
-      21:
+      20:
         flow: prepare_prm
-      22:
+      21:
         flow: prepare_agents
-      23:
+      22:
         flow: prepare_constraints
-      24:
+      23:
         flow: prepare_guidedselling
-      25:
+      24:
         flow: prepare_revenue_settings
-      26:
+      25:
         flow: prepare_pricing_discovery
-      27:
+      26:
         flow: prepare_ramp_builder
-      28:
+      27:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      29:
+      28:
         flow: prepare_scratch
-      30:
+      29:
         flow: refresh_all_decision_tables
-      31:
+      30:
         flow: stamp_git_commit
 
   prepare_core:
@@ -2588,7 +2586,7 @@ flows:
           api_names: *rlm_ai_ps_api_names
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__einstein and not project_config.project__custom__dev_ed
+        when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])
         options:
           api_names: *rlm_ai_ps_enterprise_api_names
       4:

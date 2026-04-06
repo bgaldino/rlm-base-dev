@@ -809,33 +809,32 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 4 | `prepare_payments` | Always |
 | 5 | `deploy_full` | Always |
 | 6 | `prepare_price_adjustment_schedules` | Always |
-| 7 | `prepare_payments` | Always |
-| 8 | `prepare_quantumbit` | Always |
-| 9 | `prepare_product_data` | Always |
-| 10 | `prepare_pricing_data` | Always |
-| 11 | `prepare_docgen` | Always |
-| 12 | `prepare_dro` | Always |
-| 13 | `prepare_tax` | Always |
-| 14 | `prepare_billing` | Always |
-| 15 | `prepare_analytics` | Always |
-| 16 | `prepare_clm` | Always |
-| 17 | `prepare_rating` | Always |
-| 18 | `activate_and_deploy_expression_sets` | Always |
-| 19 | `prepare_tso` | Always |
-| 20 | `prepare_procedureplans` | Always |
-| 21 | `prepare_prm` | Always |
-| 22 | `prepare_agents` | Always |
-| 23 | `prepare_constraints` | Always |
-| 24 | `prepare_guidedselling` | Always |
-| 25 | `prepare_revenue_settings` | Always |
-| 26 | `prepare_pricing_discovery` | Always |
-| 27 | `prepare_ramp_builder` | Always |
-| 28 | `prepare_ux` | `ux` |
-| 29 | `prepare_scratch` | Always |
-| 30 | `refresh_all_decision_tables` | Always |
-| 31 | `stamp_git_commit` | Always |
+| 7 | `prepare_quantumbit` | Always |
+| 8 | `prepare_product_data` | Always |
+| 9 | `prepare_pricing_data` | Always |
+| 10 | `prepare_docgen` | Always |
+| 11 | `prepare_dro` | Always |
+| 12 | `prepare_tax` | Always |
+| 13 | `prepare_billing` | Always |
+| 14 | `prepare_analytics` | Always |
+| 15 | `prepare_clm` | Always |
+| 16 | `prepare_rating` | Always |
+| 17 | `activate_and_deploy_expression_sets` | Always |
+| 18 | `prepare_tso` | Always |
+| 19 | `prepare_procedureplans` | Always |
+| 20 | `prepare_prm` | Always |
+| 21 | `prepare_agents` | Always |
+| 22 | `prepare_constraints` | Always |
+| 23 | `prepare_guidedselling` | Always |
+| 24 | `prepare_revenue_settings` | Always |
+| 25 | `prepare_pricing_discovery` | Always |
+| 26 | `prepare_ramp_builder` | Always |
+| 27 | `prepare_ux` | `ux` |
+| 28 | `prepare_scratch` | Always |
+| 29 | `refresh_all_decision_tables` | Always |
+| 30 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 28 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, app menus, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 30 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 31 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 27 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, app menus, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 29 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 30 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
