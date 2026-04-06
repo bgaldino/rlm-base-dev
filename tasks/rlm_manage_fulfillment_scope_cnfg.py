@@ -174,6 +174,10 @@ class ManageFulfillmentScopeCnfg(BaseTask):
             next_url = f"{instance_url}{body['nextRecordsUrl']}"
             resp = requests.get(next_url, headers=self._headers(access_token))
             if not resp.ok:
+                self.logger.warning(
+                    f"Pagination request failed: {resp.status_code} — {resp.text}; "
+                    f"returning {len(records)} records fetched so far"
+                )
                 break
             body = resp.json()
             records.extend(body.get("records", []))
@@ -282,7 +286,7 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 access_token,
                 instance_url,
                 api_version,
-                f"SELECT Id FROM {OBJECT_NAME} WHERE {key_field} = '{key_value}'",
+                f"SELECT Id FROM {OBJECT_NAME} WHERE {key_field} = '{key_value.replace(chr(39), chr(92) + chr(39))}'",
             )
 
             if existing:

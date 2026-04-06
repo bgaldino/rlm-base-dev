@@ -454,7 +454,7 @@ class ExportBRE(BaseSalesforceTask):
             "RuleLibraryDefinitionId", "RuleLibraryDefinition.DeveloperName",
             "Status", "UsageType",
         ]
-        rl_where = f"WHERE ApiName = '{api_name}'" if api_name else ""
+        rl_where = f"WHERE ApiName = '{api_name.replace(chr(39), chr(92) + chr(39))}'" if api_name else ""
         rl_records = self._export_query(
             soql=f"SELECT {', '.join(rl_fields)} FROM RuleLibrary {rl_where} ORDER BY ApiName",
             fields=rl_fields,
