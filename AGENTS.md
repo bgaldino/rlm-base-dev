@@ -26,6 +26,7 @@ When a user asks to set up products for a customer demonstration:
      - `datasets/sfdmu/customer-template/en-US/customer-template-pcm`
      - `datasets/sfdmu/customer-template/en-US/customer-template-product-images`
      - `datasets/sfdmu/customer-template/en-US/customer-template-billing`
+     - optional Tier-1 usage (exploration): `customer-template-rating` + `customer-template-rates` — set `customer_demo_usage: true` in project custom or run `prepare_customer_demo_usage` after the catalog has `CD-USG-DATA` / `CD-DATA-THPT-BLNG`; requires org to already have UoM `GB` and class `DATAVOL`
    - model customer-specific PCM using `datasets/sfdmu/qb/en-US/qb-pcm` as the reference shape for advanced objects (attributes, classifications, bundles, related components, ramp/proration, qualifications)
   - before running import/deploy, validate that all `ProductSellingModel.Name` + `SellingModelType` values used in customer CSVs exist in the target org; adjust to org-native names if needed
   - default recurring offers to term-based models (for example `TermDefined` monthly/annual) so proration and cancel/replace/amend can be demonstrated; use evergreen only when the org lacks usable term models and call out that trade-off

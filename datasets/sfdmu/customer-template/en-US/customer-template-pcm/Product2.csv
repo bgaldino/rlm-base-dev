@@ -1,1 +1,3 @@
 StockKeepingUnit,Name,ProductCode,Family,Description,Type,IsActive
+CD-USG-DATA,Customer Demo Data Usage,CD-USG-DATA,Software,"Metered usage add-on for customer demos (e.g. data overage, API volume). Pair with customer-template-rating.",,true
+CD-DATA-THPT-BLNG,Customer Demo Data Throughput Billing,CD-DATA-THPT-BLNG,,"Usage definition product for CD-USG-DATA rating. Not intended for catalog merchandising.",,true

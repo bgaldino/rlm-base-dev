@@ -1,0 +1,2 @@
+$$Product.StockKeepingUnit$UsageResource.Code,EffectiveEndDate,EffectiveStartDate,Product.StockKeepingUnit,Status,IsOptional,TokenResource.Code,UsageResource.Code
+CD-USG-DATA;CD-UR-DATAXFR,,2024-01-01T20:00:00.000+0000,CD-USG-DATA,Draft,false,,CD-UR-DATAXFR

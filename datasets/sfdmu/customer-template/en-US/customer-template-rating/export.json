@@ -1,0 +1,49 @@
+{
+  "$comment_plan": "Tier-1 customer demo usage rating: one sellable SKU (CD-USG-DATA), one usage resource, one PUR. No PURP/PUG/tokens. PUR uses Insert without deleteOldData — run delete_customer_demo_rating_data before each load for idempotency.",
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
+  "objectSets": [
+    {
+      "name": "First Pass - Customer demo usage (Draft)",
+      "objects": [
+        {
+          "query": "SELECT Code, Name, Status, UsageAccumulationMethod, UsageAccumulationPeriod FROM UsageResourceBillingPolicy ORDER BY Code ASC",
+          "operation": "Upsert",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, UsageResourceBillingPolicyId, UsageResourceBillingPolicy.Code FROM UsageResource ORDER BY Code ASC",
+          "operation": "Upsert",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UsageResourceId, UsageResource.Code FROM ProductUsageResource ORDER BY Product.StockKeepingUnit ASC, UsageResource.Code ASC",
+          "operation": "Insert",
+          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Activate UnitOfMeasureClass and UsageResource",
+      "objects": [
+        {
+          "query": "SELECT Code, Status FROM UsageResource ORDER BY Code ASC",
+          "operation": "Update",
+          "externalId": "Code",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}
