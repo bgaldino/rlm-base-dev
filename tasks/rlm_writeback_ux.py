@@ -56,7 +56,7 @@ except ImportError:
 
 try:
     from tasks.rlm_ux_utils import resolve_flexipage_sources
-except ImportError as _tasks_utils_err:
+except ImportError:
     try:
         from rlm_ux_utils import resolve_flexipage_sources
     except ImportError as _root_utils_err:
