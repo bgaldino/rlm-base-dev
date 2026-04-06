@@ -1,7 +1,7 @@
-$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,DurationType,Name,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
-QB-API;TermDefined;Yearly,,PPRS-000000006,QB-API,Term Annual;TermDefined,Yearly,
-QB-API;TermDefined;Custom,,PPRS-000000007,QB-API,Term Annual;TermDefined,Custom,
-QB-GEN-AI-LIC;TermDefined;Yearly,,PPRS-000000008,QB-GEN-AI-LIC,Term Annual;TermDefined,Yearly,
-QB-GEN-AI-LIC;TermDefined;Custom,,PPRS-000000009,QB-GEN-AI-LIC,Term Annual;TermDefined,Custom,
-QB-SUPP-2000;TermDefined;Yearly,,PPRS-000000010,QB-SUPP-2000,Term Annual;TermDefined,Yearly,
-QB-DB-TOKEN;TermDefined;Yearly,,PPRS-000000011,QB-DB-TOKEN,Term Annual;TermDefined,Yearly,
+$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,DurationType,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
+QB-API;TermDefined;Yearly,,QB-API,Term Annual;TermDefined,Yearly,
+QB-API;TermDefined;Custom,,QB-API,Term Annual;TermDefined,Custom,
+QB-DB-TOKEN;TermDefined;Yearly,,QB-DB-TOKEN,Term Annual;TermDefined,Yearly,
+QB-GEN-AI-LIC;TermDefined;Yearly,,QB-GEN-AI-LIC,Term Annual;TermDefined,Yearly,
+QB-GEN-AI-LIC;TermDefined;Custom,,QB-GEN-AI-LIC,Term Annual;TermDefined,Custom,
+QB-SUPP-2000;TermDefined;Yearly,,QB-SUPP-2000,Term Annual;TermDefined,Yearly,

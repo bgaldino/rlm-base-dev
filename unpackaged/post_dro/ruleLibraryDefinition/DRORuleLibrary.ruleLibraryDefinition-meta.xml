@@ -1,0 +1,640 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RuleLibraryDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contextDefinition>SalesTransactionContext__stdctx</contextDefinition>
+    <contextRuleStatus>Draft</contextRuleStatus>
+    <label>DRORuleLibrary</label>
+    <rulesetDefinitions>
+        <apiName>DFO_13Ual000001CuSjEAK_RS</apiName>
+        <executionType>Sequence</executionType>
+        <label>DFO_13Ual000001CuSjEAK_RS</label>
+        <ruleDefinitions>
+            <apiName>DFO_13Ual000001CuSjEAK_RS_Rule_1</apiName>
+            <label>DFO_13Ual000001CuSjEAK_RS_Rule_1</label>
+            <rulePayload>{
+  &quot;id&quot; : null,
+  &quot;ruleVersionId&quot; : null,
+  &quot;name&quot; : &quot;DFO_13Ual000001CuSjEAK_RS_Rule_1&quot;,
+  &quot;description&quot; : null,
+  &quot;apiName&quot; : &quot;DFO_13Ual000001CuSjEAK_RS_Rule_1&quot;,
+  &quot;usageType&quot; : &quot;Dfo&quot;,
+  &quot;ruleLibraryApiName&quot; : &quot;DRORuleLibrary&quot;,
+  &quot;usageSubType&quot; : null,
+  &quot;startDate&quot; : 1775153681000,
+  &quot;endDate&quot; : null,
+  &quot;createdDate&quot; : 1775153681000,
+  &quot;ruleStatus&quot; : &quot;Active&quot;,
+  &quot;rulesetName&quot; : &quot;DFO_13Ual000001CuSjEAK_RS&quot;,
+  &quot;sequenceNumber&quot; : 1,
+  &quot;variables&quot; : [ {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+    &quot;type&quot; : &quot;Tag&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : &quot;SalesTransactionItemParent&quot;,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+    &quot;collection&quot; : true,
+    &quot;input&quot; : true,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;varMatchedId2Output&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;varMatchedId2Output&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;isExecuteStep&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;isExecuteStep&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;varCriterian_1Output&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;varCriterian_1Output&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;contextNodeId&quot;,
+    &quot;type&quot; : &quot;Tag&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : &quot;LineItem&quot;,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;contextNodeId&quot;,
+    &quot;collection&quot; : true,
+    &quot;input&quot; : true,
+    &quot;output&quot; : false
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;matchingRecordIdList&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;matchingRecordIdList&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  } ],
+  &quot;criteria&quot; : [ {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;Criteria_1&quot;,
+    &quot;type&quot; : &quot;Exists&quot;,
+    &quot;conditionLogic&quot; : &quot;1&quot;,
+    &quot;executionSequence&quot; : 1,
+    &quot;parentFilterCriteria&quot; : null,
+    &quot;conditions&quot; : [ {
+      &quot;id&quot; : null,
+      &quot;name&quot; : &quot;Condition1&quot;,
+      &quot;variable&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+      &quot;operator&quot; : &quot;NotEquals&quot;,
+      &quot;value&quot; : [ &quot;QuantumBit Complete Solution&quot; ],
+      &quot;valueType&quot; : &quot;Literal&quot;,
+      &quot;sequenceNumber&quot; : 1,
+      &quot;matchType&quot; : null,
+      &quot;contextRuleElementType&quot; : &quot;RuleCondition&quot;,
+      &quot;validationName&quot; : null
+    } ],
+    &quot;actions&quot; : [ {
+      &quot;id&quot; : null,
+      &quot;name&quot; : &quot;SetOutputValueToVariable&quot;,
+      &quot;sequenceNumber&quot; : 1,
+      &quot;cacheIdentifier&quot; : null,
+      &quot;actionType&quot; : &quot;SetValue&quot;,
+      &quot;actionParameters&quot; : [ {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;varCriterian_1Output&quot;,
+        &quot;value&quot; : &quot;Passed&quot;,
+        &quot;valueType&quot; : &quot;Literal&quot;,
+        &quot;sequenceNumber&quot; : 1,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;varCriterian_1Output&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;varMatchedId2Output&quot;,
+        &quot;value&quot; : &quot;contextNodeId&quot;,
+        &quot;valueType&quot; : &quot;RuleReferenceVariable&quot;,
+        &quot;sequenceNumber&quot; : 2,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;varMatchedId2Output&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;matchingRecordIdList&quot;,
+        &quot;value&quot; : &quot;contextNodeId&quot;,
+        &quot;valueType&quot; : &quot;RuleReferenceVariable&quot;,
+        &quot;sequenceNumber&quot; : 3,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;matchingRecordIdList&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;isExecuteStep&quot;,
+        &quot;value&quot; : &quot;true&quot;,
+        &quot;valueType&quot; : &quot;Literal&quot;,
+        &quot;sequenceNumber&quot; : 4,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;isExecuteStep&quot;
+      } ],
+      &quot;contextRuleElementType&quot; : &quot;RuleAction&quot;,
+      &quot;validationName&quot; : &quot;SetOutputValueToVariable&quot;
+    } ],
+    &quot;variable&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleFilterCriteria&quot;,
+    &quot;validationName&quot; : &quot;Criteria_1&quot;
+  } ],
+  &quot;actions&quot; : [ ],
+  &quot;hashValues&quot; : null,
+  &quot;ruleVersionNumbers&quot; : [ 1 ],
+  &quot;updateVersion&quot; : true,
+  &quot;contextRuleElementType&quot; : &quot;Rule&quot;,
+  &quot;eligibleRule&quot; : false,
+  &quot;validationName&quot; : &quot;DFO_13Ual000001CuSjEAK_RS_Rule_1&quot;
+}</rulePayload>
+            <ruleStatus>Active</ruleStatus>
+            <sequenceNumber>1</sequenceNumber>
+            <startDate>2026-04-02T18:14:41.000Z</startDate>
+            <usageType>Dfo</usageType>
+        </ruleDefinitions>
+        <startDate>2026-04-02T18:14:40.000Z</startDate>
+        <status>Active</status>
+        <usageType>Dfo</usageType>
+    </rulesetDefinitions>
+    <rulesetDefinitions>
+        <apiName>DFO_13Ual000001CuShEAK_RS</apiName>
+        <executionType>Sequence</executionType>
+        <label>DFO_13Ual000001CuShEAK_RS</label>
+        <ruleDefinitions>
+            <apiName>DFO_13Ual000001CuShEAK_RS_Rule_1</apiName>
+            <label>DFO_13Ual000001CuShEAK_RS_Rule_1</label>
+            <rulePayload>{
+  &quot;id&quot; : null,
+  &quot;ruleVersionId&quot; : null,
+  &quot;name&quot; : &quot;DFO_13Ual000001CuShEAK_RS_Rule_1&quot;,
+  &quot;description&quot; : null,
+  &quot;apiName&quot; : &quot;DFO_13Ual000001CuShEAK_RS_Rule_1&quot;,
+  &quot;usageType&quot; : &quot;Dfo&quot;,
+  &quot;ruleLibraryApiName&quot; : &quot;DRORuleLibrary&quot;,
+  &quot;usageSubType&quot; : null,
+  &quot;startDate&quot; : 1775153636000,
+  &quot;endDate&quot; : null,
+  &quot;createdDate&quot; : 1775153636000,
+  &quot;ruleStatus&quot; : &quot;Active&quot;,
+  &quot;rulesetName&quot; : &quot;DFO_13Ual000001CuShEAK_RS&quot;,
+  &quot;sequenceNumber&quot; : 1,
+  &quot;variables&quot; : [ {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+    &quot;type&quot; : &quot;Tag&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : &quot;SalesTransactionItemParent&quot;,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+    &quot;collection&quot; : true,
+    &quot;input&quot; : true,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;varMatchedId2Output&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;varMatchedId2Output&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;isExecuteStep&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;isExecuteStep&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;varCriterian_1Output&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;varCriterian_1Output&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;contextNodeId&quot;,
+    &quot;type&quot; : &quot;Tag&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : &quot;LineItem&quot;,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;contextNodeId&quot;,
+    &quot;collection&quot; : true,
+    &quot;input&quot; : true,
+    &quot;output&quot; : false
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;matchingRecordIdList&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;matchingRecordIdList&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  } ],
+  &quot;criteria&quot; : [ {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;Criteria_1&quot;,
+    &quot;type&quot; : &quot;Exists&quot;,
+    &quot;conditionLogic&quot; : &quot;1&quot;,
+    &quot;executionSequence&quot; : 1,
+    &quot;parentFilterCriteria&quot; : null,
+    &quot;conditions&quot; : [ {
+      &quot;id&quot; : null,
+      &quot;name&quot; : &quot;Condition1&quot;,
+      &quot;variable&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+      &quot;operator&quot; : &quot;NotEquals&quot;,
+      &quot;value&quot; : [ &quot;QuantumBit Complete Solution&quot; ],
+      &quot;valueType&quot; : &quot;Literal&quot;,
+      &quot;sequenceNumber&quot; : 1,
+      &quot;matchType&quot; : null,
+      &quot;contextRuleElementType&quot; : &quot;RuleCondition&quot;,
+      &quot;validationName&quot; : null
+    } ],
+    &quot;actions&quot; : [ {
+      &quot;id&quot; : null,
+      &quot;name&quot; : &quot;SetOutputValueToVariable&quot;,
+      &quot;sequenceNumber&quot; : 1,
+      &quot;cacheIdentifier&quot; : null,
+      &quot;actionType&quot; : &quot;SetValue&quot;,
+      &quot;actionParameters&quot; : [ {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;varCriterian_1Output&quot;,
+        &quot;value&quot; : &quot;Passed&quot;,
+        &quot;valueType&quot; : &quot;Literal&quot;,
+        &quot;sequenceNumber&quot; : 1,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;varCriterian_1Output&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;varMatchedId2Output&quot;,
+        &quot;value&quot; : &quot;contextNodeId&quot;,
+        &quot;valueType&quot; : &quot;RuleReferenceVariable&quot;,
+        &quot;sequenceNumber&quot; : 2,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;varMatchedId2Output&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;matchingRecordIdList&quot;,
+        &quot;value&quot; : &quot;contextNodeId&quot;,
+        &quot;valueType&quot; : &quot;RuleReferenceVariable&quot;,
+        &quot;sequenceNumber&quot; : 3,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;matchingRecordIdList&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;isExecuteStep&quot;,
+        &quot;value&quot; : &quot;true&quot;,
+        &quot;valueType&quot; : &quot;Literal&quot;,
+        &quot;sequenceNumber&quot; : 4,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;isExecuteStep&quot;
+      } ],
+      &quot;contextRuleElementType&quot; : &quot;RuleAction&quot;,
+      &quot;validationName&quot; : &quot;SetOutputValueToVariable&quot;
+    } ],
+    &quot;variable&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleFilterCriteria&quot;,
+    &quot;validationName&quot; : &quot;Criteria_1&quot;
+  } ],
+  &quot;actions&quot; : [ ],
+  &quot;hashValues&quot; : null,
+  &quot;ruleVersionNumbers&quot; : [ 1 ],
+  &quot;updateVersion&quot; : true,
+  &quot;contextRuleElementType&quot; : &quot;Rule&quot;,
+  &quot;eligibleRule&quot; : false,
+  &quot;validationName&quot; : &quot;DFO_13Ual000001CuShEAK_RS_Rule_1&quot;
+}</rulePayload>
+            <ruleStatus>Active</ruleStatus>
+            <sequenceNumber>1</sequenceNumber>
+            <startDate>2026-04-02T18:13:56.000Z</startDate>
+            <usageType>Dfo</usageType>
+        </ruleDefinitions>
+        <startDate>2026-04-02T18:13:55.000Z</startDate>
+        <status>Active</status>
+        <usageType>Dfo</usageType>
+    </rulesetDefinitions>
+    <rulesetDefinitions>
+        <apiName>DFO_13Ual000001CuSiEAK_RS</apiName>
+        <executionType>Sequence</executionType>
+        <label>DFO_13Ual000001CuSiEAK_RS</label>
+        <ruleDefinitions>
+            <apiName>DFO_13Ual000001CuSiEAK_RS_Rule_1</apiName>
+            <label>DFO_13Ual000001CuSiEAK_RS_Rule_1</label>
+            <rulePayload>{
+  &quot;id&quot; : null,
+  &quot;ruleVersionId&quot; : null,
+  &quot;name&quot; : &quot;DFO_13Ual000001CuSiEAK_RS_Rule_1&quot;,
+  &quot;description&quot; : null,
+  &quot;apiName&quot; : &quot;DFO_13Ual000001CuSiEAK_RS_Rule_1&quot;,
+  &quot;usageType&quot; : &quot;Dfo&quot;,
+  &quot;ruleLibraryApiName&quot; : &quot;DRORuleLibrary&quot;,
+  &quot;usageSubType&quot; : null,
+  &quot;startDate&quot; : 1775153591000,
+  &quot;endDate&quot; : null,
+  &quot;createdDate&quot; : 1775153591000,
+  &quot;ruleStatus&quot; : &quot;Active&quot;,
+  &quot;rulesetName&quot; : &quot;DFO_13Ual000001CuSiEAK_RS&quot;,
+  &quot;sequenceNumber&quot; : 1,
+  &quot;variables&quot; : [ {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+    &quot;type&quot; : &quot;Tag&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : &quot;SalesTransactionItemParent&quot;,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+    &quot;collection&quot; : true,
+    &quot;input&quot; : true,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;varMatchedId2Output&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;varMatchedId2Output&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;isExecuteStep&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;isExecuteStep&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;varCriterian_1Output&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;varCriterian_1Output&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;contextNodeId&quot;,
+    &quot;type&quot; : &quot;Tag&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : &quot;LineItem&quot;,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;contextNodeId&quot;,
+    &quot;collection&quot; : true,
+    &quot;input&quot; : true,
+    &quot;output&quot; : false
+  }, {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;matchingRecordIdList&quot;,
+    &quot;type&quot; : &quot;Variable&quot;,
+    &quot;dataType&quot; : &quot;Text&quot;,
+    &quot;decimalPlaces&quot; : 0,
+    &quot;contextTag&quot; : null,
+    &quot;value&quot; : null,
+    &quot;attributeId&quot; : null,
+    &quot;aggregateFunction&quot; : null,
+    &quot;groupByTag&quot; : null,
+    &quot;filterCriteriaName&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleReferenceVariable&quot;,
+    &quot;validationName&quot; : &quot;matchingRecordIdList&quot;,
+    &quot;collection&quot; : false,
+    &quot;input&quot; : false,
+    &quot;output&quot; : true
+  } ],
+  &quot;criteria&quot; : [ {
+    &quot;id&quot; : null,
+    &quot;name&quot; : &quot;Criteria_1&quot;,
+    &quot;type&quot; : &quot;Exists&quot;,
+    &quot;conditionLogic&quot; : &quot;1&quot;,
+    &quot;executionSequence&quot; : 1,
+    &quot;parentFilterCriteria&quot; : null,
+    &quot;conditions&quot; : [ {
+      &quot;id&quot; : null,
+      &quot;name&quot; : &quot;Condition1&quot;,
+      &quot;variable&quot; : &quot;STITags_SalesTransactionItemParent&quot;,
+      &quot;operator&quot; : &quot;NotEquals&quot;,
+      &quot;value&quot; : [ &quot;QuantumBit Complete Solution&quot; ],
+      &quot;valueType&quot; : &quot;Literal&quot;,
+      &quot;sequenceNumber&quot; : 1,
+      &quot;matchType&quot; : null,
+      &quot;contextRuleElementType&quot; : &quot;RuleCondition&quot;,
+      &quot;validationName&quot; : null
+    } ],
+    &quot;actions&quot; : [ {
+      &quot;id&quot; : null,
+      &quot;name&quot; : &quot;SetOutputValueToVariable&quot;,
+      &quot;sequenceNumber&quot; : 1,
+      &quot;cacheIdentifier&quot; : null,
+      &quot;actionType&quot; : &quot;SetValue&quot;,
+      &quot;actionParameters&quot; : [ {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;varCriterian_1Output&quot;,
+        &quot;value&quot; : &quot;Passed&quot;,
+        &quot;valueType&quot; : &quot;Literal&quot;,
+        &quot;sequenceNumber&quot; : 1,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;varCriterian_1Output&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;varMatchedId2Output&quot;,
+        &quot;value&quot; : &quot;contextNodeId&quot;,
+        &quot;valueType&quot; : &quot;RuleReferenceVariable&quot;,
+        &quot;sequenceNumber&quot; : 2,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;varMatchedId2Output&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;matchingRecordIdList&quot;,
+        &quot;value&quot; : &quot;contextNodeId&quot;,
+        &quot;valueType&quot; : &quot;RuleReferenceVariable&quot;,
+        &quot;sequenceNumber&quot; : 3,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;matchingRecordIdList&quot;
+      }, {
+        &quot;id&quot; : null,
+        &quot;name&quot; : &quot;isExecuteStep&quot;,
+        &quot;value&quot; : &quot;true&quot;,
+        &quot;valueType&quot; : &quot;Literal&quot;,
+        &quot;sequenceNumber&quot; : 4,
+        &quot;sourceCriteriaName&quot; : null,
+        &quot;contextRuleElementType&quot; : &quot;RuleActionParameter&quot;,
+        &quot;validationName&quot; : &quot;isExecuteStep&quot;
+      } ],
+      &quot;contextRuleElementType&quot; : &quot;RuleAction&quot;,
+      &quot;validationName&quot; : &quot;SetOutputValueToVariable&quot;
+    } ],
+    &quot;variable&quot; : null,
+    &quot;contextRuleElementType&quot; : &quot;RuleFilterCriteria&quot;,
+    &quot;validationName&quot; : &quot;Criteria_1&quot;
+  } ],
+  &quot;actions&quot; : [ ],
+  &quot;hashValues&quot; : null,
+  &quot;ruleVersionNumbers&quot; : [ 1 ],
+  &quot;updateVersion&quot; : true,
+  &quot;contextRuleElementType&quot; : &quot;Rule&quot;,
+  &quot;eligibleRule&quot; : false,
+  &quot;validationName&quot; : &quot;DFO_13Ual000001CuSiEAK_RS_Rule_1&quot;
+}</rulePayload>
+            <ruleStatus>Active</ruleStatus>
+            <sequenceNumber>1</sequenceNumber>
+            <startDate>2026-04-02T18:13:11.000Z</startDate>
+            <usageType>Dfo</usageType>
+        </ruleDefinitions>
+        <startDate>2026-04-02T18:13:11.000Z</startDate>
+        <status>Active</status>
+        <usageType>Dfo</usageType>
+    </rulesetDefinitions>
+    <usageType>Dfo</usageType>
+</RuleLibraryDefinition>

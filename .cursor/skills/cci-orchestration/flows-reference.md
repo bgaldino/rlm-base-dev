@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**38 flows** across **5 groups**.
+**41 flows** across **5 groups**.
 
 ---
 
@@ -61,6 +61,40 @@ Stamp the git commit hash into the org
 ---
 
 ## Revenue Lifecycle Management
+
+### `assign_feature_permission_sets`
+
+Assign feature-gated permission sets after PSGs are updated
+
+**Steps:**
+
+1. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
+   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
+   - `api_names`: `['EinsteinGPTPromptTemplateManager']`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and not project_config.project__custom__dev_ed`
+   - `api_names`: `['SalesCloudEinsteinAll']`
+4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
+   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
+
+---
+
+### `assign_feature_psls`
+
+Assign feature-gated permission set licenses after pre-deploy metadata is in place
+
+**Steps:**
+
+1. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__clm`
+   - `api_names`: `['AIAcceleratorPsl', 'ClauseManagementUser', 'CLMAnalyticsPsl', 'ContractManagementUser', 'Contra...`
+2. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__einstein`
+   - `api_names`: `['AgentforceServiceAgentBuilderPsl', 'EinsteinGPTCopilotPsl', 'EinsteinGPTPromptTemplatesPsl']`
+3. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__analytics`
+   - `api_names`: `['EinsteinAnalyticsPlusPsl']`
+4. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
+   - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
+
+---
 
 ### `extend_context_definitions`
 
@@ -203,31 +237,19 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `exclude_active_decision_tables`
 5. **task** `deploy_pre`
 6. **task** `restore_decision_tables`
-7. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__clm`
-   - `api_names`: `['AIAcceleratorPsl', 'ClauseManagementUser', 'CLMAnalyticsPsl', 'ContractManagementUser', 'Contra...`
-8. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__einstein`
-   - `api_names`: `['AgentforceServiceAgentBuilderPsl', 'EinsteinGPTCopilotPsl', 'EinsteinGPTPromptTemplatesPsl']`
-9. **task** `util_sleep`
-   - `seconds`: `30`
-10. **task** `assign_permission_set_licenses`
-   - `api_names`: `EinsteinAnalyticsPlusPsl`
-11. **task** `recalculate_permission_set_groups`
+7. **flow** `assign_feature_psls`
+8. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-12. **task** `assign_permission_set_groups_tolerant`
+9. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-13. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
-   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
-14. **flow** `extend_context_definitions`
-15. **task** `util_sleep`
-   - `seconds`: `30`
-16. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-17. **task** `util_sleep`  `when: project_config.project__custom__breconfig`
-   - `seconds`: `30`
-18. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-19. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
-   - `api_names`: `['EinsteinGPTPromptTemplateManager', 'SalesCloudEinsteinAll']`
-20. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
-   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
+10. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+   - `api_names`: `['RLM_TSO']`
+11. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+   - `api_names`: `['RLM_TSO']`
+12. **flow** `extend_context_definitions`
+13. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+14. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+15. **flow** `assign_feature_permission_sets`
 
 ---
 
@@ -261,10 +283,13 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
-2. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
-3. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
-4. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro`
+1. **task** `manage_fulfillment_scope_cnfg`  `when: project_config.project__custom__dro`
+   - `operation`: `upsert`
+   - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+2. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
+3. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
+4. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
+5. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro`
 
 ---
 
@@ -493,16 +518,12 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 **Steps:**
 
-1. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
-   - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
-2. **task** `assign_permission_set_groups`  `when: project_config.project__custom__tso`
+1. **task** `assign_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['CopilotSalesforceUserPSG', 'CopilotSalesforceAdminPSG', 'UnifiedCatalogAdminPsl', 'UnifiedCatal...`
-3. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
-4. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
-5. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
+2. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
+3. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
+4. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
    - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'OrchestrationProcessManagerPermissionSet', 'EventMonitoring...`
-6. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
-   - `api_names`: `['RLM_TSO']`
 
 ---
 
@@ -516,6 +537,18 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 4. **task** `refresh_dt_rating`  `when: project_config.project__custom__rating`
 5. **task** `refresh_dt_rating_discovery`  `when: project_config.project__custom__rating`
 6. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce`
+
+---
+
+### `upsert_fulfillment_scope_cnfg`
+
+Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
+
+**Steps:**
+
+1. **task** `manage_fulfillment_scope_cnfg`
+   - `operation`: `upsert`
+   - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
 
 ---
 

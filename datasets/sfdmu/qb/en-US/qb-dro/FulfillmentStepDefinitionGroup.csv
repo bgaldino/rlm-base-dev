@@ -1,11 +1,6 @@
 Name,UsageType
-Order Processing,
-Finance,
-Billing and Invoicing,
-License Activation,
-Tenant Provisioning + Activation,
-Platform Provisioning,
-Platform,
-Services,
-Feature/License Provisioning + Activation,
-Asset Conversion,
+Finance,Fulfillment
+Platform,Fulfillment
+Services,Fulfillment
+Provisioning & Activation,Fulfillment
+Usage Provisioning & Activation,Fulfillment

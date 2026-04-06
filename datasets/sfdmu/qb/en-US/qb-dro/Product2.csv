@@ -1,10 +1,8 @@
 CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
 ,,,Shipping Charge Product,9999999
-,Bundle,,Finance Service,QB-AEH-BILL
 ,Bundle,,Provisioning and Activation Service,QB-AEH-CPU
 ,OrderLineItem,,AEH Environment Runtime,QB-AEH-ENV
 ,OrderLineItem,,AEH Object Store - Restricted Use,QB-AEH-OBJ
-,Bundle,,Order Processing,QB-AEH-OR
 ,OrderLineItem,,Additional API,QB-API
 ,,,API Calls,QB-API-CALLS
 ,OrderLineItem,,Additional API Flex (100M),QB-API-FLEX

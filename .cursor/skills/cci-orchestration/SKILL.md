@@ -157,11 +157,11 @@ cci org connect my-sandbox
 
 ## Project Configuration (`cumulusci.yml`)
 
-This project's `cumulusci.yml` (~3000 lines) is organized into these sections:
+This project's `cumulusci.yml` (~3275 lines) is organized into these sections:
 
 ### 1. Scratch Org Definitions (`orgs.scratch`)
 
-17 scratch org configs, each referencing a JSON definition in `orgs/`. Key orgs:
+21 scratch org configs, each referencing a JSON definition in `orgs/`. Key orgs:
 - `beta` — general-purpose development
 - `dev-sb0` — sandbox-like development
 - `tfid-*` — Trialforce-based orgs for various configurations
@@ -222,7 +222,7 @@ These anchors are referenced with `*name` in task/flow options.
 
 ### 5. Tasks (`tasks`)
 
-~115 custom task definitions using this naming convention:
+~197 custom task definitions using this naming convention:
 - `insert_qb_{plan}_data` / `insert_quantumbit_{plan}_data` — load a data plan
 - `delete_qb_{plan}_data` / `delete_quantumbit_{plan}_data` — delete plan data
 - `extract_qb_{plan}_data` — extract from org to CSV
@@ -240,7 +240,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 
 ### 6. Flows (`flows`)
 
-34 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
+41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
 (31 steps), which calls sub-flows:
 
 ```
@@ -307,7 +307,7 @@ when: "not (project_config.project__custom__quantumbit or project_config.project
 
 ## Custom Task Classes (`tasks/`)
 
-This project has 32 Python files in `tasks/` defining 38+ custom CCI task
+This project has 40 Python files in `tasks/` defining 49+ custom CCI task
 classes. They fall into these categories:
 
 | Category | Classes | Base Class |

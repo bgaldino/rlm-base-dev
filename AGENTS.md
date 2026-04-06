@@ -26,7 +26,7 @@ force-app/             # Core SFDX metadata (deployed at step 5)
 unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
 unpackaged/post_*/     # Feature-specific metadata bundles
 unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
-templates/             # Source-of-truth for UX assembly (step 29)
+templates/             # Source-of-truth for UX assembly (step 27)
 datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 scripts/apex/          # Apex activation/deletion scripts
@@ -78,7 +78,7 @@ changes from v4.
 - Use `;` delimiters: `Field1;Field2` (NOT `$$Field1$Field2`)
 - `$$` columns in CSVs are valid for Upsert target-record matching
 
-### The Three Confirmed v5 Bugs
+### The Five Confirmed v5 Bugs
 
 **Bug 1 — All-multi-hop externalId fails validation**
 `{Object} has no mandatory external Id field definition`
@@ -91,6 +91,20 @@ changes from v4.
 Creates duplicates on every run.
 **Fix:** Use `operation: Insert` + `deleteOldData: true`.
 *Upstream: [SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)*
+
+**Bug 4 — `$$` composite key self-references fail on import**
+When a CSV uses `$$` composite notation for a self-referential lookup
+(e.g. `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`), SFDMU
+cannot resolve the parent record.
+**Fix:** Use simple single-field references for self-referential lookups
+(e.g. `ParentGroup.Code`).
+
+**Bug 5 — Composite externalId with all-traversal fields fails upsert matching**
+When `externalId` is composed entirely of relationship traversals
+(e.g. `Parent.Name;OtherParent.Name`), SFDMU inserts duplicates on
+every run instead of matching existing records.
+**Fix:** Use `operation: Insert` + `deleteOldData: true` for objects
+whose only logical key is a composite of parent lookups.
 
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
@@ -138,6 +152,8 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 6. **UX templates** — edits in `templates/`, never `unpackaged/post_ux/`
 7. **Profile/object rules** — force-app profiles stay classAccesses-only
 8. **PRM Network email** — repo uses placeholder only; patch/revert in order
+9. **Edition flags** — `pde`, `trial`, `dev_ed` change PSL/PS assignments
+   and feature availability; verify `when:` guards match the target edition
 
 ---
 

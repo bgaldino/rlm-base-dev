@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**195 tasks** across **9 groups**.
+**197 tasks** across **9 groups**.
 
 ---
 
@@ -81,7 +81,19 @@
 
 ## Data Management - Extract
 
-*14 task(s)*
+*15 task(s)*
+
+### `export_bre_rule_library`
+
+**Description:** Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all.
+
+**Class:** `tasks.rlm_bre.ExportBRE`
+
+**Options:**
+
+- `output_dir`: `datasets/bre/exports`
+
+---
 
 ### `extract_qb_approvals_data`
 
@@ -534,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*121 task(s)*
+*122 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1883,6 +1895,23 @@
 - `process_type`: `None`
 - `sort_by`: `LastModifiedDate`
 - `sort_order`: `Desc`
+
+---
+
+### `manage_fulfillment_scope_cnfg`
+
+**Description:** Manage CustomFulfillmentScopeCnfg records via Tooling API (DRO/Industries Fulfillment setup object; apiAccess="never", introduced API v65.0). Operations: 'list' (log to console), 'extract' (write to output_file as JSON array), 'upsert' (create/update from input_file JSON array).
+
+**Class:** `tasks.rlm_manage_fulfillment_scope_cnfg.ManageFulfillmentScopeCnfg`
+
+**Options:**
+
+- `operation`: `list`
+- `output_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+- `input_file`: `None`
+- `key_field`: `DeveloperName`
+- `api_version`: `None`
+- `dry_run`: `False`
 
 ---
 

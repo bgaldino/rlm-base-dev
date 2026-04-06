@@ -18,7 +18,7 @@ control order):
 
 The `force-app/` Admin profile is **classAccesses only**:
 - Step 5 (`deploy_full`): profile with no layout assignments
-- Step 29 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
+- Step 27 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
 
 ### Object metadata strip-and-build
 
@@ -26,7 +26,7 @@ These standard objects have `actionOverrides` and `compactLayoutAssignment`
 in `templates/objects/base/` (NOT `force-app/`):
 - Asset, Quote, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem
 
-They deploy at step 29 after referenced flexipages exist. The `force-app/`
+They deploy at step 27 after referenced flexipages exist. The `force-app/`
 paths are forceignored.
 
 ### Metadata dependencies
@@ -48,12 +48,12 @@ paths are forceignored.
 |-----------|------|------------|
 | 1 | qb-pcm (products) | None |
 | 2 | qb-pricing | qb-pcm |
-| 3 | qb-billing | qb-pcm |
+| 3 | qb-dro | qb-pcm |
 | 4 | qb-tax | qb-pcm |
-| 5 | qb-dro | qb-pcm |
-| 6 | qb-rating | qb-pcm |
-| 7 | qb-rates | qb-pcm + qb-rating (PURs must exist) |
-| 8 | qb-clm | qb-pcm |
+| 5 | qb-billing | qb-pcm (LegalEntity shared with qb-tax) |
+| 6 | qb-clm | qb-pcm |
+| 7 | qb-rating | qb-pcm + qb-billing (UsageResourceBillingPolicy) |
+| 8 | qb-rates | qb-pcm + qb-rating (PURs must exist) + qb-pricing (PriceBook2) |
 | 9 | qb-approvals | post_approvals metadata + email templates |
 
 ## Deletion Order
@@ -103,17 +103,30 @@ Reverse dependency order (children before parents):
 | 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre |
 | 2 | prepare_decision_tables | DT lifecycle |
 | 3 | prepare_expression_sets | ES lifecycle |
+| 4 | prepare_payments | Payments webhook + metadata |
 | 5 | deploy_full | `force-app/` bundle |
-| 9 | prepare_quantumbit | QB metadata |
-| 10 | prepare_product_data | PCM, Q3, product images |
-| 11 | prepare_pricing_data | Pricing |
-| 12 | prepare_docgen | DocGen |
-| 13 | prepare_dro | DRO |
-| 14 | prepare_tax | Tax |
-| 15 | prepare_billing | Billing |
-| 18 | prepare_rating | Rating + rates + activation |
-| 22 | prepare_prm | PRM community + data |
-| 24 | prepare_constraints | Constraints + CML |
-| 26 | prepare_revenue_settings | Revenue Settings (Robot) |
-| 29 | prepare_ux | UX assembly + deploy |
-| 31 | stamp_git_commit | Always last |
+| 6 | prepare_price_adjustment_schedules | PAS metadata |
+| 7 | prepare_quantumbit | QB metadata |
+| 8 | prepare_product_data | PCM, Q3, product images |
+| 9 | prepare_pricing_data | Pricing |
+| 10 | prepare_docgen | DocGen |
+| 11 | prepare_dro | DRO + fulfillment scope |
+| 12 | prepare_tax | Tax |
+| 13 | prepare_billing | Billing |
+| 14 | prepare_analytics | CRM Analytics replication |
+| 15 | prepare_clm | CLM |
+| 16 | prepare_rating | Rating + rates + activation |
+| 17 | activate_and_deploy_expression_sets | ES activation |
+| 18 | prepare_tso | TSO-specific PSLs, PSGs, deploy |
+| 19 | prepare_procedureplans | Procedure plan definitions |
+| 20 | prepare_prm | PRM community + data |
+| 21 | prepare_agents | Agent classes + deploy |
+| 22 | prepare_constraints | Constraints + CML |
+| 23 | prepare_guidedselling | Guided selling data |
+| 24 | prepare_revenue_settings | Revenue Settings (Robot) |
+| 25 | prepare_pricing_discovery | Pricing discovery refresh |
+| 26 | prepare_ramp_builder | Ramp builder metadata |
+| 27 | prepare_ux | UX assembly + deploy (when `ux`) |
+| 28 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
+| 29 | refresh_all_decision_tables | DT cache refresh |
+| 30 | stamp_git_commit | Always last |

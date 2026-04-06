@@ -85,51 +85,69 @@ project:
     default_branch: "main"
   source_format: sfdx
 
-#-----------------#
-# CUSTOM SETTINGS #
-#-----------------#
-# These custom settings control feature flags and configuration options
-# They are used throughout the deployment process to conditionally execute tasks
-# Each setting can be toggled on/off to enable/disable specific features
+#------------------#
+# CUSTOM SETTINGS  #
+#------------------#
+# Feature flags and configuration options used throughout the deployment process.
+# Toggle any flag on/off to conditionally enable or disable specific tasks and flows.
 
   custom:
-    qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
-    pde: false                # Partner Development Environment (Developer Edition, no qbrix, no custom UX)
-    trial: false              # Public Trial (Enterprise Edition, no qbrix, no custom UX)
-    qb: true                  # Is QuantumBit?
-    q3: false                 # Include Q3 data
-    calmdelete: true          # Use CALM Delete
-    tax: true                 # Use Tax engine
-    billing: true             # Use Billing
-    billing_ui: true          # Deploy Billing UI LWC components (post_billing_ui)
-    payments: true            # Use Payments
-    approvals: true           # Use Approvals
-    clm: true                # Use Contract Lifecycle Management
-    clm_data: false           # Use Contract Lifecycle Management Data
-    dro: true                 # Use Dynamic Revenue Orchestration
-    rating: true              # Insert Rating Design Time Data
-    rates: true               # Insert Rates
-    ramps: true               # Insert and configure ramps
-    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
-    einstein: true            # Use Einstein AI
-    product_dataset: qb       # Default product dataset to use=
-    agents: false             # Deploy Agentforce Agent Configurations
-    refresh: false            # Data refresh flag
-    prm: true                # Use Partner Relationship Management
-    prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
-    billing_portal: false     # Use Self-Service Billing Portal community
-    billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
-    commerce: false           # Use Commerce
-    quantumbit: true          # Use QuantumBit
+
+    # ── Org Type & Mode ────────────────────────────────────────────────────────
+    qbrix: false              # Use xDO base layer (disable for orgs without xDO licenses)
+    tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
+    pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
+    trial: false              # Public Trial org (EE, no qbrix or custom UX)
+    dev_ed: false             # Developer Edition org — set true for non-standard dev orgs to suppress Enterprise-only PS assignments
+    refresh: false            # Data refresh mode — skips insert steps during re-runs
+
+    # ── Core Revenue Cloud Features ────────────────────────────────────────────
+    billing: true             # Billing
+    billing_ui: true          # Billing UI LWC components (post_billing_ui)
+    billing_portal: false     # Self-Service Billing Portal community
+    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
+    payments: true            # Payments
+    approvals: true           # Approvals
+    tax: true                 # Tax engine
+    calmdelete: true          # CALM Delete
+
+    # ── Revenue Orchestration ──────────────────────────────────────────────────
+    dro: true                 # Dynamic Revenue Orchestration
+    rating: true              # Rating design-time data
+    rates: true               # Rates
+    ramps: true               # Ramps
+
+    # ── Contracts & CLM ────────────────────────────────────────────────────────
+    clm: true                 # Contract Lifecycle Management
+    clm_data: false           # CLM sample data
+
+    # ── Partner & Commerce ─────────────────────────────────────────────────────
+    prm: true                 # Partner Relationship Management
+    prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
+    commerce: false           # Commerce
+
+    # ── AI & Analytics ─────────────────────────────────────────────────────────
+    einstein: true            # Einstein AI
+    agents: false             # Agentforce agent configurations
+    analytics: true           # Data Sync / CRM Analytics replication (enableWaveReplication)
+
+    # ── Configurators & Tooling ────────────────────────────────────────────────
+    docgen: true              # Document Generation
+    constraints: true         # Constraint Builder
+    constraints_data: true    # Constraint Builder sample data
     breconfig: false          # Business Rules Engine configuration
-    docgen: true              # Use Document Generation
-    constraints: true         # Use Constraint Builder
-    constraints_data: true   # Use Constraint Builder Data
-    guidedselling: false      # Use Guided Selling
-    procedureplans: true     # Use Procedure Plans
-    sharingsettings: false    # Deploy Sharing Settings
-    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
+    guidedselling: false      # Guided Selling
+    procedureplans: true      # Procedure Plans
+
+    # ── Data & UX ──────────────────────────────────────────────────────────────
+    qb: true                  # QuantumBit data
+    q3: false                 # Q3 data
+    quantumbit: true          # QuantumBit app deployment
+    product_dataset: qb       # Default product dataset
+    ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
+
+    # ── Deployment Options ─────────────────────────────────────────────────────
+    sharingsettings: false    # Sharing Settings
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -197,8 +215,11 @@ project:
       - TableauSelfServiceAnalyst
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
-      # AI-related permission sets
+      # AI-related permission sets (all org editions)
       - EinsteinGPTPromptTemplateManager
+
+    rlm_ai_ps_enterprise_api_names: &rlm_ai_ps_enterprise_api_names
+      # AI permission sets — Enterprise edition only (not assignable on Developer edition)
       - SalesCloudEinsteinAll
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
@@ -2017,6 +2038,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_dro_dataset
 
+  export_bre_rule_library:
+    group: Data Management - Extract
+    description: "Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all."
+    class_path: tasks.rlm_bre.ExportBRE
+    options:
+      output_dir: datasets/bre/exports
+
   extract_qb_clm_data:
     group: Data Management - Extract
     description: "Extract qb-clm from org to CSV. Output in datasets/sfdmu/extractions/qb-clm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -2296,6 +2324,22 @@ tasks:
       api_version: null
       dry_run: false
 
+  manage_fulfillment_scope_cnfg:
+    group: Revenue Lifecycle Management
+    description: >
+      Manage CustomFulfillmentScopeCnfg records via Tooling API (DRO/Industries
+      Fulfillment setup object; apiAccess="never", introduced API v65.0).
+      Operations: 'list' (log to console), 'extract' (write to output_file as
+      JSON array), 'upsert' (create/update from input_file JSON array).
+    class_path: tasks.rlm_manage_fulfillment_scope_cnfg.ManageFulfillmentScopeCnfg
+    options:
+      operation: list  # Options: 'list', 'extract', 'upsert'
+      output_file: datasets/tooling/CustomFulfillmentScopeCnfg.json  # Used by extract
+      input_file: null  # Required for upsert; JSON array of records
+      key_field: DeveloperName
+      api_version: null
+      dry_run: false
+
   manage_context_definition:
     group: Revenue Lifecycle Management
     description: Modify context definitions via Context Service (connect) endpoints
@@ -2400,55 +2444,53 @@ flows:
       6:
         flow: prepare_price_adjustment_schedules
       7:
-        flow: prepare_payments
-      8:
         flow: prepare_quantumbit
-      9:
+      8:
         flow: prepare_product_data
-      10:
+      9:
         flow: prepare_pricing_data
-      11:
+      10:
         flow: prepare_docgen
-      12:
+      11:
         flow: prepare_dro
-      13:
+      12:
         flow: prepare_tax
-      14:
+      13:
         flow: prepare_billing
-      15:
+      14:
         flow: prepare_analytics
-      16:
+      15:
         flow: prepare_clm
-      17:
+      16:
         flow: prepare_rating
-      18:
+      17:
         task: activate_and_deploy_expression_sets
-      19:
+      18:
         flow: prepare_tso
-      20:
+      19:
         flow: prepare_procedureplans
-      21:
+      20:
         flow: prepare_prm
-      22:
+      21:
         flow: prepare_agents
-      23:
+      22:
         flow: prepare_constraints
-      24:
+      23:
         flow: prepare_guidedselling
-      25:
+      24:
         flow: prepare_revenue_settings
-      26:
+      25:
         flow: prepare_pricing_discovery
-      27:
+      26:
         flow: prepare_ramp_builder
-      28:
+      27:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      29:
+      28:
         flow: prepare_scratch
-      30:
+      29:
         flow: refresh_all_decision_tables
-      31:
+      30:
         flow: stamp_git_commit
 
   prepare_core:
@@ -2543,6 +2585,11 @@ flows:
         options:
           api_names: *rlm_ai_ps_api_names
       3:
+        task: assign_permission_sets
+        when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])
+        options:
+          api_names: *rlm_ai_ps_enterprise_api_names
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -2664,19 +2711,35 @@ flows:
         options:
           api_names: *rlm_tso_ps_api_names
 
+  upsert_fulfillment_scope_cnfg:
+    group: Revenue Lifecycle Management
+    description: Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
+    steps:
+      1:
+        task: manage_fulfillment_scope_cnfg
+        options:
+          operation: upsert
+          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+
   prepare_dro:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: manage_fulfillment_scope_cnfg
+        when: project_config.project__custom__dro
+        options:
+          operation: upsert
+          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+      2:
         task: insert_qb_dro_data
         when: project_config.project__custom__dro and project_config.project__custom__qb
-      2:
+      3:
         task: insert_q3_dro_data_scratch
         when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      3:
+      4:
         task: insert_q3_dro_data_prod
         when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      4:
+      5:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro
 

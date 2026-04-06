@@ -1,0 +1,22 @@
+[
+  {
+    "DeveloperName": "Group_Identifier",
+    "MasterLabel": "Group Identifier",
+    "Language": "en_US",
+    "AssetContextTag": null,
+    "DoesParticipatingAssetImpact": true,
+    "FallbackScope": "LineItem",
+    "IsAssetized": true,
+    "ItemContextTag": "SalesTransactionItemGroup"
+  },
+  {
+    "DeveloperName": "Ramp_Identifier",
+    "MasterLabel": "Ramp Identifier",
+    "Language": "en_US",
+    "AssetContextTag": null,
+    "DoesParticipatingAssetImpact": true,
+    "FallbackScope": "LineItem",
+    "IsAssetized": true,
+    "ItemContextTag": "ItemRampIdentifier"
+  }
+]

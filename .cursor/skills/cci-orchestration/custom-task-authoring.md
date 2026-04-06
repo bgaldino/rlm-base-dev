@@ -397,6 +397,14 @@ tasks:
 | `rlm_reconfigure_expression_set.py` | `ReconfigureExpressionSet` | Reconfigure autoproc expression sets |
 | `rlm_exclude_active_decision_tables.py` | `ExcludeActiveDecisionTables`, `RestoreDecisionTables` | Skip active DTs during deploy |
 | `rlm_cml.py` | `ExportCML`, `ImportCML`, `ValidateCML` | Constraint Model Language operations |
+| `rlm_bre.py` | `ExportBRE` | BRE Rule Library export (SOQL → CSV + metadata retrieve) |
+| `rlm_manage_fulfillment_scope_cnfg.py` | `ManageFulfillmentScopeCnfg` | CustomFulfillmentScopeCnfg CRUD via Tooling API |
+| `rlm_billing.py` | `CreateSequencePolicies` | Create/configure billing sequence policies via Connect API |
+| `rlm_currency.py` | `EnableMultiCurrency`, `SetCorporateCurrency` | Multi-currency enablement and corporate currency setup |
+| `rlm_writeback_ux.py` | `WritebackUXTemplates`, `WritebackFromRetrieve` | Write retrieved UX metadata back to templates |
+| `rlm_retrieve_ux.py` | `RetrieveUXFromOrg` | SOAP-based UX metadata retrieve from org |
+| `rlm_diff_ux.py` | `DiffUXTemplates`, `DiffUXFromRetrieve` | Diff UX templates against org or assembled output |
+| `rlm_enable_timeline.py` | `EnableTimeline` | Enable Timeline for RLM objects |
 | `rlm_modify_context.py` | (legacy) | Context modification helpers |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
 
