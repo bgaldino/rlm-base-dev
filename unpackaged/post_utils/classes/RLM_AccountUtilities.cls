@@ -1899,6 +1899,7 @@ public class RLM_AccountUtilities {
                                 errorCount++;
                                 for(Database.Error err : result.getErrors()) {
                                     System.debug('Error deleting asset UEA ' + result.getId() + ': ' + err.getMessage());
+                                }
                             }
                         }
                     }
