@@ -313,7 +313,7 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 f"SELECT Id, {key_field} FROM {OBJECT_NAME} WHERE {key_field} IN ({in_clause})",
             )
             for rec in records:
-                existing_map[rec[key_field]] = rec["Id"]
+                existing_map[str(rec[key_field])] = rec["Id"]
 
         self.logger.info(
             f"Found {len(existing_map)} existing record(s) out of {len(key_values)} to upsert"
@@ -327,7 +327,7 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 if k in writable_fields and k not in self._READONLY_FIELDS
             }
 
-            record_id = existing_map.get(key_value)
+            record_id = existing_map.get(str(key_value))
 
             if record_id:
                 # Remove key field from PATCH body — it's already matched

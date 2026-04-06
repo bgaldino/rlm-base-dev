@@ -406,18 +406,24 @@ class ExportBRE(BaseSalesforceTask):
         # Build the query — filter by RuleLibraryVersion if we found the FK,
         # otherwise export all Rulesets (user can filter later)
         fields_csv = ", ".join(all_fields)
+        dest = os.path.join(output_dir, "Ruleset.csv")
         if rlv_ref_field:
-            id_filter = ",".join(f"'{i}'" for i in rlv_ids)
-            soql = f"SELECT {fields_csv} FROM Ruleset WHERE {rlv_ref_field} IN ({id_filter})"
+            # Chunk rlv_ids to stay within SOQL IN-clause limits
+            chunk_size = 200
+            rlv_id_list = list(rlv_ids)
+            all_records: list = []
+            for i in range(0, len(rlv_id_list), chunk_size):
+                chunk = rlv_id_list[i : i + chunk_size]
+                id_filter = ",".join(f"'{i}'" for i in chunk)
+                soql = f"SELECT {fields_csv} FROM Ruleset WHERE {rlv_ref_field} IN ({id_filter})"
+                all_records.extend(self._soql_query(soql))
+            self.logger.info(f"  {len(all_records)} Ruleset records fetched")
+            rows = [[self._get_field_value(rec, f) for f in all_fields] for rec in all_records]
+            self._write_csv(dest, all_fields, rows)
         else:
             self.logger.info("  No RuleLibraryVersion FK found on Ruleset; exporting all Rulesets")
             soql = f"SELECT {fields_csv} FROM Ruleset"
-
-        self._export_query(
-            soql=soql,
-            fields=all_fields,
-            dest=os.path.join(output_dir, "Ruleset.csv"),
-        )
+            self._export_query(soql=soql, fields=all_fields, dest=dest)
 
         # Check for child relationships on Ruleset (e.g. RulesetRule, RulesetCondition)
         child_relations = [

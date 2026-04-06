@@ -1736,13 +1736,17 @@ public class RLM_AccountUtilities {
             ]) {
                 allBucketIds.add(b.Id);
             }
-            // Also find child buckets of these buckets
-            if(!allBucketIds.isEmpty()) {
+            // Recursively find child buckets until no new descendants are discovered
+            Set<Id> currentLevelIds = new Set<Id>(allBucketIds);
+            while(!currentLevelIds.isEmpty()) {
+                Set<Id> nextLevelIds = new Set<Id>();
                 for(UsageEntitlementBucket nb : [
-                    SELECT Id FROM UsageEntitlementBucket WHERE ParentId IN :allBucketIds AND Id NOT IN :allBucketIds
+                    SELECT Id FROM UsageEntitlementBucket WHERE ParentId IN :currentLevelIds AND Id NOT IN :allBucketIds
                 ]) {
+                    nextLevelIds.add(nb.Id);
                     allBucketIds.add(nb.Id);
                 }
+                currentLevelIds = nextLevelIds;
             }
         }
 
