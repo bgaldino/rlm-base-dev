@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-04-02T06:49:48.304146Z",
+  "assembled_at": "2026-04-04T16:00:02.585470Z",
   "feature_flags": {
     "qb": true,
     "billing": true,
@@ -30,7 +30,8 @@
       "patches": [
         {
           "feature": "utils",
-          "patch_type": "insert_action"
+          "patch_type": "insert_action",
+          "description": "insert actions: Account.RLM_QuickQuote"
         }
       ]
     },
@@ -245,31 +246,28 @@
       "patches": [
         {
           "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <name>detailTabContent</name>"
         },
         {
           "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>detailTab</identifier>"
         },
         {
           "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <value>BrowseCatalog</value>"
         },
         {
           "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>RecordFulfillmentPlanIdField</identifier>"
         },
         {
           "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
-        },
-        {
-          "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
-        },
-        {
-          "feature": "billing_ui",
-          "patch_type": "insert_after_xml"
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>RecordLegalEntityIdField</identifier>"
         }
       ]
     },
@@ -337,59 +335,73 @@
       "patches": [
         {
           "feature": "approvals",
-          "patch_type": "insert_action"
+          "patch_type": "insert_action",
+          "description": "insert actions: Quote.RLM_Submit_for_Approval"
         },
         {
           "feature": "approvals",
-          "patch_type": "add_display_field"
+          "patch_type": "add_display_field",
+          "description": "add display field: QuoteLineItem.RLM_Approval__c"
         },
         {
           "feature": "approvals",
-          "patch_type": "add_facet_field"
+          "patch_type": "add_facet_field",
+          "description": "add fields to Quote Information: RLM_Approval_Status__c, RLM_Payment_Terms__c"
         },
         {
           "feature": "approvals",
-          "patch_type": "add_facet_field"
+          "patch_type": "add_facet_field",
+          "description": "add fields to System Information: RLM_Approval_Level__c"
         },
         {
           "feature": "docgen",
-          "patch_type": "insert_action"
+          "patch_type": "insert_action",
+          "description": "insert actions: Quote.RLM_Create_Proposal, Quote.RLM_Submit_for_Approval"
         },
         {
           "feature": "docgen",
-          "patch_type": "add_display_field"
+          "patch_type": "add_display_field",
+          "description": "add display field: QuoteLineItem.RLM_Approval__c"
         },
         {
           "feature": "docgen",
-          "patch_type": "add_facet_field"
+          "patch_type": "add_facet_field",
+          "description": "add fields to Quote Information: RLM_Approval_Status__c, RLM_Payment_Terms__c"
         },
         {
           "feature": "docgen",
-          "patch_type": "add_facet_field"
+          "patch_type": "add_facet_field",
+          "description": "add fields to System Information: RLM_Approval_Level__c"
         },
         {
           "feature": "ramp_builder",
-          "patch_type": "remove_action"
+          "patch_type": "remove_action",
+          "description": "remove action: Quote.RLM_Create_Proposal"
         },
         {
           "feature": "ramp_builder",
-          "patch_type": "insert_action"
+          "patch_type": "insert_action",
+          "description": "insert actions: Quote.RLM_Create_Ramp_Schedule_V4, Quote.RLM_Create_Proposal"
         },
         {
           "feature": "ramp_builder",
-          "patch_type": "insert_action"
+          "patch_type": "insert_action",
+          "description": "insert actions: Quote.RLM_Submit_for_Approval"
         },
         {
           "feature": "ramp_builder",
-          "patch_type": "add_display_field"
+          "patch_type": "add_display_field",
+          "description": "add display field: QuoteLineItem.RLM_Approval__c"
         },
         {
           "feature": "ramp_builder",
-          "patch_type": "add_facet_field"
+          "patch_type": "add_facet_field",
+          "description": "add fields to Quote Information: RLM_Approval_Status__c, RLM_Payment_Terms__c"
         },
         {
           "feature": "ramp_builder",
-          "patch_type": "add_facet_field"
+          "patch_type": "add_facet_field",
+          "description": "add fields to System Information: RLM_Approval_Level__c"
         }
       ]
     },
@@ -658,41 +670,24 @@
       "source_tier": "conditional/billing"
     },
     {
-      "type": "appMenu",
-      "name": "AppSwitcher.appMenu-meta.xml",
-      "dest": "unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml",
-      "source_tier": "org + template priority ordering",
-      "items_total": 41,
-      "priority_applied": [
-        "RLM_Revenue_Cloud",
-        "standard__BillingConsole",
-        "standard__IndustriesEpc",
-        "standard__PriceManagement",
-        "standard__IndustriesDfo",
-        "standard__RatingManagement",
-        "standard__UsageManagement",
-        "standard__Approvals",
-        "standard__SalesforceContracts",
-        "standard__PaymentsManagement",
-        "standard__OperationsConsole"
-      ]
-    },
-    {
       "type": "profile",
       "name": "Admin.profile-meta.xml",
       "dest": "unpackaged/post_ux/profiles/Admin.profile-meta.xml",
       "patches": [
         {
           "feature": "billing",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: GeneralLedgerAccount-RLM General Ledger Account Layout"
         },
         {
           "feature": "billing",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: InvoiceLine-RLM Invoice Line Layout"
         },
         {
           "feature": "billing",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: UsageResource-RLM Usage Resource Layout"
         }
       ]
     },
@@ -703,51 +698,63 @@
       "patches": [
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Account-RLM Account Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Asset-RLM Partner Asset Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: AssetAction-RLM Asset Action Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: AttributePicklist-RLM Attribute Picklist Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Contract-RLM Contract Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Opportunity-RLM Opportunity Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: PricebookEntry-RLM Price Book Entry"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Product2-RLM Product Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: ProductCatalog-RLM Catalog Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Quote-RLM Quote Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: QuoteLineItem-RLM Quote Line Item Layout"
         },
         {
           "feature": "prm",
-          "patch_type": "add_layout_assignment"
+          "patch_type": "add_layout_assignment",
+          "description": "layout: Order-RLM Order Layout"
         }
       ]
     },

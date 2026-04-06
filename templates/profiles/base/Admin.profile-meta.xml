@@ -80,9 +80,6 @@
         <layout>QuoteLineItem-RLM Quote Line Item Layout</layout>
     </layoutAssignments>
     <layoutAssignments>
-        <layout>Order-RLM Order Layout</layout>
-    </layoutAssignments>
-    <layoutAssignments>
-        <layout>OrderItem-RLM Order Product Layout</layout>
+        <layout>RLM_Build_Info__mdt-RLM Build Info Layout</layout>
     </layoutAssignments>
 </Profile>

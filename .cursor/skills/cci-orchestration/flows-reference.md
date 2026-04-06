@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**35 flows** across **4 groups**.
+**38 flows** across **5 groups**.
 
 ---
 
@@ -44,6 +44,19 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 7. **task** `test_qb_rates_idempotency`
 8. **task** `test_qb_transactionprocessingtypes_idempotency`
 9. **task** `test_qb_guidedselling_idempotency`
+
+---
+
+## RLM Administration
+
+### `stamp_git_commit`
+
+Stamp the git commit hash into the org
+
+**Steps:**
+
+1. **task** `stamp_git_commit`
+   - `flow_name`: `prepare_rlm_org`
 
 ---
 
@@ -453,8 +466,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 28. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
 29. **flow** `prepare_scratch`
 30. **flow** `refresh_all_decision_tables`
-31. **task** `stamp_git_commit`
-   - `flow_name`: `prepare_rlm_org`
+31. **flow** `stamp_git_commit`
 
 ---
 
@@ -509,9 +521,34 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 ## UX Personalization
 
+### `apply_ux_drift`
+
+Writes back org-retrieved flexipages into base templates by reverse-applying active feature patches (new_base = org_state - patches), then re-assembles and diffs to verify zero drift. Run capture_ux_drift first to review drift, then run this flow to update templates/ automatically.
+
+**Steps:**
+
+1. **task** `writeback_ux_templates`
+   - `dry_run`: `False`
+2. **task** `assemble_and_deploy_ux`
+   - `deploy`: `False`
+3. **task** `diff_ux_templates`
+
+---
+
+### `capture_ux_drift`
+
+Retrieves live flexipages from the target org into unpackaged/post_ux/, then diffs them against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions and writes drift_report.json. Does not modify templates/. After reviewing the report, edit templates/ manually then run assemble_and_deploy_ux to deploy.
+
+**Steps:**
+
+1. **task** `retrieve_ux_from_org`
+2. **task** `diff_ux_templates`
+
+---
+
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, app menus, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation — required on Trialforce orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 28 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

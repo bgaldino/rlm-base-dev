@@ -13,14 +13,35 @@ orgs:
     beta:
       config_file: orgs/beta.json
       days: 30
-    dev-sb0:
-      config_file: orgs/dev-sb0.json
+    dev:
+      config_file: orgs/dev.json
       days: 30
     dev-r1:
       config_file: orgs/dev-r1.json
       days: 30
+    dev-sb0:
+      config_file: orgs/dev-sb0.json
+      days: 30
+    dev_preview:
+      config_file: orgs/dev_preview.json
+      days: 30
+    dev_previous:
+      config_file: orgs/dev_previous.json
+      days: 30
+    dev_enhanced:
+      config_file: orgs/dev-enhanced.json
+      days: 30
+    dev_datacloud:
+      config_file: orgs/dev-datacloud.json
+      days: 30
+    ent:
+      config_file: orgs/ent.json
+      days: 30
     ent-r1:
       config_file: orgs/ent-r1.json
+      days: 30
+    ent-sb0:
+      config_file: orgs/ent-sb0.json
       days: 30
     test-sb0:
       config_file: orgs/test-sb0.json
@@ -51,21 +72,6 @@ orgs:
       days: 30
     tfid-enable:
       config_file: orgs/tfid-enable.json
-      days: 30
-    dev_preview:
-      config_file: orgs/dev_preview.json
-      days: 30
-    dev_previous:
-      config_file: orgs/dev_previous.json
-      days: 30
-    dev_datacloud:
-      config_file: orgs/dev_datacloud.json
-      days: 30
-    dev:
-      config_file: orgs/dev.json
-      days: 30
-    dev_enhanced:
-      config_file: orgs/dev-enhanced.json
       days: 30
 
 # Project configuration settings
@@ -1174,7 +1180,7 @@ tasks:
     group: UX Personalization
     description: >
       Assembles feature-conditional UX metadata (flexipages, layouts, applications,
-      app menus, profiles) from base templates and YAML patch files in templates/.
+      profiles) from base templates and YAML patch files in templates/.
       Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
@@ -1195,6 +1201,34 @@ tasks:
     options:
       suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
       outputdir: robot/rlm-base/results
+
+  retrieve_ux_from_org:
+    group: UX Personalization
+    description: >
+      Retrieves live UX metadata (flexipages) from the target org into
+      unpackaged/post_ux/, replacing the assembled output with the org's current
+      state. Use before diff_ux_templates to capture drift between the org and
+      the assembler templates. Scope to a single page with the metadata_name option.
+    class_path: tasks.rlm_retrieve_ux.RetrieveUXFromOrg
+
+  diff_ux_templates:
+    group: UX Personalization
+    description: >
+      Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against
+      what the assembler would produce from current templates/. Reports added,
+      removed, modified, and repositioned flexiPageRegions per page. Writes a
+      drift_report.json to unpackaged/post_ux/. Does not modify any files.
+    class_path: tasks.rlm_diff_ux.DiffUXTemplates
+
+  writeback_ux_templates:
+    group: UX Personalization
+    description: >
+      Reverse-applies active feature patches against org-retrieved flexipages
+      and writes the result as updated base templates. Computes
+      new_base = org_state - patches so the assembler reproduces org state
+      without double-applying non-idempotent patches. Defaults to dry_run mode.
+      Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
+    class_path: tasks.rlm_writeback_ux.WriteBackUXTemplates
 
   deploy_post_collections:
     group: Revenue Lifecycle Management
@@ -2463,59 +2497,77 @@ flows:
         task: restore_decision_tables
         #when: org_config.scratch
       7:
+        flow: assign_feature_psls
+      8:
+        task: recalculate_permission_set_groups
+        options:
+          api_names: *rlm_psg_api_names
+      9:
+        task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      10:
+        task: recalculate_permission_set_groups
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
+      11:
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
+      12:
+        flow: extend_context_definitions
+      13:
+        task: create_rule_library
+        when: project_config.project__custom__breconfig
+      14:
+        task: create_dro_rule_library
+        when: project_config.project__custom__dro and project_config.project__custom__breconfig
+      15:
+        flow: assign_feature_permission_sets
+
+  assign_feature_psls:
+    group: Revenue Lifecycle Management
+    description: Assign feature-gated permission set licenses after pre-deploy metadata is in place
+    steps:
+      1:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
-      8:
+      2:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein
         options:
-          api_names: *rlm_ai_psl_api_names  
-      9:
-        task: util_sleep
-        options:
-          seconds: *sleep_default
-      10:
+          api_names: *rlm_ai_psl_api_names
+      3:
         task: assign_permission_set_licenses
+        when: project_config.project__custom__analytics
         options:
-          api_names: EinsteinAnalyticsPlusPsl
-      11:
-        task: recalculate_permission_set_groups
+          api_names:
+            - EinsteinAnalyticsPlusPsl
+      4:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__tso
         options:
-          api_names: *rlm_psg_api_names
-      12:
-        task: assign_permission_set_groups_tolerant
-        options:
-          api_names: *rlm_psg_api_names
-      13:
+          api_names: *rlm_tso_psl_api_names
+
+  assign_feature_permission_sets:
+    group: Revenue Lifecycle Management
+    description: Assign feature-gated permission sets after PSGs are updated
+    steps:
+      1:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      14:
-        flow: extend_context_definitions
-      15:
-        task: util_sleep
-        options:
-          seconds: *sleep_default
-      16:
-        task: create_rule_library
-        when: project_config.project__custom__breconfig
-      17:
-        task: util_sleep
-        when: project_config.project__custom__breconfig
-        options:
-          seconds: *sleep_default
-      18:
-        task: create_dro_rule_library
-        when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      19:
+      2:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      20:
+      3:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -2621,31 +2673,21 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: assign_permission_set_licenses
-        when: project_config.project__custom__tso
-        options:
-          api_names: *rlm_tso_psl_api_names
-      2:
         task: assign_permission_set_groups
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_psg_api_names
-      3:
+      2:
         task: deploy_post_utils
         when: project_config.project__custom__tso
-      4:
+      3:
         task: deploy_post_tso
         when: project_config.project__custom__tso
-      5:
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-      6:
-        task: assign_permission_set_groups_tolerant
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management
@@ -3101,11 +3143,10 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, app menus, profiles) from feature-conditional templates. Runs at
-      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
-      all referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation — required on Trialforce
-      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
+      applications, profiles) from feature-conditional templates. Runs at step 28 of
+      prepare_rlm_org, after all feature provisioning is complete, ensuring all
+      referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3113,6 +3154,39 @@ flows:
       2:
         task: reorder_app_launcher
         when: project_config.project__custom__ux
+
+  capture_ux_drift:
+    group: UX Personalization
+    description: >
+      Retrieves live flexipages from the target org into unpackaged/post_ux/, then
+      diffs them against what the assembler would produce from current templates/.
+      Reports added, removed, modified, and repositioned flexiPageRegions and writes
+      drift_report.json. Does not modify templates/. After reviewing the report,
+      edit templates/ manually then run assemble_and_deploy_ux to deploy.
+    steps:
+      1:
+        task: retrieve_ux_from_org
+      2:
+        task: diff_ux_templates
+
+  apply_ux_drift:
+    group: UX Personalization
+    description: >
+      Writes back org-retrieved flexipages into base templates by reverse-applying
+      active feature patches (new_base = org_state - patches), then re-assembles
+      and diffs to verify zero drift. Run capture_ux_drift first to review drift,
+      then run this flow to update templates/ automatically.
+    steps:
+      1:
+        task: writeback_ux_templates
+        options:
+          dry_run: false
+      2:
+        task: assemble_and_deploy_ux
+        options:
+          deploy: false
+      3:
+        task: diff_ux_templates
 
   prepare_personas:
     group: Revenue Lifecycle Management

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**192 tasks** across **9 groups**.
+**195 tasks** across **9 groups**.
 
 ---
 
@@ -2130,13 +2130,21 @@
 
 ## UX Personalization
 
-*2 task(s)*
+*5 task(s)*
 
 ### `assemble_and_deploy_ux`
 
-**Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, app menus, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
+**Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
 
 **Class:** `tasks.rlm_ux_assembly.AssembleAndDeployUX`
+
+---
+
+### `diff_ux_templates`
+
+**Description:** Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions per page. Writes a drift_report.json to unpackaged/post_ux/. Does not modify any files.
+
+**Class:** `tasks.rlm_diff_ux.DiffUXTemplates`
 
 ---
 
@@ -2150,6 +2158,22 @@
 
 - `suite`: `robot/rlm-base/tests/setup/reorder_app_launcher.robot`
 - `outputdir`: `robot/rlm-base/results`
+
+---
+
+### `retrieve_ux_from_org`
+
+**Description:** Retrieves live UX metadata (flexipages) from the target org into unpackaged/post_ux/, replacing the assembled output with the org's current state. Use before diff_ux_templates to capture drift between the org and the assembler templates. Scope to a single page with the metadata_name option.
+
+**Class:** `tasks.rlm_retrieve_ux.RetrieveUXFromOrg`
+
+---
+
+### `writeback_ux_templates`
+
+**Description:** Reverse-applies active feature patches against org-retrieved flexipages and writes the result as updated base templates. Computes new_base = org_state - patches so the assembler reproduces org state without double-applying non-idempotent patches. Defaults to dry_run mode. Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
+
+**Class:** `tasks.rlm_writeback_ux.WriteBackUXTemplates`
 
 ---
 
