@@ -1,0 +1,230 @@
+<template>
+    <lightning-card>
+        <div slot="title">
+            <div class="slds-grid slds-grid_vertical-align-center">
+                <lightning-icon icon-name="standard:calibration" size="small" class="slds-m-right_x-small"></lightning-icon>
+                <span class="slds-text-heading_small">Consolidated Billing Timeline</span>
+            </div>
+        </div>
+
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-p-around_medium">{error}</div>
+            </template>
+
+            <template if:true={hasData}>
+
+                <!-- Summary Cards -->
+                <div class="slds-grid slds-wrap slds-gutters_small slds-m-bottom_large">
+                    <!-- Total Billed -->
+                    <div class="slds-col slds-size_1-of-4">
+                        <div class="summary-card">
+                            <div class="summary-icon">
+                                <lightning-icon icon-name="utility:currency" size="small" variant="inverse"></lightning-icon>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Total Billed</div>
+                                <div class="summary-value">{formattedTotalBilled}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Total Pending -->
+                    <div class="slds-col slds-size_1-of-4">
+                        <div class="summary-card">
+                            <div class="summary-icon warning">
+                                <lightning-icon icon-name="utility:clock" size="small" variant="inverse"></lightning-icon>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Total Pending</div>
+                                <div class="summary-value">{formattedTotalPending}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Net Quantity -->
+                    <div class="slds-col slds-size_1-of-4">
+                        <div class="summary-card">
+                            <div class="summary-icon info">
+                                <lightning-icon icon-name="utility:number_input" size="small" variant="inverse"></lightning-icon>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Net Quantity</div>
+                                <div class="summary-value">{netQuantity}</div>
+                                <!-- Fix #5: show BS count separately from segment count -->
+                                <div class="summary-sublabel">{bsCount} billing schedules</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Fix #3: Billing Completion (was "Realization") -->
+                    <div class="slds-col slds-size_1-of-4">
+                        <div class="summary-card">
+                            <div class="summary-icon success">
+                                <lightning-icon icon-name="utility:trending" size="small" variant="inverse"></lightning-icon>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Billing Completion</div>
+                                <div class="summary-value">{billingCompletionPercentage}</div>
+                                <div class="summary-sublabel">{billingCompletionSubtext}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fix #3: Billing Completion Progress Bar (was "Billing Realization") -->
+                <div class="slds-m-bottom_large">
+                    <div class="slds-text-heading_small slds-m-bottom_small">
+                        <lightning-icon icon-name="utility:chart" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        Billing Completion
+                        <span class="completion-percent">{billingCompletionPercentage}</span>
+                    </div>
+                    <div class="completion-bar-container">
+                        <div class="completion-bar-billed" style={billedBarStyle}></div>
+                        <div class="completion-bar-pending" style={pendingBarStyle}></div>
+                    </div>
+                    <div class="slds-grid slds-grid_align-spread slds-m-top_x-small">
+                        <div class="legend-item">
+                            <span class="legend-dot billed"></span>
+                            <span class="slds-text-body_small">Billed {formattedTotalBilled}</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot pending"></span>
+                            <span class="slds-text-body_small">Pending {formattedTotalPending}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fix #2 & #4: Consolidated Billing Timeline Chart — grouped by billingTermUnit, stacked billed/pending -->
+                <div class="slds-m-bottom_large">
+                    <div class="slds-text-heading_small slds-m-bottom_small">
+                        <lightning-icon icon-name="utility:graph" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        Consolidated Billing Timeline
+                        <!-- Fix #5: segment count is now correct -->
+                        <span class="slds-text-body_small slds-m-left_small">{segmentCount} segments</span>
+                    </div>
+
+                    <!-- Chart legend -->
+                    <div class="slds-grid slds-m-bottom_small chart-legend">
+                        <div class="legend-item slds-m-right_medium">
+                            <span class="legend-swatch billed-swatch"></span>
+                            <span class="slds-text-body_small">Billed</span>
+                        </div>
+                        <div class="legend-item slds-m-right_medium">
+                            <span class="legend-swatch pending-swatch"></span>
+                            <span class="slds-text-body_small">Pending</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-swatch zero-swatch"></span>
+                            <span class="slds-text-body_small">$0 net (amended/cancelled)</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <!-- Y-axis -->
+                        <div class="chart-y-axis">
+                            <template for:each={yAxisLabels} for:item="label">
+                                <div key={label} class="y-axis-label">{label}</div>
+                            </template>
+                        </div>
+
+                        <!-- Plot area -->
+                        <div class="chart-plot-area">
+                            <div class="chart-bars-row">
+                                <template for:each={chartGroups} for:item="group">
+                                    <div key={group.key} class="chart-bar-group" style={group.barGroupStyle}>
+
+                                        <!-- Zero period: thin grey marker -->
+                                        <template if:true={group.isZero}>
+                                            <div class="zero-marker" style={group.zeroBarStyle} title={group.tooltip}></div>
+                                        </template>
+
+                                        <!-- Non-zero: stacked bar — pending (blue) on top, billed (green) on bottom -->
+                                        <template if:false={group.isZero}>
+                                            <div class="chart-bar billing-bar"
+                                                 style={group.billingBarStyle}
+                                                 title={group.tooltip}>
+                                                <div class="bar-segment pending-seg" style={group.pendingSegStyle}></div>
+                                                <div class="bar-segment billed-seg"  style={group.billedSegStyle}></div>
+                                                <span class="bar-label">{group.formattedNet}</span>
+                                            </div>
+                                        </template>
+
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- X-axis labels aligned to bar groups -->
+                            <div class="chart-x-axis">
+                                <template for:each={chartGroups} for:item="group">
+                                    <div key={group.key} class="x-axis-label" style={group.xAxisLabelStyle}>
+                                        {group.label}
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Segments Detail Table -->
+                <div class="slds-m-top_large">
+                    <div class="slds-text-heading_small slds-m-bottom_small">
+                        <lightning-icon icon-name="utility:table" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        Billing Segments Detail
+                        <span class="slds-text-body_small slds-m-left_small">{segmentCount} segments</span>
+                    </div>
+
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_fixed-layout">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th class="slds-text-title_caps" scope="col" style="width:3rem">#</th>
+                                <th class="slds-text-title_caps" scope="col">Period</th>
+                                <th class="slds-text-title_caps numeric-header" scope="col">Net Qty</th>
+                                <th class="slds-text-title_caps numeric-header" scope="col">Periodic Billing</th>
+                                <th class="slds-text-title_caps numeric-header" scope="col">Credits</th>
+                                <th class="slds-text-title_caps" scope="col">Active Schedules</th>
+                                <th class="slds-text-title_caps" scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={consolidatedSegments} for:item="segment">
+                                <tr key={segment.periodNumber} class={segment.rowClass}>
+                                    <td>{segment.periodNumber}</td>
+                                    <td>
+                                        <div class="period-dates">
+                                            <div>{segment.formattedStartDate}</div>
+                                            <div class="date-arrow">→</div>
+                                            <div>{segment.formattedEndDate}</div>
+                                        </div>
+                                    </td>
+                                    <td class="numeric-cell">{segment.netQuantityDisplay}</td>
+                                    <td class="numeric-cell">{segment.formattedPeriodicBilling}</td>
+                                    <td class="numeric-cell credit-amount">{segment.formattedCredits}</td>
+                                    <td>
+                                        <div class="schedule-badges">
+                                            <template for:each={segment.scheduleLinks} for:item="link">
+                                                <lightning-button
+                                                    key={link.id}
+                                                    variant="base"
+                                                    label={link.label}
+                                                    class="schedule-badge-link"
+                                                    data-schedule-id={link.id}
+                                                    onclick={navigateToSchedule}>
+                                                </lightning-button>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <lightning-badge label={segment.status} class={segment.statusClass}></lightning-badge>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+            </template>
+        </div>
+    </lightning-card>
+</template>

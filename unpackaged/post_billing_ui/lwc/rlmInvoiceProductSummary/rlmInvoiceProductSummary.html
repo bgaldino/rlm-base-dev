@@ -1,0 +1,273 @@
+<template>
+    <lightning-card>
+        <div slot="title" class="card-header">
+            <h2 class="slds-text-heading_small">Product Charge Summary</h2>
+            <p class="header-subtitle">{headerSubtitle}</p>
+        </div>
+
+        <div class="slds-card__body">
+
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-around_large">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:true={hasError}>
+                <div class="slds-m-around_medium">
+                    <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                        <span class="slds-assistive-text">error</span>
+                        <h2>{errorMessage}</h2>
+                    </div>
+                </div>
+            </template>
+
+            <template if:true={isEmpty}>
+                <div class="slds-align_absolute-center slds-m-around_large">
+                    <p class="slds-text-color_weak">No invoice lines found for this invoice.</p>
+                </div>
+            </template>
+
+            <template if:true={hasData}>
+
+                <div class="info-strip">
+                    <lightning-icon icon-name="utility:info" size="x-small" class="info-icon"></lightning-icon>
+                    <span>Multiple invoice lines per product are consolidated below. Click a row to expand line details and asset attributes.</span>
+                </div>
+
+                <div class="col-header">
+                    <div class="col-product">Product</div>
+                    <div class="col-lines">Lines</div>
+                    <div class="col-amount col-amount-right">Subtotal</div>
+                    <div class="col-amount col-amount-right">Tax</div>
+                    <div class="col-amount col-amount-right">Total Charge</div>
+                </div>
+
+                <div class="product-list">
+                    <template for:each={productRows} for:item="row">
+                        <div key={row.productId}>
+
+                            <!-- Product summary row -->
+                            <div
+                                class={row.rowClass}
+                                onclick={handleToggle}
+                                data-id={row.productId}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={handleKeydown}
+                                data-keyid={row.productId}
+                            >
+                                <div class="col-product product-cell">
+                                    <lightning-button-icon
+                                        icon-name={row.chevronIcon}
+                                        variant="bare"
+                                        size="small"
+                                        alternative-text="Toggle"
+                                        class="chevron-btn"
+                                        data-id={row.productId}
+                                        onclick={handleChevronClick}
+                                    ></lightning-button-icon>
+                                    <div class="product-info">
+                                        <span class="product-name">{row.productName}</span>
+                                        <template if:true={row.chargeType}>
+                                            <span class={row.pillClass}>{row.chargeType}</span>
+                                        </template>
+                                        <template if:true={row.isBundle}>
+                                            <span class="bundle-role-pill">Bundle</span>
+                                        </template>
+                                        <span class="line-count-sub">{row.lineCountLabel}</span>
+                                    </div>
+                                </div>
+                                <div class="col-lines cell-right">{row.lineCount}</div>
+                                <div class={row.subtotalClass}>{row.formattedSubtotal}</div>
+                                <div class={row.taxClass}>{row.formattedTax}</div>
+                                <div class={row.totalClass}>{row.formattedTotal}</div>
+                            </div>
+
+                            <!-- Expanded section -->
+                            <template if:true={row.isExpanded}>
+                                <div class="expanded-section">
+
+                                    <!-- Collapsible Attributes -->
+                                    <template if:true={row.hasAssetBlocks}>
+                                        <div class="attr-section">
+                                            <button class="attr-toggle-btn" onclick={handleAttrToggle} data-id={row.productId}>
+                                                <lightning-icon icon-name={row.attrChevronIcon} size="x-small" class="attr-chevron"></lightning-icon>
+                                                <span class="attr-section-title">Attributes</span>
+                                            </button>
+                                            <template if:true={row.attrExpanded}>
+                                                <template for:each={row.assetBlocks} for:item="block">
+                                                    <div key={block.assetId} class="asset-block">
+                                                        <div class="attr-chip-grid">
+                                                            <template for:each={block.attributes} for:item="attr">
+                                                                <div key={attr.label} class="attr-chip">
+                                                                    <span class="attr-label">{attr.label}</span>
+                                                                    <span class="attr-value">{attr.displayValue}</span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Line rows -->
+                                    <div class="sub-lines">
+                                        <template for:each={row.lines} for:item="line">
+                                            <div key={line.lineId}>
+
+                                                <!-- Depth-0: bundle parent header (collapsible) -->
+                                                <template if:true={line.isParent}>
+                                                    <div class="sub-line parent-line bundle-header-row"
+                                                         role="button" tabindex="0"
+                                                         onclick={handleBundleToggle}
+                                                         data-id={line.lineId}>
+                                                        <div class="col-product sub-name-cell">
+                                                            <lightning-icon icon-name={line.bundleChevron} size="x-small" class="bundle-chevron"></lightning-icon>
+                                                            <div class="sub-name">
+                                                                <div class="bundle-header-nameline">
+                                                                    <span class="parent-name">{line.name}</span>
+                                                                    <span class="bundle-role-pill">Bundle</span>
+                                                                </div>
+                                                                <template if:true={line.dateRange}>
+                                                                    <span class="date-range">{line.dateRange}</span>
+                                                                </template>
+                                                                <template if:true={line.description}>
+                                                                    <span class="line-description">{line.description}</span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lines cell-right sub-cell">—</div>
+                                                        <div class={line.chargeClass}>{line.formattedCharge}</div>
+                                                        <div class={line.taxClass}>{line.formattedTax}</div>
+                                                        <div class={line.totalClass}>{line.formattedTotal}</div>
+                                                    </div>
+                                                    <!-- Children only shown when expanded -->
+                                                    <template if:true={line.bundleExpanded}>
+                                                        <template for:each={line.components} for:item="comp1">
+                                                            <div key={comp1.lineId}>
+                                                                <!-- Depth-1: may itself be a bundle parent -->
+                                                                <template if:true={comp1.isParent}>
+                                                                    <div class="sub-line parent-line component-line bundle-header-row indent-1"
+                                                                         role="button" tabindex="0"
+                                                                         onclick={handleBundleToggle}
+                                                                         data-id={comp1.lineId}>
+                                                                        <div class="col-product sub-name-cell indent-1">
+                                                                            <span class="component-indent">└</span>
+                                                                            <lightning-icon icon-name={comp1.bundleChevron} size="x-small" class="bundle-chevron"></lightning-icon>
+                                                                            <div class="sub-name">
+                                                                                <div class="bundle-header-nameline">
+                                                                                    <span class="parent-name">{comp1.name}</span>
+                                                                                    <span class="bundle-role-pill">Bundle</span>
+                                                                                </div>
+                                                                                <template if:true={comp1.dateRange}>
+                                                                                    <span class="date-range">{comp1.dateRange}</span>
+                                                                                </template>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-lines cell-right sub-cell">—</div>
+                                                                        <div class={comp1.chargeClass}>{comp1.formattedCharge}</div>
+                                                                        <div class={comp1.taxClass}>{comp1.formattedTax}</div>
+                                                                        <div class={comp1.totalClass}>{comp1.formattedTotal}</div>
+                                                                    </div>
+                                                                    <template if:true={comp1.bundleExpanded}>
+                                                                        <template for:each={comp1.components} for:item="comp2">
+                                                                            <div key={comp2.lineId} class="sub-line component-line">
+                                                                                <div class="col-product sub-name-cell indent-2">
+                                                                                    <span class="component-indent">└</span>
+                                                                                    <div class="sub-name">
+                                                                                        <span class="component-name">{comp2.name}</span>
+                                                                                        <template if:true={comp2.dateRange}>
+                                                                                            <span class="date-range">{comp2.dateRange}</span>
+                                                                                        </template>
+                                                                                        <template if:true={comp2.description}>
+                                                                                            <span class="line-description">{comp2.description}</span>
+                                                                                        </template>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-lines cell-right sub-cell">—</div>
+                                                                                <div class={comp2.chargeClass}>{comp2.formattedCharge}</div>
+                                                                                <div class={comp2.taxClass}>{comp2.formattedTax}</div>
+                                                                                <div class={comp2.totalClass}>{comp2.formattedTotal}</div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </template>
+                                                                </template>
+                                                                <!-- Depth-1: flat component -->
+                                                                <template if:false={comp1.isParent}>
+                                                                    <div class="sub-line component-line">
+                                                                        <div class="col-product sub-name-cell indent-1">
+                                                                            <span class="component-indent">└</span>
+                                                                            <div class="sub-name">
+                                                                                <span class="component-name">{comp1.name}</span>
+                                                                                <template if:true={comp1.dateRange}>
+                                                                                    <span class="date-range">{comp1.dateRange}</span>
+                                                                                </template>
+                                                                                <template if:true={comp1.description}>
+                                                                                    <span class="line-description">{comp1.description}</span>
+                                                                                </template>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-lines cell-right sub-cell">—</div>
+                                                                        <div class={comp1.chargeClass}>{comp1.formattedCharge}</div>
+                                                                        <div class={comp1.taxClass}>{comp1.formattedTax}</div>
+                                                                        <div class={comp1.totalClass}>{comp1.formattedTotal}</div>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+                                                </template>
+
+                                                <!-- Depth-0: flat (non-bundle) line -->
+                                                <template if:false={line.isParent}>
+                                                    <div class={line.lineRowClass}>
+                                                        <div class="col-product sub-name-cell">
+                                                            <div class="sub-name">
+                                                                <span class={line.nameClass}>{line.name}</span>
+                                                                <template if:true={line.dateRange}>
+                                                                    <span class="date-range">{line.dateRange}</span>
+                                                                </template>
+                                                                <template if:true={line.description}>
+                                                                    <span class="line-description">{line.description}</span>
+                                                                </template>
+                                                                <template if:true={line.usageLabel}>
+                                                                    <span class="usage-label">{line.usageLabel}</span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lines cell-right sub-cell">—</div>
+                                                        <div class={line.chargeClass}>{line.formattedCharge}</div>
+                                                        <div class={line.taxClass}>{line.formattedTax}</div>
+                                                        <div class={line.totalClass}>{line.formattedTotal}</div>
+                                                    </div>
+                                                </template>
+
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                </div>
+                            </template>
+
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <div class="card-footer">
+                    <div class="col-product footer-label">
+                        <lightning-icon icon-name="utility:check" size="x-small" class="footer-icon"></lightning-icon>
+                        Invoice Total &nbsp;·&nbsp; {footerMeta}
+                    </div>
+                    <div class="col-lines cell-right footer-cell">{totalLines}</div>
+                    <div class="col-amount footer-cell">{formattedGrandSubtotal}</div>
+                    <div class="col-amount footer-cell">{formattedGrandTax}</div>
+                    <div class="col-amount footer-cell footer-total">{formattedGrandTotal}</div>
+                </div>
+
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -1,7 +1,9 @@
 # Dynamic UX Assembly
 
-> Feature branch: `ux/dynamic-assembly`
-> Implemented in: `tasks/rlm_ux_assembly.py`, `cumulusci.yml` (`prepare_ux`, `assemble_and_deploy_ux`)
+> Implemented in: `tasks/rlm_ux_assembly.py`, `tasks/rlm_writeback_ux.py`,
+> `tasks/rlm_retrieve_ux.py`, `tasks/rlm_diff_ux.py`
+> Shared utilities: `tasks/rlm_ux_utils.py` (feature flags, standalone order, source resolver)
+> Flows: `prepare_ux`, `capture_ux_drift`, `apply_ux_drift`
 > Template root: `templates/`
 > Output: `unpackaged/post_ux/` (git-tracked)
 
@@ -13,16 +15,16 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (immediately
-before `refresh_all_decision_tables` at step 30).
+in one `sf project deploy start` call at **step 27** of `prepare_rlm_org` (immediately
+before `prepare_scratch` at step 27 and `refresh_all_decision_tables` at step 29).
 
 ### Problems it solves
 
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 29 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 29 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 27 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 27 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -38,8 +40,8 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 `prepare_ux` runs only when `ux=true`:
 
 ```yaml
-# prepare_rlm_org step 29
-29:
+# prepare_rlm_org step 27
+27:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```
@@ -92,9 +94,6 @@ templates/
 │   └── conditional/
 │       ├── billing/                    # standard__BillingConsole (conditional)
 │       └── collections/                # CollectionConsole + Receivables Management (conditional)
-├── appMenus/
-│   └── base/
-│       └── AppSwitcher.appMenu-meta.xml    # Deployed only when tso=true
 ├── objects/
 │   ├── base/                           # Compact layouts and list views from force-app
 │   │   ├── Asset/
@@ -130,10 +129,11 @@ templates/
 **Source resolution** (last write wins):
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
-   `payments → billing → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → billing → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
+`quantumbit → utils → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
@@ -203,18 +203,13 @@ No patching — layouts are copied as-is.
 - `standard__BillingConsole` — when `billing=true`
 - `standard__CollectionConsole`, `RLM_Receivables_Management` — when `collections=true`
 
-### App Menus
-
-`AppSwitcher.appMenu-meta.xml` is copied from `templates/appMenus/` only when `tso=true`.
-When `tso=false`, no appMenu is assembled (preserving the org-default App Launcher order).
-
 ### Profiles
 
 **Strip-and-build approach**:
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 29, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 27, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -247,7 +242,7 @@ cci task run assemble_and_deploy_ux [options]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `-o metadata_type` | `all` | `all`, `flexipages`, `layouts`, `applications`, `appmenus`, `profiles`, `objects` |
+| `-o metadata_type` | `all` | `all`, `flexipages`, `layouts`, `applications`, `profiles`, `objects` |
 | `-o metadata_name` | (none) | Full source filename to generate one item, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`. Type is inferred from suffix. |
 | `-o deploy` | `true` | Set `false` to assemble without deploying (inspect `unpackaged/post_ux/` output) |
 | `-o output_path` | `unpackaged/post_ux` | Override output directory |
@@ -282,8 +277,102 @@ cci task run assemble_and_deploy_ux \
 cci flow run prepare_ux --org dev-sb0
 ```
 
-Single-step flow that runs `assemble_and_deploy_ux` with default options (full assembly +
-deploy). Runs as step 29 of `prepare_rlm_org` when `ux=true`.
+Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
+`reorder_app_launcher`. Runs as step 27 of `prepare_rlm_org` when `ux=true`.
+
+---
+
+## Drift Capture and Writeback
+
+When UX changes are made directly in the org (e.g. rearranging components on a
+Lightning page), the templates need to be updated to match. The drift capture and
+writeback workflow automates this.
+
+### Workflow
+
+```
+1. capture_ux_drift  — retrieve org state, diff against templates
+2. (review drift_report.json)
+3. apply_ux_drift    — writeback to templates, re-assemble, verify zero drift
+```
+
+### `capture_ux_drift` flow
+
+```bash
+cci flow run capture_ux_drift --org dev-sb0
+```
+
+Steps:
+1. `retrieve_ux_from_org` — retrieves live flexipages from the org into `unpackaged/post_ux/`
+2. `diff_ux_templates` — compares retrieved state against assembled output, writes `drift_report.json`
+
+### `apply_ux_drift` flow
+
+```bash
+cci flow run apply_ux_drift --org dev-sb0
+```
+
+Steps:
+1. `writeback_ux_templates` (dry_run=false) — reverse-applies patches to compute new base templates
+2. `assemble_and_deploy_ux` (deploy=false) — re-assembles from updated templates
+3. `diff_ux_templates` — verifies zero drift between assembled output and org state
+
+### `writeback_ux_templates` task
+
+```bash
+# Dry-run (default) — shows what would change without modifying templates
+cci task run writeback_ux_templates --org dev-sb0
+
+# Execute writeback
+cci task run writeback_ux_templates -o dry_run false --org dev-sb0
+
+# Single page
+cci task run writeback_ux_templates \
+    -o metadata_name RLM_Order_Record_Page.flexipage-meta.xml \
+    -o dry_run false --org dev-sb0
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o dry_run` | `true` | Set `false` to actually write back templates |
+| `-o metadata_name` | (none) | Process a single file |
+| `-o metadata_type` | `all` | `all`, `flexipages`, or `layouts` |
+
+### Writeback Algorithm
+
+The assembler invariant is: `base + patches = deployed state`.
+Writeback computes: `new_base = org_state - reverse(patches)`.
+
+For flexipages with active patches:
+1. Parse org-retrieved XML from `unpackaged/post_ux/`
+2. Reverse-apply each patch operation (remove inserted actions, fields, components,
+   and `insert_after_xml` content)
+3. Write the result as the new base template
+4. Extract updated patch content from the org state and update YAML patch files
+
+For standalone flexipages (no patches): copy org file directly to the standalone
+template directory.
+
+For layouts: resolve tier ownership (base → billing → constraints, last-wins) and
+copy the org file to the correct template directory.
+
+Profile writeback is not automated — profile changes require manual review and
+are applied with oversight.
+
+### Patch YAML Auto-Update
+
+During writeback, the task also updates YAML patch files to reflect the current
+org state. For `insert_after_xml` patches, it uses a sync marker algorithm to
+locate where base content resumes after inserted patch content, then extracts
+the current patch XML from the org. Patches whose content no longer exists in
+the org are removed from the YAML file.
+
+### XML Serialization
+
+The assembler preserves `&quot;` entity encoding in `<value>` elements that
+contain HTML (`&lt;`) or JSON (`[{`, `{"`). For unpatched flexipages (no active
+patches), the assembler bypasses ElementTree entirely and uses a direct file
+copy to avoid any serialization artifacts.
 
 ---
 
@@ -300,10 +389,10 @@ before assembly). Do not hand-edit files here; edit the templates instead.
 ```
 unpackaged/post_ux/
 ├── assembly_manifest.json     # Assembly run metadata: timestamp, flags, all items
-├── flexipages/                # 46 assembled flexipages (EmailTemplatePage types excluded)
+├── drift_report.json          # Drift analysis output (git-ignored)
+├── flexipages/                # ~53 assembled flexipages (EmailTemplatePage types excluded)
 ├── layouts/                   # 19 assembled layouts (17 base + 2–3 feature variants)
 ├── applications/              # 1–3 app files depending on active features
-├── appMenus/                  # 0–1 files (only when tso=true)
 ├── objects/                   # compactLayouts + listViews organized by object
 └── profiles/                  # 2 assembled profiles
 ```
@@ -415,8 +504,8 @@ TSO introduces:
 - `RLM_Revenue_Cloud.app-meta.xml` from `templates/applications/tso/` (different tab set,
   custom branding)
 - 6 standalone TSO flexipage overrides from `templates/flexipages/standalone/tso/`
-- `AppSwitcher.appMenu-meta.xml` from `templates/appMenus/` (deployed only when tso=true)
 - TSO-specific profile app visibility differences
+- App Launcher ordering handled dynamically by `reorder_app_launcher` (no static appMenu)
 
 **Test steps:**
 
@@ -428,11 +517,9 @@ TSO introduces:
 3. Verify:
    - `unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml` comes from
      `templates/applications/tso/` (not quantumbit variant)
-   - `unpackaged/post_ux/appMenus/AppSwitcher.appMenu-meta.xml` is present
    - All 6 TSO flexipage variants are selected over their quantumbit counterparts
    - Assembly manifest shows `tso: true` in `feature_flags`
 4. Deploy and verify in the org UI:
-   - App Launcher order matches `AppSwitcher.appMenu-meta.xml`
    - TSO-specific Lightning pages load without component errors
    - All record pages function correctly with TSO field/component additions
 
@@ -447,7 +534,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 29
+2. Confirm all UX deploys succeed at step 27
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages
@@ -494,6 +581,23 @@ If `sf project deploy start` fails with `SourceConflictError`, clear the local t
 sf org display --target-org <alias> --json | python3 -c "import sys,json; print(json.loads(sys.stdin.read())['result']['id'])"
 # Delete tracking index
 rm -rf .sf/orgs/<org-id>/localSourceTracking
+```
+
+### Capture and apply org drift
+
+```bash
+# Step 1: Capture drift (retrieve + diff)
+cci flow run capture_ux_drift --org dev-sb0
+
+# Step 2: Review the drift report
+cat unpackaged/post_ux/drift_report.json | python3 -m json.tool
+
+# Step 3: Apply drift to templates (writeback + reassemble + verify)
+cci flow run apply_ux_drift --org dev-sb0
+
+# Step 4: Verify zero drift
+# The apply_ux_drift flow re-runs diff_ux_templates as its final step.
+# If the drift report shows no differences, the writeback succeeded.
 ```
 
 ### Adding a new patch type or flexipage

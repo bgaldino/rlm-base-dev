@@ -192,6 +192,136 @@ def rewrite_status(rows: list, headers: list, object_name: str) -> list:
     return new_rows
 
 
+# ---------------------------------------------------------------------------
+# ID-to-portable-value resolution for text fields that store raw Salesforce IDs.
+# These are NOT reference/lookup fields — they are text fields that hold an ID
+# and need to be resolved to their corresponding traversal field value.
+# ---------------------------------------------------------------------------
+# Map: object_name -> list of (id_field, traversal_field, description)
+# When id_field contains a non-empty, non-#N/A value, replace it with the
+# value from traversal_field in the same row (which SFDMU already resolved).
+ID_TEXT_FIELD_RESOLUTION = {
+    "ProductFulfillmentDecompRule": [
+        ("SourceIdentifier", "SourceProduct.StockKeepingUnit", "Product2 ID → SKU"),
+        ("SourceClassIdentifier", "SourceProductClassification.Name", "ProductClassification ID → Name"),
+    ],
+}
+
+
+def resolve_id_text_fields(rows: list, headers: list, object_name: str,
+                           verbose: bool = False) -> list:
+    """Replace raw Salesforce IDs in text fields with portable traversal values.
+
+    Some sObjects store IDs in text fields (e.g. SourceIdentifier on
+    ProductFulfillmentDecompRule holds a Product2 Id). SFDMU extracts these
+    as-is. This function substitutes the portable value from the corresponding
+    traversal field that was queried in the same row.
+    """
+    mappings = ID_TEXT_FIELD_RESOLUTION.get(object_name)
+    if not mappings:
+        return rows
+
+    resolved = []
+    for id_field, traversal_field, desc in mappings:
+        if id_field in headers and traversal_field in headers:
+            resolved.append((
+                headers.index(id_field),
+                headers.index(traversal_field),
+                id_field,
+                traversal_field,
+                desc,
+            ))
+
+    if not resolved:
+        return rows
+
+    # Only treat empty and SFDMU's explicit null marker (#N/A) as missing.
+    # Do NOT include "N/A" — it is a legitimate business value in several CSVs
+    # (e.g. AttributePicklistValue: Rear Storage "N/A", RAID "N/A").
+    na_values = {"", "#N/A"}
+    new_rows = []
+    counts = {r[2]: 0 for r in resolved}
+    for row in rows:
+        row = list(row)
+        for id_idx, trav_idx, id_name, trav_name, desc in resolved:
+            id_val = row[id_idx] if id_idx < len(row) else ""
+            trav_val = row[trav_idx] if trav_idx < len(row) else ""
+            if id_val not in na_values and trav_val not in na_values:
+                row[id_idx] = trav_val
+                counts[id_name] += 1
+        new_rows.append(row)
+
+    if verbose:
+        for id_name, count in counts.items():
+            if count:
+                print(f"    Resolved {count} {id_name} IDs to portable values")
+
+    return new_rows
+
+
+# ---------------------------------------------------------------------------
+# Field defaults: populate fields that may not be returned by extraction
+# but are required in the plan CSV for portability across org configurations.
+# ---------------------------------------------------------------------------
+# Map: object_name -> list of (target_field, source_field, description)
+# When target_field is empty/#N/A, copy the value from source_field.
+FIELD_DEFAULTS = {
+    "AttributePicklist": [
+        ("Code", "Name", "Code defaults to Name when not queryable (Commerce-dependent field)"),
+    ],
+}
+
+
+def apply_field_defaults(rows: list, headers: list, object_name: str,
+                         verbose: bool = False) -> list:
+    """Populate empty fields with default values from other fields in the same row.
+
+    Some fields (e.g. AttributePicklist.Code) are required in certain org
+    configurations but may not exist or may be returned as null during
+    extraction.  This function copies a source field value into the target
+    field when the target is empty, ensuring the plan CSV is portable.
+    """
+    defaults = FIELD_DEFAULTS.get(object_name)
+    if not defaults:
+        return rows
+
+    resolved = []
+    for target, source, desc in defaults:
+        if target in headers and source in headers:
+            resolved.append((
+                headers.index(target),
+                headers.index(source),
+                target,
+                source,
+                desc,
+            ))
+
+    if not resolved:
+        return rows
+
+    # Only treat empty and SFDMU's explicit null marker (#N/A) as missing.
+    # Do NOT include "N/A" — it is a legitimate business value in several CSVs.
+    na_values = {"", "#N/A"}
+    new_rows = []
+    counts = {r[2]: 0 for r in resolved}
+    for row in rows:
+        row = list(row)
+        for tgt_idx, src_idx, tgt_name, src_name, desc in resolved:
+            tgt_val = row[tgt_idx] if tgt_idx < len(row) else ""
+            src_val = row[src_idx] if src_idx < len(row) else ""
+            if tgt_val in na_values and src_val not in na_values:
+                row[tgt_idx] = src_val
+                counts[tgt_name] += 1
+        new_rows.append(row)
+
+    if verbose:
+        for tgt_name, count in counts.items():
+            if count:
+                print(f"    Defaulted {count} {tgt_name} values from source field")
+
+    return new_rows
+
+
 def build_composite_key_column(row_dict: dict, components: list) -> str:
     """Build a composite key value from component field values (legacy $$ support).
 
@@ -361,11 +491,51 @@ def align_columns(extracted_headers: list, extracted_rows: list,
     return aligned_headers, aligned_rows
 
 
+def normalize_na_values(rows: list, headers: list) -> list:
+    """Replace SFDMU v5 #N/A notation with empty strings for portable output.
+
+    SFDMU v5 uses #N/A to represent explicit nulls.  On import, #N/A instructs
+    SFDMU to overwrite the target field with null, whereas an empty string
+    causes the field to be skipped (left untouched).  For plan CSVs we want
+    the "skip" behaviour so that system-populated or default values are not
+    wiped on subsequent imports.
+
+    Also handles #N/A components embedded inside semicolon-delimited composite
+    key columns ($$Field1$Field2 notation).
+    """
+    na_marker = "#N/A"
+    # Pre-compute which columns are composite keys
+    composite_idx = {i for i, h in enumerate(headers) if "$$" in h}
+
+    new_rows = []
+    for row in rows:
+        new_row = []
+        for i, v in enumerate(row):
+            if v == na_marker:
+                new_row.append("")
+            elif i in composite_idx and na_marker in v:
+                # Normalize #N/A components within composite key values
+                parts = v.split(";")
+                parts = ["" if p == na_marker else p for p in parts]
+                # Collapse to empty if all components are empty
+                joined = ";".join(parts)
+                new_row.append("" if all(p == "" for p in parts) else joined)
+            else:
+                new_row.append(v)
+        new_rows.append(new_row)
+    return new_rows
+
+
 def write_csv(path: str, headers: list, rows: list) -> None:
-    """Write a CSV file with the given headers and rows."""
+    """Write a CSV file with the given headers and rows.
+
+    Uses LF line endings to match .gitattributes (eol=lf for *.csv).
+    Python's csv.writer defaults to CRLF per RFC 4180; we override
+    with lineterminator='\\n' to stay consistent with the repo convention.
+    """
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(headers)
         writer.writerows(rows)
 
@@ -507,10 +677,19 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
         # Rewrite status fields
         ext_rows = rewrite_status(ext_rows, ext_headers, obj_name)
 
+        # Resolve raw Salesforce IDs in text fields to portable values
+        ext_rows = resolve_id_text_fields(ext_rows, ext_headers, obj_name, verbose)
+
+        # Populate field defaults for portability across org configurations
+        ext_rows = apply_field_defaults(ext_rows, ext_headers, obj_name, verbose)
+
         # Align columns to match plan CSV format
         proc_headers, proc_rows = align_columns(
             ext_headers, ext_rows, plan_headers, obj_name, verbose
         )
+
+        # Normalize #N/A to empty strings for safe, idempotent imports
+        proc_rows = normalize_na_values(proc_rows, proc_headers)
 
         # Diff against existing plan
         if plan_headers is not None:

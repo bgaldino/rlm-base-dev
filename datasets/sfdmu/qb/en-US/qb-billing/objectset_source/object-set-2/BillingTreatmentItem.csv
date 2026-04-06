@@ -3,6 +3,10 @@ Billing Treatment Item - Advance - USA;Billing Treatment - USA - Advance,Billing
 Billing Treatment - Advance - Canada;Billing Treatment - Advance - Canada,Billing Treatment - Advance - Canada;Billing Policy - Advance;Default Legal Entity - Canada,Billing Treatment - Advance - Canada,Active
 Billing Treatment Item - Arrears - USA;Billing Treatment - USA - Arrears,Billing Treatment - USA - Arrears;Billing Policy - Arrears;Default Legal Entity - US,Billing Treatment Item - Arrears - USA,Active
 Billing Treatment Item - Canada - Arrears;Billing Treatment - Canada - Arrears,Billing Treatment - Canada - Arrears;Billing Policy - Arrears;Default Legal Entity - Canada,Billing Treatment Item - Canada - Arrears,Active
+Billing Treatment Item - Advance - EU;Billing Treatment - EU - Advance,Billing Treatment - EU - Advance;Billing Policy - Advance;Default Legal Entity - EU,Billing Treatment Item - Advance - EU,Active
+Billing Treatment Item - Arrears - EU;Billing Treatment - EU - Arrears,Billing Treatment - EU - Arrears;Billing Policy - Arrears;Default Legal Entity - EU,Billing Treatment Item - Arrears - EU,Active
+Billing Treatment Item - Advance - UK;Billing Treatment - UK - Advance,Billing Treatment - UK - Advance;Billing Policy - Advance;Default Legal Entity - UK,Billing Treatment Item - Advance - UK,Active
+Billing Treatment Item - Arrears - UK;Billing Treatment - UK - Arrears,Billing Treatment - UK - Arrears;Billing Policy - Arrears;Default Legal Entity - UK,Billing Treatment Item - Arrears - UK,Active
 Configuration & Deployment;Milestone Billing Treatment,Milestone Billing Treatment;Milestone Billing Policy - Software,Configuration & Deployment,Active
 Requirements Gathering;Milestone Billing Treatment,Milestone Billing Treatment;Milestone Billing Policy - Software,Requirements Gathering,Active
 Design Completion;Milestone Billing Treatment,Milestone Billing Treatment;Milestone Billing Policy - Software,Design Completion,Active

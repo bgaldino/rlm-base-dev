@@ -1,7 +1,7 @@
 {
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
-  "edition": "enterprise",
+  "edition": "developer",
   "instance": "USA794",
   "features": [
     "B2BCommerce",
@@ -22,11 +22,14 @@
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
     "RevenueIntelligence",
-    "SalesCloudEinstein",
     "ServiceCloud",
-    "UsageManagement"
+    "UsageManagement",
+    "UnifiedCatalog"
   ],
   "settings": {
+    "agentPlatformSettings": {
+      "enableAgentPlatform": true
+    },
     "billingSettings": {
       "enableBillingSetup": true
     },
@@ -51,6 +54,29 @@
     "industriesContextSettings": {
       "enableContextDefinitions": true
     },
+    "industriesSettings": {
+      "enableAIAccelerator": true,
+      "enableAccountScoreEnabled": false,
+      "enableContractMgmtPref": true,
+      "enableContractSearchPref": true,
+      "enableContractsAIPref": true,
+      "enableDataTrueUpPreference": true,
+      "enableDiscoveryFrameworkMetadata": true,
+      "enableDontSharePartyprofWPortalOrgPref": false,
+      "enableEnhancedQuestionCreation": true,
+      "enableEpcDeleteAccess": false,
+      "enableIndustriesAssessment": true,
+      "enableIndustriesAssessmentPrefill": false,
+      "enableIndustriesIntegrationOrchestratorPref": false,
+      "enableMicrosoftWordAddInEnabled": true,
+      "enableNewTimelineSetupFlow": true,
+      "enablePCMConfigRules": false,
+      "enablePartyProfileParentSharingOrgPref": false,
+      "enablePartyprofParentMultiSharingOrgPref": false,
+      "enableTimelinePref": true,
+      "partyProfMultiShrPrtnrsOrgPref": false,
+      "rlaEditIfAccHasEdit": false
+    },
     "industriesPricingSettings": {
       "enableHighAvailability": true,
       "enablePricingWaterfall": true,
@@ -64,6 +90,15 @@
     },
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
+    },
+    "omniStudioSettings": {
+      "enableOaEventInternalWrites": true,
+      "enableOaEventNotifications": true,
+      "enableOaForCore": true,
+      "enableOmniReplaceFileBasedApex": true,
+      "enableOmniStudioDrVersion": false,
+      "enableOmniStudioMetadata": true,
+      "enableStandardOmniStudioRuntime": true
     },
     "omniChannelSettings": {
       "enableOmniChannel": true

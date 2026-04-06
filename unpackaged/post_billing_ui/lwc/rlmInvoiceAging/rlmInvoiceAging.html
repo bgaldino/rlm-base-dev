@@ -1,0 +1,140 @@
+<template>
+    <article class="slds-card invoice-aging-card">
+        <!-- Header -->
+        <div class="slds-card__header">
+            <header class={sectionClass}>
+                <div class="slds-section__title-action">
+                    <button class="slds-button slds-section__title-action-button" 
+                            aria-controls="invoice-aging-content" 
+                            aria-expanded={isExpanded}
+                            onclick={toggleSection}>
+                        <lightning-icon icon-name={sectionIcon} 
+                                      size="x-small" 
+                                      class="slds-section__title-action-icon"></lightning-icon>
+                        <span class="slds-truncate card-title">Invoice Aging</span>
+                    </button>
+                </div>
+            </header>
+            <div class="card-subtitle">Track invoice payment status and aging breakdown</div>
+        </div>
+
+        <!-- Content -->
+        <template lwc:if={isExpanded}>
+            <div class="slds-card__body slds-card__body_inner" id="invoice-aging-content">
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-text-align_center slds-m-vertical_large">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error State -->
+            <template if:true={error}>
+                <div class="slds-text-align_center slds-m-vertical_large">
+                    <p class="slds-text-color_error">Error loading invoice data</p>
+                </div>
+            </template>
+
+            <!-- Data Content -->
+            <template if:false={isLoading}>
+                <template if:false={error}>
+                    <!-- Currency Notice -->
+                    <div class="currency-notice">
+                        <lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>
+                        <span>*Amounts shown in org's default currency. If multi-currency is enabled, figures are inaccurate</span>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="metrics-container">
+                        <h2 class="section-heading">Key Metrics</h2>
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <div class="metric-label">Total Invoices</div>
+                                <div class="metric-value">{totalInvoices}</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Overdue Invoices</div>
+                                <div class="metric-value-row">
+                                    <span class="metric-value">{overdueInvoices}</span>
+                                    <span class={overdueStatusClass}>{overdueStatus}</span>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Total Invoice Amount</div>
+                                <div class="metric-value-currency">{formattedTotalAmount}</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Average Invoice Age</div>
+                                <div class="metric-value">{formattedAverageAge}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aging Breakdown Chart -->
+                    <div class="aging-breakdown">
+                        <h2 class="section-heading">Aging Breakdown</h2>
+                        <div class="chart-subtitle">Distribution of invoices by age range</div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-y-axis">
+                                <div class="y-label">{maxChartValue}</div>
+                                <div class="y-label">{halfChartValue}</div>
+                                <div class="y-label">0</div>
+                            </div>
+                            <div class="chart-bars">
+                                <template for:each={chartData} for:item="bar">
+                                    <div key={bar.key} class="bar-wrapper">
+                                        <div class="bar-container">
+                                            <div class="bar"
+                                                 style={bar.barStyle}
+                                                 data-color={bar.color}>
+                                            </div>
+                                        </div>
+                                        <div class="bar-label">{bar.label}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Count by Age -->
+                    <div class="count-breakdown">
+                        <h2 class="section-heading">Invoice Count by Age</h2>
+                        
+                        <div class="count-item">
+                            <div class="count-row">
+                                <span class="color-indicator green"></span>
+                                <span class="count-label">Less than 30 days</span>
+                            </div>
+                            <span class="count-value">{lessThan30Days}</span>
+                        </div>
+
+                        <div class="count-item">
+                            <div class="count-row">
+                                <span class="color-indicator orange"></span>
+                                <span class="count-label">30-60 days</span>
+                            </div>
+                            <span class="count-value">{days30To60}</span>
+                        </div>
+
+                        <div class="count-item">
+                            <div class="count-row">
+                                <span class="color-indicator red"></span>
+                                <span class="count-label">60+ days</span>
+                            </div>
+                            <span class="count-value">{moreThan60Days}</span>
+                        </div>
+                    </div>
+
+                    <!-- No Data State -->
+                    <template if:false={hasData}>
+                        <div class="slds-text-align_center slds-m-vertical_large">
+                            <p class="slds-text-color_weak">No invoice data available for this account</p>
+                        </div>
+                    </template>
+                </template>
+            </template>
+            </div>
+        </template>
+    </article>
+</template>

@@ -1,0 +1,62 @@
+<template>
+    <lightning-card title="Split Invoices" icon-name="standard:invoice">
+        <div class="slds-p-horizontal_medium slds-p-vertical_small">
+            <template if:true={isLoading}>
+                <div class="slds-m-vertical_small slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                    <span class="slds-text-body_small slds-text-color_weak">Loading split invoices…</span>
+                    <lightning-spinner size="small" alternative-text="Loading" variant="brand"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-m-vertical_small">{errorMessage}</div>
+            </template>
+
+            <template if:true={hasRows}>
+                <div class="cards-container">
+                    <template for:each={rows} for:item="row">
+                        <article key={row.Id} class="invoice-card">
+                            <header class="card-header">
+                                <div class="card-title-row">
+                                    <img src={invoiceCardLogoUrl} alt="Invoice" class="card-logo" />
+                                    <a href={row.invoiceUrl} class="card-title card-title-link" data-id={row.Id} data-action="open_invoice" onclick={handleLinkClick}>{row.Name}</a>
+                                    <span class={row.statusBadgeClass}>{row.Status}</span>
+                                </div>
+                                <div class="card-meta">
+                                    <span class="card-balance">{row.formattedTotalWithTax}</span>
+                                    <span class="card-date">{row.formattedDate}</span>
+                                </div>
+                            </header>
+                            <div class="card-body">
+                                <div class="card-field">
+                                    <span class="card-label">ACCOUNT</span>
+                                    <span class="card-value">{row.billingAccountName}</span>
+                                </div>
+                                <div class="card-field">
+                                    <span class="card-label">BILL TO CONTACT</span>
+                                    <span class="card-value">{row.billToContactName}</span>
+                                </div>
+                                <div class="card-field">
+                                    <span class="card-label">BILLING PROFILE</span>
+                                    <span class="card-value">{row.billingProfileName}</span>
+                                </div>
+                                <div class="card-field">
+                                    <span class="card-label">SETTLEMENT STATUS</span>
+                                    <span class={row.settlementStatusClass}>{row.settlementStatus}</span>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </template>
+
+            <template if:false={hasRows}>
+                <template if:false={isLoading}>
+                    <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                        No split invoices found for this invoice.
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

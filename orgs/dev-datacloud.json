@@ -25,7 +25,8 @@
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "ServiceCloud",
-    "UsageManagement"
+    "UsageManagement",
+    "UnifiedCatalog"
   ],
   "settings": {
     "billingSettings": {

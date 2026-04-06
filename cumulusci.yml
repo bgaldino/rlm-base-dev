@@ -116,7 +116,7 @@ project:
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
     constraints_data: false   # Use Constraint Builder Data
-    guidedselling: false      # Use Guided Selling
+    guidedselling: true      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
@@ -2728,7 +2728,6 @@ flows:
 
   prepare_badger_flow:
     group: Badger RCA
-    when: project_config.project__custom__badger
     steps:
       1:
         task: deploy_full_badger_1

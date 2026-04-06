@@ -1,0 +1,43 @@
+.status-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.suspended {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.suspended .pill-icon {
+    --slds-c-icon-color-foreground-default: #b91c1c;
+}
+
+.active {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+
+.active .pill-icon {
+    --slds-c-icon-color-foreground-default: #1d4ed8;
+}
+
+.pill-text {
+    white-space: nowrap;
+}
+
+.pill-dates {
+    font-weight: 500;
+    font-size: 0.75rem;
+    opacity: 0.85;
+    white-space: nowrap;
+}
