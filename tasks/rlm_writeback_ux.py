@@ -49,15 +49,22 @@ try:
         _load_yaml,
         _write_xml,
     )
-    from tasks.rlm_ux_utils import resolve_flexipage_sources
 except ImportError:
     AssembleAndDeployUX = None
     SF_NS = "http://soap.sforce.com/2006/04/metadata"
     SF_NS_TAG = f"{{{SF_NS}}}"
+
+try:
+    from tasks.rlm_ux_utils import resolve_flexipage_sources
+except ImportError as _tasks_utils_err:
     try:
         from rlm_ux_utils import resolve_flexipage_sources
-    except ImportError:
-        resolve_flexipage_sources = None
+    except ImportError as _root_utils_err:
+        def resolve_flexipage_sources(*args, **kwargs):  # type: ignore[misc]
+            raise ImportError(
+                "Unable to import resolve_flexipage_sources from "
+                "'tasks.rlm_ux_utils' or 'rlm_ux_utils'."
+            ) from _root_utils_err
 
 ET.register_namespace("", SF_NS)
 
