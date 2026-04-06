@@ -49,8 +49,10 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
     Uses the Metadata API directly (SOAP retrieve) to avoid sf CLI PATH
     and environment issues when running inside CCI's Python process.
 
-    Retrieval scope defaults to all flexipages defined in
-    templates/flexipages/base/. Pass metadata_name to limit to one page.
+    Retrieval scope defaults to all flexipages that the assembler would deploy:
+    base pages from templates/flexipages/base/ plus any standalone overrides
+    from templates/flexipages/standalone/ whose feature flag is active in
+    project.custom. Pass metadata_name to limit to a single page.
     """
 
     task_options = {
@@ -59,7 +61,8 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
                 "Specific file to retrieve, identified by its full source filename "
                 "including the type suffix, e.g. "
                 "'RLM_Order_Record_Page.flexipage-meta.xml'. "
-                "Retrieves all base-template pages when omitted."
+                "When omitted, retrieves all flexipages the assembler would deploy: "
+                "base templates plus standalone overrides for active feature flags."
             ),
             "required": False,
         },
