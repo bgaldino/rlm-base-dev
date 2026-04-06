@@ -1,11 +1,7 @@
 DestinationProduct.StockKeepingUnit,Name,Priority,SourceProduct.StockKeepingUnit,SourceProductClassification.Name
-QB-DRO-BILL,Scope of Work to Finance,,,Services
-QB-DRO-BILL,Services Rate to Finance,,,Services
-QB-DRO-BILL,Fundamentals Training to Finance,,,Services
-QB-DRO-BILL,Essentials Training to Finance,,,Services
+QB-DRO-BILL,Services to Finance,,,Services
 QB-DRO-BILL,QuantumBit Database to Finance,,,QuantumBit Database
-QB-DRO-PROJ,Scope of Work to Project Service,,,Services
-QB-DRO-PROJ,Services Rate to Project Service,,,Services
+QB-DRO-PROJ,Services to Project Service,,,Services
 QB-DRO-QBD,QuantumBit Database to Provisioning and Activation Service,,,QuantumBit Database
 QB-DRO-AAPI,Additional API to Provisioning and Activation Service,,QB-API,
 QB-DRO-BILL,Additional API to Finance,,QB-API,
@@ -19,9 +15,6 @@ QB-DRO-BILL,Additional Credits to Finance,,QB-AUT-CRED,
 QB-DRO-BILL,Service Project to Finance,,QB-BDL-SRVC,
 QB-DRO-PROJ,Service Project to Project Service,,QB-BDL-SRVC,
 QB-DRO-BILL,Additional Data Throughput (TB) to Finance,,QB-DAT-THPT,
-QB-DRO-BILLING,QuantumBit Database - Billing (Standalone),,QB-DB-TOKEN,
-QB-DRO-LICACT,QuantumBit Database - Activation (Standalone),,QB-DB-TOKEN,
-QB-DRO-PROVISION,QuantumBit Database - Provisioning (Standalone),,QB-DB-TOKEN,
 QB-DRO-AACR,Additional Flow to Provisioning and Activation Service,,QB-FLO-STRT,
 QB-DRO-BILL,Additional Flow to Finance,,QB-FLO-STRT,
 QB-DRO-AM,Additional Message to Provisioning and Activation Service,,QB-MSG-STRT,

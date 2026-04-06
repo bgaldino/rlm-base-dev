@@ -249,6 +249,9 @@ public class RLM_AccountUtilities {
             deleteUsageLiableSummaries(accountId); // UsageBillingPeriodItem
             deleteUsageRatableSummaries(accountId);
             
+            // Delete UsageEntitlement records (bound to account, assets, or contracts)
+            deleteUsageEntitlements(accountId);
+
             // Then handle other usage and billing related records
             deleteTransactionJournal(accountId);
             deleteUsageSummaries(accountId);
@@ -1222,6 +1225,140 @@ public class RLM_AccountUtilities {
     }
 
     /**
+     * Deletes UsageEntitlement records for a given account.
+     * UsageEntitlement can be bound to Account, Asset, or Contract.
+     * Children (TransactionUsageEntitlement, UsageEntitlementAccount,
+     * UsageRatableSummary, UsageSummary) must be deleted first.
+     *
+     * Must be called AFTER deleteTransactionUsageEntitlement, deleteUsageEntitlementAccount,
+     * deleteUsageRatableSummaries, and deleteUsageSummaries so that account-level children
+     * are already gone. This method handles any remaining children bound via the
+     * UsageEntitlementId relationship.
+     */
+    private static Boolean deleteUsageEntitlements(String accountId) {
+        Id accountIdConverted = accountId;
+
+        // Collect UsageEntitlement IDs across all binding types
+        Set<Id> ueIds = new Set<Id>();
+
+        // 1. Bound to Account
+        try {
+            for(SObject ue : Database.query('SELECT Id FROM UsageEntitlement WHERE AccountId = :accountIdConverted')) {
+                ueIds.add(ue.Id);
+            }
+        } catch(Exception e) {
+            System.debug('UsageEntitlement AccountId query failed: ' + e.getMessage());
+        }
+
+        // 2. Bound to Assets on this Account
+        List<Asset> accountAssets = [SELECT Id FROM Asset WHERE AccountId = :accountIdConverted];
+        if(!accountAssets.isEmpty()) {
+            Set<Id> assetIds = new Set<Id>();
+            for(Asset a : accountAssets) {
+                assetIds.add(a.Id);
+            }
+            try {
+                for(SObject ue : Database.query('SELECT Id FROM UsageEntitlement WHERE AssetId IN :assetIds')) {
+                    ueIds.add(ue.Id);
+                }
+            } catch(Exception e) {
+                System.debug('UsageEntitlement AssetId query failed: ' + e.getMessage());
+            }
+        }
+
+        // 3. Bound to Contracts on this Account
+        List<Contract> accountContracts = [SELECT Id FROM Contract WHERE AccountId = :accountIdConverted];
+        if(!accountContracts.isEmpty()) {
+            Set<Id> contractIds = new Set<Id>();
+            for(Contract c : accountContracts) {
+                contractIds.add(c.Id);
+            }
+            try {
+                for(SObject ue : Database.query('SELECT Id FROM UsageEntitlement WHERE ContractId IN :contractIds')) {
+                    ueIds.add(ue.Id);
+                }
+            } catch(Exception e) {
+                System.debug('UsageEntitlement ContractId query failed: ' + e.getMessage());
+            }
+        }
+
+        if(ueIds.isEmpty()) {
+            System.debug('No UsageEntitlement records found for account');
+            return true;
+        }
+
+        System.debug('Found ' + ueIds.size() + ' UsageEntitlement records to delete');
+
+        // Delete remaining children that reference these UsageEntitlements
+
+        // TransactionUsageEntitlements
+        try {
+            List<SObject> childTUEs = Database.query('SELECT Id FROM TransactionUsageEntitlement WHERE UsageEntitlementId IN :ueIds');
+            if(!childTUEs.isEmpty()) {
+                Set<Id> tueIds = new Set<Id>();
+                for(SObject tue : childTUEs) { tueIds.add(tue.Id); }
+                System.debug('Deleting ' + childTUEs.size() + ' child TUEs of UsageEntitlements');
+                deleteUsageEntitlementBucketsBottomUp(tueIds, 'TransactionUsageEntitlement');
+                Database.delete(childTUEs, false);
+            }
+        } catch(Exception e) {
+            System.debug('Child TUE deletion failed: ' + e.getMessage());
+        }
+
+        // UsageEntitlementAccounts
+        try {
+            List<SObject> childUEAs = Database.query('SELECT Id FROM UsageEntitlementAccount WHERE UsageEntitlementId IN :ueIds');
+            if(!childUEAs.isEmpty()) {
+                Set<Id> ueaIds = new Set<Id>();
+                for(SObject uea : childUEAs) { ueaIds.add(uea.Id); }
+                System.debug('Deleting ' + childUEAs.size() + ' child UEAs of UsageEntitlements');
+                deleteUsageEntitlementBucketsBottomUp(ueaIds, 'UsageEntitlementAccount');
+                Database.delete(childUEAs, false);
+            }
+        } catch(Exception e) {
+            System.debug('Child UEA deletion failed: ' + e.getMessage());
+        }
+
+        // UsageRatableSummaries
+        try {
+            List<SObject> childURSs = Database.query('SELECT Id FROM UsageRatableSummary WHERE UsageEntitlementId IN :ueIds');
+            if(!childURSs.isEmpty()) {
+                System.debug('Deleting ' + childURSs.size() + ' child Usage Ratable Summaries of UsageEntitlements');
+                Database.delete(childURSs, false);
+            }
+        } catch(Exception e) {
+            System.debug('Child URS deletion failed: ' + e.getMessage());
+        }
+
+        // UsageSummaries
+        try {
+            List<SObject> childUSums = Database.query('SELECT Id FROM UsageSummary WHERE UsageEntitlementId IN :ueIds');
+            if(!childUSums.isEmpty()) {
+                System.debug('Deleting ' + childUSums.size() + ' child Usage Summaries of UsageEntitlements');
+                Database.delete(childUSums, false);
+            }
+        } catch(Exception e) {
+            System.debug('Child UsageSummary deletion failed: ' + e.getMessage());
+        }
+
+        // Now delete the UsageEntitlement records
+        List<SObject> ueRecords = Database.query('SELECT Id, Name FROM UsageEntitlement WHERE Id IN :ueIds');
+        if(!ueRecords.isEmpty()) {
+            System.debug('Deleting ' + ueRecords.size() + ' UsageEntitlement records');
+            Database.DeleteResult[] results = Database.delete(ueRecords, false);
+            for(Database.DeleteResult result : results) {
+                if(!result.isSuccess()) {
+                    for(Database.Error err : result.getErrors()) {
+                        System.debug('Error deleting UsageEntitlement: ' + err.getMessage());
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Deletes TransactionJournal records for a given account.
      * These records represent financial transactions and can be related to:
      * - Account
@@ -1493,42 +1630,150 @@ public class RLM_AccountUtilities {
      */
     private static Boolean deleteAllRecordsReferencingAssets(String accountId) {
         System.debug('=== Comprehensive deletion of all records referencing assets for account: ' + accountId);
-        
+
         // Get all assets for this account
         List<Asset> accountAssets = [SELECT Id, Name FROM Asset WHERE AccountId = :accountId];
         if(accountAssets.isEmpty()) {
             System.debug('No assets found for account');
             return true;
         }
-        
+
         Set<Id> assetIds = new Set<Id>();
         for(Asset asset : accountAssets) {
             assetIds.add(asset.Id);
-            System.debug('Found asset: ' + asset.Name + ' (ID: ' + asset.Id + ')');
         }
-        System.debug('Total assets to check: ' + assetIds.size());
-        
-        // Delete Transaction Usage Entitlements that reference assets
-        deleteTransactionUsageEntitlementsByAsset(assetIds);
-        
-        // Delete Usage Entitlement Accounts that reference assets
-        deleteUsageEntitlementAccountsByAsset(assetIds);
-        
-        // Delete Usage Liable Summaries that reference assets
-        deleteUsageLiableSummariesByAsset(assetIds);
-        
-        // Delete Usage Ratable Summaries that reference assets
-        deleteUsageRatableSummariesByAsset(assetIds);
-        
-        // Delete any other records that might reference assets
+        System.debug('Total assets to clean up: ' + assetIds.size());
+
+        Id acctId = accountId;
+
+        // =================================================================
+        // Deletion order (confirmed from org diagnostics):
+        //   UAG (UsageSummary) blocks → URS, UEB
+        //   URS (UsageRatableSummary) blocks → UEB
+        //   UBPI (UsageBillingPeriodItem / liable summaries) blocks → UEB
+        //   UEB (UsageEntitlementBucket) blocks → TUE, UEA
+        //   TUE, UEA, URS, UAG block → Asset
+        //
+        // So: UAG → URS → UBPI → UEB (leaf→parent) → TUE → UEA → Asset
+        // =================================================================
+
+        // --- 1. Delete UsageSummaries (UAG) — blocks URS and UEB ---
+        List<UsageSummary> usList = [SELECT Id FROM UsageSummary WHERE AssetId IN :assetIds];
+        if(!usList.isEmpty()) {
+            System.debug('Deleting ' + usList.size() + ' Usage Summaries');
+            Database.delete(usList, false);
+        }
+        // Also delete by account (catches any not directly on the asset)
+        List<UsageSummary> usAcctList = [SELECT Id FROM UsageSummary WHERE AccountId = :acctId AND Id NOT IN :usList];
+        if(!usAcctList.isEmpty()) {
+            System.debug('Deleting ' + usAcctList.size() + ' additional Usage Summaries by account');
+            Database.delete(usAcctList, false);
+        }
+
+        // --- 2. Delete UsageRatableSummaries (URS) — blocks UEB ---
+        List<UsageRatableSummary> ursList = [SELECT Id FROM UsageRatableSummary WHERE AssetId IN :assetIds];
+        if(!ursList.isEmpty()) {
+            System.debug('Deleting ' + ursList.size() + ' Usage Ratable Summaries');
+            Database.delete(ursList, false);
+        }
+
+        // --- 3. Delete UsageBillingPeriodItems (UBPI / liable summaries) — blocks UEB ---
+        try {
+            List<SObject> ubpiList = Database.query('SELECT Id FROM UsageBillingPeriodItem WHERE AssetId IN :assetIds');
+            if(!ubpiList.isEmpty()) {
+                System.debug('Deleting ' + ubpiList.size() + ' Usage Billing Period Items');
+                Database.delete(ubpiList, false);
+            }
+        } catch(Exception e) { System.debug('UBPI by asset query skipped: ' + e.getMessage()); }
+        // Also try by account
+        try {
+            List<SObject> ubpiAcct = Database.query('SELECT Id FROM UsageBillingPeriodItem WHERE AccountId = :acctId');
+            if(!ubpiAcct.isEmpty()) {
+                System.debug('Deleting ' + ubpiAcct.size() + ' UBPI by account');
+                Database.delete(ubpiAcct, false);
+            }
+        } catch(Exception e) { System.debug('UBPI by account query skipped: ' + e.getMessage()); }
+
+        // --- 4. Delete UsageEntitlementBuckets (UEB) — blocks TUE and UEA ---
+        // Collect all TUE IDs
+        Set<Id> allTueIds = new Set<Id>();
+        for(SObject r : [SELECT Id FROM TransactionUsageEntitlement WHERE AssetId IN :assetIds]) { allTueIds.add(r.Id); }
+        try {
+            for(SObject r : Database.query('SELECT Id FROM TransactionUsageEntitlement WHERE GrantBindingTargetId IN :assetIds')) { allTueIds.add(r.Id); }
+        } catch(Exception e) { /* field may not exist */ }
+        // Also get all TUEs by account
+        for(SObject r : [SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :acctId]) { allTueIds.add(r.Id); }
+
+        // Collect all UEA IDs
+        Set<Id> allUeaIds = new Set<Id>();
+        for(UsageEntitlementAccount uea : [SELECT Id FROM UsageEntitlementAccount WHERE AccountId = :acctId]) {
+            allUeaIds.add(uea.Id);
+        }
+
+        // Find all buckets: by TUE reference, by UEA parent, or by account
+        Set<Id> bucketSearchIds = new Set<Id>();
+        bucketSearchIds.addAll(allTueIds);
+        bucketSearchIds.addAll(allUeaIds);
+
+        Set<Id> allBucketIds = new Set<Id>();
+        if(!bucketSearchIds.isEmpty()) {
+            for(UsageEntitlementBucket b : [
+                SELECT Id FROM UsageEntitlementBucket
+                WHERE TransactionUsageEntitlementId IN :allTueIds
+                OR ParentId IN :bucketSearchIds
+            ]) {
+                allBucketIds.add(b.Id);
+            }
+            // Also find child buckets of these buckets
+            if(!allBucketIds.isEmpty()) {
+                for(UsageEntitlementBucket nb : [
+                    SELECT Id FROM UsageEntitlementBucket WHERE ParentId IN :allBucketIds AND Id NOT IN :allBucketIds
+                ]) {
+                    allBucketIds.add(nb.Id);
+                }
+            }
+        }
+
+        // Multi-pass bucket deletion (handles nested parent-child hierarchy)
+        if(!allBucketIds.isEmpty()) {
+            Integer maxPasses = 5;
+            for(Integer pass = 0; pass < maxPasses && !allBucketIds.isEmpty(); pass++) {
+                List<UsageEntitlementBucket> toDelete = [SELECT Id FROM UsageEntitlementBucket WHERE Id IN :allBucketIds];
+                if(toDelete.isEmpty()) break;
+                System.debug('Bucket deletion pass ' + (pass+1) + ': ' + toDelete.size() + ' buckets');
+                Database.DeleteResult[] results = Database.delete(toDelete, false);
+                for(Database.DeleteResult dr : results) {
+                    if(dr.isSuccess()) {
+                        allBucketIds.remove(dr.getId());
+                    }
+                }
+            }
+            if(!allBucketIds.isEmpty()) {
+                System.debug('WARNING: ' + allBucketIds.size() + ' buckets could not be deleted');
+            }
+        }
+
+        // --- 5. Delete TUEs ---
+        if(!allTueIds.isEmpty()) {
+            List<TransactionUsageEntitlement> tuesToDel = [SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :allTueIds];
+            if(!tuesToDel.isEmpty()) {
+                System.debug('Deleting ' + tuesToDel.size() + ' TUEs');
+                Database.delete(tuesToDel, false);
+            }
+        }
+
+        // --- 6. Delete UEAs ---
+        if(!allUeaIds.isEmpty()) {
+            List<UsageEntitlementAccount> ueasToDel = [SELECT Id FROM UsageEntitlementAccount WHERE Id IN :allUeaIds];
+            if(!ueasToDel.isEmpty()) {
+                System.debug('Deleting ' + ueasToDel.size() + ' UEAs');
+                Database.delete(ueasToDel, false);
+            }
+        }
+
+        // --- 7. Delete other asset references (ServiceContract, WorkOrder, Case) ---
         deleteOtherAssetReferences(assetIds);
-        
-        // Final diagnostic check - look for specific records mentioned in error messages
-        diagnosticCheckForRemainingRecords(assetIds);
-        
-        // Final cleanup - try to delete specific problematic records by name
-        deleteSpecificProblematicRecords();
-        
+
         return true;
     }
 
@@ -1692,19 +1937,120 @@ public class RLM_AccountUtilities {
     }
 
     /**
+     * Deletes UsageEntitlement records and their children for the given assets.
+     * UsageEntitlement is a parent to TransactionUsageEntitlement, UsageEntitlementAccount,
+     * UsageRatableSummary, and UsageSummary — all children must be deleted first.
+     */
+    private static void deleteUsageEntitlementsByAsset(Set<Id> assetIds) {
+        System.debug('Deleting UsageEntitlements and their children for assets');
+
+        List<SObject> usageEntitlements;
+        try {
+            usageEntitlements = Database.query('SELECT Id, Name FROM UsageEntitlement WHERE AssetId IN :assetIds');
+        } catch(Exception e) {
+            System.debug('UsageEntitlement query failed: ' + e.getMessage());
+            return;
+        }
+
+        if(usageEntitlements.isEmpty()) {
+            System.debug('No UsageEntitlement records found for assets');
+            return;
+        }
+
+        Set<Id> ueIds = new Set<Id>();
+        for(SObject ue : usageEntitlements) {
+            ueIds.add(ue.Id);
+            System.debug('Found UsageEntitlement: ' + ue.get('Name') + ' (ID: ' + ue.Id + ')');
+        }
+
+        // Delete children in dependency order (leaves first)
+        // 1. TransactionUsageEntitlements referencing these UsageEntitlements
+        String[] tueQueries = new String[]{
+            'SELECT Id, Name FROM TransactionUsageEntitlement WHERE UsageEntitlementId IN :ueIds'
+        };
+        for(String q : tueQueries) {
+            try {
+                List<SObject> tues = Database.query(q);
+                if(!tues.isEmpty()) {
+                    Set<Id> tueIds = new Set<Id>();
+                    for(SObject tue : tues) {
+                        tueIds.add(tue.Id);
+                    }
+                    System.debug('Deleting ' + tues.size() + ' TUEs referencing UsageEntitlements');
+                    deleteUsageEntitlementBucketsBottomUp(tueIds, 'TransactionUsageEntitlement');
+                    Database.delete(tues, false);
+                }
+            } catch(Exception e) {
+                System.debug('TUE child query failed: ' + e.getMessage());
+            }
+        }
+
+        // 2. UsageEntitlementAccounts referencing these UsageEntitlements
+        try {
+            List<SObject> ueas = Database.query('SELECT Id, Name FROM UsageEntitlementAccount WHERE UsageEntitlementId IN :ueIds');
+            if(!ueas.isEmpty()) {
+                Set<Id> ueaIds = new Set<Id>();
+                for(SObject uea : ueas) {
+                    ueaIds.add(uea.Id);
+                }
+                System.debug('Deleting ' + ueas.size() + ' UEAs referencing UsageEntitlements');
+                deleteUsageEntitlementBucketsBottomUp(ueaIds, 'UsageEntitlementAccount');
+                Database.delete(ueas, false);
+            }
+        } catch(Exception e) {
+            System.debug('UEA child query failed: ' + e.getMessage());
+        }
+
+        // 3. UsageRatableSummaries referencing these UsageEntitlements
+        try {
+            List<SObject> urss = Database.query('SELECT Id FROM UsageRatableSummary WHERE UsageEntitlementId IN :ueIds');
+            if(!urss.isEmpty()) {
+                System.debug('Deleting ' + urss.size() + ' Usage Ratable Summaries referencing UsageEntitlements');
+                Database.delete(urss, false);
+            }
+        } catch(Exception e) {
+            System.debug('URS child query failed: ' + e.getMessage());
+        }
+
+        // 4. UsageSummaries referencing these UsageEntitlements
+        try {
+            List<SObject> usageSums = Database.query('SELECT Id FROM UsageSummary WHERE UsageEntitlementId IN :ueIds');
+            if(!usageSums.isEmpty()) {
+                System.debug('Deleting ' + usageSums.size() + ' Usage Summaries referencing UsageEntitlements');
+                Database.delete(usageSums, false);
+            }
+        } catch(Exception e) {
+            System.debug('UsageSummary child query failed: ' + e.getMessage());
+        }
+
+        // Now delete the UsageEntitlement records themselves
+        System.debug('Deleting ' + usageEntitlements.size() + ' UsageEntitlement records');
+        Database.DeleteResult[] results = Database.delete(usageEntitlements, false);
+        for(Database.DeleteResult result : results) {
+            if(!result.isSuccess()) {
+                for(Database.Error err : result.getErrors()) {
+                    System.debug('Error deleting UsageEntitlement: ' + err.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
      * Deletes any other records that might reference assets
      */
     private static void deleteOtherAssetReferences(Set<Id> assetIds) {
         System.debug('Deleting other records that might reference assets');
-        
+
+        // UsageEntitlements require special handling — children must be deleted first
+        deleteUsageEntitlementsByAsset(assetIds);
+
         // Try to find and delete any other objects that might reference assets
         String[] otherPossibleQueries = new String[]{
-            'SELECT Id FROM UsageEntitlement WHERE AssetId IN :assetIds',
             'SELECT Id FROM ServiceContract WHERE AssetId IN :assetIds',
             'SELECT Id FROM WorkOrder WHERE AssetId IN :assetIds',
             'SELECT Id FROM Case WHERE AssetId IN :assetIds'
         };
-        
+
         for(String queryString : otherPossibleQueries) {
             try {
                 List<SObject> records = Database.query(queryString);

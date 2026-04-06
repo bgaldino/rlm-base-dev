@@ -1,18 +1,11 @@
 AmendGroup.Name,AssignedTo.Name,CancelledGroup.Name,CustomBaseExecutionDate,CustomFulfillmentScope,DelayOf,DelayUnit,ExecuteOn,FlowDefinitionName,ForcePlanFreezeDuringExecution,IntegrationDefinitionName.DeveloperName,IsSkipBranch,Name,OmniscriptName,PointOfNoReturn,ResumeOnRule.Name,Scope,StepDefinitionGroup.Name,StepType,TaskAllocationType,UsageType
-,__DRO_ASSIGNED_TO_USER__,,,,,,,RLM_Assetize_Order_DRO_Fulfillment,Never,,false,Convert Order to Asset - Tenant Provisioning + Activation,,,,Plan,Tenant Provisioning + Activation,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Provision Platform,,,,Plan,Platform Provisioning,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,Group_Identifier,,,SourceLineStartDate,,Never,,false,Activate Tokens,,,,Custom,License Activation,ManualTask,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Post Invoice,,,,Plan,Finance,ManualTask,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Validate Order Info,,,,Plan,Order Processing,ManualTask,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning - Tenant Provisioning + Activation,,,,Plan,Tenant Provisioning + Activation,Callout,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Initiate Billing,,,,Plan,Finance,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Update Billing,,,,Plan,Billing and Invoicing,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Payment,,,,Plan,Finance,ManualTask,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,RLM_Assetize_Order_DRO_Fulfillment,Never,,false,Convert Order to Asset - Order Processing,,,,Plan,Order Processing,Milestone,,
+,__DRO_ASSIGNED_TO_USER__,,,Group_Identifier,,,SourceLineStartDate,,Never,,false,Activate Tokens,,,,Custom,Usage Provisioning & Activation,ManualTask,,Fulfillment
+,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Post Invoice,,,,Plan,Finance,ManualTask,,Fulfillment
+,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Initiate Billing,,,,Plan,Finance,Milestone,,Fulfillment
+,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Payment,,,,Plan,Finance,ManualTask,,Fulfillment
 ,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning - Platform,,,,Plan,Platform,Callout,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Create Project,,,,LineItem,Services,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Assign Resources,,,,LineItem,Services,ManualTask,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Start Project,,,,Plan,Services,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Review Order,,,,Plan,Order Processing,ManualTask,,
 ,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Key + Assign to Asset,,,,Plan,Platform,Milestone,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,SourceLineStartDate,,Never,RLM_DFOTenantProvisioningCallout,false,Provision Licensing/Features,,,,LineItem,Feature/License Provisioning + Activation,ManualTask,,
+,__DRO_ASSIGNED_TO_USER__,,,,,,SourceLineStartDate,,Never,RLM_DFOTenantProvisioningCallout,false,Provision Licensing/Features,,,,LineItem,Provisioning & Activation,ManualTask,,Fulfillment
+,,,,,,,,,Never,,false,Create Project,,,,LineItem,Services,Milestone,,Fulfillment
+,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Assign Resources,,,,LineItem,Services,ManualTask,,Fulfillment
+,,,,,,,,,Never,,false,Start Project,,,,Plan,Services,Milestone,,Fulfillment

@@ -1,8 +1,5 @@
 FulfillmentStepDefinitionGroup.Name,FulfillmentWorkspace.Name,ShowOrder
-Platform Provisioning,Ramp Deal Orchestration,1
-Billing and Invoicing,Ramp Deal Orchestration,3
-License Activation,Ramp Deal Orchestration,2
-Feature/License Provisioning + Activation,QB Complete Solution Bundle,4
-Finance,QB Complete Solution Bundle,5
-Services,QB Complete Solution Bundle,2
-Platform,QB Complete Solution Bundle,3
+Provisioning & Activation,QuantumBit Complete Solution Bundle,4
+Finance,QuantumBit Complete Solution Bundle,5
+Services,QuantumBit Complete Solution Bundle,2
+Platform,QuantumBit Complete Solution Bundle,3
