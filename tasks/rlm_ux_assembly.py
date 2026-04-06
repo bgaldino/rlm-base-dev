@@ -986,7 +986,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         insert_before = None
         for i, child in enumerate(list(app_root)):
             tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-            if tag not in ("actionOverrides",) and i > 0:
+            if tag != "actionOverrides":
                 insert_before = i
                 break
 
