@@ -176,8 +176,8 @@ class ExportBRE(BaseSalesforceTask):
     def _write_csv(path: str, fieldnames: List[str], rows: List[List]) -> None:
         """Write rows (as value lists) to a CSV file."""
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(path, mode="w", newline="") as f:
-            writer = csv.writer(f)
+        with open(path, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, lineterminator="\n")
             writer.writerow(fieldnames)
             for row in rows:
                 writer.writerow(row)
@@ -201,7 +201,7 @@ class ExportBRE(BaseSalesforceTask):
           1. Build a package.xml manifest for the target RuleLibraryDefinition members
           2. Retrieve mdapi-format metadata into a temp directory
           3. Unzip the retrieved bundle
-          4. Convert from mdapi format to source format via sf project convert source
+          4. Convert from mdapi format to source format via sf project convert mdapi
           5. Copy the converted source into unpackaged/post_dro/
         """
         username = getattr(self.org_config, "username", None)

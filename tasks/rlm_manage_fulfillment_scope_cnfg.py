@@ -283,7 +283,7 @@ class ManageFulfillmentScopeCnfg(BaseTask):
         chunk_size = 50
         for i in range(0, len(key_values), chunk_size):
             chunk = key_values[i : i + chunk_size]
-            escaped = [v.replace(chr(39), chr(92) + chr(39)) for v in chunk]
+            escaped = [str(v).replace(chr(39), chr(92) + chr(39)) for v in chunk]
             in_clause = ", ".join(f"'{v}'" for v in escaped)
             records = self._query(
                 access_token,
