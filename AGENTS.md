@@ -26,7 +26,7 @@ force-app/             # Core SFDX metadata (deployed at step 5)
 unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
 unpackaged/post_*/     # Feature-specific metadata bundles
 unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
-templates/             # Source-of-truth for UX assembly (step 28)
+templates/             # Source-of-truth for UX assembly (step 27)
 datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 scripts/apex/          # Apex activation/deletion scripts
