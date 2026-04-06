@@ -1888,10 +1888,10 @@ public class RLM_AccountUtilities {
                     List<UsageEntitlementAccount> remainingUEAs = [
                         SELECT Id, Name FROM UsageEntitlementAccount WHERE Id IN :ueaIds
                     ];
+                    Integer successCount = 0;
+                    Integer errorCount = 0;
                     if(!remainingUEAs.isEmpty()) {
                         Database.DeleteResult[] results = Database.delete(remainingUEAs, false);
-                        Integer successCount = 0;
-                        Integer errorCount = 0;
                         for(Database.DeleteResult result : results) {
                             if(result.isSuccess()) {
                                 successCount++;
