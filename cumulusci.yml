@@ -200,7 +200,7 @@ project:
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
       # AI-related permission sets
       - EinsteinGPTPromptTemplateManager
-      - SalesCloudEinsteinAll
+      #- SalesCloudEinsteinAll  # Not available on Developer edition scratch orgs
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
       # Trialforce Source Org permission set licenses
