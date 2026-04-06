@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**37 feature flags**, **77 configuration values**, **29 YAML anchors** under `project.custom`.
+**38 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
 
 ---
 
@@ -14,22 +14,23 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
 | `agents` | `False` | 4 flow step(s) |
-| `analytics` | `True` | 1 flow step(s) |
+| `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
 | `billing` | `True` | 19 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
-| `breconfig` | `False` | 3 flow step(s) |
+| `breconfig` | `False` | 2 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
 | `clm` | `True` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 9 flow step(s) |
 | `constraints_data` | `True` | 5 flow step(s) |
+| `dev_ed` | `False` | 1 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
-| `dro` | `True` | 6 flow step(s) |
-| `einstein` | `True` | 2 flow step(s) |
+| `dro` | `True` | 7 flow step(s) |
+| `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
@@ -48,7 +49,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 14 flow step(s) |
+| `tso` | `False` | 15 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -64,6 +65,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `analytics` (default: `True`)
 
+- `assign_feature_psls` step 3 → `assign_permission_set_licenses`
 - `prepare_analytics` step 1 → `enable_analytics_replication`
 
 ### `approvals` (default: `True`)
@@ -75,7 +77,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing` (default: `True`)
 
-- `prepare_core` step 20 → `assign_permission_sets`
+- `assign_feature_permission_sets` step 4 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
 - `prepare_billing` step 1 → `deploy_post_billing`
@@ -114,9 +116,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `breconfig` (default: `False`)
 
-- `prepare_core` step 16 → `create_rule_library`
-- `prepare_core` step 17 → `util_sleep`
-- `prepare_core` step 18 → `create_dro_rule_library`
+- `prepare_core` step 13 → `create_rule_library`
+- `prepare_core` step 14 → `create_dro_rule_library`
 
 ### `calmdelete` (default: `True`)
 
@@ -124,7 +125,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `clm` (default: `True`)
 
-- `prepare_core` step 7 → `assign_permission_set_licenses`
+- `assign_feature_psls` step 1 → `assign_permission_set_licenses`
 - `extend_context_definitions` step 7 → `extend_context_contracts`
 - `extend_context_definitions` step 8 → `extend_context_contracts_extraction`
 - `prepare_clm` step 1 → `insert_clm_data`
@@ -158,6 +159,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `manage_expression_sets`
 
+### `dev_ed` (default: `False`)
+
+- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
+
 ### `docgen` (default: `True`)
 
 - `prepare_docgen` step 1 → `create_docgen_library`
@@ -173,17 +178,19 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `dro` (default: `True`)
 
-- `prepare_core` step 18 → `create_dro_rule_library`
+- `prepare_core` step 14 → `create_dro_rule_library`
 - `extend_context_definitions` step 6 → `extend_context_fulfillment_asset`
-- `prepare_dro` step 1 → `insert_qb_dro_data`
-- `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
-- `prepare_dro` step 3 → `insert_q3_dro_data_prod`
-- `prepare_dro` step 4 → `update_product_fulfillment_decomp_rules`
+- `prepare_dro` step 1 → `manage_fulfillment_scope_cnfg`
+- `prepare_dro` step 2 → `insert_qb_dro_data`
+- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
+- `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`
 
 ### `einstein` (default: `True`)
 
-- `prepare_core` step 8 → `assign_permission_set_licenses`
-- `prepare_core` step 19 → `assign_permission_sets`
+- `assign_feature_psls` step 2 → `assign_permission_set_licenses`
+- `assign_feature_permission_sets` step 2 → `assign_permission_sets`
+- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
 
 ### `guidedselling` (default: `False`)
 
@@ -229,8 +236,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `q3` (default: `False`)
 
 - `prepare_product_data` step 2 → `insert_q3_data`
-- `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
-- `prepare_dro` step 3 → `insert_q3_dro_data_prod`
+- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 4 → `insert_q3_rating_data`
@@ -242,7 +249,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
-- `prepare_dro` step 1 → `insert_qb_dro_data`
+- `prepare_dro` step 2 → `insert_qb_dro_data`
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_prm` step 9 → `insert_quantumbit_prm_data`
@@ -328,14 +335,15 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tso` (default: `False`)
 
-- `prepare_core` step 13 → `assign_permission_sets`
+- `prepare_core` step 10 → `recalculate_permission_set_groups`
+- `prepare_core` step 11 → `assign_permission_set_groups_tolerant`
+- `assign_feature_psls` step 4 → `assign_permission_set_licenses`
+- `assign_feature_permission_sets` step 1 → `assign_permission_sets`
 - `prepare_scratch` step 1 → `insert_scratch_data`
-- `prepare_tso` step 1 → `assign_permission_set_licenses`
-- `prepare_tso` step 2 → `assign_permission_set_groups`
-- `prepare_tso` step 3 → `deploy_post_utils`
-- `prepare_tso` step 4 → `deploy_post_tso`
-- `prepare_tso` step 5 → `assign_permission_sets`
-- `prepare_tso` step 6 → `assign_permission_set_groups_tolerant`
+- `prepare_tso` step 1 → `assign_permission_set_groups`
+- `prepare_tso` step 2 → `deploy_post_utils`
+- `prepare_tso` step 3 → `deploy_post_tso`
+- `prepare_tso` step 4 → `assign_permission_sets`
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
@@ -352,8 +360,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `org_config.scratch` (runtime)
 
 - `prepare_scratch` step 1 → `insert_scratch_data`
-- `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
-- `prepare_dro` step 3 → `insert_q3_dro_data_prod`
+- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 
 ---
 
@@ -593,9 +601,14 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_ai_ps_api_names`
 
-*2 items:*
+*1 items:*
 
 - `EinsteinGPTPromptTemplateManager`
+
+### `rlm_ai_ps_enterprise_api_names`
+
+*1 items:*
+
 - `SalesCloudEinsteinAll`
 
 ### `rlm_ai_psg_api_names`

@@ -170,3 +170,6 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all                 # apply f
 - Plan dependency graph: [plan-dependency-graph.md](plan-dependency-graph.md)
 - Object-to-plan mapping: [object-plan-mapping.md](object-plan-mapping.md)
 - Full v5 migration notes: `docs/references/sfdmu-composite-key-optimizations.md`
+- Plan-specific guides (detailed object notes, idempotency, 260 changes):
+  - `datasets/sfdmu/qb/en-US/qb-dro/README.md` — DRO plan
+  - `datasets/sfdmu/qb/en-US/qb-pcm/README.md` — PCM plan

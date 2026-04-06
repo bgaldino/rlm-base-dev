@@ -361,7 +361,7 @@ email before deploy.
 **Fix:** If the patch task fails, the Network's email is immutable after
 creation. Verify the Network exists with:
 ```bash
-sf data query -q "SELECT Id, Name, UrlPathPrefix FROM Network" --target-org beta
+sf data query -q "SELECT Id, Name, UrlPathPrefix FROM Network" --target-org rlm-base__beta
 ```
 
 ### Placeholder email committed to repo
@@ -426,7 +426,7 @@ cci task run validate_setup
 
 # Check org build info
 sf data query -q "SELECT DeveloperName, RLM_Commit_Hash__c, RLM_Branch__c, \
-  RLM_Build_Timestamp__c, RLM_Feature_Flags__c FROM RLM_Build_Info__mdt" --target-org beta
+  RLM_Build_Timestamp__c, RLM_Feature_Flags__c FROM RLM_Build_Info__mdt" --target-org rlm-base__beta
 
 # Validate SFDMU datasets
 python scripts/validate_sfdmu_v5_datasets.py

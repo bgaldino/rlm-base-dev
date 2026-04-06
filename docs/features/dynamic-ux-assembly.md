@@ -14,16 +14,16 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (immediately
-before `refresh_all_decision_tables` at step 30).
+in one `sf project deploy start` call at **step 28** of `prepare_rlm_org` (immediately
+before `prepare_scratch` at step 29 and `refresh_all_decision_tables` at step 30).
 
 ### Problems it solves
 
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 29 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 29 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 28 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 28 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -39,8 +39,8 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 `prepare_ux` runs only when `ux=true`:
 
 ```yaml
-# prepare_rlm_org step 29
-29:
+# prepare_rlm_org step 28
+28:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```
@@ -207,7 +207,7 @@ No patching — layouts are copied as-is.
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 29, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 28, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -532,7 +532,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 29
+2. Confirm all UX deploys succeed at step 28
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages

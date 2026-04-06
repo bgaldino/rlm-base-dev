@@ -2,7 +2,7 @@
 
 Which SObject lives in which data plan, its externalId, operation, and upstream dependencies.
 
-## qb-pcm (Product Catalog Management)
+## qb-pcm (Product Catalog Management — 28 objects)
 
 | SObject | externalId | Operation | Notes |
 |---------|-----------|-----------|-------|
@@ -24,9 +24,16 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | ProductRelationshipType | `Name` | Upsert | |
 | ProductComponentGroup | `Code` | Upsert | Self-ref hierarchy |
 | ProductRelatedComponent | 5-field composite | Upsert | Bundle components |
+| ProductComponentGrpOverride | `Name` | Upsert | `excluded: true` — placeholder |
+| ProductRelComponentOverride | `Name` | Upsert | `excluded: true` — placeholder |
 | ProductCatalog | `Code` | Upsert | |
 | ProductCategory | `Code` | Upsert | Self-ref hierarchy |
 | ProductCategoryProduct | `ProductCategory.Code;Product.StockKeepingUnit` | Upsert | Junction |
+| ProductQualification | `Name` | Upsert | |
+| ProductDisqualification | `Name` | Upsert | |
+| ProductCategoryDisqual | `Name` | Upsert | |
+| ProductCategoryQualification | `Name` | Upsert | |
+| ProdtAttrScope | `Name` | Upsert | |
 
 ## qb-pricing
 
@@ -116,12 +123,15 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 3 |
 | RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 3 |
 
-## qb-dro
+## qb-dro (17 objects)
 
 | SObject | externalId | Operation | Notes |
 |---------|-----------|-----------|-------|
 | Product2 | `StockKeepingUnit` | Update | Sets DRO fields |
 | ProductFulfillmentDecompRule | `Name` | Upsert | |
+| ValTfrmGrp | `Name` | Upsert | Value transformation groups |
+| ValTfrm | `Name` | Upsert | Value transformations |
+| ProductDecompEnrichmentRule | `Name` | Upsert | `excluded: true` — placeholder |
 | FulfillmentStepDefinitionGroup | `Name` | Upsert | |
 | User | `Name` | ReadOnly | Assignee resolution |
 | Group | `Name` | ReadOnly | Queue resolution |
@@ -130,9 +140,10 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | FulfillmentStepDependencyDef | `Name` | Upsert | |
 | ProductFulfillmentScenario | `Name` | Upsert | |
 | FulfillmentWorkspace | `Name` | Upsert | |
-| FulfillmentWorkspaceItem | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Upsert + deleteOldData | Auto-number Name |
+| FulfillmentWorkspaceItem | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Upsert + deleteOldData | Bug 5 — auto-number Name |
 | FulfillmentFalloutRule | `Name` | Upsert | |
 | FulfillmentStepJeopardyRule | `Name` | Upsert | |
+| FulfillmentTaskAssignmentRule | `Name` | Upsert | |
 
 ## qb-clm
 
