@@ -154,6 +154,10 @@ class ExportBRE(BaseSalesforceTask):
         for f in describe.get("fields", []):
             if not f.get("type"):
                 continue
+            if not f.get("queryable", True):
+                continue
+            if f.get("deprecatedAndHidden", False):
+                continue
             if exclude_compounds and f["type"] in compound_types:
                 continue
             fields.append(f["name"])
