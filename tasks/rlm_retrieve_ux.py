@@ -15,17 +15,23 @@ import time
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 try:
     from cumulusci.core.tasks import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
+    from cumulusci.core.utils import process_bool_arg
 except ImportError:
     BaseSalesforceTask = object
     TaskOptionsError = Exception
     CommandException = Exception
+
+    def process_bool_arg(val):
+        if isinstance(val, bool):
+            return val
+        return str(val).lower() in ("true", "1", "yes")
 
 
 _SUPPORTED_TYPES = {
@@ -100,6 +106,21 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
                 repo_root, templates_path, output_path, metadata_name
             )
 
+    def _get_feature_flags(self) -> Dict[str, bool]:
+        """Read feature flags from project_config.project__custom__*."""
+        custom = getattr(self.project_config, "project__custom", {}) or {}
+        known_flags = [
+            "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
+            "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
+            "payments", "constraints", "analytics", "procedureplans",
+            "collections",
+        ]
+        flags = {}
+        for flag in known_flags:
+            val = custom.get(flag, False)
+            flags[flag] = process_bool_arg(val) if isinstance(val, (str, bool)) else bool(val)
+        return flags
+
     def _retrieve_flexipages(
         self,
         repo_root: Path,
@@ -108,6 +129,7 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
         filter_name: Optional[str],
     ) -> None:
         base_dir = templates_path / "flexipages" / "base"
+        standalone_dir = templates_path / "flexipages" / "standalone"
 
         if filter_name:
             pages = [filter_name]
@@ -115,7 +137,38 @@ class RetrieveUXFromOrg(BaseSalesforceTask):
             if not base_dir.exists():
                 self.logger.warning(f"Flexipage base directory not found: {base_dir}")
                 return
-            pages = sorted(p.name for p in base_dir.glob("*.flexipage-meta.xml"))
+
+            # Build page list matching the assembler's page_sources logic so that
+            # standalone-only pages (e.g. billing, billing_ui, constraints) are
+            # included in the retrieve and don't show as templates_only in drift.
+            features = self._get_feature_flags()
+            page_sources: Dict[str, Path] = {}
+
+            for base_file in sorted(base_dir.glob("*.flexipage-meta.xml")):
+                page_sources[base_file.name] = base_file
+
+            standalone_copy_order = [
+                ("payments",    features.get("payments", False)),
+                ("billing",     features.get("billing", False)),
+                ("billing_ui",  features.get("billing_ui", False)),
+                ("quantumbit",  features.get("qb", False)),
+                ("tso",         features.get("tso", False)),
+                ("constraints", features.get("constraints", False)),
+                ("utils",       features.get("qb", False)),
+                ("docgen",      features.get("docgen", False)),
+                ("approvals",   features.get("qb", False)),
+                ("collections", features.get("collections", False)),
+            ]
+            for feature_dir, active in standalone_copy_order:
+                if not active:
+                    continue
+                src_dir = standalone_dir / feature_dir
+                if not src_dir.exists():
+                    continue
+                for src_file in sorted(src_dir.glob("*.flexipage-meta.xml")):
+                    page_sources[src_file.name] = src_file
+
+            pages = sorted(page_sources.keys())
 
         if not pages:
             self.logger.warning("No flexipages found to retrieve.")
