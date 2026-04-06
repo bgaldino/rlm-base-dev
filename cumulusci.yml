@@ -215,9 +215,12 @@ project:
       - TableauSelfServiceAnalyst
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
-      # AI-related permission sets
+      # AI-related permission sets (all org editions)
       - EinsteinGPTPromptTemplateManager
-      #- SalesCloudEinsteinAll  # Not available on Developer edition scratch orgs
+
+    rlm_ai_ps_enterprise_api_names: &rlm_ai_ps_enterprise_api_names
+      # AI permission sets — Enterprise edition only (not assignable on Developer edition)
+      - SalesCloudEinsteinAll
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
       # Trialforce Source Org permission set licenses
@@ -2584,6 +2587,11 @@ flows:
         options:
           api_names: *rlm_ai_ps_api_names
       3:
+        task: assign_permission_sets
+        when: project_config.project__custom__einstein and not project_config.project__custom__dev_ed
+        options:
+          api_names: *rlm_ai_ps_enterprise_api_names
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
