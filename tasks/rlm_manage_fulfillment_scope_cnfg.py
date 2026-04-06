@@ -265,16 +265,40 @@ class ManageFulfillmentScopeCnfg(BaseTask):
 
         created = updated = skipped = 0
 
+        # Validate all records and collect key values up-front
+        key_values = []
         for record in payload:
             if not isinstance(record, dict):
                 raise TaskOptionsError(f"Each record must be a JSON object, got: {record!r}")
-
             key_value = record.get(key_field)
             if not key_value:
                 raise TaskOptionsError(
                     f"Record is missing key_field '{key_field}': {record}"
                 )
+            key_values.append(key_value)
 
+        # Bulk-query existing records to build a key→Id lookup map
+        # Process in chunks of 50 to stay within SOQL length limits
+        existing_map: Dict[str, str] = {}
+        chunk_size = 50
+        for i in range(0, len(key_values), chunk_size):
+            chunk = key_values[i : i + chunk_size]
+            escaped = [v.replace(chr(39), chr(92) + chr(39)) for v in chunk]
+            in_clause = ", ".join(f"'{v}'" for v in escaped)
+            records = self._query(
+                access_token,
+                instance_url,
+                api_version,
+                f"SELECT Id, {key_field} FROM {OBJECT_NAME} WHERE {key_field} IN ({in_clause})",
+            )
+            for rec in records:
+                existing_map[rec[key_field]] = rec["Id"]
+
+        self.logger.info(
+            f"Found {len(existing_map)} existing record(s) out of {len(key_values)} to upsert"
+        )
+
+        for record, key_value in zip(payload, key_values):
             # Strip read-only and unavailable fields before sending
             cleaned = {
                 k: v
@@ -282,15 +306,9 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 if k in writable_fields and k not in self._READONLY_FIELDS
             }
 
-            existing = self._query(
-                access_token,
-                instance_url,
-                api_version,
-                f"SELECT Id FROM {OBJECT_NAME} WHERE {key_field} = '{key_value.replace(chr(39), chr(92) + chr(39))}'",
-            )
+            record_id = existing_map.get(key_value)
 
-            if existing:
-                record_id = existing[0]["Id"]
+            if record_id:
                 # Remove key field from PATCH body — it's already matched
                 patch_body = {k: v for k, v in cleaned.items() if k != key_field}
                 if dry_run:
