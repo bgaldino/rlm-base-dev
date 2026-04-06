@@ -376,6 +376,7 @@ tasks:
 | `rlm_manage_flows.py` | `ManageFlows` | Flow management (activate/deactivate) |
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
 | `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Dynamic UX metadata assembly + deploy |
+| `rlm_ux_utils.py` | *(shared utility — no task class)* | `UX_KNOWN_FLAGS`, `_STANDALONE_ORDER`, `get_ux_feature_flags()`, `resolve_flexipage_sources()` — single source of truth for all UX tasks |
 | `rlm_stamp_commit.py` | `StampGitCommit` | Git commit stamping into org |
 | `rlm_validate_setup.py` | `ValidateSetup` | Local environment validation |
 | `rlm_robot_e2e.py` | `RunE2ETests` | E2E Robot Framework test runner |
