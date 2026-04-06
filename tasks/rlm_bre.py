@@ -239,7 +239,7 @@ class ExportBRE(BaseSalesforceTask):
     <version>{self._api_version}</version>
 </Package>"""
         manifest_path = os.path.join(mdapi_dir, "package.xml")
-        with open(manifest_path, "w") as f:
+        with open(manifest_path, "w", encoding="utf-8") as f:
             f.write(package_xml)
 
         self.logger.info(f"Retrieving RuleLibraryDefinition metadata for: {', '.join(developer_names)}")
@@ -390,7 +390,7 @@ class ExportBRE(BaseSalesforceTask):
             }
             for f in describe.get("fields", [])
         ]
-        with open(describe_path, "w") as fp:
+        with open(describe_path, "w", encoding="utf-8") as fp:
             json.dump(field_summary, fp, indent=2)
         self.logger.info(f"  Wrote field describe to {describe_path}")
 
