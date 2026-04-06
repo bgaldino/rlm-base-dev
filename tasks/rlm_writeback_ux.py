@@ -49,10 +49,15 @@ try:
         _load_yaml,
         _write_xml,
     )
+    from tasks.rlm_ux_utils import resolve_flexipage_sources
 except ImportError:
     AssembleAndDeployUX = None
     SF_NS = "http://soap.sforce.com/2006/04/metadata"
     SF_NS_TAG = f"{{{SF_NS}}}"
+    try:
+        from rlm_ux_utils import resolve_flexipage_sources
+    except ImportError:
+        resolve_flexipage_sources = None
 
 ET.register_namespace("", SF_NS)
 
@@ -350,34 +355,7 @@ class WriteBackUXTemplates(BaseTask):
         standalone_dir: Path,
         features: Dict[str, bool],
     ) -> Dict[str, Path]:
-        page_sources: Dict[str, Path] = {}
-
-        if base_dir.exists():
-            for f in sorted(base_dir.glob("*.flexipage-meta.xml")):
-                page_sources[f.name] = f
-
-        standalone_copy_order = [
-            ("payments", features.get("payments", False)),
-            ("billing", features.get("billing", False)),
-            ("billing_ui", features.get("billing_ui", False)),
-            ("quantumbit", features.get("qb", False)),
-            ("tso", features.get("tso", False)),
-            ("constraints", features.get("constraints", False)),
-            ("utils", features.get("qb", False)),
-            ("docgen", features.get("docgen", False)),
-            ("approvals", features.get("qb", False)),
-            ("collections", features.get("collections", False)),
-        ]
-        for feature_dir, active in standalone_copy_order:
-            if not active:
-                continue
-            src_dir = standalone_dir / feature_dir
-            if not src_dir.exists():
-                continue
-            for src_file in sorted(src_dir.glob("*.flexipage-meta.xml")):
-                page_sources[src_file.name] = src_file
-
-        return page_sources
+        return resolve_flexipage_sources(base_dir, standalone_dir, features)
 
     # ------------------------------------------------------------------
     # Write-back: base templates
