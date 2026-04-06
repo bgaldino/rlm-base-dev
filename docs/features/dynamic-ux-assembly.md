@@ -133,7 +133,7 @@ templates/
    *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → billing → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
+`quantumbit → utils → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
