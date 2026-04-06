@@ -257,6 +257,19 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 f"Available: {sorted(available_fields)}"
             )
 
+        # Validate key_field is a text-like type suitable for SOQL string literals
+        text_types = {"string", "textarea", "id", "reference", "url", "email", "phone", "picklist"}
+        key_field_type = None
+        for f in describe.get("fields", []):
+            if f["name"] == key_field:
+                key_field_type = f.get("type", "").lower()
+                break
+        if key_field_type and key_field_type not in text_types:
+            raise TaskOptionsError(
+                f"key_field '{key_field}' is type '{key_field_type}' — only text-like fields "
+                f"({', '.join(sorted(text_types))}) are supported for upsert matching."
+            )
+
         writable_fields = {
             f["name"]
             for f in describe.get("fields", [])
@@ -267,14 +280,22 @@ class ManageFulfillmentScopeCnfg(BaseTask):
 
         # Validate all records and collect key values up-front
         key_values = []
-        for record in payload:
+        seen_keys: Dict[str, int] = {}
+        for idx, record in enumerate(payload):
             if not isinstance(record, dict):
                 raise TaskOptionsError(f"Each record must be a JSON object, got: {record!r}")
             key_value = record.get(key_field)
-            if not key_value:
+            if key_value is None or key_value == "":
                 raise TaskOptionsError(
                     f"Record is missing key_field '{key_field}': {record}"
                 )
+            key_str = str(key_value)
+            if key_str in seen_keys:
+                raise TaskOptionsError(
+                    f"Duplicate key_field value '{key_str}' at records "
+                    f"{seen_keys[key_str]} and {idx}"
+                )
+            seen_keys[key_str] = idx
             key_values.append(key_value)
 
         # Bulk-query existing records to build a key→Id lookup map
