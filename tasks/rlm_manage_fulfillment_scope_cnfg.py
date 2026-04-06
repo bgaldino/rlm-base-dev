@@ -167,7 +167,16 @@ class ManageFulfillmentScopeCnfg(BaseTask):
             raise TaskOptionsError(
                 f"Tooling query failed: {resp.status_code} — {resp.text}"
             )
-        records = resp.json().get("records", [])
+        body = resp.json()
+        records = body.get("records", [])
+        # Handle pagination — follow nextRecordsUrl until all pages are fetched
+        while not body.get("done", True) and body.get("nextRecordsUrl"):
+            next_url = f"{instance_url}{body['nextRecordsUrl']}"
+            resp = requests.get(next_url, headers=self._headers(access_token))
+            if not resp.ok:
+                break
+            body = resp.json()
+            records.extend(body.get("records", []))
         for rec in records:
             rec.pop("attributes", None)
         return records

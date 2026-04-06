@@ -235,7 +235,10 @@ def resolve_id_text_fields(rows: list, headers: list, object_name: str,
     if not resolved:
         return rows
 
-    na_values = {"", "#N/A", "N/A"}
+    # Only treat empty and SFDMU's explicit null marker (#N/A) as missing.
+    # Do NOT include "N/A" — it is a legitimate business value in several CSVs
+    # (e.g. AttributePicklistValue: Rear Storage "N/A", RAID "N/A").
+    na_values = {"", "#N/A"}
     new_rows = []
     counts = {r[2]: 0 for r in resolved}
     for row in rows:
@@ -296,7 +299,9 @@ def apply_field_defaults(rows: list, headers: list, object_name: str,
     if not resolved:
         return rows
 
-    na_values = {"", "#N/A", "N/A"}
+    # Only treat empty and SFDMU's explicit null marker (#N/A) as missing.
+    # Do NOT include "N/A" — it is a legitimate business value in several CSVs.
+    na_values = {"", "#N/A"}
     new_rows = []
     counts = {r[2]: 0 for r in resolved}
     for row in rows:

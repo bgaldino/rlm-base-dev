@@ -1230,10 +1230,11 @@ public class RLM_AccountUtilities {
      * Children (TransactionUsageEntitlement, UsageEntitlementAccount,
      * UsageRatableSummary, UsageSummary) must be deleted first.
      *
-     * Must be called AFTER deleteTransactionUsageEntitlement, deleteUsageEntitlementAccount,
-     * deleteUsageRatableSummaries, and deleteUsageSummaries so that account-level children
-     * are already gone. This method handles any remaining children bound via the
-     * UsageEntitlementId relationship.
+     * Called AFTER deleteAllTransactionUsageEntitlements, deleteUsageEntitlementAccount,
+     * deleteUsageLiableSummaries, and deleteUsageRatableSummaries (see delAccountRelatedObjects
+     * call order). Those methods handle account-level children. This method handles any
+     * remaining children bound via the UsageEntitlementId relationship (e.g. children
+     * created through Asset or Contract bindings that the account-level passes missed).
      */
     private static Boolean deleteUsageEntitlements(String accountId) {
         Id accountIdConverted = accountId;
@@ -1292,6 +1293,8 @@ public class RLM_AccountUtilities {
         // Delete remaining children that reference these UsageEntitlements
 
         // TransactionUsageEntitlements
+        // The bucket helper deletes buckets AND any TUEs referenced by those buckets.
+        // We re-query afterwards to catch any TUEs that had no bucket references.
         try {
             List<SObject> childTUEs = Database.query('SELECT Id FROM TransactionUsageEntitlement WHERE UsageEntitlementId IN :ueIds');
             if(!childTUEs.isEmpty()) {
@@ -1299,13 +1302,18 @@ public class RLM_AccountUtilities {
                 for(SObject tue : childTUEs) { tueIds.add(tue.Id); }
                 System.debug('Deleting ' + childTUEs.size() + ' child TUEs of UsageEntitlements');
                 deleteUsageEntitlementBucketsBottomUp(tueIds, 'TransactionUsageEntitlement');
-                Database.delete(childTUEs, false);
+                // Delete any remaining TUEs not already removed by bucket cleanup
+                List<SObject> remainingTUEs = Database.query('SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :tueIds');
+                if(!remainingTUEs.isEmpty()) {
+                    Database.delete(remainingTUEs, false);
+                }
             }
         } catch(Exception e) {
             System.debug('Child TUE deletion failed: ' + e.getMessage());
         }
 
         // UsageEntitlementAccounts
+        // Same pattern: bucket helper removes buckets + referenced UEAs; re-query for survivors.
         try {
             List<SObject> childUEAs = Database.query('SELECT Id FROM UsageEntitlementAccount WHERE UsageEntitlementId IN :ueIds');
             if(!childUEAs.isEmpty()) {
@@ -1313,7 +1321,11 @@ public class RLM_AccountUtilities {
                 for(SObject uea : childUEAs) { ueaIds.add(uea.Id); }
                 System.debug('Deleting ' + childUEAs.size() + ' child UEAs of UsageEntitlements');
                 deleteUsageEntitlementBucketsBottomUp(ueaIds, 'UsageEntitlementAccount');
-                Database.delete(childUEAs, false);
+                // Delete any remaining UEAs not already removed by bucket cleanup
+                List<SObject> remainingUEAs = Database.query('SELECT Id FROM UsageEntitlementAccount WHERE Id IN :ueaIds');
+                if(!remainingUEAs.isEmpty()) {
+                    Database.delete(remainingUEAs, false);
+                }
             }
         } catch(Exception e) {
             System.debug('Child UEA deletion failed: ' + e.getMessage());

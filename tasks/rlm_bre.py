@@ -303,7 +303,7 @@ class ExportBRE(BaseSalesforceTask):
                     self.logger.warning(f"  {line}")
             self.logger.info(
                 f"Raw mdapi metadata is still available at {raw_metadata_dir}. "
-                "You can convert manually with: sf project convert source --root-dir <mdapi_dir> --output-dir <dest>"
+                "You can convert manually with: sf project convert mdapi --root-dir <mdapi_dir> --output-dir <dest>"
             )
             return
 
