@@ -53,6 +53,11 @@ except ImportError:
             return val
         return str(val).lower() in ("true", "1", "yes")
 
+try:
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+except ImportError:
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+
 
 # Salesforce metadata XML namespace
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
@@ -722,18 +727,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
     def _get_feature_flags(self) -> Dict[str, bool]:
         """Read feature flags from project_config.project__custom__*."""
-        custom = getattr(self.project_config, "project__custom", {}) or {}
-        known_flags = [
-            "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
-            "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
-            "payments", "constraints", "analytics", "procedureplans",
-            "collections",
-        ]
-        flags = {}
-        for flag in known_flags:
-            val = custom.get(flag, False)
-            flags[flag] = process_bool_arg(val) if isinstance(val, (str, bool)) else bool(val)
-        return flags
+        return get_ux_feature_flags(self.project_config)
 
     # ------------------------------------------------------------------
     # Flexipages assembly
@@ -756,35 +750,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
             return [], []
 
         # Build a map of page filename → authoritative source file.
-        # Feature directories are applied in deploy-order priority (last wins).
-        page_sources: Dict[str, Path] = {}
-
-        # 1. Start with base pages
-        for base_file in sorted(base_dir.glob("*.flexipage-meta.xml")):
-            page_sources[base_file.name] = base_file
-
-        # 2. Apply feature-specific complete files (standalone new pages + overrides)
-        # Order matches the prepare_rlm_org deploy sequence.
-        standalone_copy_order = [
-            ("payments",    features.get("payments", False)),
-            ("billing",     features.get("billing", False)),
-            ("billing_ui",  features.get("billing_ui", False)),
-            ("quantumbit",  features.get("qb", False)),
-            ("tso",         features.get("tso", False)),
-            ("constraints", features.get("constraints", False)),
-            ("utils",       features.get("qb", False)),   # utils deploys with qb flow
-            ("docgen",      features.get("docgen", False)),
-            ("approvals",   features.get("qb", False)),   # approvals deploys with qb flow
-            ("collections", features.get("collections", False)),
-        ]
-        for feature_dir, active in standalone_copy_order:
-            if not active:
-                continue
-            src_dir = standalone_dir / feature_dir
-            if not src_dir.exists():
-                continue
-            for src_file in sorted(src_dir.glob("*.flexipage-meta.xml")):
-                page_sources[src_file.name] = src_file
+        # Seeds from base/ then overlays active standalone dirs in deploy order.
+        # Order is defined in rlm_ux_utils._STANDALONE_ORDER (last writer wins).
+        page_sources = resolve_flexipage_sources(base_dir, standalone_dir, features)
 
         # Filter to single item if requested
         if filter_name:

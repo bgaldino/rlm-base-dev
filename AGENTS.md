@@ -52,6 +52,9 @@ docs/                  # Documentation (lower-kebab-case filenames)
    — they cannot deploy via Metadata API
 7. **DO NOT** commit real emails in `rlm.network-meta.xml` — use the
    placeholder; patch/revert tasks handle deploy-time substitution
+8. **DO NOT** commit or push directly to `main` — all changes must go
+   through a feature branch and pull request. Never use `git push origin main`
+   or force-push main without explicit user approval.
 
 ## Org Identity: CCI vs SF CLI
 

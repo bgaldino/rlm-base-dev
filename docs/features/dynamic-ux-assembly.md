@@ -2,6 +2,7 @@
 
 > Implemented in: `tasks/rlm_ux_assembly.py`, `tasks/rlm_writeback_ux.py`,
 > `tasks/rlm_retrieve_ux.py`, `tasks/rlm_diff_ux.py`
+> Shared utilities: `tasks/rlm_ux_utils.py` (feature flags, standalone order, source resolver)
 > Flows: `prepare_ux`, `capture_ux_drift`, `apply_ux_drift`
 > Template root: `templates/`
 > Output: `unpackaged/post_ux/` (git-tracked)
@@ -128,10 +129,11 @@ templates/
 **Source resolution** (last write wins):
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
-   `payments → billing → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → billing → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
+`quantumbit → utils → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a

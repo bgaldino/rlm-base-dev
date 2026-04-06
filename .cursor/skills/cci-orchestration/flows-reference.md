@@ -581,7 +581,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 28 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 27 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 
