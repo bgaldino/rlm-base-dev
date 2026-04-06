@@ -3,8 +3,8 @@ AmendGroup.Name,AssignedTo.Name,CancelledGroup.Name,CustomBaseExecutionDate,Cust
 ,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Post Invoice,,,,Plan,Finance,ManualTask,,Fulfillment
 ,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Initiate Billing,,,,Plan,Finance,Milestone,,Fulfillment
 ,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Payment,,,,Plan,Finance,ManualTask,,Fulfillment
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning - Platform,,,,Plan,Platform,Callout,,
-,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Key + Assign to Asset,,,,Plan,Platform,Milestone,,
+,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning - Platform,,,,Plan,Platform,Callout,,Fulfillment
+,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Receive Key + Assign to Asset,,,,Plan,Platform,Milestone,,Fulfillment
 ,__DRO_ASSIGNED_TO_USER__,,,,,,SourceLineStartDate,,Never,RLM_DFOTenantProvisioningCallout,false,Provision Licensing/Features,,,,LineItem,Provisioning & Activation,ManualTask,,Fulfillment
 ,,,,,,,,,Never,,false,Create Project,,,,LineItem,Services,Milestone,,Fulfillment
 ,__DRO_ASSIGNED_TO_USER__,,,,,,,,Never,,false,Assign Resources,,,,LineItem,Services,ManualTask,,Fulfillment
