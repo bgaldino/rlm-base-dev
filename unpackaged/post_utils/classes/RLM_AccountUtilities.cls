@@ -1676,7 +1676,8 @@ public class RLM_AccountUtilities {
             Database.delete(usList, false);
         }
         // Also delete by account (catches any not directly on the asset)
-        List<UsageSummary> usAcctList = [SELECT Id FROM UsageSummary WHERE AccountId = :acctId AND Id NOT IN :usList];
+        // Note: no Id NOT IN filter needed — records deleted above won't be returned by a fresh query
+        List<UsageSummary> usAcctList = [SELECT Id FROM UsageSummary WHERE AccountId = :acctId];
         if(!usAcctList.isEmpty()) {
             System.debug('Deleting ' + usAcctList.size() + ' additional Usage Summaries by account');
             Database.delete(usAcctList, false);
