@@ -1816,24 +1816,29 @@ public class RLM_AccountUtilities {
                         System.debug('Asset-referenced TUE: ' + tue.Name + ' (ID: ' + tue.Id + ')');
                     }
                     
-                    // Delete buckets first
+                    // Delete buckets first (also deletes bucket-referenced TUEs)
                     deleteUsageEntitlementBucketsBottomUp(tueIds, 'TransactionUsageEntitlement');
-                    
-                    // Then delete the TUEs
-                    Database.DeleteResult[] results = Database.delete(tues, false);
-                    Integer successCount = 0;
-                    Integer errorCount = 0;
-                    for(Database.DeleteResult result : results) {
-                        if(result.isSuccess()) {
-                            successCount++;
-                        } else {
-                            errorCount++;
-                            for(Database.Error err : result.getErrors()) {
-                                System.debug('Error deleting asset TUE ' + result.getId() + ': ' + err.getMessage());
+
+                    // Re-query for surviving TUEs not already removed by bucket cleanup
+                    List<TransactionUsageEntitlement> remainingTUEs = [
+                        SELECT Id, Name FROM TransactionUsageEntitlement WHERE Id IN :tueIds
+                    ];
+                    if(!remainingTUEs.isEmpty()) {
+                        Database.DeleteResult[] results = Database.delete(remainingTUEs, false);
+                        Integer successCount = 0;
+                        Integer errorCount = 0;
+                        for(Database.DeleteResult result : results) {
+                            if(result.isSuccess()) {
+                                successCount++;
+                            } else {
+                                errorCount++;
+                                for(Database.Error err : result.getErrors()) {
+                                    System.debug('Error deleting asset TUE ' + result.getId() + ': ' + err.getMessage());
+                                }
                             }
                         }
+                        System.debug('Asset TUE deletion results: ' + successCount + ' success, ' + errorCount + ' errors');
                     }
-                    System.debug('Asset TUE deletion results: ' + successCount + ' success, ' + errorCount + ' errors');
                     return; // Use first successful query
                 }
             } catch(Exception e) {
@@ -1867,20 +1872,24 @@ public class RLM_AccountUtilities {
                         System.debug('Asset-referenced UEA: ' + uea.Name + ' (ID: ' + uea.Id + ')');
                     }
                     
-                    // Delete buckets first
+                    // Delete buckets first (may also remove some UEAs via cascade)
                     deleteUsageEntitlementBucketsBottomUp(ueaIds, 'UsageEntitlementAccount');
-                    
-                    // Then delete the UEAs
-                    Database.DeleteResult[] results = Database.delete(ueas, false);
-                    Integer successCount = 0;
-                    Integer errorCount = 0;
-                    for(Database.DeleteResult result : results) {
-                        if(result.isSuccess()) {
-                            successCount++;
-                        } else {
-                            errorCount++;
-                            for(Database.Error err : result.getErrors()) {
-                                System.debug('Error deleting asset UEA ' + result.getId() + ': ' + err.getMessage());
+
+                    // Re-query for surviving UEAs not already removed by bucket cleanup
+                    List<UsageEntitlementAccount> remainingUEAs = [
+                        SELECT Id, Name FROM UsageEntitlementAccount WHERE Id IN :ueaIds
+                    ];
+                    if(!remainingUEAs.isEmpty()) {
+                        Database.DeleteResult[] results = Database.delete(remainingUEAs, false);
+                        Integer successCount = 0;
+                        Integer errorCount = 0;
+                        for(Database.DeleteResult result : results) {
+                            if(result.isSuccess()) {
+                                successCount++;
+                            } else {
+                                errorCount++;
+                                for(Database.Error err : result.getErrors()) {
+                                    System.debug('Error deleting asset UEA ' + result.getId() + ': ' + err.getMessage());
                             }
                         }
                     }
@@ -1990,7 +1999,11 @@ public class RLM_AccountUtilities {
                     }
                     System.debug('Deleting ' + tues.size() + ' TUEs referencing UsageEntitlements');
                     deleteUsageEntitlementBucketsBottomUp(tueIds, 'TransactionUsageEntitlement');
-                    Database.delete(tues, false);
+                    // Re-query for surviving TUEs not already removed by bucket cleanup
+                    List<SObject> remainingTUEs = Database.query('SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :tueIds');
+                    if(!remainingTUEs.isEmpty()) {
+                        Database.delete(remainingTUEs, false);
+                    }
                 }
             } catch(Exception e) {
                 System.debug('TUE child query failed: ' + e.getMessage());
@@ -2007,7 +2020,11 @@ public class RLM_AccountUtilities {
                 }
                 System.debug('Deleting ' + ueas.size() + ' UEAs referencing UsageEntitlements');
                 deleteUsageEntitlementBucketsBottomUp(ueaIds, 'UsageEntitlementAccount');
-                Database.delete(ueas, false);
+                // Re-query for surviving UEAs not already removed by bucket cleanup
+                List<SObject> remainingUEAs = Database.query('SELECT Id FROM UsageEntitlementAccount WHERE Id IN :ueaIds');
+                if(!remainingUEAs.isEmpty()) {
+                    Database.delete(remainingUEAs, false);
+                }
             }
         } catch(Exception e) {
             System.debug('UEA child query failed: ' + e.getMessage());
@@ -2172,15 +2189,20 @@ public class RLM_AccountUtilities {
                 System.debug('Deleting problematic TUE: ' + tue.Name + ' (ID: ' + tue.Id + ')');
             }
             
-            // Delete buckets first
+            // Delete buckets first (also deletes bucket-referenced TUEs)
             deleteUsageEntitlementBucketsBottomUp(tueIds, 'TransactionUsageEntitlement');
-            
-            // Then delete the TUEs
-            Database.DeleteResult[] results = Database.delete(problematicTUEs, false);
-            for(Database.DeleteResult result : results) {
-                if(!result.isSuccess()) {
-                    for(Database.Error err : result.getErrors()) {
-                        System.debug('Error deleting problematic TUE: ' + err.getMessage());
+
+            // Re-query for surviving TUEs not already removed by bucket cleanup
+            List<TransactionUsageEntitlement> remainingProbTUEs = [
+                SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :tueIds
+            ];
+            if(!remainingProbTUEs.isEmpty()) {
+                Database.DeleteResult[] results = Database.delete(remainingProbTUEs, false);
+                for(Database.DeleteResult result : results) {
+                    if(!result.isSuccess()) {
+                        for(Database.Error err : result.getErrors()) {
+                            System.debug('Error deleting problematic TUE: ' + err.getMessage());
+                        }
                     }
                 }
             }
@@ -2204,11 +2226,14 @@ public class RLM_AccountUtilities {
                 System.debug('Deleting problematic UEA: ' + uea.Name + ' (ID: ' + uea.Id + ')');
             }
             
-            // Delete buckets first
+            // Delete buckets first (may also remove some UEAs via cascade)
             deleteUsageEntitlementBucketsBottomUp(ueaIds, 'UsageEntitlementAccount');
-            
-            // Then delete the UEAs
-            Database.DeleteResult[] results = Database.delete(problematicUEAs, false);
+
+            // Re-query for surviving UEAs not already removed by bucket cleanup
+            List<UsageEntitlementAccount> remainingProbUEAs = [
+                SELECT Id FROM UsageEntitlementAccount WHERE Id IN :ueaIds
+            ];
+            Database.DeleteResult[] results = Database.delete(remainingProbUEAs, false);
             for(Database.DeleteResult result : results) {
                 if(!result.isSuccess()) {
                     for(Database.Error err : result.getErrors()) {
