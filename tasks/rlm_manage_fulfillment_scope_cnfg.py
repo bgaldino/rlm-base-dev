@@ -127,7 +127,10 @@ class ManageFulfillmentScopeCnfg(BaseTask):
                 )
                 api_version = MIN_API_VERSION
         except ValueError:
-            pass
+            raise TaskOptionsError(
+                f"api_version '{api_version}' is not a valid numeric version. "
+                f"Expected a value like '{MIN_API_VERSION}'."
+            )
 
         return access_token, instance_url, api_version
 

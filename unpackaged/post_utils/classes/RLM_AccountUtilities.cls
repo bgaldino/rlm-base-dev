@@ -1752,20 +1752,25 @@ public class RLM_AccountUtilities {
 
         // Multi-pass bucket deletion (handles nested parent-child hierarchy)
         if(!allBucketIds.isEmpty()) {
-            Integer maxPasses = 5;
-            for(Integer pass = 0; pass < maxPasses && !allBucketIds.isEmpty(); pass++) {
+            Integer pass = 0;
+            Integer prevSize = allBucketIds.size();
+            while(!allBucketIds.isEmpty()) {
+                pass++;
                 List<UsageEntitlementBucket> toDelete = [SELECT Id FROM UsageEntitlementBucket WHERE Id IN :allBucketIds];
                 if(toDelete.isEmpty()) break;
-                System.debug('Bucket deletion pass ' + (pass+1) + ': ' + toDelete.size() + ' buckets');
+                System.debug('Bucket deletion pass ' + pass + ': ' + toDelete.size() + ' buckets');
                 Database.DeleteResult[] results = Database.delete(toDelete, false);
                 for(Database.DeleteResult dr : results) {
                     if(dr.isSuccess()) {
                         allBucketIds.remove(dr.getId());
                     }
                 }
-            }
-            if(!allBucketIds.isEmpty()) {
-                System.debug('WARNING: ' + allBucketIds.size() + ' buckets could not be deleted');
+                // Break if no progress was made to avoid infinite loop
+                if(allBucketIds.size() == prevSize) {
+                    System.debug('ERROR: Bucket deletion stalled — ' + allBucketIds.size() + ' buckets could not be deleted');
+                    break;
+                }
+                prevSize = allBucketIds.size();
             }
         }
 

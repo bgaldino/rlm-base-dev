@@ -490,6 +490,9 @@ class ExportBRE(BaseSalesforceTask):
 
         # 2. RuleLibraryDefinition
         rld_fields = ["Id", "DeveloperName", "Language", "MasterLabel"]
+        if not rld_ids:
+            self.logger.warning("No RuleLibraryDefinitionId found on any RuleLibrary record. Skipping dependent exports.")
+            return
         rld_id_filter = ",".join(f"'{i}'" for i in rld_ids)
         rld_records = self._export_query(
             soql=f"SELECT {', '.join(rld_fields)} FROM RuleLibraryDefinition WHERE Id IN ({rld_id_filter})",
