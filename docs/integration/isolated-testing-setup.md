@@ -630,6 +630,31 @@ MODEL_NAME=gemini-2.5-pro
 DISTILL_LOGGING__LEVEL=INFO
 ```
 
+#### Credential Verification Checkpoint
+
+Before continuing, the agent **must** verify that `.env.local` contains a real Gemini API key — not a placeholder.
+
+```bash
+# Check if GEMINI_API_KEY is still a placeholder
+grep -q '<your-gemini-api-key>\|your.key.here\|your_gemini_api_key_here' "$RC_WORKSPACE/distill/.env.local" && echo "PLACEHOLDER DETECTED" || echo "OK"
+```
+
+> **Agent note:** If the check prints `PLACEHOLDER DETECTED`, stop and ask the user:
+>
+> *"Your `.env.local` still has a placeholder for GEMINI_API_KEY. Please provide your Gemini API key (created in Section 0.5, Step 5 from your Embark GCP project) and I'll update the file."*
+>
+> Once the user provides the key, replace the placeholder line in `.env.local`:
+> ```bash
+> # Replace placeholder with actual key (agent does this after user provides the value)
+> sed -i '' "s|GEMINI_API_KEY=.*|GEMINI_API_KEY=${USER_PROVIDED_KEY}|" "$RC_WORKSPACE/distill/.env.local"
+> ```
+>
+> Also check if `GEMINI_API_KEY` is exported in the current shell (needed for some Distill operations that read from environment rather than `.env.local`):
+> ```bash
+> echo "${GEMINI_API_KEY:-NOT SET}"
+> ```
+> If not set, export it: `export GEMINI_API_KEY="<key the user provided>"`
+
 ### 2.3 Database Initialization
 
 **User account requirement:** You must have an entry in the production PostgreSQL users table before running locally.
@@ -751,7 +776,34 @@ export SF_PASSWORD="your-password"
 export SF_TOKEN=""  # Leave empty if IP-restricted or using session injection
 ```
 
-**Getting credentials from a CCI-managed org:**
+#### Credential Verification Checkpoint
+
+Before continuing to test execution, the agent **must** verify that Salesforce credentials are set to real values — not placeholders.
+
+```bash
+# Check if SF_URL is set and not a placeholder
+if [[ -z "${SF_URL:-}" || "$SF_URL" == *"your-org"* ]]; then
+  echo "SF_URL NOT SET or placeholder"
+else
+  echo "SF_URL OK: $SF_URL"
+fi
+```
+
+> **Agent note:** If `SF_URL` is unset or still contains `your-org`, the agent must stop and ask the user one of:
+>
+> **Option A — User has a CCI-managed org:**
+> *"Do you have a CCI org alias I can use to export credentials? (e.g., `dev`, `beta`)"*
+> If yes, run the CCI export command below to set credentials automatically.
+>
+> **Option B — User has manual credentials:**
+> *"Please provide your Salesforce org URL, username, and password (or session ID) for Aegis testing."*
+>
+> **Option C — User wants to skip Aegis live testing:**
+> *"We can skip live testing for now and just do the dry-run validation (Section 4.2, Step 1) which doesn't need credentials."*
+>
+> Never proceed to `behave features/RevenueGoFoundation/` with placeholder credentials — it will fail immediately.
+
+**Getting credentials from a CCI-managed org (recommended):**
 
 ```bash
 # From the Foundations directory:
