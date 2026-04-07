@@ -330,15 +330,15 @@ if $NVM_OK && [[ "$OS" == "Darwin" ]] && command_exists brew; then
   fi
 fi
 
-# Conflict: pipx Python vs pyenv
+# Info: pipx Python vs pyenv — not a conflict unless the version is uninstalled
 if command_exists pipx; then
   PIPX_PY=$(pipx environment 2>/dev/null | grep "PIPX_DEFAULT_PYTHON" | awk -F= '{print $2}' | tr -d ' ' || true)
   if [[ -n "$PIPX_PY" ]]; then
     if [[ "$PIPX_PY" == *".pyenv"* ]]; then
-      log_warn "pipx is using a pyenv-managed Python: ${PIPX_PY}"
-      log_detail "If pyenv changes the global version, CCI (via pipx) could break."
-      log_detail "Recommended: pipx should use system Python, not pyenv."
-      log_detail "Fix: PIPX_DEFAULT_PYTHON=/usr/bin/python3 pipx reinstall-all"
+      PIPX_PY_VER=$(echo "$PIPX_PY" | grep -oE '3\.[0-9]+\.[0-9]+' || echo "unknown")
+      log_info "pipx is using pyenv Python ${PIPX_PY_VER}"
+      log_detail "This is normal. Keep this version installed to avoid breaking CCI."
+      log_detail "Changing pyenv global does NOT break pipx — only pyenv uninstall would."
     else
       log_pass "pipx uses non-pyenv Python: ${PIPX_PY}"
     fi

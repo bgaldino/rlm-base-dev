@@ -126,10 +126,10 @@ Section 4: Post-Setup Validation
 | Installing nvm | `type nvm` or check `$NVM_DIR/nvm.sh` — skip if present | All |
 | Installing Node.js LTS | `node --version` — skip if 18+ | All |
 | Creating GCP project on Embark | Ask user — cannot be checked programmatically | Distill |
-| Installing gcloud | `command -v gcloud` — skip if present | Distill |
-| Authenticating gcloud | `gcloud config get-value account` — skip if already authenticated | Distill |
+| Installing/updating gcloud | `command -v gcloud` — if present, run `gcloud components update`; if missing, install | Distill |
+| Authenticating gcloud | `gcloud auth list` for active `@salesforce.com` account AND `gcloud config get-value project` for set project — skip auth if both present | Distill |
 | Installing cmake | `command -v cmake` — skip if present | Distill |
-| Creating Gemini API key | Check `echo $GEMINI_API_KEY` — prompt user if empty | Distill |
+| Creating Gemini API key | Try `gcloud services api-keys list` to retrieve automatically; fall back to prompting user if gcloud unavailable or no keys exist | Distill |
 | Cleaning up Claude Code config | `grep -l "BEDROCK\|AWS" <files>` — skip if no matches | Distill |
 | Cloning distill repo | Check if `$RC_WORKSPACE/distill/.git` exists — skip if present | Distill |
 | Cloning aegis repo | Check if `$RC_WORKSPACE/aegis/.git` exists — skip if present | Aegis |
@@ -137,7 +137,7 @@ Section 4: Post-Setup Validation
 | Creating Aegis venv | Check if `aegis/venv/bin/python3` exists and correct version | Aegis |
 | Setting `pyenv local` | Check if `.python-version` already has correct value | Per repo |
 | Writing `.env.local` | Check if file exists — ask before overwriting | Distill |
-| Configuring SF credentials | Check `echo $SF_URL` — prompt user if empty | Aegis |
+| Configuring SF credentials | Check `$SF_URL`; if empty, auto-detect from `cci org default` or `sf config get target-org` — confirm with user before using | Aegis |
 | Modifying shell profile | Show exact lines to add — **always ask first** | All |
 | Installing Playwright browsers | `playwright install --dry-run` — skip if up to date | Aegis |
 
@@ -292,31 +292,57 @@ Embark is Salesforce's internal tool for provisioning Google Cloud Platform proj
 
 > **Agent note:** This step requires manual browser interaction. Prompt the user to complete it and provide the GCP Project ID before continuing.
 
-#### Step 2: Install Google Cloud CLI (gcloud)
+#### Step 2: Install or Update Google Cloud CLI (gcloud)
+
+**New install:**
 
 ```bash
 # macOS
 brew install google-cloud-sdk
 
 # Linux — see: https://cloud.google.com/sdk/docs/install
-
-# Verify
-gcloud --version
 ```
+
+**Already installed — check for updates:**
+
+```bash
+gcloud --version
+gcloud components update    # interactive — shows changes and prompts Y/n
+```
+
+> **Agent note:** Run `command -v gcloud` first. If present, skip the install and run `gcloud components update` instead. Outdated SDK versions can cause compatibility issues with Gemini API client libraries.
 
 #### Step 3: Authenticate and Configure gcloud
 
+**Check existing authentication first:**
+
 ```bash
-# Authenticate with your Salesforce Google account
+# Check if already authenticated
+GCLOUD_ACCOUNT=$(gcloud config get-value account 2>/dev/null)
+GCLOUD_PROJECT=$(gcloud config get-value project 2>/dev/null)
+
+echo "Account: ${GCLOUD_ACCOUNT:-NOT SET}"
+echo "Project: ${GCLOUD_PROJECT:-NOT SET}"
+```
+
+If both show valid values (a `@salesforce.com` account and an Embark project ID), skip to the verification step below. Otherwise, run the relevant commands:
+
+```bash
+# Only if not authenticated:
 gcloud auth login
 
-# Set the default project to your Embark-provisioned project
+# Only if no project is set:
 gcloud config set project <your-project-id>
+```
 
-# Verify authentication
+**Verify:**
+
+```bash
 gcloud config get-value account    # Should show your @salesforce.com email
 gcloud config get-value project    # Should show your project ID
 ```
+
+> **Agent note:** Check `gcloud auth list` for an active `@salesforce.com` account AND `gcloud config get-value project` for a set project. Skip authentication entirely if both are already configured. Only prompt the user for `gcloud auth login` if no account is found, and only ask for a project ID if none is set.
 
 > **If you get authentication errors later** (e.g., when Distill tries to access Vertex AI), re-run `gcloud auth login` and also run `gcloud auth application-default login` for Application Default Credentials (ADC).
 
@@ -337,6 +363,29 @@ cmake --version
 
 The Gemini API key is created within your Embark-provisioned GCP project. Distill's DataMapper uses it for schema mapping via the Gemini API.
 
+**Automated retrieval (preferred — if gcloud is authenticated):**
+
+```bash
+# List existing API keys in the project
+GCP_PROJECT=$(gcloud config get-value project 2>/dev/null)
+KEY_ID=$(gcloud services api-keys list --project="$GCP_PROJECT" \
+  --format='value(uid)' --limit=1 2>/dev/null)
+
+if [[ -n "$KEY_ID" ]]; then
+  # Retrieve the key string
+  GEMINI_API_KEY=$(gcloud services api-keys get-key-string "$KEY_ID" \
+    --project="$GCP_PROJECT" --format='value(keyString)' 2>/dev/null)
+  export GEMINI_API_KEY
+  echo "Retrieved API key from project $GCP_PROJECT"
+else
+  echo "No API keys found — create one manually (see below)"
+fi
+```
+
+> **Agent note:** Always attempt the automated retrieval first. If `gcloud services api-keys list` returns a key, use `get-key-string` to retrieve it and stamp it into `.env.local` and the current shell. Only fall back to the manual flow below if gcloud is not authenticated, no project is set, or no keys exist in the project.
+
+**Manual creation (fallback):**
+
 1. Open [GCP Console > APIs & Credentials](https://console.cloud.google.com/apis/credentials)
 2. Ensure you are in the correct project (the one created on Embark in Step 1)
 3. Click **Create Credentials** → **API Key**
@@ -347,7 +396,7 @@ The Gemini API key is created within your Embark-provisioned GCP project. Distil
 export GEMINI_API_KEY="your-key-here"
 ```
 
-To persist across shell sessions, add it to your shell profile or a local env file:
+**Persisting the key** across shell sessions:
 
 ```bash
 # Option A: Shell profile (available everywhere)
@@ -357,8 +406,6 @@ echo 'export GEMINI_API_KEY="your-key-here"' >> ~/.zshrc
 # Add to $RC_WORKSPACE/distill/.env.local:
 #   GEMINI_API_KEY=your-key-here
 ```
-
-> **Agent note:** Prompt the user to provide their Gemini API key. Never hardcode or commit API keys.
 
 #### Step 6: Claude Code Cleanup (conditional)
 
@@ -535,13 +582,17 @@ rm "$RC_WORKSPACE/foundations/.python-version"
 **pipx uses pyenv-managed Python:**
 
 ```
-[WARN]  pipx is using a pyenv-managed Python: ~/.pyenv/versions/3.13.x/bin/python3
+[INFO]  pipx is using pyenv Python 3.13.x — keep this version installed
 ```
 
-If pyenv's global version changes, CCI (installed via pipx) could break. Point pipx at a stable system Python:
+This is normal and expected when using pyenv. The only risk is if you run `pyenv uninstall` on the specific version pipx is linked to. As long as that version stays installed, CCI and other pipx tools will keep working — changing `pyenv global` does **not** break them.
 
 ```bash
-PIPX_DEFAULT_PYTHON=/usr/bin/python3 pipx reinstall-all
+# To check which Python pipx is using:
+pipx environment | grep PYTHON
+
+# DON'T uninstall this version:
+pyenv versions   # note which one pipx references
 ```
 
 **nvm Node.js shadowed by Homebrew Node:**
@@ -698,13 +749,28 @@ Before continuing, the agent **must** verify that `.env.local` contains a real G
 grep -q '<your-gemini-api-key>\|your.key.here\|your_gemini_api_key_here' "$RC_WORKSPACE/distill/.env.local" && echo "PLACEHOLDER DETECTED" || echo "OK"
 ```
 
-> **Agent note:** If the check prints `PLACEHOLDER DETECTED`, stop and ask the user:
+> **Agent note:** If the check prints `PLACEHOLDER DETECTED`, attempt automated retrieval first:
 >
-> *"Your `.env.local` still has a placeholder for GEMINI_API_KEY. Please provide your Gemini API key (created in Section 0.5, Step 5 from your Embark GCP project) and I'll update the file."*
+> ```bash
+> # Try to retrieve from gcloud (if authenticated with a project set)
+> GCP_PROJECT=$(gcloud config get-value project 2>/dev/null)
+> KEY_ID=$(gcloud services api-keys list --project="$GCP_PROJECT" \
+>   --format='value(uid)' --limit=1 2>/dev/null)
+> if [[ -n "$KEY_ID" ]]; then
+>   GEMINI_KEY=$(gcloud services api-keys get-key-string "$KEY_ID" \
+>     --project="$GCP_PROJECT" --format='value(keyString)' 2>/dev/null)
+>   sed -i '' "s|GEMINI_API_KEY=.*|GEMINI_API_KEY=${GEMINI_KEY}|" "$RC_WORKSPACE/distill/.env.local"
+>   export GEMINI_API_KEY="$GEMINI_KEY"
+>   echo "Stamped API key from project $GCP_PROJECT"
+> fi
+> ```
+>
+> If automated retrieval fails (gcloud not authenticated, no project, or no keys), fall back to prompting the user:
+>
+> *"Your `.env.local` still has a placeholder for GEMINI_API_KEY and I couldn't retrieve it automatically from gcloud. Please provide your Gemini API key (created in Section 0.5, Step 5 from your Embark GCP project) and I'll update the file."*
 >
 > Once the user provides the key, replace the placeholder line in `.env.local`:
 > ```bash
-> # Replace placeholder with actual key (agent does this after user provides the value)
 > sed -i '' "s|GEMINI_API_KEY=.*|GEMINI_API_KEY=${USER_PROVIDED_KEY}|" "$RC_WORKSPACE/distill/.env.local"
 > ```
 >
@@ -712,7 +778,7 @@ grep -q '<your-gemini-api-key>\|your.key.here\|your_gemini_api_key_here' "$RC_WO
 > ```bash
 > echo "${GEMINI_API_KEY:-NOT SET}"
 > ```
-> If not set, export it: `export GEMINI_API_KEY="<key the user provided>"`
+> If not set, export it: `export GEMINI_API_KEY="<key>"`
 
 ### 2.3 Database Initialization
 
@@ -850,11 +916,27 @@ else
 fi
 ```
 
-> **Agent note:** If `SF_URL` is unset or still contains `your-org`, the agent must stop and ask the user one of:
+> **Agent note:** If `SF_URL` is unset or contains `your-org`, attempt auto-detection first:
 >
-> **Option A — User has a CCI-managed org:**
-> *"Do you have a CCI org alias I can use to export credentials? (e.g., `dev`, `beta`)"*
-> If yes, run the CCI export command below to set credentials automatically.
+> ```bash
+> # 1. Check CCI default org
+> cd "$RC_WORKSPACE/foundations"
+> CCI_DEFAULT=$(cci org default 2>/dev/null)
+>
+> # 2. Check SF CLI default target-org
+> SF_TARGET=$(sf config get target-org --json 2>/dev/null \
+>   | python3 -c "import sys,json; print(json.load(sys.stdin).get('result',{}).get('value',''))" 2>/dev/null)
+> ```
+>
+> If either is found, retrieve org details and **prompt the user to confirm**:
+>
+> *"Found default org: `<username>` at `<instance_url>`. Use this for Aegis testing? (Y/n)"*
+>
+> If confirmed, export the values. If neither default is set or the user declines, fall back to one of:
+>
+> **Option A — User specifies a CCI org alias:**
+> *"Which CCI org alias should I use? (e.g., `dev`, `beta`)"*
+> If provided, run the CCI export command below to set credentials automatically.
 >
 > **Option B — User has manual credentials:**
 > *"Please provide your Salesforce org URL, username, and password (or session ID) for Aegis testing."*
