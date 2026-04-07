@@ -19,6 +19,7 @@ repo root.
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
+| Set up Distill/Aegis integration workspace | Integration Testing | `integration-testing/SKILL.md` |
 | Debug a build/deploy failure | Troubleshooting | `troubleshooting/SKILL.md` |
 
 ## How Skills Are Structured
@@ -43,3 +44,4 @@ Non-Cursor agents can read these files directly or use the equivalent skill:
 | `apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
 | `ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
+| `integration-docs.mdc` | `docs/integration/**`, `scripts/validate_integration_prereqs.sh` | `integration-testing/SKILL.md` |

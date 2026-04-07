@@ -141,6 +141,9 @@ cci task run writeback_ux_templates --org dev-sb0                    # dry-run w
 cci task run validate_setup                                          # no org needed
 python scripts/validate_sfdmu_v5_datasets.py
 python scripts/ai/generate_cci_reference.py                         # after cumulusci.yml edits
+./scripts/validate_integration_prereqs.sh --scan                    # integration prereqs inventory
+./scripts/validate_integration_prereqs.sh                           # integration prereqs validation
+./scripts/validate_integration_prereqs.sh --fix                     # auto-install missing tools
 ```
 
 ---
@@ -157,6 +160,8 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 8. **PRM Network email** — repo uses placeholder only; patch/revert in order
 9. **Edition flags** — `pde`, `trial`, `dev_ed` change PSL/PS assignments
    and feature availability; verify `when:` guards match the target edition
+10. **Integration docs** — paths use `$RC_WORKSPACE`, no hardcoded local paths,
+   version constraints match the compatibility matrix, no credential leaks
 
 ---
 
@@ -176,6 +181,7 @@ that topic.
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
+| Set up Distill/Aegis integration workspace | `.cursor/skills/integration-testing/SKILL.md` |
 | Capture/apply UX drift from org | `docs/features/dynamic-ux-assembly.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 
@@ -216,6 +222,7 @@ same guidance, or use the parent skill which covers the same content:
 | `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
 | `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
+| `.cursor/rules/integration-docs.mdc` | `docs/integration/**`, `scripts/validate_integration_prereqs.sh` | `integration-testing/SKILL.md` |
 
 ### AI Utility Scripts
 
@@ -225,6 +232,8 @@ Scripts in `scripts/ai/` help agents query project data:
 python scripts/ai/query_erd.py describe Product2           # Query RLM data model
 python scripts/ai/query_erd.py domain Pricing               # List domain objects
 python scripts/ai/generate_cci_reference.py                 # Regenerate CCI docs
+./scripts/validate_integration_prereqs.sh --scan            # Integration prereqs scan
+./scripts/validate_integration_prereqs.sh --fix             # Integration prereqs fix
 ```
 
 ---

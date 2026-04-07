@@ -1,0 +1,63 @@
+---
+description: Integration testing docs and prereqs script — Distill & Aegis workspace setup, conflict detection, validation
+globs:
+  - docs/integration/**
+  - scripts/validate_integration_prereqs.sh
+alwaysApply: false
+---
+
+# Integration Testing Rules
+
+## DO NOT
+
+- Edit `validate_integration_prereqs.sh` to check CCI, SF CLI, SFDMU, or Robot — those belong to `cci task run validate_setup`
+- Set `.python-version` in the Foundations directory — CCI/pipx manage their own Python
+- Hardcode local paths (e.g., `/Users/bgaldino/...`) in integration docs — use `$RC_WORKSPACE` variables
+- Commit `.env.local`, `.python-version`, or API keys to integration docs
+- Assume Python 3.13+ works for Distill — it does not (`torch`/`sentence-transformers` break)
+
+## Three-Repo Version Constraints
+
+| Tool | Foundations | Distill | Aegis |
+|------|-----------|---------|-------|
+| Python | 3.8+ (via CCI) | **3.10–3.12 only** | 3.8+ |
+| Node.js | LTS 18+ | Not needed | Not needed |
+| cmake | Not needed | **Required** | Not needed |
+| gcloud | Not needed | **Required** | Not needed |
+| Chrome | Required | Not needed | Required |
+| VPN | Not needed | Not needed | **Required (clone)** |
+
+## Validator Script Modes
+
+The prereqs script (`scripts/validate_integration_prereqs.sh`) has three modes:
+- `--scan` — inventory only, detects conflicts, no pass/fail
+- (default) — full validation with PASS/WARN/FAIL + conflict detection
+- `--fix` — same as default + auto-install missing tools via Homebrew
+
+Status labels: `[PASS]` new check passed, `[SKIP]` already installed, `[WARN]` advisory, `[FAIL]` blocking, `[CONFLICT]` version/config clash.
+
+When editing the script:
+- Keep sections numbered 1–10 in order (Scan → Conflicts → System → Python → Node → Distill → Aegis → Network → Env → Optimizations)
+- `REQUIRED_FAILURES` drives exit code; `CONFLICT_COUNT` and `WARN_COUNT` are advisory
+- Auto-install logic runs only when `MODE == "fix"` — never in default or scan mode
+- All `log_detail` messages should be actionable fix commands
+
+## Integration Docs Conventions
+
+- All files in `docs/integration/` use **lower-kebab-case** filenames
+- The setup guide (`isolated-testing-setup.md`) is the user-facing entry point
+- Other files are planning/analysis documents — update "Last Updated" dates when editing
+- Cross-references between docs use relative markdown links
+- Repository URLs: use the canonical URLs from the "Repository URLs" table — never use personal fork URLs
+
+## Credential Flow (CCI → Aegis)
+
+When documenting or scripting credential export:
+1. Use `cci org info <alias> --json` to extract `instance_url`, `username`, `access_token`
+2. Export as `SF_URL`, `SF_USERNAME`, `SF_SESSION_ID` for session injection
+3. Never log or commit access tokens
+4. Session injection (`frontdoor.jsp`) is preferred over password auth for CCI orgs
+
+## Full Skill Reference
+
+For complete guidance, read `.cursor/skills/integration-testing/SKILL.md`.
