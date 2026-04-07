@@ -79,8 +79,12 @@ Section 4: Post-Setup Validation
 | Installing Python 3.12 via pyenv | `pyenv versions \| grep 3.12` — skip if present |
 | Installing nvm | `type nvm` or check `$NVM_DIR/nvm.sh` — skip if present |
 | Installing Node.js LTS | `node --version` — skip if 18+ |
+| Creating GCP project on Embark | Ask user — cannot be checked programmatically |
 | Installing gcloud | `command -v gcloud` — skip if present |
+| Authenticating gcloud | `gcloud config get-value account` — skip if already authenticated |
 | Installing cmake | `command -v cmake` — skip if present |
+| Creating Gemini API key | Check `echo $GEMINI_API_KEY` — prompt user if empty |
+| Cleaning up Claude Code config | `grep -l "BEDROCK\|AWS" <files>` — skip if no matches |
 | Cloning a repository | Check if `$RC_WORKSPACE/<repo>/.git` exists — skip if present |
 | Creating a venv | Check if `<repo>/.venv/bin/python3` exists and is correct version |
 | Setting `pyenv local` | Check if `.python-version` already has correct value |
@@ -224,25 +228,48 @@ npm --version
 
 ### 0.5 Distill-Specific Tools
 
-These are only needed if you are setting up Distill.
+These are only needed if you are setting up Distill. The steps must be followed in order — Embark provisions the GCP project that gcloud authenticates against, which is where the Gemini API key is created.
 
-**Google Cloud CLI (gcloud):**
+#### Step 1: Create a GCP Project on Embark
+
+Embark is Salesforce's internal tool for provisioning Google Cloud Platform projects. You need a GCP project before you can authenticate gcloud or create API keys.
+
+1. Navigate to [Embark](https://embark.sfdcbt.net/)
+2. Sign in with your Salesforce SSO credentials
+3. Create a new GCP project (or use an existing one)
+4. Note the **Project ID** — you'll need it for gcloud configuration
+
+> **Agent note:** This step requires manual browser interaction. Prompt the user to complete it and provide the GCP Project ID before continuing.
+
+#### Step 2: Install Google Cloud CLI (gcloud)
 
 ```bash
 # macOS
 brew install google-cloud-sdk
 
-# Linux
-# See: https://cloud.google.com/sdk/docs/install
-
-# Authenticate
-gcloud auth login
+# Linux — see: https://cloud.google.com/sdk/docs/install
 
 # Verify
 gcloud --version
 ```
 
-**cmake:**
+#### Step 3: Authenticate and Configure gcloud
+
+```bash
+# Authenticate with your Salesforce Google account
+gcloud auth login
+
+# Set the default project to your Embark-provisioned project
+gcloud config set project <your-project-id>
+
+# Verify authentication
+gcloud config get-value account    # Should show your @salesforce.com email
+gcloud config get-value project    # Should show your project ID
+```
+
+> **If you get authentication errors later** (e.g., when Distill tries to access Vertex AI), re-run `gcloud auth login` and also run `gcloud auth application-default login` for Application Default Credentials (ADC).
+
+#### Step 4: Install cmake
 
 ```bash
 # macOS
@@ -255,21 +282,51 @@ sudo apt install -y cmake
 cmake --version
 ```
 
-**Gemini API Key:**
+#### Step 5: Create and Export Gemini API Key
 
-1. Create a GCP project on [Embark](https://embark.sfdcbt.net/)
-2. Create an API key at [GCP Console > APIs & Credentials](https://console.cloud.google.com/apis/credentials)
-3. Export it:
+The Gemini API key is created within your Embark-provisioned GCP project. Distill's DataMapper uses it for schema mapping via the Gemini API.
+
+1. Open [GCP Console > APIs & Credentials](https://console.cloud.google.com/apis/credentials)
+2. Ensure you are in the correct project (the one created on Embark in Step 1)
+3. Click **Create Credentials** → **API Key**
+4. (Recommended) Restrict the key to the **Generative Language API** only
+5. Copy the key and export it:
 
 ```bash
 export GEMINI_API_KEY="your-key-here"
 ```
 
-Consider adding this to your shell profile or a `.env.local` file (not committed).
+To persist across shell sessions, add it to your shell profile or a local env file:
 
-**Claude Code cleanup** (only if you previously used AWS Bedrock):
-- Remove BEDROCK/AWS properties from `/Library/Application Support/ClaudeCode/managed-settings.json`
-- Remove BEDROCK/AWS properties from `~/.claude/settings.json`
+```bash
+# Option A: Shell profile (available everywhere)
+echo 'export GEMINI_API_KEY="your-key-here"' >> ~/.zshrc
+
+# Option B: Distill .env.local (project-specific, not committed)
+# Add to $RC_WORKSPACE/distill/.env.local:
+#   GEMINI_API_KEY=your-key-here
+```
+
+> **Agent note:** Prompt the user to provide their Gemini API key. Never hardcode or commit API keys.
+
+#### Step 6: Claude Code Cleanup (conditional)
+
+Only needed if you previously configured Claude Code to use AWS Bedrock. Distill uses Vertex AI (via GCP), and leftover Bedrock configuration causes conflicts.
+
+**Check if cleanup is needed:**
+
+```bash
+# macOS — check for Bedrock config
+grep -l "BEDROCK\|AWS" "/Library/Application Support/ClaudeCode/managed-settings.json" ~/.claude/settings.json 2>/dev/null
+```
+
+If either file contains BEDROCK or AWS properties:
+
+1. **Back up** the existing files first
+2. Remove BEDROCK/AWS-related properties from `/Library/Application Support/ClaudeCode/managed-settings.json`
+3. Remove BEDROCK/AWS-related properties from `~/.claude/settings.json`
+
+> **Agent note:** Show the user the exact properties to remove and get approval before modifying these files.
 
 ### 0.6 Prerequisites Validation Script
 
