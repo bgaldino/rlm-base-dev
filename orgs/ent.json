@@ -13,6 +13,7 @@
     "CustomerCommunityPlus",
     "DocGen",
     "Einstein1AIPlatform",
+    "EmbeddedServiceMessaging",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "ExternalClientApps",
@@ -23,6 +24,7 @@
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "ServiceCloud",
+    "Scrt2Conversation",
     "UsageManagement",
     "UnifiedCatalog"
   ],

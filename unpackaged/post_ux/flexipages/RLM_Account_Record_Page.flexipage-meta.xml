@@ -25,6 +25,21 @@
                             <value>Account.RLM_Reset_Account</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>SuspendBilling</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>ResumeBilling</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>CreateCreditMemo</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>GenerateStatementOfAccount</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>EnableAsPartner</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Global.NewTask</value>
                         </valueListItems>
                         <valueListItems>
@@ -79,9 +94,6 @@
                             <value>WebsiteHighlightAction</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>EnableAsPartner</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>DisablePartnerPortalAccount</value>
                         </valueListItems>
                     </valueList>
@@ -100,6 +112,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
@@ -122,7 +138,7 @@
                     <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Name</fieldItem>
-                <identifier>RecordNameField</identifier>
+                <identifier>RecordNameField2</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -149,23 +165,13 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.NumberOfEmployees</fieldItem>
-                <identifier>RecordNumberOfEmployeesField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
                     <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.CurrencyIsoCode</fieldItem>
                 <identifier>RecordCurrencyIsoCodeField</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-339cc1ea-682a-4d35-a7b5-7a7988d00184</name>
+        <name>Facet-03418b0d-136c-477c-8233-ce5075bb9017</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -173,20 +179,20 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>readonly</value>
+                    <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.OwnerId</fieldItem>
-                <identifier>RecordOwnerIdField</identifier>
+                <fieldItem>Record.ParentId</fieldItem>
+                <identifier>RecordParentIdField2</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Industry</fieldItem>
-                <identifier>RecordIndustryField</identifier>
+                <fieldItem>Record.OwnerId</fieldItem>
+                <identifier>RecordOwnerIdField2</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -199,14 +205,42 @@
                 <identifier>RecordSiteField</identifier>
             </fieldInstance>
         </itemInstances>
+        <name>Facet-601a91ff-d88e-44fd-a746-004e2cde388e</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-03418b0d-136c-477c-8233-ce5075bb9017</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:column</componentName>
+                <identifier>flexipage_column</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-601a91ff-d88e-44fd-a746-004e2cde388e</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:column</componentName>
+                <identifier>flexipage_column2</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-2fba60b3-45a9-4b7b-a9db-42ee0b49cf43</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
         <itemInstances>
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Website</fieldItem>
-                <identifier>RecordWebsiteField</identifier>
+                <fieldItem>Record.Industry</fieldItem>
+                <identifier>RecordIndustryField2</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -216,10 +250,34 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.AnnualRevenue</fieldItem>
-                <identifier>RecordAnnualRevenueField</identifier>
+                <identifier>RecordAnnualRevenueField2</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-a3206394-7674-49ce-a505-26501e792ccb</name>
+        <name>Facet-2eddf9cb-531c-4ed3-9f95-6bf54baf0b49</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.NumberOfEmployees</fieldItem>
+                <identifier>RecordNumberOfEmployeesField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Website</fieldItem>
+                <identifier>RecordWebsiteField2</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <name>Facet-a2e54be0-3799-48c9-96b2-024a56a6e69a</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -227,23 +285,23 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-339cc1ea-682a-4d35-a7b5-7a7988d00184</value>
+                    <value>Facet-2eddf9cb-531c-4ed3-9f95-6bf54baf0b49</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column10</identifier>
+                <identifier>flexipage_column3</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-a3206394-7674-49ce-a505-26501e792ccb</value>
+                    <value>Facet-a2e54be0-3799-48c9-96b2-024a56a6e69a</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column11</identifier>
+                <identifier>flexipage_column4</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-589eca76-c6b8-4b59-b6fd-7ee4f1ef2e0a</name>
+        <name>Facet-574e9d5d-eefc-45c7-9bf1-20d3c35405af</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -254,10 +312,10 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Description</fieldItem>
-                <identifier>RecordDescriptionField</identifier>
+                <identifier>RecordDescriptionField2</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-fcff3983-137f-4c19-a8e0-35e7ea1297ff</name>
+        <name>Facet-1175f08a-52ea-4ed0-b6f3-77308ad5fe80</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -265,13 +323,13 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-fcff3983-137f-4c19-a8e0-35e7ea1297ff</value>
+                    <value>Facet-1175f08a-52ea-4ed0-b6f3-77308ad5fe80</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column5</identifier>
+                <identifier>flexipage_column12</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-a78af889-d410-46dc-a884-1e795c99f4fe</name>
+        <name>Facet-233dc5b6-35f9-467e-b1da-f02d79f91713</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -282,7 +340,7 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingAddress</fieldItem>
-                <identifier>RecordBillingAddressField</identifier>
+                <identifier>RecordBillingAddressField2</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -292,10 +350,10 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Phone</fieldItem>
-                <identifier>RecordPhoneField</identifier>
+                <identifier>RecordPhoneField2</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-7a54552d-c567-4790-8290-feffa0dd096e</name>
+        <name>Facet-bae2c8a2-9753-4045-ac12-bbbb85118f35</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -306,7 +364,7 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.ShippingAddress</fieldItem>
-                <identifier>RecordShippingAddressField</identifier>
+                <identifier>RecordShippingAddressField2</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -316,10 +374,10 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Fax</fieldItem>
-                <identifier>RecordFaxField</identifier>
+                <identifier>RecordFaxField2</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-a61e9179-97ff-4d04-bf63-f03367cdbe84</name>
+        <name>Facet-655a6a17-fb94-48ec-ae10-fe4016db30b9</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -327,23 +385,23 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-7a54552d-c567-4790-8290-feffa0dd096e</value>
+                    <value>Facet-bae2c8a2-9753-4045-ac12-bbbb85118f35</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column6</identifier>
+                <identifier>flexipage_column13</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-a61e9179-97ff-4d04-bf63-f03367cdbe84</value>
+                    <value>Facet-655a6a17-fb94-48ec-ae10-fe4016db30b9</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column7</identifier>
+                <identifier>flexipage_column14</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-d8628779-0065-45d9-aa79-c44cb37bbd56</name>
+        <name>Facet-ebdec2c1-913a-46c2-827e-6bc7be2d8dd0</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -354,10 +412,10 @@
                     <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.CreatedById</fieldItem>
-                <identifier>RecordCreatedByIdField</identifier>
+                <identifier>RecordCreatedByIdField2</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-2b92af32-d008-4c16-8a19-985c15ec676b</name>
+        <name>Facet-c6f5abf2-3fab-4a30-ba06-c7131323cd11</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -368,10 +426,10 @@
                     <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.LastModifiedById</fieldItem>
-                <identifier>RecordLastModifiedByIdField</identifier>
+                <identifier>RecordLastModifiedByIdField2</identifier>
             </fieldInstance>
         </itemInstances>
-        <name>Facet-bb45070e-0da2-464d-9df6-c9d24898c9e2</name>
+        <name>Facet-c32626a7-4333-49d2-b1fc-e1272ae9ec20</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -379,23 +437,23 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-2b92af32-d008-4c16-8a19-985c15ec676b</value>
+                    <value>Facet-c6f5abf2-3fab-4a30-ba06-c7131323cd11</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column8</identifier>
+                <identifier>flexipage_column15</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
-                    <value>Facet-bb45070e-0da2-464d-9df6-c9d24898c9e2</value>
+                    <value>Facet-c32626a7-4333-49d2-b1fc-e1272ae9ec20</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:column</componentName>
-                <identifier>flexipage_column9</identifier>
+                <identifier>flexipage_column16</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-f08fa5f6-5f14-4d9d-8a4b-760c60d3d604</name>
+        <name>Facet-e1eecaad-2e18-4ffc-a8fe-7642fbee0a8b</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -403,76 +461,94 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-589eca76-c6b8-4b59-b6fd-7ee4f1ef2e0a</value>
+                    <value>Facet-2fba60b3-45a9-4b7b-a9db-42ee0b49cf43</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>Detail</value>
+                    <value>@@@SFDCAccount_InformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
-                <identifier>flexipage_fieldSection6</identifier>
+                <identifier>flexipage_fieldSection</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-a78af889-d410-46dc-a884-1e795c99f4fe</value>
+                    <value>Facet-574e9d5d-eefc-45c7-9bf1-20d3c35405af</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>Description Information</value>
+                    <value>@@@SFDCAdditional_InformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
-                <identifier>flexipage_fieldSection3</identifier>
+                <identifier>flexipage_fieldSection2</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-d8628779-0065-45d9-aa79-c44cb37bbd56</value>
+                    <value>Facet-233dc5b6-35f9-467e-b1da-f02d79f91713</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>Address Information</value>
+                    <value>@@@SFDCDescription_InformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
-                <identifier>flexipage_fieldSection4</identifier>
+                <identifier>flexipage_fieldSection7</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
                     <name>columns</name>
-                    <value>Facet-f08fa5f6-5f14-4d9d-8a4b-760c60d3d604</value>
+                    <value>Facet-ebdec2c1-913a-46c2-827e-6bc7be2d8dd0</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>horizontalAlignment</name>
-                    <value>true</value>
+                    <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>label</name>
-                    <value>System Information</value>
+                    <value>@@@SFDCAddress_InformationSFDC@@@</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:fieldSection</componentName>
-                <identifier>flexipage_fieldSection5</identifier>
+                <identifier>flexipage_fieldSection8</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>columns</name>
+                    <value>Facet-e1eecaad-2e18-4ffc-a8fe-7642fbee0a8b</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>horizontalAlignment</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>@@@SFDCSystem_InformationSFDC@@@</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:fieldSection</componentName>
+                <identifier>flexipage_fieldSection9</identifier>
             </componentInstance>
         </itemInstances>
         <mode>Replace</mode>
-        <name>detailTabContent</name>
+        <name>feedTabContent</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -621,6 +697,16 @@
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>cardTitle</name>
+                    <value>Settlement and Adjustments</value>
+                </componentInstanceProperties>
+                <componentName>runtime_revenue_invoice_settlement:settlementAndAdjustments</componentName>
+                <identifier>runtime_revenue_invoice_settlement_settlementAndAdjustments</identifier>
+            </componentInstance>
+        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
@@ -1159,6 +1245,10 @@
         </itemInstances>
         <itemInstances>
             <componentInstance>
+                <componentInstanceProperties>
+                    <name>orchestrationFlowApiName</name>
+                    <value>RLM_Orchestrate_Usage_Management</value>
+                </componentInstanceProperties>
                 <componentName>rlmUsageOrchestration</componentName>
                 <identifier>c_rlmUsageOrchestration</identifier>
             </componentInstance>
@@ -2043,16 +2133,12 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>showLegacyActivityComposer</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentName>runtime_sales_activities:activityPanel</componentName>
-                <identifier>runtime_sales_activities_activityPanel_feed</identifier>
+                <componentName>runtime_slack:slackRecordChannel</componentName>
+                <identifier>runtime_slack_slackRecordChannel</identifier>
             </componentInstance>
         </itemInstances>
         <mode>Replace</mode>
-        <name>feedTabContent</name>
+        <name>detailTabContent</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
@@ -2082,7 +2168,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
-                    <value>Standard.Tab.collaborate</value>
+                    <value>Slack</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>collaborateTab</identifier>

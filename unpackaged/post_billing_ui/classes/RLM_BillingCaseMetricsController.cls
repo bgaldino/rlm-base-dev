@@ -1,6 +1,10 @@
 /**
  * Apex controller for the Billing Case Metrics LWC.
  * Aggregates open billing cases, disputes, and disputed invoice data.
+ *
+ * Dispute object fields (IsClosed, DisputedAmount, InvoiceId) were removed
+ * in release 262. Queries use Schema describe to check field availability
+ * before executing.
  */
 public with sharing class RLM_BillingCaseMetricsController {
 
@@ -8,8 +12,17 @@ public with sharing class RLM_BillingCaseMetricsController {
     public static Map<String, Object> getMetrics() {
         Map<String, Object> result = new Map<String, Object>();
 
-        // Open Billing Cases: Cases with Type = 'Billing' and Status is open
-        Integer openBillingCases = 0;
+        result.put('openBillingCases', countOpenBillingCases());
+
+        Map<String, Object> disputeMetrics = queryDisputeMetrics();
+        result.put('openDisputes', disputeMetrics.get('openDisputes'));
+        result.put('totalDisputedAmount', disputeMetrics.get('totalDisputedAmount'));
+        result.put('disputedInvoices', disputeMetrics.get('disputedInvoices'));
+
+        return result;
+    }
+
+    private static Integer countOpenBillingCases() {
         try {
             List<AggregateResult> caseAgg = [
                 SELECT COUNT(Id) cnt
@@ -17,42 +30,57 @@ public with sharing class RLM_BillingCaseMetricsController {
                 WHERE IsClosed = false
                 AND Type = 'Billing'
             ];
-            openBillingCases = (Integer) caseAgg[0].get('cnt');
+            return (Integer) caseAgg[0].get('cnt');
         } catch (Exception e) {
-            // fallback
+            return 0;
         }
-        result.put('openBillingCases', openBillingCases);
+    }
 
-        // Open Disputes
-        Integer openDisputes = 0;
-        Decimal totalDisputedAmount = 0;
-        try {
-            List<AggregateResult> disputeAgg = Database.query(
-                'SELECT COUNT(Id) cnt, SUM(DisputedAmount) totalAmt ' +
-                'FROM Dispute WHERE IsClosed = false'
-            );
-            openDisputes = (Integer) disputeAgg[0].get('cnt');
-            Object amt = disputeAgg[0].get('totalAmt');
-            totalDisputedAmount = amt != null ? (Decimal) amt : 0;
-        } catch (Exception e) {
-            // Dispute object might not be available
+    private static Map<String, Object> queryDisputeMetrics() {
+        Map<String, Object> metrics = new Map<String, Object>{
+            'openDisputes' => 0,
+            'totalDisputedAmount' => (Decimal) 0,
+            'disputedInvoices' => 0
+        };
+
+        if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
+            return metrics;
         }
-        result.put('openDisputes', openDisputes);
-        result.put('totalDisputedAmount', totalDisputedAmount);
 
-        // Disputed Invoices: count of unique invoices linked to open disputes
-        Integer disputedInvoices = 0;
-        try {
-            List<AggregateResult> invAgg = Database.query(
-                'SELECT COUNT_DISTINCT(InvoiceId) cnt ' +
-                'FROM Dispute WHERE IsClosed = false AND InvoiceId != null'
-            );
-            disputedInvoices = (Integer) invAgg[0].get('cnt');
-        } catch (Exception e) {
-            // fallback
+        Map<String, Schema.SObjectField> disputeFields =
+            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+
+        Boolean hasIsClosed = disputeFields.containsKey('IsClosed');
+        Boolean hasDisputedAmount = disputeFields.containsKey('DisputedAmount');
+        Boolean hasInvoiceId = disputeFields.containsKey('InvoiceId');
+
+        if (hasIsClosed) {
+            try {
+                String selectClause = 'SELECT COUNT(Id) cnt';
+                if (hasDisputedAmount) {
+                    selectClause += ', SUM(DisputedAmount) totalAmt';
+                }
+                List<AggregateResult> disputeAgg = Database.query(
+                    selectClause + ' FROM Dispute WHERE IsClosed = false'
+                );
+                metrics.put('openDisputes', (Integer) disputeAgg[0].get('cnt'));
+                if (hasDisputedAmount) {
+                    Object amt = disputeAgg[0].get('totalAmt');
+                    metrics.put('totalDisputedAmount', amt != null ? (Decimal) amt : 0);
+                }
+            } catch (Exception e) { /* field removed or object inaccessible */ }
+
+            if (hasInvoiceId) {
+                try {
+                    List<AggregateResult> invAgg = Database.query(
+                        'SELECT COUNT_DISTINCT(InvoiceId) cnt ' +
+                        'FROM Dispute WHERE IsClosed = false AND InvoiceId != null'
+                    );
+                    metrics.put('disputedInvoices', (Integer) invAgg[0].get('cnt'));
+                } catch (Exception e) { /* field removed or object inaccessible */ }
+            }
         }
-        result.put('disputedInvoices', disputedInvoices);
 
-        return result;
+        return metrics;
     }
 }
