@@ -8,9 +8,50 @@
 
 ---
 
+## 0. Workspace Setup
+
+Choose a workspace root directory. All three repositories will be cloned as siblings under this root.
+
+```bash
+# Pick any workspace location — examples:
+#   ~/workspace/revenue-cloud
+#   ~/projects/rlm
+#   ~/dev/rc-integration
+export RC_WORKSPACE=~/workspace/revenue-cloud
+mkdir -p "$RC_WORKSPACE"
+cd "$RC_WORKSPACE"
+```
+
+### Clone All Three Repositories
+
+```bash
+# Revenue Cloud Foundations (primary — this repo)
+git clone https://github.com/salesforce-internal/revenue-cloud-foundations.git foundations
+cd foundations && git checkout feat/distill-aegis-integration && cd ..
+
+# Distill (AI-powered customization migration)
+git clone https://github.com/sf-industries/distill.git distill
+
+# Aegis (BDD test automation)
+git clone https://git.soma.salesforce.com/industries/Automated-Remote-Org-Test.git aegis
+```
+
+After cloning, your workspace looks like:
+
+```
+$RC_WORKSPACE/
+├── foundations/     # Revenue Cloud Foundations (rlm-base-dev)
+├── distill/         # Distill
+└── aegis/           # Aegis (Automated-Remote-Org-Test)
+```
+
+> **Note:** If you already have these repos cloned elsewhere, you can symlink them or adjust `RC_WORKSPACE` accordingly. The guide uses `$RC_WORKSPACE/distill` and `$RC_WORKSPACE/aegis` throughout.
+
+---
+
 ## 1. Distill — Local Setup
 
-**Repository:** `_sf-industries/distill`
+**Repository:** `sf-industries/distill`
 **What it does:** AI-powered Salesforce customization migration using Claude Agent SDK.
 **Why test it:** Validate that the Insights pipeline, DataMapper, and API server work before wiring them into CCI tasks.
 
@@ -19,10 +60,27 @@
 | Requirement | Version | Notes |
 |---|---|---|
 | Python | 3.10 – 3.12 | **Not** 3.13+ (incompatible with several deps including `torch`) |
-| Google Cloud CLI | Latest | `brew install google-cloud-sdk` — required for Vertex AI fallback |
-| cmake | Latest | `brew install cmake` — required by `sentence-transformers` build |
+| Google Cloud CLI | Latest | macOS: `brew install google-cloud-sdk`; Linux: see [gcloud docs](https://cloud.google.com/sdk/docs/install) |
+| cmake | Latest | macOS: `brew install cmake`; Linux: `apt install cmake` — required by `sentence-transformers` build |
 | GCP Project | — | Create on [Embark](https://embark.sfdcbt.net/) for Vertex AI access |
 | Gemini API Key | — | Create at [GCP Console > APIs & Credentials](https://console.cloud.google.com/apis/credentials) |
+
+**Verify Python version:**
+
+```bash
+python3 --version  # Must be 3.10.x, 3.11.x, or 3.12.x
+```
+
+If your default `python3` is 3.13+, install a compatible version:
+
+```bash
+# macOS
+brew install python@3.12
+
+# Or use pyenv
+pyenv install 3.12
+pyenv local 3.12
+```
 
 **Claude Code cleanup (if previously used AWS Bedrock):**
 - Remove BEDROCK/AWS properties from `/Library/Application Support/ClaudeCode/managed-settings.json`
@@ -31,7 +89,7 @@
 ### 1.2 Installation
 
 ```bash
-cd /Users/bgaldino/Documents/GitHub/bgaldino_emu/_sf-industries/distill
+cd "$RC_WORKSPACE/distill"
 
 # Option A: Automatic (recommended) — handles venv, deps, and startup
 cp .env.example .env.local
@@ -109,6 +167,7 @@ Creates `test-viewer-001` with viewer role. This is also run automatically by `s
 **All-in-one startup (recommended):**
 
 ```bash
+cd "$RC_WORKSPACE/distill"
 ./start-services-local.sh
 ```
 
@@ -139,6 +198,7 @@ python serve_api.py
 ### 1.6 Running Tests
 
 ```bash
+cd "$RC_WORKSPACE/distill"
 source .venv/bin/activate
 
 # All tests
@@ -194,7 +254,7 @@ pytest -v --no-header
 ### 2.2 Installation
 
 ```bash
-cd /Users/bgaldino/Documents/GitHub/Enterprise/_industries/Automated-Remote-Org-Test
+cd "$RC_WORKSPACE/aegis"
 
 # Create and activate virtual environment
 python3 -m venv venv
@@ -225,7 +285,8 @@ export SF_TOKEN=""  # Leave empty if IP-restricted or using session injection
 **Getting credentials from a CCI-managed org:**
 
 ```bash
-# From the rlm-base-dev directory:
+# From the Foundations directory:
+cd "$RC_WORKSPACE/foundations"
 cci org info <alias> --json | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -252,6 +313,13 @@ The `features/RevenueGoFoundation/RevenueGoFoundationCreds.json` contains org co
 ```
 
 ### 2.4 Running Tests
+
+All commands assume you are in the Aegis directory with the venv active:
+
+```bash
+cd "$RC_WORKSPACE/aegis"
+source venv/bin/activate
+```
 
 **Run all RevenueGoFoundation tests:**
 
@@ -337,6 +405,7 @@ All 7 files use `@playwright` and the session injection pattern (`Given login to
 - **Session reuse per feature:** `ENABLE_SESSION_REUSE_PER_FEATURE = True` in `environment.py` means the browser session is shared across scenarios within a feature file. If one scenario corrupts state, subsequent scenarios in the same file may fail.
 - **Org must be pre-provisioned:** Aegis cannot create orgs. Run `cci flow run prepare_rlm_org --org <alias>` first with the appropriate data shape and feature flags. For full RevenueGoFoundation coverage, the org needs: QB data (`qb: true`), DRO (`dro: true`), billing (`billing: true`), and pricing data.
 - **`nest_asyncio` import:** The `environment.py` applies `nest_asyncio` at import time to handle Playwright/gRPC event loop conflicts. This is handled automatically.
+- **git.soma.salesforce.com access:** The Aegis repo is on internal GHE. You must be on VPN or have SSH keys configured for `git.soma.salesforce.com`.
 
 ---
 
@@ -346,11 +415,11 @@ Before starting integration work, confirm the following passes on each platform:
 
 | Platform | Validation | Command | Expected |
 |---|---|---|---|
-| **Foundations** | Org provisions successfully | `cci flow run prepare_rlm_org --org dev` | All 30+ steps pass |
-| **Distill** | Dashboard + API start | `./start-services-local.sh` | Ports 5000/8000 respond |
-| **Distill** | Unit tests pass | `pytest -m unit` | Exit code 0 |
-| **Aegis** | Initial Setup test | `behave features/RevenueGoFoundation/RevenueCloudInitialSetup.feature` | All scenarios pass |
-| **Aegis** | Full RGF suite | `behave features/RevenueGoFoundation/` | All 7 feature files pass |
+| **Foundations** | Org provisions successfully | `cd $RC_WORKSPACE/foundations && cci flow run prepare_rlm_org --org dev` | All 30+ steps pass |
+| **Distill** | Dashboard + API start | `cd $RC_WORKSPACE/distill && ./start-services-local.sh` | Ports 5000/8000 respond |
+| **Distill** | Unit tests pass | `cd $RC_WORKSPACE/distill && source .venv/bin/activate && pytest -m unit` | Exit code 0 |
+| **Aegis** | Initial Setup test | `cd $RC_WORKSPACE/aegis && source venv/bin/activate && behave features/RevenueGoFoundation/RevenueCloudInitialSetup.feature` | All scenarios pass |
+| **Aegis** | Full RGF suite | `cd $RC_WORKSPACE/aegis && source venv/bin/activate && behave features/RevenueGoFoundation/` | All 7 feature files pass |
 | **Cross-platform** | Aegis against CCI org | Provision with CCI, export creds, run Aegis | Aegis scenarios pass against CCI-provisioned org |
 
 ---
@@ -358,8 +427,8 @@ Before starting integration work, confirm the following passes on each platform:
 ## 4. Directory Reference
 
 ```
-Workspace
-├── rlm-base-dev/                              # Revenue Cloud Foundations
+$RC_WORKSPACE/
+├── foundations/                                # Revenue Cloud Foundations
 │   ├── cumulusci.yml                          # 58+ flags, 30+ flows
 │   ├── tasks/                                 # 30+ Python task modules
 │   └── docs/integration/                      # This guide + integration plans
@@ -372,10 +441,20 @@ Workspace
 │   ├── src/distill/dashboard/app.py           # Flask dashboard
 │   └── tests/                                 # pytest suite
 │
-└── Automated-Remote-Org-Test/                 # Aegis (BDD testing)
+└── aegis/                                     # Aegis (Automated-Remote-Org-Test)
     ├── requirements.txt                       # pip dependencies
     ├── behave.ini                             # Behave configuration
     ├── features/RevenueGoFoundation/          # 7 feature files (all @playwright)
     ├── features/environment.py                # Test lifecycle hooks
     └── shared/                                # Shared steps, utils, data
 ```
+
+---
+
+## 5. Repository URLs
+
+| Repository | URL | Access |
+|---|---|---|
+| Revenue Cloud Foundations | `https://github.com/salesforce-internal/revenue-cloud-foundations.git` | GitHub (salesforce-internal) |
+| Distill | `https://github.com/sf-industries/distill.git` | GitHub (sf-industries) |
+| Aegis | `https://git.soma.salesforce.com/industries/Automated-Remote-Org-Test.git` | GHE (git.soma — requires VPN) |
