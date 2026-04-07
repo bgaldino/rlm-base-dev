@@ -1,5 +1,4 @@
 CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
-,,,Shipping Charge Product,9999999
 ,Bundle,,Provisioning and Activation Service,QB-AEH-CPU
 ,OrderLineItem,,AEH Environment Runtime,QB-AEH-ENV
 ,OrderLineItem,,AEH Object Store - Restricted Use,QB-AEH-OBJ
@@ -106,8 +105,8 @@ Group_Identifier,Custom,,QuantumBit Database - Provisioning & Activation Service
 ,,,QB-NetLink 25G,QB-NET-25G
 ,,,QB-NetSecure 10G,QB-NETSECURE-10G
 ,OrderLineItem,,No Operating System,QB-NO-OSYS
-,,,QB-Accel NovaX150,QB-NovaX150
 ,,,QB-NVExpand 200,QB-NVExpand-200
+,,,QB-Accel NovaX150,QB-NovaX150
 ,OrderLineItem,,"Rack PDU 20A, 120V L5-20",QB-PDU-2022
 ,OrderLineItem,,"Rack PDU 30A, 120V L5-20",QB-PDU-2023
 ,OrderLineItem,,"Rack PDU 15A, 120V L5-20",QB-PDU-2024
@@ -155,9 +154,161 @@ Group_Identifier,Custom,,QuantumBit Database - Provisioning & Activation Service
 ,,,QuantumBit Tokens Pack,QB-TOKENS-PACK
 ,OrderLineItem,,QuantumBit Essentials Training,QB-TRN-ESSNTLS
 ,OrderLineItem,,QuantumBit Fundamentals Training,QB-TRN-FUND
-,,,QB-Accel VegaX200,QB-VegaX200
 ,OrderLineItem,,vSphere Desktop,QB-VMW-D
 ,OrderLineItem,,vSphere Enterprise,QB-VMW-E
 ,OrderLineItem,,vSphere Standard,QB-VMW-S
+,,,QB-Accel VegaX200,QB-VegaX200
+,,,Shipping Charge Product,9999999
+,OrderLineItem,,Switch ASIC,PROD-1000281857
+,OrderLineItem,,PDU Outlet Whip,PROD-1002254785
+,OrderLineItem,,Network Fabric,PROD-1008704562
+,OrderLineItem,,NVMe U.2 SSD 3.84TB,PROD-1038139044
+,OrderLineItem,,Breaker Set,PROD-1046989797
+,OrderLineItem,,Charger Module,PROD-1054187061
+,OrderLineItem,,Bypass Switch,PROD-1065068854
+,OrderLineItem,,Front Door,PROD-1066573967
+,OrderLineItem,,Dual PSU & Fan Modules,PROD-1078575407
+,OrderLineItem,,1U LCD Tray,PROD-111239623
+,OrderLineItem,,Perforated Doors,PROD-1128940216
+,OrderLineItem,,Metering Board,PROD-1153963439
+,OrderLineItem,,Online UPS Module,PROD-1160394163
+,OrderLineItem,,Outlet Strips,PROD-1167731127
+,OrderLineItem,,Cable Tie Pack,PROD-1176699896
+,OrderLineItem,,External Battery Pack,PROD-1202444971
+,OrderLineItem,,Generic Component A,PROD-1223537488
+,OrderLineItem,,Generic Component A,PROD-1232611253
+,OrderLineItem,,Redundant PDUs (A/B),PROD-1234105735
+,OrderLineItem,,PSU Set (2x),PROD-1247640563
+,OrderLineItem,,USB Console Cable,PROD-1249967782
+,OrderLineItem,,Generic Component A,PROD-1289692484
+,OrderLineItem,,Brush Strips & Baffles,PROD-1298719794
+,OrderLineItem,,Mgmt Appliance Chassis,PROD-1302496369
+,OrderLineItem,,24‑bay NVMe JBOF,PROD-1310694555
+,OrderLineItem,,Rails & Mounting,PROD-1324161108
+,OrderLineItem,,24‑bay SAS Shelf,PROD-1361853679
+,OrderLineItem,,Dual IOM (PCIe),PROD-1380327064
+,OrderLineItem,,Outlet Strips,PROD-1427074895
+,OrderLineItem,,Generic Component B,PROD-1448587501
+,OrderLineItem,,128x 100GbE Spine,PROD-1472536093
+,OrderLineItem,,Compute Cluster,PROD-148835828
+,OrderLineItem,,Dual IOM (SAS),PROD-1491788725
+,OrderLineItem,,Rack Screw & Cage Nut (set),PROD-1511371870
+,OrderLineItem,,RJ‑45 Patch 3m,PROD-1514472773
+,OrderLineItem,,1U Dual‑CPU Servers,PROD-1517433427
+,OrderLineItem,,Fan Controller Board,PROD-1533783581
+,OrderLineItem,,Generic Component B,PROD-1536519560
+,OrderLineItem,,Generic Component A,PROD-1547313492
+,OrderLineItem,,42U Uprights/Beams,PROD-1559036382
+,OrderLineItem,,In‑Rack Fan Trays,PROD-1563124993
+,OrderLineItem,,Side Panels,PROD-1563341377
+,OrderLineItem,,Rail Mount Bracket,PROD-1574258426
+,OrderLineItem,,Generic Component B,PROD-1576658789
+,OrderLineItem,,Rear Door,PROD-1593141905
+,OrderLineItem,,PDU‑A (30A/3‑phase),PROD-159863330
+,OrderLineItem,,Airflow Management (Blanking/Brush),PROD-1603627899
+,OrderLineItem,,Motherboard (2‑socket),PROD-1607828377
+,OrderLineItem,,Blanking Panels Set,PROD-1609709205
+,OrderLineItem,,Dual NIC & BMC,PROD-1616292046
+,OrderLineItem,,M.2 SSD 512GB (OS),PROD-1673140239
+,OrderLineItem,,Battery String,PROD-1704766065
+,OrderLineItem,,Security & Safety,PROD-1744092313
+,OrderLineItem,,Inverter Module,PROD-1766568232
+,OrderLineItem,,Heatsink Assembly,PROD-1768772247
+,OrderLineItem,,Hot‑swap Fan Tray,PROD-1776230868
+,OrderLineItem,,Inlet Cordset (IEC‑309),PROD-1795624702
+,OrderLineItem,,Hardware Kit,PROD-1803530052
+,OrderLineItem,,LCD/KVM‑over‑IP Console,PROD-1809409779
+,OrderLineItem,,NVMe Backplane Cable,PROD-186801522
+,OrderLineItem,,2U Dual‑CPU Servers,PROD-1878093187
+,OrderLineItem,,Breaker Module 30A,PROD-188088183
+,OrderLineItem,,Cabling & Harnesses,PROD-1897393325
+,OrderLineItem,,PSU Power Cord (C19),PROD-1917148511
+,OrderLineItem,,SAS Cable (Mini‑SAS HD),PROD-192607526
+,OrderLineItem,,Smart Rack Locks & Access,PROD-1939884557
+,OrderLineItem,,Management & Monitoring,PROD-1941355444
+,OrderLineItem,,Kensington Lock Anchor,PROD-1956857281
+,OrderLineItem,,Rear Door,PROD-1977133047
+,OrderLineItem,,Leveling Foot,PROD-2001013682
+,OrderLineItem,,Cooling System,PROD-2003786421
+,OrderLineItem,,Front Door,PROD-2004313496
+,OrderLineItem,,25/100GbE NIC,PROD-2006854732
+,OrderLineItem,,Harness,PROD-2035320005
+,OrderLineItem,,Universal Sliding Rails,PROD-204534203
+,OrderLineItem,,Motherboard (2‑socket),PROD-2058355083
+,OrderLineItem,,Generic Component B,PROD-2059567741
+,OrderLineItem,,Rear Door,PROD-2063526037
+,OrderLineItem,,Chassis & Backplane (2U),PROD-2108848830
+,OrderLineItem,,SmartNIC 2x100GbE,PROD-2115474628
+,OrderLineItem,,Storage Subsystem,PROD-2116311267
+,OrderLineItem,,Temp Probe Cable,PROD-217263495
+,OrderLineItem,,Environmental & Fire Sensors,PROD-217937560
+,OrderLineItem,,Leak Sensor Rope 3m,PROD-275930088
+,OrderLineItem,,Fan Module Set,PROD-279707357
+,OrderLineItem,,LC‑LC OM4 Patch 2m,PROD-293991009
+,OrderLineItem,,Airflow Blanking Panel 1U,PROD-310172567
+,OrderLineItem,,Doors & Panels,PROD-322363365
+,OrderLineItem,,SAS HDD 12TB,PROD-337489460
+,OrderLineItem,,Aggregation/Spine Switches,PROD-356310368
+,OrderLineItem,,Velcro Strap Pack,PROD-362281425
+,OrderLineItem,,Generic Component B,PROD-384361183
+,OrderLineItem,,QSFP28 100G Transceiver,PROD-384933134
+,OrderLineItem,,Fan Tray Frame,PROD-387008033
+,OrderLineItem,,DDR5 DIMM 32GB,PROD-398656864
+,OrderLineItem,,Thermal Paste Pack,PROD-406950016
+,OrderLineItem,,Side Panel Set,PROD-409095263
+,OrderLineItem,,Drive Tray Latch,PROD-410431707
+,OrderLineItem,,Switch Mainboard,PROD-416568204
+,OrderLineItem,,Electro‑mechanical Lock,PROD-44164144
+,OrderLineItem,,Brush Strip 1U,PROD-448734868
+,OrderLineItem,,QuantumBit - OmniRack DC42 Series,PROD-455868158
+,OrderLineItem,,Cable Management Hook,PROD-460189389
+,OrderLineItem,,Generic Component A,PROD-462218852
+,OrderLineItem,,Copper Harness Kits,PROD-490571009
+,OrderLineItem,,Upright Posts,PROD-498531761
+,OrderLineItem,,SAS/NL‑SAS Disk Shelves,PROD-518530525
+,OrderLineItem,,PDU‑B (30A/3‑phase),PROD-518677116
+,OrderLineItem,,Fiber Harness Kits,PROD-522303157
+,OrderLineItem,,C13‑C14 Power Cord,PROD-536938805
+,OrderLineItem,,Power System,PROD-544673184
+,OrderLineItem,,Metering Board,PROD-545409999
+,OrderLineItem,,Label Sheet (Avery),PROD-550606303
+,OrderLineItem,,Chassis & Backplane (1U),PROD-557364787
+,OrderLineItem,,Side Panel Set,PROD-597705628
+,OrderLineItem,,Cross‑Beams,PROD-604480020
+,OrderLineItem,,Hot‑swap Fan Module,PROD-617615202
+,OrderLineItem,,Frame Assembly,PROD-630065671
+,OrderLineItem,,MCU Board,PROD-630070740
+,OrderLineItem,,ESD Wrist Strap,PROD-65259457
+,OrderLineItem,,RJ‑45 Patch 1m,PROD-657569692
+,OrderLineItem,,Generic Component A,PROD-6630506
+,OrderLineItem,,OOB Mgmt Gateway,PROD-670848332
+,OrderLineItem,,Dual PSU & Fan Modules,PROD-683520187
+,OrderLineItem,,Breaker Set,PROD-689623762
+,OrderLineItem,,Rack UPS & Battery Pack,PROD-697645794
+,OrderLineItem,,KVM Switch Core,PROD-711527748
+,OrderLineItem,,EMI Shield Gasket,PROD-720237395
+,OrderLineItem,,Side Panel Set,PROD-755090702
+,OrderLineItem,,Caster Wheel,PROD-764576755
+,OrderLineItem,,CPU (Sapphire Rapids),PROD-775691186
+,OrderLineItem,,Hot‑swap Fan (x6),PROD-77740090
+,OrderLineItem,,Top‑of‑Rack Switches,PROD-781554326
+,OrderLineItem,,MPO‑12 OM4 Trunk 10m,PROD-784779396
+,OrderLineItem,,Rack Enclosure (42U),PROD-789058761
+,OrderLineItem,,Vertical Cable Managers,PROD-795190764
+,OrderLineItem,,Leveling Feet & Casters,PROD-799314932
+,OrderLineItem,,Generic Component B,PROD-828674135
+,OrderLineItem,,Documentation Packet,PROD-84107093
+,OrderLineItem,,Smoke Detector Head,PROD-844684431
+,OrderLineItem,,Bypass Module,PROD-860612882
+,OrderLineItem,,32x 100GbE Switch (TOR),PROD-86201530
+,OrderLineItem,,SFP28 25G Transceiver,PROD-890173745
+,OrderLineItem,,Door Lock Key Set,PROD-915112779
+,OrderLineItem,,Fan Screws (set),PROD-942049373
+,OrderLineItem,,Front Door,PROD-950775878
+,OrderLineItem,,PCIe Riser,PROD-9614201
+,OrderLineItem,,Grounding Kit,PROD-961586782
+,OrderLineItem,,QSFP28 DAC 1m,PROD-970871438
+,OrderLineItem,,Rack Stabilizer Bracket,PROD-988309468
+,OrderLineItem,,NVMe JBOF Enclosures,PROD-990828007
 ,,,USD Resource Definition Product,RES-USD-DEF
 ,OrderLineItem,,QuantumBit Subscription,TEST-SUB

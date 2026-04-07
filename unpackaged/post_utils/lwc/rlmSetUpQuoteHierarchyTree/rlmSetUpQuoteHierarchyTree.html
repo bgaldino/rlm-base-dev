@@ -1,0 +1,214 @@
+<template>
+    <div class="container">
+        <template if:true={showParentAddSection}>
+            <section class="section">
+                <h3 class="heading">Parent groups</h3>
+                <div class="row">
+                    <lightning-input
+                        type="text"
+                        class="parent-name-input"
+                        label="Parent group name"
+                        placeholder="Enter name"
+                        onkeydown={handleParentKeydown}
+                    ></lightning-input>
+                    <lightning-button label="Add parent" variant="brand" onclick={handleAddParent} class="btn-add"></lightning-button>
+                </div>
+            </section>
+        </template>
+        <template if:true={_readOnlyHierarchyEffective}>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                Hierarchy from CSV. Double-click a name to rename. Adding groups or subgroups is not available for import.
+            </p>
+        </template>
+
+        <template if:true={modifyExistingMode}>
+            <template if:false={productCountsEditMode}>
+                <p class="tree-hint slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                    Double-click a name to rename. Use the delete icon to remove a group (and its subgroups). Expand/collapse: + / − only.
+                </p>
+            </template>
+        </template>
+
+        <template if:true={productCountsEditMode}>
+            <p class="tree-hint slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                Subgroups and on-quote line items are shown for context. <strong>Row total</strong> = on quote + the number you enter.
+                <strong>Roll-up</strong> = this row's total plus all descendants (subtree). Expand/collapse: + / − only.
+            </p>
+        </template>
+
+        <template if:true={hasParents}>
+            <section class="section">
+                <template if:true={effectiveShowSectionHeader}>
+                    <h3 class="heading">Subgroups and nested groups</h3>
+                </template>
+                <template if:false={_readOnlyHierarchyEffective}>
+                    <template if:true={effectiveAllowRename}>
+                        <template if:false={modifyExistingMode}>
+                            <p class="tree-hint slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                                Double-click a name to rename. Expand/collapse: use + / − only (row click selects).
+                            </p>
+                        </template>
+                    </template>
+                </template>
+                <div class="tree-root">
+                    <template for:each={visibleRows} for:item="row">
+                        <div
+                            key={row.path}
+                            class="tree-row"
+                            class:tree-row-selected={row.isSelected}
+                            class:tree-row-first-branch={row.firstBranchGuides}
+                        >
+                            <div class="tree-row-top">
+                                <div
+                                    class="tree-row-core"
+                                    class:tree-row-core-selected={row.isSelected}
+                                    data-path={row.path}
+                                    onclick={handleRowSelect}
+                                >
+                                    <div
+                                        class="tree-guides"
+                                        class:tree-guides-depth1={row.firstBranchGuides}
+                                        style={row.guideClusterStyle}
+                                    >
+                                        <template for:each={row.guidePipes} for:item="pipe">
+                                            <div key={pipe.key} class="tree-track">
+                                                <span class="tree-pipe" class:tree-pipe-on={pipe.on}></span>
+                                            </div>
+                                        </template>
+                                        <div class="tree-elbow" class:tree-elbow-none={row.elbowNone}>
+                                            <template if:true={row.elbowTee}>
+                                                <span class="tree-elbow-bar tree-elbow-tee-v" aria-hidden="true"></span>
+                                                <span class="tree-elbow-bar tree-elbow-tee-h" aria-hidden="true"></span>
+                                            </template>
+                                            <template if:true={row.elbowCorner}>
+                                                <span class="tree-elbow-bar tree-elbow-corner-v" aria-hidden="true"></span>
+                                                <span class="tree-elbow-bar tree-elbow-corner-h" aria-hidden="true"></span>
+                                            </template>
+                                        </div>
+                                        <template if:true={row.hasChildren}>
+                                            <button
+                                                type="button"
+                                                class="tree-toggle"
+                                                data-path={row.path}
+                                                title={row.toggleTitle}
+                                                onclick={handleToggleExpand}
+                                            >
+                                                {row.toggleLabel}
+                                            </button>
+                                        </template>
+                                        <template if:false={row.hasChildren}>
+                                            <span class="tree-toggle-spacer" aria-hidden="true"></span>
+                                        </template>
+                                        <lightning-icon
+                                            icon-name={row.folderIcon}
+                                            size="x-small"
+                                            alternative-text={row.iconAlt}
+                                            class="tree-node-icon"
+                                        ></lightning-icon>
+                                    </div>
+                                    <div class="tree-row-label-wrap">
+                                        <template if:true={row.isEditing}>
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                value={editingDraftName}
+                                                data-path={row.path}
+                                                class="tree-rename-input"
+                                                onchange={handleDraftChange}
+                                                onblur={handleRenameBlur}
+                                                onkeydown={handleRenameKeydown}
+                                            ></lightning-input>
+                                        </template>
+                                        <template if:false={row.isEditing}>
+                                            <template if:true={productCountsEditMode}>
+                                                <div class="tree-product-step-label-block">
+                                                    <span
+                                                        class="tree-label slds-text-body_regular"
+                                                        data-path={row.path}
+                                                        ondblclick={handleLabelDblClick}
+                                                    >{row.displayLabel}</span>
+                                                    <span class="tree-product-step-meta slds-text-body_small slds-text-color_weak">
+                                                        Subgroups: {row.productStepSubgroupCount} · On quote: {row.productStepOnQuote}
+                                                    </span>
+                                                    <div class="tree-product-step-totals slds-text-body_small">
+                                                        <span class="slds-text-color_weak">Row total: {row.productStepRowTotal}</span>
+                                                        <template if:true={row.productStepShowRollUp}>
+                                                            <span class="slds-text-color_weak tree-product-step-rollup"
+                                                                >Roll-up: {row.productStepRollUp}</span>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template if:false={productCountsEditMode}>
+                                                <span
+                                                    class="tree-label slds-text-body_regular"
+                                                    data-path={row.path}
+                                                    ondblclick={handleLabelDblClick}
+                                                >{row.displayLabel}</span>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </div>
+                                <template if:true={row.showDelete}>
+                                    <lightning-button-icon
+                                        icon-name="utility:delete"
+                                        variant="border-filled"
+                                        alternative-text="Delete group"
+                                        title="Delete group"
+                                        data-path={row.path}
+                                        class="tree-delete-btn"
+                                        onclick={handleDeleteModifyRow}
+                                    ></lightning-button-icon>
+                                </template>
+                                <template if:true={productCountsEditMode}>
+                                    <lightning-input
+                                        type="number"
+                                        min="0"
+                                        variant="label-hidden"
+                                        label="Product count"
+                                        value={row.countEditValue}
+                                        data-count-key={row.countKey}
+                                        class="tree-count-input"
+                                        onchange={handleProductCountChange}
+                                    ></lightning-input>
+                                </template>
+                            </div>
+                            <template if:true={row.canAddChild}>
+                                <template if:true={effectiveAllowAddNodes}>
+                                    <div class="add-child" style={row.addChildStyle}>
+                                        <lightning-input
+                                            type="text"
+                                            data-parent-path={row.path}
+                                            class="child-name"
+                                            placeholder="New subgroup name"
+                                        ></lightning-input>
+                                        <lightning-button
+                                            label="Add"
+                                            variant="neutral"
+                                            data-parent-path={row.path}
+                                            onclick={handleAddChild}
+                                        ></lightning-button>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <template if:true={productCountsEditMode}>
+                    <template if:true={productCountsExternalGrandSummary}>
+                        <p class="tree-product-step-grand slds-text-body_small slds-m-top_small slds-text-color_weak">
+                            {productCountsExternalGrandSummary}
+                        </p>
+                    </template>
+                    <template if:false={productCountsExternalGrandSummary}>
+                        <template if:true={productCountsStepGrandRollupLabel}>
+                            <p class="tree-product-step-grand slds-text-body_small slds-m-top_small slds-text-color_weak">
+                                {productCountsStepGrandRollupLabel}
+                            </p>
+                        </template>
+                    </template>
+                </template>
+            </section>
+        </template>
+    </div>
+</template>
