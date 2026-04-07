@@ -10,15 +10,29 @@
 
 ## Agent-Assisted Setup
 
-This document is designed for an AI coding agent (Cursor, Claude Code, etc.) to follow end-to-end. Copy the prompt below into your agent to start the automated setup.
+This document is designed for an AI coding agent (Cursor, Claude Code, etc.) to follow end-to-end. You can set up both platforms, or just one.
 
-### Example Prompt
+### Setup Scope
 
-> **Paste this into your AI agent to begin setup:**
+Not every user needs both Distill and Aegis. Choose the scope that matches your goal:
+
+| Scope | What gets installed | Prerequisites skipped |
+|---|---|---|
+| **Both** (default) | Distill + Aegis + shared prereqs | Nothing skipped |
+| **Distill only** | Distill + shared prereqs | Sections 3, 4.2, 4.3; no Chrome/Playwright, no SF credentials, no VPN |
+| **Aegis only** | Aegis + shared prereqs | Sections 2, 4.1; no gcloud, cmake, Embark, Gemini API key |
+
+**Shared prerequisites** (always needed): git, pyenv, Python 3.12, Homebrew (macOS).
+
+### Example Prompts
+
+> **Both Distill and Aegis** — paste this to set up the full integration workspace:
 
 ```
 Follow the setup guide at docs/integration/isolated-testing-setup.md to set up
 the Distill and Aegis integration workspace on my machine.
+
+Scope: both
 
 Rules:
 - Do NOT install, modify, or delete anything without showing me what you plan
@@ -28,7 +42,7 @@ Rules:
 - If you detect conflicts (wrong Python version in a venv, PATH shadowing,
   etc.), explain the conflict and proposed resolution, then wait for my approval.
 - Work through the guide section by section (0 → 1 → 2 → 3 → 4). Do not jump
-  ahead.
+  ahead. Skip sections not applicable to the chosen scope.
 - For any step that requires credentials or API keys (GEMINI_API_KEY, SF_URL,
   etc.), prompt me to provide them rather than using placeholders.
 - If a step fails, stop and show me the error rather than retrying automatically.
@@ -37,60 +51,95 @@ Rules:
 - Summarize what was completed at the end of each major section.
 ```
 
+> **Distill only:**
+
+```
+Follow the setup guide at docs/integration/isolated-testing-setup.md to set up
+Distill on my machine.
+
+Scope: distill-only
+
+Follow the same rules as the full setup, but skip all Aegis sections (3, 4.2,
+4.3). Skip Chrome/Playwright, SF credentials, and VPN checks in prerequisites.
+Only clone the foundations and distill repos in Section 1.
+```
+
+> **Aegis only:**
+
+```
+Follow the setup guide at docs/integration/isolated-testing-setup.md to set up
+Aegis on my machine.
+
+Scope: aegis-only
+
+Follow the same rules as the full setup, but skip all Distill sections (2, 4.1).
+Skip gcloud, cmake, Embark GCP project, and Gemini API key in prerequisites.
+Only clone the foundations and aegis repos in Section 1.
+```
+
+> **No prompt — agent should ask:** If the user simply says *"set up my integration environment"* without specifying scope, the agent should ask:
+>
+> *"Which platforms do you want to set up? (1) Both Distill and Aegis, (2) Distill only, (3) Aegis only"*
+
 ### How the Agent Should Execute This Guide
 
-The guide is structured so an agent can follow it linearly. Each section builds on the previous one:
+The guide is structured so an agent can follow it linearly. Each section builds on the previous one. Sections marked with a scope tag should be skipped if that scope doesn't apply.
 
 ```
 Section 0: Prerequisites
-  ├─ 0.6: Run ./scripts/validate_integration_prereqs.sh --scan
-  │       → Shows what's already installed and detects conflicts
-  │       → Agent presents findings and asks: "What should I install/fix?"
-  ├─ 0.7: Resolve any conflicts (with user approval)
-  └─ Re-run validation to confirm all clear
+  ├─ 0.1-0.3: Always (shared prereqs: git, pyenv, Python 3.12)
+  ├─ 0.4: Always (nvm/Node — Foundations needs it regardless of scope)
+  ├─ 0.5: Distill only — skip entirely for aegis-only scope
+  │       (Embark, gcloud, cmake, Gemini API key, Claude cleanup)
+  ├─ 0.6: Always (run validation script)
+  └─ 0.7: Always (resolve conflicts)
 
 Section 1: Workspace Setup
-  ├─ Check if repos are already cloned (scan detected this)
-  ├─ Clone missing repos only
-  └─ Pin Python versions with pyenv local
+  ├─ Clone foundations: Always
+  ├─ Clone distill: Skip for aegis-only
+  ├─ Clone aegis: Skip for distill-only (also needs VPN)
+  └─ Pin Python versions: Only for repos that were cloned
 
-Section 2: Distill Local Setup
-  ├─ Check if .venv already exists (and correct Python version)
+Section 2: Distill Local Setup — skip entirely for aegis-only
   ├─ Install dependencies
-  └─ Configure .env.local (prompt user for API keys)
+  ├─ Configure .env.local + credential checkpoint
+  └─ Database initialization
 
-Section 3: Aegis Local Setup
-  ├─ Check if venv already exists (and correct Python version)
+Section 3: Aegis Local Setup — skip entirely for distill-only
   ├─ Install dependencies + Playwright
-  └─ Configure credentials (prompt user)
+  └─ Configure credentials + credential checkpoint
 
 Section 4: Post-Setup Validation
-  ├─ Run Distill health checks
-  ├─ Run Aegis dry-run (no org needed)
-  └─ Optionally run cross-platform validation (needs a provisioned org)
+  ├─ 4.1: Distill validation — skip for aegis-only
+  ├─ 4.2: Aegis validation — skip for distill-only
+  ├─ 4.3: Cross-platform — skip unless scope is both
+  └─ 4.4: validate_setup relationship — always
 ```
 
 **Key agent behaviors at each step:**
 
-| Before doing this... | Agent should first check... |
-|---|---|
-| Installing Homebrew | `command -v brew` — skip if present |
-| Installing pyenv | `command -v pyenv` — skip if present |
-| Installing Python 3.12 via pyenv | `pyenv versions \| grep 3.12` — skip if present |
-| Installing nvm | `type nvm` or check `$NVM_DIR/nvm.sh` — skip if present |
-| Installing Node.js LTS | `node --version` — skip if 18+ |
-| Creating GCP project on Embark | Ask user — cannot be checked programmatically |
-| Installing gcloud | `command -v gcloud` — skip if present |
-| Authenticating gcloud | `gcloud config get-value account` — skip if already authenticated |
-| Installing cmake | `command -v cmake` — skip if present |
-| Creating Gemini API key | Check `echo $GEMINI_API_KEY` — prompt user if empty |
-| Cleaning up Claude Code config | `grep -l "BEDROCK\|AWS" <files>` — skip if no matches |
-| Cloning a repository | Check if `$RC_WORKSPACE/<repo>/.git` exists — skip if present |
-| Creating a venv | Check if `<repo>/.venv/bin/python3` exists and is correct version |
-| Setting `pyenv local` | Check if `.python-version` already has correct value |
-| Writing `.env.local` | Check if file exists — ask before overwriting |
-| Modifying shell profile | Show exact lines to add — **always ask first** |
-| Installing Playwright browsers | `playwright install --dry-run` — skip if up to date |
+| Before doing this... | Agent should first check... | Scope |
+|---|---|---|
+| Installing Homebrew | `command -v brew` — skip if present | All |
+| Installing pyenv | `command -v pyenv` — skip if present | All |
+| Installing Python 3.12 via pyenv | `pyenv versions \| grep 3.12` — skip if present | All |
+| Installing nvm | `type nvm` or check `$NVM_DIR/nvm.sh` — skip if present | All |
+| Installing Node.js LTS | `node --version` — skip if 18+ | All |
+| Creating GCP project on Embark | Ask user — cannot be checked programmatically | Distill |
+| Installing gcloud | `command -v gcloud` — skip if present | Distill |
+| Authenticating gcloud | `gcloud config get-value account` — skip if already authenticated | Distill |
+| Installing cmake | `command -v cmake` — skip if present | Distill |
+| Creating Gemini API key | Check `echo $GEMINI_API_KEY` — prompt user if empty | Distill |
+| Cleaning up Claude Code config | `grep -l "BEDROCK\|AWS" <files>` — skip if no matches | Distill |
+| Cloning distill repo | Check if `$RC_WORKSPACE/distill/.git` exists — skip if present | Distill |
+| Cloning aegis repo | Check if `$RC_WORKSPACE/aegis/.git` exists — skip if present | Aegis |
+| Creating Distill venv | Check if `distill/.venv/bin/python3` exists and correct version | Distill |
+| Creating Aegis venv | Check if `aegis/venv/bin/python3` exists and correct version | Aegis |
+| Setting `pyenv local` | Check if `.python-version` already has correct value | Per repo |
+| Writing `.env.local` | Check if file exists — ask before overwriting | Distill |
+| Configuring SF credentials | Check `echo $SF_URL` — prompt user if empty | Aegis |
+| Modifying shell profile | Show exact lines to add — **always ask first** | All |
+| Installing Playwright browsers | `playwright install --dry-run` — skip if up to date | Aegis |
 
 > **The validation script (`./scripts/validate_integration_prereqs.sh --scan`) performs most of these checks automatically.** An agent should run it first and use its output to determine which steps to skip.
 
@@ -226,7 +275,9 @@ node --version    # Should be v18+ or v20+
 npm --version
 ```
 
-### 0.5 Distill-Specific Tools
+### 0.5 Distill-Specific Tools `[distill-only | both]`
+
+> **Scope:** Skip this entire subsection if scope is **aegis-only**.
 
 These are only needed if you are setting up Distill. The steps must be followed in order — Embark provisions the GCP project that gcloud authenticates against, which is where the Gemini API key is created.
 
@@ -517,29 +568,35 @@ mkdir -p "$RC_WORKSPACE"
 cd "$RC_WORKSPACE"
 ```
 
-### Clone All Three Repositories
+### Clone Repositories
+
+Clone Foundations plus the repos for your chosen scope. Skip repos you don't need.
 
 ```bash
-# Revenue Cloud Foundations (primary — this repo)
+# Revenue Cloud Foundations (always — this repo)
 git clone https://github.com/salesforce-internal/revenue-cloud-foundations.git foundations
 cd foundations && git checkout feat/distill-aegis-integration && cd ..
 
-# Distill (AI-powered customization migration)
+# Distill (AI-powered customization migration) — skip for aegis-only
 git clone https://github.com/sf-industries/distill.git distill
 
-# Aegis (BDD test automation — requires VPN for git.soma)
+# Aegis (BDD test automation — requires VPN) — skip for distill-only
 git clone https://git.soma.salesforce.com/industries/Automated-Remote-Org-Test.git aegis
 ```
 
+> **Agent note:** Only clone repos that match the chosen scope. Check if each repo already exists (`[ -d "$RC_WORKSPACE/<repo>/.git" ]`) before cloning.
+
 ### Pin Python Versions
 
+Set `pyenv local` only for repos that were cloned:
+
 ```bash
-# Distill — must be 3.10-3.12
+# Distill — must be 3.10-3.12 (skip for aegis-only)
 cd "$RC_WORKSPACE/distill"
 pyenv local 3.12
 python3 --version   # Verify: 3.12.x
 
-# Aegis — use 3.12 for compatibility
+# Aegis — use 3.12 for compatibility (skip for distill-only)
 cd "$RC_WORKSPACE/aegis"
 pyenv local 3.12
 python3 --version   # Verify: 3.12.x
@@ -562,7 +619,9 @@ $RC_WORKSPACE/
 
 ---
 
-## 2. Distill — Local Setup
+## 2. Distill — Local Setup `[distill-only | both]`
+
+> **Scope:** Skip this entire section if scope is **aegis-only**.
 
 **Repository:** `sf-industries/distill`
 **What it does:** AI-powered Salesforce customization migration using Claude Agent SDK.
@@ -736,7 +795,9 @@ pytest -v --no-header
 
 ---
 
-## 3. Aegis — Local Setup
+## 3. Aegis — Local Setup `[aegis-only | both]`
+
+> **Scope:** Skip this entire section if scope is **distill-only**.
 
 **Repository:** `industries/Automated-Remote-Org-Test`
 **What it does:** BDD test automation for Revenue Cloud using Behave + Playwright/Selenium.
@@ -924,7 +985,7 @@ All 7 files use `@playwright` and the session injection pattern (`Given login to
 
 This section validates that each platform is operational **after** completing installation. Each subsection is independent — you can validate Distill without having an org for Aegis, and vice versa.
 
-### 4.1 Distill Validation
+### 4.1 Distill Validation `[distill-only | both]`
 
 Run these checks from the Distill directory:
 
@@ -944,7 +1005,7 @@ source .venv/bin/activate
 | D7 | Test user accessible | Dashboard shows logged-in user | User info visible |
 | D8 | Unit tests pass | `pytest -m unit` | Exit code 0 |
 
-### 4.2 Aegis Validation
+### 4.2 Aegis Validation `[aegis-only | both]`
 
 **Step 1 — Dry-run validation (no Salesforce org needed):**
 
@@ -985,7 +1046,7 @@ behave features/RevenueGoFoundation/
 | A5 | Initial Setup passes | `behave features/RevenueGoFoundation/RevenueCloudInitialSetup.feature` | All scenarios pass |
 | A6 | Full RGF suite passes | `behave features/RevenueGoFoundation/` | All 7 feature files pass |
 
-### 4.3 Cross-Platform Validation
+### 4.3 Cross-Platform Validation `[both only]`
 
 This end-to-end check validates that Aegis can run against a Foundations-provisioned org:
 
