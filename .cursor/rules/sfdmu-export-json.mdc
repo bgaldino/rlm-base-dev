@@ -1,0 +1,41 @@
+---
+description: SFDMU v5 export.json editing rules — externalId format, operation selection, deleteOldData safety, object ordering
+globs: **/export.json
+alwaysApply: false
+---
+
+# SFDMU v5 export.json Rules
+
+## DO NOT
+
+- Change `Upsert` to `Insert+deleteOldData` without user approval
+- Use `$$Field1$Field2` in `externalId` (v4 syntax — use `;`)
+- Leave empty CSVs without `excluded: true`
+- Put child objects before parent objects in the `objects` array
+
+## externalId Format
+- Use `;` delimiters: `Field1;Field2` — NOT `$$Field1$Field2` (v4 syntax)
+- Relationship traversals: `Parent.Field` (1-hop), `GrandParent.Parent.Field` (2-hop)
+
+## Operation Selection
+- **Upsert**: Only when externalId uses direct fields (no relationship traversals)
+- **Insert + deleteOldData: true**: Required when externalId contains ANY relationship traversal (Bug 3)
+- **Update**: Modifying existing records only
+- **Readonly**: Reference objects loaded by another plan
+- Never change Upsert → Insert+deleteOldData without explaining which bug applies and getting user approval
+
+## v5 Bugs to Watch
+- Bug 1: All-multi-hop externalId fails validation — include at least one direct field
+- Bug 2: 2-hop traversals cause SOQL injection in Upsert — use Insert+deleteOldData
+- Bug 3: Relationship-traversal externalId never matches on Upsert — use Insert+deleteOldData
+
+## Object Ordering
+- Parent objects before child objects in the `objects` array
+- deleteOldData objects delete in reverse array order (last first)
+
+## SOQL Queries
+- ORDER BY fields must appear in SELECT
+- Relationship columns must match CSV header expectations
+
+## Empty CSVs
+- Mark `excluded: true` to prevent destructive delete-on-load

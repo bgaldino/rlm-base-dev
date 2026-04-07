@@ -506,20 +506,8 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>flowArguments</name>
-                    <value>[{&quot;label&quot;:&quot;recordId&quot;,&quot;dataType&quot;:&quot;String&quot;,&quot;supportsRecordId&quot;:true,&quot;value&quot;:&quot;{!Record.Id}&quot;}]</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_AddTransactionJournalScreenFlow</value>
-                </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview</identifier>
+                <componentName>c:rlmUsageUploader</componentName>
+                <identifier>rlm_usage_uploader</identifier>
             </componentInstance>
         </itemInstances>
         <name>Facet-f9bc91e0-3351-48be-bb7e-e627e5e6c876</name>
@@ -528,40 +516,10 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>flowArguments</name>
-                    <value>[]</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_OrchestrateUsage</value>
-                </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview2</identifier>
+                <componentName>c:rlmUsageOrchestration</componentName>
+                <identifier>rlm_usage_orchestration</identifier>
             </componentInstance>
         </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>flowLayout</name>
-                    <value>oneColumn</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>flowName</name>
-                    <value>RLM_MonitorWorkflowServicesScreenFlow</value>
-                </componentInstanceProperties>
-                <componentName>flowruntime:interview</componentName>
-                <identifier>flowruntime_interview3</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-daa6b998-5780-4b89-922f-70ddba366b3b</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
@@ -576,7 +534,7 @@
                     <name>usageObject</name>
                     <value>TransactionJournal</value>
                 </componentInstanceProperties>
-                <componentName>rlmUsageDataTable</componentName>
+                <componentName>c:rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable</identifier>
             </componentInstance>
         </itemInstances>
@@ -594,7 +552,7 @@
                     <name>usageObject</name>
                     <value>UsageSummary</value>
                 </componentInstanceProperties>
-                <componentName>rlmUsageDataTable</componentName>
+                <componentName>c:rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable2</identifier>
             </componentInstance>
         </itemInstances>
@@ -612,7 +570,7 @@
                     <name>usageObject</name>
                     <value>UsageBillingPeriodItem</value>
                 </componentInstanceProperties>
-                <componentName>rlmUsageDataTable</componentName>
+                <componentName>c:rlmUsageDataTable</componentName>
                 <identifier>c_rlmUsageDataTable3</identifier>
             </componentInstance>
         </itemInstances>
@@ -636,20 +594,6 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>flexipage_tab7</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>Facet-daa6b998-5780-4b89-922f-70ddba366b3b</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>title</name>
-                    <value>Mature Usage</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:tab</componentName>
-                <identifier>flexipage_tab8</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>

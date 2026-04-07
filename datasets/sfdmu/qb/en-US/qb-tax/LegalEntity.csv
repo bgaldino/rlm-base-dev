@@ -1,3 +1,5 @@
 CompanyName,CurrencyIsoCode,Description,LegalEntityCity,LegalEntityCountry,LegalEntityPostalCode,LegalEntityState,LegalEntityStreet,Name,Status
-QuantumBit,USD,,San Francisco,US,94105,CA,415 Mission St,Default Legal Entity - US,Active
-QuantumBit,USD,,Toronto,CA,M9W 5E4,ON,33 Carlingview Drive,Default Legal Entity - Canada,Active
+QuantumBit,USD,#N/A,San Francisco,US,94105,CA,415 Mission St,Default Legal Entity - US,Active
+QuantumBit,USD,#N/A,Toronto,CA,M9W 5E4,ON,33 Carlingview Drive,Default Legal Entity - Canada,Active
+QuantumBit,EUR,#N/A,Paris,FR,75008,#N/A,8 Avenue de l'Opéra,Default Legal Entity - EU,Active
+QuantumBit,GBP,#N/A,London,GB,EC2V 8RF,England,1 Poultry,Default Legal Entity - UK,Active

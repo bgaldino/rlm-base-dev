@@ -1,0 +1,480 @@
+/* Page and filter bar - applies to entire page */
+.payment-plans-page {
+    min-height: 100%;
+}
+
+.filter-bar {
+    align-items: flex-end;
+    background: #fafaf9;
+}
+
+.filter-bar lightning-combobox {
+    width: 100%;
+}
+
+/* Three regions layout */
+.three-regions {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.region {
+    width: 100%;
+}
+
+.region-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #181818;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #0176d3;
+}
+
+/* Total AR and progress bar */
+.summary-and-bar {
+    background: #fafaf9;
+    border-radius: 8px;
+    padding: 0 1rem 1rem;
+    border: 1px solid #e5e5e5;
+}
+
+.total-ar-box {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.total-ar-label {
+    font-size: 0.875rem;
+    color: #706e6b;
+    font-weight: 600;
+}
+
+.total-ar-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0176d3;
+}
+
+.progress-bar-wrapper {
+    width: 100%;
+}
+
+.progress-bar {
+    display: flex;
+    flex-direction: row;
+    height: 28px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #dddbda;
+    min-width: 100%;
+    border: 1px solid #c9c9c9;
+    box-sizing: border-box;
+}
+
+.progress-segment {
+    min-width: 4px;
+    transition: opacity 0.15s ease;
+    cursor: default;
+    flex-shrink: 0;
+}
+
+.progress-segment:hover {
+    opacity: 0.9;
+    filter: brightness(1.15);
+}
+
+.progress-segment-failed {
+    background-color: #ea001e;
+}
+
+.progress-segment-ready {
+    background-color: #fe9339;
+}
+
+.progress-segment-applied {
+    background-color: #2e844a;
+}
+
+.progress-segment-draft {
+    background-color: #0176d3;
+}
+
+.progress-segment-processing {
+    background-color: #5a1ba9;
+}
+
+.progress-segment-default {
+    background-color: #706e6b;
+}
+
+.progress-bar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.progress-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: default;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.legend-label {
+    color: #181818;
+    font-size: 0.75rem;
+}
+
+.legend-count {
+    color: #706e6b;
+    font-size: 0.7rem;
+}
+
+/* Main card container - reduced size */
+.status-card {
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    background: #ffffff;
+    min-width: 280px;
+    min-height: 200px;
+}
+
+.status-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Card header styles */
+.card-header {
+    padding: 0.6rem 0.75rem;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.status-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.item-count-badge {
+    --slds-c-badge-color-background: rgba(255, 255, 255, 0.2);
+    --slds-c-badge-text-color: #ffffff;
+}
+
+/* Status-specific header colors */
+.failed-card .card-header {
+    background: linear-gradient(135deg, #c23934 0%, #ea001e 100%);
+}
+
+.ready-card .card-header {
+    background: linear-gradient(135deg, #fe9339 0%, #ffb75d 100%);
+}
+
+.applied-card .card-header {
+    background: linear-gradient(135deg, #2e844a 0%, #41b658 100%);
+}
+
+.draft-card .card-header {
+    background: linear-gradient(135deg, #0176d3 0%, #1b96ff 100%);
+}
+
+.processing-card .card-header {
+    background: linear-gradient(135deg, #5a1ba9 0%, #8e4ec6 100%);
+}
+
+.default-card .card-header {
+    background: linear-gradient(135deg, #706e6b 0%, #969492 100%);
+}
+
+/* Card body styles */
+.card-body {
+    padding: 0.6rem 0.75rem;
+}
+
+/* Amount section */
+.amount-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 0.6rem;
+}
+
+.amount-label {
+    font-size: 0.65rem;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.amount-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #181818;
+}
+
+/* Items section */
+.items-section {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.items-header {
+    margin-bottom: 0.5rem;
+}
+
+.items-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Individual PSI Item Card */
+.item-card {
+    background: #f7f7f7;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e5e5e5;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.item-link {
+    color: #0176d3;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.item-link:hover {
+    text-decoration: underline;
+}
+
+.item-amount {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #181818;
+}
+
+/* Payment Link */
+.payment-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #0176d3;
+    text-decoration: none;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: #e5f2ff;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.payment-link:hover {
+    background: #d0e5f7;
+    text-decoration: none;
+}
+
+.payment-icon {
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
+/* Invoices Section */
+.invoices-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #d8d8d8;
+}
+
+.invoices-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.invoice-header-icon {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+
+.invoices-label {
+    font-size: 0.7rem;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.invoices-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Invoice Row with Color-coded Line */
+.invoice-row {
+    display: flex;
+    background: #ffffff;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.invoice-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Status Line (Color Indicator) */
+.status-line {
+    width: 4px;
+    flex-shrink: 0;
+}
+
+.settled-line {
+    background: linear-gradient(180deg, #2e844a 0%, #41b658 100%);
+}
+
+.open-line {
+    background: linear-gradient(180deg, #fe9339 0%, #ffb75d 100%);
+}
+
+/* Invoice Content */
+.invoice-content {
+    flex: 1;
+    padding: 0.75rem;
+}
+
+.invoice-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.invoice-link {
+    color: #0176d3;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.invoice-link:hover {
+    text-decoration: underline;
+}
+
+/* Status Badge */
+.status-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.settled-badge {
+    background: #d4edda;
+    color: #155724;
+}
+
+.open-badge {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Invoice Amounts */
+.invoice-amounts {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.invoice-amount-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.amount-label-small {
+    font-size: 0.65rem;
+    color: #706e6b;
+    text-transform: uppercase;
+}
+
+.amount-value-small {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #181818;
+}
+
+.settled-amount {
+    color: #2e844a;
+}
+
+.open-amount {
+    color: #fe9339;
+}
+
+/* No items/invoices state */
+.no-items,
+.no-invoices {
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Scrollbar styling */
+.items-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.items-section::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.items-section::-webkit-scrollbar-thumb {
+    background: #c9c9c9;
+    border-radius: 3px;
+}
+
+.items-section::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}

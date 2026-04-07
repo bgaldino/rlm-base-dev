@@ -71,7 +71,7 @@
       "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
     },
     {
-      "query": "SELECT DurationType, Id, Name, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
+      "query": "SELECT DurationType, Id, ProductId, ProductSellingModelId, SegmentType, TrialDuration FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
       "operation": "Upsert",
       "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType"
     },
@@ -81,7 +81,7 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentProductId, Sequence FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
+      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentGroup.Code, ParentGroup.ParentProduct.StockKeepingUnit, ParentProductId, Sequence FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
       "operation": "Upsert",
       "externalId": "Code"
     },

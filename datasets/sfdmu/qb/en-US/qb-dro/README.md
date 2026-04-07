@@ -45,15 +45,15 @@ Upsert all DRO objects in dependency order
 | #  | Object                          | Operation | External ID                                                        | Records | v5 Notes |
 |----|---------------------------------|-----------|--------------------------------------------------------------------|---------|----------|
 | 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 164     | |
-| 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 28      | Disambiguated 2 duplicate "Training to Finance" → "Essentials Training to Finance", "Fundamentals Training to Finance" |
+| 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 21      | Consolidated service line decomps; removed standalone QB-DB-TOKEN rules |
 | 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       | |
 | 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       | |
-| 5  | FulfillmentStepDefinitionGroup  | Upsert    | `Name`                                                             | 10      | |
-| 6  | FulfillmentStepDefinition       | Upsert    | `Name`                                                             | 17      | Simplified from `Name;StepDefinitionGroup.Name`; 2 duplicate Names disambiguated |
-| 7  | FulfillmentStepDependencyDef    | Upsert    | `Name`                                                             | 13      | Simplified from 3-field composite; parent refs updated to match renamed FSDs |
-| 8  | ProductFulfillmentScenario      | Upsert    | `Name`                                                             | 13      | Simplified from `Name;Product.StockKeepingUnit` |
-| 9  | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 2       | |
-| 10 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 7       | `deleteOldData: true` (auto-number Name) |
+| 5  | FulfillmentStepDefinitionGroup  | Upsert    | `Name`                                                             | 5       | Consolidated from 10 → 5 groups; all typed `Fulfillment` |
+| 6  | FulfillmentStepDefinition       | Upsert    | `Name`                                                             | 10      | Simplified from 17; removed Order Processing/Asset Conversion/Tenant Provisioning steps |
+| 7  | FulfillmentStepDependencyDef    | Upsert    | `Name`                                                             | 9       | Simplified from 13; removed dependencies on deleted steps |
+| 8  | ProductFulfillmentScenario      | Upsert    | `Name`                                                             | 10      | Simplified from 13; removed standalone QB-DB-TOKEN scenarios |
+| 9  | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 1       | QuantumBit Complete Solution Bundle (Ramp Deal Orchestration removed) |
+| 10 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 4       | `deleteOldData: true` (auto-number Name) |
 | 11 | FulfillmentFalloutRule          | Upsert    | `Name`                                                             | 3       | |
 | 12 | FulfillmentStepJeopardyRule     | Upsert    | `Name`                                                             | 6       | |
 | 13 | FulfillmentTaskAssignmentRule   | Upsert    | `Name`                                                             | 0       | |
@@ -74,7 +74,7 @@ This ensures the plan works across any org without hardcoded user references.
 
 ### Product DRO Configuration (Objects 1-2)
 
-Product2 Update sets DRO-specific fields (`CustomDecompositionScope`, `DecompositionScope`, `FulfillmentQtyCalcMethod`). ProductFulfillmentDecompRule defines how products decompose from source to destination (28 rules mapping parent products to fulfillment sub-products).
+Product2 Update sets DRO-specific fields (`CustomDecompositionScope`, `DecompositionScope`, `FulfillmentQtyCalcMethod`). ProductFulfillmentDecompRule defines how products decompose from source to destination (21 rules mapping parent products to fulfillment sub-products).
 
 ### Value Transforms (Objects 3-4) — Placeholders
 
@@ -86,15 +86,15 @@ ProductDecompEnrichmentRule is an empty placeholder for decomposition enrichment
 
 ### Fulfillment Steps (Objects 6-8)
 
-Three-level hierarchy: FulfillmentStepDefinitionGroup (10 groups like "Order Processing", "Finance", "Billing and Invoicing") -> FulfillmentStepDefinition (17 steps like "Convert Order to Asset", "Provision Platform") -> FulfillmentStepDependencyDef (13 dependency links between steps).
+Three-level hierarchy: FulfillmentStepDefinitionGroup (5 groups: Finance, Platform, Services, Provisioning & Activation, Usage Provisioning & Activation — all typed `Fulfillment`) -> FulfillmentStepDefinition (10 steps like "Provision Licensing/Features", "Activate Tokens") -> FulfillmentStepDependencyDef (9 dependency links between steps).
 
 ### Fulfillment Scenarios (Object 9)
 
-ProductFulfillmentScenario (13 records) maps products to their fulfillment step groups and actions (e.g., "QuantumBit Database (Token Based) - Billing", "Finance Service").
+ProductFulfillmentScenario (10 records) maps products to their fulfillment step groups and actions (e.g., "Finance Service", "QuantumBit Database Provisioning").
 
 ### Workspaces (Objects 10-11)
 
-FulfillmentWorkspace (2 workspaces) with FulfillmentWorkspaceItem (7 items) defining the UI layout for fulfillment management.
+FulfillmentWorkspace (1 workspace: QuantumBit Complete Solution Bundle) with FulfillmentWorkspaceItem (4 items) defining the UI layout for fulfillment management.
 
 ### Rules (Objects 12-14)
 
@@ -106,17 +106,17 @@ With the SFDMU v5 migration, most composite externalIds were simplified to just 
 
 | Object                        | v5 ExternalId | Previous (v4) | Change |
 |-------------------------------|---------------|----------------|--------|
-| ProductFulfillmentDecompRule  | `Name` | `Name` | Disambiguated 2 duplicate "Training to Finance" → "Essentials Training to Finance", "Fundamentals Training to Finance" |
-| FulfillmentStepDefinition     | `Name` | `Name;StepDefinitionGroup.Name` | Disambiguated 2 duplicate Names (appended group context) |
-| FulfillmentStepDependencyDef  | `Name` | `Name;DependsOn.Name;FSD.Name` | Updated parent refs to match renamed FSDs |
-| ProductFulfillmentScenario    | `Name` | `Name;Product.StockKeepingUnit` | Names already unique |
+| ProductFulfillmentDecompRule  | `Name` | `Name` | Consolidated service line decomps; removed standalone QB-DB-TOKEN rules |
+| FulfillmentStepDefinition     | `Name` | `Name;StepDefinitionGroup.Name` | Consolidated from 17 → 10 steps; all Names unique |
+| FulfillmentStepDependencyDef  | `Name` | `Name;DependsOn.Name;FSD.Name` | Simplified from 13 → 9 deps |
+| ProductFulfillmentScenario    | `Name` | `Name;Product.StockKeepingUnit` | Simplified from 13 → 10; removed standalone QB-DB-TOKEN scenarios |
 | FulfillmentWorkspaceItem      | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Same | `deleteOldData: true` added (auto-number Name) |
 
 ## Portability
 
 All external IDs use portable, human-readable fields:
 
-- **Name** fields: All human-readable (e.g., "Order Processing", "Convert Order to Asset - Order Processing", "QuantumBit Database (Token Based)- Billing")
+- **Name** fields: All human-readable (e.g., "Finance", "Provision Licensing/Features", "Finance Service")
 - **StockKeepingUnit** for Product2 references
 - **DeveloperName** for IntegrationDefinition references
 - **Dynamic user resolution**: `__DRO_ASSIGNED_TO_USER__` placeholder ensures cross-org compatibility
@@ -158,20 +158,20 @@ qb-dro/
 ├── Product2.csv                         # 164 records (Update only)
 │
 │  Source CSVs — Decomposition
-├── ProductFulfillmentDecompRule.csv     # 28 records
+├── ProductFulfillmentDecompRule.csv     # 21 records
 ├── ValTfrmGrp.csv                       # 0 records (placeholder)
 ├── ValTfrm.csv                          # 0 records (placeholder)
 ├── ProductDecompEnrichmentRule.csv      # 0 records (placeholder)
 │
 │  Source CSVs — Fulfillment Steps
-├── FulfillmentStepDefinitionGroup.csv   # 10 records
-├── FulfillmentStepDefinition.csv        # 17 records
-├── FulfillmentStepDependencyDef.csv     # 13 records
+├── FulfillmentStepDefinitionGroup.csv   # 5 records
+├── FulfillmentStepDefinition.csv        # 10 records
+├── FulfillmentStepDependencyDef.csv     # 9 records
 │
 │  Source CSVs — Scenarios and Workspaces
-├── ProductFulfillmentScenario.csv       # 13 records
-├── FulfillmentWorkspace.csv             # 2 records
-├── FulfillmentWorkspaceItem.csv         # 7 records
+├── ProductFulfillmentScenario.csv       # 10 records
+├── FulfillmentWorkspace.csv             # 1 record
+├── FulfillmentWorkspaceItem.csv         # 4 records
 │
 │  Source CSVs — Rules
 ├── FulfillmentFalloutRule.csv           # 3 records
@@ -205,7 +205,7 @@ This plan is idempotent — re-running on an org that already has the data produ
 
 ### Known limitations
 
-- **FulfillmentStepDefinition**: All 17 records insert successfully when `User.csv` and `UserAndGroup.csv` are present with the resolved user Name (via `dynamic_assigned_to_user: true`). The CSV must use `AssignedTo.Name` (not `AssignedToId$User.Name`) for SFDMU to resolve the lookup correctly.
+- **FulfillmentStepDefinition**: All 10 records insert successfully when `User.csv` and `UserAndGroup.csv` are present with the resolved user Name (via `dynamic_assigned_to_user: true`). The CSV must use `AssignedTo.Name` (not `AssignedToId$User.Name`) for SFDMU to resolve the lookup correctly. Two steps (Create Project, Start Project) have empty AssignedTo — these are Milestones with no manual assignee.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
@@ -315,9 +315,9 @@ When DRO features are enhanced for 260, the following polymorphic handling will 
 | ProductFulfillmentDecompRule  | `Name`                                           | ✅ OK — disambiguated duplicate Names |
 | ValTfrmGrp                    | `Name`                                           | ✅ OK — human-readable |
 | FulfillmentStepDefinitionGroup| `Name`                                           | ✅ OK — human-readable |
-| FulfillmentStepDefinition     | `Name;StepDefinitionGroup.Name`                  | ✅ OK — 2-field composite |
-| FulfillmentStepDependencyDef  | `Name;DependsOn.Name;FSD.Name`                   | ✅ OK — 3-field composite |
-| ProductFulfillmentScenario    | `Name;Product.SKU`                               | ✅ OK — also has `SourceIdentifier`/`SourceClassIdentifier` as idLookup |
+| FulfillmentStepDefinition     | `Name`                                           | ✅ OK — all Names unique after consolidation |
+| FulfillmentStepDependencyDef  | `Name`                                           | ✅ OK — all Names unique |
+| ProductFulfillmentScenario    | `Name`                                           | ✅ OK — all Names unique; also has `SourceIdentifier`/`SourceClassIdentifier` as idLookup |
 | FulfillmentWorkspace          | `Name`                                           | ✅ OK — human-readable |
 | FulfillmentTaskAssignmentRule | `Name`                                           | ✅ OK — not auto-num, human-readable |
 

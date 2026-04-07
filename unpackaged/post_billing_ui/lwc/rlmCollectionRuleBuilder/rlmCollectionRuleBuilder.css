@@ -1,0 +1,100 @@
+:host {
+    display: block;
+    padding: 1rem 1.5rem 2rem;
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    min-height: 100vh;
+}
+
+/* Page header accent */
+.page-header-custom {
+    border-radius: 0.5rem;
+    border-left: 4px solid #0176d3;
+}
+
+/* Condition rows */
+.condition-row {
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    transition: box-shadow 0.15s ease;
+}
+
+.condition-row:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.condition-block {
+    margin-bottom: 0.25rem;
+}
+
+/* AND / OR pill toggle */
+.logic-operator-row {
+    padding: 0.25rem 0;
+}
+
+.logic-pill-group {
+    display: inline-flex;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid #d8d8d8;
+    background-color: #ffffff;
+}
+
+.logic-btn {
+    padding: 0.2rem 1rem;
+    border: none;
+    background: transparent;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #706e6b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.logic-btn:hover {
+    background-color: #f3f3f3;
+}
+
+.logic-btn-active {
+    background-color: #0176d3;
+    color: #ffffff;
+}
+
+.logic-btn-active:hover {
+    background-color: #014486;
+}
+
+/* Delete button */
+.remove-btn {
+    --sds-c-button-icon-color-foreground: #ba0517;
+}
+
+/* Empty state */
+.empty-state {
+    padding: 2rem 1rem;
+}
+
+.empty-icon {
+    --sds-c-icon-color-foreground-default: #b0adab;
+}
+
+/* Badges */
+.badge-if {
+    --sds-c-badge-color-background: #fe9339;
+    --sds-c-badge-text-color: #ffffff;
+    font-weight: 700;
+}
+
+.badge-then {
+    --sds-c-badge-color-background: #04844b;
+    --sds-c-badge-text-color: #ffffff;
+    font-weight: 700;
+}
+
+/* Footer */
+.footer-actions {
+    border-top: 1px solid #e5e5e5;
+    padding-top: 1rem;
+}
