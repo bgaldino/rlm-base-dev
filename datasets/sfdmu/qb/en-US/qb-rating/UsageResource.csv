@@ -4,3 +4,7 @@ Usage,UR-CPUTIME,m,,Compute Time,Draft,,TIME,QB-CPU-BLNG,monthlytotal
 Usage,UR-DATASTORAGE,TB,,Data Storage,Draft,,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
 Usage,UR-DATAXFR,GB,,Data Throughput,Draft,,DATAVOL,QB-DATA-THPT-BLNG,monthlytotal
 Currency,UR-USD,USD,,USD Resource,Draft,,CURRENCY,RES-USD-DEF,monthlytotal
+Usage,UR-CPUTIME-TKN,m,,Compute Time (Token),Draft,QB-TOKEN,TIME,QB-CPU-BLNG,monthlytotal
+Usage,UR-DATASTORAGE-TKN,TB,,Data Storage (Token),Draft,QB-TOKEN,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak
+Usage,UR-CPUTIME-MTY,m,,Compute Time (Monetary),Draft,UR-USD,TIME,QB-CPU-BLNG,monthlytotal
+Usage,UR-DATASTORAGE-MTY,TB,,Data Storage (Monetary),Draft,UR-USD,DATAVOL,QB-DATA-STORAGE-BLNG,monthlypeak

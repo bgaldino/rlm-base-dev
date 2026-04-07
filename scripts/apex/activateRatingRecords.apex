@@ -42,9 +42,10 @@
 //     correct value (from UsageResource.TokenResourceId) while the PUR is Draft,
 //     then use clear+activate. The non-null>null change prevents auto-population.
 //
-//   - CommitmentSpend + Usage PURs: QB-MTY-CMT;UR-CPUTIME and
-//     QB-MTY-CMT;UR-DATASTORAGE cannot be activated in API 260. These
-//     optional PURs are excluded from the data plan (258>260 migration gap).
+//   - CommitmentSpend + Usage PURs: QB-MTY-CMT now uses dedicated
+//     UR-CPUTIME-MTY and UR-DATASTORAGE-MTY UsageResources (Category=Usage,
+//     TokenResourceId=UR-USD). The pre-populate + clear+activate pattern in
+//     Steps 3 and 5 handles these the same as token-backed usage PURs.
 //
 // Idempotency:
 //   Step 2.5 queries ALL PURs (including Active) so the overlap-detection logic can

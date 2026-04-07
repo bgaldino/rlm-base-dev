@@ -1,0 +1,114 @@
+erDiagram
+    Product2
+    ProductCategory
+    ProductCategoryProduct
+    ProductAttributeDefinition
+    PriceBook2
+    PriceBookEntry
+    PriceAdjustmentSchedule
+    PriceAdjustmentTier
+    ProductSellingModel
+    RateCard
+    RateCardEntry
+    ProductConfigurationFlow
+    ProductConfigurationRule
+    Account
+    Contact
+    Contract
+    Quote
+    QuoteLineItem
+    Order
+    OrderItem
+    Asset
+    AssetStatePeriod
+    AssetAction
+    AssetActionSource
+    FulfillmentOrder
+    FulfillmentOrderLineItem
+    FulfillmentPlan
+    FulfillmentStep
+    ProductUsageGrant
+    ProductUsageResource
+    UsageSummary
+    UsageResource
+    BillingSchedule
+    Invoice
+    InvoiceLine
+    CreditMemo
+    Payment
+    BillingAccount
+    Invoice }o--|| BillingAccount : BillingAccountId
+    Invoice }o--|| CreditMemo : ReferenceEntityId
+    Invoice }o--|| Order : ReferenceEntityId
+    FulfillmentStep }o--|| FulfillmentStep : AssignedToId
+    FulfillmentStep }o--|| FulfillmentPlan : FulfillmentPlanId
+    CreditMemo }o--|| Order : ReferenceEntityId
+    PriceBookEntry }o--|| Product2 : Product2Id
+    PriceBookEntry }o--|| ProductSellingModel : ProductSellingModelId
+    RateCardEntry }o--|| Product2 : ProductId
+    RateCardEntry }o--|| ProductSellingModel : ProductSellingModelId
+    RateCardEntry }o--|| RateCard : RateCardId
+    RateCardEntry }o--|| UsageResource : UsageResourceId
+    ProductUsageGrant }o--|| Product2 : ProductOfferId
+    ProductUsageGrant }o--|| ProductSellingModel : ProductSellingModelId
+    ProductUsageGrant }o--|| ProductUsageResource : ProductUsageResourceId
+    ProductUsageGrant }o--|| UsageResource : UsageResourceId
+    RateCard }o--|| UsageResource : UsageResourceId
+    ProductConfigurationFlow }o--|| Product2 : ReferenceObjectId
+    PriceAdjustmentTier }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
+    PriceAdjustmentTier }o--|| Product2 : Product2Id
+    PriceAdjustmentTier }o--|| ProductSellingModel : ProductSellingModelId
+    Asset }o--|| Asset : ParentId
+    Asset }o--|| Product2 : Product2Id
+    InvoiceLine }o--|| BillingSchedule : BillingScheduleId
+    InvoiceLine }o--|| InvoiceLine : ParentInvoiceLineId
+    InvoiceLine }o--|| Product2 : Product2Id
+    AssetAction }o--|| Asset : Lookup
+    UsageResource }o--|| UsageResource : TokenResourceId
+    UsageResource }o--|| Product2 : UsageDefinitionProductId
+    UsageSummary }o--|| UsageSummary : Field
+    UsageSummary }o--|| UsageResource : UsageResourceId
+    AssetStatePeriod }o--|| Asset : AssetId
+    BillingSchedule }o--|| BillingSchedule : OriginalBillingScheduleId
+    BillingSchedule }o--|| Order : ReferenceEntityId
+    AssetActionSource }o--|| AssetAction : AssetActionId
+    ProductConfigurationRule }o--|| Product2 : ProductId
+    ProductAttributeDefinition }o--|| Product2 : Product2Id
+    ProductCategoryProduct }o--|| ProductCategory : CategoryId
+    ProductCategoryProduct }o--|| Product2 : ProductId
+    QuoteLineItem ||--o{ Quote : QuoteId
+    QuoteLineItem }o--|| Product2 : Product2Id
+    QuoteLineItem }o--|| PriceBookEntry : PricebookEntryId
+    QuoteLineItem }o--|| ProductSellingModel : ProductSellingModelId
+    OrderItem ||--o{ Order : OrderId
+    OrderItem }o--|| Product2 : Product2Id
+    OrderItem }o--|| PriceBookEntry : PricebookEntryId
+    OrderItem }o--|| ProductSellingModel : ProductSellingModelId
+    OrderItem }o--|| QuoteLineItem : QuoteLineItemId
+    OrderItem }o--|| OrderItem : OriginalOrderItemId
+    Order }o--|| Account : AccountId
+    Quote }o--|| Account : AccountId
+    Asset }o--|| Account : AccountId
+    Contract }o--|| Account : AccountId
+    Contact }o--|| Account : AccountId
+    BillingAccount }o--|| Account : AccountId
+    FulfillmentOrder }o--|| Account : AccountId
+    Account }o--|| Account : ParentId
+    Quote }o--|| Contact : ContactId
+    Order }o--|| Contract : ContractId
+    Order }o--|| Quote : QuoteId
+    Order }o--|| PriceBook2 : Pricebook2Id
+    Quote }o--|| PriceBook2 : Pricebook2Id
+    FulfillmentOrder }o--|| Order : OrderId
+    FulfillmentOrderLineItem ||--o{ FulfillmentOrder : FulfillmentOrderId
+    FulfillmentOrderLineItem }o--|| OrderItem : OrderItemId
+    FulfillmentOrderLineItem }o--|| Product2 : Product2Id
+    Asset }o--|| Contact : ContactId
+    AssetActionSource }o--|| OrderItem : OrderItemId
+    BillingSchedule }o--|| Account : AccountId
+    Invoice }o--|| Account : AccountId
+    InvoiceLine ||--o{ Invoice : InvoiceId
+    CreditMemo }o--|| Account : AccountId
+    Payment }o--|| Account : AccountId
+    PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
+    ProductUsageGrant }o--|| Asset : AssetId

@@ -1,0 +1,91 @@
+<template>
+    <lightning-card title="Invoice Aging" icon-name="standard:chart">
+        <div class="slds-p-horizontal_medium slds-p-vertical_small">
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                    <span class="slds-text-body_small slds-text-color_weak slds-m-left_small">Loading invoice data…</span>
+                </div>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-m-vertical_small">{errorMessage}</div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:false={error}>
+                    <!-- Metrics Row -->
+                    <div class="metrics-row">
+                        <div class="metric-card">
+                            <span class="metric-value">{totalInvoices}</span>
+                            <span class="metric-label">Total Invoices</span>
+                        </div>
+                        <div class="metric-card metric-open">
+                            <span class="metric-value">{openInvoices}</span>
+                            <span class="metric-label">Open Invoices</span>
+                        </div>
+                        <div class="metric-card metric-overdue">
+                            <span class="metric-value">{overdueInvoices}</span>
+                            <span class="metric-label">Overdue Invoices</span>
+                        </div>
+                    </div>
+
+                    <!-- Aging Chart -->
+                    <template if:true={hasData}>
+                        <div class="chart-section">
+                            <h3 class="chart-title">Invoice Age (Days Open)</h3>
+                            <div class="chart-container">
+                                <div class="chart-row">
+                                    <span class="chart-label">&lt;30 days</span>
+                                    <div class="chart-bar-container">
+                                        <div class="chart-bar bar-green" style={bar0to30Style}></div>
+                                    </div>
+                                    <span class="chart-value">{bucket0to30}</span>
+                                </div>
+                                <div class="chart-row">
+                                    <span class="chart-label">30-60 days</span>
+                                    <div class="chart-bar-container">
+                                        <div class="chart-bar bar-yellow" style={bar30to60Style}></div>
+                                    </div>
+                                    <span class="chart-value">{bucket30to60}</span>
+                                </div>
+                                <div class="chart-row">
+                                    <span class="chart-label">60-90 days</span>
+                                    <div class="chart-bar-container">
+                                        <div class="chart-bar bar-orange" style={bar60to90Style}></div>
+                                    </div>
+                                    <span class="chart-value">{bucket60to90}</span>
+                                </div>
+                                <div class="chart-row">
+                                    <span class="chart-label">&gt;90 days</span>
+                                    <div class="chart-bar-container">
+                                        <div class="chart-bar bar-red" style={bar90plusStyle}></div>
+                                    </div>
+                                    <span class="chart-value">{bucket90plus}</span>
+                                </div>
+                            </div>
+
+                            <!-- Age Stats below chart -->
+                            <div class="age-stats">
+                                <div class="age-stat">
+                                    <span class="age-stat-label">Avg Age:</span>
+                                    <span class="age-stat-value">{averageInvoiceAge} days</span>
+                                </div>
+                                <div class="age-stat">
+                                    <span class="age-stat-label">Max Age:</span>
+                                    <span class="age-stat-value age-stat-max">{maxInvoiceAge} days</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template if:false={hasData}>
+                        <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                            No invoices found for this account.
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

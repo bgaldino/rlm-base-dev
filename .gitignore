@@ -111,6 +111,12 @@ unpackaged/*bak/**
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak
+datasets/bre/exports/**
+# Writeback/drift artifacts
+*.bak
+unpackaged/post_ux/drift_report.json
 tmp-metadata/
 .cursor/plans/**
 retrieved_rlm_bundle/
+postman/archive/
+core.code-workspace

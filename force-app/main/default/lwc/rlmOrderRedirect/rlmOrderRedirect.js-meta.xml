@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>66.0</apiVersion>
+  <isExposed>true</isExposed>
+  <masterLabel>RLM Order Redirect</masterLabel>
+  <description>Flow Screen component that navigates to a newly created Order record.</description>
+  <targets>
+    <target>lightning__FlowScreen</target>
+  </targets>
+  <targetConfigs>
+    <targetConfig targets="lightning__FlowScreen">
+      <property
+        name="orderId"
+        type="String"
+        role="inputOnly"
+        label="Order Id"
+        description="The Id of the Order to navigate to."
+      />
+      <property
+        name="quoteId"
+        type="String"
+        role="inputOnly"
+        label="Quote Id"
+        description="The Id of the Quote if there are multiple Orders"
+      />
+      <property
+        name="disableAutoRedirect"
+        type="Boolean"
+        role="inputOnly"
+        label="Disable Auto Redirect"
+        description="For debugging, prevents automatic navigation when true."
+      />
+    </targetConfig>
+  </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,182 @@
+<template>
+    <lightning-card title="Invoice Summary" icon-name="standard:insights">
+        <div class="slds-p-horizontal_medium slds-p-vertical_small">
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                    <span class="slds-text-body_small slds-text-color_weak slds-m-left_small">Analyzing invoice…</span>
+                </div>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-m-vertical_small">{errorMessage}</div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasData}>
+                    <!-- Section 1: Invoice Age & Status -->
+                    <div class="health-section">
+                        <div class="section-header">
+                            <lightning-icon icon-name="utility:clock" size="x-small" class="section-icon"></lightning-icon>
+                            <span class="section-title">Invoice Age</span>
+                        </div>
+                        <div class="age-status-row">
+                            <div class="age-metrics">
+                                <div class="age-metric">
+                                    <span class="age-value">{invoiceData.daysOpen}</span>
+                                    <span class="age-label">days open</span>
+                                </div>
+                                <template if:true={invoiceData.hasDueDate}>
+                                    <div class="age-metric">
+                                        <span class={dueDateClass}>{invoiceData.daysUntilDueText}</span>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="status-right">
+                                <span class={invoiceData.statusClass}>{invoiceData.status}</span>
+                                <template if:true={invoiceData.isStatusFlagged}>
+                                    <span class="status-flag">
+                                        <lightning-icon icon-name="utility:warning" size="xx-small" variant="warning"></lightning-icon>
+                                        <span class="flag-message">{invoiceData.statusMessage}</span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Invoice Totals -->
+                    <div class="health-section">
+                        <div class="section-header">
+                            <lightning-icon icon-name="utility:moneybag" size="x-small" class="section-icon"></lightning-icon>
+                            <span class="section-title">Invoice Totals</span>
+                        </div>
+                        <div class="totals-row">
+                            <div class="total-item">
+                                <span class="total-label">Total Charges</span>
+                                <span class="total-value">{invoiceData.formattedTotalCharges}</span>
+                            </div>
+                            <div class="total-item">
+                                <span class="total-label">Total Tax</span>
+                                <span class="total-value">{invoiceData.formattedTotalTax}</span>
+                            </div>
+                            <div class="total-item total-item-primary">
+                                <span class="total-label">Total with Tax</span>
+                                <span class="total-value total-value-primary">{invoiceData.formattedTotal}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Settlement Progress -->
+                    <div class="health-section">
+                        <div class="section-header">
+                            <lightning-icon icon-name="utility:money" size="x-small" class="section-icon"></lightning-icon>
+                            <span class="section-title">Settlement Progress</span>
+                        </div>
+                        
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div class="progress-segment payment-segment" style={invoiceData.paymentStyle}></div>
+                                <div class="progress-segment credit-segment tooltip-trigger" style={invoiceData.creditStyle}>
+                                    <div class="custom-tooltip">
+                                        <div class="tooltip-row">
+                                            <span class="tooltip-label">Net Credits Applied:</span>
+                                            <span class="tooltip-val">{invoiceData.formattedNetCredits}</span>
+                                        </div>
+                                        <div class="tooltip-row">
+                                            <span class="tooltip-label">Neg. Lines Converted:</span>
+                                            <span class="tooltip-val">{invoiceData.formattedConvertedNeg}</span>
+                                        </div>
+                                        <div class="tooltip-divider"></div>
+                                        <div class="tooltip-row">
+                                            <span class="tooltip-label">Balance Reduced by:</span>
+                                            <span class="tooltip-val tooltip-val-bold">{invoiceData.formattedBalanceReduced}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="progress-segment balance-segment" style={invoiceData.balanceStyle}></div>
+                            </div>
+                        </div>
+                        <div class="progress-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot payment-dot"></span>
+                                <span class="legend-label">Payments</span>
+                                <span class="legend-value">{invoiceData.paymentPercent}%</span>
+                            </div>
+                            <div class="legend-item tooltip-trigger">
+                                <span class="legend-dot credit-dot"></span>
+                                <span class="legend-label">Credits</span>
+                                <span class="legend-value">{invoiceData.creditPercent}%</span>
+                                <div class="custom-tooltip tooltip-below">
+                                    <div class="tooltip-row">
+                                        <span class="tooltip-label">Net Credits Applied:</span>
+                                        <span class="tooltip-val">{invoiceData.formattedNetCredits}</span>
+                                    </div>
+                                    <div class="tooltip-row">
+                                        <span class="tooltip-label">Neg. Lines Converted:</span>
+                                        <span class="tooltip-val">{invoiceData.formattedConvertedNeg}</span>
+                                    </div>
+                                    <div class="tooltip-divider"></div>
+                                    <div class="tooltip-row">
+                                        <span class="tooltip-label">Balance Reduced by:</span>
+                                        <span class="tooltip-val tooltip-val-bold">{invoiceData.formattedBalanceReduced}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot balance-dot"></span>
+                                <span class="legend-label">Balance</span>
+                                <span class="legend-value">{invoiceData.balancePercent}%</span>
+                            </div>
+                        </div>
+
+                        <template if:true={invoiceData.isFullySettled}>
+                            <div class="fully-settled">
+                                <lightning-icon icon-name="utility:success" size="small" variant="success"></lightning-icon>
+                                <span class="settled-text">Fully Settled</span>
+                                <template if:true={invoiceData.formattedSettlementDate}>
+                                    <span class="settled-date">on {invoiceData.formattedSettlementDate}</span>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template if:false={invoiceData.isFullySettled}>
+                            <div class="balance-summary">
+                                <span class="balance-label">Remaining:</span>
+                                <span class="balance-amount">{invoiceData.formattedBalance}</span>
+                                <span class="balance-total">of {invoiceData.formattedTotal}</span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Section 4: Invoice Lines Summary -->
+                    <template if:true={hasLinesData}>
+                        <div class="health-section">
+                            <div class="section-header">
+                                <lightning-icon icon-name="utility:list" size="x-small" class="section-icon"></lightning-icon>
+                                <span class="section-title">Invoice Contents</span>
+                                <span class="lines-total-badge">{invoiceLinesData.totalLines} lines</span>
+                            </div>
+                            <div class="ct-grid">
+                                <template for:each={invoiceLinesData.chargeTypes} for:item="ct">
+                                    <div key={ct.key} class="ct-item">
+                                        <span class={ct.colorClass}>
+                                            <lightning-icon icon-name={ct.icon} size="xx-small"></lightning-icon>
+                                        </span>
+                                        <span class="ct-label">{ct.label}</span>
+                                        <span class="ct-count">{ct.countLabel}</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:false={hasData}>
+                    <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                        Unable to load invoice data.
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

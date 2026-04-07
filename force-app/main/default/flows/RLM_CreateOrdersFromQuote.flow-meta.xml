@@ -67,6 +67,22 @@
     <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Count_Orders</name>
+        <label>Count Orders</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varOrderCount</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>orderIds</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>How_Many_Orders</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Error_Message_Transfer_Quote</name>
         <label>Error Message Transfer Quote</label>
         <locationX>0</locationX>
@@ -92,6 +108,9 @@
                 <elementReference>Create_Orders_From_Quote.orderIds</elementReference>
             </value>
         </assignmentItems>
+        <connector>
+            <targetReference>Should_Redirect</targetReference>
+        </connector>
     </assignments>
     <assignments>
         <name>Set_Error_Messages</name>
@@ -107,6 +126,22 @@
         </assignmentItems>
     </assignments>
     <assignments>
+        <name>Set_Order_Redirect</name>
+        <label>Set Order Redirect</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varOrderId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>loop_orders</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>loop_orders</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <description>List of order IDs created.</description>
         <name>Transfer_Order_IDs_Assignment</name>
         <label>Transfer Order IDs Assignment</label>
@@ -119,11 +154,39 @@
                 <elementReference>Create_Orders_From_Tfr_Quote.orderIds</elementReference>
             </value>
         </assignmentItems>
+        <connector>
+            <targetReference>Should_Redirect</targetReference>
+        </connector>
     </assignments>
     <constants>
         <name>Error_message</name>
         <dataType>String</dataType>
     </constants>
+    <decisions>
+        <name>How_Many_Orders</name>
+        <label>How Many Orders</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Redirect_to_Order_List_view</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Multiple Orders</defaultConnectorLabel>
+        <rules>
+            <name>Single_Order</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varOrderCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <numberValue>1.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>loop_orders</targetReference>
+            </connector>
+            <label>Single Order</label>
+        </rules>
+    </decisions>
     <decisions>
         <description>If the quote has an OriginalActionType of Transfer, call the Create Orders from Transfer Quote action.</description>
         <name>Is_Transfer_Quote</name>
@@ -150,10 +213,47 @@
             <label>Yes</label>
         </rules>
     </decisions>
-    <description>Revenue Cloud 258 Default Create Orders From Quote Flow</description>
+    <decisions>
+        <description>Check if the user opted to redirect to the created order(s). Transfer quotes always redirect since they skip the screen toggle.</description>
+        <name>Should_Redirect</name>
+        <label>Should Redirect?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Redirect</defaultConnectorLabel>
+        <rules>
+            <name>Yes_Redirect</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varRedirectToOrder</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Count_Orders</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <description>Revenue Cloud Default Create Orders From Quote Flow</description>
     <environments>Default</environments>
     <interviewLabel>RLM Create Orders From Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Create Orders From Quote</label>
+    <loops>
+        <name>loop_orders</name>
+        <label>loop orders</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>orderIds</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Set_Order_Redirect</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Redirect_to_Order</targetReference>
+        </noMoreValuesConnector>
+    </loops>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -192,6 +292,84 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <runInMode>DefaultMode</runInMode>
+    <screens>
+        <name>Redirect_to_Order</name>
+        <label>Redirect to Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>rcOrderRedirect</name>
+            <extensionName>c:rlmOrderRedirect</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>disableAutoRedirect</name>
+                <value>
+                    <booleanValue>false</booleanValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>orderId</name>
+                <value>
+                    <elementReference>varOrderId</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <storeOutputAutomatically>true</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>false</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <name>Redirect_to_Order_List_view</name>
+        <label>Redirect to Order List view</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>rcOrderRedirectList</name>
+            <extensionName>c:rlmOrderRedirect</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>disableAutoRedirect</name>
+                <value>
+                    <booleanValue>false</booleanValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>quoteId</name>
+                <value>
+                    <elementReference>quoteId</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <storeOutputAutomatically>true</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>false</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
     <screens>
         <name>S01_CreateOrdersScreen</name>
         <label>S01_CreateOrdersScreen</label>
@@ -250,6 +428,49 @@
                 </width>
             </styleProperties>
         </fields>
+        <fields>
+            <name>redirectToOrder</name>
+            <extensionName>flowruntime:toggle</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>label</name>
+                <value>
+                    <stringValue>Redirect to Order</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>messageToggleActive</name>
+                <value>
+                    <stringValue>Redirect</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>messageToggleInactive</name>
+                <value>
+                    <stringValue>Stay on Quote</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>value</name>
+                <value>
+                    <booleanValue>true</booleanValue>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>varRedirectToOrder</assignToReference>
+                <name>value</name>
+            </outputParameters>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
         <nextOrFinishButtonLabel>Finish</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
@@ -285,5 +506,31 @@
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varOrderCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <name>varOrderId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Controls whether the flow redirects to the created order after completion. Defaults to true (redirect enabled).</description>
+        <name>varRedirectToOrder</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>true</booleanValue>
+        </value>
     </variables>
 </Flow>

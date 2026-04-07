@@ -14,9 +14,15 @@ Id,Name,ParentProductId,ParentProduct.Name,ChildProductId,ChildProduct.Name,Chil
 0dSWt000000FFIYMA4,PRC-000000005,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQY3IAO,QuantumBit Services Project,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,50
 0dSWt000000FFIZMA4,PRC-000000020,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYyIAO,Additional Messages - QB Starter,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,30
 0dSWt000000FFIaMAO,PRC-000000007,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYMIA4,QuantumBit Database,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,5
+0dSWt000000DBTKNAA,PRC-NEW-DB-TKN,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009DBTKNAA,QuantumBit Database (Token Based),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,7
 0dSWt000000FFIbMAO,PRC-000000008,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYxIAO,Additional Flows - QB Starter,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,40
 0dSWt000000FFIcMAO,PRC-000000026,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYaIAO,Professional Services Daily Rate,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
 0dSWt000000FFIdMAO,PRC-000000031,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYbIAO,Professional Services Scope of Work,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
 0dSWt000000FFIeMAO,PRC-000000034,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYeIAO,Software Maintenance,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,40
 0dSWt000000FFIfMAO,PRC-000000036,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYfIAO,QuantumBit Essentials Training,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
 0dSWt000000FFIgMAO,PRC-000000038,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009JQYgIAO,QuantumBit Fundamentals Training,,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
+0dSWt000000CMTEAAA,PRC-NEW-CMT-TKN-EACH,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009CMTEAAA,QuantumBit Database (Token Commit - Each),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,10
+0dSWt000000CMTFAAA,PRC-NEW-CMT-TKN-FLAT,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009CMTFAAA,QuantumBit Database (Token Commit - Flat),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,20
+0dSWt000000CMTTAAA,PRC-NEW-CMT-TKN-TIER,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009CMTTAAA,QuantumBit Database (Token Commit - Tier),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,30
+0dSWt000000MTYCMAA,PRC-NEW-MTY-CMT,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009MTYCMAA,QuantumBit Database (Monetary Commit),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,40
+0dSWt000000QTYCMAA,PRC-NEW-QTY-CMT,01tWt000009JQYJIA4,QuantumBit Complete Solution,01tWt000009QTYCMAA,QuantumBit Database (Quantity Commit),,,0yoWt000000KWDRIA4,Bundle to Bundle Component Relationship,50

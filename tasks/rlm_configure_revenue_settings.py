@@ -1,8 +1,9 @@
 """Configure Revenue Settings page via Robot Framework.
 
 Sets default procedures (Pricing, Usage Rating), enables Instant Pricing,
-and sets the Create Orders from Quote screen flow. Must run after all
-data/metadata is deployed and before decision table refresh.
+sets the Create Orders from Quote screen flow, and optionally sets the
+Manage Assets flow. Must run after all data/metadata is deployed and
+before decision table refresh.
 Asset Context is configured separately via enable_constraints_settings.
 
 Follows the same pattern as rlm_enable_constraints_settings.py.
@@ -29,8 +30,9 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
     """Run the Robot test that configures Revenue Settings page defaults.
 
     Sets default Pricing Procedure, Usage Rating Procedure, enables Instant
-    Pricing, and sets the Create Orders from Quote flow.
-    Required before decision table refresh can run successfully.
+    Pricing, sets the Create Orders from Quote flow, and optionally sets the
+    Manage Assets flow. Required before decision table refresh can run
+    successfully.
     """
 
     task_options = {
@@ -52,6 +54,10 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
         },
         "create_orders_flow": {
             "description": "API name of the Create Orders from Quote screen flow.",
+            "required": False,
+        },
+        "manage_assets_flow": {
+            "description": "API name of the Set Up Flow for Managing Assets.",
             "required": False,
         },
     }
@@ -94,6 +100,8 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
             cmd.extend(["--variable", f"USAGE_RATING_PROCEDURE:{self.options['usage_rating_procedure']}"])
         if self.options.get("create_orders_flow"):
             cmd.extend(["--variable", f"CREATE_ORDERS_FLOW:{self.options['create_orders_flow']}"])
+        if self.options.get("manage_assets_flow"):
+            cmd.extend(["--variable", f"MANAGE_ASSETS_FLOW:{self.options['manage_assets_flow']}"])
 
         cmd.extend([
             "--outputdir",
@@ -119,7 +127,12 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
                 f"Configure revenue settings test failed (exit code {result.returncode}). "
                 f"Check {out_path / 'log.html'} for details."
             )
+        configured = [
+            "Pricing Procedure", "Usage Rating", "Instant Pricing",
+            "Create Orders Flow",
+        ]
+        if self.options.get("manage_assets_flow"):
+            configured.append("Manage Assets Flow")
         self.logger.info(
-            "Revenue Settings configured: Pricing Procedure, Usage Rating, "
-            "Instant Pricing, and Create Orders Flow set."
+            "Revenue Settings configured: %s.", ", ".join(configured)
         )

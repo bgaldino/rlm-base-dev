@@ -1,0 +1,451 @@
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+/* Sections */
+.health-section {
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--lwc-colorBorder, #e5e5e5);
+}
+
+.health-section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.625rem;
+}
+
+.section-icon {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+/* Invoice Age & Status Row */
+.age-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.status-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Invoice Age */
+.age-metrics {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+}
+
+.age-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.age-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.age-label {
+    font-size: 0.875rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.due-normal {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.due-urgent {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #b45309;
+}
+
+.due-overdue {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #b91c1c;
+}
+
+/* Invoice Totals */
+.totals-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.total-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.25rem;
+    border-radius: 6px;
+    background: #f8fafc;
+}
+
+.total-item-primary {
+    background: #f0f9ff;
+}
+
+.total-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    margin-bottom: 0.25rem;
+}
+
+.total-value {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.total-value-primary {
+    color: #014a7f;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+/* Status */
+.status-normal {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #065f46;
+    background: #d1fae5;
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+}
+
+.status-flagged {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+}
+
+.status-flag {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.flag-message {
+    font-size: 0.8125rem;
+    color: #92400e;
+}
+
+/* Settlement Progress */
+.progress-bar-container {
+    margin-bottom: 0.75rem;
+}
+
+.progress-bar {
+    display: flex;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+
+.progress-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.payment-segment {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.credit-segment {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.balance-segment {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+.progress-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.payment-dot {
+    background: #10b981;
+}
+
+.credit-dot {
+    background: #3b82f6;
+}
+
+.balance-dot {
+    background: #ef4444;
+}
+
+.legend-label {
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.legend-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.balance-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.balance-label {
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.balance-amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #b91c1c;
+}
+
+.balance-total {
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+/* Fully Settled */
+.fully-settled {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0;
+}
+
+.settled-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #065f46;
+}
+
+.settled-date {
+    font-size: 0.875rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+/* Custom Tooltip */
+.tooltip-trigger {
+    position: relative;
+    cursor: pointer;
+}
+
+.custom-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #fff;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+}
+
+.custom-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1e293b;
+}
+
+.tooltip-below {
+    bottom: auto;
+    top: calc(100% + 8px);
+}
+
+.tooltip-below::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: #1e293b;
+}
+
+.tooltip-trigger:hover .custom-tooltip {
+    display: block;
+}
+
+.tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.15rem 0;
+}
+
+.tooltip-label {
+    font-size: 0.6875rem;
+    color: #94a3b8;
+}
+
+.tooltip-val {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.tooltip-val-bold {
+    color: #60a5fa;
+}
+
+.tooltip-divider {
+    height: 1px;
+    background: #334155;
+    margin: 0.2rem 0;
+}
+
+/* Invoice Contents */
+.lines-total-badge {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #475569;
+    background: #e2e8f0;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+}
+
+.ct-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.ct-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 6px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+}
+
+.ct-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.ct-onetime {
+    background: #dbeafe;
+    --slds-c-icon-color-foreground-default: #2563eb;
+}
+
+.ct-milestone {
+    background: #fce7f3;
+    --slds-c-icon-color-foreground-default: #db2777;
+}
+
+.ct-monthly {
+    background: #d1fae5;
+    --slds-c-icon-color-foreground-default: #059669;
+}
+
+.ct-quarterly {
+    background: #fef3c7;
+    --slds-c-icon-color-foreground-default: #d97706;
+}
+
+.ct-semiannual {
+    background: #e0e7ff;
+    --slds-c-icon-color-foreground-default: #4f46e5;
+}
+
+.ct-annual {
+    background: #fce4ec;
+    --slds-c-icon-color-foreground-default: #e11d48;
+}
+
+.ct-daily {
+    background: #f0fdf4;
+    --slds-c-icon-color-foreground-default: #16a34a;
+}
+
+.ct-usage {
+    background: #fff7ed;
+    --slds-c-icon-color-foreground-default: #ea580c;
+}
+
+.ct-other {
+    background: #f1f5f9;
+    --slds-c-icon-color-foreground-default: #64748b;
+}
+
+.ct-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextDefault, #181818);
+    flex: 1;
+    min-width: 0;
+}
+
+.ct-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    white-space: nowrap;
+}

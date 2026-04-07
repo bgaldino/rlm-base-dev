@@ -45,17 +45,17 @@ Upsert all 28 objects in dependency order
 | 5  | AttributeDefinition           | Upsert    | `Code`                                                                                                | 39      |
 | 6  | AttributeCategory             | Upsert    | `Code`                                                                                                | 18      |
 | 7  | AttributeCategoryAttribute    | Upsert    | `AttributeCategory.Code;AttributeDefinition.Code`                                                     | 34      |
-| 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 16      |
+| 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 18      |
 | 9  | ProductClassificationAttr     | Upsert    | `Name`¹                                                                                               | 36      |
-| 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 178     |
+| 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 162     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
 | 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
 | 13 | ProrationPolicy               | Upsert    | `Name`                                                                                                | 1       |
 | 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 115     |
 | 15 | ProductRampSegment            | Upsert    | `Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType`                            | 6       |
 | 16 | ProductRelationshipType       | Upsert    | `Name`                                                                                                | 4       |
-| 17 | ProductComponentGroup         | Upsert    | `Code;ParentProduct.StockKeepingUnit`                                                                 | 26      |
-| 18 | ProductRelatedComponent       | Upsert    | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 78 |
+| 17 | ProductComponentGroup         | Upsert    | `Code`                                                                                                | 27      |
+| 18 | ProductRelatedComponent       | Upsert    | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 84 |
 | 19 | ProductComponentGrpOverride   | Upsert    | `Name`                                                                                                | 0       |
 | 20 | ProductRelComponentOverride   | Upsert    | `ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit`                                       | 0       |
 | 21 | ProductCatalog                | Upsert    | `Code`                                                                                                | 3       |
@@ -79,11 +79,11 @@ Attribute infrastructure: picklists with values, definitions with data types, ca
 
 ### Product Classifications (Objects 8-9)
 
-Hierarchical product classification tree (`ParentProductClassificationId` self-reference) with classification-level attribute assignments (`ProductClassificationAttr`). Currently all 16 records are root-level (no parent set), but the schema supports nesting.
+Hierarchical product classification tree (`ParentProductClassificationId` self-reference) with classification-level attribute assignments (`ProductClassificationAttr`). Currently all 18 records are root-level (no parent set), but the schema supports nesting. Classifications include `PC-QB-DB` (QuantumBit Database) and `PC-QB-SERVICES` (Services) for product grouping.
 
 ### Products and Selling Models (Objects 10-15)
 
-Core product records (178 products) with product-level attribute overrides, 9 selling models (Evergreen, Term, One-Time variants), proration policy, selling model assignments per product, and ramp segments.
+Core product records (162 products) with product-level attribute overrides, 9 selling models (Evergreen, Term, One-Time variants), proration policy, selling model assignments per product, and ramp segments.
 
 ### Bundles and Components (Objects 16-18)
 
@@ -103,13 +103,13 @@ The QB-QRack-750 bundle has a **2-level hierarchy** of component groups:
 
 | Level 1 (root)            | Level 2 (children)                           |
 |---------------------------|----------------------------------------------|
-| Computing;QB-QRack-750    | Processor, Cooling                           |
-| PCIe;QB-QRack-750         | GPUs, I/O, Networking                        |
-| Storage;QB-QRack-750      | Hard Drives, Solid State Drives              |
+| Computing                 | Processor, Cooling                           |
+| PCIe                      | GPUs, I/O, Networking                        |
+| Storage                   | Hard Drives, Solid State Drives              |
 
 All other products (QB-BDL-R750, QB-BDL-SRVC, QB-BDL-STND, QB-COMPLETE) have flat (1-level) component groups with no parent.
 
-SFDMU should handle this automatically by detecting the self-referential `ParentGroupId` lookup and internally inserting parent records (those with no `ParentGroup`) before children. **Needs validation** — if SFDMU does not handle this correctly, a 2-pass architecture would be required (Pass 1: root groups, Pass 2: child groups).
+**Validated (2026-04-02):** SFDMU handles the self-referential hierarchy correctly using `ParentGroup.Code` as a simple field reference with `externalId: "Code"`. SFDMU detects the self-reference and runs multiple passes internally (Pass 1: insert all records, Pass 2+: update parent group assignments). See Bug 4 in the changelog below for details on the fix that was required.
 
 ### ProductClassification (`ParentProductClassificationId` -> ProductClassification)
 
@@ -189,7 +189,7 @@ Several objects use multi-field composite external IDs for idempotent matching:
 | ProductSellingModel         | `Name;SellingModelType`                                               | Yes             |
 | ProductSellingModelOption   | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType` | Yes |
 | ProductRampSegment          | `Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType` | Yes        |
-| ProductComponentGroup       | `Code;ParentProduct.StockKeepingUnit`                                 | Yes             |
+| ProductComponentGroup       | `Code`                                                                | No (simplified) |
 | ProductRelatedComponent     | 5-field composite (Classification, Child, Parent, Group, RelType)     | Yes             |
 | ProductCategoryProduct      | `ProductCategory.Code;Product.StockKeepingUnit`                       | Yes             |
 
@@ -239,11 +239,11 @@ qb-pcm/
 ├── UnitOfMeasure.csv                    # 12 records
 │
 │  Source CSVs — Classifications
-├── ProductClassification.csv            # 16 records
+├── ProductClassification.csv            # 18 records
 ├── ProductClassificationAttr.csv        # 36 records
 │
 │  Source CSVs — Products and Selling Models
-├── Product2.csv                         # 178 records
+├── Product2.csv                         # 162 records
 ├── ProductAttributeDefinition.csv       # 17 records
 ├── ProductSellingModel.csv              # 9 records
 ├── ProrationPolicy.csv                  # 1 record
@@ -252,8 +252,8 @@ qb-pcm/
 │
 │  Source CSVs — Bundles and Components
 ├── ProductRelationshipType.csv          # 4 records
-├── ProductComponentGroup.csv            # 26 records
-├── ProductRelatedComponent.csv          # 78 records
+├── ProductComponentGroup.csv            # 27 records
+├── ProductRelatedComponent.csv          # 84 records
 ├── ProductComponentGrpOverride.csv      # 0 records (placeholder)
 ├── ProductRelComponentOverride.csv      # 0 records (placeholder)
 │
@@ -306,15 +306,15 @@ cci task run test_qb_pcm_idempotency --org <your-org>
 
 That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false` (e.g. `-o use_extraction_roundtrip false`).
 
-**Not yet validated** — idempotency testing against a 260 org is pending.
+**Validated (2026-04-02)** — idempotency confirmed against rlmtrialtest (260 org). All 26 objects pass with zero record count increase on second run.
 
 ## 260 Schema Validation Notes
 
-- **API Version**: `67.0` (Release 260)
-- **Schema validation pending** — needs to be tested against a 260 scratch org to confirm all fields in SOQL queries are valid
-- Objects 24-27 (Qualification/Disqualification) have no `operation` specified in `export.json` — should be verified that SFDMU handles the default behavior correctly for empty datasets
-- `ProductComponentGrpOverride` and `ProductRelComponentOverride` use polymorphic `OverrideContextId$Product2` syntax — should verify this works correctly in 260
-- Self-referencing objects (ProductComponentGroup, ProductClassification, ProductCategory) — verify SFDMU handles the internal multi-pass automatically in 260
+- **API Version**: `67.0` (Release 262)
+- **Validated (2026-04-02)** against rlmtrialtest org (Release 260); 262 re-validation pending
+- Self-referencing objects: ProductComponentGroup hierarchy validated — SFDMU handles multi-pass automatically with simple `ParentGroup.Code` reference
+- ProductCategory self-reference (Network Adapter → PCIe) validated
+- ProductClassification: all 18 records are root-level (no hierarchy yet)
 
 ## External ID / Composite Key Analysis (Confirmed via Org Describe)
 
@@ -329,18 +329,13 @@ The following fields have `isUnique=true` in the 260 schema — the platform gua
 | AttributeDefinition     | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
 | AttributeCategory       | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
 | ProductClassification   | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
-| ProductComponentGroup   | `Code` | **Yes**  | Yes        | ⚠️ Partially — uses `Code;ParentProduct.StockKeepingUnit` |
+| ProductComponentGroup   | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`) — simplified from composite |
 | ProductCatalog          | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
 | ProductCategory         | `Code` | **Yes**  | Yes        | ✅ Yes (`Code`)              |
 
-### Simplification Opportunity: ProductComponentGroup
+### ProductComponentGroup — Simplified (2026-04-02)
 
-`ProductComponentGroup.Code` is **schema-enforced unique**. The current externalId is `Code;ParentProduct.StockKeepingUnit` (2-field composite), but since `Code` alone guarantees uniqueness, the `ParentProduct.StockKeepingUnit` component is **redundant**. This simplification would:
-- Remove the need for the `$$` composite key column in the CSV
-- Simplify the SFDMU matching logic
-- Reduce the risk of matching failures when parent product changes
-
-**Recommendation:** Simplify externalId from `Code;ParentProduct.StockKeepingUnit` to just `Code`.
+`ProductComponentGroup.Code` is **schema-enforced unique**. The externalId was simplified from `Code;ParentProduct.StockKeepingUnit` to just `Code`. This also resolved Bug 4 (see Changelog) — the self-referential `ParentGroup` lookup could not use `$$` composite notation.
 
 ### Fields NOT Schema-Unique but Used as ExternalId
 
@@ -387,12 +382,47 @@ Schema describe revealed that `ProductAttributeDefinition` has a **polymorphic**
 
 ## Optimization Opportunities
 
-1. **Simplify ProductComponentGroup externalId**: `Code` is schema-unique — remove redundant `ParentProduct.StockKeepingUnit` component
+1. ~~**Simplify ProductComponentGroup externalId**~~: Done (2026-04-02) — simplified to `Code`
 2. **Fix override object externalIds**: Replace auto-num `Name` on ProductComponentGrpOverride and ProductRelComponentOverride with composite parent-based keys before Promotion data is added
 3. **Fix qualification/disqualification externalIds**: Replace auto-num `Name` on all 4 qualification objects with composite parent-based keys before data is added
-4. **Validate self-referencing objects**: Test that SFDMU handles ProductComponentGroup's 2-level hierarchy in a single pass
+4. ~~**Validate self-referencing objects**~~: Done (2026-04-02) — confirmed SFDMU handles hierarchy via multi-pass with simple `ParentGroup.Code` reference
 5. **Add Promotion polymorphic support**: `OverrideContextId` targets both Product2 and Promotion — see "Polymorphic Fields" section
 6. **Handle ProductAttributeDefinition polymorphic**: `OverrideContextId` also targets Product2 and Promotion on PAD
 7. **Verify empty-object behavior**: Confirm SFDMU handles objects 19-20 and 24-27 correctly when CSVs have no data rows
 8. **Add explicit operations**: Objects 24-28 should have explicit `operation` fields in `export.json` for clarity
 9. **Consider `excludeIdsFromCSVFiles`**: Already set to `"true"` — good for portability
+
+## TODO
+
+- **Rename Q-Rack 750 PCG Code fields**: The component groups for QB-QRack-750 use short names (`Computing`, `PCIe`, `Storage`, `Cooling`, `GPUs`, `Hard Drives`, `I/O`, `Memory`, `Networking`, `Power Supply`, `Processor`, `Solid State Drives`) instead of the `PCG-` prefixed convention used by all other bundles (`PCG-QB-ADDONS`, `PCG-QB-SOFTWARE`, etc.). These should be renamed to follow the convention (e.g., `PCG-QB-COMPUTING`, `PCG-QB-PCIE`, `PCG-QB-STORAGE`). This requires updating both ProductComponentGroup.csv and ProductRelatedComponent.csv (which references the group codes).
+
+## Changelog
+
+### 2026-04-02 — Reconciliation and Bug Fixes
+
+**Data changes:**
+- Added 2 ProductClassifications: `PC-QB-DB` (QuantumBit Database), `PC-QB-SERVICES` (Services)
+- Removed 2 Products: `QB-AEH-BILL` (Finance Service), `QB-AEH-OR` (Order Processing)
+- Assigned 7 database products to `PC-QB-DB` classification (QB-CMT-TKN-EACH/FLAT/TIER, QB-DB, QB-DB-TOKEN, QB-MTY-CMT, QB-QTY-CMT)
+- Assigned 4 services products to `PC-QB-SERVICES` classification (QB-SRV-OG-PSH, QB-SRV-SOW, QB-TRN-ESSNTLS, QB-TRN-FUND)
+- QB-DB-TOKEN: CanRamp changed to true
+- Record counts updated: Product2 178→162, ProductClassification 16→18, ProductComponentGroup 26→27, ProductRelatedComponent 78→84
+
+**ProductComponentGroup — Bug 4 fix (self-referential `$$` composite key):**
+- ExternalId simplified from `Code;ParentProduct.StockKeepingUnit` to `Code` (schema-enforced unique)
+- CSV self-reference changed from `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` to `ParentGroup.Code`
+- Removed `$$Code$ParentProduct.StockKeepingUnit` primary key column from CSV
+- SOQL updated to include `ParentGroup.Code` and `ParentGroup.ParentProduct.StockKeepingUnit` traversal fields
+- **Root cause:** SFDMU cannot resolve `$$` composite notation in lookup reference columns — only works for primary record matching. Self-referential `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` produced MissingParentRecords on every import, leaving all parent group assignments null.
+
+**ProductRelatedComponent — Composite key correction:**
+- `ChildProductClassification.Code` was incorrectly populated in the `$$` composite key column (had SKU value in classification slot). All 84 records now correctly show empty first component since no nested classifications are in use.
+
+**ProductRampSegment — Auto-number Name removed:**
+- Removed `Name` from SOQL query and CSV (auto-number field, not portable across orgs)
+
+**Post-processor fixes (scripts/post_process_extraction.py):**
+- `normalize_na_values`: Only strips SFDMU `#N/A` markers, not `N/A` business values. Collapses all-empty composite keys to empty string instead of `;`.
+- `apply_field_defaults`: New function — defaults `AttributePicklist.Code` from `Name` when Code is empty/not queryable (Commerce-dependent field).
+- `write_csv`: Fixed line endings from CRLF to LF to match `.gitattributes` convention.
+- `resolve_id_text_fields`: New function — resolves raw Salesforce IDs in text fields (e.g., `SourceIdentifier` on ProductFulfillmentDecompRule) to portable traversal values.

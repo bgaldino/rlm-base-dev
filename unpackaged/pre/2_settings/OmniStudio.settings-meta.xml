@@ -3,6 +3,7 @@
     <enableOaEventInternalWrites>true</enableOaEventInternalWrites>
     <enableOaEventNotifications>true</enableOaEventNotifications>
     <enableOaForCore>true</enableOaForCore>
+    <enableOmniReplaceFileBasedApex>true</enableOmniReplaceFileBasedApex>
     <enableOmniStudioDrVersion>false</enableOmniStudioDrVersion>
     <enableOmniStudioMetadata>true</enableOmniStudioMetadata>
     <enableStandardOmniStudioRuntime>true</enableStandardOmniStudioRuntime>

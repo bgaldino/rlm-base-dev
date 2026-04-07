@@ -1,0 +1,78 @@
+---
+description: Robot Framework test authoring conventions for setup automation and E2E tests
+globs:
+  - robot/**/*.robot
+  - robot/**/*.py
+---
+
+# Robot Framework Conventions
+
+## DO NOT
+
+- Use `//` comments in Robot JavaScript blocks — use `/* */`
+- Use standard `input_text` for LWC inputs — use native setter pattern
+- Log session tokens in Robot output (`Set Log Level NONE`)
+- Forget `composed: true` on dispatched events (won't cross shadow DOM)
+
+## Setup vs E2E — Different Purposes
+
+- `tests/setup/` = **org configuration automation** (not traditional tests).
+  These run mid-flow during `prepare_rlm_org` to toggle settings that have
+  no Metadata API equivalent. Must be idempotent.
+- `tests/e2e/` = **functional tests** that validate business workflows
+  after the org is provisioned. Gate with `Skip If` on feature flags.
+
+## JavaScript in Robot
+
+- **Never use `//` comments in JS blocks** — Robot joins continuation
+  lines with spaces, so `//` comments out everything after it on the
+  joined line. Use `/* */` if comments are needed.
+- Shadow DOM traversal is the primary interaction pattern — use recursive
+  `findInShadows(root, selector)` for elements behind shadow boundaries.
+- Use `composed: true` on dispatched events to cross shadow DOM boundaries.
+- For LWC input reactivity, use `Object.getOwnPropertyDescriptor(
+  HTMLInputElement.prototype, 'value').set` instead of Selenium's
+  `input_text`.
+
+## Multi-Tier Fallback
+
+Interaction keywords should try strategies in order:
+1. Standard Selenium XPath (fast, works for non-shadowed elements)
+2. Scoped XPath (within parent `<li>`, `<section>`, `@role='row'`)
+3. Shadow DOM JavaScript traversal (recursive `querySelectorAll` + `shadowRoot`)
+4. JS click fallback (`arguments[0].click()`) when Selenium click is intercepted
+
+## Security
+
+- Wrap all `sf org open --url-only` and URL navigation with
+  `Set Log Level NONE` / `Set Log Level INFO` to prevent session tokens
+  from appearing in `log.html`.
+- `SalesforceAPI.py` validates Salesforce IDs (`_validate_salesforce_id`)
+  and escapes SOQL strings (`_soql_escape`) to prevent injection.
+
+## Naming Conventions
+
+- Suite/global variables: `${UPPER_SNAKE_CASE}`
+- Local variables: `${lower_snake}`
+- Internal keywords: prefix with `_` (e.g., `_Click Save Button Via JS`)
+- Python libraries: use `WITH NAME` alias
+- Screenshots: `e2e_{counter}_{step_name}.png`
+
+## CCI Task Wrapper Pattern
+
+Every Robot suite needs a Python task wrapper in `tasks/`:
+1. Resolve `org_name` from `self.org_config.username`
+2. Call `check_urllib3_for_robot()` from `tasks.robot_utils`
+3. Build command: `[sys.executable, "-m", "robot", "--variable", ...]`
+4. Pass org alias and task options as `--variable` args
+5. E2E wrappers also pass feature flags from `project__custom`
+6. Run via `subprocess.run(cmd, cwd=str(repo_root))`
+7. Raise `RuntimeError` on non-zero exit code
+
+## Wait Patterns
+
+- UI elements: `Wait Until Keyword Succeeds 15s 2s ...`
+- Async operations (order activation, asset creation):
+  `Wait Until Keyword Succeeds ${ASYNC_TIMEOUT} ${ASYNC_POLL_INTERVAL} ...`
+- Default: `ASYNC_TIMEOUT=180s`, `ASYNC_POLL_INTERVAL=10s`
+- Use `Sleep` sparingly and always with `reason=` annotation

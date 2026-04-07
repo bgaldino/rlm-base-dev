@@ -14,6 +14,18 @@ type QuantumBitCompleteSolution : LineItem {
 
     relation quantumbitdatabase : QuantumBitDatabase;
 
+    relation quantumbitdatabasetokenbased : QuantumBitDatabaseTokenBased;
+
+    relation quantumbitdatabasetokencommiteach : QuantumBitDatabaseTokenCommitEach;
+
+    relation quantumbitdatabasetokencommitflat : QuantumBitDatabaseTokenCommitFlat;
+
+    relation quantumbitdatabasetokencommittier : QuantumBitDatabaseTokenCommitTier;
+
+    relation quantumbitdatabasemonetarycommit : QuantumBitDatabaseMonetaryCommit;
+
+    relation quantumbitdatabasequantitycommit : QuantumBitDatabaseQuantityCommit;
+
     relation quantumbitessentialstraining : QuantumBitEssentialsTraining;
 
     relation quantumbitfundamentalstraining : QuantumBitFundamentalsTraining;
@@ -36,14 +48,14 @@ type QuantumBitCompleteSolution : LineItem {
     string Operating_System = ["Amazon Linux 2", "Redhat Enterprise Linux"];
 
     @(defaultValue = "4")
-    string Base_Core_Count = ["2", "4", "6", "8"];
+    int Base_Core_Count = [2, 4, 6, 8];
 
     @(defaultValue = "0")
-    string Data_Utilization = ["0", "10", "20", "30", "40", "5", "50"];
+    int Data_Utilization = [0, 10, 20, 30, 40, 5, 50];
 
     //constraint(Operating_System == "Redhat Enterprise Linux" -> Base_Core_Count == "8", "When running RedHat Linux, a minimum of 8 Base Cores is required!");
 
-    constraint(Operating_System == "Redhat Enterprise Linux" -> Base_Core_Count == "8", "When running RedHat Linux, a minimum of 8 Base Cores is required!");
+    constraint(Operating_System == "Redhat Enterprise Linux" -> Base_Core_Count == 8, "When running RedHat Linux, a minimum of 8 Base Cores is required!");
     
 	//require(qbapimanagementsolution[QBAPIManagementSolution] >= 5 && OriginalActionType == null, additionalapi[AdditionalAPI]);
     require(qbapimanagementsolution[QBAPIManagementSolution] >= 5, additionalapi[AdditionalAPI]);
@@ -59,6 +71,18 @@ type AdditionalMessagesQBStarter : LineItem;
 type AdditionalFlowsQBStarter : LineItem;
 
 type QuantumBitDatabase : LineItem;
+
+type QuantumBitDatabaseTokenBased : LineItem;
+
+type QuantumBitDatabaseTokenCommitEach : LineItem;
+
+type QuantumBitDatabaseTokenCommitFlat : LineItem;
+
+type QuantumBitDatabaseTokenCommitTier : LineItem;
+
+type QuantumBitDatabaseMonetaryCommit : LineItem;
+
+type QuantumBitDatabaseQuantityCommit : LineItem;
 
 type QuantumBitEssentialsTraining : LineItem;
 

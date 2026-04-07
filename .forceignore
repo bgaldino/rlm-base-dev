@@ -55,16 +55,31 @@ force-app/main/default/layouts/AssetStatePeriod-RLM Asset State Period Layout.la
 unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 # AppSwitcher (TSO-only): uncomment to exclude from deploy (e.g. if target orgs lack referenced ConnectedApps)
 # unpackaged/post_tso_appmenu/appMenus/AppSwitcher.appMenu-meta.xml
+
+# TSO-only PSG: excluded from deploy_pre (which deploys all of unpackaged/pre/).
+# prepare_tso deploys this separately when tso=true.
+unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
+
 unpackaged/post_constraints/classes
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
-# Ignored (deployed from unpackaged paths or org-specific)
-force-app/main/default/applications/RLM_Revenue_Cloud.app-meta.xml
-force-app/main/default/flexipages/RLM_Account_Record_Page.flexipage-meta.xml
-# Record page stored here pending FlexiPage layering strategy; deployed separately per module
-unpackaged/post_approvals/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml
+
 # EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
-# RLM_TSO PSG: excluded by default (tso=false). Build scripts remove this line when tso=true.
-unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
+
+# force-app UX metadata — moved to templates/; deployed by prepare_ux (step 29). Guards prevent accidental re-introduction into deploy_full.
+force-app/main/default/flexipages
+force-app/main/default/layouts
+force-app/main/default/objects/Asset/compactLayouts
+force-app/main/default/objects/Asset/listViews
+force-app/main/default/objects/Quote/compactLayouts
+force-app/main/default/objects/Product2/listViews
+# force-app object metadata holding only UX bindings (actionOverrides + compactLayoutAssignment)
+# Moved to templates/objects/base/ — deployed by prepare_ux after flexipages/compact layouts exist
+force-app/main/default/objects/Asset/Asset.object-meta.xml
+force-app/main/default/objects/Quote/Quote.object-meta.xml
+force-app/main/default/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem.object-meta.xml
+force-app/main/default/objects/Order/Order.object-meta.xml
+force-app/main/default/objects/OrderItem/OrderItem.object-meta.xml
+force-app/main/default/objects/QuoteLineItem/QuoteLineItem.object-meta.xml

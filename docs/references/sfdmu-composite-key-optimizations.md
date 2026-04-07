@@ -24,6 +24,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **ProductClassificationAttr**: externalId simplified to `Name` (was composite with nested relationship `ProductClassification.Code;AttributeDefinition.Code;AttributeCategory.Code`)
 - **ProductRelComponentOverride**, **ProductComponentGrpOverride**: excluded (0 records)
 - `$$` columns removed from `ProductClassificationAttr.csv`; child CSV references updated
+- **ProductComponentGroup** (Bug 4 fix): externalId simplified to `Code` (was `Code;ParentProduct.StockKeepingUnit`). Self-referential `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` replaced with `ParentGroup.Code`. Primary `$$Code$ParentProduct.StockKeepingUnit` column removed from CSV. SOQL updated to include `ParentGroup.Code` and `ParentGroup.ParentProduct.StockKeepingUnit` traversal fields for extraction.
 
 #### qb-pricing
 - **PriceAdjustmentSchedule**: externalId simplified to `Name;CurrencyIsoCode` (removed `Pricebook2.Name` — single pricebook in dataset)
@@ -35,13 +36,18 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **BillingTreatment**: externalId simplified to `Name` (was `Name;BillingPolicy.Name;LegalEntity.Name`)
 - **BillingTreatmentItem**: externalId simplified to `Name;BillingTreatment.Name`
 - **PaymentTermItem**: externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
-- **GeneralLedgerAcctAsgntRule**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
+- **GeneralLedgerAcctAsgntRule**: externalId is `Name` (names are unique in this dataset; composite key caused duplicate inserts)
 - CSV references updated; `BillingPolicy.DefaultBillingTreatment` reference simplified
 - **Pass 3 objectset_source fix**: BillingPolicy and BillingTreatment CSVs updated to use simplified externalId formats
+- **LegalEntity**: changed to `Readonly` — qb-tax (runs first at step 13) is now the authoritative source for LegalEntity data; qb-billing only resolves IDs
+- **SequencePolicy + SeqPolicySelectionCondition**: created via Connect API (`/connect/sequences/policy`) by `create_sequence_policies` task — standard REST/Bulk API silently fails for these objects (required fields `DateStampFormat` and `IncrementByNumber` are not createable via DML). Data sourced from `SequencePolicies.json` (policies with selection conditions inline); LegalEntity names are resolved to org IDs at task runtime. Not in SFDMU export.json.
+- **BillingTreatments expanded**: US/CA/EU/UK × Advance/Arrears (8 treatments); EU uses EUR, UK uses GBP
+- **LegalEntities expanded**: 4 entities (US, Canada, EU/France, UK/London) with corresponding LegalEntyAccountingPeriod coverage (336 rows, 2024–2030)
 
 #### qb-tax
 - **TaxTreatment**: externalId simplified to `Name` (was `Name;LegalEntity.Name;TaxPolicy.Name`)
 - CSV references updated
+- **LegalEntity**: now the authoritative source (was shared with qb-billing); owns all 4 entities (US, Canada, EU, UK) with full address data; qb-billing defers to qb-tax via Readonly
 
 #### qb-clm
 - **ObjectStateActionDefinition**: externalId simplified to `Name` (was `Name;ReferenceObject.Name`); duplicate `Name` column removed from CSV
@@ -84,6 +90,44 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 - **ObjectStateActionDefinition**: `legalS2` fails to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeed.
 - **Excluded objects** (PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride): require manual handling if needed.
 
+### Bug 5 — Composite `externalId` with traversal fields fails for upsert matching (discovered 2026-04-02)
+
+**Problem:** When `externalId` uses `;`-delimited traversal fields (e.g. `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), SFDMU cannot match source CSV rows to existing target records for upsert. Each run inserts new records instead of updating existing ones, even when:
+- The traversal fields are included in the SOQL query
+- A `$` composite key column is present in the CSV with matching values
+- The target org has records with identical parent lookup values
+
+**Discovered on:** `FulfillmentWorkspaceItem` — externalId `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`. SFDMU inserted 7 new records on every run instead of matching the 7 existing records. Record count grew from 7 → 14 → 21 → 28 across successive runs.
+
+**Root cause:** SFDMU's upsert matching engine cannot reliably resolve composite keys composed entirely of relationship traversal fields (`Parent.Field`) against target org data. The matching works for direct-field externalIds (e.g. `Name`, `Code`) and for composite keys mixing direct + traversal fields, but fails when all components are traversal paths.
+
+**Prescribed pattern:** Use `deleteOldData: true` for objects whose only logical key is a composite of parent lookups and whose `Name` is an auto-number (not portable across orgs). This deletes all existing records and re-inserts from CSV, guaranteeing the target matches the source exactly. For small record sets (< 50 records), the performance cost is negligible.
+
+**Objects using this pattern:**
+- `FulfillmentWorkspaceItem` (qb-dro) — 7 records
+- `PriceBookRateCard` (qb-rates) — auto-number Name, all-relationship externalId
+- `RateCardEntry` (qb-rates) — auto-number Name, all-relationship externalId
+- `RateAdjustmentByTier` (qb-rates) — auto-number Name, all-relationship externalId
+
+**Rule:** If an object has (1) auto-number Name, (2) no portable natural key, and (3) externalId composed entirely of relationship traversals — use `deleteOldData: true`. Do not rely on composite `externalId` matching with traversal fields.
+
+### Bug 4 — `$$` composite notation fails for lookup reference columns (discovered 2026-04-02)
+
+**Problem:** `$$` composite key notation works for primary record matching (externalId ↔ `$$` CSV column) but **fails when used as a lookup reference column** in the CSV. SFDMU cannot decompose a composite `$$` value to resolve the referenced record.
+
+**Discovered on:** `ProductComponentGroup.ParentGroup.$$Code$ParentProduct.StockKeepingUnit` — SFDMU ran 3 passes but left all `ParentGroupId` fields null. MissingParentRecordsReport showed anonymized hashes instead of resolved records.
+
+**Fix applied:** Replaced composite `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` with simple `ParentGroup.Code`, changed externalId from `Code;ParentProduct.StockKeepingUnit` to `Code` (unique in this dataset). After fix, all 7 nested parent group assignments resolved correctly.
+
+**Impact — audit required across all plans:**
+All data plan CSVs that use `$$` composite notation in *lookup reference columns* (not just the primary `$$` key column) need to be reviewed. This includes:
+- Self-referential lookups (e.g., `ParentGroup.$$...`, `ParentCategory.$$...`)
+- Cross-object lookups using `$$` (e.g., `ProductComponentGroup.$$Code$ParentProduct.StockKeepingUnit` referenced from `ProductRelatedComponent`)
+
+The primary `$$` column (first column, used for record matching) is unaffected — only lookup references to other objects or self-references are broken.
+
+**Rule:** Always use simple field references for lookup columns. If the target object's externalId is composite, simplify to a unique single field if possible.
+
 ### Validation and Fixing Tools
 
 The project includes `scripts/validate_sfdmu_v5_datasets.py` for validating and fixing SFDMU v5 compliance issues:
@@ -114,7 +158,7 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run
 **Recent Fixes Applied:**
 
 - **qb-billing/export.json**: PaymentTermItem externalId updated from legacy `$$PaymentTerm.Name$Type` to v5 format `PaymentTerm.Name;Type`
-- **qb-billing/GeneralLedgerAcctAsgntRule.csv**: Added composite key column `$$Name$LegalEntity.Name` for idempotency
+- **qb-billing/GeneralLedgerAcctAsgntRule.csv**: externalId reverted to `Name` — composite key `Name;LegalEntity.Name` broke SFDMU upsert matching and caused duplicate inserts
 - **qb-billing/objectset_source/object-set-3/**: Updated Pass 3 CSVs to use simplified BillingTreatment externalId (`Name` only, not composite)
 - **Empty CSV headers added**: GeneralLedgerJrnlEntryRule, ProductQualification, ProductDisqualification, ProductCategoryQualification, ProductCategoryDisqualification, CostBook, CostBookEntry
 

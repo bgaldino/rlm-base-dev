@@ -11,7 +11,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceClassIdentifier, SourceIdentifier, SourceProduct.StockKeepingUnit, DestinationProduct.StockKeepingUnit FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
+          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceProduct.StockKeepingUnit, SourceProductClassification.Name, DestinationProduct.StockKeepingUnit FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -83,7 +83,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, Name, ShowOrder FROM FulfillmentWorkspaceItem",
+          "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, FulfillmentWorkspace.Name, FulfillmentStepDefinitionGroup.Name, Id, ShowOrder FROM FulfillmentWorkspaceItem",
           "operation": "Upsert",
           "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name",
           "deleteOldData": true,

@@ -1,0 +1,107 @@
+<template>
+    <!-- Loading -->
+    <template if:true={isLoading}>
+        <div class="slds-p-around_medium slds-align_absolute-center">
+            <lightning-spinner alternative-text="Loading rates and grants" size="small"></lightning-spinner>
+        </div>
+    </template>
+
+    <!-- No data -->
+    <template if:true={noData}>
+        <div class="slds-p-around_small slds-text-align_center">
+            <p class="slds-text-body_small slds-text-color_weak">
+                No rate cards or entitlement grants found for this asset.
+            </p>
+        </div>
+    </template>
+
+    <!-- Content -->
+    <template if:true={hasData}>
+
+        <!-- ─── Rate Cards Section ─── -->
+        <template if:true={hasRates}>
+            <div class="slds-m-bottom_small">
+                <div class="slds-grid slds-grid_vertical-align-center slds-p-bottom_xx-small slds-m-bottom_x-small slds-border_bottom">
+                    <lightning-icon icon-name="standard:pricing_workspace" size="x-small"></lightning-icon>
+                    <h3 class="slds-text-title_caps slds-m-left_x-small">Rate Cards</h3>
+                </div>
+
+                <template for:each={ratesByResource} for:item="resource">
+                    <div key={resource.resourceId} class="slds-m-bottom_x-small">
+                        <p class="slds-text-title_bold slds-m-bottom_xx-small">{resource.resourceName}</p>
+
+                        <template for:each={resource.cards} for:item="card">
+                            <div key={card.id} class="slds-box slds-box_xx-small slds-m-bottom_xx-small">
+                                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                    <span class="slds-text-body_small slds-text-color_weak">{card.name}</span>
+                                    <span class="slds-text-body_small slds-text-color_brand slds-text-align_right"><strong>{card.displayRate}</strong></span>
+                                </div>
+
+                                <!-- Tier breakdown -->
+                                <template if:true={card.hasTiers}>
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_xx-small slds-text-body_small">
+                                        <thead>
+                                            <tr class="slds-line-height_reset">
+                                                <th scope="col">Range</th>
+                                                <th scope="col">Type</th>
+                                                <th scope="col" class="slds-text-align_right">Rate</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={card.tiers} for:item="tier">
+                                                <tr key={tier.id}>
+                                                    <td>{tier.range}</td>
+                                                    <td>{tier.type}</td>
+                                                    <td class="slds-text-align_right">{tier.value}</td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- ─── Entitlement Grants Section ─── -->
+        <template if:true={hasGrants}>
+            <div class="slds-m-bottom_small">
+                <div class="slds-grid slds-grid_vertical-align-center slds-p-bottom_xx-small slds-m-bottom_x-small slds-border_bottom">
+                    <lightning-icon icon-name="standard:entitlement" size="x-small"></lightning-icon>
+                    <h3 class="slds-text-title_caps slds-m-left_x-small">Usage Grants</h3>
+                </div>
+
+                <template for:each={grantsByResource} for:item="resource">
+                    <div key={resource.resourceId} class="slds-m-bottom_x-small">
+                        <p class="slds-text-title_bold slds-m-bottom_xx-small">{resource.resourceName}</p>
+
+                        <template for:each={resource.grants} for:item="grant">
+                            <div key={grant.id} class="slds-box slds-box_xx-small slds-m-bottom_xx-small">
+                                <!-- Grant header -->
+                                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_xx-small">
+                                    <div>
+                                        <lightning-badge label={grant.modelType} class="slds-m-right_xx-small"></lightning-badge>
+                                        <template if:true={grant.isHighUsage}>
+                                            <lightning-badge label={grant.overageLabel} class="slds-theme_warning"></lightning-badge>
+                                        </template>
+                                    </div>
+                                    <span class="slds-text-body_small"><strong>{grant.remaining} remaining</strong></span>
+                                </div>
+
+                                <!-- Progress indicator -->
+                                <lightning-progress-ring value={grant.percentUsed} size="small"></lightning-progress-ring>
+                                <div class="slds-grid slds-grid_align-spread slds-m-top_xxx-small">
+                                    <span class="slds-text-body_small slds-text-color_weak">Used: {grant.consumed}</span>
+                                    <span class="slds-text-body_small slds-text-color_weak">Total: {grant.total}</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+    </template>
+</template>

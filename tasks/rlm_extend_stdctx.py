@@ -86,6 +86,8 @@ class ExtendStandardContext(SFDXBaseTask):
 
     # Core logic to extend an existing context definition
     def _extend_context_definition(self):
+        self.logger.info(f"[1/4] Creating context definition: {self.options.get('developerName')}...")
+        self.logger.info("      (this API call may take up to 5 minutes on some org types — please wait)")
         url, headers = self._build_url_and_headers("connect/context-definitions")
         payload = {
             "name": self.options.get("name"),
@@ -99,34 +101,39 @@ class ExtendStandardContext(SFDXBaseTask):
         if response:
             self.context_id = response.get("contextDefinitionId")
             if self.context_id:
-                self.logger.info(f"Context ID: {self.context_id}")
+                self.logger.info(f"      Context Definition ID: {self.context_id}")
                 self._process_context_id()
 
     # Post-process after getting the context ID - typically to process the version list
     def _process_context_id(self):
+        self.logger.info(f"[2/4] Fetching version list for context definition {self.context_id}...")
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
         if response:
             version_list = response.get("contextDefinitionVersionList", [])
+            self.logger.info(f"      Found {len(version_list)} version(s)")
             if version_list:
                 self._process_version_list(version_list)
 
     # Process the version list obtained from context definitions to obtain context mappings
     def _process_version_list(self, version_list):
         context_mappings = version_list[0].get("contextMappings", [])
+        default_mapping = self.options.get("defaultMapping")
+        self.logger.info(f"[3/4] Locating default mapping '{default_mapping}' among {len(context_mappings)} mapping(s)...")
         for mapping in context_mappings:
-            if mapping.get("name") == self.options.get("defaultMapping"):
+            if mapping.get("name") == default_mapping:
                 self.default_context_mapping_id = mapping["contextMappingId"]
                 self.logger.info(
-                    f"{self.options.get('defaultMapping')} Context Mapping ID: {self.default_context_mapping_id}"
+                    f"      Context Mapping ID: {self.default_context_mapping_id}"
                 )
                 self._update_context_mappings()
                 break
 
     # Update context mappings, typically for marking certain context mappings the default
     def _update_context_mappings(self):
+        self.logger.info(f"      Setting '{self.options.get('defaultMapping')}' as the default context mapping...")
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}/context-mappings"
         )
@@ -147,6 +154,7 @@ class ExtendStandardContext(SFDXBaseTask):
         plan_file = self.options.get("plan_file")
         if not plan_file:
             return
+        self.logger.info(f"      Applying plan file: {plan_file}")
         try:
             with open(plan_file, "r", encoding="utf-8") as handle:
                 plan = json.load(handle)
@@ -155,16 +163,22 @@ class ExtendStandardContext(SFDXBaseTask):
             return
 
         if plan.get("contextNodes"):
+            self.logger.info(f"      → Posting {len(plan['contextNodes'])} context node(s)...")
             self._post_context_nodes(plan["contextNodes"])
         if plan.get("contextMappings"):
+            self.logger.info(f"      → Posting {len(plan['contextMappings'])} context mapping(s)...")
             self._post_context_mappings(plan["contextMappings"])
         if plan.get("contextMappingUpdates"):
+            self.logger.info(f"      → Patching {len(plan['contextMappingUpdates'])} context mapping update(s)...")
             self._patch_context_mappings(plan["contextMappingUpdates"])
         if plan.get("contextTagsByName"):
+            self.logger.info(f"      → Resolving {len(plan['contextTagsByName'])} tag(s) by name...")
             resolved = self._resolve_tags_by_name(plan["contextTagsByName"])
             if resolved:
+                self.logger.info(f"      → Posting {len(resolved)} resolved context tag(s)...")
                 self._post_context_tags({"contextTags": resolved})
         if plan.get("contextTags"):
+            self.logger.info(f"      → Posting {len(plan['contextTags'])} context tag(s)...")
             self._post_context_tags(plan["contextTags"])
 
     def _post_context_nodes(self, payload):

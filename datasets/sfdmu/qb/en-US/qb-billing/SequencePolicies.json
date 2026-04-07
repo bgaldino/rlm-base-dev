@@ -1,0 +1,186 @@
+[
+  {
+    "name": "US Invoice Numbering Policy",
+    "description": "Applicable to all Invoices with Legal Entity US",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-US-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "America/Los_Angeles",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - US",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "CA Invoice Numbering Policy",
+    "description": "Applies to all Invoices with Legal Entity Canada",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-CA-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "America/Los_Angeles",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Canada",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "EU Invoice Numbering",
+    "description": "Applies to all Invoices with Legal Entity EU",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV/{Date}/{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Europe/Paris",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - EU",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "UK Invoice Numbering Policy",
+    "description": "Applies to all Invoices with Legal Entity UK",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-UK-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Europe/London",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - UK",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "US Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity US",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM-US-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "America/Los_Angeles",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - US",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "CA Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity Canada",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM-CA-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "America/Los_Angeles",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - Canada",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "EU Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity EU",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM/{Date}/{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Europe/Paris",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - EU",
+        "operator": "Equals"
+      }
+    ]
+  },
+  {
+    "name": "UK Credit Memo Numbering Policy",
+    "description": "Applies to all Credit Memos with Legal Entity UK",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": true,
+    "dateStampFormat": "MM-YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "CreditMemo",
+    "sequencePattern": "CM-UK-{Date}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "Europe/London",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - UK",
+        "operator": "Equals"
+      }
+    ]
+  }
+]

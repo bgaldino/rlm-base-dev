@@ -960,6 +960,15 @@ class ExtractSFDMUData(SFDXBaseTask):
         "run_post_process": {
             "description": "If True (default), run post_process_extraction.py after extraction so output is re-import-ready (adds $$ composite key columns, normalizes headers). Processed CSVs are written to <output_dir>/processed/.",
             "required": False
+        },
+        "extractions_base_dir": {
+            "description": (
+                "Base directory under which extracted CSVs are written as "
+                "<extractions_base_dir>/<plan_name>/<timestamp>/. "
+                "Overrides the default two-level-up calculation. "
+                "Use this when the plan directory is not 4 levels deep relative to the repo root."
+            ),
+            "required": False
         }
     }
 
@@ -1052,13 +1061,16 @@ class ExtractSFDMUData(SFDXBaseTask):
         output_dir = self.options.get("output_dir")
         plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         if not output_dir:
-            # Default: timestamped subdirectory under datasets/sfdmu/extractions/<plan_name>/
+            # Default: timestamped subdirectory under <extractions_base_dir>/<plan_name>/
             plan_name = os.path.basename(os.path.normpath(plan_dir))
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
-            output_dir = os.path.join(
-                os.path.dirname(plan_dir), "..", "..", "extractions", plan_name, timestamp
-            )
+            extractions_base_dir = self.options.get("extractions_base_dir")
+            if extractions_base_dir:
+                base = extractions_base_dir
+            else:
+                base = os.path.join(os.path.dirname(plan_dir), "..", "..", "extractions")
+            output_dir = os.path.join(base, plan_name, timestamp)
             output_dir = os.path.normpath(output_dir)
 
         os.makedirs(output_dir, exist_ok=True)
