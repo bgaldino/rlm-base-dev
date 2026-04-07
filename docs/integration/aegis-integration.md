@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Aegis: Integration Plan
 
 > **Status:** Planning
-> **Last Updated:** 2026-03-22
+> **Last Updated:** 2026-04-07
 > **Scope:** Automated post-provision validation of Foundations-provisioned orgs using the Aegis BDD test framework
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -41,17 +41,31 @@ CumulusCI automation framework that provisions fully-configured Salesforce Reven
 
 Aegis is a Revenue Cloud BDD test automation framework. It validates end-to-end business flows against live Salesforce orgs using Gherkin scenarios written by each product team.
 
-**Integration-relevant facts:**
-- 26 team folders under `features/`, 25 registered in `team_config.json`
-- `features/RevenueGoFoundation/` — the existing team that tests Foundations-provisioned orgs; contains **2 feature files**: `RevenueCloudInitialSetup.feature` (Playwright) and `DynamicRevenueOrchestrator.feature` (Playwright)
-- Session injection supported natively: `Given login to Salesforce with sessionId and verify login successful` step exists across 26+ feature files including both RevenueGoFoundation files — **no Aegis code changes needed for CCI OAuth integration**
+**Integration-relevant facts (updated 2026-04-07):**
+- 24 team folders under `features/`, 25 registered in `team_config.json` (teams `UsageCustomerData` and `RLMSuite` removed; `UsageGuidedSetup` added since March 2026)
+- `features/RevenueGoFoundation/` — the existing team that tests Foundations-provisioned orgs; now contains **7 feature files** (expanded from 2 since March 2026):
+  - `RevenueCloudInitialSetup.feature` (Playwright) — Revenue Cloud Initial Setup validation
+  - `DynamicRevenueOrchestrator.feature` (Playwright) — DRO setup, redirections, feature toggles
+  - `AssetLifecycleManagement.feature` (Playwright, NEW) — Asset Lifecycle Management setup, redirections, help links
+  - `Quotes.feature` (NEW) — Quote creation and management scenarios
+  - `Orders.feature` (NEW) — Order placement and management scenarios
+  - `PriceManagement.feature` (NEW) — Pricing configuration and management
+  - `ProductConfigurator.feature` (NEW) — Product configuration and bundle scenarios
+- All 7 feature files use the same session injection pattern (`Given login to Salesforce with sessionId and verify login successful`) — **no Aegis code changes needed for CCI OAuth integration**
 - Session utilities (`shared/utils/authentication/session_utils.py`) provide `init_selenium_session(context, session_id, instance_url)` — accepts OAuth tokens directly via frontdoor.jsp
 - Org connection via env vars: `SF_URL`, `SF_USERNAME`, `SF_PASSWORD`, `SF_TOKEN`
 - Team creds JSON format: `{ "ORG_KEY": { "SF_URL", "SF_USERNAME", "SF_PASSWORD", "SF_TOKEN" } }`
 - Jenkins job supports `TEST_PATH` param to target a single team or feature file
 - Auto-cleanup feature (`shared/steps/platform/graph_collection_steps.py`): graph collection test data is auto-deleted after each scenario (failed scenarios delete all records; passed scenarios delete only created records)
 - **Known gap:** Aegis cannot create or provision orgs — it must be pointed at an existing one
-- **AI-assisted scenario authoring (added 2026-03-20):** `usage-pr-aegis-scenario-gen` skill added by Kumar Abhijit — a Cursor AI skill that generates Gherkin scenarios from Usage PRDs. Confirms the Aegis team is actively investing in AI-assisted test authoring, consistent with the integration narrative. Scenario coverage in usage, billing, TLT, and ProductCatalogManagement areas expanded significantly in March 2026.
+- **AI-assisted scenario authoring (expanded March-April 2026):**
+  - `usage-pr-aegis-scenario-gen` skill — generates Gherkin scenarios from Usage PRDs
+  - `pricing-pr-aegis-scenario-gen` skill (PR #720, 2026-03-24) — generates Gherkin scenarios from Pricing PRDs
+  - Two new AI knowledgebases added: `NGP_PRICING_KNOWLEDGEBASE.md` (1601 lines — pricing architecture/APIs) and `NGP_PRICING_WATERFALL_TEST_KNOWLEDGEBASE.md` (828 lines — pricing waterfall test patterns)
+  - Aegis `CLAUDE.md` updated to reference pricing knowledgebases
+  - Confirms the Aegis team is actively investing in AI-assisted test authoring across **both Usage and Pricing domains**
+- **New test coverage areas (March-April 2026):** Near-core scaling scenarios (volume discount, proration, PAM), IBR with sequencing, nested bundles, billing arrangement, CML customer data, guided setup
+- **New shared step definitions:** `shared/steps/core_features/pricing/bulk_pam_steps.py`, `bulk_volume_discount_steps.py`
 
 **Aegis does NOT:**
 - Create Salesforce orgs
@@ -72,6 +86,9 @@ Aegis is a Revenue Cloud BDD test automation framework. It validates end-to-end 
 | Failures discovered after hand-off | Failures caught before the org is handed to users |
 | No link between data shape and which tests to run | Feature flags drive which Aegis teams are invoked |
 | Distill promotion requires manual regression | Post-promote regression triggered automatically by a Foundations CCI flow |
+| Only Initial Setup + DRO validated (2 feature files) | Quotes, Orders, Pricing, Configurator, Asset Lifecycle also validated (7 feature files) |
+
+> **Note (2026-04-07):** Foundations now includes its own E2E Robot Framework test suite (`robot/rlm-base/tests/e2e/`) covering Quote-to-Order flows. These tests overlap with Aegis's `Quotes.feature` and `Orders.feature` but execute faster (Robot vs. Behave+Playwright). The recommended architecture is: Robot E2E tests as a fast self-check within `prepare_rlm_org`, Aegis as the comprehensive post-provision validation suite. See O10.
 
 **The natural seam:** CCI already knows the org URL and credentials (it just provisioned it). Aegis already knows how to test that org — it just needs to be pointed at it. The integration is a credential handoff + invocation.
 
@@ -299,15 +316,17 @@ For Phase 3, the CCI task reads active feature flags from the project context an
 
 ### 6.1 Proposed Mapping
 
-| CCI Feature Flag (`project.custom.*`) | Aegis Team Folder(s) | Rationale |
+| CCI Feature Flag (`project.custom.*`) | Aegis Team Folder(s) / Feature File(s) | Rationale |
 |---|---|---|
-| `qb: true` (always true for QB shape) | `RevenueGoFoundation/` | Core QB org validation — always run |
-| `billing: true` | `BillingInvoicing/`, `BillingCreditMemo/`, `BillingPayments/` | Billing policies and treatments loaded by `qb-billing` plan |
-| `rating: true` | `UsageManagement/` | PUR/PURP/PUG records loaded by `qb-rating` plan |
+| `qb: true` (always true for QB shape) | `RevenueGoFoundation/RevenueCloudInitialSetup.feature`, `Quotes.feature`, `Orders.feature`, `PriceManagement.feature`, `ProductConfigurator.feature` | Core QB org validation — always run. Now covers quotes, orders, pricing, and configurator (expanded from Initial Setup only). |
+| `billing: true` | `BillingInvoicing/`, `BillingCreditMemo/`, `BillingPayments/`, `OrderToBillingSchedule/` | Billing policies and treatments loaded by `qb-billing` plan |
+| `billing_ui: true` | *(no dedicated team yet)* | Billing UI LWC module — new Foundations bundle (PR #117). No Aegis coverage yet. |
+| `rating: true` | `UsageManagement/`, `UsageGuidedSetup/` | PUR/PURP/PUG records loaded by `qb-rating` plan. `UsageGuidedSetup` added March 2026. |
 | `rates: true` | `UsageManagement/` | Rate cards loaded by `qb-rates` plan |
-| `dro: true` | `RevenueGoFoundation/DynamicRevenueOrchestrator.feature` | DRO flows loaded by `qb-dro` plan |
-| `tax: true` | *(no dedicated team yet — `RLMSuite/` candidate)* | Tax treatments loaded by `qb-tax` plan |
+| `dro: true` | `RevenueGoFoundation/DynamicRevenueOrchestrator.feature`, `AssetLifecycleManagement.feature` | DRO flows loaded by `qb-dro` plan. `AssetLifecycleManagement.feature` added March 2026. |
+| `tax: true` | *(no dedicated team — `RLMSuite` was removed)* | Tax treatments loaded by `qb-tax` plan. **Note:** `RLMSuite` team was removed from Aegis in March 2026. No current team covers tax-specific scenarios. |
 | `clm: true` | `SalesforceContracts/` | Contract lifecycle — CLM plan |
+| `constrains: true` | *(no dedicated team)* | CML constraint models. Aegis added customer CML tests (PR #726) but in team-specific folders, not RevenueGoFoundation. |
 
 ### 6.2 CCI Task Option: `shape_aware`
 
@@ -473,11 +492,16 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 
 > **Requirement:** Phase 1 complete + a Foundations org with DRO data loaded (`qb-dro` plan).
 >
-> Both `RevenueGoFoundation` feature files are now **Playwright-based** (migrated from Selenium as of commits `7643bfd` and `e5902da`). Phase 1 smoke may target just one; Phase 2 runs both explicitly and wires DRO invocation to the `dro` feature flag.
+> All `RevenueGoFoundation` feature files are **Playwright-based**. Phase 1 smoke targets the most critical scenarios; Phase 2 runs all 7 feature files and wires domain-specific invocation to CCI feature flags.
 >
-> `RevenueGoFoundation/` currently contains:
+> `RevenueGoFoundation/` now contains **7 feature files** (updated 2026-04-07):
 > - `RevenueCloudInitialSetup.feature` — Initial Setup validation (Playwright)
 > - `DynamicRevenueOrchestrator.feature` — DRO setup, redirections, feature toggles (Playwright)
+> - `AssetLifecycleManagement.feature` — Asset Lifecycle setup, redirections, help links (Playwright, NEW)
+> - `Quotes.feature` — Quote creation and management (NEW)
+> - `Orders.feature` — Order placement and management (NEW)
+> - `PriceManagement.feature` — Pricing configuration and management (NEW)
+> - `ProductConfigurator.feature` — Product configuration and bundle scenarios (NEW)
 
 | # | Task | Owner | Status |
 |---|---|---|---|
@@ -532,7 +556,7 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 | # | Question | Status | Decision |
 |---|---|---|---|
 | R1 | Is the integration blocking or non-blocking? | ✅ Resolved | **Non-blocking by default.** `fail_on_aegis_failure` option (default `false`) — failures log a warning and flow continues. Post-promote regression is the exception — it will use `fail_on_aegis_failure: true`. |
-| R2 | Which authentication flow: OAuth session injection or username/password? | ✅ Resolved | **Session injection confirmed.** CCI passes `access_token` + `instance_url`; Aegis uses `Given login to Salesforce with sessionId and verify login successful` via `session_utils.init_selenium_session()` (frontdoor.jsp). Used by both `RevenueGoFoundation` feature files and 24 other teams. No Aegis code changes needed. |
+| R2 | Which authentication flow: OAuth session injection or username/password? | ✅ Resolved | **Session injection confirmed.** CCI passes `access_token` + `instance_url`; Aegis uses `Given login to Salesforce with sessionId and verify login successful` via `session_utils.init_selenium_session()` (frontdoor.jsp). Used by all 7 `RevenueGoFoundation` feature files and 17+ other teams. No Aegis code changes needed. |
 | R3 | Should Aegis be invoked locally (behave subprocess) or via Jenkins API? | ✅ Resolved | **Both — phased.** Phase 1 delivers local subprocess (developer workflow). Phase 3 adds Jenkins API trigger (CI workflow). Feature flag `aegis: true` opts in. |
 
 ### 9.2 Open Questions
@@ -544,7 +568,9 @@ The `aegis` flag is `false` by default — engineers opt in by setting it to `tr
 | O3 | How should Aegis scenario failures surface in CCI output? | Open | Options: (a) raw behave output in log, (b) parsed summary table, (c) link to Allure report. A parsed summary (scenario names + feature file paths) is most actionable. |
 | O4 | Should the flag-to-team mapping live in `shapes.json` or be hardcoded in the task? | Open | Hardcode in task for Phase 3 (fastest path). Move to `shapes.json` in Phase 4 — this resolves O9 in [distill-integration.md](distill-integration.md) and makes the manifest a true cross-platform contract. |
 | O5 | Does CCI access token have sufficient Salesforce permissions for Aegis UI tests? | Needs testing | Aegis UI tests (Playwright/Selenium) use session injection. The CCI-provisioned user must have Lightning UI access. Scratch org admin users should — confirm for sandbox/Steam orgs. Note: the Rev GO org experienced a credential expiry requiring a manual update (2026-03-17) — CCI's OAuth access token approach avoids this class of credential rot since tokens are refreshed per CCI session. |
-| O6 | Can `@smoke` tag be added to the most critical `RevenueGoFoundation` scenarios? | Aegis team | Current smoke coverage unknown — need to coordinate with Aegis `RevenueGoFoundation` authors to tag the ~5 most critical scenarios `@smoke` for fast-path validation. |
-| O7 | What is the expected runtime of the `RevenueGoFoundation` full suite? | Needs measurement | Determines whether Phase 1 local run is practical in `prepare_rlm_org` (target: under 5 min for smoke, under 15 min for full). Run and measure against a real Foundations org. |
+| O6 | Can `@smoke` tag be added to the most critical `RevenueGoFoundation` scenarios? | Aegis team — now more urgent | With 7 feature files (up from 2), tagging is now essential for fast-path validation. Recommend: 1–2 scenarios per feature file tagged `@smoke` for a ~5 min suite. The `AssetLifecycleManagement.feature` already uses descriptive tags (`@asset-lifecycle`, `@go-to-setup-redirection`, `@automation-redirection`) — a `@smoke` subset would follow naturally. |
+| O7 | What is the expected runtime of the `RevenueGoFoundation` full suite? | Needs measurement — scope tripled | With 7 feature files the full suite will be significantly longer than the original 2-file estimate. Target: under 5 min for `@smoke` tag subset, measure full suite runtime to determine if it's practical inline with `prepare_rlm_org` or should always be standalone. |
 | O8 | How should the Aegis repo path be configured per-developer? | Open | Options: (a) `aegis_repo_path` task option (current), (b) `AEGIS_REPO_PATH` env var, (c) `cumulusci.yml` project-level default pointing to a standard location. A `~/.cumulusci/aegis.yml` personal config would avoid committing local paths. |
-| O9 | Should `RevenueGoFoundationCreds.json` be updated to accept a CCI-provisioned org key? | Small Aegis PR | Both feature files already use session injection (`Given login to Salesforce with sessionId`). The only change needed: add a `CCI_PROVISIONED_ORG` key to `RevenueGoFoundationCreds.json` and add `cci_aegis_creds.json` to `.gitignore`. Background steps require no code change — they already accept any ORG_KEY from the creds file. |
+| O9 | Should `RevenueGoFoundationCreds.json` be updated to accept a CCI-provisioned org key? | Small Aegis PR | All 7 feature files use session injection (`Given login to Salesforce with sessionId`). The only change needed: add a `CCI_PROVISIONED_ORG` key to `RevenueGoFoundationCreds.json` and add `cci_aegis_creds.json` to `.gitignore`. Background steps require no code change — they already accept any ORG_KEY from the creds file. |
+| O10 | How should Foundations' native Robot E2E tests relate to Aegis post-provision validation? | New (2026-04-07) | Foundations now has Robot Framework E2E tests (Quote-to-Order in `robot/rlm-base/tests/e2e/`). These overlap with Aegis's `Quotes.feature` and `Orders.feature`. Recommended: Robot E2E as a fast self-check in `prepare_rlm_org` (runs in CCI context, no external dependency); Aegis as the comprehensive BDD validation suite (richer scenarios, cross-team coverage, CI/CD via Jenkins). |
+| O11 | Should the flag-to-team mapping account for Aegis's new `UsageGuidedSetup` team? | New (2026-04-07) | `UsageGuidedSetup` was added to `team_config.json` in March 2026. It may be relevant for `rating` or `rates` flag scenarios. Confirm with Aegis team which feature flags trigger `UsageGuidedSetup` scenarios. |

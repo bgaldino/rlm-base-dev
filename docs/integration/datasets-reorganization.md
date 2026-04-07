@@ -3,7 +3,7 @@
 > **Document Type:** Standalone Proposal
 > **Status:** Draft — Awaiting Approval
 > **Branch:** `distill-integration`
-> **Last Updated:** 2026-02-27
+> **Last Updated:** 2026-04-07
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
 > **Prerequisite for:** [distill-integration.md](distill-integration.md) — shape manifest generation requires this structure
 

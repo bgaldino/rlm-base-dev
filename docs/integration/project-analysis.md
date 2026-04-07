@@ -1,7 +1,7 @@
 # Project Analysis: Revenue Cloud Foundations & Distill
 
 > **Document Type:** Living Reference
-> **Last Updated:** 2026-03-22
+> **Last Updated:** 2026-04-07
 > **Scope:** Comprehensive technical reference for both projects — capabilities, architecture, inventories
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -52,11 +52,15 @@
 - **Automation coverage:** ~95% — only Salesforce CLI authentication and Dev Hub configuration remain manual
 
 **What makes it distinctive:**
-- 50+ feature flags control conditional deployment of 25+ metadata bundles and 11 data plans
+- 58+ feature flags control conditional deployment of 30+ metadata bundles and 11 data plans
 - Three data shape families (QB, Q3, MFG) with locale variants (en-US, ja)
 - SFDMU v5 composite key patterns for idempotent data loading
 - Polymorphic ID resolution for Constraint Model Library (CML) imports
 - Browser automation via Robot Framework for Salesforce Setup UI toggles that have no Metadata API equivalent
+- E2E Robot Framework test suite for Quote-to-Order business flow validation (NEW)
+- UX Drift Capture pipeline: retrieve → diff → writeback → reassemble (NEW — PR #121)
+- AI Skill System: 27 skill files in `.cursor/skills/` with standardized cross-agent guidance (NEW — PR #113)
+- Edition-aware deployment: `pde`, `trial`, `dev_ed` flags control PS/PSL assignments for different org types (NEW)
 
 ---
 
@@ -123,7 +127,7 @@ revenue-cloud-foundations/
 │       ├── post_sharing/          ├── post_tso/           ├── post_utils/
 │       └── post_visualization/
 │
-├── tasks/                          # 24 custom CumulusCI Python task modules
+├── tasks/                          # 30+ custom CumulusCI Python task modules
 ├── robot/rlm-base/                 # Robot Framework automation
 │   ├── tests/setup/                # 3 test suites
 │   ├── resources/                  # Shared keywords + WebDriverManager patch
@@ -143,7 +147,7 @@ revenue-cloud-foundations/
 │   ├── soql/
 │   └── *.py                        # Python utility scripts
 │
-├── orgs/                           # 20 scratch org definitions
+├── orgs/                           # 24 scratch org definitions
 ├── docs/                           # Documentation (10+ guides)
 └── cumulusci.yml                   # Main CCI config (2,386+ lines)
 ```
@@ -164,6 +168,9 @@ All flags are set under `project.custom` in `cumulusci.yml` and drive conditiona
 | Flag | Default | Controls |
 |---|---|---|
 | `billing` | `true` | Billing terms, schedules, legal entities, GL accounts |
+| `billing_ui` | `true` | Billing UI LWC components (`post_billing_ui`) (NEW) |
+| `billing_portal` | `false` | Self-Service Billing Portal community (NEW) |
+| `billing_portal_deploy` | `true` | Deploy `post_billing_portal` site content (NEW) |
 | `payments` | `true` | Payments site, flows, settings |
 | `tax` | `true` | Tax policies, treatments, engine |
 | `dro` | `true` | Dynamic Revenue Orchestration fulfillment plans |
@@ -188,12 +195,15 @@ All flags are set under `project.custom` in `cumulusci.yml` and drive conditiona
 | `rates` | `true` | Rate card entries |
 | `ramps` | `true` | Ramp configurations |
 
-### Org Type Flags
+### Org Type / Edition Flags
 | Flag | Default | Controls |
 |---|---|---|
 | `tso` | `false` | Trialforce Source Org metadata and permissions |
+| `pde` | `false` | Partner Development Environment — suppresses Enterprise-only PS assignments (NEW) |
+| `trial` | `false` | Public Trial org (EE) — suppresses custom UX (NEW) |
+| `dev_ed` | `false` | Developer Edition — suppresses Enterprise-only PS assignments (NEW) |
 | `qbrix` | `false` | xDO base (QBrix) compatibility |
-| `refresh` | `false` | Data refresh mode |
+| `refresh` | `false` | Data refresh mode — skips insert steps during re-runs |
 | `sharingsettings` | `false` | Sharing rules deployment |
 
 ### Deployment Flags
@@ -207,18 +217,24 @@ All flags are set under `project.custom` in `cumulusci.yml` and drive conditiona
 
 ## 1.5 Scratch Org Configurations
 
-20 scratch org definition files in `orgs/`:
+24 scratch org definition files in `orgs/` (updated 2026-04-07):
 
 | File | Purpose |
 |---|---|
 | `dev.json` | Standard development scratch org |
-| `dev_enhanced.json` | Development with enhanced features |
-| `beta.json` | Beta features testing |
+| `dev-r1.json` | Dev targeting R1 release (NEW) |
+| `dev-sb0.json` | Dev sandbox (SB0) variant |
+| `dev-datacloud.json` | Data Cloud feature testing |
+| `dev-enhanced.json` | Development with enhanced features |
 | `dev_preview.json` | Preview release features |
 | `dev_previous.json` | Previous release testing |
-| `dev_datacloud.json` | Data Cloud feature testing |
+| `beta.json` | Beta features testing |
+| `ent.json` | Enterprise scratch org (NEW) |
+| `ent-r1.json` | Enterprise targeting R1 release (NEW) |
+| `ent-sb0.json` | Enterprise sandbox (SB0) variant (NEW) |
+| `feature.json` | Feature branch scratch org (NEW) |
+| `release.json` | Release branch scratch org (NEW) |
 | `test-sb0.json` | Test sandbox (SB0) variant |
-| `dev-sb0.json` | Dev sandbox (SB0) variant |
 | `tfid.json` | Base Trial Force ID org |
 | `tfid-dev.json` | TFID development |
 | `tfid-cdo.json` | TFID CDO variant |
@@ -229,7 +245,6 @@ All flags are set under `project.custom` in `cumulusci.yml` and drive conditiona
 | `tfid-ido-tech-R2.json` | TFID IDO tech (R2) |
 | `tfid-qb-tso.json` | QuantumBit TSO |
 | `tfid-enable.json` | Enablement org |
-| *(additional variants)* | — |
 
 ---
 
@@ -281,7 +296,7 @@ All flags are set under `project.custom` in `cumulusci.yml` and drive conditiona
 
 ## 1.7 Custom Python Tasks
 
-All 24 modules in `tasks/`:
+All 22+ task modules in `tasks/` (updated 2026-04-07 — new modules marked NEW):
 
 ### Data Management
 | Task Class | Module | Purpose |
@@ -343,6 +358,39 @@ All 24 modules in `tasks/`:
 | `SyncPricingData` | `rlm_sync_pricing_data.py` | Pricebook entry sync |
 | `EnsurePricingSchedules` | `rlm_repair_pricing_schedules.py` | Validate pricing schedules pre-deploy |
 | `RestoreRCTSO` | `rlm_restore_rc_tso.py` | Restore Revenue Cloud TSO metadata |
+
+### UX Assembly and Drift (NEW — PR #121, 2026-03-28)
+| Task Class | Module | Purpose |
+|---|---|---|
+| `AssembleAndDeployUX` | `rlm_ux_assembly.py` | Assemble flexipages/layouts/profiles from `templates/` and deploy to org |
+| `RetrieveUXFromOrg` | `rlm_retrieve_ux.py` | Retrieve UX metadata from org via SOAP/Metadata API |
+| `DiffUXTemplates` | `rlm_diff_ux.py` | Diff retrieved metadata against `templates/` source-of-truth |
+| `WritebackUXTemplates` | `rlm_writeback_ux.py` | Write retrieved metadata back to `templates/` |
+| *(shared utilities)* | `rlm_ux_utils.py` | Shared UX assembly/diff utilities |
+
+### DRO and Fulfillment (NEW/ENHANCED — PR #125, 2026-04-03)
+| Task Class | Module | Purpose |
+|---|---|---|
+| `ManageFulfillmentScopeConfig` | `rlm_manage_fulfillment_scope_cnfg.py` | Upsert/delete fulfillment scope configurations via Connect API |
+| `ExportBRERuleLibrary` | `rlm_bre.py` | Export BRE rule library from org |
+
+### Billing, Currency, and Timeline (NEW/ENHANCED)
+| Task Class | Module | Purpose |
+|---|---|---|
+| `CreateSequencePolicies` | `rlm_billing.py` | Create SequencePolicy records via Connect API |
+| `UpdateCurrencyRates` | `rlm_currency.py` | Update multi-currency rates from CSV |
+| `EnableTimeline` | `rlm_enable_timeline.py` | Robot-driven Timeline feature enablement |
+| `ReorderAppLauncher` | `rlm_reorder_app_launcher.py` | Robot-driven App Launcher reordering |
+| `StampGitCommit` | `rlm_stamp_commit.py` | Stamp current git commit to org custom setting |
+
+### E2E Robot Tests (NEW)
+| Task Class | Module | Purpose |
+|---|---|---|
+| `RobotE2E` | `rlm_robot_e2e.py` | Quote-to-Order E2E test runner |
+
+### Planned Integration Tasks
+| Task Class | Module | Purpose |
+|---|---|---|
 | `DistillCaptureDrift` | `rlm_distill_capture.py` *(planned)* | Optional Distill integration — org drift capture |
 | `GenerateBaselineManifest` | `rlm_generate_baseline_manifest.py` *(planned)* | Generate shape_manifest.json from export.json files |
 
@@ -350,16 +398,20 @@ All 24 modules in `tasks/`:
 
 ## 1.8 Salesforce Metadata
 
-### force-app (Core — 125 files)
+### force-app (Core — expanded since March 2026)
 
 | Type | Count | Key Examples |
 |---|---|---|
-| Apex Classes | 8 | `RLM_PlaceQuoteModel`, `RLM_PlaceOrderModel`, `RLM_QuoteModelUtility`, `RLM_DFOTenantProvisioningCallout`, `RLM_DetermineDROSourceType` |
+| Apex Classes | 8+ | `RLM_PlaceQuoteModel`, `RLM_PlaceOrderModel`, `RLM_QuoteModelUtility`, `RLM_DFOTenantProvisioningCallout`, `RLM_DetermineDROSourceType` |
 | Context Definitions | 10 | All 11 standard RLM contexts (see §1.11) |
 | Permission Sets | Multiple | `RLM_QuantumBit` (primary) |
 | Settings | Multiple | `LargeQuotesandOrdersForRlm.settings` |
-| Flexipages | Multiple | Standard Lightning app pages |
-| Standard Objects Modified | 7 | Order, Asset, Quote, QuoteLineItem, Product2, OrderItem, FulfillmentOrderLineItem |
+| Flexipages | 30+ | Standard Lightning app pages — significantly expanded (Account, Asset, Quote, Order, QuoteLineItem, OrderItem, Product, etc.) |
+| Flows | 5+ | `RLM_CreateOrdersFromQuote`, `RLM_Set_Asset_Parent_From_Relationship` (NEW) |
+| LWC | 1+ | `rlmOrderRedirect` (NEW) |
+| Standard Objects Modified | 7+ | Order, Asset, Quote, QuoteLineItem, Product2, OrderItem, FulfillmentOrderLineItem |
+| Applications | 1 | `RLM_Revenue_Cloud` |
+| Batch Calc Job Defs | 1 | `RLM_Import_Quote_Lines_With_Multi_Currency_Billing` (NEW) |
 
 ### unpackaged/ (Conditional — 498 files)
 
@@ -512,15 +564,34 @@ The Constraint Model Library (CML) pipeline is separate from SFDMU. It handles E
 
 ## 1.12 Robot Framework Automation
 
-Used for Salesforce Setup UI configuration where no Metadata API equivalent exists.
+Used for Salesforce Setup UI configuration (no Metadata API equivalent) and E2E business flow testing.
 
-### Test Suites (`robot/rlm-base/tests/setup/`)
+### Setup Suites (`robot/rlm-base/tests/setup/`)
 
 | Suite | Keywords | Purpose |
 |---|---|---|
 | `enable_document_builder.robot` | 3 | Document Builder toggle, Document Templates Export toggle, Design Document Templates toggle |
 | `enable_constraints_settings.robot` | 3 | Default Transaction Type, Asset Context selection, Constraints Engine toggle |
 | `configure_revenue_settings.robot` | 4 | Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow |
+| `enable_analytics.robot` | — | Analytics/CRM Analytics enablement (NEW) |
+| `enable_timeline.robot` | — | Timeline feature enablement (NEW) |
+| `reorder_app_launcher.robot` | — | App Launcher reordering for Revenue Cloud (NEW) |
+
+### E2E Test Suites (`robot/rlm-base/tests/e2e/`) — NEW
+
+| Suite | Purpose |
+|---|---|
+| `setup_quote.robot` | Create a new Quote with product configuration |
+| `quote_to_order.robot` | Convert Quote to Order via UI |
+| `order_from_quote.robot` | Create Order from existing Quote |
+| `reset_account.robot` | Reset Account for clean test state |
+
+### E2E Resources (NEW)
+- **`E2ECommon.robot`** — shared keywords for E2E test flows
+- **`E2EVariables.robot`** — E2E test variables (account names, product names, etc.)
+- **`SalesforceAPI.py`** — Python library for Salesforce REST API calls during E2E tests
+- **`ChromeDebugHelper.py`** — Chrome DevTools Protocol helper for debugging
+- **`AnalyticsSetupHelper.py`** — Helper for Analytics/CRM Analytics setup
 
 ### Infrastructure
 - **`SetupToggles.robot`** — shared keywords for browser navigation and toggle enabling
@@ -601,9 +672,9 @@ pipx inject cumulusci robotframework robotframework-seleniumlibrary \
 **Distill** (`sf-industries/distill`) is an AI-powered Salesforce customization migration platform built exclusively on the Claude Agent SDK. It answers the question: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
 - **Python:** 3.10–3.12
-- **LLM:** Claude Sonnet 4.5 / Haiku 4.5 — production access via **Einstein LLM Gateway** (enabled PR #103 2026-03-16; OAuth credentials from **Falcon Vault**, PR #109 2026-03-19). Local/dev fallback: Vertex AI via GCP/Embark. No direct Anthropic API key required in production.
-- **Auth (API server):** RBAC API key (`X-API-Key`) + **OIDC JWT via QuantumK SSO** (added PR #111 2026-03-20, `oidc_auth.py` + `oidc_jwt_validator.py`)
-- **Storage:** SQLite (primary — relational project/migration data), ChromaDB (vector — configured in `base.yaml`), DuckDB (analysis/insights graph data), S3/boto3 (cloud artifact storage, added PR #101 2026-03-12), NetworkX (graph — configured in `base.yaml`)
+- **LLM:** Claude Sonnet 4.5 / Haiku 4.5 — production access via **Einstein LLM Gateway** (enabled PR #103 2026-03-16; OAuth credentials from **Falcon Vault**, PR #109 2026-03-19). As of PR #116 (2026-03-25), also used for standalone API invocations in `serve_api.py`. New **Einstein embeddings module** (`src/distill/einsteinllm/embeddings.py`, 252 lines). Local/dev fallback: Vertex AI via GCP/Embark. No direct Anthropic API key required in production.
+- **Auth (API server):** RBAC API key (`X-API-Key`) + **OIDC JWT via QuantumK SSO** (refactored to dedicated `src/distill/auth/` module, PR #113 2026-03-23 — improved login-logout refresh handling)
+- **Storage (updated 2026-04-07):** **SQLite** (kits and projects tables only — `users` table removed, PR #121), **PostgreSQL/Falcon** (users — new primary backend for user management, populated from QuantumK `userInfo`), ChromaDB (vector — configured in `base.yaml`), DuckDB (analysis/insights graph data), S3/boto3 (cloud artifact storage), NetworkX (graph). `DISTILL_CENTRAL_DB_BACKEND` config controls SQLite vs PostgreSQL backend selection. New `customization_folder_location` field added to projects table (PR #115).
 - **Interface:** Interactive CLI (`./distill start`), TUI (Textual), Flask REST API (RBAC-protected), FastAPI server (`serve_api.py` — S3 endpoints only)
 
 **What makes it distinctive:**
@@ -867,15 +938,24 @@ Spec: `GET /openapi.json` | UI: `GET /docs`
 
 ## 2.7 Database Layer
 
-### SQLite Tables (SQLAlchemy ORM)
+### SQLite Tables (SQLAlchemy ORM) — Updated 2026-04-07
+
+> **Architecture change (PRs #121, #122):** The `users` table has been **removed from SQLite**. User management is now handled by **PostgreSQL/Falcon** (populated from QuantumK `userInfo` endpoint). SQLite now stores only `kits` and `projects`. The `db_adapter.py` module implements three adapters: `SQLiteAdapter` (local kits/projects), `PostgreSQLCentralAdapter` (direct PostgreSQL), and `APIAdapter` (remote PostgreSQL via HTTP for local development). The `DISTILL_CENTRAL_DB_BACKEND` config controls backend selection.
 
 | Table | Key Fields | Purpose |
 |---|---|---|
-| `projects` | `id` (UUID), `project_name`, `domain`, `status`, `source_folder_location` | Project registry |
+| `projects` | `id` (UUID), `project_name`, `domain`, `status`, `source_folder_location`, **`customization_folder_location`** (NEW — PR #115) | Project registry |
+| `kits` | `id`, `creator_id` (FK → PostgreSQL users), `name`, `description` | Migration kit registry |
 | `migration_records` | `id`, `project_id` (FK), `source_file_path`, `migrated_file_path`, `parent_record_id` (self-ref) | Migration history |
 | `workspace_config` | `active_project_id`, `source_path`, `target_path` | Active workspace state |
 | `mapping_runs` | `run_id`, `total_mappings`, `exact_matches`, `avg_confidence` | DataMapper run history |
 | `feature_mappings` | `source_feature_id`, `target_feature_id`, `confidence`, `match_type`, `justification` | Feature mapping results |
+
+### PostgreSQL/Falcon Tables (NEW — PRs #121, #122)
+
+| Table | Key Fields | Purpose |
+|---|---|---|
+| `users` | `id`, `email`, `role`, `created_at` | User management (populated from QuantumK `userInfo`) |
 
 ### DuckDB Tables (Insights Pipeline — per-project)
 
@@ -890,7 +970,7 @@ Spec: `GET /openapi.json` | UI: `GET /docs`
 | `insights_calls` | — | Cross-artifact call graph |
 
 ### ChromaDB Collections
-- Code embeddings using `sentence-transformers/all-MiniLM-L6-v2`
+- Code embeddings using `sentence-transformers/all-MiniLM-L6-v2` (local) or **Einstein LLM embeddings** (`src/distill/einsteinllm/embeddings.py`, 252 lines — NEW, production path)
 - Separate collections per project for source, target, and customization codebases
 - Used by CodeSuggestion engine for RAG-first discovery
 

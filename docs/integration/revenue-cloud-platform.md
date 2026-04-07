@@ -1,7 +1,7 @@
 # Revenue Cloud Engineering Platform
 
 > **Document Type:** Integration Overview — Living Document
-> **Last Updated:** 2026-03-22
+> **Last Updated:** 2026-04-07
 > **Audience:** Engineering Leadership
 >
 > **Three platforms. One integrated engineering workflow for Revenue Cloud.**
@@ -53,12 +53,13 @@ Revenue Cloud Foundations is an enterprise CumulusCI automation framework for bu
 ### 2.1 What It Does
 
 **Org Provisioning**
-- 28 automation flows — including `prepare_rlm_org`, the 29-step primary orchestration flow — manage scratch orgs and sandbox environments from first command to a fully configured state
-- 20 scratch org definitions covering dev, QA, test, CI, and environment-specific variants
+- 30+ automation flows — including `prepare_rlm_org`, the primary orchestration flow — manage scratch orgs and sandbox environments from first command to a fully configured state
+- 24 scratch org definitions covering dev, QA, test, CI, enterprise, release, and environment-specific variants (including new `ent.json`, `ent-r1.json`, `ent-sb0.json`, `feature.json`, `release.json`)
 - ~95% of org setup is fully automated; only Salesforce CLI authentication and Dev Hub setup remain manual
 
 **Feature-Flag-Driven Deployment**
-- 50+ flags in `cumulusci.yml` control which of 25+ metadata bundles and 11 data plans are deployed
+- 58+ flags in `cumulusci.yml` control which of 30+ metadata bundles and 11 data plans are deployed
+- New edition flags (`pde`, `trial`, `dev_ed`) control PS/PSL assignments for different org editions; `billing_ui` controls the new Billing UI LWC module
 - A single flag (`billing: true`) triggers the billing metadata bundle, the QB billing data plan, and the Apex activation scripts — with no other configuration required
 - Flags are composable: any combination of features can be deployed to any org type
 
@@ -74,7 +75,7 @@ Three product shape families, each representing a distinct Revenue Cloud product
 
 All plans are target-org-agnostic (standard RLM fields only, no custom fields), enabling deployment to any correctly licensed org.
 
-**Custom Python Task Library (24 task modules)**
+**Custom Python Task Library (30+ task modules)**
 | Category | Tasks |
 |---|---|
 | Data loading | `load_sfdmu_data`, `post_process_extraction`, 9 extract tasks, 9 idempotency test tasks |
@@ -86,7 +87,7 @@ All plans are target-org-agnostic (standard RLM fields only, no custom fields), 
 | Environment | `validate_setup`, `cleanup_settings_for_dev` |
 
 **Browser Automation (Robot Framework)**
-Three test suites handle Salesforce Setup UI configuration where no Metadata API equivalent exists: Document Builder, Constraints Engine, Revenue Settings (Pricing Procedure, Usage Rating, Orders Flow).
+Setup test suites handle Salesforce Setup UI configuration where no Metadata API equivalent exists: Document Builder, Constraints Engine, Revenue Settings, Analytics, Timeline, App Launcher reordering. Additionally, a new **E2E test framework** (`robot/rlm-base/tests/e2e/`) provides Quote-to-Order UI test flows for post-provision validation.
 
 **Idempotency**
 All QB/en-US data plans support load-twice-no-change semantics via SFDMU v5 composite key patterns (`Name;Type`, `$Name$Parent.Name`). Idempotency is enforced by the `validate_setup` task (blocks v4 SFDMU) and verified by the `run_qb_idempotency_tests` flow.
@@ -95,11 +96,11 @@ All QB/en-US data plans support load-twice-no-change semantics via SFDMU v5 comp
 
 ```
 revenue-cloud-foundations/
-├── cumulusci.yml           (2,386 lines — flags, flows, tasks, orgs)
-├── tasks/                  (24 custom Python task modules)
+├── cumulusci.yml           (flags, flows, tasks, orgs — 58+ flags, 30+ flows)
+├── tasks/                  (30+ custom Python task modules)
 ├── force-app/              (Salesforce metadata — Apex, LWC, Flows, Objects)
 ├── unpackaged/             (conditional deployment bundles, post_* folders)
-├── robot/                  (3 Robot Framework test suites for UI automation)
+├── robot/                  (7+ Robot Framework test suites — UI setup + E2E tests)
 ├── scripts/                (24 anonymous Apex scripts, 4 Python utilities)
 ├── datasets/
 │   ├── sfdmu/qb/en-US/     (9 active data plans, 95 objects, 154 queries)
@@ -115,7 +116,7 @@ revenue-cloud-foundations/
 ## 3. Distill
 
 **Repository:** `sf-industries/distill` (Salesforce enterprise — requires SSO + GCP/Embark setup)
-**Technology:** Python 3.10–3.12 · Claude Agent SDK · Einstein LLM Gateway (production) · Vertex AI/GCP/Embark (local fallback) · Falcon Vault (secrets) · OIDC/QuantumK (API auth) · SQLite · DuckDB · ChromaDB · S3 · Textual TUI
+**Technology:** Python 3.10–3.12 · Claude Agent SDK · Einstein LLM Gateway (production, including embeddings) · Vertex AI/GCP/Embark (local fallback) · Falcon Vault (secrets) · OIDC/QuantumK (API auth, refactored to `auth/` module) · SQLite (kits/projects) · PostgreSQL/Falcon (users — as of PR #121) · DuckDB · ChromaDB · S3 · Textual TUI
 **Interface:** Interactive CLI (`./distill start`) · Textual TUI · Flask REST API (`src/distill/dashboard/app.py` — RBAC + OIDC-protected)
 
 Distill is an AI-powered Salesforce customization migration platform built **exclusively on the Claude Agent SDK**. It answers: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
@@ -137,9 +138,9 @@ Four agents currently registered:
 
 - **Claude Agent SDK exclusively** — no custom Anthropic client wrapper; all LLM calls go through `ClaudeSDKClient`
 - **Clean Architecture:** Core (domain/services) → Controllers → UI — zero UI dependencies in business logic
-- **LLM access (production):** Einstein LLM Gateway (`src/distill/einsteinllm/`) — OAuth credentials from Falcon Vault. **LLM access (local/dev):** Vertex AI via GCP/Embark (`claude_vertex_adapter.py`). Models: `claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`
-- **Auth:** RBAC API key (30+ permissions, 4 roles) + OIDC JWT via QuantumK SSO (PR #111 2026-03-20)
-- **Storage:** SQLite (projects, migration records), DuckDB (insights data — thread-safe singleton), ChromaDB (vector store for RAG), S3/boto3 (cloud artifact storage)
+- **LLM access (production):** Einstein LLM Gateway (`src/distill/einsteinllm/`) — OAuth credentials from Falcon Vault. As of PR #116, also used for standalone API invocations in `serve_api.py`. New Einstein embeddings module (`src/distill/einsteinllm/embeddings.py`). **LLM access (local/dev):** Vertex AI via GCP/Embark (`claude_vertex_adapter.py`). Models: `claude-sonnet-4-5@20250929`, `claude-haiku-4-5@20251001`
+- **Auth:** RBAC API key (30+ permissions, 4 roles) + OIDC JWT via QuantumK SSO (refactored to `src/distill/auth/` module, PR #113 2026-03-23)
+- **Storage (updated 2026-04-07):** SQLite (kits, projects — `users` table removed), **PostgreSQL/Falcon** (users — new primary backend, PR #121), DuckDB (insights data — thread-safe singleton), ChromaDB (vector store for RAG), S3/boto3 (cloud artifact storage). `DISTILL_CENTRAL_DB_BACKEND` config controls backend selection. New `customization_folder_location` field on projects table (PR #115).
 
 ### 3.3 How It Plugs Into Foundations
 
@@ -176,29 +177,34 @@ Engineer identifies Apex or LWC customization worth promoting
 
 **Repository:** `industries/Automated-Remote-Org-Test` at `git.soma.salesforce.com/industries/Automated-Remote-Org-Test`
 **Technology:** Python · Behave 1.2.6 (BDD/Gherkin) · Selenium 4.35.0 · Playwright 1.56.0 · Jenkins CI
-**Built by:** Revenue Cloud engineering team (27 product teams, each with a folder under `features/`)
+**Built by:** Revenue Cloud engineering team (24 product team folders, 25 registered teams in `team_config.json`)
 **Authors:** Krishan Gopal Bhansalee, Rohan Sarap, Niranjana D P
 
-Aegis is a **Salesforce Revenue Cloud BDD test automation framework** built on Behave + Selenium/Playwright. It validates end-to-end business flows across 27 RLM product teams — from product configuration through pricing, billing, usage, and fulfillment — running against live Salesforce Steam orgs.
+Aegis is a **Salesforce Revenue Cloud BDD test automation framework** built on Behave + Selenium/Playwright. It validates end-to-end business flows across 24 RLM product teams — from product configuration through pricing, billing, usage, and fulfillment — running against live Salesforce Steam orgs.
 
 **Architecture:**
 - **Gherkin feature files** per team under `features/<TeamName>/`
 - **Dual UI engine:** Playwright (via `@playwright` tag) or Selenium — feature-level choice
 - **Composite API graph collections** for test data setup (multi-SObject setup in one HTTP call)
 - **Persona-based testing** via `shared/data/personas.json` — named users for role-based scenario validation
-- **CI/CD:** Jenkins runs all 27 teams in parallel on Docker Selenium Grid; per-team email notifications via `team_config.json`
-- **PRD-to-test AI assist:** PRDs analyzed by Cursor (AI agent) to generate Gherkin feature files — the AI is a test-authoring aid, not the runtime engine
+- **CI/CD:** Jenkins runs all teams in parallel on Docker Selenium Grid; per-team email notifications via `team_config.json`
+- **PRD-to-test AI assist:** PRDs analyzed by Cursor (AI agent) to generate Gherkin feature files — now covering both **Usage** (`usage-pr-aegis-scenario-gen`) and **Pricing** (`pricing-pr-aegis-scenario-gen`) domains, with dedicated AI knowledgebases (`NGP_PRICING_KNOWLEDGEBASE.md`, `NGP_PRICING_WATERFALL_TEST_KNOWLEDGEBASE.md`)
 
-**Teams (27) include:** BillingCreditMemo, BillingInvoicing, BillingPayments, BillingUsageInvoicing, PriceManagement, ProductCatalogManagement, UsageManagement, UsageSelling, UsageConsumption, SalesforceContracts, **RevenueGoFoundation** (direct Foundations touchpoint — see below), and others.
+**Teams (updated 2026-04-07) include:** BillingCreditMemo, BillingInvoicing, BillingPayments, BillingUsageInvoicing, PriceManagement, ProductCatalogManagement, UsageManagement, UsageSelling, UsageConsumption, **UsageGuidedSetup** (new), SalesforceContracts, **RevenueGoFoundation** (direct Foundations touchpoint — see below), and others. Teams `UsageCustomerData` and `RLMSuite` were removed in March 2026.
 
 ### 4.1 RevenueGoFoundation Team — Direct Integration Touchpoint
 
-`features/RevenueGoFoundation/` is the existing Aegis team that directly tests Revenue Cloud Foundations-provisioned orgs:
+`features/RevenueGoFoundation/` is the existing Aegis team that directly tests Revenue Cloud Foundations-provisioned orgs. **Expanded from 2 to 7 feature files since March 2026:**
 
 | Feature File | What It Tests |
 |---|---|
 | `RevenueCloudInitialSetup.feature` | Revenue Cloud Initial Setup (enable RC, create quotes/orders via UI) |
 | `DynamicRevenueOrchestrator.feature` | DRO flows on a Foundations-provisioned org |
+| `AssetLifecycleManagement.feature` | Asset Lifecycle Management setup, redirections, help links (NEW) |
+| `Quotes.feature` | Quote creation and management scenarios (NEW) |
+| `Orders.feature` | Order placement and management scenarios (NEW) |
+| `PriceManagement.feature` | Pricing configuration and management (NEW) |
+| `ProductConfigurator.feature` | Product configuration and bundle scenarios (NEW) |
 
 **Known gap:** The feature file notes — *"Aegis framework currently does not support creation of fresh orgs. We are only testing feature page functionalities. For fresh org initial setup, Revenue Cloud needs to be enabled manually for the first time."* This means Aegis tests run against a **pre-provisioned org** (created by `prepare_rlm_org`) rather than provisioning one itself.
 
@@ -208,7 +214,7 @@ Aegis is a **Salesforce Revenue Cloud BDD test automation framework** built on B
 
 | Touchpoint | How Aegis Connects | Current State |
 |---|---|---|
-| **Post-provision validation** | Run `RevenueGoFoundation` suite after `prepare_rlm_org` to verify org behaves correctly | `RevenueGoFoundation` team folder exists and tests Initial Setup + DRO flows |
+| **Post-provision validation** | Run `RevenueGoFoundation` suite after `prepare_rlm_org` to verify org behaves correctly | `RevenueGoFoundation` team folder has 7 feature files covering Initial Setup, DRO, Asset Lifecycle, Quotes, Orders, Pricing, Configurator |
 | **Post-promote regression** | After Distill-identified customizations are promoted into Foundations, Aegis provides the regression safety net | Manually coordinated today — no automated trigger from CCI |
 | **Continuous verification** | Ongoing org health checks as the baseline evolves across releases | Jenkins cron on existing Steam orgs |
 
@@ -217,6 +223,8 @@ Aegis is a **Salesforce Revenue Cloud BDD test automation framework** built on B
 1. **No fresh-org provisioning:** Aegis cannot create orgs — it must be pointed at an existing one. CCI provisions the org; Aegis is pointed at it post-provision. A CCI task that outputs `SF_URL` + credentials and triggers the relevant Aegis Jenkins job would close this gap.
 2. **No shapes/manifest awareness:** Aegis has no concept of data shapes, feature flags, or `shapes.json`. Test scenarios are written per-team and don't adapt to which QB/Q3/MFG shape was loaded. Cross-referencing shape metadata with Aegis scenario selection is an open design question (see O9 in [distill-integration.md](distill-integration.md)).
 3. **No CCI integration today:** The Aegis repo has no `cumulusci.yml`, no CCI task classes, and no reference to Foundations. The `RevenueGoFoundation` team is the closest existing touchpoint.
+
+**Note (2026-04-07):** Foundations now includes its own E2E Robot Framework test suite (`robot/rlm-base/tests/e2e/`) covering Quote-to-Order flows. This provides a fast self-check capability within the CCI pipeline before invoking the heavier Aegis BDD suite. The two are complementary: Robot tests for fast CCI-native validation, Aegis for comprehensive cross-team regression.
 
 **Full integration plan:** [aegis-integration.md](aegis-integration.md) — credential handoff design, CCI task design, feature flag→team mapping, Jenkins API trigger, phased roadmap.
 

@@ -1,7 +1,7 @@
 # Revenue Cloud Foundations × Distill: Integration Living Document
 
 > **Status:** In Progress
-> **Last Updated:** 2026-03-22
+> **Last Updated:** 2026-04-07
 > **Scope:** Round-trip customization capture across data shapes (no custom fields, target-org-agnostic)
 >
 > **Part of:** [Revenue Cloud Engineering Platform](revenue-cloud-platform.md)
@@ -35,19 +35,28 @@
 
 An enterprise CumulusCI automation framework for standing up Salesforce Revenue Cloud (RLM) orgs from scratch. Its core job: *"How do I deploy and configure a correctly structured Revenue Cloud org?"*
 
-**Integration-relevant facts:**
+**Integration-relevant facts (updated 2026-04-07):**
 - 3 data shape families: **QB** (en-US + ja), **Q3** (en-US, pending v5 migration), **MFG** (en-US, draft)
-- 28 named flows (including `prepare_rlm_org`, a 29-step primary orchestration flow), 24 custom Python task modules, 50+ feature flags drive conditional deployment
+- 30+ named flows (including `prepare_rlm_org`, the primary orchestration flow), 30+ custom Python task modules, 58+ feature flags drive conditional deployment
 - All data plans are target-org-agnostic (standard RLM fields only, no custom fields)
 - SFDMU v5 composite key patterns throughout qb/en-US; q3 pending migration
 - CML constraint models are QB-shape-specific (moving into shape folder — see [datasets-reorganization.md](datasets-reorganization.md))
-- **What it does NOT do today:** detect post-deployment org drift, ingest customizations back from running orgs
+- **New since March 2026:**
+  - **UX Drift Capture** — full retrieve → diff → writeback → reassemble pipeline (`retrieve_ux_from_org`, `diff_ux_templates`, `writeback_ux_templates`, `assemble_and_deploy_ux`) landed in PR #121. This is structurally analogous to the Distill drift workflow but operates at the metadata/flexipage level rather than semantic analysis.
+  - **DRO Consolidation** (PR #125) — BRE rule library export, fulfillment scope configuration via Connect API, account utilities overhaul
+  - **Billing UI Module** — `post_billing_ui` bundle with 10+ Apex controllers and LWC components; `billing_ui` feature flag
+  - **Edition Flags** — `pde`, `trial`, `dev_ed` flags control PS/PSL assignments for different org editions
+  - **E2E Robot Framework Tests** — Quote-to-Order UI test framework (`robot/rlm-base/tests/e2e/`) with 4 test suites
+  - **AI Skill System** (PR #113) — 27 skill files in `.cursor/skills/` with standardized cross-agent guidance
+  - **New Org Shapes** — `ent.json`, `ent-r1.json`, `ent-sb0.json`, `feature.json`, `release.json` for enterprise and release environments
+  - **New Post Bundles** — `post_billing_ui`, `post_collections`, `post_ramp_builder`, `post_tso_appmenu`, `pre_docgen`
+- **What it does NOT do today:** detect post-deployment org drift *at the semantic/code level* (UX drift capture handles metadata-level drift only), ingest customizations back from running orgs
 
 ### 1.2 Distill (`sf-industries/distill`)
 
 An AI-powered Salesforce customization migration platform built exclusively on the Claude Agent SDK. Its core job: *"What customizations exist in a Salesforce codebase, what do they mean for the business, and how do I translate them to a target platform?"*
 
-**LLM access (updated 2026-03-22):** **Einstein LLM Gateway** is now the primary production LLM path (enabled in PR #103 2026-03-16; OAuth credentials secured via Falcon Vault in PR #109 2026-03-19). Local/dev environments continue to use Vertex AI via GCP/Embark as a fallback. Models: `claude-sonnet-4-5@20250929` (orchestration), `claude-haiku-4-5@20251001` (agents). The `DISTILL_LLM__MODEL` config controls model selection; provider routing is handled by `src/distill/einsteinllm/` (production OAuth client) vs. `claude_vertex_adapter.py` (local Vertex AI).
+**LLM access (updated 2026-04-07):** **Einstein LLM Gateway** is now the primary production LLM path (enabled in PR #103 2026-03-16; OAuth credentials secured via Falcon Vault in PR #109 2026-03-19). As of PR #116 (2026-03-25), Einstein LLM is also used for **standalone API invocations** in `serve_api.py` — Gemini is no longer the sole path for API-mode calls. Local/dev environments continue to use Vertex AI via GCP/Embark as a fallback. Models: `claude-sonnet-4-5@20250929` (orchestration), `claude-haiku-4-5@20251001` (agents). The `DISTILL_LLM__MODEL` config controls model selection; provider routing is handled by `src/distill/einsteinllm/` (production OAuth client) vs. `claude_vertex_adapter.py` (local Vertex AI). A new **Einstein embeddings module** (`src/distill/einsteinllm/embeddings.py`, 252 lines) was added, potentially replacing or supplementing ChromaDB's local `sentence-transformers` for vector embeddings in production.
 
 **Integration-relevant agents — current status:**
 
@@ -86,6 +95,13 @@ An AI-powered Salesforce customization migration platform built exclusively on t
 
 **Module architecture (confirmed):** `insights/` is the pipeline orchestrator (ingest → parse → extract features → build graph → report). `analysis/` has been reduced to a support library of low-level parsing, ingestion, and LLM utilities consumed internally by `insights/`. `insights/api.py` exists but is currently empty — the integration target is `InsightsPipeline` in `distill.insights.pipeline`.
 
+**Database architecture (updated 2026-04-07 — PRs #121, #122):** Distill's storage layer has been **split**:
+- **SQLite** — now stores only `kits` and `projects` tables (local storage). The `users` table has been **removed from SQLite**.
+- **PostgreSQL (Falcon)** — now the sole backend for user management. Users are populated from QuantumK `userInfo` endpoint. The `DISTILL_CENTRAL_DB_BACKEND` config controls backend selection (`sqlite` vs `postgresql`).
+- **New `customization_folder_location` field** (PR #115) — added to the `projects` table. This is directly relevant for CCI integration: it provides a designated path for pointing Distill at retrieved org metadata.
+- The `db_adapter.py` now implements three adapters: `SQLiteAdapter` (local kits/projects), `PostgreSQLCentralAdapter` (direct PostgreSQL via `postgres_client`), and `APIAdapter` (remote PostgreSQL access via HTTP for local development).
+- **Impact on Phase 3 spike:** If `InsightsPipeline` depends on user context from the DB, headless invocation must account for the split backend. The `customization_folder_location` field may provide a natural integration point for passing retrieved metadata paths.
+
 ---
 
 ## 2. Strategic Integration POV
@@ -108,12 +124,18 @@ These tools function at different layers of the implementation lifecycle:
 
 ### 2.2 The Integration Opportunity (This Document's Focus)
 
-**The scenario:** Orgs created by Revenue Cloud Foundations accumulate customizations over time — new Apex classes, modified Flows, extended LWC components, additional context attributes, new product-related objects. Currently there's no structured pipeline to:
-1. Detect what has diverged from the project baseline
-2. Understand what those changes mean semantically (are they billing-related? PCM-related?)
-3. Decide whether to promote them back into the project
+**The scenario:** Orgs created by Revenue Cloud Foundations accumulate customizations over time — new Apex classes, modified Flows, extended LWC components, additional context attributes, new product-related objects.
 
-Distill's Insights engine provides the semantic analysis layer. The integration creates a **round-trip feedback loop** from running org back to the project.
+**What Foundations now handles natively (as of PR #121, 2026-03-28):**
+The **UX Drift Capture** pipeline (`capture_ux_drift` / `apply_ux_drift` flows) detects and manages metadata-level drift for flexipages, layouts, profiles, objects, and applications. This is a structural diff — it tells you *which files changed*, not *what the changes mean semantically*.
+
+**What still requires Distill:**
+1. **Semantic understanding** — classify changes by business domain (billing, PCM, DRO, etc.)
+2. **Code-level analysis** — new Apex classes, modified Flows, LWC components are invisible to the UX drift pipeline
+3. **Feature extraction** — identify coherent business features across multiple files
+4. **Promotion recommendation** — Promote / Overlay / Discard classification
+
+The two systems are **complementary, not overlapping**: Foundations' UX drift operates at the metadata-file level (which XML changed?), while Distill's Insights operates at the semantic level (what capability was added?). The integration creates a **round-trip feedback loop** from running org back to the project, with Distill providing the AI-powered analysis layer that Foundations' structural diff cannot.
 
 ### 2.3 Design Principles for This Integration
 
@@ -232,7 +254,7 @@ OpenAPI spec: `GET /openapi.json` | Swagger UI: `GET /docs`
 }
 ```
 
-**Authentication:** All Flask endpoints require `X-API-Key: <key>` header (RBAC-protected). As of PR #111 (2026-03-20), the API server also accepts **OIDC JWT tokens** via QuantumK SSO — use `Authorization: Bearer <jwt>` if your Salesforce SSO environment supports QuantumK. API key remains the simpler path for CCI integration. See O14.
+**Authentication (updated 2026-04-07):** All Flask endpoints require `X-API-Key: <key>` header (RBAC-protected). As of PR #111 (2026-03-20), the API server also accepts **OIDC JWT tokens** via QuantumK SSO — use `Authorization: Bearer <jwt>` if your Salesforce SSO environment supports QuantumK. As of PR #113 (2026-03-23), OIDC has been refactored into a dedicated `src/distill/auth/` module with improved login-logout refresh handling. API key remains the simpler path for CCI integration. See O14.
 
 **`GET /api/analysis/{id}/summary` response:**
 ```json
@@ -1318,10 +1340,12 @@ env:
 | O6 | Does Distill `repo_type: "Source"` vs `"Target"` affect output for the drift use case? | Needs testing | Hypothesis: use `"Source"` for org-state snapshots (retrieved metadata looks like a source project). Needs an end-to-end test run to confirm. |
 | O7 | Should `generate_baseline_manifest` automatically update `shapes.json` when a new shape manifest is created? | Open | Natural fit — the script already knows the shape name and locale. Would keep `shapes.json` as a derived artifact rather than manually maintained. |
 | O8 | How should `active_flags` be passed in CI scenarios? | Open | Options: (a) hardcoded in `cumulusci.yml` per environment, (b) env var mapped in CI YAML, (c) read from a `shapes.json` `"default_flags"` field. |
-| O9 | Should `shapes.json` become the shared protocol for Aegis test-scenario selection as well as Distill drift detection? | Needs design — Aegis has no shapes concept today | **Aegis architecture (confirmed from repo):** Aegis is a Behave + Selenium/Playwright BDD framework with 27 product team folders under `features/`. The `RevenueGoFoundation` team folder directly tests Foundations-provisioned orgs (Initial Setup, DRO). Aegis has no concept of data shapes, feature flags, or `shapes.json` — scenarios are written per-team without shape awareness. For `shapes.json` to become a cross-platform protocol, Aegis would need a new mechanism to read it and conditionally include/exclude scenarios by flag combination. This is a non-trivial change to the Aegis framework requiring coordination with the Aegis team. Defer to Phase 5 and evaluate whether the value justifies the coordination cost. |
+| O9 | Should `shapes.json` become the shared protocol for Aegis test-scenario selection as well as Distill drift detection? | Needs design — Aegis expanding rapidly | **Aegis architecture (updated 2026-04-07):** Aegis is a Behave + Selenium/Playwright BDD framework with 24 product team folders under `features/`. The `RevenueGoFoundation` team folder has **expanded from 2 to 7 feature files** (now covers Initial Setup, DRO, Asset Lifecycle, Quotes, Orders, Pricing, Product Configurator). New pricing knowledgebases and AI-assisted scenario generation (`pricing-pr-aegis-scenario-gen` skill) were added in March-April 2026. Teams `UsageCustomerData` and `RLMSuite` were removed; `UsageGuidedSetup` was added. The `RevenueGoFoundation` expansion directly overlaps with Foundations feature flags (`dro`, `billing`, pricing), making shape-aware suite selection more valuable. However, Aegis still has no concept of data shapes or feature flags. For `shapes.json` to become a cross-platform protocol, Aegis would need a mechanism to conditionally include/exclude scenarios by flag. Defer to Phase 5 but re-evaluate given the expanded coverage. |
 | O10 | What is the correct open-source/IP sequencing for this platform? | Open | The workflow (feature-flag-aware manifest generation + AI drift detection + Promote/Overlay/Discard classification) may be patentable. Legal review and patent filing — if pursued — must precede any open-source publication. Internal distribution (sfLabs) may be possible before external publication depending on licensing strategy. |
-| O11 | Should Phase 1 wait for Claude re-enablement in `run_file_migration`, or proceed with Gemini dependency? | ✅ Resolved | **Proceed with Gemini.** The integration plumbing is model-agnostic — when Distill re-enables Claude, the CCI task requires zero changes. `GEMINI_API_KEY` is a documented prerequisite. The hardcode reads as a workaround (`"DISABLED"`), not a permanent design choice. |
-| O12 | What is the initialization sequence for `InsightsPipeline` in headless mode? | Phase 3 spike | Reframed: `insights/api.py` is empty — the integration target is `InsightsPipeline` in `distill.insights.pipeline`. Spike question: does `InsightsPipeline.__init__` require DuckDB project DB, ChromaDB, or LLM client to be pre-initialized, or does it accept a `source_path` and bootstrap internally? |
+| O11 | Should Phase 1 wait for Claude re-enablement in `run_file_migration`, or proceed with Gemini dependency? | ✅ Resolved (updated) | **Proceed — now less of a concern.** As of PR #116, Distill uses Einstein LLM Gateway for standalone API invocations in `serve_api.py`. The Gemini hardcode in `run_file_migration` is increasingly isolated. CCI integration through `InsightsPipeline` will likely use Einstein LLM (production) or Vertex AI (local), not Gemini. |
+| O12 | What is the initialization sequence for `InsightsPipeline` in headless mode? | Phase 3 spike — reframed | Reframed: `insights/api.py` is empty — the integration target is `InsightsPipeline` in `distill.insights.pipeline`. Spike question: does `InsightsPipeline.__init__` require DuckDB project DB, ChromaDB, or LLM client to be pre-initialized, or does it accept a `source_path` and bootstrap internally? **Updated (2026-04-07):** The DB layer has split — users are now in PostgreSQL (Falcon), kits/projects in SQLite. Headless invocation must determine which backend(s) `InsightsPipeline` requires. The new `customization_folder_location` field on the projects table may provide a natural integration point. |
 | O13 | Are `insights/` and `analysis/` complementary pipeline stages or parallel implementations? | ✅ Resolved | **Confirmed complementary.** `analysis/` was reduced to a support library (parsing, ingestion, LLM utilities) in commit f6fa7dc. Its `api.py`, `graph/`, `reporting/`, and `featuremapping/` were removed. `InsightsPipeline` in `insights/` is the sole pipeline orchestrator and integration target. |
-| O14 | Does RBAC (roles: KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER) affect the CCI integration path? | Updated | The Flask REST API is RBAC-protected — CCI will need an API key with appropriate role (likely IMPLEMENTOR: `analysis:run`, `insights:read`). **Updated (PR #111, 2026-03-20):** The API server now also supports **OIDC JWT auth** via QuantumK SSO (`oidc_auth.py` + `oidc_jwt_validator.py`). CCI may use either an API key (RBAC path) or an OIDC JWT (QuantumK SSO path) for server-mode integration (Path B). Python import path (Path A) bypasses all auth entirely. If using Path B, confirm API key vs. OIDC auth preference with Distill team. |
-| O15 | Should CCI use the KIT system for the reference shape baseline? | Open | Distill's KIT system packages migration artifacts (source analysis, entity maps, suggestions) into reusable bundles. A `qb-en-US` KIT could be the blessed reference artifact. If the Distill team publishes a `qb-en-US` KIT, `capture_org_customizations` could diff against it rather than a locally generated `shape_manifest.json`. Evaluate in Phase 4. |
+| O14 | Does RBAC (roles: KIT_CREATOR, IMPLEMENTOR, ADMIN, VIEWER) affect the CCI integration path? | Updated | The Flask REST API is RBAC-protected — CCI will need an API key with appropriate role (likely IMPLEMENTOR: `analysis:run`, `insights:read`). **Updated (PR #113, 2026-03-23):** OIDC auth refactored into `src/distill/auth/` module. API server supports `X-API-Key` (RBAC) and `Authorization: Bearer <jwt>` (QuantumK SSO). Python import path (Path A) bypasses all auth. **Note:** Users now live in PostgreSQL (Falcon) — RBAC role resolution requires central DB connectivity. |
+| O15 | Should CCI use the KIT system for the reference shape baseline? | Open | Distill's KIT system packages migration artifacts (source analysis, entity maps, suggestions) into reusable bundles. A `qb-en-US` KIT could be the blessed reference artifact. **Updated (2026-04-07):** KIT `creator_id` FK now references PostgreSQL users (not SQLite) — KIT creation requires PostgreSQL connectivity. Evaluate in Phase 4. |
+| O16 | How does Foundations' UX Drift Capture relate to Distill's semantic drift detection? | New (2026-04-07) | Foundations now has a native UX drift pipeline (PR #121) for metadata-level changes (flexipages, layouts, profiles, objects). **Complementary** to Distill's semantic analysis — Foundations handles structural "what changed" while Distill handles semantic "what does it mean." The two could be combined: Foundations' drift diff output could feed Distill's Insights pipeline as pre-filtered input. Evaluate whether `diff_ux_templates` output can serve as Distill input. |
+| O17 | Should E2E Robot Framework tests run alongside Aegis for post-provision validation? | New (2026-04-07) | Foundations now has its own E2E test framework (Quote-to-Order flow in `robot/rlm-base/tests/e2e/`). This overlaps with Aegis's `RevenueGoFoundation/Quotes.feature` and `Orders.feature`. Determine: (a) run both or prefer one, (b) whether Robot tests serve as a fast "self-check" before the heavier Aegis suite. |
