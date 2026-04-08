@@ -71,6 +71,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 Decimal expansionARR = 0;
                 Decimal churnedARR = 0;
                 Decimal renewalARR = 0;
+                Decimal iARR;
             
                 if (isOneTime(line.sellingModelType)) {
                     // Per requirements, do not query AssetStatePeriod when SellingModelType is OneTime.
@@ -105,6 +106,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                     expansionARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, expansionAmount);
                     churnedARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, churnedAmount);
                     renewalARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, renewalAmount);
+                    iARR = netNewARR + expansionARR - churnedARR;
                     System.debug(
                         LoggingLevel.DEBUG,
                         DBG +
@@ -200,7 +202,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
-                        'attributeName' => 'ItemiARR__c',
+                        'attributeName' => 'ItemARR__c',
                         'attributeValue' => String.valueOf(arr.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
@@ -234,7 +236,13 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                         'attributeValue' => String.valueOf(renewalARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
-                
+
+                attributesForUpdate.add(
+                    new Map<String, Object>{
+                        'attributeName' => 'ItemiARR__c',
+                        'attributeValue' => String.valueOf(iARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                    }
+                );
 
                 /* new node update code */
                 nodeUpdates.add(
@@ -635,7 +643,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         if (pricingTermUnit == 'Months' && pricingTermCount > 0) {
             arr = (amount / (pricingTerm * pricingTermCount)) * 12;
             System.debug(LoggingLevel.DEBUG, DBG + '.calculateARR: branch Months — arr=' + arr);
-        } else if (pricingTermUnit == 'Years' && pricingTermCount > 0) {
+        } else if (pricingTermUnit == 'Annual' && pricingTermCount > 0) {
             arr = amount / (pricingTermCount / pricingTerm);
             System.debug(LoggingLevel.DEBUG, DBG + '.calculateARR: branch Years — arr=' + arr);
         } else {
@@ -943,7 +951,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         row.sellingModelType = parseContextString(tags, 'SellingModelType');
         row.transactionActionType = parseContextString(tags, 'SalesTransactionActionType');
         row.pricingTermUnit = parseContextString(tags, 'PricingTermUnit');
-        row.pricingTerm = parseContextDecimal(tags, 'PricingTerm');
+        row.pricingTerm = parseContextDecimal(tags, 'ItemSubscriptionTerm');
         row.pricingTermCount = parseContextDecimal(tags, 'PricingTermCount');
         row.netTotalPrice = parseContextDecimal(tags, 'ItemNetTotalPrice');
         row.startQuantity = parseContextDecimal(tags, 'ItemStartQuantity');
