@@ -324,7 +324,7 @@ _EnsureShadowDOMToggle
     ...                    if (!inp) continue;
     ...                    if (shouldEnable && inp.checked) return 'already_enabled';
     ...                    if (!shouldEnable && !inp.checked) return 'already_disabled';
-    ...                    inp.click();
+    ...                    (inp.closest('label') || inp).click();
     ...                    return 'clicked';
     ...                }
     ...                continue;
