@@ -101,5 +101,5 @@ class ConfigureBillingEmailSettings(BaseSalesforceTask):
                 f"Check {out_path / 'log.html'} for details."
             )
         self.logger.info(
-            "Billing Email Delivery Settings configured: default invoice email template created."
+            "Billing Email Delivery Settings configured: default invoice email template created or already present."
         )
