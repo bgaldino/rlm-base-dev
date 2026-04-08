@@ -160,18 +160,29 @@ _VerifyToggleViaShadowDOM
     ...            }
     ...        }
     ...        if (!headingEl) return 'label_not_found';
+    ...        function getInputFromToggle(li) {
+    ...            if (!li.shadowRoot) return null;
+    ...            var inp = li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
+    ...            if (inp) return inp;
+    ...            var nested = li.shadowRoot.querySelector('lightning-primitive-input-toggle');
+    ...            if (nested && nested.shadowRoot)
+    ...                return nested.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
+    ...            return null;
+    ...        }
     ...        var section = headingEl;
     ...        for (var depth = 0; depth < 10; depth++) {
     ...            section = section.parentElement;
     ...            if (!section || section === document.body) return 'section_not_found';
     ...            var toggles = section.querySelectorAll('lightning-input');
-    ...            for (var j = 0; j < toggles.length; j++) {
-    ...                if (!toggles[j].shadowRoot) continue;
-    ...                var inp = toggles[j].shadowRoot.querySelector(
-    ...                    'input[role="switch"],input[type="checkbox"]');
-    ...                if (!inp) continue;
-    ...                return inp.checked ? 'on' : 'off';
+    ...            if (toggles.length > 0) {
+    ...                for (var j = 0; j < toggles.length; j++) {
+    ...                    var inp = getInputFromToggle(toggles[j]);
+    ...                    if (inp) return inp.checked ? 'on' : 'off';
+    ...                }
+    ...                continue;
     ...            }
+    ...            var plainInputs = section.querySelectorAll('input[type="checkbox"],input[role="switch"]');
+    ...            if (plainInputs.length > 0) return plainInputs[0].checked ? 'on' : 'off';
     ...        }
     ...        return 'not_found';
     ...    })(arguments[0])
@@ -286,11 +297,12 @@ _EnsureDocumentBuilderToggle
     Sleep    3s    reason=Allow toggle state to update after JS click
 
 _EnsureShadowDOMToggle
-    [Documentation]    For LWC shadow-DOM toggles where aria-checked/checked are inaccessible.
-    ...    Uses pure JavaScript to find the label heading, walk up to the nearest
-    ...    ancestor that contains a lightning-input toggle, pierce its shadow root,
-    ...    check the input's checked state, and click only if needed.
-    ...    This avoids XPath-based section scoping which cannot see into shadow DOM.
+    [Documentation]    For LWC toggles where aria-checked/checked attributes are inaccessible.
+    ...    Uses pure JavaScript to find the label heading via a text walker, then walks up
+    ...    ancestor elements looking for the toggle at the narrowest possible scope.
+    ...    Checks plain input[type="checkbox"] (light DOM, e.g. MetadataPreference) before
+    ...    lightning-input shadow DOM, so the correct toggle is found even when both types
+    ...    exist in the same card.
     [Arguments]    ${label}    ${toggle_locator}    ${turn_on}=True
     ${result}=    Execute Javascript
     ...    return (function(label, shouldEnable) {
@@ -303,19 +315,37 @@ _EnsureShadowDOMToggle
     ...            }
     ...        }
     ...        if (!headingEl) return 'label_not_found';
+    ...        function getInputFromToggle(li) {
+    ...            if (!li.shadowRoot) return null;
+    ...            var inp = li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
+    ...            if (inp) return inp;
+    ...            var nested = li.shadowRoot.querySelector('lightning-primitive-input-toggle');
+    ...            if (nested && nested.shadowRoot)
+    ...                return nested.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
+    ...            return null;
+    ...        }
     ...        var section = headingEl;
     ...        for (var depth = 0; depth < 10; depth++) {
     ...            section = section.parentElement;
     ...            if (!section || section === document.body) return 'section_not_found';
     ...            var toggles = section.querySelectorAll('lightning-input');
-    ...            for (var j = 0; j < toggles.length; j++) {
-    ...                if (!toggles[j].shadowRoot) continue;
-    ...                var inp = toggles[j].shadowRoot.querySelector(
-    ...                    'input[role="switch"],input[type="checkbox"]');
-    ...                if (!inp) continue;
-    ...                if (shouldEnable && inp.checked) return 'already_enabled';
-    ...                if (!shouldEnable && !inp.checked) return 'already_disabled';
-    ...                inp.click();
+    ...            if (toggles.length > 0) {
+    ...                for (var j = 0; j < toggles.length; j++) {
+    ...                    var inp = getInputFromToggle(toggles[j]);
+    ...                    if (!inp) continue;
+    ...                    if (shouldEnable && inp.checked) return 'already_enabled';
+    ...                    if (!shouldEnable && !inp.checked) return 'already_disabled';
+    ...                    inp.click();
+    ...                    return 'clicked';
+    ...                }
+    ...                continue;
+    ...            }
+    ...            var plainInputs = section.querySelectorAll('input[type="checkbox"],input[role="switch"]');
+    ...            if (plainInputs.length > 0) {
+    ...                var pi = plainInputs[0];
+    ...                if (shouldEnable && pi.checked) return 'already_enabled';
+    ...                if (!shouldEnable && !pi.checked) return 'already_disabled';
+    ...                (pi.closest('label') || pi).click();
     ...                return 'clicked';
     ...            }
     ...        }
