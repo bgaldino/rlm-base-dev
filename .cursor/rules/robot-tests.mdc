@@ -27,12 +27,28 @@ globs:
 - **Never use `//` comments in JS blocks** — Robot joins continuation
   lines with spaces, so `//` comments out everything after it on the
   joined line. Use `/* */` if comments are needed.
-- Shadow DOM traversal is the primary interaction pattern — use recursive
-  `findInShadows(root, selector)` for elements behind shadow boundaries.
+- Shadow DOM traversal is the primary interaction pattern — use the canonical
+  `findEl`/`findAll` helpers (see below), not XPath or standard Selenium locators.
 - Use `composed: true` on dispatched events to cross shadow DOM boundaries.
 - For LWC input reactivity, use `Object.getOwnPropertyDescriptor(
   HTMLInputElement.prototype, 'value').set` instead of Selenium's
   `input_text`.
+
+## Shadow DOM — Canonical Patterns
+
+Define shared JS helpers as Robot variables and prepend them to `Execute JavaScript` blocks:
+
+```robot
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+```
+
+**Lightning combobox** — 3-level shadow: `lightning-combobox` → `lightning-base-combobox` → `button[role="combobox"]`. Options are `lightning-base-combobox-item[role="option"]` with text in their shadow roots. Identify comboboxes by `data-id` attribute or class (e.g. `lightning-combobox.procedure-combobox`).
+
+**Lightning toggle** — 2-level shadow: `lightning-input` → `lightning-primitive-input-toggle` → `input[role="switch"]`. At each DOM depth check `lightning-input` first; only fall back to plain `input[type="checkbox"]` when no `lightning-input` exists at that depth. Always click the wrapping `<label>`, not the raw input: `(pi.closest('label') || pi).click()`.
+
+**Pill detection** — when a combobox value is set, Salesforce replaces the combobox with a `.slds-pill__label` element. Check for pill presence to detect already-set state before trying to open the combobox.
+
+**Render timing** — some setup pages render LWC components after the page load event. Return `'page_not_ready'` from JS and wrap the check in `Wait Until Keyword Succeeds 20s 3s` to retry. Treat `lbc_not_found` and `btn_not_found` as `page_not_ready` (inner shadow not yet rendered), not hard failures.
 
 ## Multi-Tier Fallback
 
