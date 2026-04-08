@@ -4,7 +4,6 @@
     <enableAdvancedDetailLinePricing>true</enableAdvancedDetailLinePricing>
     <enableAsIsRenewals>true</enableAsIsRenewals>
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
-    <enableConfigurePriceScale>false</enableConfigurePriceScale>
     <enableCoreCPQ>true</enableCoreCPQ>
     <enableDeltaPricing>true</enableDeltaPricing>
     <enableFullEscalationHydration>true</enableFullEscalationHydration>

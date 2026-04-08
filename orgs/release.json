@@ -131,7 +131,6 @@
       "enableAdvancedDetailLinePricing": true,
       "enableAsIsRenewals": true,
       "enableAutoAddDerivedAsset": true,
-      "enableConfigurePriceScale": false,
       "enableCoreCPQ": true,
       "enableDeltaPricing": true,
       "enableFullEscalationHydration": true,
