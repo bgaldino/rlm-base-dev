@@ -16,6 +16,8 @@ ${ORG_ALIAS}                    ${EMPTY}
 ${PRODUCT_DISCOVERY_URL}        ${EMPTY}
 ${MANUAL_LOGIN_WAIT}            90s
 ${DEFAULT_CATALOG}              QuantumBit Software
+# Shared shadow-DOM traversal helper prepended to each Execute JavaScript block.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Test Cases ***
 Configure Product Discovery Default Catalog
@@ -29,13 +31,8 @@ Configure Product Discovery Default Catalog
     # Reload and re-verify to confirm the value was saved server-side
     Open Product Discovery Settings Page
     ${verified}=    Execute JavaScript
-    ...    return (function findEl(root, sel, d) {
-    ...        if (d > 6) return null;
-    ...        var el = root.querySelector(sel); if (el) return el;
-    ...        var all = root.querySelectorAll('*');
-    ...        for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}}
-    ...        return null;
-    ...    })(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
+    ...    ${_JS_FIND_EL}
+    ...    return findEl(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
     Should Be Equal    ${verified}    ${DEFAULT_CATALOG}
     ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${verified}"
     Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
@@ -59,19 +56,14 @@ Set Default Catalog
     [Arguments]    ${target_value}
     # Step 1: check current state; clear wrong selection; open dropdown
     ${open_result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
     ...    return (function(targetValue) {
-    ...        function findEl(root, sel, d) {
-    ...            if (d > 6) return null;
-    ...            var el = root.querySelector(sel); if (el) return el;
-    ...            var all = root.querySelectorAll('*');
-    ...            for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}}
-    ...            return null;
-    ...        }
     ...        var selEl = findEl(document, '[data-id="selectedCatalog"]', 0);
     ...        if (selEl && selEl.textContent.trim() === targetValue) return 'already_set';
     ...        if (selEl) {
     ...            var removeBtn = findEl(document, 'button.slds-pill__remove', 0);
-    ...            if (removeBtn) removeBtn.click();
+    ...            if (!removeBtn) return 'remove_btn_not_found';
+    ...            removeBtn.click();
     ...            return 'cleared';
     ...        }
     ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
@@ -92,14 +84,8 @@ Set Default Catalog
     IF    "${open_result}" == "cleared"
         Sleep    2s    reason=Allow pill removal to complete and combobox to reappear
         ${open_result}=    Execute JavaScript
+        ...    ${_JS_FIND_EL}
         ...    return (function() {
-        ...        function findEl(root, sel, d) {
-        ...            if (d > 6) return null;
-        ...            var el = root.querySelector(sel); if (el) return el;
-        ...            var all = root.querySelectorAll('*');
-        ...            for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}}
-        ...            return null;
-        ...        }
         ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
         ...        if (!lc) return 'combobox_not_found';
         ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
