@@ -16,7 +16,7 @@ ${ORG_ALIAS}                    ${EMPTY}
 ${PRODUCT_DISCOVERY_URL}        ${EMPTY}
 ${MANUAL_LOGIN_WAIT}            90s
 ${DEFAULT_CATALOG}              QuantumBit Software
-# Shared shadow-DOM traversal helper prepended to each Execute JavaScript block.
+# Shared shadow-DOM traversal helper prepended to Execute JavaScript blocks that need findEl.
 ${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Test Cases ***
@@ -98,7 +98,7 @@ Set Default Catalog
         ...        return 'opened';
         ...    })()
     END
-    Should Be Equal    ${open_result}    opened    msg=Could not open Default Catalog combobox: ${open_result}
+    Should Be Equal    ${open_result}    opened    msg=Could not prepare/open Default Catalog combobox: ${open_result}
     Sleep    1s    reason=Allow dropdown options to populate
     # Step 2: click the matching option (text is inside each option's shadow root)
     ${select_result}=    Execute JavaScript
