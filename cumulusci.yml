@@ -1198,6 +1198,9 @@ tasks:
       deploy_billing_template_settings. Idempotent: skips if template already exists.
     class_path: tasks.rlm_configure_billing_email_settings.ConfigureBillingEmailSettings
     group: Revenue Lifecycle Management
+    options:
+      suite: robot/rlm-base/tests/setup/configure_billing_email_settings.robot
+      outputdir: robot/rlm-base/results
 
   deploy_post_guidedselling:
     description: Deploy Guided Selling Metadata
