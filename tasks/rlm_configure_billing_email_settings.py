@@ -8,8 +8,9 @@ enableInvoiceEmailDelivery) sets the BillingSettings boolean but does not trigge
 Salesforce backend logic that auto-creates the default invoice email template and
 sets BillingSettings.defaultEmailTemplate. A UI toggle cycle (off then on) is required.
 
-This task is idempotent: it queries for the default email template first and skips
-the browser cycle if the template already exists.
+This task is idempotent: the Robot toggle keywords check current toggle state before
+clicking (skipping the click if already in the target state), and the post-cycle
+verification polls until the Default Invoice Email Template field is populated.
 """
 
 import subprocess
