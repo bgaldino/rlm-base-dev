@@ -4,182 +4,120 @@ Documentation     Configure Salesforce Pricing Setup page (CorePricingSetup): se
 ...               (the Pricing Procedure expression set must be active) and before any
 ...               automated pricing transactions are tested.
 ...
-...               The "Select a Pricing Procedure" combobox is a standard SLDS form on the
-...               CorePricingSetup Lightning Setup page. This test navigates to
-...               /lightning/setup/CorePricingSetup/home and selects the target procedure.
+...               The "Select a Pricing Procedure" combobox (lightning-combobox.procedure-combobox)
+...               is present when no value is set. After selection it is replaced by a pill that
+...               persists across reloads — no explicit Save button is needed.
 Resource          ../../resources/SetupToggles.robot
 Suite Setup       Open Browser For Setup
 Suite Teardown    Close Browser After Setup
 
 *** Variables ***
-${ORG_ALIAS}                            ${EMPTY}
-${MANUAL_LOGIN_WAIT}                    90s
-${PRICING_PROCEDURE}                    RLM Revenue Management Default Pricing Procedure
+${ORG_ALIAS}              ${EMPTY}
+${MANUAL_LOGIN_WAIT}      90s
+${PRICING_PROCEDURE}      RLM Revenue Management Default Pricing Procedure
+# Shared shadow-DOM traversal helper prepended to each Execute JavaScript block.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Test Cases ***
 Configure Core Pricing Setup
     [Documentation]    Navigates to Salesforce Pricing Setup (CorePricingSetup) and sets
-    ...    the default Pricing Procedure if it is not already configured.
+    ...    the default Pricing Procedure if it is not already configured. Reloads the page
+    ...    after setting to confirm server-side persistence.
     Open Setup Page    /lightning/setup/CorePricingSetup/home
     Set Core Pricing Procedure    ${PRICING_PROCEDURE}
-    Dismiss Toast If Present
     Capture Page Screenshot
-    Log    CorePricingSetup default Pricing Procedure configured successfully.
+    # Reload and re-verify to confirm the value was saved server-side
+    Open Setup Page    /lightning/setup/CorePricingSetup/home
+    ${verified}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        var pills = [];
+    ...        (function findAll(root, d) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
+    ...        })(document, 0);
+    ...        for (var i=0; i<pills.length; i++) {
+    ...            if (pills[i].textContent.trim() === targetValue) return targetValue;
+    ...        }
+    ...        return 'not_set';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${PRICING_PROCEDURE}
+    Should Be Equal    ${verified}    ${PRICING_PROCEDURE}
+    ...    msg=Pricing Procedure not persisted after page reload: expected "${PRICING_PROCEDURE}", got "${verified}"
+    Log    CorePricingSetup: Pricing Procedure confirmed as "${PRICING_PROCEDURE}" after reload.
 
 *** Keywords ***
 Set Core Pricing Procedure
-    [Documentation]    Sets the "Select a Pricing Procedure" combobox on the CorePricingSetup page.
+    [Documentation]    Sets the "Select a Pricing Procedure" combobox on CorePricingSetup
+    ...    via JavaScript, piercing nested LWC shadow DOMs
+    ...    (lightning-combobox.procedure-combobox > lightning-base-combobox > button, with
+    ...    option text read from lightning-base-combobox-item shadow roots).
     ...
-    ...    The page renders a standard SLDS form with two sections:
-    ...    - Select a Pricing Recipe (usually pre-set; not touched here)
-    ...    - Select a Pricing Procedure (target field)
-    ...
-    ...    Strategy:
-    ...    1. Scroll to the "Select a Pricing Procedure" label
-    ...    2. Check if the value is already set (pill or selected option) → skip
-    ...    3. Try native <select> element
-    ...    4. Try Lightning combobox (role='combobox')
-    ...    5. Retry once on failure
+    ...    When a value is already set, lightning-combobox is replaced by a pill — this
+    ...    keyword detects that state and skips if the pill matches the target value.
     [Arguments]    ${target_value}
-    # Scroll to the "Select a Pricing Procedure" section heading
-    ${section_label}=    Set Variable    xpath=//*[contains(normalize-space(text()), 'Select a Pricing Procedure')]
-    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${section_label}
-    IF    not ${found}
-        Log    WARNING: "Select a Pricing Procedure" label not found on CorePricingSetup page. Skipping.    WARN
-        Capture Page Screenshot
+    # Retry until LWC components have rendered (page_not_ready causes retry)
+    ${open_result}=    Wait Until Keyword Succeeds    20s    3s
+    ...    _Open Pricing Procedure Combobox    ${target_value}
+    IF    "${open_result}" == "already_set"
+        Log    Pricing Procedure already set to "${target_value}". No change needed.
         RETURN
     END
-    Sleep    1s
-    # Check if already set via pill (e.g. slds-pill__label)
-    ${pill_label}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Select a Pricing Procedure')]/following::span[contains(@class, 'slds-pill__label')])[1]
-    ${has_pill}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${pill_label}    timeout=5s
-    IF    ${has_pill}
-        ${pill_text}=    Get Text    ${pill_label}
-        ${correct}=    Run Keyword And Return Status    Should Contain    ${pill_text}    ${target_value}
-        IF    ${correct}
-            Log    CorePricingSetup Pricing Procedure already set to "${target_value}". No change needed.
-            RETURN
-        END
-        # Wrong value — clear the pill
-        Log    CorePricingSetup Pricing Procedure has wrong value "${pill_text}". Clearing pill.
-        ${remove_btn}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Select a Pricing Procedure')]/following::button[contains(@class, 'pill__rem') or contains(@class, 'slds-pill__remove')])[1]
-        ${btn_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${remove_btn}    timeout=5s
-        IF    ${btn_found}
-            Mouse Over    ${pill_label}
-            Sleep    1s    reason=Reveal X button on hover
-            Click Element    ${remove_btn}
-            Sleep    2s    reason=Allow pill to clear and dropdown to appear
-        END
-    END
-    Capture Page Screenshot
-    # Try native <select> following the section label
-    ${select_el}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Select a Pricing Procedure')]/following::select)[1]
-    ${is_select}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
-    IF    ${is_select}
-        Scroll Element Into View    ${select_el}
-        Sleep    0.5s
-        # Check current value first
-        ${current}=    Get Selected List Label    ${select_el}
-        ${already_set}=    Run Keyword And Return Status    Should Contain    ${current}    ${target_value}
-        IF    ${already_set}
-            Log    CorePricingSetup Pricing Procedure already set to "${target_value}" (native select). No change needed.
-            RETURN
-        END
-        Select From List By Label    ${select_el}    ${target_value}
-        Sleep    2s    reason=Allow selection to persist
-        Capture Page Screenshot
-        Log    CorePricingSetup Pricing Procedure set to "${target_value}" (native select).
-        RETURN
-    END
-    # Try Lightning combobox (role='combobox') following the section label
-    ${cb_trigger}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Select a Pricing Procedure')]/following::*[@role='combobox' or contains(@class, 'slds-combobox__form-element')])[1]
-    ${is_cb}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${cb_trigger}    timeout=8s
-    IF    ${is_cb}
-        Scroll Element Into View    ${cb_trigger}
-        Sleep    0.5s
-        Click Element    ${cb_trigger}
-        Sleep    2s    reason=Allow dropdown to populate
-        Capture Page Screenshot
-        # Try role='option' first
-        ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
-        ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
-        IF    not ${opt_found}
-            ${option}=    Set Variable    xpath=(//lightning-base-combobox-item[contains(normalize-space(.), '${target_value}')])[1]
-            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
-        END
-        IF    not ${opt_found}
-            ${option}=    Set Variable    xpath=(//*[@role='listbox']//*[contains(normalize-space(text()), '${target_value}')])[1]
-            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
-        END
-        IF    ${opt_found}
-            Click Element    ${option}
-            Sleep    2s    reason=Allow selection to apply
-            Capture Page Screenshot
-            Log    CorePricingSetup Pricing Procedure set to "${target_value}" (Lightning combobox).
-            RETURN
-        ELSE
-            # Log visible options for debugging
-            ${all_opts}=    Execute JavaScript
-            ...    return (function(){
-            ...        var opts = document.querySelectorAll('[role="option"]');
-            ...        var result = [];
-            ...        for (var i = 0; i < opts.length; i++) {
-            ...            if (opts[i].offsetParent !== null) result.push(opts[i].textContent.trim().substring(0,80));
-            ...        }
-            ...        return 'visible_options:[' + result.join('|') + '] total=' + opts.length;
-            ...    })()
-            Log    WARNING: Option "${target_value}" not found in Pricing Procedure dropdown. ${all_opts}    WARN
-            Press Keys    ${cb_trigger}    ESCAPE
-        END
-    END
-    # Retry once: reload and try again
-    Log    No dropdown found on first attempt for CorePricingSetup Pricing Procedure. Reloading and retrying.    WARN
-    Reload Page
-    Sleep    5s    reason=Allow page to fully reload
-    Wait Until Page Contains Element    css:body    timeout=20s
-    Sleep    2s    reason=Allow Lightning to finish rendering
-    ${is_select2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
-    IF    ${is_select2}
-        Scroll Element Into View    ${select_el}
-        Sleep    0.5s
-        Select From List By Label    ${select_el}    ${target_value}
-        Sleep    2s
-        Capture Page Screenshot
-        Log    CorePricingSetup Pricing Procedure set to "${target_value}" (native select, retry after reload).
-        RETURN
-    END
-    ${is_cb2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${cb_trigger}    timeout=8s
-    IF    ${is_cb2}
-        Scroll Element Into View    ${cb_trigger}
-        Sleep    0.5s
-        Click Element    ${cb_trigger}
-        Sleep    2s
-        ${option2}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
-        ${opt_found2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option2}    timeout=10s
-        IF    ${opt_found2}
-            Click Element    ${option2}
-            Sleep    2s
-            Capture Page Screenshot
-            Log    CorePricingSetup Pricing Procedure set to "${target_value}" (Lightning combobox, retry after reload).
-            RETURN
-        END
-    END
-    Log    WARNING: Could not set CorePricingSetup Pricing Procedure to "${target_value}". No interactive element found.    WARN
-    Capture Page Screenshot
+    Should Be Equal    ${open_result}    opened
+    ...    msg=Could not open Pricing Procedure combobox: ${open_result}
+    Sleep    1s    reason=Allow dropdown options to populate
+    # Click the matching option (text is inside each option's shadow root)
+    ${select_result}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        function findAll(root, sel, d, acc) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll(sel).forEach(function(el){acc.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,sel,d+1,acc);});
+    ...        }
+    ...        var opts = []; findAll(document, '[role="option"]', 0, opts);
+    ...        for (var i=0; i<opts.length; i++) {
+    ...            var text = opts[i].shadowRoot ? opts[i].shadowRoot.textContent.trim() : opts[i].textContent.trim();
+    ...            if (text === targetValue) { opts[i].click(); return 'clicked'; }
+    ...        }
+    ...        return 'not_found:[' + opts.map(function(o){return o.shadowRoot?o.shadowRoot.textContent.trim():'?';}).join(',') + ']';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Be Equal    ${select_result}    clicked
+    ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
+    Sleep    2s    reason=Allow selection to auto-save
+    Log    Pricing Procedure set to "${target_value}".
 
-Dismiss Toast If Present
-    [Documentation]    Clicks the close button on any visible Salesforce toast messages.
-    ${close_btns}=    Get WebElements    xpath=//button[contains(@class, 'toastClose') or (@title='Close' and ancestor::*[contains(@class, 'toast')])]
-    FOR    ${btn}    IN    @{close_btns}
-        ${visible}=    Run Keyword And Return Status    Element Should Be Visible    ${btn}
-        Run Keyword If    ${visible}    Click Element    ${btn}
-    END
-    Sleep    0.5s
-
-_Scroll To Element
-    [Arguments]    ${locator}
-    ${present}=    Run Keyword And Return Status    Get WebElement    ${locator}
-    Run Keyword If    not ${present}    Execute JavaScript    window.scrollBy(0, 500)
-    Run Keyword If    not ${present}    Sleep    0.5s
-    Wait Until Element Is Visible    ${locator}    timeout=5s
-    Scroll Element Into View    ${locator}
+_Open Pricing Procedure Combobox
+    [Documentation]    Runs the state-check JS for Set Core Pricing Procedure.
+    ...    Returns 'opened' (combobox clicked open), 'already_set' (correct pill present),
+    ...    or a wrong_value:... string (wrong pill). Fails with page_not_ready when neither
+    ...    the combobox nor any pill is found yet — triggering Wait Until Keyword Succeeds.
+    [Arguments]    ${target_value}
+    ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function(targetValue) {
+    ...        var lc = findEl(document, 'lightning-combobox.procedure-combobox', 0);
+    ...        if (lc) {
+    ...            var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...            if (!lbc) return 'lbc_not_found';
+    ...            var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...            if (!btn) return 'btn_not_found';
+    ...            btn.click();
+    ...            return 'opened';
+    ...        }
+    ...        var pills = [];
+    ...        (function findAll(root, d) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
+    ...        })(document, 0);
+    ...        for (var i=0; i<pills.length; i++) {
+    ...            if (pills[i].textContent.trim() === targetValue) return 'already_set';
+    ...        }
+    ...        if (pills.length === 0) return 'page_not_ready';
+    ...        return 'wrong_value:' + pills.map(function(p){return p.textContent.trim();}).join('|');
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Not Be Equal    ${result}    page_not_ready
+    ...    msg=Page LWC components not yet rendered; retrying...
+    RETURN    ${result}
