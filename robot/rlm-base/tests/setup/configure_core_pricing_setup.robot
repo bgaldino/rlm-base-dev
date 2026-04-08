@@ -83,7 +83,7 @@ Set Core Pricing Procedure
     ...            var text = opts[i].shadowRoot ? opts[i].shadowRoot.textContent.trim() : opts[i].textContent.trim();
     ...            if (text === targetValue) { opts[i].click(); return 'clicked'; }
     ...        }
-    ...        return 'not_found:[' + opts.map(function(o){return o.shadowRoot?o.shadowRoot.textContent.trim():'?';}).join(',') + ']';
+    ...        return 'not_found:[' + opts.map(function(o){return o.shadowRoot ? o.shadowRoot.textContent.trim() : o.textContent.trim();}).join(',') + ']';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${target_value}
     Should Be Equal    ${select_result}    clicked
