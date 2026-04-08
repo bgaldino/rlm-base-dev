@@ -62,12 +62,12 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/RLM_quantumBit_logo_sq,Additional Messages QB Starter - Provisioning & Activation Service,QB-DRO-AM
 /resource/RLM_quantumBit_logo_sq,API Platform - Provisioning & Activation Service,QB-DRO-APIPLAT
 /resource/RLM_quantumBit_logo_sq,Finance Service,QB-DRO-BILL
-,Billing,QB-DRO-BILLING
-,License Activation,QB-DRO-LICACT
+/resource/RLM_quantumBit_logo_sq,Billing,QB-DRO-BILLING
+/resource/RLM_quantumBit_logo_sq,License Activation,QB-DRO-LICACT
 /resource/RLM_quantumBit_logo_sq,Order Processing,QB-DRO-OR
 /resource/RLM_quantumBit_logo_sq,API Management License - Provisioning & Activation Service,QB-DRO-PERMS
 /resource/RLM_quantumBit_logo_sq,Project Service,QB-DRO-PROJ
-,Provision DB,QB-DRO-PROVISION
+/resource/RLM_quantumBit_logo_sq,Provision DB,QB-DRO-PROVISION
 /resource/RLM_quantumBit_logo_sq,QuantumBit Database - Provisioning & Activation Service,QB-DRO-QBD
 /resource/RLM_quantumBit_logo_sq,Additional Flows - QB Enterprise,QB-FLO-ENTR
 /resource/RLM_quantumBit_logo_sq,Additional Flows - QB Starter,QB-FLO-STRT
@@ -161,156 +161,156 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/RLM_quantumBit_logo_sq,vSphere Standard,QB-VMW-S
 /resource/intel_e52609,QB-Accel VegaX200,QB-VegaX200
 /resource/RLM_quantumBit_logo_sq,Shipping Charge Product,9999999
-,Switch ASIC,PROD-1000281857
-,PDU Outlet Whip,PROD-1002254785
-,Network Fabric,PROD-1008704562
-,NVMe U.2 SSD 3.84TB,PROD-1038139044
-,Breaker Set,PROD-1046989797
-,Charger Module,PROD-1054187061
-,Bypass Switch,PROD-1065068854
-,Front Door,PROD-1066573967
-,Dual PSU & Fan Modules,PROD-1078575407
-,1U LCD Tray,PROD-111239623
-,Perforated Doors,PROD-1128940216
-,Metering Board,PROD-1153963439
-,Online UPS Module,PROD-1160394163
-,Outlet Strips,PROD-1167731127
-,Cable Tie Pack,PROD-1176699896
-,External Battery Pack,PROD-1202444971
-,Generic Component A,PROD-1223537488
-,Generic Component A,PROD-1232611253
-,Redundant PDUs (A/B),PROD-1234105735
-,PSU Set (2x),PROD-1247640563
-,USB Console Cable,PROD-1249967782
-,Generic Component A,PROD-1289692484
-,Brush Strips & Baffles,PROD-1298719794
-,Mgmt Appliance Chassis,PROD-1302496369
-,24‑bay NVMe JBOF,PROD-1310694555
-,Rails & Mounting,PROD-1324161108
-,24‑bay SAS Shelf,PROD-1361853679
-,Dual IOM (PCIe),PROD-1380327064
-,Outlet Strips,PROD-1427074895
-,Generic Component B,PROD-1448587501
-,128x 100GbE Spine,PROD-1472536093
-,Compute Cluster,PROD-148835828
-,Dual IOM (SAS),PROD-1491788725
-,Rack Screw & Cage Nut (set),PROD-1511371870
-,RJ‑45 Patch 3m,PROD-1514472773
-,1U Dual‑CPU Servers,PROD-1517433427
-,Fan Controller Board,PROD-1533783581
-,Generic Component B,PROD-1536519560
-,Generic Component A,PROD-1547313492
-,42U Uprights/Beams,PROD-1559036382
-,In‑Rack Fan Trays,PROD-1563124993
-,Side Panels,PROD-1563341377
-,Rail Mount Bracket,PROD-1574258426
-,Generic Component B,PROD-1576658789
-,Rear Door,PROD-1593141905
-,PDU‑A (30A/3‑phase),PROD-159863330
-,Airflow Management (Blanking/Brush),PROD-1603627899
-,Motherboard (2‑socket),PROD-1607828377
-,Blanking Panels Set,PROD-1609709205
-,Dual NIC & BMC,PROD-1616292046
-,M.2 SSD 512GB (OS),PROD-1673140239
-,Battery String,PROD-1704766065
-,Security & Safety,PROD-1744092313
-,Inverter Module,PROD-1766568232
-,Heatsink Assembly,PROD-1768772247
-,Hot‑swap Fan Tray,PROD-1776230868
-,Inlet Cordset (IEC‑309),PROD-1795624702
-,Hardware Kit,PROD-1803530052
-,LCD/KVM‑over‑IP Console,PROD-1809409779
-,NVMe Backplane Cable,PROD-186801522
-,2U Dual‑CPU Servers,PROD-1878093187
-,Breaker Module 30A,PROD-188088183
-,Cabling & Harnesses,PROD-1897393325
-,PSU Power Cord (C19),PROD-1917148511
-,SAS Cable (Mini‑SAS HD),PROD-192607526
-,Smart Rack Locks & Access,PROD-1939884557
-,Management & Monitoring,PROD-1941355444
-,Kensington Lock Anchor,PROD-1956857281
-,Rear Door,PROD-1977133047
-,Leveling Foot,PROD-2001013682
-,Cooling System,PROD-2003786421
-,Front Door,PROD-2004313496
-,25/100GbE NIC,PROD-2006854732
-,Harness,PROD-2035320005
-,Universal Sliding Rails,PROD-204534203
-,Motherboard (2‑socket),PROD-2058355083
-,Generic Component B,PROD-2059567741
-,Rear Door,PROD-2063526037
-,Chassis & Backplane (2U),PROD-2108848830
-,SmartNIC 2x100GbE,PROD-2115474628
-,Storage Subsystem,PROD-2116311267
-,Temp Probe Cable,PROD-217263495
-,Environmental & Fire Sensors,PROD-217937560
-,Leak Sensor Rope 3m,PROD-275930088
-,Fan Module Set,PROD-279707357
-,LC‑LC OM4 Patch 2m,PROD-293991009
-,Airflow Blanking Panel 1U,PROD-310172567
-,Doors & Panels,PROD-322363365
-,SAS HDD 12TB,PROD-337489460
-,Aggregation/Spine Switches,PROD-356310368
-,Velcro Strap Pack,PROD-362281425
-,Generic Component B,PROD-384361183
-,QSFP28 100G Transceiver,PROD-384933134
-,Fan Tray Frame,PROD-387008033
-,DDR5 DIMM 32GB,PROD-398656864
-,Thermal Paste Pack,PROD-406950016
-,Side Panel Set,PROD-409095263
-,Drive Tray Latch,PROD-410431707
-,Switch Mainboard,PROD-416568204
-,Electro‑mechanical Lock,PROD-44164144
-,Brush Strip 1U,PROD-448734868
+/resource/RLM_quantumBit_logo_sq,Switch ASIC,PROD-1000281857
+/resource/RLM_quantumBit_logo_sq,PDU Outlet Whip,PROD-1002254785
+/resource/RLM_quantumBit_logo_sq,Network Fabric,PROD-1008704562
+/resource/RLM_quantumBit_logo_sq,NVMe U.2 SSD 3.84TB,PROD-1038139044
+/resource/RLM_quantumBit_logo_sq,Breaker Set,PROD-1046989797
+/resource/RLM_quantumBit_logo_sq,Charger Module,PROD-1054187061
+/resource/RLM_quantumBit_logo_sq,Bypass Switch,PROD-1065068854
+/resource/RLM_quantumBit_logo_sq,Front Door,PROD-1066573967
+/resource/RLM_quantumBit_logo_sq,Dual PSU & Fan Modules,PROD-1078575407
+/resource/RLM_quantumBit_logo_sq,1U LCD Tray,PROD-111239623
+/resource/RLM_quantumBit_logo_sq,Perforated Doors,PROD-1128940216
+/resource/RLM_quantumBit_logo_sq,Metering Board,PROD-1153963439
+/resource/RLM_quantumBit_logo_sq,Online UPS Module,PROD-1160394163
+/resource/RLM_quantumBit_logo_sq,Outlet Strips,PROD-1167731127
+/resource/RLM_quantumBit_logo_sq,Cable Tie Pack,PROD-1176699896
+/resource/RLM_quantumBit_logo_sq,External Battery Pack,PROD-1202444971
+/resource/RLM_quantumBit_logo_sq,Generic Component A,PROD-1223537488
+/resource/RLM_quantumBit_logo_sq,Generic Component A,PROD-1232611253
+/resource/RLM_quantumBit_logo_sq,Redundant PDUs (A/B),PROD-1234105735
+/resource/RLM_quantumBit_logo_sq,PSU Set (2x),PROD-1247640563
+/resource/RLM_quantumBit_logo_sq,USB Console Cable,PROD-1249967782
+/resource/RLM_quantumBit_logo_sq,Generic Component A,PROD-1289692484
+/resource/RLM_quantumBit_logo_sq,Brush Strips & Baffles,PROD-1298719794
+/resource/RLM_quantumBit_logo_sq,Mgmt Appliance Chassis,PROD-1302496369
+/resource/RLM_quantumBit_logo_sq,24‑bay NVMe JBOF,PROD-1310694555
+/resource/RLM_quantumBit_logo_sq,Rails & Mounting,PROD-1324161108
+/resource/RLM_quantumBit_logo_sq,24‑bay SAS Shelf,PROD-1361853679
+/resource/RLM_quantumBit_logo_sq,Dual IOM (PCIe),PROD-1380327064
+/resource/RLM_quantumBit_logo_sq,Outlet Strips,PROD-1427074895
+/resource/RLM_quantumBit_logo_sq,Generic Component B,PROD-1448587501
+/resource/RLM_quantumBit_logo_sq,128x 100GbE Spine,PROD-1472536093
+/resource/RLM_quantumBit_logo_sq,Compute Cluster,PROD-148835828
+/resource/RLM_quantumBit_logo_sq,Dual IOM (SAS),PROD-1491788725
+/resource/RLM_quantumBit_logo_sq,Rack Screw & Cage Nut (set),PROD-1511371870
+/resource/RLM_quantumBit_logo_sq,RJ‑45 Patch 3m,PROD-1514472773
+/resource/RLM_quantumBit_logo_sq,1U Dual‑CPU Servers,PROD-1517433427
+/resource/RLM_quantumBit_logo_sq,Fan Controller Board,PROD-1533783581
+/resource/RLM_quantumBit_logo_sq,Generic Component B,PROD-1536519560
+/resource/RLM_quantumBit_logo_sq,Generic Component A,PROD-1547313492
+/resource/RLM_quantumBit_logo_sq,42U Uprights/Beams,PROD-1559036382
+/resource/RLM_quantumBit_logo_sq,In‑Rack Fan Trays,PROD-1563124993
+/resource/RLM_quantumBit_logo_sq,Side Panels,PROD-1563341377
+/resource/RLM_quantumBit_logo_sq,Rail Mount Bracket,PROD-1574258426
+/resource/RLM_quantumBit_logo_sq,Generic Component B,PROD-1576658789
+/resource/RLM_quantumBit_logo_sq,Rear Door,PROD-1593141905
+/resource/RLM_quantumBit_logo_sq,PDU‑A (30A/3‑phase),PROD-159863330
+/resource/RLM_quantumBit_logo_sq,Airflow Management (Blanking/Brush),PROD-1603627899
+/resource/RLM_quantumBit_logo_sq,Motherboard (2‑socket),PROD-1607828377
+/resource/RLM_quantumBit_logo_sq,Blanking Panels Set,PROD-1609709205
+/resource/RLM_quantumBit_logo_sq,Dual NIC & BMC,PROD-1616292046
+/resource/RLM_quantumBit_logo_sq,M.2 SSD 512GB (OS),PROD-1673140239
+/resource/RLM_quantumBit_logo_sq,Battery String,PROD-1704766065
+/resource/RLM_quantumBit_logo_sq,Security & Safety,PROD-1744092313
+/resource/RLM_quantumBit_logo_sq,Inverter Module,PROD-1766568232
+/resource/RLM_quantumBit_logo_sq,Heatsink Assembly,PROD-1768772247
+/resource/RLM_quantumBit_logo_sq,Hot‑swap Fan Tray,PROD-1776230868
+/resource/RLM_quantumBit_logo_sq,Inlet Cordset (IEC‑309),PROD-1795624702
+/resource/RLM_quantumBit_logo_sq,Hardware Kit,PROD-1803530052
+/resource/RLM_quantumBit_logo_sq,LCD/KVM‑over‑IP Console,PROD-1809409779
+/resource/RLM_quantumBit_logo_sq,NVMe Backplane Cable,PROD-186801522
+/resource/RLM_quantumBit_logo_sq,2U Dual‑CPU Servers,PROD-1878093187
+/resource/RLM_quantumBit_logo_sq,Breaker Module 30A,PROD-188088183
+/resource/RLM_quantumBit_logo_sq,Cabling & Harnesses,PROD-1897393325
+/resource/RLM_quantumBit_logo_sq,PSU Power Cord (C19),PROD-1917148511
+/resource/RLM_quantumBit_logo_sq,SAS Cable (Mini‑SAS HD),PROD-192607526
+/resource/RLM_quantumBit_logo_sq,Smart Rack Locks & Access,PROD-1939884557
+/resource/RLM_quantumBit_logo_sq,Management & Monitoring,PROD-1941355444
+/resource/RLM_quantumBit_logo_sq,Kensington Lock Anchor,PROD-1956857281
+/resource/RLM_quantumBit_logo_sq,Rear Door,PROD-1977133047
+/resource/RLM_quantumBit_logo_sq,Leveling Foot,PROD-2001013682
+/resource/RLM_quantumBit_logo_sq,Cooling System,PROD-2003786421
+/resource/RLM_quantumBit_logo_sq,Front Door,PROD-2004313496
+/resource/RLM_quantumBit_logo_sq,25/100GbE NIC,PROD-2006854732
+/resource/RLM_quantumBit_logo_sq,Harness,PROD-2035320005
+/resource/RLM_quantumBit_logo_sq,Universal Sliding Rails,PROD-204534203
+/resource/RLM_quantumBit_logo_sq,Motherboard (2‑socket),PROD-2058355083
+/resource/RLM_quantumBit_logo_sq,Generic Component B,PROD-2059567741
+/resource/RLM_quantumBit_logo_sq,Rear Door,PROD-2063526037
+/resource/RLM_quantumBit_logo_sq,Chassis & Backplane (2U),PROD-2108848830
+/resource/RLM_quantumBit_logo_sq,SmartNIC 2x100GbE,PROD-2115474628
+/resource/RLM_quantumBit_logo_sq,Storage Subsystem,PROD-2116311267
+/resource/RLM_quantumBit_logo_sq,Temp Probe Cable,PROD-217263495
+/resource/RLM_quantumBit_logo_sq,Environmental & Fire Sensors,PROD-217937560
+/resource/RLM_quantumBit_logo_sq,Leak Sensor Rope 3m,PROD-275930088
+/resource/RLM_quantumBit_logo_sq,Fan Module Set,PROD-279707357
+/resource/RLM_quantumBit_logo_sq,LC‑LC OM4 Patch 2m,PROD-293991009
+/resource/RLM_quantumBit_logo_sq,Airflow Blanking Panel 1U,PROD-310172567
+/resource/RLM_quantumBit_logo_sq,Doors & Panels,PROD-322363365
+/resource/RLM_quantumBit_logo_sq,SAS HDD 12TB,PROD-337489460
+/resource/RLM_quantumBit_logo_sq,Aggregation/Spine Switches,PROD-356310368
+/resource/RLM_quantumBit_logo_sq,Velcro Strap Pack,PROD-362281425
+/resource/RLM_quantumBit_logo_sq,Generic Component B,PROD-384361183
+/resource/RLM_quantumBit_logo_sq,QSFP28 100G Transceiver,PROD-384933134
+/resource/RLM_quantumBit_logo_sq,Fan Tray Frame,PROD-387008033
+/resource/RLM_quantumBit_logo_sq,DDR5 DIMM 32GB,PROD-398656864
+/resource/RLM_quantumBit_logo_sq,Thermal Paste Pack,PROD-406950016
+/resource/RLM_quantumBit_logo_sq,Side Panel Set,PROD-409095263
+/resource/RLM_quantumBit_logo_sq,Drive Tray Latch,PROD-410431707
+/resource/RLM_quantumBit_logo_sq,Switch Mainboard,PROD-416568204
+/resource/RLM_quantumBit_logo_sq,Electro‑mechanical Lock,PROD-44164144
+/resource/RLM_quantumBit_logo_sq,Brush Strip 1U,PROD-448734868
 /resource/omniserver,QuantumBit - OmniRack DC42 Series,PROD-455868158
-,Cable Management Hook,PROD-460189389
-,Generic Component A,PROD-462218852
-,Copper Harness Kits,PROD-490571009
-,Upright Posts,PROD-498531761
-,SAS/NL‑SAS Disk Shelves,PROD-518530525
-,PDU‑B (30A/3‑phase),PROD-518677116
-,Fiber Harness Kits,PROD-522303157
-,C13‑C14 Power Cord,PROD-536938805
-,Power System,PROD-544673184
-,Metering Board,PROD-545409999
-,Label Sheet (Avery),PROD-550606303
-,Chassis & Backplane (1U),PROD-557364787
-,Side Panel Set,PROD-597705628
-,Cross‑Beams,PROD-604480020
-,Hot‑swap Fan Module,PROD-617615202
-,Frame Assembly,PROD-630065671
-,MCU Board,PROD-630070740
-,ESD Wrist Strap,PROD-65259457
-,RJ‑45 Patch 1m,PROD-657569692
-,Generic Component A,PROD-6630506
-,OOB Mgmt Gateway,PROD-670848332
-,Dual PSU & Fan Modules,PROD-683520187
-,Breaker Set,PROD-689623762
-,Rack UPS & Battery Pack,PROD-697645794
-,KVM Switch Core,PROD-711527748
-,EMI Shield Gasket,PROD-720237395
-,Side Panel Set,PROD-755090702
-,Caster Wheel,PROD-764576755
-,CPU (Sapphire Rapids),PROD-775691186
-,Hot‑swap Fan (x6),PROD-77740090
-,Top‑of‑Rack Switches,PROD-781554326
-,MPO‑12 OM4 Trunk 10m,PROD-784779396
-,Rack Enclosure (42U),PROD-789058761
-,Vertical Cable Managers,PROD-795190764
-,Leveling Feet & Casters,PROD-799314932
-,Generic Component B,PROD-828674135
-,Documentation Packet,PROD-84107093
-,Smoke Detector Head,PROD-844684431
-,Bypass Module,PROD-860612882
-,32x 100GbE Switch (TOR),PROD-86201530
-,SFP28 25G Transceiver,PROD-890173745
-,Door Lock Key Set,PROD-915112779
-,Fan Screws (set),PROD-942049373
-,Front Door,PROD-950775878
-,PCIe Riser,PROD-9614201
-,Grounding Kit,PROD-961586782
-,QSFP28 DAC 1m,PROD-970871438
-,Rack Stabilizer Bracket,PROD-988309468
-,NVMe JBOF Enclosures,PROD-990828007
+/resource/RLM_quantumBit_logo_sq,Cable Management Hook,PROD-460189389
+/resource/RLM_quantumBit_logo_sq,Generic Component A,PROD-462218852
+/resource/RLM_quantumBit_logo_sq,Copper Harness Kits,PROD-490571009
+/resource/RLM_quantumBit_logo_sq,Upright Posts,PROD-498531761
+/resource/RLM_quantumBit_logo_sq,SAS/NL‑SAS Disk Shelves,PROD-518530525
+/resource/RLM_quantumBit_logo_sq,PDU‑B (30A/3‑phase),PROD-518677116
+/resource/RLM_quantumBit_logo_sq,Fiber Harness Kits,PROD-522303157
+/resource/RLM_quantumBit_logo_sq,C13‑C14 Power Cord,PROD-536938805
+/resource/RLM_quantumBit_logo_sq,Power System,PROD-544673184
+/resource/RLM_quantumBit_logo_sq,Metering Board,PROD-545409999
+/resource/RLM_quantumBit_logo_sq,Label Sheet (Avery),PROD-550606303
+/resource/RLM_quantumBit_logo_sq,Chassis & Backplane (1U),PROD-557364787
+/resource/RLM_quantumBit_logo_sq,Side Panel Set,PROD-597705628
+/resource/RLM_quantumBit_logo_sq,Cross‑Beams,PROD-604480020
+/resource/RLM_quantumBit_logo_sq,Hot‑swap Fan Module,PROD-617615202
+/resource/RLM_quantumBit_logo_sq,Frame Assembly,PROD-630065671
+/resource/RLM_quantumBit_logo_sq,MCU Board,PROD-630070740
+/resource/RLM_quantumBit_logo_sq,ESD Wrist Strap,PROD-65259457
+/resource/RLM_quantumBit_logo_sq,RJ‑45 Patch 1m,PROD-657569692
+/resource/RLM_quantumBit_logo_sq,Generic Component A,PROD-6630506
+/resource/RLM_quantumBit_logo_sq,OOB Mgmt Gateway,PROD-670848332
+/resource/RLM_quantumBit_logo_sq,Dual PSU & Fan Modules,PROD-683520187
+/resource/RLM_quantumBit_logo_sq,Breaker Set,PROD-689623762
+/resource/RLM_quantumBit_logo_sq,Rack UPS & Battery Pack,PROD-697645794
+/resource/RLM_quantumBit_logo_sq,KVM Switch Core,PROD-711527748
+/resource/RLM_quantumBit_logo_sq,EMI Shield Gasket,PROD-720237395
+/resource/RLM_quantumBit_logo_sq,Side Panel Set,PROD-755090702
+/resource/RLM_quantumBit_logo_sq,Caster Wheel,PROD-764576755
+/resource/RLM_quantumBit_logo_sq,CPU (Sapphire Rapids),PROD-775691186
+/resource/RLM_quantumBit_logo_sq,Hot‑swap Fan (x6),PROD-77740090
+/resource/RLM_quantumBit_logo_sq,Top‑of‑Rack Switches,PROD-781554326
+/resource/RLM_quantumBit_logo_sq,MPO‑12 OM4 Trunk 10m,PROD-784779396
+/resource/RLM_quantumBit_logo_sq,Rack Enclosure (42U),PROD-789058761
+/resource/RLM_quantumBit_logo_sq,Vertical Cable Managers,PROD-795190764
+/resource/RLM_quantumBit_logo_sq,Leveling Feet & Casters,PROD-799314932
+/resource/RLM_quantumBit_logo_sq,Generic Component B,PROD-828674135
+/resource/RLM_quantumBit_logo_sq,Documentation Packet,PROD-84107093
+/resource/RLM_quantumBit_logo_sq,Smoke Detector Head,PROD-844684431
+/resource/RLM_quantumBit_logo_sq,Bypass Module,PROD-860612882
+/resource/RLM_quantumBit_logo_sq,32x 100GbE Switch (TOR),PROD-86201530
+/resource/RLM_quantumBit_logo_sq,SFP28 25G Transceiver,PROD-890173745
+/resource/RLM_quantumBit_logo_sq,Door Lock Key Set,PROD-915112779
+/resource/RLM_quantumBit_logo_sq,Fan Screws (set),PROD-942049373
+/resource/RLM_quantumBit_logo_sq,Front Door,PROD-950775878
+/resource/RLM_quantumBit_logo_sq,PCIe Riser,PROD-9614201
+/resource/RLM_quantumBit_logo_sq,Grounding Kit,PROD-961586782
+/resource/RLM_quantumBit_logo_sq,QSFP28 DAC 1m,PROD-970871438
+/resource/RLM_quantumBit_logo_sq,Rack Stabilizer Bracket,PROD-988309468
+/resource/RLM_quantumBit_logo_sq,NVMe JBOF Enclosures,PROD-990828007
 ,USD Resource Definition Product,RES-USD-DEF
 /resource/subscription,QuantumBit Subscription,TEST-SUB

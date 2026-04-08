@@ -324,6 +324,7 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
                     branchExpanded: expanded,
                     toggleLabel: hasChildren ? (expanded ? '\u2212' : '+') : '',
                     toggleTitle: hasChildren ? (expanded ? 'Collapse' : 'Expand') : '',
+                    ariaExpanded: hasChildren ? String(expanded) : null,
                     folderIcon: hasChildren ? (expanded ? 'utility:open_folder' : 'utility:folder') : 'utility:file',
                     iconAlt: hasChildren ? (expanded ? 'Expanded folder' : 'Folder') : 'File',
                     guidePipes,

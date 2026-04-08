@@ -87,6 +87,8 @@
                                                 class="tree-toggle"
                                                 data-path={row.path}
                                                 title={row.toggleTitle}
+                                                aria-label={row.toggleTitle}
+                                                aria-expanded={row.ariaExpanded}
                                                 onclick={handleToggleExpand}
                                             >
                                                 {row.toggleLabel}
