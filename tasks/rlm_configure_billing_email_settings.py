@@ -35,7 +35,9 @@ class ConfigureBillingEmailSettings(BaseSalesforceTask):
 
     Navigates to /lightning/setup/BillingSettings/home and cycles the
     "Configure Email Delivery Settings" toggle off→on to trigger auto-creation
-    of the default invoice email template. Skips if the template already exists.
+    of the default invoice email template. Idempotent: the Robot toggle keywords
+    check current toggle state before clicking, and post-cycle polling verifies
+    the Default Invoice Email Template field is populated.
     """
 
     task_options = {
