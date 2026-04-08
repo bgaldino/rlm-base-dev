@@ -36,9 +36,13 @@ Configure Core Pricing Setup
     ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
     ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
     ...        })(document, 0);
+    ...        var pillValues = [];
     ...        for (var i=0; i<pills.length; i++) {
-    ...            if (pills[i].textContent.trim() === targetValue) return targetValue;
+    ...            var pillValue = pills[i].textContent.trim();
+    ...            pillValues.push(pillValue);
+    ...            if (pillValue === targetValue) return targetValue;
     ...        }
+    ...        if (pillValues.length > 0) return pillValues.join(', ');
     ...        return 'not_set';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${PRICING_PROCEDURE}
@@ -90,8 +94,9 @@ Set Core Pricing Procedure
 _Open Pricing Procedure Combobox
     [Documentation]    Runs the state-check JS for Set Core Pricing Procedure.
     ...    Returns 'opened' (combobox clicked open), 'already_set' (correct pill present),
-    ...    or a wrong_value:... string (wrong pill). Fails with page_not_ready when neither
-    ...    the combobox nor any pill is found yet — triggering Wait Until Keyword Succeeds.
+    ...    or a wrong_value:... string (wrong pill). Fails with page_not_ready when the
+    ...    combobox or its inner shadow elements are not yet rendered, or when no pill is
+    ...    found — triggering Wait Until Keyword Succeeds to retry.
     [Arguments]    ${target_value}
     ${result}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
@@ -99,9 +104,9 @@ _Open Pricing Procedure Combobox
     ...        var lc = findEl(document, 'lightning-combobox.procedure-combobox', 0);
     ...        if (lc) {
     ...            var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
-    ...            if (!lbc) return 'lbc_not_found';
+    ...            if (!lbc) return 'page_not_ready';
     ...            var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
-    ...            if (!btn) return 'btn_not_found';
+    ...            if (!btn) return 'page_not_ready';
     ...            btn.click();
     ...            return 'opened';
     ...        }

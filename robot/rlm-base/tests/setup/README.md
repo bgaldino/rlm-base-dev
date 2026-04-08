@@ -1,6 +1,6 @@
 # Setup Automation (Robot Framework)
 
-Robot Framework tests that configure Salesforce Revenue Settings page options that cannot be set via Metadata API. These include toggles, picklist selections, and text inputs on the Revenue Settings Lightning Setup page.
+Robot Framework tests that configure Salesforce Setup page options that cannot be set via Metadata API. These include toggles, picklist selections, and text inputs across multiple Lightning Setup pages (Revenue Settings, General Settings, Pricing Setup, and more).
 
 ## Test Suites
 
