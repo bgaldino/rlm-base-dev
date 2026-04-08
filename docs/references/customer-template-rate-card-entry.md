@@ -11,11 +11,13 @@ Each **`RateCardEntry`** row is keyed in data loads by **product SKU + rate card
 | **Rate card** | `RateCard.Name` + **`RateCard.Type`** (`Base`, `Tier`, `Attribute`, …) | Parent scope and card-level **EffectiveFrom** / **EffectiveTo**. |
 | **Sellable product** | `Product.StockKeepingUnit` | Same **Pack** SKUs wired via **`ProductUsageResource`** to **`UsageResource`** in rating. |
 | **Usage resource** | `UsageResource.Code` | Must match active **`UsageResource`** (and PUR) from the rating plan. |
-| **Selling model** | `ProductSellingModel.Name` | Must exist in the org (e.g. **One-Time**, **Term Annual**); aligns quote/subscription behavior. |
+| **Selling model** | `ProductSellingModel.Name` (and org **SellingModelType** must match the named PSM) | **Must match the same `ProductSellingModel` as the product’s Standard `PricebookEntry`** (same SKU as in `scripts/customer-demo/customer-pricebook-entries.csv`). If the PBE uses **Term Monthly** / **TermDefined** for **`SF-USG-*`**, every **`RateCardEntry`** for those products must use that PSM — not **One-Time** — or quotes and rating will disagree. |
 | **Consumption UOM** | **`DefaultUnitOfMeasure`** + **`DefaultUnitOfMeasureClass`** | What usage is measured in for this line (e.g. TB, GB, credits). |
 | **Rate (money) UOM** | **`RateUnitOfMeasure`** + **`RateUnitOfMeasureClass`** | Currency or token UOM for the **Rate** column (often **USD** / **Currency**). |
 
 **Base rate cards:** the **list price semantics** for that row live **on the RateCardEntry**: **`Rate`**, **`RateUnitOfMeasure`**, and **`RateNegotiation`** (e.g. **Negotiable**). The Snowflake **`customer-template-rates`** **`RateCardEntry.csv`** rows are all **Base** examples.
+
+**Product selling model alignment (critical):** Before saving **`RateCardEntry.csv`**, confirm **`ProductSellingModel.Name`** (and the corresponding **`SellingModelType`** in the org) matches **`PSMName`** / **`PSMSellingModelType`** for that **SKU** in **`customer-pricebook-entries.csv`**. Usage Pack SKUs (**`SF-USG-*`**) in the template use **Term Monthly** (**TermDefined**), not One-Time.
 
 **Tier (and similar non-base) rate cards:** the **RateCardEntry** still defines **which product × resource × rate UOM × selling model** the tier ladder applies to, but the **stepped prices** are usually expressed on **child** records — in this repo, **`RateAdjustmentByTier`** (adjustment type, value, **LowerBound** / **UpperBound**, effective dates). Tier examples often leave **`Rate`** empty on the **Tier** **`RateCardEntry`** and supply **`Override`** / **`Percentage`** rows per band in **`RateAdjustmentByTier.csv`**. See **`datasets/sfdmu/qb/en-US/qb-rates/README.md`** (“Tier Rate Card Entries” and “Rate Adjustments by Tier”).
 
@@ -34,12 +36,15 @@ Each **`RateCardEntry`** row is keyed in data loads by **product SKU + rate card
 
 | Area | **customer-template-rates** | **qb-rates** |
 |------|------------------------------|--------------|
-| Rate card type | **Base** only (**CD-DEMO Base Rate Card**) | **Base**, **Tier**, **Attribute** |
-| Child adjustments | None | **`RateAdjustmentByTier`** |
-| Idempotency | Scoped delete task + Insert RCE | **Insert** + **`deleteOldData: true`** on RCE/RABT/PBRC (see qb README) |
+| Rate card type | **Base** (**CD-DEMO Base Rate Card**) + **Tier** (**CD-DEMO Tier Rate Card**) | **Base**, **Tier**, **Attribute** |
+| Child adjustments | **`RateAdjustmentByTier`** on Tier card only | **`RateAdjustmentByTier`** |
+| Idempotency | Scoped delete task + Insert RCE/RABT (no **`deleteOldData`**) | **Insert** + **`deleteOldData: true`** on RCE/RABT/PBRC (see qb README) |
+
+Tier lessons learned: [`customer-template-tier-rate-card-lessons-learned.md`](./customer-template-tier-rate-card-lessons-learned.md).
 
 ## See also
 
+- `docs/references/customer-template-tier-rate-card-lessons-learned.md`
 - `datasets/sfdmu/customer-template/en-US/customer-template-rates/README.md`
 - `docs/references/customer-template-usage-resource.md` — **`UsageResource`** and **`ProductUsageResource`**
 - `datasets/sfdmu/qb/en-US/qb-rates/README.md` — full matrix, RABT, activation order

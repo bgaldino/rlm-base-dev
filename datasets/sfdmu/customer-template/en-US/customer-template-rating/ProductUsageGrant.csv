@@ -1,0 +1,4 @@
+DrawdownOrder,EffectiveEndDate,EffectiveStartDate,Label,OverageChargeable,ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource.Code,Quantity,RenewalPolicy.Code,RolloverPolicy.Code,Status,Type,UnitOfMeasure.UnitCode,UnitOfMeasure.Name,UnitOfMeasureClass.Code,UnitOfMeasureClass.Name,UsageDefinitionProduct.StockKeepingUnit,ValidityPeriodTerm,ValidityPeriodUnit
+ExpiringFirst,,2024-01-01T20:00:00.000+0000,,Yes,SF-USG-STORAGE,SF-UR-STORAGE,5,SF-DEMO-USG-RENEW,SF-DEMO-USG-ROLL,Draft,Grant,TB,Terabyte,DATAVOL,Data Volume,SF-BLNG-STORAGE,1,Month
+ExpiringFirst,,2024-01-01T20:00:00.000+0000,,Yes,SF-USG-EGRESS,SF-UR-EGRESS,0,SF-DEMO-USG-RENEW,SF-DEMO-USG-ROLL,Draft,Grant,GB,Gigabyte,DATAVOL,Data Volume,SF-BLNG-EGRESS,1,Month
+ExpiringFirst,,2024-01-01T20:00:00.000+0000,,Yes,SF-USG-COMPUTE,SF-UR-COMPUTE,0,SF-DEMO-USG-RENEW,SF-DEMO-USG-ROLL,Draft,Grant,CRD,Snowflake Credit,SNFCRED,Snowflake Credits,SF-BLNG-COMPUTE,1,Month

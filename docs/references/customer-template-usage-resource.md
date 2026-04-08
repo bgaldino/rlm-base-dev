@@ -37,7 +37,9 @@ After insert, **`activate_rating_records`** (and customer-template pass 2) typic
 
 **UI:** The product record experience includes a **`ProductUsageResources`** related list (`RLM_Product_Record_Page`) so admins can see **which UsageResources** are tied to the SKU.
 
-**Downstream:** **`RateCardEntry`** in **`customer-template-rates`** prices in the context of **sellable product × UsageResource** (and UOM), which assumes PURs exist and are activatable. **`ProductUsageResourcePolicy`** (child of PUR) refines policy per PUR; the **tier-1** customer plan does **not** load PURP — add **`qb-rating`-style** data if guided selling or line-level policy requires it.
+**Downstream:** **`RateCardEntry`** in **`customer-template-rates`** prices in the context of **sellable product × UsageResource** (and UOM), which assumes PURs exist and are activatable. **`RateCardEntry.ProductSellingModel`** must match the **Standard PricebookEntry** **`ProductSellingModel`** for that product SKU (see **`customer-pricebook-entries.csv`**).
+
+**`ProductUsageResourcePolicy`** (**PURP**, one per PUR in this template) sets **rating frequency** (**Monthly**), **usage aggregation** (**`UsageAggregationPolicy.Code`** — same **Code** as **`UsageResourceBillingPolicy`**: **`monthlypeak`** for storage, **`monthlytotal`** for egress/compute), and **overage** (**Default Usage Overage Policy**). **`ProductUsageGrant`** (**PUG**) defines **included quantity**, **renewal/rollover** (**`SF-DEMO-USG-RENEW` / `SF-DEMO-USG-ROLL`**), **Grant** rows tied to **`SF-BLNG-*`** usage-definition products — patterned on **QuantumBit `QB-DB`** in **`qb-rating`**. **`UsagePrdGrantBindingPolicy`** (**Self** binding) is included per **`SF-USG-*`** Pack. The plan still does **not** load top-level **`UsageResourcePolicy`** (UR-level); use **`qb-rating`** for full QB parity.
 
 **SFDMU:** `externalId` is **`Product.StockKeepingUnit;UsageResource.Code`** with a matching **`$$Product.StockKeepingUnit$UsageResource.Code`** column. This plan uses **`operation: Insert`** for PUR — run **`delete_customer_demo_rating_data`** before each reload to avoid duplicate Draft PURs. QuantumBit **`qb-rating`** uses **`Insert` + `deleteOldData: true`** instead for a full replace pattern (see `datasets/sfdmu/qb/en-US/qb-rating/README.md`).
 
@@ -55,6 +57,8 @@ flowchart LR
     URBP[UsageResourceBillingPolicy]
     UR[UsageResource]
     PUR[ProductUsageResource]
+    PURP[ProductUsageResourcePolicy]
+    PUG[ProductUsageGrant]
   end
   UMC --> UOM
   UOM --> UR
@@ -63,13 +67,15 @@ flowchart LR
   URBP --> UR
   Psell --> PUR
   UR --> PUR
+  PUR --> PURP
+  PUR --> PUG
 ```
 
 1. **`UnitOfMeasureClass` + `UnitOfMeasure`** (PCM) — must exist **before** `UsageResource`. Each **`UsageResource.UnitOfMeasureClass`** must match the class of **`DefaultUnitOfMeasure`**.  
 2. **`Product2` usage-definition rows** (`SF-BLNG-*`) — loaded in PCM; **`UsageResource.UsageDefinitionProduct`** points at them.  
 3. **`UsageResourceBillingPolicy`** — define or reuse org-standard policies (see below).  
 4. **`UsageResource`** — one row per meter (`Category = Usage`, codes e.g. `SF-UR-*`).  
-5. **`Product2` sellable Pack rows** (`SF-USG-*`) — `UsageModelType` set in rating pass; **`ProductUsageResource`** is the **explicit link** from each Pack SKU to its **`UsageResource`** (see **ProductUsageResource** section above).  
+5. **`Product2` sellable usage rows** (`SF-USG-*`) — in **`customer-template-rating` / `customer-template-rates`**, **`UsageModelType`** must be **`Anchor`** (QuantumBit **`QB-DB`** pattern). **`Pack`** is not valid for **`ProductUsageResourcePolicy`**: the API returns *“pack usage model type”* and **PURP** cannot be saved, which breaks quote persist (**`PlaceSalesTransactionPersistException`**, etc.). **`ProductUsageResource`** is still the link from each sellable SKU to its **`UsageResource`**.  
 6. **`RateCardEntry`** (rates plan) — prices **sellable product × UsageResource × UOM** (often **currency per default UOM**); entries assume PUR rows exist for that product + UR pair. **Base** cards set **`Rate`**, **`RateUnitOfMeasure`**, and **`RateNegotiation`** on the entry; **Tier** cards usually add **`RateAdjustmentByTier`**. See **`docs/references/customer-template-rate-card-entry.md`**.
 
 ## UsageResourceBillingPolicy: reuse vs customer-specific
@@ -86,7 +92,7 @@ flowchart LR
 ## “Usage resource component” in the UI
 
 - **Record experience:** **`RLM_Usage_Resource_Record_Page`** (`templates/flexipages/standalone/billing/`) is the **UsageResource** flexipage.  
-- **Related policies:** The layout includes a **`UsageResourcePolicy`** related list (overage, rating frequency, aggregation at UR level). The **tier-1 customer demo** does **not** load **`UsageResourcePolicy`** or **`ProductUsageResourcePolicy`**; full QuantumBit **`qb-rating`** does load **`ProductUsageResourcePolicy`** (per-**PUR** aggregation/frequency/overage). If guided selling or admin UIs expect those children, add a **phase-2** plan or document the gap.  
+- **Related policies:** The layout includes a **`UsageResourcePolicy`** related list at UR level; the customer template does **not** load **`UsageResourcePolicy`** records. **`ProductUsageResourcePolicy`** and **`ProductUsageGrant`** **are** loaded per PUR (see **`customer-template-rating`** CSVs), matching the **Related** tab on PUR records.  
 - **Upload / testing:** Utilities such as **`rlmUsageUploader`** resolve **UsageResource** and optional **UOM** options from live org data.
 
 ## Customer-template CSV checklist (`customer-template-rating`)
@@ -95,8 +101,8 @@ flowchart LR
 
 - **`Category`** → **`Usage`**.  
 - **`Code`** → stable external id (e.g. `SF-UR-STORAGE`).  
-- **`DefaultUnitOfMeasure.UnitCode`** → must exist under **`UnitOfMeasureClass.Code`** (PCM).  
-- **`UnitOfMeasureClass.Code`** → e.g. `DATAVOL`, `SNFCRED`.  
+- **`DefaultUnitOfMeasure.UnitCode`** and **`DefaultUnitOfMeasure.Name`** → must match PCM **`UnitOfMeasure`** (e.g. **TB** / **Terabyte**); include **Name** so SFDMU resolves the lookup (Code/UnitCode alone can yield missing-parent errors in v5).
+- **`UnitOfMeasureClass.Code`** and **`UnitOfMeasureClass.Name`** → e.g. `DATAVOL` / **Data Volume**, `SNFCRED` / **Snowflake Credits** (must match PCM **`UnitOfMeasureClass`** rows).
 - **`UsageDefinitionProduct.StockKeepingUnit`** → e.g. `SF-BLNG-STORAGE` (not the Pack SKU).  
 - **`UsageResourceBillingPolicy.Code`** → e.g. **`monthlypeak`** (storage) or **`monthlytotal`** (egress/compute).  
 - **`TokenResource.Code`** → leave blank for non-token meters.
@@ -113,14 +119,30 @@ flowchart LR
 - **`Status`** — **`Draft`** until **`activate_rating_records`** runs.
 - **`IsOptional`**, **`TokenResource.Code`**, **effective dates** — as in the **ProductUsageResource** section above.
 
+**`ProductUsageResourcePolicy.csv`** (pattern: **`QB-DB`** + **`UR-DATASTORAGE` / `UR-CPUTIME`** in **`qb-rating`**)
+
+- One row per **Pack × `UsageResource`** PUR; **`UsageAggregationPolicy.Code`** must match an existing **`UsageResourceBillingPolicy.Code`** (**`monthlypeak`** / **`monthlytotal`**).
+- **`RatingFrequencyPolicy.RatingPeriod`** → **Monthly** (global row in **`RatingFrequencyPolicy.csv`**).
+- **`UsageOveragePolicy.Name`** → **Default Usage Overage Policy** (Upsert in **`UsageOveragePolicy.csv`**).
+
+**`ProductUsageGrant.csv`**
+
+- **`Type`** → **Grant** (included entitlement); **`UsageDefinitionProduct.StockKeepingUnit`** → **`SF-BLNG-*`** (not the sellable **`SF-USG-*`** SKU).
+- **`Quantity`** — template uses **5** TB included for storage, **0** for egress/compute (adjust for demo).
+- **`RenewalPolicy.Code`** / **`RolloverPolicy.Code`** → **`SF-DEMO-USG-RENEW`** / **`SF-DEMO-USG-ROLL`** (customer-specific codes; Upsert in **`UsageGrantRenewalPolicy.csv`** / **`UsageGrantRolloverPolicy.csv`**). UI labels: **Refresh** / **Rollover** policies.
+- **`UnitOfMeasureClass.Name`** and **`UnitOfMeasure.Name`** — include with **Code** / **UnitCode** so SFDMU v5 resolves **`UnitOfMeasureClassId`** / **`UnitOfMeasureId`** (otherwise **`reports/MissingParentRecordsReport.csv`** lists **`ProductUsageGrant`** and grants do not load).
+
+**`UsagePrdGrantBindingPolicy.csv`** — **Self** binding per **`SF-USG-*`** (same shape as **`QuantumBit Database`** row for **`QB-DB`**).
+
 ## Validation
 
 - Query org: `UsageResource` where `Code` starts with customer prefix; confirm **`Category`**, **`DefaultUnitOfMeasure`**, **`UnitOfMeasureClass`**, **`UsageDefinitionProduct`**, **`UsageResourceBillingPolicy`**.  
 - Open **Usage Resource** record in app — Details + **UsageDefinitionAndPolicies** section should be populated.  
-- If **Related** policy lists are empty, tier-1 demo is still valid; add **ProductUsageResourcePolicy** / **UsageResourcePolicy** when the product team requires them.
+- On **Product Usage Resource**, confirm **Product Usage Resource Policies** and **Product Usage Grants** related lists (loaded by **`ProductUsageResourcePolicy.csv`** / **`ProductUsageGrant.csv`**). If **`delete_customer_demo_rating_data`** fails on **`UsageResource`**, run **`delete_customer_demo_rates_data`** first, then **`customer_demo_purge_records`** (clears **QLIURG** / order grants on **`SF-UR-*`**) or adjust quote lines.
 
 ## See also
 
+- `docs/guides/customer-demo-usage-metered-products.md` — **durable** patterns for usage-metered demos (any customer; example **`SF-*`** plans replaceable)  
 - `datasets/sfdmu/customer-template/en-US/customer-template-rating/README.md`  
 - `docs/references/customer-template-rate-card-entry.md` — **RateCardEntry** (base vs tiered, effective dates)  
 - `datasets/sfdmu/qb/en-US/qb-rating/` (full rating shape)  

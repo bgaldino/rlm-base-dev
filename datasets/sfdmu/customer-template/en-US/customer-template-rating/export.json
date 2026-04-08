@@ -1,5 +1,5 @@
 {
-  "$comment_plan": "Snowflake customer demo usage: SF-USG-* (Pack) + SF-UR-* (Category=Usage, monthlypeak/monthlytotal) + PURs. See docs/references/customer-template-usage-resource.md. Run delete_customer_demo_rating_data before each load for idempotency.",
+  "$comment_plan": "Snowflake customer demo usage: SF-USG-* + SF-UR-* + PUR + PURP + PUG + grant policies. UsageAggregationPolicy.Code on PURP matches UsageResourceBillingPolicy.Code (monthlypeak/monthlytotal). Run delete_customer_demo_rating_data before each load. See docs/references/customer-template-usage-resource.md.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,
@@ -14,9 +14,27 @@
           "excluded": false
         },
         {
-          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, UsageResourceBillingPolicyId, UsageResourceBillingPolicy.Code FROM UsageResource ORDER BY Code ASC",
+          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, DefaultUnitOfMeasure.Name, UsageResourceBillingPolicyId, UsageResourceBillingPolicy.Code FROM UsageResource ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, Name, IsRenewalAllowed, RenewalFrequency, RenewalFrequencyUnit, Status FROM UsageGrantRenewalPolicy ORDER BY Code ASC",
+          "operation": "Upsert",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ShouldAllowRolloverExpiry, Code, MaximumRolloverCount, Name, IsRolloverAllowed, Status FROM UsageGrantRolloverPolicy ORDER BY Code ASC",
+          "operation": "Upsert",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, OverageChargeable FROM UsageOveragePolicy ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
           "excluded": false
         },
         {
@@ -26,9 +44,36 @@
           "excluded": false
         },
         {
+          "$comment": "Insert without deleteOldData \u2014 delete_customer_demo_rating_data removes demo PUR/PURP/PUG first.",
           "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UsageResourceId, UsageResource.Code FROM ProductUsageResource ORDER BY Product.StockKeepingUnit ASC, UsageResource.Code ASC",
           "operation": "Insert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Product2.StockKeepingUnit, Name FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name;Product2.StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ProductId, Product.StockKeepingUnit, RatingDelayDuration, RatingPeriod, UsageResourceId, UsageResource.Code FROM RatingFrequencyPolicy ORDER BY RatingPeriod ASC",
+          "operation": "Upsert",
+          "externalId": "RatingPeriod",
+          "excluded": false
+        },
+        {
+          "$comment": "PURP: UsageAggregationPolicy.Code resolves to UsageResourceBillingPolicy (same Code). Insert after scoped Apex delete clears prior demo PURP.",
+          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
+          "operation": "Insert",
+          "externalId": "ProductUsageResourceId",
+          "excluded": false
+        },
+        {
+          "$comment": "PUG: mirrors qb-rating QB-DB grants (Grant type, monthly validity). Scoped delete removes prior demo PUGs.",
+          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureClass.Name, UnitOfMeasureId, UnitOfMeasure.UnitCode, UnitOfMeasure.Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
+          "operation": "Insert",
+          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
           "excluded": false
         }
       ]

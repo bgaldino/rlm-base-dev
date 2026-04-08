@@ -93,48 +93,111 @@ class RecreateCustomerDemoPricebookViaApi(BaseSalesforceTask):
                 )
             psm_by_key[f"{name}::{model_type}"] = recs[0]["Id"]
 
+        pb_esc = _escape_soql(standard_pricebook_id)
+
         if delete_first:
             product_ids = sorted(set(product_by_sku.values()))
             id_list = ",".join([f"'{_escape_soql(pid)}'" for pid in product_ids])
             existing = self._query(
                 "SELECT Id FROM PricebookEntry "
-                f"WHERE Pricebook2Id = '{standard_pricebook_id}' AND Product2Id IN ({id_list})"
+                f"WHERE Pricebook2Id = '{pb_esc}' AND Product2Id IN ({id_list})"
             )
             existing_ids = [r["Id"] for r in existing]
             if existing_ids:
                 self.logger.info(f"Deleting {len(existing_ids)} existing PricebookEntry rows.")
                 for i in range(0, len(existing_ids), 200):
                     batch = existing_ids[i : i + 200]
-                    self._api(
+                    del_resp = self._api(
                         "DELETE",
                         "composite/sobjects",
                         params={"ids": ",".join(batch), "allOrNone": "false"},
                     )
+                    if isinstance(del_resp, list):
+                        bad = [r for r in del_resp if not r.get("success")]
+                        if bad:
+                            # Quotes / CPQ often block PBE delete; upsert (PATCH) below still applies.
+                            self.logger.warning(
+                                "Some PricebookEntry deletes failed (e.g. referenced on quote lines); "
+                                "remaining rows will be updated in place. Detail: %s",
+                                json.dumps(bad[:5], indent=2),
+                            )
 
         create_records: List[Dict] = []
+        updated = 0
         for row in rows:
             psm_id = psm_by_key[f"{row['PSMName']}::{row['PSMSellingModelType']}"]
             is_active_raw = str(row.get("IsActive", "true")).strip().lower()
             is_active = is_active_raw not in {"0", "false", "no"}
-            create_records.append(
-                {
-                    "attributes": {"type": "PricebookEntry"},
-                    "Pricebook2Id": standard_pricebook_id,
-                    "Product2Id": product_by_sku[row["SKU"]],
-                    "ProductSellingModelId": psm_id,
-                    "UnitPrice": float(row["UnitPrice"]),
-                    "CurrencyIsoCode": row["CurrencyIsoCode"],
-                    "IsActive": is_active,
-                }
+            product_id = product_by_sku[row["SKU"]]
+            currency = row["CurrencyIsoCode"]
+            cur_esc = _escape_soql(currency)
+            pid_esc = _escape_soql(product_id)
+            match = self._query(
+                "SELECT Id FROM PricebookEntry "
+                f"WHERE Pricebook2Id = '{pb_esc}' AND Product2Id = '{pid_esc}' "
+                f"AND CurrencyIsoCode = '{cur_esc}' LIMIT 1"
             )
+            payload = {
+                "ProductSellingModelId": psm_id,
+                "UnitPrice": float(row["UnitPrice"]),
+                "IsActive": is_active,
+            }
+            if match:
+                entry_id = match[0]["Id"]
+                try:
+                    self._api("PATCH", f"sobjects/PricebookEntry/{entry_id}", body=payload)
+                except TaskOptionsError as err:
+                    err_text = str(err)
+                    if (
+                        "ProductSellingModelId" not in err_text
+                        or "INVALID_FIELD_FOR_INSERT_UPDATE" not in err_text
+                    ):
+                        raise
+                    slim = {k: v for k, v in payload.items() if k != "ProductSellingModelId"}
+                    self._api("PATCH", f"sobjects/PricebookEntry/{entry_id}", body=slim)
+                    current = self._query(
+                        "SELECT ProductSellingModelId FROM PricebookEntry "
+                        f"WHERE Id = '{_escape_soql(entry_id)}' LIMIT 1"
+                    )
+                    current_psm = (current[0].get("ProductSellingModelId") if current else None) or ""
+                    if current_psm != psm_id:
+                        raise TaskOptionsError(
+                            "PricebookEntry exists but ProductSellingModelId could not be updated "
+                            f"(FLS/profile). Expected PSM Id {psm_id}, org has {current_psm or 'blank'}. "
+                            "Grant edit on PricebookEntry.ProductSellingModelId or remove quote lines "
+                            "blocking delete, then re-run."
+                        )
+                    self.logger.warning(
+                        "PricebookEntry %s: ProductSellingModelId not writable; "
+                        "existing value already matches CSV.",
+                        entry_id,
+                    )
+                updated += 1
+            else:
+                create_records.append(
+                    {
+                        "attributes": {"type": "PricebookEntry"},
+                        "Pricebook2Id": standard_pricebook_id,
+                        "Product2Id": product_id,
+                        "ProductSellingModelId": psm_id,
+                        "UnitPrice": float(row["UnitPrice"]),
+                        "CurrencyIsoCode": currency,
+                        "IsActive": is_active,
+                    }
+                )
 
-        self.logger.info(f"Creating {len(create_records)} PricebookEntry rows via API.")
-        for i in range(0, len(create_records), 200):
-            batch = create_records[i : i + 200]
-            result = self._api("POST", "composite/sobjects", {"allOrNone": False, "records": batch})
-            failures = [r for r in result if not r.get("success")]
-            if failures:
-                raise TaskOptionsError(f"Failed creating PricebookEntry batch: {json.dumps(failures, indent=2)}")
+        if updated:
+            self.logger.info(f"Updated {updated} existing PricebookEntry row(s).")
+        if create_records:
+            self.logger.info(f"Creating {len(create_records)} PricebookEntry row(s) via API.")
+            for i in range(0, len(create_records), 200):
+                batch = create_records[i : i + 200]
+                result = self._api("POST", "composite/sobjects", {"allOrNone": False, "records": batch})
+                failures = [r for r in result if not r.get("success")]
+                if failures:
+                    raise TaskOptionsError(
+                        f"Failed creating PricebookEntry batch: {json.dumps(failures, indent=2)}"
+                    )
 
         self.logger.info("Pricebook recreation complete.")
 

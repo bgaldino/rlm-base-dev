@@ -1,8 +1,46 @@
-// Customer demo hard reset template.
-// Order follows onboarding runbook:
-// 1) ProductCategoryProduct
-// 2) PricebookEntry for target SKUs (prefer API script for recreation)
-// 3) ProductSellingModelOption
-// 4) Product2
+// Customer demo hard reset — pre-catalog cleanup so reload flows do not fail on FKs.
+// Runs as step 1 of prepare_customer_demo_catalog (customer_demo_purge_records).
+//
+// 1) Quote line usage resource grants (QuotLineItmUseRsrcGrant) on demo meters (SF-UR-*)
+//    — otherwise delete_customer_demo_rating_data cannot delete UsageResource (QLIURG block).
+// 2) Order item usage resource grants on the same meters (if any).
+//
+// Does not delete Product2, PCM rows, or quotes themselves; those are refreshed by SFDMU/API
+// in later flow steps. For a full SKU removal from the org, use a dedicated data-delete plan.
 
-System.debug('customer-purge-and-reimport.apex template: add customer-specific purge logic.');
+final Set<String> demoUsageResourceCodes = new Set<String>{
+    'SF-UR-STORAGE',
+    'SF-UR-EGRESS',
+    'SF-UR-COMPUTE'
+};
+
+List<UsageResource> demoUrs = [
+    SELECT Id FROM UsageResource WHERE Code IN :demoUsageResourceCodes
+];
+Set<Id> demoUrIds = new Map<Id, UsageResource>(demoUrs).keySet();
+
+if (demoUrIds.isEmpty()) {
+    System.debug('customer-purge: no SF-UR-* UsageResource rows — skip usage-grant cleanup.');
+} else {
+    List<QuotLineItmUseRsrcGrant> qlGrants = [
+        SELECT Id FROM QuotLineItmUseRsrcGrant WHERE UsageResourceId IN :demoUrIds
+    ];
+    if (!qlGrants.isEmpty()) {
+        delete qlGrants;
+        System.debug(
+            'customer-purge: deleted ' + qlGrants.size() + ' QuotLineItmUseRsrcGrant row(s) for demo meters.'
+        );
+    } else {
+        System.debug('customer-purge: no QuotLineItmUseRsrcGrant rows on demo meters.');
+    }
+
+    List<OrderItemUsageRsrcGrant> oiGrants = [
+        SELECT Id FROM OrderItemUsageRsrcGrant WHERE UsageResourceId IN :demoUrIds
+    ];
+    if (!oiGrants.isEmpty()) {
+        delete oiGrants;
+        System.debug(
+            'customer-purge: deleted ' + oiGrants.size() + ' OrderItemUsageRsrcGrant row(s) for demo meters.'
+        );
+    }
+}

@@ -508,7 +508,7 @@ project:
     customer_demo_product_images_dataset: &customer_demo_product_images_dataset "datasets/sfdmu/customer-template/en-US/customer-template-product-images"  # Customer demo template product image dataset
     customer_demo_billing_dataset: &customer_demo_billing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-billing"  # Customer demo template billing dataset
     customer_demo_rating_dataset: &customer_demo_rating_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rating"  # Customer demo usage rating (SF-USG-* + SF-UR-*)
-    customer_demo_rates_dataset: &customer_demo_rates_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rates"  # Customer demo Tier-1 rate card (CD-DEMO Base Rate Card)
+    customer_demo_rates_dataset: &customer_demo_rates_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rates"  # Customer demo rate cards (CD-DEMO Base + Tier + RABT)
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -1346,7 +1346,10 @@ tasks:
 
   customer_demo_purge_records:
     group: Revenue Lifecycle Management
-    description: Purge customer demo records in hard-reset order before reimport.
+    description: >
+      Pre-import cleanup: removes QuotLineItmUseRsrcGrant and OrderItemUsageRsrcGrant rows tied to
+      demo UsageResource codes SF-UR-* so later delete_customer_demo_rating_data can drop meters.
+      Does not delete Product2/PCM; full catalog reload follows in prepare_customer_demo_catalog.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/customer-demo/customer-purge-and-reimport.apex
@@ -1414,21 +1417,28 @@ tasks:
 
   delete_customer_demo_rates_data:
     group: Data Maintenance
-    description: Delete customer-demo rate card (CD-DEMO Base Rate Card) and its RateCardEntry/PriceBookRateCard links only.
+    description: Delete customer-demo rate cards (CD-DEMO Base + CD-DEMO Tier), RateCardEntry, RateAdjustmentByTier (cascade), and PriceBookRateCard links only.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteCustomerDemoRatesData.apex
 
   delete_customer_demo_rating_data:
     group: Data Maintenance
-    description: Delete customer-demo rating slice (SF-USG-*/SF-BLNG-* PURs, SF-UR-*) only. Does not delete monthlypeak/monthlytotal billing policies.
+    description: >
+      Delete customer-demo rating slice (PUG, PURP, PUR for SF-USG-*/SF-BLNG-*, then SF-UR-*).
+      Does not delete monthlypeak/monthlytotal billing policies. Run delete_customer_demo_rates_data first if
+      CD-DEMO RateCardEntry references those UsageResources; quote lines with QLIURG may still block UR delete.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteCustomerDemoRatingData.apex
 
   insert_customer_demo_rating_data:
     group: Revenue Lifecycle Management
-    description: Load customer demo usage rating (UsageResource, PUR, policies). Requires PCM rows for SF-USG-* and SF-BLNG-* plus UoM (DATAVOL, SNFCRED).
+    description: >
+      Load customer demo usage rating (UsageResource, PUR, ProductUsageResourcePolicy, ProductUsageGrant,
+      grant binding + renewal/rollover/overage + rating frequency policies). Requires PCM rows for SF-USG-*,
+      SF-BLNG-*, and UoM (DATAVOL, SNFCRED). Run delete_customer_demo_rates_data before delete_customer_demo_rating_data
+      when RateCardEntry references SF-UR-*.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *customer_demo_rating_dataset
@@ -1436,7 +1446,7 @@ tasks:
 
   insert_customer_demo_rates_data:
     group: Revenue Lifecycle Management
-    description: Load Tier-1 customer demo rate card (CD-DEMO Base Rate Card + Standard Price Book link + one RateCardEntry).
+    description: Load customer demo rate cards (CD-DEMO Base + Tier, Standard PB links, RateCardEntry rows, RateAdjustmentByTier on Tier).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *customer_demo_rates_dataset

@@ -1,13 +1,17 @@
-// Delete customer-demo usage rates (CD-DEMO Base Rate Card slice only).
+// Delete customer-demo usage rates (CD-DEMO Base + Tier rate cards only).
 // Safe no-op when absent. Does not touch QB rate cards or unrelated entries.
 
-final String DEMO_RATE_CARD = 'CD-DEMO Base Rate Card';
+final String DEMO_BASE_CARD = 'CD-DEMO Base Rate Card';
+final String DEMO_TIER_CARD = 'CD-DEMO Tier Rate Card';
 
 List<RateCard> demoCards = [
-    SELECT Id FROM RateCard WHERE Name = :DEMO_RATE_CARD AND Type = 'Base'
+    SELECT Id
+    FROM RateCard
+    WHERE (Name = :DEMO_BASE_CARD AND Type = 'Base')
+       OR (Name = :DEMO_TIER_CARD AND Type = 'Tier')
 ];
 if (demoCards.isEmpty()) {
-    System.debug('No CD-DEMO Base Rate Card — nothing to delete.');
+    System.debug('No CD-DEMO Base/Tier rate cards — nothing to delete.');
 } else {
     Set<Id> demoCardIds = new Map<Id, RateCard>(demoCards).keySet();
 
@@ -41,5 +45,5 @@ if (demoCards.isEmpty()) {
     }
 
     delete demoCards;
-    System.debug('Deleted ' + demoCards.size() + ' CD-DEMO Base Rate Card record(s).');
+    System.debug('Deleted ' + demoCards.size() + ' CD-DEMO rate card record(s) (Base and/or Tier).');
 }

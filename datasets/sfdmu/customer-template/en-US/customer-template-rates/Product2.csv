@@ -1,4 +1,4 @@
 Name,ProductCode,StockKeepingUnit,UsageModelType
-Snowflake — Metered Optimized Storage,SF-USG-STORAGE,SF-USG-STORAGE,Pack
-Snowflake — Metered Data Egress,SF-USG-EGRESS,SF-USG-EGRESS,Pack
-Snowflake — Metered Compute Credits,SF-USG-COMPUTE,SF-USG-COMPUTE,Pack
+Snowflake — Metered Optimized Storage,SF-USG-STORAGE,SF-USG-STORAGE,Anchor
+Snowflake — Metered Data Egress,SF-USG-EGRESS,SF-USG-EGRESS,Anchor
+Snowflake — Metered Compute Credits,SF-USG-COMPUTE,SF-USG-COMPUTE,Anchor

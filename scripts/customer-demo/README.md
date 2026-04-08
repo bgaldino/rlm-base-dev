@@ -3,7 +3,7 @@
 This directory contains reusable templates for customer-specific product onboarding.
 
 - `customer-seed-products.apex`: optional Apex hook for product/catalog support records.
-- `customer-purge-and-reimport.apex`: hard reset script template.
+- `customer-purge-and-reimport.apex`: step-1 cleanup for `prepare_customer_demo_catalog` — deletes **QuotLineItmUseRsrcGrant** / **OrderItemUsageRsrcGrant** on **`SF-UR-*`** meters so rating delete is not blocked by **QLIURG** / order grants.
 - `customer-pricebook-entries.csv`: input for API-based PricebookEntry recreation and verification checks.
 - `prepare_customer_logo_static_resource.py`: downloads a customer logo URL and generates a square static resource payload/metadata.
 

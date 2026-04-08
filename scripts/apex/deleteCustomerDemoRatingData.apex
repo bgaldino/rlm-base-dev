@@ -1,6 +1,12 @@
-// Delete customer-demo usage rating slice (Snowflake SF-* usage SKUs, SF-UR-*).
-// Does not delete shared UnitOfMeasure / UnitOfMeasureClass rows or standard UsageResourceBillingPolicy (monthlypeak / monthlytotal).
+// Delete customer-demo usage rating slice (Snowflake SF-* usage SKUs, SF-UR-*),
+// including ProductUsageGrant, ProductUsageResourcePolicy, PUR, then UsageResource.
+// Does not delete shared UnitOfMeasure / UnitOfMeasureClass rows or UsageResourceBillingPolicy (monthlypeak / monthlytotal).
+//
 // Run before insert_customer_demo_rating_data for idempotent reloads.
+// Prerequisite: remove CD-DEMO rate card entries first (delete_customer_demo_rates_data) — otherwise
+// RateCardEntry rows block UsageResource delete.
+// If delete fails on UsageResource with quote line item usage resource grants (QLIURG), remove or adjust
+// those quote lines in the org, then retry.
 
 final Set<String> demoProductSkus = new Set<String>{
     'SF-USG-STORAGE',
