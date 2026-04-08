@@ -1,2 +1,4 @@
 Name,ProductCode,StockKeepingUnit,UsageModelType
-Customer Demo Data Usage,CD-USG-DATA,CD-USG-DATA,Pack
+Snowflake — Metered Optimized Storage,SF-USG-STORAGE,SF-USG-STORAGE,Pack
+Snowflake — Metered Data Egress,SF-USG-EGRESS,SF-USG-EGRESS,Pack
+Snowflake — Metered Compute Credits,SF-USG-COMPUTE,SF-USG-COMPUTE,Pack

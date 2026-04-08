@@ -419,6 +419,14 @@ cci task run stamp_git_commit --org beta
 sf data query -q "SELECT DeveloperName, RLM_Commit_Hash__c, RLM_Full_Commit_Hash__c, RLM_Branch__c, RLM_Dirty_Tree__c, RLM_Build_Timestamp__c, RLM_CCI_Flow__c, RLM_Org_Definition__c, RLM_Feature_Flags__c FROM RLM_Build_Info__mdt" --target-org <username>
 ```
 
+### Customer demo catalog (usage-aware)
+
+- **Agent playbook:** `AGENTS.md` → **Customer Demo Product Onboarding UX** (vision, approvals, dataset paths, **step order**, usage + rates gating, **Product2 SFDMU pitfalls**, quote-testing SKUs).
+- **Technical runbook:** `docs/guides/customer-demo-onboarding.md` — Product2 column alignment with **`qb-pcm`**, **`MissingParentRecordsReport.csv`** triage, verification CSV (`ProductTypeExpected`), quote lines (**`SF-USG-*`** not **`SF-BLNG-*`**).
+- **Flow:** `cci flow run prepare_customer_demo_catalog --org <alias>` — PCM first (products + **UnitOfMeasure / UnitOfMeasureClass** when metering is in scope); then deploy `unpackaged/post_customer_demo/staticresources`; product-images SFDMU; billing; `customer_demo_recreate_pricebook_via_api`; `customer_demo_verify_catalog`. With **`customer_demo_usage: true`**, append scoped **`delete_customer_demo_rates_data`** → **`delete_customer_demo_rating_data`** → rating load → rates load → **`activate_rating_records`** → **`activate_rates`** (do not load rating before PCM creates referenced SKUs and UoM rows).
+- **Troubleshooting:** if pricebook recreation says **Missing Product2 for SKUs** after a “successful” PCM run, inspect **`datasets/sfdmu/customer-template/en-US/customer-template-pcm/reports/MissingParentRecordsReport.csv`** and fix **`Product2.csv`** (usually missing **`BasedOn.Code` / quantity UOM** columns — mirror **`qb-pcm/Product2.csv`**).
+- **Deep dives:** `datasets/sfdmu/customer-template/en-US/customer-template-pcm/README.md`, `customer-template-rating/README.md`, `customer-template-rates/README.md`, **`docs/references/customer-template-usage-resource.md`** (UsageResource stitching).
+
 ---
 
 ## PR Review Focus Areas
@@ -440,3 +448,4 @@ sf data query -q "SELECT DeveloperName, RLM_Commit_Hash__c, RLM_Full_Commit_Hash
     - Do NOT add `EmailTemplatePage` flexipages to `templates/flexipages/` — they cannot deploy via Metadata API and are created at runtime by `create_approval_email_templates`
     - `.forceignore` must have entries for any UX files in `unpackaged/post_*/` that are now assembled via `prepare_ux`
     - Compact layouts and list views belong in `templates/objects/{feature}/` not in `force-app` or feature `unpackaged/post_*/objects/`
+11. **Customer demo template** — `Product2.csv` columns must satisfy PCM `export.json` / SFDMU relationship resolution (see `docs/guides/customer-demo-onboarding.md`); pricebook CSV **`ProductTypeExpected`** when enforcing **Bundle vs blank `Type`**; usage quote lines are **`SF-USG-*`**, not **`SF-BLNG-*`**.

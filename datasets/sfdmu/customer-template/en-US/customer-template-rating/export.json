@@ -1,5 +1,5 @@
 {
-  "$comment_plan": "Tier-1 customer demo usage rating: one sellable SKU (CD-USG-DATA), one usage resource, one PUR. No PURP/PUG/tokens. PUR uses Insert without deleteOldData — run delete_customer_demo_rating_data before each load for idempotency.",
+  "$comment_plan": "Snowflake customer demo usage: SF-USG-* (Pack) + SF-UR-* (Category=Usage, monthlypeak/monthlytotal) + PURs. See docs/references/customer-template-usage-resource.md. Run delete_customer_demo_rating_data before each load for idempotency.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,

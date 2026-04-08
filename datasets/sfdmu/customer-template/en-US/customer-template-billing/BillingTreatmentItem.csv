@@ -1,1 +1,2 @@
-BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount,$$Name$BillingTreatment.Name
+$$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount
+Snowflake Demo BTI Arrears;Snowflake Demo Billing Treatment - US,Snowflake Demo Billing Treatment - US,Arrears,BillingScheduleGroup,USD,Invoice in arrears for demo,,,,,,Snowflake Demo BTI Arrears,,1,Manual,Draft,Remainder,CreateInvoice

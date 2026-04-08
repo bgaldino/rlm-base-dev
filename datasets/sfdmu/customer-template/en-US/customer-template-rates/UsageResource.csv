@@ -1,2 +1,4 @@
 Code,Name
-CD-UR-DATAXFR,Customer Demo Data Transfer
+SF-UR-STORAGE,Snowflake Optimized Storage
+SF-UR-EGRESS,Snowflake Data Egress
+SF-UR-COMPUTE,Snowflake Compute Credits

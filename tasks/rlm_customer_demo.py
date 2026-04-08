@@ -1,7 +1,7 @@
 import csv
 import json
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import requests
 from cumulusci.core.exceptions import TaskOptionsError
@@ -163,6 +163,13 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
             "description": "If true, require image URLs to use /resource/<StaticResourceName> for image-required rows.",
             "required": False,
         },
+        "require_product_type": {
+            "description": (
+                "When input CSV has no ProductTypeExpected column: if true (default), Product2 Type "
+                "must be non-blank. Ignored when ProductTypeExpected is present (per-row Bundle vs blank)."
+            ),
+            "required": False,
+        },
     }
 
     def _api(self, path: str, soql: str) -> List[Dict]:
@@ -176,19 +183,21 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
     def _query(self, soql: str) -> List[Dict]:
         return self._api("query", soql)
 
-    def _read_rows(self) -> List[Dict]:
+    def _read_rows(self) -> Tuple[List[Dict], bool]:
         input_csv = self.options["input_csv"]
         rows: List[Dict] = []
         with open(input_csv, "r", encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
+            fieldnames = set(reader.fieldnames or [])
             required = {"SKU", "PSMName", "PSMSellingModelType", "CategoryCode"}
-            missing = required - set(reader.fieldnames or [])
+            missing = required - fieldnames
             if missing:
                 raise TaskOptionsError(f"Missing required CSV columns: {sorted(missing)}")
+            has_product_type_expected = "ProductTypeExpected" in fieldnames
             for row in reader:
                 if row.get("SKU"):
                     rows.append(row)
-        return rows
+        return rows, has_product_type_expected
 
     @staticmethod
     def _is_truthy(value: str, default: bool = True) -> bool:
@@ -197,7 +206,7 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
         return str(value).strip().lower() not in {"0", "false", "no", "n"}
 
     def _run_task(self):
-        rows = self._read_rows()
+        rows, has_product_type_expected = self._read_rows()
         product_type_field = self.options.get("product_type_field", "Type")
         verify_images = self._is_truthy(self.options.get("verify_images"), default=True)
         verify_billing = self._is_truthy(self.options.get("verify_billing"), default=True)
@@ -205,6 +214,7 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
             self.options.get("require_internal_image_urls"),
             default=False,
         )
+        require_product_type = self._is_truthy(self.options.get("require_product_type"), default=True)
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", product_type_field):
             raise TaskOptionsError(f"Invalid product_type_field: {product_type_field}")
 
@@ -230,7 +240,20 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
             product_id = product[0]["Id"]
             if not product[0].get("IsActive"):
                 failures.append(f"{sku}: Product2 not active")
-            if not product[0].get(product_type_field):
+            actual_type = product[0].get(product_type_field)
+            if has_product_type_expected:
+                expected_raw = (row.get("ProductTypeExpected") or "").strip()
+                if expected_raw.lower() == "bundle":
+                    if actual_type != "Bundle":
+                        failures.append(
+                            f"{sku}: Product2.{product_type_field} must be Bundle (found {actual_type!r})"
+                        )
+                else:
+                    if actual_type:
+                        failures.append(
+                            f"{sku}: Product2.{product_type_field} must be blank/null (found {actual_type!r})"
+                        )
+            elif require_product_type and not actual_type:
                 failures.append(f"{sku}: Product type field {product_type_field} is blank")
             image_required = self._is_truthy(row.get("ImageRequired"), default=True)
             display_url = (product[0].get("DisplayUrl") or "").strip()

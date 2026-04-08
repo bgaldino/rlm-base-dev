@@ -1,5 +1,5 @@
 {
-  "$comment_plan": "Tier-1 customer demo rates: CD-DEMO Base Rate Card + one RateCardEntry (CD-USG-DATA x CD-UR-DATAXFR). Matches prepare_rating ordering: load after rating, then activate_rates.",
+  "$comment_plan": "Snowflake customer demo rates: CD-DEMO Base Rate Card + RateCardEntry rows for SF-USG-* x SF-UR-* (storage TB, egress GB, compute CRD). Load after rating, then activate_rates. Keep RateCardEntry.EffectiveFrom within RateCard window and before demo sell date; see docs/references/customer-template-rate-card-entry.md.",
   "$comment_composite_keys": "RateCardEntry uses Insert without deleteOldData to avoid wiping org-wide entries; run delete_customer_demo_rates_data before each load. PriceBookRateCard is Upsert-only (no deleteOldData).",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
@@ -24,7 +24,7 @@
       "excluded": false
     },
     {
-      "$comment": "Insert without deleteOldData — scoped Apex delete runs first (delete_customer_demo_rates_data).",
+      "$comment": "Insert without deleteOldData \u2014 scoped Apex delete runs first (delete_customer_demo_rates_data).",
       "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.Name, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, Rate, RateCardId, RateCard.Name, RateCard.Type, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureClass.Name, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, Status, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
       "operation": "Insert",
       "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",

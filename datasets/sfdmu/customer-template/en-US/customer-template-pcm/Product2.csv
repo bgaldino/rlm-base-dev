@@ -1,3 +1,16 @@
-StockKeepingUnit,Name,ProductCode,Family,Description,Type,IsActive
-CD-USG-DATA,Customer Demo Data Usage,CD-USG-DATA,Software,"Metered usage add-on for customer demos (e.g. data overage, API volume). Pair with customer-template-rating.",,true
-CD-DATA-THPT-BLNG,Customer Demo Data Throughput Billing,CD-DATA-THPT-BLNG,,"Usage definition product for CD-USG-DATA rating. Not intended for catalog merchandising.",,true
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,,Snowflake Standard edition — core AI Data Cloud platform access (demo).,,Software,true,true,false,Snowflake — Standard Edition,SF-EDU-STD,EACH,,SF-EDU-STD,,EACH
+,false,,Snowflake Enterprise edition — scale-out governance and performance (demo).,,Software,true,true,false,Snowflake — Enterprise Edition,SF-EDU-ENT,EACH,,SF-EDU-ENT,,EACH
+,false,,Snowflake Business Critical — regulated workloads and tri-secret controls (demo).,,Software,true,true,false,Snowflake — Business Critical Edition,SF-EDU-BC,EACH,,SF-EDU-BC,,EACH
+,false,,Isolated Snowflake deployment — dedicated environment (demo).,,Software,true,true,false,Snowflake — Virtual Private Snowflake,SF-EDU-VPS,EACH,,SF-EDU-VPS,,EACH
+,false,,Standard success coverage bundled with Starter (demo).,,Software,true,true,false,Snowflake — Standard Success,SF-SUP-STD,EACH,,SF-SUP-STD,,EACH
+,false,,Premier technical success and guidance (demo).,,Software,true,true,false,Snowflake — Premier Success,SF-SUP-PREM,EACH,,SF-SUP-PREM,,EACH
+,false,Allowed,Standard edition plus standard success — land-and-expand starter (demo).,,Software,true,true,false,Snowflake — Starter Success Bundle,SF-BND-STARTER,EACH,,SF-BND-STARTER,Bundle,EACH
+,false,Allowed,Enterprise edition plus premier success — expansion motion (demo).,,Software,true,true,false,Snowflake — Growth Premier Bundle,SF-BND-GROWTH,EACH,,SF-BND-GROWTH,Bundle,EACH
+,false,,Fixed-fee onboarding and architecture workshop (demo).,,Services,true,true,false,Snowflake — Quickstart Onboarding,SF-SVC-ONBOARD,EACH,,SF-SVC-ONBOARD,,EACH
+,false,,Average TB-month storage — consumption-rated (demo).,,Software,true,true,false,Snowflake — Metered Optimized Storage,SF-USG-STORAGE,EACH,,SF-USG-STORAGE,,EACH
+,false,,Cross-region/cloud data transfer — consumption-rated (demo).,,Software,true,true,false,Snowflake — Metered Data Egress,SF-USG-EGRESS,EACH,,SF-USG-EGRESS,,EACH
+,false,,Elastic warehouse consumption in credits — rated (demo).,,Software,true,true,false,Snowflake — Metered Compute Credits,SF-USG-COMPUTE,EACH,,SF-USG-COMPUTE,,EACH
+,false,,Rating usage-definition product for optimized storage metering. Not sold standalone.,,,true,true,false,Snowflake — Usage Definition (Storage),SF-BLNG-STORAGE,EACH,,SF-BLNG-STORAGE,,EACH
+,false,,Rating usage-definition product for egress metering. Not sold standalone.,,,true,true,false,Snowflake — Usage Definition (Egress),SF-BLNG-EGRESS,EACH,,SF-BLNG-EGRESS,,EACH
+,false,,Rating usage-definition product for compute credits metering. Not sold standalone.,,,true,true,false,Snowflake — Usage Definition (Compute),SF-BLNG-COMPUTE,EACH,,SF-BLNG-COMPUTE,,EACH

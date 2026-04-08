@@ -1,1 +1,3 @@
 $$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+PCG-SF-START;SF-BND-STARTER,PCG-SF-START,Starter bundle components,2,2,Core,,SF-BND-STARTER,1
+PCG-SF-GROW;SF-BND-GROWTH,PCG-SF-GROW,Growth bundle components,2,2,Core,,SF-BND-GROWTH,1

@@ -1,2 +1,4 @@
 Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
-Usage,CD-UR-DATAXFR,GB,Customer demo data transfer metering,Customer Demo Data Transfer,Draft,,DATAVOL,CD-DATA-THPT-BLNG,CD-DEMO-URBILL
+Usage,SF-UR-STORAGE,TB,Snowflake optimized storage (TB-month average),Snowflake Optimized Storage,Draft,,DATAVOL,SF-BLNG-STORAGE,monthlypeak
+Usage,SF-UR-EGRESS,GB,Snowflake cross-cloud/region data egress,Snowflake Data Egress,Draft,,DATAVOL,SF-BLNG-EGRESS,monthlytotal
+Usage,SF-UR-COMPUTE,CRD,Snowflake compute credits (warehouse consumption),Snowflake Compute Credits,Draft,,SNFCRED,SF-BLNG-COMPUTE,monthlytotal

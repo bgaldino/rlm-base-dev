@@ -1,1 +1,16 @@
 DisplayUrl,Name,StockKeepingUnit
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Standard Edition,SF-EDU-STD
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Enterprise Edition,SF-EDU-ENT
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Business Critical Edition,SF-EDU-BC
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Virtual Private Snowflake,SF-EDU-VPS
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Standard Success,SF-SUP-STD
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Premier Success,SF-SUP-PREM
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Starter Success Bundle,SF-BND-STARTER
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Growth Premier Bundle,SF-BND-GROWTH
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Quickstart Onboarding,SF-SVC-ONBOARD
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Metered Optimized Storage,SF-USG-STORAGE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Metered Data Egress,SF-USG-EGRESS
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Metered Compute Credits,SF-USG-COMPUTE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Usage Definition (Storage),SF-BLNG-STORAGE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Usage Definition (Egress),SF-BLNG-EGRESS
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Usage Definition (Compute),SF-BLNG-COMPUTE

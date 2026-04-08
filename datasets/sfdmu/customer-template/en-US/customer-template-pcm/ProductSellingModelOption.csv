@@ -1,1 +1,16 @@
-Product2.StockKeepingUnit,ProductSellingModel.Name,ProductSellingModel.SellingModelType,IsDefault,$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+SF-EDU-STD;Term Monthly;TermDefined,true,SF-EDU-STD,Term Monthly;TermDefined,Default Proration Policy
+SF-EDU-ENT;Term Monthly;TermDefined,true,SF-EDU-ENT,Term Monthly;TermDefined,Default Proration Policy
+SF-EDU-BC;Term Monthly;TermDefined,true,SF-EDU-BC,Term Monthly;TermDefined,Default Proration Policy
+SF-EDU-VPS;Term Monthly;TermDefined,true,SF-EDU-VPS,Term Monthly;TermDefined,Default Proration Policy
+SF-SUP-STD;Term Monthly;TermDefined,true,SF-SUP-STD,Term Monthly;TermDefined,Default Proration Policy
+SF-SUP-PREM;Term Monthly;TermDefined,true,SF-SUP-PREM,Term Monthly;TermDefined,Default Proration Policy
+SF-BND-STARTER;Term Monthly;TermDefined,true,SF-BND-STARTER,Term Monthly;TermDefined,Default Proration Policy
+SF-BND-GROWTH;Term Monthly;TermDefined,true,SF-BND-GROWTH,Term Monthly;TermDefined,Default Proration Policy
+SF-SVC-ONBOARD;One-Time;OneTime,true,SF-SVC-ONBOARD,One-Time;OneTime,
+SF-USG-STORAGE;Term Monthly;TermDefined,true,SF-USG-STORAGE,Term Monthly;TermDefined,Default Proration Policy
+SF-USG-EGRESS;Term Monthly;TermDefined,true,SF-USG-EGRESS,Term Monthly;TermDefined,Default Proration Policy
+SF-USG-COMPUTE;Term Monthly;TermDefined,true,SF-USG-COMPUTE,Term Monthly;TermDefined,Default Proration Policy
+SF-BLNG-STORAGE;Term Monthly;TermDefined,true,SF-BLNG-STORAGE,Term Monthly;TermDefined,Default Proration Policy
+SF-BLNG-EGRESS;Term Monthly;TermDefined,true,SF-BLNG-EGRESS,Term Monthly;TermDefined,Default Proration Policy
+SF-BLNG-COMPUTE;Term Monthly;TermDefined,true,SF-BLNG-COMPUTE,Term Monthly;TermDefined,Default Proration Policy

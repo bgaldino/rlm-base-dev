@@ -1,14 +1,20 @@
-// Delete customer-demo usage rating slice (CD-* SKUs and CD-UR-DATAXFR only).
-// Does not delete shared UnitOfMeasure / UnitOfMeasureClass rows.
+// Delete customer-demo usage rating slice (Snowflake SF-* usage SKUs, SF-UR-*).
+// Does not delete shared UnitOfMeasure / UnitOfMeasureClass rows or standard UsageResourceBillingPolicy (monthlypeak / monthlytotal).
 // Run before insert_customer_demo_rating_data for idempotent reloads.
 
 final Set<String> demoProductSkus = new Set<String>{
-    'CD-USG-DATA',
-    'CD-DATA-THPT-BLNG'
+    'SF-USG-STORAGE',
+    'SF-USG-EGRESS',
+    'SF-USG-COMPUTE',
+    'SF-BLNG-STORAGE',
+    'SF-BLNG-EGRESS',
+    'SF-BLNG-COMPUTE'
 };
-final String demoUsageResourceCode = 'CD-UR-DATAXFR';
-final String demoBillingPolicyCode = 'CD-DEMO-URBILL';
-
+final Set<String> demoUsageResourceCodes = new Set<String>{
+    'SF-UR-STORAGE',
+    'SF-UR-EGRESS',
+    'SF-UR-COMPUTE'
+};
 List<Product2> demoProducts = [
     SELECT Id FROM Product2 WHERE StockKeepingUnit IN :demoProductSkus
 ];
@@ -89,11 +95,11 @@ if (!demoProductIds.isEmpty()) {
         System.debug('Deleted ' + purs.size() + ' demo ProductUsageResource record(s).');
     }
 } else {
-    System.debug('No CD-* demo products — skipped PUR/PUG/PURP cleanup.');
+    System.debug('No SF-* demo usage products — skipped PUR/PUG/PURP cleanup.');
 }
 
 List<UsageResource> demoUrs = [
-    SELECT Id, Status FROM UsageResource WHERE Code = :demoUsageResourceCode
+    SELECT Id, Status FROM UsageResource WHERE Code IN :demoUsageResourceCodes
 ];
 if (!demoUrs.isEmpty()) {
     List<UsageResource> activeUr = new List<UsageResource>();
@@ -110,22 +116,6 @@ if (!demoUrs.isEmpty()) {
     }
     delete demoUrs;
     System.debug('Deleted ' + demoUrs.size() + ' demo UsageResource record(s).');
-}
-
-List<UsageResourceBillingPolicy> bp = [
-    SELECT Id, Status
-    FROM UsageResourceBillingPolicy
-    WHERE Code = :demoBillingPolicyCode
-];
-if (!bp.isEmpty()) {
-    for (UsageResourceBillingPolicy pol : bp) {
-        if (pol.Status == 'Active') {
-            pol.Status = 'Inactive';
-        }
-    }
-    update bp;
-    delete bp;
-    System.debug('Deleted demo UsageResourceBillingPolicy CD-DEMO-URBILL.');
 }
 
 System.debug('Customer demo rating cleanup complete.');

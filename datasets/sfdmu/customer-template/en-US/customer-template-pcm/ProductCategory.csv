@@ -1,1 +1,6 @@
 Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+SF-CAT-ROOT,Snowflake Platform,SF-DEMO-CAT,,true,1,
+SF-CAT-EDU,Editions,SF-DEMO-CAT,,true,10,SF-CAT-ROOT
+SF-CAT-BND,Bundles,SF-DEMO-CAT,,true,20,SF-CAT-ROOT
+SF-CAT-USG,Consumption,SF-DEMO-CAT,,true,30,SF-CAT-ROOT
+SF-CAT-SVC,Services & Success,SF-DEMO-CAT,,true,40,SF-CAT-ROOT

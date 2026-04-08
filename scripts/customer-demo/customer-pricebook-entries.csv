@@ -1,1 +1,13 @@
-SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName
+SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName,ProductTypeExpected
+SF-EDU-STD,5000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
+SF-EDU-ENT,18000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
+SF-EDU-BC,45000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
+SF-EDU-VPS,125000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
+SF-SUP-STD,0,USD,Term Monthly,TermDefined,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
+SF-SUP-PREM,12000,USD,Term Monthly,TermDefined,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
+SF-BND-STARTER,6500,USD,Term Monthly,TermDefined,true,SF-CAT-BND,true,true,Snowflake Demo Billing Policy,Bundle
+SF-BND-GROWTH,32000,USD,Term Monthly,TermDefined,true,SF-CAT-BND,true,true,Snowflake Demo Billing Policy,Bundle
+SF-SVC-ONBOARD,25000,USD,One-Time,OneTime,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
+SF-USG-STORAGE,0,USD,Term Monthly,TermDefined,true,SF-CAT-USG,true,true,Snowflake Demo Billing Policy,
+SF-USG-EGRESS,0,USD,Term Monthly,TermDefined,true,SF-CAT-USG,true,true,Snowflake Demo Billing Policy,
+SF-USG-COMPUTE,0,USD,Term Monthly,TermDefined,true,SF-CAT-USG,true,true,Snowflake Demo Billing Policy,
