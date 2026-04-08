@@ -1189,6 +1189,16 @@ tasks:
     options:
       path: unpackaged/post_billing_template_settings
 
+  configure_billing_email_settings:
+    description: >
+      Cycle the "Configure Email Delivery Settings" toggle via the Billing Settings UI
+      to trigger auto-creation of the default invoice email template. The Metadata API
+      cycling in deploy_billing_template_settings sets the boolean but does not trigger
+      the backend that creates BillingSettings.defaultEmailTemplate. Must run after
+      deploy_billing_template_settings. Idempotent: skips if template already exists.
+    class_path: tasks.rlm_configure_billing_email_settings.ConfigureBillingEmailSettings
+    group: Revenue Lifecycle Management
+
   deploy_post_guidedselling:
     description: Deploy Guided Selling Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -2851,6 +2861,9 @@ flows:
       13:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
+      14:
+        task: configure_billing_email_settings
+        when: project_config.project__custom__billing
 
   prepare_prm:
     group: Revenue Lifecycle Management

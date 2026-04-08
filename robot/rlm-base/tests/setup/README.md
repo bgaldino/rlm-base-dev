@@ -10,6 +10,7 @@ Robot Framework tests that configure Salesforce Setup page options that cannot b
 | `enable_constraints_settings.robot` | `enable_constraints_settings` | Set Default Transaction Type, Asset Context picklist, and enable Constraints Engine toggle |
 | `configure_revenue_settings.robot` | `configure_revenue_settings` | Set Pricing Procedure, Usage Rating Procedure, enable Instant Pricing toggle, set Create Orders Flow |
 | `configure_core_pricing_setup.robot` | `configure_core_pricing_setup` | Set default Pricing Procedure on Salesforce Pricing Setup page (CorePricingSetup) |
+| `configure_billing_email_settings.robot` | `configure_billing_email_settings` | Cycle the Configure Email Delivery Settings toggle via the UI to trigger auto-creation of the default invoice email template (Metadata API cycling alone does not trigger this) |
 
 ## Prerequisites
 
@@ -140,6 +141,7 @@ All tests detect current state before making changes:
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
 | `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
 | `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
+| `configure_billing_email_settings` | `prepare_billing` | Step 14 (when `billing` is true) |
 
 ## Generated Output
 

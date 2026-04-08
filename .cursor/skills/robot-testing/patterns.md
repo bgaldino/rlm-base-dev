@@ -18,6 +18,7 @@ robot/rlm-base/
 │       ├── configure_revenue_settings.robot
 │       ├── configure_core_pricing_setup.robot
 │       ├── configure_product_discovery_settings.robot
+│       ├── configure_billing_email_settings.robot
 │       ├── enable_analytics.robot
 │       ├── enable_document_builder.robot
 │       ├── enable_constraints_settings.robot
@@ -47,6 +48,7 @@ robot/rlm-base/
 | `configure_revenue_settings` | `ConfigureRevenueSettings` | `tests/setup/configure_revenue_settings.robot` |
 | `configure_core_pricing_setup` | `ConfigureCorePricingSetup` | `tests/setup/configure_core_pricing_setup.robot` |
 | `configure_product_discovery_settings` | `ConfigureProductDiscoverySettings` | `tests/setup/configure_product_discovery_settings.robot` |
+| `configure_billing_email_settings` | `ConfigureBillingEmailSettings` | `tests/setup/configure_billing_email_settings.robot` |
 | `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` |
 | `enable_document_builder_toggle` | `EnableDocumentBuilderToggle` | `tests/setup/enable_document_builder.robot` |
 | `enable_constraints_settings` | `EnableConstraintsSettings` | `tests/setup/enable_constraints_settings.robot` |
