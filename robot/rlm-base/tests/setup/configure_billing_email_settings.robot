@@ -20,17 +20,13 @@ Configure Billing Email Delivery Settings
     [Documentation]    Navigates to Billing Settings and cycles the "Configure Email
     ...    Delivery Settings" toggle off then on via the UI to trigger the Salesforce
     ...    backend that auto-creates and sets the default invoice email template.
-    ...    Skips if the template is already present (idempotent).
-    ${template_exists}=    _Check Default Email Template Exists
-    IF    "${template_exists}" == "true"
-        Log    Default Invoice Email Template already exists. Cycling not needed.
-    ELSE
-        Open Billing Settings Page
-        Capture Page Screenshot
-        _Cycle Email Delivery Toggle
-        Capture Page Screenshot
-        Log    Configure Email Delivery Settings cycled. Default invoice email template should now be created.
-    END
+    ...    The Disable/Enable keywords check current toggle state before clicking,
+    ...    so re-running is safe (the backend template creation is idempotent).
+    Open Billing Settings Page
+    Capture Page Screenshot
+    _Cycle Email Delivery Toggle
+    Capture Page Screenshot
+    Log    Configure Email Delivery Settings cycled. Default invoice email template should now be created.
 
 *** Keywords ***
 Open Billing Settings Page
@@ -44,19 +40,6 @@ Open Billing Settings Page
     ELSE
         Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or BILLING_SETTINGS_URL
     END
-
-_Check Default Email Template Exists
-    [Documentation]    Returns 'true' if the Default Invoice Email Template record
-    ...    already exists in the org (idempotency guard). Returns 'false' when
-    ...    ORG_ALIAS is not set (browser-only mode — cannot query without sf CLI).
-    Run Keyword If    """${ORG_ALIAS}""" == ""    RETURN    false
-    ${result}=    Run Process    sf    data    query
-    ...    -q    SELECT Id FROM EmailTemplate WHERE Name = 'Default Invoice Email Template' ORDER BY CreatedDate DESC LIMIT 1
-    ...    --json    -o    ${ORG_ALIAS}    shell=False
-    ${has_record}=    Run Keyword And Return Status    Should Contain    ${result.stdout}    "totalSize": 1
-    ${exists}=    Set Variable If    ${has_record}    true    false
-    Log    Default Invoice Email Template exists check: ${exists}
-    RETURN    ${exists}
 
 _Cycle Email Delivery Toggle
     [Documentation]    Turns "Configure Email Delivery Settings" toggle OFF then ON to
