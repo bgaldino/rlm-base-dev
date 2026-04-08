@@ -1195,7 +1195,8 @@ tasks:
       to trigger auto-creation of the default invoice email template. The Metadata API
       cycling in deploy_billing_template_settings sets the boolean but does not trigger
       the backend that creates BillingSettings.defaultEmailTemplate. Must run after
-      deploy_billing_template_settings. Idempotent: skips if template already exists.
+      deploy_billing_template_settings. Idempotent: toggle clicks are skipped when
+      already in target state; post-cycle polling verifies the template is populated.
     class_path: tasks.rlm_configure_billing_email_settings.ConfigureBillingEmailSettings
     group: Revenue Lifecycle Management
     options:
