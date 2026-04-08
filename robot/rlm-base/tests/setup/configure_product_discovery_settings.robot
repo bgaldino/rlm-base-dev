@@ -21,12 +21,24 @@ ${DEFAULT_CATALOG}              QuantumBit Software
 Configure Product Discovery Default Catalog
     [Documentation]    Navigates to Product Discovery Settings and sets the Default Catalog
     ...    to the value specified by ${DEFAULT_CATALOG}. Skips if the catalog is already set
-    ...    to the correct value.
+    ...    to the correct value. Reloads the page after setting to confirm server-side persistence.
     Open Product Discovery Settings Page
     Set Default Catalog    ${DEFAULT_CATALOG}
     Dismiss Toast If Present
     Capture Page Screenshot
-    Log    Product Discovery Settings: Default Catalog set to "${DEFAULT_CATALOG}".
+    # Reload and re-verify to confirm the value was saved server-side
+    Open Product Discovery Settings Page
+    ${verified}=    Execute JavaScript
+    ...    return (function findEl(root, sel, d) {
+    ...        if (d > 6) return null;
+    ...        var el = root.querySelector(sel); if (el) return el;
+    ...        var all = root.querySelectorAll('*');
+    ...        for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}}
+    ...        return null;
+    ...    })(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
+    Should Be Equal    ${verified}    ${DEFAULT_CATALOG}
+    ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${verified}"
+    Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
 
 *** Keywords ***
 Open Product Discovery Settings Page
@@ -40,96 +52,86 @@ Open Product Discovery Settings Page
     Sleep    2s    reason=Allow Lightning to finish rendering
 
 Set Default Catalog
-    [Documentation]    Sets the "Select Default Catalog" combobox on the Product Discovery
-    ...    Settings page to the specified catalog name. The combobox auto-saves on selection.
-    ...    Skips if the catalog is already set to the target value.
+    [Documentation]    Sets the "Select Default Catalog" combobox via JavaScript, piercing the
+    ...    nested LWC shadow DOMs (lightning-combobox → lightning-base-combobox → button, with
+    ...    option text read from lightning-base-combobox-item shadow roots). Clears any existing
+    ...    selection first if a different catalog is already selected. Auto-saves on selection.
     [Arguments]    ${target_value}
-    # Scroll to the "Select Default Catalog" section heading
-    ${section_heading}=    Set Variable    xpath=//*[contains(normalize-space(text()), 'Select Default Catalog')]
-    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${section_heading}
-    IF    not ${found}
-        Log    WARNING: "Select Default Catalog" section not found on page. Skipping.    WARN
-        Capture Page Screenshot
+    # Step 1: check current state; clear wrong selection; open dropdown
+    ${open_result}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        function findEl(root, sel, d) {
+    ...            if (d > 6) return null;
+    ...            var el = root.querySelector(sel); if (el) return el;
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}}
+    ...            return null;
+    ...        }
+    ...        var selEl = findEl(document, '[data-id="selectedCatalog"]', 0);
+    ...        if (selEl && selEl.textContent.trim() === targetValue) return 'already_set';
+    ...        if (selEl) {
+    ...            var removeBtn = findEl(document, 'button.slds-pill__remove', 0);
+    ...            if (removeBtn) removeBtn.click();
+    ...            return 'cleared';
+    ...        }
+    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+    ...        if (!lc) return 'combobox_not_found';
+    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...        if (!lbc) return 'lbc_not_found';
+    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...        if (!btn) return 'btn_not_found';
+    ...        btn.click();
+    ...        return 'opened';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    IF    "${open_result}" == "already_set"
+        Log    Default Catalog already set to "${target_value}". No change needed.
         RETURN
     END
-    Sleep    1s
-    # Check if a pill (selected value) already shows the correct catalog name
-    ${pill_label}=    Set Variable    xpath=//span[contains(@class, 'slds-pill__label') and contains(normalize-space(.), '${target_value}')]
-    ${has_correct_pill}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${pill_label}    timeout=5s
-    IF    ${has_correct_pill}
-        Log    Default Catalog is already set to "${target_value}". No change needed.
-        RETURN
+    # If a selection was cleared, wait for the combobox to reappear then re-open it
+    IF    "${open_result}" == "cleared"
+        Sleep    2s    reason=Allow pill removal to complete and combobox to reappear
+        ${open_result}=    Execute JavaScript
+        ...    return (function() {
+        ...        function findEl(root, sel, d) {
+        ...            if (d > 6) return null;
+        ...            var el = root.querySelector(sel); if (el) return el;
+        ...            var all = root.querySelectorAll('*');
+        ...            for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}}
+        ...            return null;
+        ...        }
+        ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+        ...        if (!lc) return 'combobox_not_found';
+        ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+        ...        if (!lbc) return 'lbc_not_found';
+        ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+        ...        if (!btn) return 'btn_not_found';
+        ...        btn.click();
+        ...        return 'opened';
+        ...    })()
     END
-    # If a different catalog is already selected, clear it first
-    ${any_pill}=    Set Variable    xpath=//span[contains(@class, 'slds-pill__label')]
-    ${has_pill}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${any_pill}    timeout=3s
-    IF    ${has_pill}
-        ${pill_text}=    Get Text    ${any_pill}
-        Log    Existing Default Catalog is "${pill_text}". Clearing it.
-        ${remove_btn}=    Set Variable    xpath=//button[contains(@class, 'pill__rem') or contains(@class, 'slds-pill__remove')]
-        ${btn_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${remove_btn}    timeout=5s
-        IF    ${btn_found}
-            Mouse Over    ${any_pill}
-            Sleep    1s    reason=Reveal X button on hover
-            Click Element    ${remove_btn}
-            Sleep    2s    reason=Allow pill to clear before dropdown appears
-        END
-    END
-    Capture Page Screenshot
-    # Try native <select> first
-    ${select_el}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Select Default Catalog')]/following::select)[1]
-    ${is_select}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${select_el}    timeout=8s
-    IF    ${is_select}
-        Scroll Element Into View    ${select_el}
-        Sleep    0.5s
-        Select From List By Label    ${select_el}    ${target_value}
-        Sleep    2s    reason=Allow selection to persist
-        Capture Page Screenshot
-        Log    Default Catalog set to "${target_value}" (native select).
-        RETURN
-    END
-    # Try Lightning combobox
-    ${cb_trigger}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Select Default Catalog')]/following::*[@role='combobox' or contains(@class, 'slds-combobox')])[1]
-    ${is_cb}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${cb_trigger}    timeout=8s
-    IF    ${is_cb}
-        Scroll Element Into View    ${cb_trigger}
-        Sleep    0.5s
-        Click Element    ${cb_trigger}
-        Sleep    2s    reason=Allow dropdown options to populate
-        Capture Page Screenshot
-        # Try role=option first
-        ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
-        ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
-        IF    not ${opt_found}
-            ${option}=    Set Variable    xpath=(//lightning-base-combobox-item[contains(normalize-space(.), '${target_value}')])[1]
-            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
-        END
-        IF    not ${opt_found}
-            ${option}=    Set Variable    xpath=(//*[@role='listbox']//*[contains(normalize-space(text()), '${target_value}')])[1]
-            ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
-        END
-        IF    ${opt_found}
-            Click Element    ${option}
-            Sleep    2s    reason=Allow selection to apply and toast to appear
-            Capture Page Screenshot
-            Log    Default Catalog set to "${target_value}" (combobox).
-            RETURN
-        ELSE
-            ${all_opts}=    Execute JavaScript
-            ...    return (function(){
-            ...        var opts = document.querySelectorAll('[role="option"]');
-            ...        var result = [];
-            ...        for (var i = 0; i < opts.length; i++) {
-            ...            if (opts[i].offsetParent !== null) result.push(opts[i].textContent.trim().substring(0,80));
-            ...        }
-            ...        return 'visible_options:[' + result.join('|') + '] total=' + opts.length;
-            ...    })()
-            Log    WARNING: Option "${target_value}" not found in Default Catalog dropdown. ${all_opts}    WARN
-            Press Keys    ${cb_trigger}    ESCAPE
-        END
-    END
-    Log    WARNING: Could not set Default Catalog to "${target_value}". No interactive element found.    WARN
-    Capture Page Screenshot
+    Should Be Equal    ${open_result}    opened    msg=Could not open Default Catalog combobox: ${open_result}
+    Sleep    1s    reason=Allow dropdown options to populate
+    # Step 2: click the matching option (text is inside each option's shadow root)
+    ${select_result}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        function findAll(root, sel, d, acc) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll(sel).forEach(function(el){acc.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,sel,d+1,acc);});
+    ...        }
+    ...        var opts = []; findAll(document, '[role="option"]', 0, opts);
+    ...        for (var i=0;i<opts.length;i++) {
+    ...            var text = opts[i].shadowRoot ? opts[i].shadowRoot.textContent.trim() : '';
+    ...            if (text === targetValue) { opts[i].click(); return 'clicked'; }
+    ...        }
+    ...        return 'not_found:[' + opts.map(function(o){return o.shadowRoot?o.shadowRoot.textContent.trim():'?';}).join(',') + ']';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Be Equal    ${select_result}    clicked
+    ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
+    Sleep    2s    reason=Allow selection to auto-save
+    Log    Default Catalog set to "${target_value}".
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.
@@ -139,11 +141,3 @@ Dismiss Toast If Present
         Run Keyword If    ${visible}    Click Element    ${btn}
     END
     Sleep    0.5s
-
-_Scroll To Element
-    [Arguments]    ${locator}
-    ${present}=    Run Keyword And Return Status    Get WebElement    ${locator}
-    Run Keyword If    not ${present}    Execute JavaScript    window.scrollBy(0, 500)
-    Run Keyword If    not ${present}    Sleep    0.5s
-    Wait Until Element Is Visible    ${locator}    timeout=5s
-    Scroll Element Into View    ${locator}
