@@ -245,9 +245,11 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
 
                 const guidePipes = [];
                 for (let c = 0; c < depth - 1; c++) {
+                    const pipeOn = continueVertical[c] === true;
                     guidePipes.push({
                         key: `${path}-pipe-${c}`,
-                        on: continueVertical[c] === true
+                        on: pipeOn,
+                        pipeClass: pipeOn ? 'tree-pipe tree-pipe-on' : 'tree-pipe'
                     });
                 }
 
@@ -299,6 +301,7 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
                 const productStepRollUp = sm ? sm.rollUp : 0;
                 const productStepShowRollUp = !!(this.productCountsEditMode && hasChildren);
 
+                const isSelected = this.effectiveAllowRename && this.selectedPath === path;
                 list.push({
                     path,
                     name: n.name,
@@ -329,7 +332,14 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
                     elbowCorner,
                     canAddChild: !this.productCountsEditMode && depth < MAX_DEPTH - 1,
                     isEditing: this.editingPath === path,
-                    isSelected: this.effectiveAllowRename && this.selectedPath === path,
+                    isSelected,
+                    rowClass:
+                        'tree-row' +
+                        (isSelected ? ' tree-row-selected' : '') +
+                        (depth === 1 ? ' tree-row-first-branch' : ''),
+                    rowCoreClass: 'tree-row-core' + (isSelected ? ' tree-row-core-selected' : ''),
+                    guidesClass: 'tree-guides' + (depth === 1 ? ' tree-guides-depth1' : ''),
+                    elbowClass: 'tree-elbow' + (elbowNone ? ' tree-elbow-none' : ''),
                     guideClusterStyle: `margin-left:${guideMargin}px`,
                     addChildStyle: `margin-left: ${guidesW}px`
                 });

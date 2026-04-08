@@ -117,19 +117,20 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 return result;
             }
             result.addAll(rootIds);
-            Boolean added = true;
-            while (added) {
-                added = false;
+            Set<Id> frontier = new Set<Id>(rootIds);
+            while (!frontier.isEmpty()) {
+                Set<Id> nextFrontier = new Set<Id>();
                 for (QuoteLineGroup g : [
                     SELECT Id
                     FROM QuoteLineGroup
-                    WHERE ParentQuoteLineGroupId IN :result
+                    WHERE ParentQuoteLineGroupId IN :frontier
                 ]) {
                     if (!result.contains(g.Id)) {
                         result.add(g.Id);
-                        added = true;
+                        nextFrontier.add(g.Id);
                     }
                 }
+                frontier = nextFrontier;
             }
         } catch (Exception e) {
             return new Set<Id>();

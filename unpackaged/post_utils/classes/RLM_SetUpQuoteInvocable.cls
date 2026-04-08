@@ -4,14 +4,26 @@
  */
 public class RLM_SetUpQuoteInvocable {
 
-    private static final List<String> ONE_TIME_PBE_IDS = new List<String>{
-        '01uLT000007YNjqYAG', '01uLT000007YNjMYAW', '01uLT000007YNjAYAW',
-        '01uLT000007YNkZYAW', '01uLT000007YNjlYAG', '01uLT000007YNk9YAG',
-        '01uLT000007YNjEYAW', '01uLT000007YNkIYAW', '01uLT000007kegpYAA',
-        '01uLT000007YNjzYAG'
-    };
-    private static final String EVERGREEN_PBE_ID = '01uLT000007YNkCYAW';
-    private static final String TERMED_PBE_ID = '01uLT000007YNkEYAW';
+    /**
+     * Resolves demo PricebookEntries dynamically from the Standard Pricebook
+     * by ProductSellingModel type (OneTime, Evergreen, TermDefined), ordered
+     * so callers can cycle through all selling-model varieties via Math.mod.
+     * Returns up to 20 active PBEs — portable across scratch orgs and sandboxes.
+     */
+    @TestVisible
+    private static List<PricebookEntry> loadDemoPricebookEntries() {
+        return [
+            SELECT Id, Product2Id, UnitPrice,
+                   ProductSellingModel.SellingModelType,
+                   ProductSellingModel.PricingTermUnit
+            FROM PricebookEntry
+            WHERE Pricebook2.IsStandard = true
+              AND IsActive = true
+              AND ProductSellingModelId != null
+            ORDER BY ProductSellingModel.SellingModelType NULLS LAST
+            LIMIT 20
+        ];
+    }
     private static final Integer MAX_TOP_LEVEL = 20;
     private static final Integer MAX_NESTED_PER_TOP = 10;
 
@@ -93,14 +105,8 @@ public class RLM_SetUpQuoteInvocable {
             return results;
         }
         Input in0 = inputs[0];
-        // TEMP DEBUG: Salesforce Debug Logs (Setup → Debug Logs). Remove after capturing.
-        Integer hjLen = String.isNotBlank(in0.hierarchyJson) ? in0.hierarchyJson.length() : 0;
-        Integer pjLen = String.isNotBlank(in0.productCountsJson) ? in0.productCountsJson.length() : 0;
         Boolean useHier = useHierarchyJsonInput(in0);
         Boolean useTree = useTreeInput(in0);
-        System.debug(LoggingLevel.INFO, '[RLM_SetUpQuoteInvocable.execute] hierarchyJson length=' + hjLen + ', productCountsJson length=' + pjLen + ', useHierarchyJson=' + useHier + ', useTree=' + useTree);
-        if (String.isNotBlank(in0.hierarchyJson)) System.debug(LoggingLevel.INFO, '[RLM_SetUpQuoteInvocable.execute] hierarchyJson preview: ' + in0.hierarchyJson.substring(0, Math.min(200, in0.hierarchyJson.length())) + (in0.hierarchyJson.length() > 200 ? '...' : ''));
-        if (String.isNotBlank(in0.productCountsJson)) System.debug(LoggingLevel.INFO, '[RLM_SetUpQuoteInvocable.execute] productCountsJson preview: ' + in0.productCountsJson.substring(0, Math.min(200, in0.productCountsJson.length())) + (in0.productCountsJson.length() > 200 ? '...' : ''));
         try {
             List<Integer> csvLinesAddedOut = new List<Integer>();
             String qId;
@@ -337,11 +343,7 @@ public class RLM_SetUpQuoteInvocable {
             groupIdToCount.put(gid, count);
         }
         if (groupIdToCount.isEmpty()) return;
-        List<Id> pbeIds = new List<Id>();
-        for (String s : ONE_TIME_PBE_IDS) pbeIds.add(Id.valueOf(s));
-        pbeIds.add(Id.valueOf(EVERGREEN_PBE_ID));
-        pbeIds.add(Id.valueOf(TERMED_PBE_ID));
-        List<PricebookEntry> pbes = [SELECT Id, Product2Id, UnitPrice, ProductSellingModel.SellingModelType, ProductSellingModel.PricingTermUnit FROM PricebookEntry WHERE Id IN :pbeIds AND IsActive = true LIMIT 20];
+        List<PricebookEntry> pbes = loadDemoPricebookEntries();
         if (pbes.isEmpty()) return;
         Id qId = Id.valueOf(quoteId);
         List<Id> groupIds = new List<Id>(groupIdToCount.keySet());
@@ -548,11 +550,7 @@ public class RLM_SetUpQuoteInvocable {
         String quoteIdRef = isCreate ? '@{refHeader.id}' : String.valueOf(in0.quoteId);
         List<PricebookEntry> pbes = new List<PricebookEntry>();
         if (!useCsvImport && !countsMap.isEmpty()) {
-            List<Id> pbeIds = new List<Id>();
-            for (String s : ONE_TIME_PBE_IDS) pbeIds.add(Id.valueOf(s));
-            pbeIds.add(Id.valueOf(EVERGREEN_PBE_ID));
-            pbeIds.add(Id.valueOf(TERMED_PBE_ID));
-            pbes = [SELECT Id, Product2Id, UnitPrice, ProductSellingModel.SellingModelType, ProductSellingModel.PricingTermUnit FROM PricebookEntry WHERE Id IN :pbeIds AND IsActive = true LIMIT 20];
+            pbes = loadDemoPricebookEntries();
             if (pbes.isEmpty()) throw new RLM_SetUpQuoteException('No valid price book entries found.');
         }
         Map<String, String> pathToGroupRef = new Map<String, String>();
@@ -1062,11 +1060,7 @@ public class RLM_SetUpQuoteInvocable {
             productCounts.addAll(counts);
         }
 
-        List<Id> pbeIds = new List<Id>();
-        for (String s : ONE_TIME_PBE_IDS) pbeIds.add(Id.valueOf(s));
-        pbeIds.add(Id.valueOf(EVERGREEN_PBE_ID));
-        pbeIds.add(Id.valueOf(TERMED_PBE_ID));
-        List<PricebookEntry> pbes = [SELECT Id, Product2Id, UnitPrice, ProductSellingModel.SellingModelType, ProductSellingModel.PricingTermUnit FROM PricebookEntry WHERE Id IN :pbeIds AND IsActive = true LIMIT 20];
+        List<PricebookEntry> pbes = loadDemoPricebookEntries();
         if (pbes.isEmpty()) throw new RLM_SetUpQuoteException('No valid price book entries found.');
 
         Integer lineIndex = 0;
@@ -1152,11 +1146,7 @@ public class RLM_SetUpQuoteInvocable {
             }
         }
 
-        List<Id> pbeIds = new List<Id>();
-        for (String s : ONE_TIME_PBE_IDS) pbeIds.add(Id.valueOf(s));
-        pbeIds.add(Id.valueOf(EVERGREEN_PBE_ID));
-        pbeIds.add(Id.valueOf(TERMED_PBE_ID));
-        List<PricebookEntry> pbes = [SELECT Id, Product2Id, UnitPrice, ProductSellingModel.SellingModelType, ProductSellingModel.PricingTermUnit FROM PricebookEntry WHERE Id IN :pbeIds AND IsActive = true LIMIT 20];
+        List<PricebookEntry> pbes = loadDemoPricebookEntries();
         if (pbes.isEmpty()) throw new RLM_SetUpQuoteException('No valid price book entries found.');
 
         Integer lineIndex = 0;

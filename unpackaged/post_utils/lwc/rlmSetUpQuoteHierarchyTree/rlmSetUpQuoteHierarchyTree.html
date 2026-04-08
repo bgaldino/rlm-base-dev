@@ -54,28 +54,24 @@
                     <template for:each={visibleRows} for:item="row">
                         <div
                             key={row.path}
-                            class="tree-row"
-                            class:tree-row-selected={row.isSelected}
-                            class:tree-row-first-branch={row.firstBranchGuides}
+                            class={row.rowClass}
                         >
                             <div class="tree-row-top">
                                 <div
-                                    class="tree-row-core"
-                                    class:tree-row-core-selected={row.isSelected}
+                                    class={row.rowCoreClass}
                                     data-path={row.path}
                                     onclick={handleRowSelect}
                                 >
                                     <div
-                                        class="tree-guides"
-                                        class:tree-guides-depth1={row.firstBranchGuides}
+                                        class={row.guidesClass}
                                         style={row.guideClusterStyle}
                                     >
                                         <template for:each={row.guidePipes} for:item="pipe">
                                             <div key={pipe.key} class="tree-track">
-                                                <span class="tree-pipe" class:tree-pipe-on={pipe.on}></span>
+                                                <span class={pipe.pipeClass}></span>
                                             </div>
                                         </template>
-                                        <div class="tree-elbow" class:tree-elbow-none={row.elbowNone}>
+                                        <div class={row.elbowClass}>
                                             <template if:true={row.elbowTee}>
                                                 <span class="tree-elbow-bar tree-elbow-tee-v" aria-hidden="true"></span>
                                                 <span class="tree-elbow-bar tree-elbow-tee-h" aria-hidden="true"></span>
