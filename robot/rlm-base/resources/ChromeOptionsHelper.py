@@ -28,3 +28,23 @@ def get_headless_chrome_options():
 
     return options
 
+
+def get_headed_chrome_options():
+    """Create and return Chrome options configured for headed (visible) execution.
+
+    Use when headless mode does not trigger required browser events — e.g. Billing
+    Settings toggle cycling, where the LWC dispatches an Apex call that only
+    completes when Chrome is running in headed mode.
+
+    Returns:
+        selenium.webdriver.ChromeOptions: Configured options object
+    """
+    options = webdriver.ChromeOptions()
+
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--window-size=1920,1080')
+    options.add_argument('--disable-extensions')
+
+    return options
+

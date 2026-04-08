@@ -7,7 +7,7 @@ Documentation     Configure Billing Email Delivery Settings: cycle the "Configur
 ...               template. A UI toggle cycle (off then on) is required. Must run after
 ...               deploy_billing_template_settings.
 Resource          ../../resources/SetupToggles.robot
-Suite Setup       Open Browser For Setup
+Suite Setup       _Open Headed Browser For Billing
 Suite Teardown    Close Browser After Setup
 
 *** Variables ***
@@ -29,6 +29,21 @@ Configure Billing Email Delivery Settings
     Log    Configure Email Delivery Settings cycled. Default invoice email template should now be created.
 
 *** Keywords ***
+_Open Headed Browser For Billing
+    [Documentation]    Opens Chrome in headed (visible) mode. Required for Billing Settings
+    ...    toggle cycling: the LWC dispatches an Apex call on toggle that only completes
+    ...    when Chrome is running headed. Headless mode suppresses this backend event.
+    ${path}=    WebDriverManager.Get Chrome Driver Path
+    ${options}=    Get Headed Chrome Options
+    IF    """${path}""" != "None" and """${path}""" != ""
+        ${service}=    Evaluate    selenium.webdriver.chrome.service.Service(executable_path=$path)    selenium.webdriver.chrome.service
+        Create Webdriver    Chrome    service=${service}    options=${options}
+    ELSE
+        Create Webdriver    Chrome    options=${options}
+    END
+    Go To    about:blank
+    Maximize Browser Window
+
 Open Billing Settings Page
     [Documentation]    Opens the Billing Settings setup page using sf org open when
     ...    ORG_ALIAS is set, or falls back to BILLING_SETTINGS_URL.
