@@ -36,8 +36,18 @@ public with sharing class RLM_SetUpQuoteLinePreview {
 
         Set<Id> deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson);
         Integer linesRemovedFromDeletes = 0;
-        if (!deletedGroupIds.isEmpty()) {
-            linesRemovedFromDeletes = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteLineGroupId IN :deletedGroupIds];
+        if (!isCreate && String.isNotBlank(quoteIdStr) && !deletedGroupIds.isEmpty()) {
+            try {
+                Id qId = Id.valueOf(quoteIdStr);
+                linesRemovedFromDeletes = [
+                    SELECT COUNT()
+                    FROM QuoteLineItem
+                    WHERE QuoteId = :qId
+                      AND QuoteLineGroupId IN :deletedGroupIds
+                ];
+            } catch (Exception e) {
+                return buildResponse(0, 0, 0, 0, 0, 'Invalid quote Id');
+            }
         }
 
         Integer netExisting = 0;

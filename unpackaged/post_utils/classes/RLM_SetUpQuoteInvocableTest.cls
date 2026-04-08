@@ -5,10 +5,24 @@ private class RLM_SetUpQuoteInvocableTest {
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** Insert a minimal Quote directly (bypasses PST). */
+    /** Insert a minimal Quote with required related records (Account, Opportunity). */
     private static Quote insertTestQuote(String name) {
         Id pbId = Test.getStandardPricebookId();
-        Quote q = new Quote(Name = name, Pricebook2Id = pbId);
+        Account acct = new Account(Name = name + ' Account');
+        insert acct;
+        Opportunity opp = new Opportunity(
+            Name = name + ' Opportunity',
+            AccountId = acct.Id,
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30)
+        );
+        insert opp;
+        Quote q = new Quote(
+            Name = name,
+            Pricebook2Id = pbId,
+            OpportunityId = opp.Id,
+            Status = 'Draft'
+        );
         insert q;
         return q;
     }

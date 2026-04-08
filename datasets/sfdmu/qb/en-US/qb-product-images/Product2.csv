@@ -152,8 +152,8 @@ DisplayUrl,Name,StockKeepingUnit
 /resource/silv_maint,Silver Hardware Maintenance,QB-SUPP-1000
 /resource/gold_maint,Gold Hardware Maintenance,QB-SUPP-1005
 /resource/soft_maint2,Software Maintenance,QB-SUPP-2000
-,Quantum Tokens Definition,QB-TOKEN-DEF
-,QuantumBit Tokens Pack,QB-TOKENS-PACK
+/resource/RLM_quantumBit_logo_sq,Quantum Tokens Definition,QB-TOKEN-DEF
+/resource/RLM_quantumBit_logo_sq,QuantumBit Tokens Pack,QB-TOKENS-PACK
 /resource/essential_train,QuantumBit Essentials Training,QB-TRN-ESSNTLS
 /resource/fund_training,QuantumBit Fundamentals Training,QB-TRN-FUND
 /resource/RLM_quantumBit_logo_sq,vSphere Desktop,QB-VMW-D

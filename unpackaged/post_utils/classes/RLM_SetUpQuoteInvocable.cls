@@ -224,22 +224,39 @@ public class RLM_SetUpQuoteInvocable {
         return node;
     }
 
-    /** Deletes the given quote line groups and all their descendants and line items. */
-    private static void deleteQuoteLineGroups(String groupsToDeleteJson) {
-        if (String.isBlank(groupsToDeleteJson)) return;
+    /**
+     * Deletes the given quote line groups (and all their descendants and line items),
+     * restricted to groups that belong to the specified quote.
+     * The quoteId ownership check prevents accidental cross-quote deletes caused by
+     * stale UI state or crafted payloads.
+     */
+    private static void deleteQuoteLineGroups(String quoteId, String groupsToDeleteJson) {
+        if (String.isBlank(quoteId) || String.isBlank(groupsToDeleteJson)) return;
         List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
-        Set<Id> rootIds = new Set<Id>();
+        Set<Id> candidateIds = new Set<Id>();
         for (Object o : arr) {
-            if (o != null && String.isNotBlank(String.valueOf(o))) rootIds.add(Id.valueOf(String.valueOf(o)));
+            if (o != null && String.isNotBlank(String.valueOf(o))) candidateIds.add(Id.valueOf(String.valueOf(o)));
+        }
+        if (candidateIds.isEmpty()) return;
+        // Ownership guard: only expand groups that actually belong to this quote
+        Id qId = Id.valueOf(quoteId);
+        Set<Id> rootIds = new Set<Id>();
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :candidateIds AND QuoteId = :qId]) {
+            rootIds.add(g.Id);
         }
         if (rootIds.isEmpty()) return;
         Set<Id> allGroupIds = new Set<Id>(rootIds);
-        Boolean added = true;
-        while (added) {
-            added = false;
-            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :allGroupIds]) {
-                if (!allGroupIds.contains(g.Id)) { allGroupIds.add(g.Id); added = true; }
+        // Frontier-based BFS: only query newly discovered children each iteration
+        Set<Id> frontier = new Set<Id>(rootIds);
+        while (!frontier.isEmpty()) {
+            Set<Id> nextFrontier = new Set<Id>();
+            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier]) {
+                if (!allGroupIds.contains(g.Id)) {
+                    allGroupIds.add(g.Id);
+                    nextFrontier.add(g.Id);
+                }
             }
+            frontier = nextFrontier;
         }
         List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds];
         if (!toDeleteItems.isEmpty()) delete toDeleteItems;
@@ -485,7 +502,7 @@ public class RLM_SetUpQuoteInvocable {
         if (csvLinesAddedOut == null) csvLinesAddedOut = new List<Integer>();
         Boolean isCreate = (in0.isCreate == true);
         Boolean largeDeal = (in0.largeDeal == true);
-        if (!isCreate && String.isNotBlank(in0.groupsToDeleteJson)) deleteQuoteLineGroups(in0.groupsToDeleteJson);
+        if (!isCreate && String.isNotBlank(in0.groupsToDeleteJson)) deleteQuoteLineGroups(in0.quoteId, in0.groupsToDeleteJson);
         if (!isCreate) applyGroupRenames(in0.groupRenamesJson);
         Map<String, Id> tempIdToNewGroupId = new Map<String, Id>();
         if (!isCreate && String.isNotBlank(in0.newSubgroupsJson)) tempIdToNewGroupId = createNewSubgroupsUnderExisting(in0.quoteId, in0.newSubgroupsJson);
