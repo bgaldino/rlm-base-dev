@@ -37,6 +37,7 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 | `configure_revenue_settings` | Pricing Procedure, Usage Rating, Instant Pricing, flows | Shadow DOM controls, no API |
 | `configure_core_pricing_setup` | Default Pricing Procedure on CorePricingSetup page | Shadow DOM combobox, no API |
 | `configure_product_discovery_settings` | Default Catalog on Product Discovery Settings page | Shadow DOM combobox, no API |
+| `configure_billing_email_settings` | Cycle Email Delivery Settings toggle to create default invoice email template | Metadata API cycling does not trigger template auto-creation; UI cycle required |
 | `enable_analytics` | CRM Analytics + Data Sync toggle | VF iframe, no API |
 | `enable_document_builder` | Document Builder toggle | Shadow DOM, no API |
 | `enable_constraints_settings` | Transaction Type, Asset Context, Constraints Engine | Shadow DOM, no API |
