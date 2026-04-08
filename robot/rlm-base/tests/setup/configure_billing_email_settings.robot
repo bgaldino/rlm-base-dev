@@ -29,9 +29,7 @@ Configure Billing Email Delivery Settings
     Wait Until Keyword Succeeds    30s    5s    _Toggle Off Email Delivery
     Sleep    2s    reason=Allow toggle-off state to register
     Wait Until Keyword Succeeds    30s    5s    _Toggle On Email Delivery
-    ${template}=    Wait Until Keyword Succeeds    30s    5s    _Get Email Template Selection
-    Should Not Be Equal    ${template}    not_set
-    ...    msg=Default invoice email template was not populated after toggle cycle (got: ${template})
+    ${template}=    Wait Until Keyword Succeeds    30s    5s    _Assert Email Template Populated
     Capture Page Screenshot
     Log    Configure Email Delivery Settings cycled. Default Email Template confirmed: "${template}".
 
@@ -127,10 +125,19 @@ _Toggle On Email Delivery
     Log    Toggle ON result: ${result}
     Should Contain    ${result}    on    msg=${result}
 
+_Assert Email Template Populated
+    [Documentation]    Calls _Get Email Template Selection and FAILS if the value is
+    ...    'not_set'. Designed for use with Wait Until Keyword Succeeds so the retry
+    ...    loop actually polls — _Get Email Template Selection always returns a string
+    ...    and never raises, so it cannot be used directly with Wait Until Keyword Succeeds.
+    ${value}=    _Get Email Template Selection
+    Should Not Be Equal    ${value}    not_set
+    ...    msg=Default invoice email template not yet populated (got: ${value})
+    RETURN    ${value}
+
 _Get Email Template Selection
     [Documentation]    Returns the current value of the "Select Default Email Template"
-    ...    combobox via JavaScript, or 'not_set' if empty. Used by Wait Until Keyword
-    ...    Succeeds to poll until Salesforce's async template creation completes.
+    ...    combobox via JavaScript, or 'not_set' if empty.
     ${value}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
     ...    return (function() {
