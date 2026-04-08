@@ -10,6 +10,7 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 4. Use `composed: true` on dispatched events to cross shadow DOM boundaries.
 5. Use `self.org_config.username` in Python wrappers for `sf org open -o`.
 6. Gate E2E tests with `Skip If "${QB}" == "false"` on the relevant feature flag.
+7. For Setup UI + shadow DOM vs iframe: read `setup-ui-shadow-dom.md` before adding new keywords (LWS, `composed`, VF frames).
 
 ## DO NOT
 
@@ -56,6 +57,10 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 For detailed CCI task tables, Python wrapper patterns, shadow DOM
 traversal code, LWC reactivity patterns, keyword references, and
 test authoring guides, read `.cursor/skills/robot-testing/patterns.md`.
+
+For **agent-oriented** setup-UI pitfalls (shadow vs iframe, logging, when
+not to copy generic Selenium), read
+`.cursor/skills/robot-testing/setup-ui-shadow-dom.md`.
 
 ### Running tests
 

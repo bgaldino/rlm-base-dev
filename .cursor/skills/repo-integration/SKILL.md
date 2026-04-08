@@ -64,6 +64,10 @@ auto-updates YAML patch files. Profile writeback requires manual oversight.
 
 For full details, see `docs/features/dynamic-ux-assembly.md`.
 
+For **assembler vs retrieve**, SOAP retrieve scope, stale `appMenus/` cleanup,
+and why not to hand-edit `unpackaged/post_ux/`, read
+`.cursor/skills/repo-integration/ux-assembly-retrieve.md`.
+
 ---
 
 ## How Do I Configure Something?

@@ -1,0 +1,30 @@
+---
+description: Reminder to verify documentation consistency after code changes — task names, flag tables, plan READMEs, generated references
+globs: cumulusci.yml,tasks/**/*.py,datasets/sfdmu/**/export.json,robot/**/*.robot,.cursor/skills/**/*.md
+alwaysApply: false
+---
+
+# Documentation Consistency Reminder
+
+After editing files that match this rule, follow the doc-consistency skill
+at `.cursor/skills/doc-consistency/SKILL.md`.
+
+## Quick checks
+
+1. **`cumulusci.yml`** — run `python scripts/ai/generate_cci_reference.py`
+   and commit updated reference files. If you renamed a task, grep for the
+   old name in `README.md`, `AGENTS.md`, `docs/`, and `.cursor/skills/`.
+
+2. **`tasks/*.py`** — verify the task `description` in `cumulusci.yml` and
+   the `README.md` Custom Tasks table still match the class behavior.
+
+3. **`export.json` / SFDMU CSVs** — update the plan's `README.md` in the
+   same commit. Run `python scripts/validate_sfdmu_v5_datasets.py`.
+
+4. **`robot/**`** — check `robot-testing/SKILL.md` task tables and
+   `README.md` troubleshooting if the suite name or behavior changed.
+
+5. **`.cursor/skills/**`** — if adding a new skill or sub-file, register
+   it in `AGENTS.md` (Skill Index / Sub-Files) and `skills/README.md`.
+
+For the full change-surface map, read `.cursor/skills/doc-consistency/SKILL.md`.
