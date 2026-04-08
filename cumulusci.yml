@@ -1844,6 +1844,15 @@ tasks:
       usage_rating_procedure: RLM Default Rating Discovery Procedure
       create_orders_flow: RLM_CreateOrdersFromQuote
 
+  configure_core_pricing_setup:
+    group: Revenue Lifecycle Management
+    description: "Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated."
+    class_path: tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup
+    options:
+      suite: robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: RLM Revenue Management Default Pricing Procedure
+
   configure_product_discovery_settings:
     group: Revenue Lifecycle Management
     description: "Set the Default Catalog in Product Discovery Settings to 'QuantumBit Software' (Robot test). Must run after QB product catalog data is loaded. Only relevant when qb=true."
@@ -3140,6 +3149,8 @@ flows:
         when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
         options:
           manage_assets_flow: RLM_ARC_Assets
+      3:
+        task: configure_core_pricing_setup
 
   prepare_pricing_discovery:
     group: Revenue Lifecycle Management
