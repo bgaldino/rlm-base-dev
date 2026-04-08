@@ -6,7 +6,7 @@ Robot Framework tests that configure Salesforce Revenue Settings page options th
 
 | Suite | CCI Task | Description |
 |-------|----------|-------------|
-| `enable_document_builder.robot` | `enable_document_builder_toggle` | Enable Document Builder on Revenue Settings, Document Templates Export and Design Document Templates in Salesforce on General Settings (Document Generation) |
+| `enable_document_builder.robot` | `enable_document_builder_toggle` | Enable Document Builder on Revenue Settings, then Design Document Templates in Salesforce and Document Templates Export on General Settings (Design must run before Export — it is a prerequisite) |
 | `enable_constraints_settings.robot` | `enable_constraints_settings` | Set Default Transaction Type, Asset Context picklist, and enable Constraints Engine toggle |
 | `configure_revenue_settings.robot` | `configure_revenue_settings` | Set Pricing Procedure, Usage Rating Procedure, enable Instant Pricing toggle, set Create Orders Flow |
 
