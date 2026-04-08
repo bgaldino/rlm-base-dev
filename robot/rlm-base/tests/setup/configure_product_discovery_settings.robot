@@ -55,29 +55,13 @@ Set Default Catalog
     ...    nested LWC shadow DOMs (lightning-combobox → lightning-base-combobox → button, with
     ...    option text read from lightning-base-combobox-item shadow roots). Clears any existing
     ...    selection first if a different catalog is already selected. Auto-saves on selection.
+    ...
+    ...    Uses Wait Until Keyword Succeeds to retry when the combobox is not yet rendered —
+    ...    reconfigure_pricing_discovery triggers background processing that delays LWC render.
     [Arguments]    ${target_value}
-    # Step 1: check current state; clear wrong selection; open dropdown
-    ${open_result}=    Execute JavaScript
-    ...    ${_JS_FIND_EL}
-    ...    return (function(targetValue) {
-    ...        var selEl = findEl(document, '[data-id="selectedCatalog"]', 0);
-    ...        if (selEl && selEl.textContent.trim() === targetValue) return 'already_set';
-    ...        if (selEl) {
-    ...            var removeBtn = findEl(document, 'button.slds-pill__remove', 0);
-    ...            if (!removeBtn) return 'remove_btn_not_found';
-    ...            removeBtn.click();
-    ...            return 'cleared';
-    ...        }
-    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
-    ...        if (!lc) return 'combobox_not_found';
-    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
-    ...        if (!lbc) return 'lbc_not_found';
-    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
-    ...        if (!btn) return 'btn_not_found';
-    ...        btn.click();
-    ...        return 'opened';
-    ...    })(arguments[0])
-    ...    ARGUMENTS    ${target_value}
+    # Step 1: check current state; clear wrong selection; open dropdown (retry on combobox_not_found)
+    ${open_result}=    Wait Until Keyword Succeeds    30s    3s
+    ...    _Open Default Catalog Combobox    ${target_value}
     IF    "${open_result}" == "already_set"
         Log    Default Catalog already set to "${target_value}". No change needed.
         RETURN
@@ -120,6 +104,38 @@ Set Default Catalog
     ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
     Sleep    2s    reason=Allow selection to auto-save
     Log    Default Catalog set to "${target_value}".
+
+_Open Default Catalog Combobox
+    [Documentation]    Runs the state-check JS for Set Default Catalog.
+    ...    Returns 'opened' (combobox clicked open), 'already_set' (correct value present),
+    ...    'cleared' (wrong pill removed), or an error string. Fails with a retry-triggering
+    ...    message when 'combobox_not_found' — Salesforce background processing after
+    ...    reconfigure_pricing_discovery delays LWC render; Wait Until Keyword Succeeds retries.
+    [Arguments]    ${target_value}
+    ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function(targetValue) {
+    ...        var selEl = findEl(document, '[data-id="selectedCatalog"]', 0);
+    ...        if (selEl && selEl.textContent.trim() === targetValue) return 'already_set';
+    ...        if (selEl) {
+    ...            var removeBtn = findEl(document, 'button.slds-pill__remove', 0);
+    ...            if (!removeBtn) return 'remove_btn_not_found';
+    ...            removeBtn.click();
+    ...            return 'cleared';
+    ...        }
+    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+    ...        if (!lc) return 'combobox_not_found';
+    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...        if (!lbc) return 'lbc_not_found';
+    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...        if (!btn) return 'btn_not_found';
+    ...        btn.click();
+    ...        return 'opened';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Not Be Equal    ${result}    combobox_not_found
+    ...    msg=Product Discovery combobox not yet rendered; retrying...
+    RETURN    ${result}
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.
