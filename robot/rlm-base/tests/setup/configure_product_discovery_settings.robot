@@ -45,9 +45,7 @@ Open Product Discovery Settings Page
     IF    """${ORG_ALIAS}""" != ""
         Open Setup Page    ${path}
     ELSE IF    """${PRODUCT_DISCOVERY_URL}""" != ""
-        Go To    ${PRODUCT_DISCOVERY_URL}
-        Wait Until Page Contains Element    css:body    timeout=20s
-        Sleep    2s    reason=Allow Lightning to finish rendering
+        Open Setup Page    url=${PRODUCT_DISCOVERY_URL}
     ELSE
         Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or PRODUCT_DISCOVERY_URL
     END
