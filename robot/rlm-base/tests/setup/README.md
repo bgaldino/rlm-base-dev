@@ -55,7 +55,7 @@ robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_revenue_setti
 robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
 ```
 
-If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the Revenue Settings page.
+If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the target Setup page.
 
 ## Variables
 
@@ -138,8 +138,8 @@ All tests detect current state before making changes:
 |------|------|------|
 | `enable_document_builder_toggle` | `prepare_docgen` | Step 2 |
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
-| `configure_revenue_settings` | `prepare_rlm_org` | Step 27 (via `prepare_revenue_settings`) |
-| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 27 (via `prepare_revenue_settings`, step 3) |
+| `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
+| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
 
 ## Generated Output
 
