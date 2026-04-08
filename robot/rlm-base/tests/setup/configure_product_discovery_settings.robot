@@ -42,11 +42,15 @@ Open Product Discovery Settings Page
     [Documentation]    Opens the Product Discovery Settings setup page using sf org open
     ...    when ORG_ALIAS is set, or falls back to PRODUCT_DISCOVERY_URL.
     ${path}=    Set Variable    /lightning/setup/ProductDiscoverySettings/home
-    Run Keyword If    """${ORG_ALIAS}""" != ""    Open Setup Page    ${path}
-    ...    ELSE IF    """${PRODUCT_DISCOVERY_URL}""" != ""    Go To    ${PRODUCT_DISCOVERY_URL}
-    ...    ELSE    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or PRODUCT_DISCOVERY_URL
-    Wait Until Page Contains Element    css:body    timeout=20s
-    Sleep    2s    reason=Allow Lightning to finish rendering
+    IF    """${ORG_ALIAS}""" != ""
+        Open Setup Page    ${path}
+    ELSE IF    """${PRODUCT_DISCOVERY_URL}""" != ""
+        Go To    ${PRODUCT_DISCOVERY_URL}
+        Wait Until Page Contains Element    css:body    timeout=20s
+        Sleep    2s    reason=Allow Lightning to finish rendering
+    ELSE
+        Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or PRODUCT_DISCOVERY_URL
+    END
 
 Set Default Catalog
     [Documentation]    Sets the "Select Default Catalog" combobox via JavaScript, piercing the
