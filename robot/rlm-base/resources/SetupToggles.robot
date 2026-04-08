@@ -367,28 +367,37 @@ _ClickToggleElement
 
 *** Keywords ***
 Open Browser For Setup
-    [Documentation]    Opens a browser (Chrome by default). If webdriver-manager is installed it manages ChromeDriver automatically; otherwise falls back to the system ChromeDriver on PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
+    [Documentation]    Opens Chrome in headless mode (default for CCI robot tasks). If webdriver-manager is installed it manages ChromeDriver automatically; otherwise falls back to the system ChromeDriver on PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
     [Arguments]    ${browser}=chrome
-    Run Keyword If    """${browser}""" == "chrome"    _Open Chrome With Managed Driver
+    ${options}=    Get Headless Chrome Options
+    Run Keyword If    """${browser}""" == "chrome"    _Open Chrome With Managed Driver    ${options}
     ...    ELSE    Open Browser    about:blank    ${browser}
     Maximize Browser Window
 
+Open Headed Browser For Setup
+    [Documentation]    Opens Chrome in headed (visible) mode. Required for tasks where the LWC
+    ...    dispatches Apex calls that only complete when Chrome is running headed (e.g. Billing
+    ...    Settings toggle cycling). Uses webdriver-manager when available; falls back to PATH.
+    ${options}=    Get Headed Chrome Options
+    _Open Chrome With Managed Driver    ${options}
+    Maximize Browser Window
+
 _Open Chrome With Managed Driver
-    [Documentation]    Create Chrome driver with headless options (default for CCI robot tasks). Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
+    [Documentation]    Creates a Chrome driver with the supplied options. Uses webdriver-manager when available; falls back to system ChromeDriver on PATH.
+    [Arguments]    ${options}
     ${path}=    WebDriverManager.Get Chrome Driver Path
-    Run Keyword If    """${path}""" != "None" and """${path}""" != ""    _Open Chrome With Explicit Path    ${path}
-    ...    ELSE    _Open Chrome With Options Fallback
+    Run Keyword If    """${path}""" != "None" and """${path}""" != ""    _Open Chrome With Explicit Path    ${path}    ${options}
+    ...    ELSE    _Open Chrome With Options Fallback    ${options}
 
 _Open Chrome With Explicit Path
-    [Arguments]    ${path}
-    ${options}=    Get Headless Chrome Options
+    [Arguments]    ${path}    ${options}
     ${service}=    Evaluate    selenium.webdriver.chrome.service.Service(executable_path=$path)    selenium.webdriver.chrome.service
     Create Webdriver    Chrome    service=${service}    options=${options}
     Go To    about:blank
 
 _Open Chrome With Options Fallback
-    [Documentation]    Opens Chrome with headless options when no explicit ChromeDriver path is provided.
-    ${options}=    Get Headless Chrome Options
+    [Documentation]    Opens Chrome with the supplied options when no explicit ChromeDriver path is provided.
+    [Arguments]    ${options}
     Create Webdriver    Chrome    options=${options}
     Go To    about:blank
 
