@@ -11,6 +11,10 @@ Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 # Default timeout for waiting for setup page and toggle elements
 ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
+# Shared JS helper — pierces lightning-input → lightning-primitive-input-toggle → input.
+# Prepended to both _EnsureShadowDOMToggle and _VerifyToggleViaShadowDOM JS blocks so
+# the implementation lives in one place.
+${_JS_GET_INPUT_FROM_TOGGLE}    function getInputFromToggle(li){if(!li.shadowRoot)return null;var inp=li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');if(inp)return inp;var n=li.shadowRoot.querySelector('lightning-primitive-input-toggle');if(n&&n.shadowRoot)return n.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');return null;}
 
 *** Keywords ***
 Get Authenticated Setup Page Url
@@ -150,6 +154,7 @@ _VerifyToggleViaShadowDOM
     ...    lightning-input toggle, reads the checked state from the shadow root.
     [Arguments]    ${label}    ${expected_on}=True
     ${state}=    Execute Javascript
+    ...    ${_JS_GET_INPUT_FROM_TOGGLE}
     ...    return (function(label) {
     ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     ...        var headingEl = null;
@@ -160,15 +165,6 @@ _VerifyToggleViaShadowDOM
     ...            }
     ...        }
     ...        if (!headingEl) return 'label_not_found';
-    ...        function getInputFromToggle(li) {
-    ...            if (!li.shadowRoot) return null;
-    ...            var inp = li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
-    ...            if (inp) return inp;
-    ...            var nested = li.shadowRoot.querySelector('lightning-primitive-input-toggle');
-    ...            if (nested && nested.shadowRoot)
-    ...                return nested.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
-    ...            return null;
-    ...        }
     ...        var section = headingEl;
     ...        for (var depth = 0; depth < 10; depth++) {
     ...            section = section.parentElement;
@@ -300,11 +296,13 @@ _EnsureShadowDOMToggle
     [Documentation]    For LWC toggles where aria-checked/checked attributes are inaccessible.
     ...    Uses pure JavaScript to find the label heading via a text walker, then walks up
     ...    ancestor elements looking for the toggle at the narrowest possible scope.
-    ...    Checks plain input[type="checkbox"] (light DOM, e.g. MetadataPreference) before
-    ...    lightning-input shadow DOM, so the correct toggle is found even when both types
-    ...    exist in the same card.
+    ...    At each depth, lightning-input elements are checked first (piercing nested shadow
+    ...    roots via getInputFromToggle). Plain input[type="checkbox"] (light DOM, e.g.
+    ...    MetadataPreference) are only checked at depths where no lightning-input exists,
+    ...    preventing cross-row interference in cards that contain both toggle types.
     [Arguments]    ${label}    ${toggle_locator}    ${turn_on}=True
     ${result}=    Execute Javascript
+    ...    ${_JS_GET_INPUT_FROM_TOGGLE}
     ...    return (function(label, shouldEnable) {
     ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     ...        var headingEl = null;
@@ -315,15 +313,6 @@ _EnsureShadowDOMToggle
     ...            }
     ...        }
     ...        if (!headingEl) return 'label_not_found';
-    ...        function getInputFromToggle(li) {
-    ...            if (!li.shadowRoot) return null;
-    ...            var inp = li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
-    ...            if (inp) return inp;
-    ...            var nested = li.shadowRoot.querySelector('lightning-primitive-input-toggle');
-    ...            if (nested && nested.shadowRoot)
-    ...                return nested.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');
-    ...            return null;
-    ...        }
     ...        var section = headingEl;
     ...        for (var depth = 0; depth < 10; depth++) {
     ...            section = section.parentElement;
