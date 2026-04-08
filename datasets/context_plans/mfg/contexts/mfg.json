@@ -193,7 +193,7 @@
       "contextNode": "SalesTransaction",
       "contextAttribute": "SalesAgreement__c",
       "mappingType": "SOBJECT",
-      "sObject": "Quote",
+      "sObject": "Order",
       "sObjectField": "SalesAgreementId"
     },
     {
