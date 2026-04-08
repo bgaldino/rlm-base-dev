@@ -37,7 +37,8 @@ Enable Document Templates Export On General Settings
     ...    Requires Design Document Templates to be enabled first (see previous test case).
     ...    The page is reopened so Salesforce reflects the updated prerequisite state before the click.
     ...    Note: this toggle is a plain input[type="checkbox"] (data-name="MetadataPreference") in
-    ...    light DOM — not a lightning-input — so _EnsureShadowDOMToggle checks plain inputs first.
+    ...    light DOM — not a lightning-input — so _EnsureShadowDOMToggle falls back to plain inputs
+    ...    when no lightning-input exists at that DOM depth.
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
     Enable Toggle By Label    ${DOC_TEMPLATES_EXPORT_LABEL}
     Log    Document Templates Export toggle enabled.
