@@ -128,7 +128,8 @@ The Default Transaction Type field is a `<lightning-combobox>` component (distin
 ### Idempotency
 
 All tests detect current state before making changes:
-- **Toggles:** Read `checked` property via JavaScript; skip click if already enabled
+- **Toggles (general):** Read `checked` property via JavaScript; skip click if already in target state
+- **Billing email delivery toggle:** Always performs the off→on cycle (the click keywords check `inp.checked` and skip the click if already in the target state), then polls up to 30s for the Default Invoice Email Template field to be populated — safe to re-run because the backend template creation is idempotent
 - **Combobox-recipe fields (Pricing, Usage Rating, Asset Context):** Check if correct value is shown in pill within the scoped `<li>`; skip if matched. If wrong value, clear pill, wait for dropdown, select correct value.
 - **Lightning combobox (Transaction Type):** Check `Get Selected List Label`; skip if already correct
 - **Text inputs (Create Orders Flow):** Compare current value; skip if already correct
