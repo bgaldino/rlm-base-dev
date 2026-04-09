@@ -52,7 +52,7 @@ See Section 1 (Infrastructure) and Section 2 (Scratch Org Definitions) for prere
 - [x] Create `262-test` branch from `main`
 - [x] Update `sfdx-project.json` → `sourceApiVersion: 67.0`
 - [x] Update `cumulusci.yml` → `api_version: 67.0`
-- [x] Update `sfdcLoginUrl` to internal test pod (`login.test1.my.pc-rnd.salesforce.com`) — reverted to `https://login.salesforce.com` when merged to main; internal URL was 262-dev only
+- [x] `sfdcLoginUrl`: set to internal test pod (`login.test1.my.pc-rnd.salesforce.com`) on `262-test` branch; set to `https://login.salesforce.com` on feature branches working against production orgs
 - [x] Bulk-update all `<apiVersion>` in `-meta.xml` files to 67.0
 - [x] Bulk-update all `"apiVersion"` in SFDMU `export.json` files to 67.0
 - [x] Update `manifest/package.xml` version to 67.0
