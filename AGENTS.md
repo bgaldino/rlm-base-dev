@@ -214,6 +214,8 @@ same guidance, or use the parent skill which covers the same content:
 | `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |
 | `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` |
 | `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
+| `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`, `force-app/**/*.cls` | sharing, Id validation, BFS, test patterns |
+| `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.{html,js}` | template syntax, ARIA/a11y, perf, error messages |
 | `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
 
