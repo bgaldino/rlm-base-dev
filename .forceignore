@@ -83,3 +83,5 @@ force-app/main/default/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem
 force-app/main/default/objects/Order/Order.object-meta.xml
 force-app/main/default/objects/OrderItem/OrderItem.object-meta.xml
 force-app/main/default/objects/QuoteLineItem/QuoteLineItem.object-meta.xml
+
+unpackaged/post_personas/permissionsets/RLM_Custom_Sales_Rep_Perm_Set.permissionset-meta.xml

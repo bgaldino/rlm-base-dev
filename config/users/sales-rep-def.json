@@ -9,6 +9,5 @@
     "EmailEncodingKey": "UTF-8",
     "LanguageLocaleKey": "en_US",
     "profileName": "RLM Sales Representative",
-    "permsets": ["RLM Sales Representative"],
     "generatePassword": true
 }

@@ -996,12 +996,30 @@ tasks:
     description: >
       Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from
       config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative
-      profile and permission set group. Appends a unique username suffix to avoid conflicts.
+      profile. Idempotent: skips creation when a matching user already exists. Appends a
+      unique username suffix to avoid conflicts on initial create.
     class_path: tasks.rlm_create_persona_user.CreatePersonaUser
     options:
       definition_file: config/users/sales-rep-def.json
       alias: sales-rep-user
       set_unique_username: true
+
+  recalculate_personas_sales_rep_psg:
+    group: Revenue Lifecycle Management
+    description: Recalculate the RLM_Sales_Representative permission set group before user assignment.
+    class_path: tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups
+    options:
+      api_names:
+        - RLM_Sales_Representative
+
+  assign_personas_sales_rep_psg:
+    group: Revenue Lifecycle Management
+    description: Assign RLM_Sales_Representative PSG to the sales-rep-user persona using tolerant assignment.
+    class_path: tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant
+    options:
+      api_names:
+        - RLM_Sales_Representative
+      user_alias: sales-rep-user
 
   deploy_post_approvals:
     description: >
@@ -3268,7 +3286,13 @@ flows:
         task: deploy_post_personas
         when: project_config.project__custom__personas
       2:
+        task: recalculate_personas_sales_rep_psg
+        when: project_config.project__custom__personas
+      3:
         task: create_personas_sales_rep_user
+        when: project_config.project__custom__personas
+      4:
+        task: assign_personas_sales_rep_psg
         when: project_config.project__custom__personas
 
   run_qb_extracts:
