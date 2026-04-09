@@ -243,10 +243,20 @@ public with sharing class RLM_SetUpQuoteInvocable {
      */
     private static void deleteQuoteLineGroups(String quoteId, String groupsToDeleteJson) {
         if (String.isBlank(quoteId) || String.isBlank(groupsToDeleteJson)) return;
-        List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
+        List<Object> arr;
+        try {
+            arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
+        } catch (Exception e) {
+            return; // malformed JSON — nothing to delete
+        }
         Set<Id> candidateIds = new Set<Id>();
         for (Object o : arr) {
-            if (o != null && String.isNotBlank(String.valueOf(o))) candidateIds.add(Id.valueOf(String.valueOf(o)));
+            if (o == null || String.isBlank(String.valueOf(o))) continue;
+            try {
+                candidateIds.add(Id.valueOf(String.valueOf(o)));
+            } catch (Exception e) {
+                continue; // skip individual invalid Id — don't abort the whole operation
+            }
         }
         if (candidateIds.isEmpty()) return;
         // Ownership guard: only expand groups that actually belong to this quote
@@ -261,7 +271,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Set<Id> frontier = new Set<Id>(rootIds);
         while (!frontier.isEmpty()) {
             Set<Id> nextFrontier = new Set<Id>();
-            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier]) {
+            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :qId]) {
                 if (!allGroupIds.contains(g.Id)) {
                     allGroupIds.add(g.Id);
                     nextFrontier.add(g.Id);
@@ -269,7 +279,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
             frontier = nextFrontier;
         }
-        List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds];
+        List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds AND QuoteId = :qId];
         if (!toDeleteItems.isEmpty()) delete toDeleteItems;
         List<QuoteLineGroup> toDeleteGroups = [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE Id IN :allGroupIds];
         Set<Id> remaining = new Set<Id>(allGroupIds);
