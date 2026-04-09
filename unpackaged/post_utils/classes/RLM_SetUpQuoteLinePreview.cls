@@ -56,7 +56,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 Id qId = Id.valueOf(quoteIdStr);
                 netExisting = computeNetExistingGroupLines(qId, existingGroupCountsJson, deletedGroupIds);
             } catch (Exception e) {
-                /* ignore */
+                return buildResponse(currentTotal, linesRemovedFromDeletes, 0, 0, 0, 'Invalid existing group counts data; refresh and try again');
             }
         }
 

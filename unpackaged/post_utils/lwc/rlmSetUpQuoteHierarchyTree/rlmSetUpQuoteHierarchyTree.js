@@ -163,8 +163,8 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
     /**
      * Per path: subgroup count, on-quote line items, entered demo count, row total, subtree roll-up (option A: row + sum(child roll-ups)).
      */
-    _buildProductCountStepMetrics() {
-        const pathCounts = this._pathCounts();
+    _buildProductCountStepMetrics(providedPathCounts) {
+        const pathCounts = providedPathCounts !== undefined ? providedPathCounts : this._pathCounts();
         const metrics = {};
         const walk = (nodes, basePath) => {
             if (!nodes) return;
@@ -207,7 +207,8 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
     /** Sum of each root’s subtree roll-up (disjoint trees → whole shown hierarchy). */
     get productCountsStepGrandRollupLabel() {
         if (!this.productCountsEditMode || !this.hasParents) return null;
-        const m = this._buildProductCountStepMetrics();
+        const pathCounts = this._pathCounts();
+        const m = this._buildProductCountStepMetrics(pathCounts);
         const parents = this._tree.parents || [];
         if (!parents.length) return null;
         let sum = 0;
@@ -222,7 +223,7 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
         const list = [];
         const isExpanded = (path) => !this._collapsedPaths[path];
         const pathCounts = this.showProductCounts || this.productCountsEditMode ? this._pathCounts() : {};
-        const stepMetrics = this.productCountsEditMode ? this._buildProductCountStepMetrics() : null;
+        const stepMetrics = this.productCountsEditMode ? this._buildProductCountStepMetrics(pathCounts) : null;
 
         const TRACK = 15;
         const ELBOW = 15;
@@ -317,6 +318,7 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
                     tempId: n.tempId,
                     showDelete:
                         !this.productCountsEditMode && this.modifyExistingMode && !!(n.sfId || n.tempId),
+                    showRename: this.effectiveAllowRename,
                     depth,
                     /** First nested row under root(s): connector often reads darker; use lighter stroke. */
                     firstBranchGuides: depth === 1,

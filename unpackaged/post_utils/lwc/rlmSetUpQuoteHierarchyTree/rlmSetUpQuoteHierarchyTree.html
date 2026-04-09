@@ -147,6 +147,19 @@
                                         </template>
                                     </div>
                                 </div>
+                                <template if:true={row.showRename}>
+                                    <template if:false={row.isEditing}>
+                                        <lightning-button-icon
+                                            icon-name="utility:edit"
+                                            variant="border-filled"
+                                            alternative-text="Rename group"
+                                            title="Rename group"
+                                            data-path={row.path}
+                                            class="tree-rename-btn"
+                                            onclick={handleLabelDblClick}
+                                        ></lightning-button-icon>
+                                    </template>
+                                </template>
                                 <template if:true={row.showDelete}>
                                     <lightning-button-icon
                                         icon-name="utility:delete"
