@@ -1203,31 +1203,26 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
         }
         const headerOk = headerCells.length >= 8 && !expectedCols.some((name, idx) => headerCells[idx] !== name);
         if (!headerOk) {
-            const charCodes = [];
-            for (let k = 0; k < Math.min(rawFirstLine.length, 15); k++) {
-                charCodes.push(rawFirstLine.charCodeAt(k));
-            }
+            // Log full debug details to console for developer diagnosis; show only an actionable message in the UI.
             const cellRepr = (s) => {
                 if (s == null) return 'null';
-                const r = JSON.stringify(s);
                 const codes = [];
                 for (let k = 0; k < Math.min(s.length, 20); k++) codes.push(s.charCodeAt(k));
-                return r + ' (len=' + s.length + ' codes=' + codes.join(',') + ')';
+                return JSON.stringify(s) + ' (len=' + s.length + ' codes=' + codes.join(',') + ')';
             };
-            let fullError = 'Invalid header. Expected: ' + CSV_HEADER + '\n\n--- DEBUG (v3) ---\n';
-            fullError += 'Raw first line length: ' + rawFirstLine.length + '\n';
-            fullError += 'First 15 char codes: ' + charCodes.join(',') + '\n';
-            fullError += 'Raw first line (JSON): ' + JSON.stringify(rawFirstLine) + '\n';
-            fullError += 'Parsed header column count: ' + headerCells.length + '\n';
-            headerCells.forEach((cell, idx) => {
-                fullError += '  [' + idx + '] ' + cellRepr(cell) + '\n';
-            });
-            fullError += 'Expected columns:\n';
+            const charCodes = [];
+            for (let k = 0; k < Math.min(rawFirstLine.length, 15); k++) charCodes.push(rawFirstLine.charCodeAt(k));
+            let debugInfo = '[CSV header mismatch]\n';
+            debugInfo += 'Raw first line length: ' + rawFirstLine.length + ', first 15 char codes: ' + charCodes.join(',') + '\n';
+            debugInfo += 'Raw first line (JSON): ' + JSON.stringify(rawFirstLine) + '\n';
+            debugInfo += 'Parsed column count: ' + headerCells.length + '\n';
             expectedCols.forEach((name, idx) => {
                 const match = headerCells[idx] === name;
-                fullError += '  [' + idx + '] ' + JSON.stringify(name) + ' => ' + (match ? 'OK' : 'MISMATCH (got ' + cellRepr(headerCells[idx]) + ')') + '\n';
+                debugInfo += '  [' + idx + '] expected ' + JSON.stringify(name) + ' => ' + (match ? 'OK' : 'MISMATCH (got ' + cellRepr(headerCells[idx]) + ')') + '\n';
             });
-            out.error = fullError;
+            // eslint-disable-next-line no-console
+            console.error(debugInfo);
+            out.error = 'Invalid CSV header. Expected: ' + CSV_HEADER + '. Check that the file was exported from the correct template and has not been modified.';
             return out;
         }
         const norm = (s) => (s || '').trim().replace(/\s+/g, '');
