@@ -127,8 +127,8 @@
       "enableQuotesWithoutOppEnabled": true
     },
     "revenueManagementSettings": {
-      "enableAdvancedDetailLinePricing": true,
       "enableAdvCreateOrdersFromQuote": true,
+      "enableAdvancedDetailLinePricing": true,
       "enableAsIsRenewals": true,
       "enableAutoAddDerivedAsset": true,
       "enableCoreCPQ": true,
@@ -136,14 +136,17 @@
       "enableFullEscalationHydration": true,
       "enableGroupRampMultiSchedulePref": true,
       "enableGroupRampPref": true,
+      "enableGroupRampTrialSegmentPref": true,
       "enableRampDeal": true,
-      "enableRevenueAdjustment": true,
       "enableRevInstPricingDefaultPref": true,
       "enableRevUnifiedSetup": true,
+      "enableRevenueAdjustment": true,
+      "enableScaleAttributes": true,
       "enableTransactionCloning": true,
       "enableTransactionProcessor": true,
       "groupsEnabled": true,
       "hidePriceRefreshNtfcn": false,
+      "persistChunkSizeOverride": true,
       "relaxUniqueCipValidation": true,
       "skipOrgSttPricing": false
     },
