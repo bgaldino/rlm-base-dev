@@ -163,6 +163,7 @@ project:
     ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
 
     # ── Deployment Options ─────────────────────────────────────────────────────
+    personas: true            # Persona profiles and permission set groups (post_personas)
     sharingsettings: false    # Sharing Settings
     locale: en_US             # Default locale
 
@@ -989,6 +990,18 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_personas
+
+  create_personas_sales_rep_user:
+    group: Revenue Lifecycle Management
+    description: >
+      Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from
+      config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative
+      profile and permission set group. Appends a unique username suffix to avoid conflicts.
+    class_path: tasks.rlm_create_persona_user.CreatePersonaUser
+    options:
+      definition_file: config/users/sales-rep-def.json
+      alias: sales-rep-user
+      set_unique_username: true
 
   deploy_post_approvals:
     description: >
@@ -3246,10 +3259,17 @@ flows:
 
   prepare_personas:
     group: Revenue Lifecycle Management
-    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas. Not wired into prepare_rlm_org.
+    description: >
+      Deploy persona metadata (profiles, permission set groups, permission sets) from
+      unpackaged/post_personas and create the Sales Rep scratch user. Gated by the
+      personas feature flag. Not wired into prepare_rlm_org.
     steps:
       1:
         task: deploy_post_personas
+        when: project_config.project__custom__personas
+      2:
+        task: create_personas_sales_rep_user
+        when: project_config.project__custom__personas
 
   run_qb_extracts:
     group: Data Management - Extract
