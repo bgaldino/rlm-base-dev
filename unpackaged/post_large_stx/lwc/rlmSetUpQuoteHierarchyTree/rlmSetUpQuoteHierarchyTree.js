@@ -420,6 +420,13 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
         this.dispatchEvent(new CustomEvent('quotelinepreviewsync', { bubbles: true, composed: true }));
     }
 
+    handleRowCoreKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.handleRowSelect(event);
+        }
+    }
+
     handleRowSelect(event) {
         if (this.productCountsEditMode) return;
         if (!this.effectiveAllowRename) return;

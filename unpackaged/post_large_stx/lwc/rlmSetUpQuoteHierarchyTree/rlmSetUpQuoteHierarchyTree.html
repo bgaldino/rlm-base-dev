@@ -60,7 +60,11 @@
                                 <div
                                     class={row.rowCoreClass}
                                     data-path={row.path}
+                                    role="button"
+                                    tabindex="0"
+                                    aria-selected={row.isSelected}
                                     onclick={handleRowSelect}
+                                    onkeydown={handleRowCoreKeydown}
                                 >
                                     <div
                                         class={row.guidesClass}

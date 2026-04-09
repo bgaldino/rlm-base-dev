@@ -582,9 +582,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 return quoteId;
             } else {
                 if (largeDeal && String.isNotBlank(in0.quoteId)) {
+                    Id qId;
                     try {
-                        update new Quote(Id = Id.valueOf(in0.quoteId), IsLargeDeal = true);
-                    } catch (Exception e) { /* invalid Id — skip large deal flag */ }
+                        qId = Id.valueOf(in0.quoteId);
+                    } catch (Exception e) {
+                        throw new RLM_SetUpQuoteException('Invalid quote Id: ' + in0.quoteId);
+                    }
+                    update new Quote(Id = qId, IsLargeDeal = true);
                 }
                 return in0.quoteId;
             }
@@ -592,10 +596,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Boolean useCsvImport = String.isNotBlank(in0.csvImportLineItemsJson);
         Map<String, Integer> countsMap = new Map<String, Integer>();
         if (!useCsvImport && String.isNotBlank(in0.productCountsJson)) {
+            Map<String, Object> countsObj;
             try {
-                Map<String, Object> countsObj = (Map<String, Object>) JSON.deserializeUntyped(in0.productCountsJson);
-                for (String k : countsObj.keySet()) {
-                    Object v = countsObj.get(k);
+                countsObj = (Map<String, Object>) JSON.deserializeUntyped(in0.productCountsJson);
+            } catch (Exception e) {
+                throw new RLM_SetUpQuoteException('Invalid product counts JSON: ' + e.getMessage());
+            }
+            for (String k : countsObj.keySet()) {
+                Object v = countsObj.get(k);
+                try {
                     Integer count = null;
                     if (v instanceof Integer) count = (Integer) v;
                     else if (v instanceof Decimal) count = ((Decimal) v).intValue();
@@ -603,8 +612,10 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     else if (v instanceof Double) count = ((Double) v).intValue();
                     else if (v != null) count = Integer.valueOf(String.valueOf(v));
                     if (count != null) countsMap.put(k, count);
+                } catch (Exception e) {
+                    continue; // skip unparseable entry rather than discarding entire map
                 }
-            } catch (Exception e) { /* ignore */ }
+            }
         }
         Id pricebook2Id = getStandardPricebookId();
         Boolean createViaPost = isCreate;
