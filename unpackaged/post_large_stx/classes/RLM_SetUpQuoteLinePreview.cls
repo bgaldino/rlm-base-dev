@@ -184,6 +184,22 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             return net;
         }
 
+        // Validate group Ids belong to this quote — foreign Ids would return cur=0,
+        // making newC-cur=newC and inflating the preview delta.
+        Set<Id> validGroupIds = new Set<Id>();
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :groupIdsForQuery]) {
+            validGroupIds.add(g.Id);
+        }
+        for (Id gid : new List<Id>(groupIdsForQuery)) {
+            if (!validGroupIds.contains(gid)) {
+                groupIdsForQuery.remove(gid);
+                idToNewCount.remove(gid);
+            }
+        }
+        if (groupIdsForQuery.isEmpty()) {
+            return net;
+        }
+
         List<AggregateResult> ars = [
             SELECT QuoteLineGroupId grp, COUNT(Id) cnt
             FROM QuoteLineItem
