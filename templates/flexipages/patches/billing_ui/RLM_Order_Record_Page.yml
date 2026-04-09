@@ -1,6 +1,11 @@
 feature: billing_ui
 feature_flag: billing_ui
 patches:
+- type: insert_action
+  after: "ChangeRecordType"
+  actions:
+    - "PreviewInvoices"
+    - "BillNow"
 - type: insert_after_xml
   anchor: |-
     <name>detailTabContent</name>
@@ -299,17 +304,6 @@ patches:
                     <identifier>flexipage_tab3</identifier>
                 </componentInstance>
             </itemInstances>
-- type: insert_after_xml
-  anchor: |-
-    <value>BrowseCatalog</value>
-                            </valueListItems>
-  xml: |2
-                            <valueListItems>
-                                <value>PreviewInvoices</value>
-                            </valueListItems>
-                            <valueListItems>
-                                <value>BillNow</value>
-                            </valueListItems>
 - type: insert_after_xml
   anchor: |-
     <identifier>RecordFulfillmentPlanIdField</identifier>

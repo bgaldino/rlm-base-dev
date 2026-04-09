@@ -365,6 +365,16 @@
                 <identifier>RecordStartDateField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.IsLargeDeal</fieldItem>
+                <identifier>RecordIsLargeDealField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
         <type>Facet</type>
     </flexiPageRegions>

@@ -1,0 +1,8 @@
+feature: large_stx
+feature_flag: large_stx
+# Adds the Set Up Quote screen action to the Account highlights panel.
+patches:
+  - type: insert_action
+    after: "Account.RLM_QuickQuote"
+    actions:
+      - "Account.RLM_Set_Up_Quote"

@@ -122,6 +122,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
+    large_stx: true          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
     dro: true                 # Dynamic Revenue Orchestration
@@ -1077,6 +1078,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_utils
+
+  deploy_post_large_stx:
+    group: Revenue Lifecycle Management
+    description: Deploy Large Sales Transaction metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_large_stx
 
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
@@ -2497,13 +2505,16 @@ flows:
       26:
         flow: prepare_ramp_builder
       27:
+        flow: prepare_large_stx
+        when: project_config.project__custom__large_stx
+      28:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      28:
-        flow: prepare_scratch
       29:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       30:
+        flow: refresh_all_decision_tables
+      31:
         flow: stamp_git_commit
 
   prepare_core:
@@ -2723,6 +2734,13 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
+
+  prepare_large_stx:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_large_stx
+        when: project_config.project__custom__large_stx
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management

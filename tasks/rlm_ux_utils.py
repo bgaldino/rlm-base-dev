@@ -21,7 +21,7 @@ except ImportError:
 UX_KNOWN_FLAGS: List[str] = [
     "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
-    "payments", "constraints", "analytics", "procedureplans",
+    "payments", "constraints", "analytics", "procedureplans", "large_stx",
     "collections",
 ]
 

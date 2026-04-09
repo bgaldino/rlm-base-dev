@@ -612,7 +612,17 @@
                 <template if:true={isStep6}>
                     <div class="wizard-card">
                         <h3 class="wizard-card-title">Large Deal</h3>
-                        <lightning-input data-step="large-deal" type="checkbox" label="Mark this quote as a Large Deal?" checked={largeDeal}></lightning-input>
+                        <lightning-input
+                            data-step="large-deal"
+                            type="checkbox"
+                            label="Mark this quote as a Large Deal?"
+                            checked={effectiveLargeDeal}
+                            disabled={isLargeDealRequired}
+                            required={isLargeDealRequired}
+                        ></lightning-input>
+                        <template if:true={largeDealRequirementHelpText}>
+                            <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">{largeDealRequirementHelpText}</p>
+                        </template>
                     </div>
                 </template>
 

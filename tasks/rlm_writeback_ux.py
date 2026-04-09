@@ -224,6 +224,7 @@ class WriteBackUXTemplates(BaseTask):
             ("tso", "tso"),
             ("constraints", "constraints"),
             ("ramps", "ramp_builder"),
+            ("large_stx", "large_stx"),
             ("collections", "collections"),
         ]
 

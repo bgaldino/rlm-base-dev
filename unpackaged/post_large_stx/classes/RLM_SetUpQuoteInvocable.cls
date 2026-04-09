@@ -586,20 +586,52 @@ public class RLM_SetUpQuoteInvocable {
             } catch (Exception e) { /* ignore */ }
         }
         Id pricebook2Id = getStandardPricebookId();
+        Boolean createViaPost = isCreate;
+        String targetQuoteId = in0.quoteId;
+        if (isCreate && largeDeal) {
+            // Create the quote shell first, mark IsLargeDeal via DML, then run PST for groups/lines as PATCH.
+            // This preserves "large deal on create" behavior while avoiding PST header-path endpoint issues.
+            RevSalesTrxn.RecordResource preHeader = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'POST');
+            preHeader.fieldValues = buildCreateQuoteHeaderFields(in0, pricebook2Id);
+            List<RevSalesTrxn.RecordWithReferenceRequest> preRecords = new List<RevSalesTrxn.RecordWithReferenceRequest>{
+                new RevSalesTrxn.RecordWithReferenceRequest('refHeader', preHeader)
+            };
+            RevSalesTrxn.GraphRequest preGraph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable_PreCreate', preRecords);
+            RevSalesTrxn.PlaceSalesTransactionResponse preResp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+                preGraph,
+                RevSalesTrxn.PricingPreferenceEnum.SKIP,
+                RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+                new RevSalesTrxn.ConfigurationOptionsInput(),
+                null,
+                null,
+                RevSalesTrxn.TaxPreferenceEnum.SKIP,
+                null
+            );
+            if (preResp == null || !preResp.isSuccess) {
+                throw new RLM_SetUpQuoteException(
+                    preResp != null && preResp.errorResponse != null
+                        ? String.valueOf(preResp.errorResponse)
+                        : 'PST pre-create execution failed'
+                );
+            }
+            targetQuoteId = String.valueOf(preResp.salesTransactionId);
+            update new Quote(Id = Id.valueOf(targetQuoteId), IsLargeDeal = true);
+            createViaPost = false;
+        }
         List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords = new List<RevSalesTrxn.RecordWithReferenceRequest>();
         RevSalesTrxn.RecordResource headerRecord;
-        if (isCreate) {
+        if (createViaPost) {
             if (String.isBlank(in0.newQuoteName)) throw new RLM_SetUpQuoteException('New quote name required when creating.');
             headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'POST');
             headerRecord.fieldValues = buildCreateQuoteHeaderFields(in0, pricebook2Id);
         } else {
-            if (String.isBlank(in0.quoteId)) throw new RLM_SetUpQuoteException('Quote Id required when modifying.');
-            headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'PATCH', in0.quoteId);
+            if (String.isBlank(targetQuoteId)) throw new RLM_SetUpQuoteException('Quote Id required when modifying.');
+            headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'PATCH', targetQuoteId);
             headerRecord.fieldValues = new Map<String, Object>();
         }
         // Always add quote to graph so PST has a root and processes children. When modifying, use literal quoteId on groups/lines so they attach to existing quote (not a new one).
         listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refHeader', headerRecord));
-        String quoteIdRef = isCreate ? '@{refHeader.id}' : String.valueOf(in0.quoteId);
+        String quoteIdRef = createViaPost ? '@{refHeader.id}' : String.valueOf(targetQuoteId);
         List<PricebookEntry> pbes = new List<PricebookEntry>();
         if (!useCsvImport && !countsMap.isEmpty()) {
             pbes = loadDemoPricebookEntries();
@@ -655,7 +687,7 @@ public class RLM_SetUpQuoteInvocable {
             graph, RevSalesTrxn.PricingPreferenceEnum.SKIP, configEnum,
             new RevSalesTrxn.ConfigurationOptionsInput(), null, null, RevSalesTrxn.TaxPreferenceEnum.SKIP, null);
         if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
-        Id quoteId = isCreate ? (Id) resp.salesTransactionId : in0.quoteId;
+        Id quoteId = createViaPost ? (Id) resp.salesTransactionId : Id.valueOf(targetQuoteId);
         if (largeDeal) {
             update new Quote(Id = quoteId, IsLargeDeal = true);
         }

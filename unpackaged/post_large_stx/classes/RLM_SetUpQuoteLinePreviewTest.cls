@@ -32,9 +32,9 @@ private class RLM_SetUpQuoteLinePreviewTest {
      * Asserts the result is valid JSON and returns the map.
      */
     private static Map<String, Object> preview(Map<String, Object> payload) {
-        String json = RLM_SetUpQuoteLinePreview.previewQuoteLineCounts(JSON.serialize(payload));
-        System.assertNotEquals(null, json, 'previewQuoteLineCounts must return non-null JSON');
-        return (Map<String, Object>) JSON.deserializeUntyped(json);
+        String previewJson = RLM_SetUpQuoteLinePreview.previewQuoteLineCounts(JSON.serialize(payload));
+        System.assertNotEquals(null, previewJson, 'previewQuoteLineCounts must return non-null JSON');
+        return (Map<String, Object>) JSON.deserializeUntyped(previewJson);
     }
 
     // -------------------------------------------------------------------------

@@ -1,5 +1,6 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { CloseActionScreenEvent } from 'lightning/actions';
 import runSetUpQuoteFromLWC from '@salesforce/apex/RLM_SetUpQuoteInvocable.runSetUpQuoteFromLWC';
 import getQuotesForModify from '@salesforce/apex/RLM_SetUpQuoteInvocable.getQuotesForModify';
 import getQuoteHierarchy from '@salesforce/apex/RLM_SetUpQuoteInvocable.getQuoteHierarchy';
@@ -16,10 +17,14 @@ const STEP_PRODUCT_COUNTS = 5;
 const STEP_LARGE_DEAL = 6;
 const STEP_CONFIRM = 7;
 const STEP_RESULT = 8;
+const LARGE_DEAL_THRESHOLD = 500;
 
 const CSV_HEADER = 'Group 1,Group 2,Group 3,Group 4,Group 5,Bundle Product,Product,Quantity';
 
 export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElement) {
+    @api recordId;
+    @api objectApiName;
+
     @track step = STEP_CREATE_OR_MODIFY;
     @track isCreate = true;
     @track newQuoteName = '';
@@ -28,6 +33,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
     @track quoteOptions = [];
     @track quoteOptionsLoading = false;
     @track largeDeal = false;
+    @track largeDealRequiredByThreshold = false;
     @track result = null; // { quoteId, success, errorMessage }
     @track loading = false;
     @track _hierarchyJson = null;
@@ -720,7 +726,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
     get confirmNewSubgroupsCount() { return !this.isCreate && this.newSubgroupsUnderExisting && this.newSubgroupsUnderExisting.length ? this.newSubgroupsUnderExisting.length : 0; }
     get confirmLargeDealLabel() {
         if (this.skipLargeDealStep) return 'Yes (already set on quote)';
-        return this.largeDeal ? 'Yes' : 'No';
+        return this.effectiveLargeDeal ? 'Yes' : 'No';
     }
 
     get createModeScratchClass() {
@@ -805,8 +811,9 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
 
     handleCreate() {
         this.isCreate = true;
+        this.largeDealRequiredByThreshold = false;
         this.modifyProductCountsRail = 'existing';
-        this.importMethod = null;
+        this.importMethod = 'manual';
         this.createMode = 'SCRATCH';
         this.csvImportData = null;
         this.csvFileError = null;
@@ -1069,6 +1076,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
 
     async handleModify() {
         this.isCreate = false;
+        this.largeDealRequiredByThreshold = false;
         this.quoteId = '';
         this.modifyHierarchyRail = 'existing';
         this.modifyProductCountsRail = 'existing';
@@ -1439,6 +1447,10 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
                     quotesEl.reportValidity();
                 }
                 await this.loadRepeatBuyLinesAndSeedHierarchy();
+            }
+            if (!this.isCreatePreviousMode) {
+                // Keep Step 3 source in sync with the Step 2 create mode selection.
+                this.importMethod = this.createMode === 'CSV' ? 'csv' : 'manual';
             }
         } else {
             if (!this.quoteId || !this.quoteId.trim()) return;
@@ -1829,6 +1841,42 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
         return base + this.quoteLinePreviewRepeatAdds;
     }
 
+    get isLargeDealRequired() {
+        return this.largeDealRequiredByThreshold;
+    }
+
+    get estimatedProjectedTotalForLargeDealRequirement() {
+        const p = this.quoteLinePreview;
+        if (p && !p.error) {
+            return this.quoteLinePreviewProjectedTotal;
+        }
+        // Fallback while preview is still loading, primarily for create flows.
+        if (this.isCreate) {
+            let newGroups = 0;
+            try {
+                const counts =
+                    typeof this._productCountsJson === 'string'
+                        ? JSON.parse(this._productCountsJson || '{}')
+                        : this._productCountsJson || {};
+                newGroups = this._sumDemoCountsMap(counts);
+            } catch (e) {
+                newGroups = 0;
+            }
+            const repeatAdds = this.isCreatePreviousMode ? this.quoteLinePreviewRepeatAdds : 0;
+            return newGroups + repeatAdds;
+        }
+        return 0;
+    }
+
+    get effectiveLargeDeal() {
+        return this.largeDeal || this.isLargeDealRequired || this.skipLargeDealStep;
+    }
+
+    get largeDealRequirementHelpText() {
+        if (!this.isLargeDealRequired) return null;
+        return `Estimated total is ${this.estimatedProjectedTotalForLargeDealRequirement}. Large Deal is required at ${LARGE_DEAL_THRESHOLD}+ lines and has been selected automatically.`;
+    }
+
     get quoteLinePreviewNewGroupsAdds() {
         const p = this.quoteLinePreview;
         return p && !p.error ? p.newLinesFromHierarchy : 0;
@@ -2060,6 +2108,10 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
         }
         this._existingGroupCounts = existingCounts;
         this._productCountsJson = JSON.stringify(pathCounts);
+        // Re-evaluate from current Step 5 input snapshot (avoid stale async preview state).
+        this.largeDealRequiredByThreshold = this.computeLargeDealRequiredSnapshot(existingCounts, pathCounts);
+        // >= threshold => force checked; below threshold => clear.
+        this.largeDeal = this.largeDealRequiredByThreshold;
         if (this.skipLargeDealStep) {
             this.largeDeal = true;
             this.step = STEP_CONFIRM;
@@ -2074,8 +2126,27 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
 
     handleLargeDealNext() {
         const el = this.template.querySelector('lightning-input[data-step="large-deal"]');
-        this.largeDeal = el ? el.checked : false;
+        this.largeDeal = this.isLargeDealRequired ? true : el ? el.checked : false;
         this.step = STEP_CONFIRM;
+    }
+
+    computeLargeDealRequiredSnapshot(existingCounts, pathCounts) {
+        // Create mode uses entered group counts (plus repeated-line adds) as immediate source of truth.
+        if (this.isCreate) {
+            const newGroups = this._sumDemoCountsMap(pathCounts);
+            const repeatAdds = this.isCreatePreviousMode ? this.quoteLinePreviewRepeatAdds : 0;
+            return newGroups + repeatAdds >= LARGE_DEAL_THRESHOLD;
+        }
+        // Modify mode: prefer latest preview when available.
+        if (this.quoteLinePreview && !this.quoteLinePreview.error) {
+            return this.quoteLinePreviewProjectedTotal >= LARGE_DEAL_THRESHOLD;
+        }
+        // Fallback estimate if preview is unavailable.
+        const existingRows = this.quoteLinePreviewCurrentTotal || 0;
+        const addsExisting = this._sumDemoCountsMap(existingCounts);
+        const addsNew = this._sumDemoCountsMap(pathCounts);
+        const repeatAdds = this.isCreatePreviousMode ? this.quoteLinePreviewRepeatAdds : 0;
+        return existingRows + addsExisting + addsNew + repeatAdds >= LARGE_DEAL_THRESHOLD;
     }
 
     handleBack() {
@@ -2130,7 +2201,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
                 isCreate: this.isCreate,
                 quoteId: this.isCreate ? null : this.quoteId,
                 newQuoteName: this.isCreate ? this.newQuoteName : null,
-                largeDeal: this.largeDeal,
+                largeDeal: this.effectiveLargeDeal,
                 parentGroupNames: null,
                 subgroupNamesPerParent: null,
                 productCountsPerParent: null,
@@ -2164,6 +2235,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
     }
 
     handleClose() {
+        this.dispatchEvent(new CloseActionScreenEvent());
         this[NavigationMixin.Navigate]({
             type: 'standard__objectPage',
             attributes: { objectApiName: 'Quote', actionName: 'list' }
@@ -2173,6 +2245,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
     handleDone() {
         // After creating a quote, navigate to the new quote record so it appears in the quote viewer
         if (this.result?.success && this.result?.quoteId) {
+            this.dispatchEvent(new CloseActionScreenEvent());
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
                 attributes: {
