@@ -191,11 +191,15 @@ public class RLM_SetUpQuoteInvocable {
     public static String getQuoteHierarchy(String quoteId) {
         if (String.isBlank(quoteId)) return JSON.serialize(new Map<String, Object>{ 'parents' => new List<Object>() });
         List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :quoteId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
-        List<QuoteLineItem> items = [SELECT QuoteLineGroupId FROM QuoteLineItem WHERE QuoteId = :quoteId];
         Map<Id, Integer> lineCountByGroup = new Map<Id, Integer>();
-        for (QuoteLineItem li : items) {
-            Id gid = li.QuoteLineGroupId;
-            if (gid != null) lineCountByGroup.put(gid, lineCountByGroup.containsKey(gid) ? lineCountByGroup.get(gid) + 1 : 1);
+        for (AggregateResult ar : [
+            SELECT QuoteLineGroupId groupId, COUNT(Id) lineCount
+            FROM QuoteLineItem
+            WHERE QuoteId = :quoteId
+              AND QuoteLineGroupId != null
+            GROUP BY QuoteLineGroupId
+        ]) {
+            lineCountByGroup.put((Id) ar.get('groupId'), (Integer) ar.get('lineCount'));
         }
         Map<Id, List<QuoteLineGroup>> childrenByParent = new Map<Id, List<QuoteLineGroup>>();
         List<QuoteLineGroup> roots = new List<QuoteLineGroup>();
@@ -275,17 +279,29 @@ public class RLM_SetUpQuoteInvocable {
         }
     }
 
-    private static void applyGroupRenames(String groupRenamesJson) {
-        if (String.isBlank(groupRenamesJson)) return;
+    private static void applyGroupRenames(String quoteId, String groupRenamesJson) {
+        if (String.isBlank(quoteId) || String.isBlank(groupRenamesJson)) return;
+        Id qId = Id.valueOf(quoteId);
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(groupRenamesJson);
-        List<QuoteLineGroup> toUpdate = new List<QuoteLineGroup>();
+        // Build a map of requested Id -> new name, filtering out blank values
+        Map<Id, String> requestedNamesByGroupId = new Map<Id, String>();
         for (String k : m.keySet()) {
             Object v = m.get(k);
             if (v == null || String.isBlank(String.valueOf(v))) continue;
-            Id gid = Id.valueOf(k);
             String newName = String.valueOf(v).trim();
             if (String.isBlank(newName)) continue;
-            toUpdate.add(new QuoteLineGroup(Id = gid, Name = newName));
+            try { requestedNamesByGroupId.put(Id.valueOf(k), newName); } catch (Exception e) { continue; }
+        }
+        if (requestedNamesByGroupId.isEmpty()) return;
+        // Ownership guard: only rename groups that actually belong to this quote
+        List<QuoteLineGroup> toUpdate = new List<QuoteLineGroup>();
+        for (QuoteLineGroup g : [
+            SELECT Id
+            FROM QuoteLineGroup
+            WHERE Id IN :requestedNamesByGroupId.keySet()
+              AND QuoteId = :qId
+        ]) {
+            toUpdate.add(new QuoteLineGroup(Id = g.Id, Name = requestedNamesByGroupId.get(g.Id)));
         }
         if (!toUpdate.isEmpty()) update toUpdate;
     }
@@ -296,11 +312,17 @@ public class RLM_SetUpQuoteInvocable {
         List<Object> raw = (List<Object>) JSON.deserializeUntyped(newSubgroupsJson);
         if (raw.isEmpty()) return new Map<String, Id>();
         Id qId = Id.valueOf(quoteId);
+        // Pre-compute the set of group Ids that belong to this quote — used to validate
+        // real (non-tempId) parentGroupId values and prevent cross-quote subgroup creation.
+        Set<Id> validGroupIdsForQuote = new Set<Id>();
         Map<Id, Integer> nextSortOrderByParent = new Map<Id, Integer>();
-        for (QuoteLineGroup g : [SELECT ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId AND ParentQuoteLineGroupId != null]) {
-            Id p = g.ParentQuoteLineGroupId;
-            Integer so = g.SortOrder != null ? Integer.valueOf(String.valueOf(g.SortOrder)) : 0;
-            nextSortOrderByParent.put(p, nextSortOrderByParent.containsKey(p) ? Math.max(nextSortOrderByParent.get(p), so) : so);
+        for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId]) {
+            validGroupIdsForQuote.add(g.Id);
+            if (g.ParentQuoteLineGroupId != null) {
+                Id p = g.ParentQuoteLineGroupId;
+                Integer so = g.SortOrder != null ? Integer.valueOf(String.valueOf(g.SortOrder)) : 0;
+                nextSortOrderByParent.put(p, nextSortOrderByParent.containsKey(p) ? Math.max(nextSortOrderByParent.get(p), so) : so);
+            }
         }
         List<Map<String, Object>> items = new List<Map<String, Object>>();
         for (Object o : raw) {
@@ -324,6 +346,8 @@ public class RLM_SetUpQuoteInvocable {
                 Id parentId = null;
                 if (parentIdStr.length() == 15 || parentIdStr.length() == 18) {
                     try { parentId = Id.valueOf(parentIdStr); } catch (Exception e) { continue; }
+                    // Ownership guard: reject real parentIds not belonging to this quote
+                    if (!validGroupIdsForQuote.contains(parentId)) continue;
                 } else if (tempIdToNewId.containsKey(parentIdStr)) {
                     parentId = tempIdToNewId.get(parentIdStr);
                 } else continue;
@@ -331,6 +355,7 @@ public class RLM_SetUpQuoteInvocable {
                 nextSortOrderByParent.put(parentId, nextSo);
                 QuoteLineGroup g = new QuoteLineGroup(QuoteId = qId, ParentQuoteLineGroupId = parentId, Name = nameStr, SortOrder = nextSo);
                 insert g;
+                validGroupIdsForQuote.add(g.Id); // allow this new group as a parent in subsequent passes
                 if (String.isNotBlank(tempId)) tempIdToNewId.put(tempId, g.Id);
                 nextSortOrderByParent.put(g.Id, 0);
                 created.add(i);
@@ -363,9 +388,19 @@ public class RLM_SetUpQuoteInvocable {
         List<PricebookEntry> pbes = loadDemoPricebookEntries();
         if (pbes.isEmpty()) return;
         Id qId = Id.valueOf(quoteId);
+        // Ownership guard: discard any group Ids that don't belong to this quote
+        Set<Id> requestedGroupIds = new Set<Id>(groupIdToCount.keySet());
+        Set<Id> validGroupIds = new Set<Id>();
+        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds]) {
+            validGroupIds.add(qlg.Id);
+        }
+        for (Id gid : new List<Id>(groupIdToCount.keySet())) {
+            if (!validGroupIds.contains(gid)) groupIdToCount.remove(gid);
+        }
+        if (groupIdToCount.isEmpty()) return;
         List<Id> groupIds = new List<Id>(groupIdToCount.keySet());
-        // Bulkify: one SOQL for all line items in these groups (avoids "Too many SOQL queries" with many groups)
-        List<QuoteLineItem> existingItems = [SELECT Id, QuoteLineGroupId FROM QuoteLineItem WHERE QuoteLineGroupId IN :groupIds];
+        // Bulkify: one SOQL for all line items in these groups, scoped to this quote
+        List<QuoteLineItem> existingItems = [SELECT Id, QuoteLineGroupId FROM QuoteLineItem WHERE QuoteId = :qId AND QuoteLineGroupId IN :groupIds];
         Map<Id, List<QuoteLineItem>> groupIdToItems = new Map<Id, List<QuoteLineItem>>();
         for (Id gid : groupIds) groupIdToItems.put(gid, new List<QuoteLineItem>());
         for (QuoteLineItem it : existingItems) {
@@ -503,7 +538,7 @@ public class RLM_SetUpQuoteInvocable {
         Boolean isCreate = (in0.isCreate == true);
         Boolean largeDeal = (in0.largeDeal == true);
         if (!isCreate && String.isNotBlank(in0.groupsToDeleteJson)) deleteQuoteLineGroups(in0.quoteId, in0.groupsToDeleteJson);
-        if (!isCreate) applyGroupRenames(in0.groupRenamesJson);
+        if (!isCreate) applyGroupRenames(in0.quoteId, in0.groupRenamesJson);
         Map<String, Id> tempIdToNewGroupId = new Map<String, Id>();
         if (!isCreate && String.isNotBlank(in0.newSubgroupsJson)) tempIdToNewGroupId = createNewSubgroupsUnderExisting(in0.quoteId, in0.newSubgroupsJson);
         if (!isCreate && String.isNotBlank(in0.existingGroupCountsJson)) applyExistingGroupCounts(in0.quoteId, in0.existingGroupCountsJson, tempIdToNewGroupId);
