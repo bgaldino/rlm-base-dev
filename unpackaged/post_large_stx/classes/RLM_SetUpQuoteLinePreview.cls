@@ -61,12 +61,13 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         }
 
         Integer newFromHierarchy = 0;
-        List<Object> parentsList = parseParentsList(hierarchyJson);
-        if (parentsList != null && !parentsList.isEmpty()) {
-            Boolean useCsv = String.isNotBlank(csvImportLineItemsJson);
-            if (useCsv) {
-                newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
-            } else {
+        if (String.isNotBlank(csvImportLineItemsJson)) {
+            // CSV path: countCsvImportLinesForPreview parses hierarchyJson internally and
+            // returns 0 for blank/empty hierarchies, so no need to call parseParentsList first.
+            newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
+        } else {
+            List<Object> parentsList = parseParentsList(hierarchyJson);
+            if (parentsList != null && !parentsList.isEmpty()) {
                 newFromHierarchy = RLM_SetUpQuoteInvocable.sumProductCountsJsonValues(productCountsJson);
             }
         }
