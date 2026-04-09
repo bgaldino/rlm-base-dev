@@ -24,37 +24,32 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         String csvImportLineItemsJson =
             m.get('csvImportLineItemsJson') != null ? String.valueOf(m.get('csvImportLineItemsJson')) : null;
 
+        Id parsedQId = null;
         Integer currentTotal = 0;
         if (!isCreate && String.isNotBlank(quoteIdStr)) {
             try {
-                Id qId = Id.valueOf(quoteIdStr);
-                currentTotal = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
+                parsedQId = Id.valueOf(quoteIdStr);
+                currentTotal = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :parsedQId];
             } catch (Exception e) {
                 return buildResponse(0, 0, 0, 0, 0, 'Invalid quote Id');
             }
         }
 
-        Set<Id> deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson);
+        Set<Id> deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson, parsedQId);
         Integer linesRemovedFromDeletes = 0;
-        if (!isCreate && String.isNotBlank(quoteIdStr) && !deletedGroupIds.isEmpty()) {
-            try {
-                Id qId = Id.valueOf(quoteIdStr);
-                linesRemovedFromDeletes = [
-                    SELECT COUNT()
-                    FROM QuoteLineItem
-                    WHERE QuoteId = :qId
-                      AND QuoteLineGroupId IN :deletedGroupIds
-                ];
-            } catch (Exception e) {
-                return buildResponse(0, 0, 0, 0, 0, 'Invalid quote Id');
-            }
+        if (!isCreate && parsedQId != null && !deletedGroupIds.isEmpty()) {
+            linesRemovedFromDeletes = [
+                SELECT COUNT()
+                FROM QuoteLineItem
+                WHERE QuoteId = :parsedQId
+                  AND QuoteLineGroupId IN :deletedGroupIds
+            ];
         }
 
         Integer netExisting = 0;
-        if (!isCreate && String.isNotBlank(quoteIdStr) && String.isNotBlank(existingGroupCountsJson)) {
+        if (!isCreate && parsedQId != null && String.isNotBlank(existingGroupCountsJson)) {
             try {
-                Id qId = Id.valueOf(quoteIdStr);
-                netExisting = computeNetExistingGroupLines(qId, existingGroupCountsJson, deletedGroupIds);
+                netExisting = computeNetExistingGroupLines(parsedQId, existingGroupCountsJson, deletedGroupIds);
             } catch (Exception e) {
                 return buildResponse(currentTotal, linesRemovedFromDeletes, 0, 0, 0, 'Invalid existing group counts data; refresh and try again');
             }
@@ -111,7 +106,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         }
     }
 
-    private static Set<Id> expandDeletedGroupIds(String groupsToDeleteJson) {
+    private static Set<Id> expandDeletedGroupIds(String groupsToDeleteJson, Id quoteId) {
         Set<Id> result = new Set<Id>();
         if (String.isBlank(groupsToDeleteJson)) {
             return result;
@@ -120,22 +115,40 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
             Set<Id> rootIds = new Set<Id>();
             for (Object o : arr) {
-                if (o != null && String.isNotBlank(String.valueOf(o))) {
+                if (o == null || String.isBlank(String.valueOf(o))) continue;
+                try {
                     rootIds.add(Id.valueOf(String.valueOf(o)));
+                } catch (Exception e) {
+                    continue; // skip individual invalid Id — don't abort the whole set
                 }
             }
             if (rootIds.isEmpty()) {
                 return result;
             }
+            // Validate roots belong to the target quote to avoid traversing unrelated hierarchies
+            if (quoteId != null) {
+                Set<Id> ownedRoots = new Set<Id>();
+                for (QuoteLineGroup g : [
+                    SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId
+                ]) {
+                    ownedRoots.add(g.Id);
+                }
+                rootIds = ownedRoots;
+                if (rootIds.isEmpty()) {
+                    return result;
+                }
+            }
             result.addAll(rootIds);
             Set<Id> frontier = new Set<Id>(rootIds);
             while (!frontier.isEmpty()) {
                 Set<Id> nextFrontier = new Set<Id>();
-                for (QuoteLineGroup g : [
-                    SELECT Id
-                    FROM QuoteLineGroup
-                    WHERE ParentQuoteLineGroupId IN :frontier
-                ]) {
+                List<QuoteLineGroup> children;
+                if (quoteId != null) {
+                    children = [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId];
+                } else {
+                    children = [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier];
+                }
+                for (QuoteLineGroup g : children) {
                     if (!result.contains(g.Id)) {
                         result.add(g.Id);
                         nextFrontier.add(g.Id);
