@@ -1019,7 +1019,7 @@ tasks:
     options:
       api_names:
         - RLM_Sales_Representative
-      user_alias: sales-rep-user
+      user_alias: salesrep
 
   deploy_post_approvals:
     description: >
