@@ -160,9 +160,6 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         for (String k : m.keySet()) {
             Object v = m.get(k);
             Integer newCount = parsePositiveInt(v);
-            if (newCount == null) {
-                newCount = 0;
-            }
             Id gid = null;
             try {
                 gid = Id.valueOf(k);
