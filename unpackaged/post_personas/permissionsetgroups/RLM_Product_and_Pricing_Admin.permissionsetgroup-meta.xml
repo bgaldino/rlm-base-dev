@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RC Product and Pricing Admin</label>
+    <label>RLM Product and Pricing Admin</label>
     <permissionSets>force__AdvancedConfiguratorDesigner</permissionSets>
     <permissionSets>force__BREDesigner</permissionSets>
     <permissionSets>force__BRERuntime</permissionSets>

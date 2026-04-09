@@ -380,18 +380,18 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 | Persona PSG | Label | Permission Sets |
 |---|---|---|
-| `RLM_Sales_Representative` | RC Sales Representative | `BRERuntime`, `CLMRuntimeUser`, `DocGenUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser` |
-| `RLM_Sales_Operations` | RC Sales Operations | `AdvancedConfiguratorDesigner`, `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `IndustriesConfiguratorPlatformApi`, `ObligationUser`, `OrderSubmitUser`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser` |
-| `RLM_Product_and_Pricing_Admin` | RC Product and Pricing Admin | `AdvancedConfiguratorDesigner`, `BREDesigner`, `BRERuntime`, `CorePricingAdmin`, `CorePricingDesignTimeUser`, `CorePricingManager`, `CorePricingRunTimeUser`, `IndustriesConfiguratorPlatformApi`, `ProductCatalogManagementAdministrator`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `ProductDetailsApiCache`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi` |
-| `RLM_Billing_Admin` | RC Billing Admin | `RevenueLifecycleManagementBillingAdmin` |
-| `RLM_Billing_Operations` | RC Billing Operations | `RevenueLifecycleManagementBillingOperations` |
-| `RLM_Accounting_Admin` | RC Accounting Admin | `RevenueLifecycleManagementAccountingAdmin` |
-| `RLM_Tax_Admin` | RC Tax Admin | `RevenueLifecycleManagementBillingTaxAdmin` |
-| `RLM_Credit_Memo_Operations` | RC Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations` |
-| `RLM_DRO_Admin` | RC DRO Admin | `DfoAdminUser` |
-| `RLM_Fulfillment_Designer` | RC Fulfillment Designer | `DFODesignerUser` |
-| `RLM_Fulfillment_Manager` | RC Fulfillment Manager | `DFOManagerOperatorUser` |
-| `RLM_Usage_Designer` | RC Usage Designer | `ProductCatalogManagementViewer`, `RevLifecycleManagementUsageDesignUser` |
+| `RLM_Sales_Representative` | RLM Sales Representative | `BRERuntime`, `CLMRuntimeUser`, `DocGenUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser` |
+| `RLM_Sales_Operations` | RLM Sales Operations | `AdvancedConfiguratorDesigner`, `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `IndustriesConfiguratorPlatformApi`, `ObligationUser`, `OrderSubmitUser`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser` |
+| `RLM_Product_and_Pricing_Admin` | RLM Product and Pricing Admin | `AdvancedConfiguratorDesigner`, `BREDesigner`, `BRERuntime`, `CorePricingAdmin`, `CorePricingDesignTimeUser`, `CorePricingManager`, `CorePricingRunTimeUser`, `IndustriesConfiguratorPlatformApi`, `ProductCatalogManagementAdministrator`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `ProductDetailsApiCache`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi` |
+| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin` |
+| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations` |
+| `RLM_Accounting_Admin` | RLM Accounting Admin | `RevenueLifecycleManagementAccountingAdmin` |
+| `RLM_Tax_Admin` | RLM Tax Admin | `RevenueLifecycleManagementBillingTaxAdmin` |
+| `RLM_Credit_Memo_Operations` | RLM Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations` |
+| `RLM_DRO_Admin` | RLM DRO Admin | `DfoAdminUser` |
+| `RLM_Fulfillment_Designer` | RLM Fulfillment Designer | `DFODesignerUser` |
+| `RLM_Fulfillment_Manager` | RLM Fulfillment Manager | `DFOManagerOperatorUser` |
+| `RLM_Usage_Designer` | RLM Usage Designer | `ProductCatalogManagementViewer`, `RevLifecycleManagementUsageDesignUser` |
 
 ---
 
