@@ -2,7 +2,7 @@
  * Invocable for "Set Up Quote" flow: create or modify quote, set Large Deal,
  * create top-level + nested groups (max 5 levels), add products per group (DemoInvocableAction product set).
  */
-public class RLM_SetUpQuoteInvocable {
+public with sharing class RLM_SetUpQuoteInvocable {
 
     /**
      * Resolves demo PricebookEntries dynamically from the Standard Pricebook
@@ -189,13 +189,20 @@ public class RLM_SetUpQuoteInvocable {
      */
     @AuraEnabled(cacheable=false)
     public static String getQuoteHierarchy(String quoteId) {
-        if (String.isBlank(quoteId)) return JSON.serialize(new Map<String, Object>{ 'parents' => new List<Object>() });
-        List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :quoteId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
+        final String emptyResult = JSON.serialize(new Map<String, Object>{ 'parents' => new List<Object>() });
+        if (String.isBlank(quoteId)) return emptyResult;
+        Id qId;
+        try {
+            qId = Id.valueOf(quoteId);
+        } catch (Exception e) {
+            return emptyResult;
+        }
+        List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
         Map<Id, Integer> lineCountByGroup = new Map<Id, Integer>();
         for (AggregateResult ar : [
             SELECT QuoteLineGroupId groupId, COUNT(Id) lineCount
             FROM QuoteLineItem
-            WHERE QuoteId = :quoteId
+            WHERE QuoteId = :qId
               AND QuoteLineGroupId != null
             GROUP BY QuoteLineGroupId
         ]) {
@@ -564,7 +571,11 @@ public class RLM_SetUpQuoteInvocable {
                 if (largeDeal) update new Quote(Id = quoteId, IsLargeDeal = true);
                 return quoteId;
             } else {
-                if (largeDeal && String.isNotBlank(in0.quoteId)) update new Quote(Id = in0.quoteId, IsLargeDeal = true);
+                if (largeDeal && String.isNotBlank(in0.quoteId)) {
+                    try {
+                        update new Quote(Id = Id.valueOf(in0.quoteId), IsLargeDeal = true);
+                    } catch (Exception e) { /* invalid Id — skip large deal flag */ }
+                }
                 return in0.quoteId;
             }
         }

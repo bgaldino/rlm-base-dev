@@ -1,16 +1,16 @@
 <template>
     <div class="modal-overlay">
-        <div class={modalCardClass}>
+        <div class={modalCardClass} role="dialog" aria-modal="true" aria-labelledby="setup-quote-modal-title">
             <header class="modal-header">
                 <div class="modal-header-text">
-                    <h2 class="modal-title">Set Up Quote</h2>
+                    <h2 class="modal-title" id="setup-quote-modal-title">Set Up Quote</h2>
                     <p class="modal-subtitle">Create or modify a quote and set up hierarchy</p>
                 </div>
                 <lightning-button-icon icon-name="utility:close" alternative-text="Close" onclick={handleClose} class="close-btn"></lightning-button-icon>
             </header>
 
             <div class="step-indicator-wrap">
-                <ul class="step-indicator" role="tablist">
+                <ul class="step-indicator" aria-label="Wizard steps">
                     <template for:each={stepsList} for:item="s">
                         <li key={s.id} class="step-indicator-item" data-step-id={s.id}>
                             <span class={s.stepClass}>
