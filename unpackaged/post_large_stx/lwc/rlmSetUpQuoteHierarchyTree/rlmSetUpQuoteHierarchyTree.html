@@ -108,6 +108,7 @@
                                         <template if:true={row.isEditing}>
                                             <lightning-input
                                                 type="text"
+                                                label="Rename group"
                                                 variant="label-hidden"
                                                 value={editingDraftName}
                                                 data-path={row.path}
@@ -189,6 +190,8 @@
                                     <div class="add-child" style={row.addChildStyle}>
                                         <lightning-input
                                             type="text"
+                                            label="New subgroup name"
+                                            variant="label-hidden"
                                             data-parent-path={row.path}
                                             class="child-name"
                                             placeholder="New subgroup name"
