@@ -1,6 +1,6 @@
 <template>
-    <div class="modal-overlay">
-        <div class={modalCardClass} role="dialog" aria-modal="true" aria-labelledby="setup-quote-modal-title">
+    <div class="modal-overlay" onkeydown={handleModalKeydown}>
+        <div class={modalCardClass} role="dialog" aria-modal="true" aria-labelledby="setup-quote-modal-title" tabindex="-1">
             <header class="modal-header">
                 <div class="modal-header-text">
                     <h2 class="modal-title" id="setup-quote-modal-title">Set Up Quote</h2>

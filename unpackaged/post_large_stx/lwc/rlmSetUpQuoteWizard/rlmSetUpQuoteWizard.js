@@ -90,6 +90,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
     @track quoteLinePreview = null;
     _quoteLinePreviewTimer;
     _quoteInfoNextLockTimer;
+    _modalFocused = false;
 
     /** When modifying a quote that already has Large Deal set, we skip the Large Deal step (5-step flow). */
     get skipLargeDealStep() {
@@ -1951,8 +1952,55 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
     }
 
     renderedCallback() {
+        if (!this._modalFocused) {
+            this._modalFocused = true;
+            const card = this.template.querySelector('.modal-card');
+            if (card) {
+                card.focus();
+            }
+        }
         if (this.step === STEP_PRODUCT_COUNTS || this.step === STEP_CONFIRM) {
             this.scheduleQuoteLinePreviewRefresh();
+        }
+    }
+
+    handleModalKeydown(event) {
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+            this.handleClose();
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const FOCUSABLE_SELECTOR = [
+            'a[href]',
+            'button:not([disabled])',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            'textarea:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])',
+            'lightning-button:not([disabled])',
+            'lightning-button-icon:not([disabled])',
+            'lightning-input:not([disabled])',
+            'lightning-combobox:not([disabled])',
+            'lightning-textarea:not([disabled])'
+        ].join(', ');
+        const focusable = [...this.template.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+            (el) => el.offsetParent !== null
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = this.template.activeElement;
+        if (event.shiftKey) {
+            if (active === first) {
+                event.preventDefault();
+                last.focus();
+            }
+        } else {
+            if (active === last) {
+                event.preventDefault();
+                first.focus();
+            }
         }
     }
 
