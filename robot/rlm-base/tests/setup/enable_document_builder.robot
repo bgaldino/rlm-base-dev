@@ -56,13 +56,8 @@ Enable Document Templates Export On General Settings
     Sleep    3s    reason=Allow toggle change to reach Salesforce server
     # Reload and re-verify server-side persistence
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
-    ${verified}=    Execute JavaScript
-    ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
-    ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
-    ...        if (!pi) return 'not_found';
-    ...        return pi.checked ? 'on' : 'off';
-    ...    })()
+    ${verified}=    Wait Until Keyword Succeeds    20s    3s
+    ...    _Verify Document Templates Export Toggle Persisted
     Should Be Equal    ${verified}    on
     ...    msg=Document Templates Export toggle not persisted after page reload (got: ${verified})
     Log    Document Templates Export toggle enabled and confirmed.
@@ -91,3 +86,18 @@ Enable Prerequisite Then Document Builder
     Enable Toggle By Label    ${DOCUMENT_BUILDER_PREREQUISITE_LABEL}
     Sleep    2s    reason=Allow Document Builder toggle to become enabled after prerequisite
     Enable Toggle By Label    ${DOCUMENT_BUILDER_TOGGLE_LABEL}
+
+_Verify Document Templates Export Toggle Persisted
+    [Documentation]    Checks if the Document Templates Export toggle persisted after reload.
+    ...    Returns 'on', 'off', or 'not_found'. Used with Wait Until Keyword Succeeds to retry
+    ...    until the LWC component fully renders after page reload.
+    ${result}=    Execute JavaScript
+    ...    return (function() {
+    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+    ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
+    ...        if (!pi) return 'not_found';
+    ...        return pi.checked ? 'on' : 'off';
+    ...    })()
+    Should Not Be Equal    ${result}    not_found
+    ...    msg=Document Templates Export toggle not yet rendered after reload; retrying...
+    RETURN    ${result}

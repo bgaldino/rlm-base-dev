@@ -28,24 +28,8 @@ Configure Core Pricing Setup
     Capture Page Screenshot
     # Reload and re-verify to confirm the value was saved server-side
     Open Setup Page    /lightning/setup/CorePricingSetup/home
-    ${verified}=    Execute JavaScript
-    ...    return (function(targetValue) {
-    ...        var pills = [];
-    ...        (function findAll(root, d) {
-    ...            if (d > 6) return;
-    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
-    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
-    ...        })(document, 0);
-    ...        var pillValues = [];
-    ...        for (var i=0; i<pills.length; i++) {
-    ...            var pillValue = pills[i].textContent.trim();
-    ...            pillValues.push(pillValue);
-    ...            if (pillValue === targetValue) return targetValue;
-    ...        }
-    ...        if (pillValues.length > 0) return pillValues.join(', ');
-    ...        return 'not_set';
-    ...    })(arguments[0])
-    ...    ARGUMENTS    ${PRICING_PROCEDURE}
+    ${verified}=    Wait Until Keyword Succeeds    20s    3s
+    ...    _Verify Pricing Procedure Persisted    ${PRICING_PROCEDURE}
     Should Be Equal    ${verified}    ${PRICING_PROCEDURE}
     ...    msg=Pricing Procedure not persisted after page reload: expected "${PRICING_PROCEDURE}", got "${verified}"
     Log    CorePricingSetup: Pricing Procedure confirmed as "${PRICING_PROCEDURE}" after reload.
@@ -125,4 +109,32 @@ _Open Pricing Procedure Combobox
     ...    ARGUMENTS    ${target_value}
     Should Not Be Equal    ${result}    page_not_ready
     ...    msg=Page LWC components not yet rendered; retrying...
+    RETURN    ${result}
+
+_Verify Pricing Procedure Persisted
+    [Documentation]    Checks if the Pricing Procedure pill persisted after reload.
+    ...    Returns the pill value (matching target), a list of found pills, or 'not_set'.
+    ...    Used with Wait Until Keyword Succeeds to retry until the LWC components
+    ...    fully render after page reload.
+    [Arguments]    ${target_value}
+    ${result}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        var pills = [];
+    ...        (function findAll(root, d) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
+    ...        })(document, 0);
+    ...        var pillValues = [];
+    ...        for (var i=0; i<pills.length; i++) {
+    ...            var pillValue = pills[i].textContent.trim();
+    ...            pillValues.push(pillValue);
+    ...            if (pillValue === targetValue) return targetValue;
+    ...        }
+    ...        if (pillValues.length > 0) return pillValues.join(', ');
+    ...        return 'not_set';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Not Be Equal    ${result}    not_set
+    ...    msg=Pricing Procedure pill not yet rendered after reload; retrying...
     RETURN    ${result}
