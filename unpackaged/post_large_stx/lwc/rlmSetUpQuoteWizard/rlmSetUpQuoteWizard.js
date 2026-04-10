@@ -567,6 +567,17 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
         return this.step === STEP_RESULT;
     }
 
+    /**
+     * Account context where this screen action is launched.
+     * Use this to stamp created Quote.QuoteAccountId.
+     */
+    get launchAccountId() {
+        if (this.objectApiName === 'Account' && this.recordId) {
+            return this.recordId;
+        }
+        return null;
+    }
+
     /** Step 4 list: when modify = existing + new subgroups + new tree; when create = new tree only. Modify + CSV: existing groups only (products for new tree come from CSV). */
     get productCountsFlatList() {
         if (this.isCreate) {
@@ -2250,6 +2261,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(LightningElemen
                 quoteId: this.isCreate ? null : this.quoteId,
                 newQuoteName: this.isCreate ? this.newQuoteName : null,
                 largeDeal: this.effectiveLargeDeal,
+                quoteAccountId: this.isCreate ? this.launchAccountId : null,
                 parentGroupNames: null,
                 subgroupNamesPerParent: null,
                 productCountsPerParent: null,

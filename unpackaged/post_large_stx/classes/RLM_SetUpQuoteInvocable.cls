@@ -70,6 +70,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
         /** Repeat-buy assignment payload (create previous-quotes mode). */
         @InvocableVariable(label='Repeat-buy line assignments JSON')
         public String repeatBuyAssignmentsJson;
+        /** Quote account context from action launch (Account record action). */
+        @InvocableVariable(label='Quote account Id')
+        public String quoteAccountId;
         /** Repeat-buy selected account id; used to set target quote account linkage. */
         @InvocableVariable(label='Repeat-buy account Id')
         public String repeatBuyAccountId;
@@ -467,6 +470,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         inputMap.put('var_NewSubgroupsJson', String.isBlank(in0.newSubgroupsJson) ? null : in0.newSubgroupsJson);
         inputMap.put('var_ExistingGroupCountsJson', String.isBlank(in0.existingGroupCountsJson) ? null : in0.existingGroupCountsJson);
         inputMap.put('var_RepeatBuyAssignmentsJson', String.isBlank(in0.repeatBuyAssignmentsJson) ? null : in0.repeatBuyAssignmentsJson);
+        inputMap.put('var_QuoteAccountId', String.isBlank(in0.quoteAccountId) ? null : in0.quoteAccountId);
         inputMap.put('var_RepeatBuyAccountId', String.isBlank(in0.repeatBuyAccountId) ? null : in0.repeatBuyAccountId);
         inputMap.put('var_ParentNames', in0.parentGroupNames != null ? in0.parentGroupNames : new List<String>());
         inputMap.put('var_SubgroupCSVPerParent', in0.subgroupNamesPerParent != null ? in0.subgroupNamesPerParent : new List<String>());
@@ -489,6 +493,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         in0.newSubgroupsJson = (String) m.get('newSubgroupsJson');
         in0.existingGroupCountsJson = (String) m.get('existingGroupCountsJson');
         in0.repeatBuyAssignmentsJson = (String) m.get('repeatBuyAssignmentsJson');
+        in0.quoteAccountId = (String) m.get('quoteAccountId');
         in0.repeatBuyAccountId = (String) m.get('repeatBuyAccountId');
         in0.parentGroupNames = listOfStrings(m.get('parentGroupNames'));
         in0.subgroupNamesPerParent = listOfStrings(m.get('subgroupNamesPerParent'));
@@ -543,8 +548,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
             'Name' => in0.newQuoteName,
             'Pricebook2Id' => pricebook2Id
         };
-        if (String.isNotBlank(in0.repeatBuyAccountId)) {
-            out.put('QuoteAccountId', in0.repeatBuyAccountId);
+        String accountIdForQuote = String.isNotBlank(in0.quoteAccountId) ? in0.quoteAccountId : in0.repeatBuyAccountId;
+        if (String.isNotBlank(accountIdForQuote)) {
+            out.put('QuoteAccountId', accountIdForQuote);
         }
         return out;
     }
