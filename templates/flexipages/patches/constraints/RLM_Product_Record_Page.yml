@@ -5,7 +5,7 @@ feature_flag: constraints
 # to orgs where constraints=false.
 patches:
   - type: insert_after_xml
-    anchor: "<name>Facet-fc252c14-769a-457b-bf19-8bf6e4cf074d</name>\n        <type>Facet</type>\n    </flexiPageRegions>\n    <flexiPageRegions>"
+    anchor: "<name>Facet-fc252c14-769a-457b-bf19-8bf6e4cf074d</name>\n        <type>Facet</type>"
     xml: |2
               <itemInstances>
                   <componentInstance>
