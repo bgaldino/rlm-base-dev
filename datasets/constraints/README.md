@@ -237,9 +237,9 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
-| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `qb` | Load TransactionProcessingType records |
+| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `quantumbit` | Load TransactionProcessingType records |
 | 2 | `deploy_post_constraints` | `constraints` | Deploy constraint-related metadata |
-| 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
+| 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle (Robot Framework) |
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |

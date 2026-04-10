@@ -12,9 +12,9 @@ These steps run when the `constraints` flag is `true`:
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
-| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `qb` | Load TransactionProcessingType SFDMU records |
+| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `quantumbit` | Load TransactionProcessingType SFDMU records |
 | 2 | `deploy_post_constraints` | `constraints` | Deploy constraint-related metadata |
-| 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
+| 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
 ### Phase 2: Constraint Data Loading (steps 5-10)
