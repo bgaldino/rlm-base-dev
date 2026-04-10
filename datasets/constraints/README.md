@@ -254,7 +254,8 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
 | `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
-| `qb` | `true` | QuantumBit dataset family |
+| `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
+| `qb` | `true` | QuantumBit dataset family (steps 6-10) |
 
 To run the full constraints flow including data:
 ```yaml

@@ -38,7 +38,8 @@ These steps run when `constraints_data` is `true` (steps 6-10 also require `qb`)
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
 | `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
-| `qb` | `true` | QuantumBit dataset family gate |
+| `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
+| `qb` | `true` | QuantumBit dataset family gate (steps 6-10) |
 
 To load constraint data, set `constraints_data: true` in `cumulusci.yml` or override at runtime:
 
