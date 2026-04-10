@@ -251,7 +251,7 @@ same guidance, or use the parent skill which covers the same content:
 | `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.{html,js}` | template syntax, ARIA/a11y, perf, error messages |
 | `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
-| `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `export.json`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
+| `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
 
 ### AI Utility Scripts
 
