@@ -52,7 +52,7 @@ Understanding where truth lives prevents duplication drift.
 | Layer | Location | How to keep current |
 | ----- | -------- | ------------------- |
 | Generated CCI refs | `.cursor/skills/cci-orchestration/tasks-reference.md`, `.cursor/skills/cci-orchestration/flows-reference.md`, `.cursor/skills/cci-orchestration/feature-flags.md` | `python scripts/ai/generate_cci_reference.py` |
-| SFDMU plan READMEs | `datasets/sfdmu/qb/en-US/*/README.md` | Manual — must match `export.json` |
+| SFDMU plan READMEs | `datasets/sfdmu/**/README.md` (plan directory README next to `export.json`) | Manual — must match `export.json` |
 | Agent instructions | `AGENTS.md` (`CLAUDE.md` is a symlink) | Single source; edit `AGENTS.md` only |
 | Human setup / reference | `README.md` | Manual — task tables, flag tables, troubleshooting |
 | Skill files | `.cursor/skills/*/SKILL.md` + sub-files | Manual — cross-references to task names, paths |
