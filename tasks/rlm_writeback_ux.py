@@ -214,12 +214,12 @@ class WriteBackUXTemplates(BaseTask):
             return []
 
         feature_patch_order = [
-            ("qb", "quantumbit"),
-            ("qb", "utils"),
+            ("quantumbit", "quantumbit"),
+            ("quantumbit", "utils"),
             ("billing", "billing"),
             ("billing_ui", "billing_ui"),
             ("payments", "payments"),
-            ("qb", "approvals"),
+            ("quantumbit", "approvals"),
             ("docgen", "docgen"),
             ("tso", "tso"),
             ("constraints", "constraints"),
