@@ -11,6 +11,30 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
     @TestVisible
     static final String ATTR_ITEM_INSTALL_BASE = 'ItemInstallBaseAmount__c';
 
+    /** SalesTransaction (header) context attributes — rolled up from line-level Item* metrics. */
+    @TestVisible
+    static final String ATTR_ST_NET_NEW_AMOUNT = 'NetNewAmount__c';
+    @TestVisible
+    static final String ATTR_ST_EXPANSION_AMOUNT = 'ExpansionAmount__c';
+    @TestVisible
+    static final String ATTR_ST_CHURNED_AMOUNT = 'ChurnedAmount__c';
+    @TestVisible
+    static final String ATTR_ST_RENEWAL_AMOUNT = 'RenewalAmount__c';
+    @TestVisible
+    static final String ATTR_ST_NRR = 'TotalNRR__c';
+    @TestVisible
+    static final String ATTR_ST_ARR = 'TotalARR__c';
+    @TestVisible
+    static final String ATTR_ST_NET_NEW_ARR = 'NetNewARR__c';
+    @TestVisible
+    static final String ATTR_ST_EXPANSION_ARR = 'ExpansionARR__c';
+    @TestVisible
+    static final String ATTR_ST_CHURNED_ARR = 'ChurnedARR__c';
+    @TestVisible
+    static final String ATTR_ST_RENEWAL_ARR = 'RenewalARR__c';
+    @TestVisible
+    static final String ATTR_ST_I_ARR = 'iARR__c';
+
     private static final Integer AMOUNT_SCALE = 2;
 
     private static final String DBG = 'RLM_AssetStatePeriodSignalingHook';
@@ -30,7 +54,8 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         Context.IndustriesContext industriesContext = new Context.IndustriesContext();
 
         try {
-            Id accountId = resolveAccountId(industriesContext, contextId);
+            Map<String, Object> salesTransactionNode = queryFirstSalesTransactionNode(industriesContext, contextId);
+            Id accountId = resolveAccountIdFromNode(salesTransactionNode);
             if (accountId == null) {
                 System.debug(LoggingLevel.WARN, DBG + '.execute: account not resolved');
                 response.status = RevSignaling.TransactionStatus.FAILED;
@@ -42,6 +67,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             List<LineContextRow> lines = querySalesTransactionItems(industriesContext, contextId);
             System.debug(LoggingLevel.DEBUG, DBG + '.execute: salesTransactionItem rows=' + lines.size());
             List<Map<String, Object>> nodeUpdates = new List<Map<String, Object>>();
+            TransactionRollupTotals rollup = new TransactionRollupTotals();
 
             Integer lineIndex = 0;
             for (LineContextRow line : lines) {
@@ -71,7 +97,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 Decimal expansionARR = 0;
                 Decimal churnedARR = 0;
                 Decimal renewalARR = 0;
-                Decimal iARR;
+                Decimal iARR = 0;
             
                 if (isOneTime(line.sellingModelType)) {
                     // Per requirements, do not query AssetStatePeriod when SellingModelType is OneTime.
@@ -136,6 +162,12 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                             renewalARR
                     );
                 }
+
+                rollup.accumulateLine(
+                    total, netNewAmount, expansionAmount, churnedAmount, renewalAmount,
+                    nrr, arr, netNewARR, expansionARR, churnedARR, renewalARR, iARR
+                );
+
                 List<Object> pathForUpdate = line.pathForFieldUpdate();
                 if (pathForUpdate == null || pathForUpdate.isEmpty()) {
                     System.debug(LoggingLevel.DEBUG, DBG + '.execute: line ' + lineIndex + ' no pathForFieldUpdate');
@@ -253,6 +285,8 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 );
             }
 
+            appendSalesTransactionNodeUpdate(nodeUpdates, salesTransactionNode, rollup);
+
             if (!nodeUpdates.isEmpty()) {
                 System.debug(LoggingLevel.DEBUG, DBG + '.execute: updateContextAttributes count=' + nodeUpdates.size());
                 industriesContext.updateContextAttributes(
@@ -286,8 +320,15 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         return result;
     }
 
-    private static Id resolveAccountId(Context.IndustriesContext industriesContext, String contextId) {
-        System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountId: enter contextId=' + contextId);
+    /**
+     * Queries SalesTransaction tag and returns the first node map. Used for Account resolution
+     * and for reading the SalesTransaction dataPath (needed for header-level attribute writes).
+     */
+    private static Map<String, Object> queryFirstSalesTransactionNode(
+        Context.IndustriesContext industriesContext,
+        String contextId
+    ) {
+        System.debug(LoggingLevel.DEBUG, DBG + '.queryFirstSalesTransactionNode: enter contextId=' + contextId);
         Map<String, Object> outMap = industriesContext.queryTags(
             new Map<String, Object>{
                 'contextId' => contextId,
@@ -296,26 +337,59 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         );
         Map<String, Object> queryResult = (Map<String, Object>) outMap.get('queryResult');
         if (queryResult == null) {
-            System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountId: queryResult null');
+            System.debug(LoggingLevel.DEBUG, DBG + '.queryFirstSalesTransactionNode: queryResult null');
             return null;
         }
         List<Object> stNodes = (List<Object>) queryResult.get(TAG_SALES_TRANSACTION);
         if (stNodes == null || stNodes.isEmpty()) {
-            System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountId: no SalesTransaction nodes');
+            System.debug(LoggingLevel.DEBUG, DBG + '.queryFirstSalesTransactionNode: no SalesTransaction nodes');
             return null;
         }
         Map<String, Object> firstNode = (Map<String, Object>) stNodes[0];
-        Map<String, Object> tagValue = (Map<String, Object>) firstNode.get('tagValue');
+        System.debug(LoggingLevel.DEBUG, DBG + '.queryFirstSalesTransactionNode: exit node found');
+        return firstNode;
+    }
+
+    /**
+     * Resolves Account (or QuoteAccount) Id from an already-fetched SalesTransaction node.
+     */
+    @TestVisible
+    static Id resolveAccountIdFromNode(Map<String, Object> salesTransactionNode) {
+        System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountIdFromNode: enter');
+        if (salesTransactionNode == null) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountIdFromNode: null node -> null');
+            return null;
+        }
+        Map<String, Object> tagValue = (Map<String, Object>) salesTransactionNode.get('tagValue');
         if (tagValue == null) {
-            System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountId: tagValue null on SalesTransaction node');
+            System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountIdFromNode: tagValue null');
             return null;
         }
         Id accountId = parseIdTag(tagValue, 'Account');
         if (accountId == null) {
             accountId = parseIdTag(tagValue, 'QuoteAccount');
         }
-        System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountId: exit accountId=' + accountId);
+        System.debug(LoggingLevel.DEBUG, DBG + '.resolveAccountIdFromNode: exit accountId=' + accountId);
         return accountId;
+    }
+
+    /**
+     * Returns the full dataPath list from a SalesTransaction node for header-level attribute updates.
+     */
+    @TestVisible
+    static List<Object> salesTransactionDataPath(Map<String, Object> salesTransactionNode) {
+        System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: enter');
+        if (salesTransactionNode == null) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: null node -> null');
+            return null;
+        }
+        List<Object> dataPath = (List<Object>) salesTransactionNode.get('dataPath');
+        if (dataPath == null || dataPath.isEmpty()) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: empty dataPath -> null');
+            return null;
+        }
+        System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: exit segments=' + dataPath.size());
+        return new List<Object>(dataPath);
     }
 
     private static List<LineContextRow> querySalesTransactionItems(
@@ -1013,6 +1087,159 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         String status = dml instanceof String ? (String) dml : null;
         System.debug(LoggingLevel.DEBUG, DBG + '.dmlStatusFromTagMap: status=' + status);
         return status;
+    }
+
+    /**
+     * Builds the attribute list for the SalesTransaction header node from rolled-up line totals.
+     */
+    @TestVisible
+    static List<Object> buildSalesTransactionAttributes(TransactionRollupTotals rollup) {
+        System.debug(
+            LoggingLevel.DEBUG,
+            DBG +
+                '.buildSalesTransactionAttributes: enter' +
+                ' contributingLines=' + rollup.contributingLineCount +
+                ' totalInstallBase=' + rollup.totalInstallBase +
+                ' netNew=' + rollup.netNewAmount +
+                ' expansion=' + rollup.expansionAmount +
+                ' churned=' + rollup.churnedAmount +
+                ' renewal=' + rollup.renewalAmount +
+                ' nrr=' + rollup.nrr +
+                ' arr=' + rollup.arr +
+                ' netNewARR=' + rollup.netNewARR +
+                ' expansionARR=' + rollup.expansionARR +
+                ' churnedARR=' + rollup.churnedARR +
+                ' renewalARR=' + rollup.renewalARR +
+                ' iARR=' + rollup.iARR
+        );
+        List<Object> attrs = new List<Object>();
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_NET_NEW_AMOUNT,
+            'attributeValue' => String.valueOf(rollup.netNewAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_EXPANSION_AMOUNT,
+            'attributeValue' => String.valueOf(rollup.expansionAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_CHURNED_AMOUNT,
+            'attributeValue' => String.valueOf(rollup.churnedAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_RENEWAL_AMOUNT,
+            'attributeValue' => String.valueOf(rollup.renewalAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_NRR,
+            'attributeValue' => String.valueOf(rollup.nrr.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_ARR,
+            'attributeValue' => String.valueOf(rollup.arr.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_NET_NEW_ARR,
+            'attributeValue' => String.valueOf(rollup.netNewARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_EXPANSION_ARR,
+            'attributeValue' => String.valueOf(rollup.expansionARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_CHURNED_ARR,
+            'attributeValue' => String.valueOf(rollup.churnedARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_RENEWAL_ARR,
+            'attributeValue' => String.valueOf(rollup.renewalARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => ATTR_ST_I_ARR,
+            'attributeValue' => String.valueOf(rollup.iARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        System.debug(LoggingLevel.DEBUG, DBG + '.buildSalesTransactionAttributes: exit attrs=' + attrs.size());
+        return attrs;
+    }
+
+    /**
+     * Appends a single header-level node update for the SalesTransaction to the nodeUpdates list.
+     */
+    private static void appendSalesTransactionNodeUpdate(
+        List<Map<String, Object>> nodeUpdates,
+        Map<String, Object> salesTransactionNode,
+        TransactionRollupTotals rollup
+    ) {
+        System.debug(LoggingLevel.DEBUG, DBG + '.appendSalesTransactionNodeUpdate: enter');
+        List<Object> stPath = salesTransactionDataPath(salesTransactionNode);
+        if (stPath == null) {
+            System.debug(
+                LoggingLevel.WARN,
+                DBG + '.appendSalesTransactionNodeUpdate: no SalesTransaction dataPath — skipping header update'
+            );
+            return;
+        }
+        nodeUpdates.add(
+            new Map<String, Object>{
+                'nodePath' => new Map<String, Object>{ 'dataPath' => stPath },
+                'attributes' => buildSalesTransactionAttributes(rollup)
+            }
+        );
+        System.debug(
+            LoggingLevel.DEBUG,
+            DBG + '.appendSalesTransactionNodeUpdate: exit — appended header rollup (' +
+                rollup.contributingLineCount + ' lines contributed)'
+        );
+    }
+
+    /**
+     * Running totals of per-line revenue metrics, accumulated during the line loop
+     * and written to the SalesTransaction header node after all lines are processed.
+     */
+    private class TransactionRollupTotals {
+        public Decimal totalInstallBase = 0;
+        public Decimal netNewAmount = 0;
+        public Decimal expansionAmount = 0;
+        public Decimal churnedAmount = 0;
+        public Decimal renewalAmount = 0;
+        public Decimal nrr = 0;
+        public Decimal arr = 0;
+        public Decimal netNewARR = 0;
+        public Decimal expansionARR = 0;
+        public Decimal churnedARR = 0;
+        public Decimal renewalARR = 0;
+        public Decimal iARR = 0;
+        public Integer contributingLineCount = 0;
+
+        public void accumulateLine(
+            Decimal lineTotal, Decimal lineNetNew, Decimal lineExpansion,
+            Decimal lineChurned, Decimal lineRenewal, Decimal lineNrr,
+            Decimal lineArr, Decimal lineNetNewArr, Decimal lineExpansionArr,
+            Decimal lineChurnedArr, Decimal lineRenewalArr, Decimal lineIarr
+        ) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.TransactionRollupTotals.accumulateLine: enter');
+            totalInstallBase += nz(lineTotal);
+            netNewAmount += nz(lineNetNew);
+            expansionAmount += nz(lineExpansion);
+            churnedAmount += nz(lineChurned);
+            renewalAmount += nz(lineRenewal);
+            nrr += nz(lineNrr);
+            arr += nz(lineArr);
+            netNewARR += nz(lineNetNewArr);
+            expansionARR += nz(lineExpansionArr);
+            churnedARR += nz(lineChurnedArr);
+            renewalARR += nz(lineRenewalArr);
+            iARR += nz(lineIarr);
+            contributingLineCount++;
+            System.debug(
+                LoggingLevel.DEBUG,
+                DBG + '.TransactionRollupTotals.accumulateLine: exit lineCount=' + contributingLineCount +
+                    ' runningInstallBase=' + totalInstallBase
+            );
+        }
+
+        private Decimal nz(Decimal d) {
+            return d == null ? 0 : d;
+        }
     }
 
     /**
