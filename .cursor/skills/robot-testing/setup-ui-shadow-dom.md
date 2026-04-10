@@ -29,7 +29,7 @@ Read this when editing **Robot setup tests** under `robot/rlm-base/tests/setup/`
 |------|----------|
 | Shared toggle / checkbox keywords | `robot/rlm-base/resources/SetupToggles.robot` |
 | Chrome / driver resolution | `robot/rlm-base/resources/WebDriverManager.py` |
-| Analytics (VF iframe) | `robot/rlm-base/resources/AnalyticsSetupHelper.py`, `tests/setup/enable_analytics.robot` |
+| Analytics (VF iframe) | `robot/rlm-base/resources/AnalyticsSetupHelper.py`, `robot/rlm-base/tests/setup/enable_analytics.robot` |
 | Variables (URLs, labels) | `robot/rlm-base/variables/SetupVariables.robot` |
 
 After substantive changes, run `cci task run validate_setup` (no org) and exercise the relevant `configure_*` / `enable_*` task against a scratch org when possible.

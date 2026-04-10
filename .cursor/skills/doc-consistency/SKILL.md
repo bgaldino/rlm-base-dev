@@ -14,7 +14,7 @@ review-loop fixes ("fix stale description", "update README task name",
 5. **If you changed a Python task class** (`tasks/*.py`) — check the task's `description` in `cumulusci.yml`, the `README.md` Custom Tasks table, and any `docs/` guide that names it.
 6. **If you changed Robot test suites or resources** — check `robot-testing/SKILL.md` tables (Setup tasks / E2E tasks) and the `README.md` troubleshooting section.
 7. **If you created a new skill or sub-file** — add it to: (a) the parent `SKILL.md` cross-reference, (b) `AGENTS.md` Skill Sub-Files table, (c) `.cursor/skills/README.md` Skill Router if top-level.
-8. **Quick verification** — run `python scripts/ai/generate_cci_reference.py --dry-run` (should print "no changes") and `python scripts/validate_sfdmu_v5_datasets.py` (should pass).
+8. **Quick verification** — run `python scripts/ai/generate_cci_reference.py` and then `git diff` to confirm only intended changes appear. Run `python scripts/validate_sfdmu_v5_datasets.py` (should pass).
 
 ## DO NOT
 
@@ -51,7 +51,7 @@ Understanding where truth lives prevents duplication drift.
 
 | Layer | Location | How to keep current |
 | ----- | -------- | ------------------- |
-| Generated CCI refs | `.cursor/skills/cci-orchestration/{tasks,flows,feature-flags}-reference.md` | `python scripts/ai/generate_cci_reference.py` |
+| Generated CCI refs | `.cursor/skills/cci-orchestration/tasks-reference.md`, `.cursor/skills/cci-orchestration/flows-reference.md`, `.cursor/skills/cci-orchestration/feature-flags.md` | `python scripts/ai/generate_cci_reference.py` |
 | SFDMU plan READMEs | `datasets/sfdmu/qb/en-US/*/README.md` | Manual — must match `export.json` |
 | Agent instructions | `AGENTS.md` (`CLAUDE.md` is a symlink) | Single source; edit `AGENTS.md` only |
 | Human setup / reference | `README.md` | Manual — task tables, flag tables, troubleshooting |
@@ -64,11 +64,12 @@ Understanding where truth lives prevents duplication drift.
 ## Verification Commands
 
 ```bash
-python scripts/ai/generate_cci_reference.py --dry-run   # should report no changes
+python scripts/ai/generate_cci_reference.py              # regenerate references
+git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # should pass
 ```
 
-If the dry-run shows diffs, regenerate and commit:
+If the diff shows unintended changes, investigate before committing. To commit the regenerated files:
 
 ```bash
 python scripts/ai/generate_cci_reference.py
