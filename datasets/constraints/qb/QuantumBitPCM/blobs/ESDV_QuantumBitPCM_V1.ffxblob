@@ -1,0 +1,63 @@
+@(virtual = "true")
+type Quote {
+    @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
+    relation lineitems : LineItem;
+
+    @(sourceContextNode = "Asset")
+    relation assetLineItems : AssetLineItem;
+
+    rule(lineitems[APIAccessRequests], "disable", "relation", "LineItem", "type", "APIAccessRequestsFlex", "message", "Not compatible with API Access Requests Flex");
+
+    rule(lineitems[APIAccessRequests], "disable", "relation", "LineItem", "type", "GoldHardwareMaintenance", "message", "Not compatible with API Access Requests Flex");
+
+    rule(lineitems[APIAccessRequests], "disable", "relation", "LineItem", "type", "QuantumBitCollaborationSuite", "message", "Not compatible with API Access Requests Flex");
+
+    require(lineitems[APIAccessRequests], lineitems[QuantumBitDatabase], "Unable to add Quantum Bit Database");
+
+   // rule(lineitems[QuantumBitDatabase], "disable", "relation", "LineItem", "type", "SoftwareMaintenance");
+
+    rule(lineitems[APIAccessRequests], "recommend", "type", "QuantumBitEssentialsTraining", "message", "QuantumBit Essentials Training to help you with API access");
+
+    rule(lineitems[APIAccessRequests], "recommend", "type", "QuantumBitFundamentalsTraining", "message", "QuantumBit Fundamentals Training to help you with API access");
+    
+    //rule(lineitems[AdditionalAPIGov], "recommend", "type", "QuantumBitEssentialsTraining", "message", "recommend essential training for complete solution");
+
+    //rule(lineitems[AdditionalAPIGov], "recommend", "type", "QuantumBitFundamentalsTraining", "message", "recommend laptop from monitor");
+
+    rule(assetLineItems[QuantumBitCompleteSolution], "disable", "relation", "AssetLineItem", "type", "QuantumBitDatabaseTokenCommitEach", "message", "Quantum Bit Toeken Each can't be bought");
+
+    rule(assetLineItems[QuantumBitCompleteSolution], "recommend", "type", "QuantumBitDatabaseTokenCommitFlat", "message", "Recommends Quantum Bit Database Token Commit Flat");
+
+}
+
+type LineItem;
+
+type AssetLineItem;
+
+type QuantumBitDatabase : LineItem {
+    message(true, "This selection may require additional review. ", "info");
+
+}
+
+type APIAccessRequests : LineItem;
+
+type APIAccessRequestsFlex : LineItem;
+
+type GoldHardwareMaintenance : LineItem;
+
+type QuantumBitCollaborationSuite : LineItem;
+
+//type QuantumBitDatabase : LineItem;
+type SoftwareMaintenance : LineItem;
+
+type QuantumBitCompleteSolution : AssetLineItem;
+
+type AdditionalAPIGov : LineItem;
+
+type QuantumBitEssentialsTraining : LineItem;
+
+type QuantumBitFundamentalsTraining : LineItem;
+
+type QuantumBitDatabaseTokenCommitEach : AssetLineItem;
+
+type QuantumBitDatabaseTokenCommitFlat : AssetLineItem;

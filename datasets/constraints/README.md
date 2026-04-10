@@ -61,6 +61,10 @@ datasets/constraints/qb/
 │   ├── (same CSV structure)
 │   └── blobs/
 │       └── ESDV_Server2_V1.ffxblob
+├── QuantumBitPCM/
+│   ├── (same CSV structure)
+│   └── blobs/
+│       └── ESDV_QuantumBitPCM_V1.ffxblob
 └── README.md               # This file
 ```
 
@@ -241,14 +245,15 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
-| 9 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1 and Server2_V1 |
+| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model |
+| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1, Server2_V1, and QuantumBitPCM_V1 |
 
 ### Feature Flags
 
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `false` | Enable constraint data loading and activation (steps 5-8) |
+| `constraints_data` | `false` | Enable constraint data loading and activation (steps 5-9) |
 | `qb` | `true` | QuantumBit dataset family |
 
 To run the full constraints flow including data:
@@ -270,10 +275,11 @@ cci flow run prepare_constraints --org <org> -o constraints_data true
 |-------|------------|----------|-----|------|
 | QuantumBitComplete | 43 | 22 (Type) | 21 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
 | Server2 | 81 | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
+| QuantumBitPCM | 12 | 12 (Type) | 0 | ESDV_QuantumBitPCM_V1.ffxblob |
 
 ### Source Org
 
-Both models were extracted from the `qb-migrate` connected org. To re-extract (e.g. after changes in the source org):
+QuantumBitComplete and Server2 were extracted from the `qb-migrate` connected org. QuantumBitPCM was extracted from `pm-pcm262`. To re-extract (e.g. after changes in the source org):
 
 ```bash
 cci task run export_cml --org qb-migrate \
@@ -283,6 +289,10 @@ cci task run export_cml --org qb-migrate \
 cci task run export_cml --org qb-migrate \
     -o developer_name Server2 -o version 1 \
     -o output_dir datasets/constraints/qb/Server2
+
+cci task run export_cml --org pm-pcm262 \
+    -o developer_name QuantumBitPCM -o version 1 \
+    -o output_dir datasets/constraints/qb/QuantumBitPCM
 ```
 
 ## Adding New Models

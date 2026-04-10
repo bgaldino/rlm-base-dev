@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**199 tasks** across **9 groups**.
+**201 tasks** across **9 groups**.
 
 ---
 
@@ -546,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*124 task(s)*
+*127 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -771,6 +771,19 @@
 
 ---
 
+### `assign_personas_sales_rep_psg`
+
+**Description:** Assign RLM_Sales_Representative PSG to the sales-rep-user persona using tolerant assignment.
+
+**Class:** `tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant`
+
+**Options:**
+
+- `api_names`: `['RLM_Sales_Representative']`
+- `user_alias`: `salesrep`
+
+---
+
 ### `cleanup_settings_for_dev`
 
 **Description:** Clean up settings files before deployment (removes fields unsupported in the target org)
@@ -850,7 +863,7 @@
 
 ### `create_personas_sales_rep_user`
 
-**Description:** Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from config/users/sales-rep-def.json using the sf CLI, with the profile defined in that file. Appends a unique username suffix to avoid conflicts.
+**Description:** Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative profile. Idempotent: skips creation when a matching user already exists. Appends a unique username suffix to avoid conflicts on initial create.
 
 **Class:** `tasks.rlm_create_persona_user.CreatePersonaUser`
 
@@ -2005,6 +2018,18 @@
 
 ---
 
+### `recalculate_personas_sales_rep_psg`
+
+**Description:** Recalculate the RLM_Sales_Representative permission set group before user assignment.
+
+**Class:** `tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups`
+
+**Options:**
+
+- `api_names`: `['RLM_Sales_Representative']`
+
+---
+
 ### `reconfigure_pricing_discovery`
 
 **Description:** Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh.
@@ -2110,6 +2135,18 @@
 **Description:** Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo never stores the target org's real username. Run AFTER deploy_post_payments_site.
 
 **Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+---
+
+### `set_personas_org_wide_defaults`
+
+**Description:** Sets Organization-Wide Defaults for standard Sales Cloud objects to support the Sales Rep persona. Account/Asset/Contact/Contract/Order → Public Read/Write (all internal users can see and edit). Opportunity stays Private (reps own their pipeline).
+
+**Class:** `cumulusci.tasks.metadata_etl.SetOrgWideDefaults`
+
+**Options:**
+
+- `org_wide_defaults`: `[{'api_name': 'Account', 'internal_sharing_model': 'ReadWrite', 'external_sharing_model': 'Private'}, {'api_name': 'A...`
 
 ---
 
@@ -2230,7 +2267,7 @@
 
 ## Uncategorized
 
-*28 task(s)*
+*27 task(s)*
 
 ### `create_partner_central`
 
@@ -2501,18 +2538,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_quantumbit`
-
----
-
-### `deploy_sharing_rules`
-
-**Description:** Deploy Sharing Rules
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_sharing`
 
 ---
 

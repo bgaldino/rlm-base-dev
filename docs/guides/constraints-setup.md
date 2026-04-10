@@ -4,7 +4,7 @@ This document describes the `prepare_constraints` flow, its dependencies, and ho
 
 ## Flow Order (prepare_constraints)
 
-The `prepare_constraints` flow runs nine steps grouped into two phases:
+The `prepare_constraints` flow runs ten steps grouped into two phases:
 
 ### Phase 1: Metadata Setup (steps 1-4)
 
@@ -17,9 +17,9 @@ These steps run when the `constraints` flag is `true`:
 | 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
-### Phase 2: Constraint Data Loading (steps 5-9)
+### Phase 2: Constraint Data Loading (steps 5-10)
 
-These steps run when `constraints_data` is `true` (steps 6-9 also require `qb`):
+These steps run when `constraints_data` is `true` (steps 6-10 also require `qb`):
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
@@ -27,7 +27,8 @@ These steps run when `constraints_data` is `true` (steps 6-9 also require `qb`):
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against QuantumBitComplete data |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
-| 9 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1 and Server2_V1 |
+| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model |
+| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1, Server2_V1, and QuantumBitPCM_V1 |
 
 **Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
 
@@ -36,7 +37,7 @@ These steps run when `constraints_data` is `true` (steps 6-9 also require `qb`):
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-9) |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
 | `qb` | `true` | QuantumBit dataset family gate |
 
 To load constraint data, set `constraints_data: true` in `cumulusci.yml` or override at runtime:
@@ -53,6 +54,7 @@ Constraint model data is stored in `datasets/constraints/qb/` with one directory
 datasets/constraints/qb/
 ├── QuantumBitComplete/   # 43 ESC records, 22 products
 ├── Server2/              # 81 ESC records, 41 products
+├── QuantumBitPCM/        # 12 ESC records, 12 products
 └── README.md             # Detailed CML utility documentation
 ```
 
