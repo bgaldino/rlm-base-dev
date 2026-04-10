@@ -3,5 +3,4 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM DRO Admin</label>
     <permissionSets>force__DfoAdminUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

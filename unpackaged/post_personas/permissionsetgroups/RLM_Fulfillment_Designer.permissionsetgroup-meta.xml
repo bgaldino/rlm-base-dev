@@ -3,5 +3,4 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Fulfillment Designer</label>
     <permissionSets>force__DFODesignerUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

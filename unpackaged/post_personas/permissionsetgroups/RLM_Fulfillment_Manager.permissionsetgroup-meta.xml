@@ -3,5 +3,4 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Fulfillment Manager</label>
     <permissionSets>force__DFOManagerOperatorUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

@@ -4,5 +4,4 @@
     <label>RLM Usage Designer</label>
     <permissionSets>force__ProductCatalogManagementViewer</permissionSets>
     <permissionSets>force__RevLifecycleManagementUsageDesignUser</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

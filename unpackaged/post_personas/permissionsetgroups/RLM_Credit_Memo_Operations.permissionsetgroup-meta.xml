@@ -3,5 +3,4 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Credit Memo Operations</label>
     <permissionSets>force__RevenueLifecycleManagementBillingCreditMemoOperations</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>
