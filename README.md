@@ -1019,6 +1019,7 @@ Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml
 |-------|-----------|-------------|---------------|
 | QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
 | Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | [Constraints Utility Guide](datasets/constraints/README.md) |
 
 For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
 
@@ -1172,7 +1173,8 @@ rlm-base-dev/
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
 │   │   │   ├── QuantumBitComplete/
-│   │   │   └── Server2/
+│   │   │   ├── Server2/
+│   │   │   └── QuantumBitPCM/
 │   │   └── README.md           # Constraints utility guide
 │   └── context_plans/          # Context definition update plans (JSON manifests)
 │       ├── ConstraintEngineNodeStatus/  # Adds ConstraintEngineNodeStatus to SalesTransaction context
@@ -1265,7 +1267,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import both QuantumBitComplete and Server2 models, and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import all three constraint models (QuantumBitComplete, Server2, and QuantumBitPCM), and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 

@@ -61,6 +61,10 @@ datasets/constraints/qb/
 │   ├── (same CSV structure)
 │   └── blobs/
 │       └── ESDV_Server2_V1.ffxblob
+├── QuantumBitPCM/
+│   ├── (same CSV structure)
+│   └── blobs/
+│       └── ESDV_QuantumBitPCM_V1.ffxblob
 └── README.md               # This file
 ```
 
@@ -233,23 +237,25 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
-| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `qb` | Load TransactionProcessingType records |
+| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `quantumbit` | Load TransactionProcessingType records |
 | 2 | `deploy_post_constraints` | `constraints` | Deploy constraint-related metadata |
-| 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
+| 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle (Robot Framework) |
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
-| 9 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1 and Server2_V1 |
+| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model |
+| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1, Server2_V1, and QuantumBitPCM_V1 |
 
 ### Feature Flags
 
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `false` | Enable constraint data loading and activation (steps 5-8) |
-| `qb` | `true` | QuantumBit dataset family |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
+| `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
+| `qb` | `true` | QuantumBit dataset family (steps 6-10) |
 
 To run the full constraints flow including data:
 ```yaml
@@ -270,10 +276,11 @@ cci flow run prepare_constraints --org <org> -o constraints_data true
 |-------|------------|----------|-----|------|
 | QuantumBitComplete | 43 | 22 (Type) | 21 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
 | Server2 | 81 | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
+| QuantumBitPCM | 12 | 12 (Type) | 0 | ESDV_QuantumBitPCM_V1.ffxblob |
 
 ### Source Org
 
-Both models were extracted from the `qb-migrate` connected org. To re-extract (e.g. after changes in the source org):
+QuantumBitComplete and Server2 were extracted from the `qb-migrate` connected org. QuantumBitPCM was extracted from `pm-pcm262`. To re-extract (e.g. after changes in the source org):
 
 ```bash
 cci task run export_cml --org qb-migrate \
@@ -283,6 +290,10 @@ cci task run export_cml --org qb-migrate \
 cci task run export_cml --org qb-migrate \
     -o developer_name Server2 -o version 1 \
     -o output_dir datasets/constraints/qb/Server2
+
+cci task run export_cml --org pm-pcm262 \
+    -o developer_name QuantumBitPCM -o version 1 \
+    -o output_dir datasets/constraints/qb/QuantumBitPCM
 ```
 
 ## Adding New Models

@@ -220,9 +220,12 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 8. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/Server2`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-9. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+9. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+   - `data_dir`: `datasets/constraints/qb/QuantumBitPCM`
+   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
+10. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,Server2_V1`
+   - `version_full_names`: `QuantumBitComplete_V1,Server2_V1,QuantumBitPCM_V1`
 
 ---
 
@@ -336,12 +339,18 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep scratch user. Gated by the personas feature flag. Wired into `prepare_rlm_org` at step 28, before `prepare_ux`.
+Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep scratch user. Gated by the personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux (step 29), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
 
 **Steps:**
 
-1. **task** `deploy_post_personas`  `when: project_config.project__custom__personas`
-2. **task** `create_personas_sales_rep_user`  `when: project_config.project__custom__personas`
+1. **task** `set_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+2. **task** `deploy_post_personas`  `when: project_config.project__custom__personas`
+3. **task** `recalculate_personas_sales_rep_psg`  `when: project_config.project__custom__personas`
+4. **task** `create_personas_sales_rep_user`  `when: project_config.project__custom__personas`
+5. **task** `assign_personas_sales_rep_psg`  `when: project_config.project__custom__personas`
+6. **task** `assign_permission_sets`  `when: project_config.project__custom__personas`
+   - `api_names`: `['RLM_QuantumBit_Sales_Representative']`
+   - `user_alias`: `salesrep`
 
 ---
 
@@ -380,11 +389,10 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 5. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
 6. **task** `publish_community`  `when: project_config.project__custom__prm`
    - `name`: `rlm`
-7. **task** `deploy_sharing_rules`  `when: project_config.project__custom__prm and project_config.project__custom__sharingsettings`
-8. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
+7. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
    - `api_names`: `['RLM_PRM']`
-9. **task** `insert_quantumbit_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
-10. **task** `manage_context_definition`  `when: project_config.project__custom__prm`
+8. **task** `insert_quantumbit_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
+9. **task** `manage_context_definition`  `when: project_config.project__custom__prm`
    - `plan_file`: `datasets/context_plans/PartnerAccount/manifest.json`
    - `developer_name`: `RLM_SalesTransactionContext`
    - `translate_plan`: `True`
@@ -591,7 +599,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning (including personas at step 28) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 
