@@ -29,7 +29,7 @@ type LineItem;
 type AssetLineItem;
 
 type QuantumBitDatabase : LineItem {
-    message(true, "This selection may require additional review. ", "info");
+    message(true, "This selection may require additional review.", "info");
 
 }
 
