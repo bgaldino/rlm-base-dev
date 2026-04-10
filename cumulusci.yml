@@ -164,7 +164,6 @@ project:
 
     # ── Deployment Options ─────────────────────────────────────────────────────
     personas: true            # Persona profiles and permission set groups (post_personas)
-    sharingsettings: false    # Sharing Settings
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -960,12 +959,6 @@ tasks:
     options:
       path: unpackaged/post_agents
 
-  deploy_sharing_rules:
-    description: Deploy Sharing Rules
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_sharing
-
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -983,6 +976,35 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm
+
+  set_personas_org_wide_defaults:
+    group: Revenue Lifecycle Management
+    description: >
+      Sets Organization-Wide Defaults for standard Sales Cloud objects to support
+      the Sales Rep persona. Account/Asset/Contact/Contract/Order → Public Read/Write
+      (all internal users can see and edit). Opportunity stays Private (reps own
+      their pipeline).
+    class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
+    options:
+      org_wide_defaults:
+        - api_name: Account
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Asset
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Contact
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Contract
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Order
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: ProductCatalog
+          internal_sharing_model: Read
+          external_sharing_model: Read
 
   deploy_post_personas:
     group: Revenue Lifecycle Management
@@ -2542,13 +2564,16 @@ flows:
         flow: prepare_large_stx
         when: project_config.project__custom__large_stx
       28:
+        flow: prepare_personas
+        when: project_config.project__custom__personas
+      29:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      29:
-        flow: prepare_scratch
       30:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       31:
+        flow: refresh_all_decision_tables
+      32:
         flow: stamp_git_commit
 
   prepare_core:
@@ -2920,17 +2945,14 @@ flows:
         options:
           name: rlm
       7:
-        task: deploy_sharing_rules
-        when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
-      8:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
-      9:
+      8:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      10:
+      9:
         task: manage_context_definition
         when: project_config.project__custom__prm
         options:
@@ -3230,10 +3252,10 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 28 of
-      prepare_rlm_org, after all feature provisioning is complete, ensuring all
-      referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation.
+      applications, profiles) from feature-conditional templates. Runs at step 29 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 28)
+      is complete, ensuring all referenced objects, fields, and components exist before
+      UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3280,18 +3302,23 @@ flows:
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
       unpackaged/post_personas and create the Sales Rep scratch user. Gated by the
-      personas feature flag. Not wired into prepare_rlm_org.
+      personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux
+      (step 29), so that persona profile templates are assembled and deployed by
+      the UX assembler in the same pass.
     steps:
       1:
-        task: deploy_post_personas
+        task: set_personas_org_wide_defaults
         when: project_config.project__custom__personas
       2:
-        task: recalculate_personas_sales_rep_psg
+        task: deploy_post_personas
         when: project_config.project__custom__personas
       3:
-        task: create_personas_sales_rep_user
+        task: recalculate_personas_sales_rep_psg
         when: project_config.project__custom__personas
       4:
+        task: create_personas_sales_rep_user
+        when: project_config.project__custom__personas
+      5:
         task: assign_personas_sales_rep_psg
         when: project_config.project__custom__personas
 

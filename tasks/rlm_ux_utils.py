@@ -22,7 +22,12 @@ UX_KNOWN_FLAGS: List[str] = [
     "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans", "large_stx",
-    "collections",
+    "collections", "personas",
+]
+
+#: Profile templates only assembled when the personas feature flag is true.
+PERSONAS_PROFILES: List[str] = [
+    "RLM Sales Representative.profile-meta.xml",
 ]
 
 #: Standalone flexipage dirs in deploy order (last writer wins).

@@ -3,5 +3,4 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Accounting Admin</label>
     <permissionSets>force__RevenueLifecycleManagementAccountingAdmin</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

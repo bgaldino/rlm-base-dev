@@ -17,5 +17,4 @@
     <permissionSets>force__RevLifecycleManagementCalculatePricesApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementProductAndPriceConfigurationApi</permissionSets>
     <permissionSets>force__RevLifecycleManagementProductImportApi</permissionSets>
-    <status>Updated</status>
 </PermissionSetGroup>

@@ -54,9 +54,9 @@ except ImportError:
         return str(val).lower() in ("true", "1", "yes")
 
 try:
-    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES
 except ImportError:
-    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES
 
 
 # Salesforce metadata XML namespace
@@ -1140,6 +1140,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
         for base_file in sorted(profiles_base.glob("*.profile-meta.xml")):
             fname = base_file.name
             if filter_name and fname != filter_name:
+                continue
+            if fname in PERSONAS_PROFILES and not features.get("personas"):
+                self.logger.info(f"  [profile] skipping {fname} (personas feature flag is false)")
                 continue
 
             root = ET.parse(str(base_file)).getroot()
