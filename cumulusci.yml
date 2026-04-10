@@ -3321,6 +3321,13 @@ flows:
       5:
         task: assign_personas_sales_rep_psg
         when: project_config.project__custom__personas
+      6:
+        task: assign_permission_sets
+        when: project_config.project__custom__personas
+        options:
+          api_names:
+            - RLM_QuantumBit_Sales_Representative
+          user_alias: salesrep
 
   run_qb_extracts:
     group: Data Management - Extract
