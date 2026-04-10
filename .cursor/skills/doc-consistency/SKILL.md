@@ -37,7 +37,7 @@ The core lookup: **when X changes, verify Y**.
 | Feature flag add/rename/default change | `README.md` Feature Flags tables, `AGENTS.md` edition flags, generated `feature-flags.md` |
 | `robot/**` (new suite, renamed keyword) | `robot-testing/SKILL.md` task tables, `patterns.md`, `README.md` troubleshooting |
 | `templates/` or UX assembly logic | `ux-assembly-retrieve.md`, `docs/features/dynamic-ux-assembly.md` |
-| New `.cursor/skills/` file | Parent `SKILL.md`, `AGENTS.md` Sub-Files table, `skills/README.md` Skill Router |
+| New `.cursor/skills/` file | Parent `SKILL.md`, `AGENTS.md` Sub-Files table, `.cursor/skills/README.md` Skill Router |
 | `orgs/*.json` (scratch org definitions) | `README.md` Quick Start if it names specific configs |
 | `scripts/apex/*.apex` | `troubleshooting/SKILL.md` if it references the script |
 | `.forceignore` | No doc update, but verify retrieve/deploy intent is consistent |
