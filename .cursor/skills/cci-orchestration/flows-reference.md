@@ -336,7 +336,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep scratch user. Gated by the personas feature flag. Not wired into prepare_rlm_org.
+Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep scratch user. Gated by the personas feature flag. Wired into `prepare_rlm_org` at step 28, before `prepare_ux`.
 
 **Steps:**
 
@@ -497,10 +497,11 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 25. **flow** `prepare_pricing_discovery`
 26. **flow** `prepare_ramp_builder`
 27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-28. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-29. **flow** `prepare_scratch`
-30. **flow** `refresh_all_decision_tables`
-31. **flow** `stamp_git_commit`
+28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
+29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+30. **flow** `prepare_scratch`
+31. **flow** `refresh_all_decision_tables`
+32. **flow** `stamp_git_commit`
 
 ---
 
@@ -590,7 +591,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 28 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

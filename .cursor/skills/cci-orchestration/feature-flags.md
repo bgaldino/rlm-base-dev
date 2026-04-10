@@ -215,6 +215,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `personas` (default: `True`)
 
+- `prepare_rlm_org` step 28 → `prepare_personas`
 - `prepare_personas` step 1 → `deploy_post_personas`
 - `prepare_personas` step 2 → `create_personas_sales_rep_user`
 
@@ -365,7 +366,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 28 → `prepare_ux`
+- `prepare_rlm_org` step 29 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 
