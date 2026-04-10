@@ -145,6 +145,36 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 
 ---
 
+## Pre-merge checklists for AI agents
+
+Use these before opening or updating a PR. They complement the **PR Review Focus Areas** below.
+
+### SFDMU data plans (`datasets/sfdmu/**`, `export.json`, CSVs)
+
+1. Run `python scripts/validate_sfdmu_v5_datasets.py` and fix reported issues.
+2. Keep **`externalId`** (`;` delimiters) and CSV `$$` columns aligned with the skill rules in this file — do not change `Upsert` to `Insert` + `deleteOldData: true` without explicit user approval.
+3. If the plan’s behavior or objects changed, update the plan’s **README** in the same change.
+
+### `cumulusci.yml` and CCI tasks
+
+1. After editing `cumulusci.yml` (tasks, flows, options): run `python scripts/ai/generate_cci_reference.py` and commit the regenerated reference files.
+2. If you rename a task or change its description, search the repo for the **old task name** in docs (`README.md`, `docs/`) and fix stale references.
+3. For Python task changes in `tasks/`, follow `.cursor/skills/cci-orchestration/custom-task-authoring.md` — especially **CLI vs REST** (`username` for `sf`, not `access_token`).
+
+### Documentation consistency
+
+Follow `.cursor/skills/doc-consistency/SKILL.md` — it provides a
+**change-surface map** (when X changes, update Y) covering task names,
+flag tables, SFDMU plan READMEs, generated CCI references, skill
+indexes, and more.
+
+### Merges and unintended diffs
+
+1. Before push, review `git diff main --stat` (or the merge base you use). Pay extra attention to **`orgs/`**, **`datasets/`**, **`unpackaged/post_ux/`**, and scratch data — unexpected churn often means files were **swept in from another branch**.
+2. Changes under **`unpackaged/post_ux/`** should come from **`assemble_and_deploy_ux`** or the **UX drift** flows, not manual XML edits (see `.cursor/skills/repo-integration/ux-assembly-retrieve.md`).
+
+---
+
 ## PR Review Focus Areas
 
 1. **SFDMU v5 compliance** — externalId format, operation + deleteOldData
@@ -177,6 +207,7 @@ that topic.
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `docs/features/dynamic-ux-assembly.md` |
+| Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 
 Each skill has a **Quick Rules** section at the top for fast reference,
@@ -192,6 +223,8 @@ Read the sub-file only when you need that specific detail:
 | `repo-integration/new-feature-guide.md` | Repository Integration | Step-by-step code templates for adding a new feature |
 | `repo-integration/dependency-ordering.md` | Repository Integration | Metadata/data ordering, `prepare_rlm_org` step map |
 | `robot-testing/patterns.md` | Robot Testing | Shadow DOM code, keyword reference, test authoring |
+| `robot-testing/setup-ui-shadow-dom.md` | Robot Testing | Setup UI: shadow vs iframe, LWS, logging (companion to `patterns.md`) |
+| `repo-integration/ux-assembly-retrieve.md` | Repository Integration | Assembler vs retrieve, `post_ux` rules, drift workflow |
 | `cci-orchestration/custom-task-authoring.md` | CCI Orchestration | Python task class patterns and examples |
 | `cci-orchestration/tasks-reference.md` | CCI Orchestration | Auto-generated task listing (regenerate after edits) |
 | `cci-orchestration/flows-reference.md` | CCI Orchestration | Auto-generated flow listing |
@@ -218,6 +251,7 @@ same guidance, or use the parent skill which covers the same content:
 | `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.{html,js}` | template syntax, ARIA/a11y, perf, error messages |
 | `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
+| `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
 
 ### AI Utility Scripts
 
