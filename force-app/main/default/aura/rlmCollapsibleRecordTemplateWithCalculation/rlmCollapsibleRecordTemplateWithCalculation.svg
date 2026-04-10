@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+    <rect width="240" height="180" fill="#ECEBEA" rx="4"/>
+
+    <!-- Header region -->
+    <rect x="12" y="12" width="216" height="28" rx="2" fill="#54698D"/>
+    <text x="120" y="30" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Header</text>
+
+    <!-- Calculation strip + toggle -->
+    <rect x="12" y="44" width="176" height="14" rx="2" fill="#7B8EAD"/>
+    <text x="100" y="54" font-family="Arial, sans-serif" font-size="9" fill="#FFFFFF" text-anchor="middle">Calc</text>
+    <circle cx="206" cy="51" r="6" fill="#FFFFFF" stroke="#54698D" stroke-width="1"/>
+
+    <!-- Main region -->
+    <rect x="12" y="64" width="138" height="104" rx="2" fill="#54698D"/>
+    <text x="81" y="118" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Main</text>
+
+    <!-- Sidebar region -->
+    <rect x="158" y="64" width="70" height="104" rx="2" fill="#54698D"/>
+    <text x="193" y="118" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Side</text>
+</svg>

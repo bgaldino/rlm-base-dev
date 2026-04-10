@@ -1,0 +1,43 @@
+<aura:component
+    implements="lightning:recordHomeTemplate"
+    access="global"
+    description="RLM custom record template with a collapsible side region and a calculation strip next to the panel toggle.">
+    <aura:attribute name="header" type="Aura.Component[]" description="Header region for highlights and top-page components." />
+    <aura:attribute name="calculation" type="Aura.Component[]" description="Strip for calculation or summary components (10/12 width, 4rem height)." />
+    <aura:attribute name="main" type="Aura.Component[]" description="Primary region for record body content." />
+    <aura:attribute name="sidebar" type="Aura.Component[]" description="Secondary side-panel region that can be collapsed." />
+    <aura:attribute name="defaultSidebarCollapsed" type="Boolean" default="false" description="Default collapsed state when no saved user preference exists." />
+    <aura:attribute name="isSidebarCollapsed" type="Boolean" default="false" />
+    <aura:handler name="init" value="{!this}" action="{!c.initializeSidebarState}" />
+
+    <div class="rlmSplitView slds-split-view_container" onkeydown="{!c.handleKeydown}">
+        <div>
+            {!v.header}
+        </div>
+        <div class="rlmSplitViewToggleRow">
+            <div class="rlmSplitViewCalcSlot" aria-label="Calculation region">
+                {!v.calculation}
+            </div>
+            <div class="rlmSplitViewToggleCell">
+                <lightning:button
+                    class="rlmSplitViewToggleAction"
+                    variant="neutral"
+                    iconName="{!v.isSidebarCollapsed ? 'utility:chevronleft' : 'utility:chevronright'}"
+                    iconPosition="left"
+                    label="{!v.isSidebarCollapsed ? 'Expand panel' : 'Collapse panel'}"
+                    title="{!v.isSidebarCollapsed ? 'Expand side panel' : 'Collapse side panel'}"
+                    onclick="{!c.toggleSidebar}" />
+            </div>
+        </div>
+        <div class="{!'rlmSplitViewBody ' + (v.isSidebarCollapsed ? 'is-collapsed' : 'is-open')}">
+            <section class="rlmSplitViewMain" aria-label="Main content region">
+                {!v.main}
+            </section>
+            <div class="rlmSplitViewDivider" role="presentation">
+            </div>
+            <aside class="rlmSplitViewSidebar" aria-label="Side panel region">
+                {!v.sidebar}
+            </aside>
+        </div>
+    </div>
+</aura:component>

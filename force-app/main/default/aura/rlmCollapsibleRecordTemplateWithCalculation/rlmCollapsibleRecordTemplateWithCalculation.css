@@ -1,0 +1,103 @@
+.THIS .rlmSplitView {
+    --rlm-kx-duration-short: var(--kx-duration-short, 150ms);
+    --rlm-kx-duration-normal: var(--kx-duration-normal, 250ms);
+    --rlm-kx-ease-out: var(--kx-ease-out, cubic-bezier(0, 0.3, 0.15, 1));
+    width: 100%;
+}
+
+.THIS .rlmSplitViewToggleRow {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: center;
+    column-gap: 0.25rem;
+    height: 4rem;
+    min-height: 4rem;
+    max-height: 4rem;
+    padding-right: 0.25rem;
+    padding-bottom: 0.125rem;
+    box-sizing: border-box;
+}
+
+.THIS .rlmSplitViewCalcSlot {
+    grid-column: 1 / span 10;
+    min-width: 0;
+    height: 100%;
+    max-height: 4rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.THIS .rlmSplitViewToggleCell {
+    grid-column: 11 / span 2;
+    min-width: 0;
+    /* Shrink to button height and center in the 4rem row (avoid grid stretch + full-height flex). */
+    align-self: center;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.THIS .rlmSplitViewToggleAction {
+    flex: 0 0 auto;
+    align-self: center;
+    height: auto;
+    min-height: 2rem;
+    min-width: 0;
+    max-width: 100%;
+    width: auto;
+}
+
+.THIS .rlmSplitViewToggleAction .slds-button {
+    height: auto;
+    min-height: 2rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+}
+
+.THIS .rlmSplitViewBody {
+    display: grid;
+    column-gap: 0;
+    grid-template-columns: minmax(0, 3fr) 1rem minmax(280px, 1fr);
+    overflow-x: hidden;
+    transition: grid-template-columns var(--rlm-kx-duration-normal) var(--rlm-kx-ease-out);
+}
+
+.THIS .rlmSplitViewBody.is-collapsed {
+    grid-template-columns: minmax(0, 1fr) 0 0;
+}
+
+.THIS .rlmSplitViewMain,
+.THIS .rlmSplitViewSidebar {
+    min-width: 0;
+}
+
+.THIS .rlmSplitViewBody.is-collapsed .rlmSplitViewDivider {
+    display: none;
+}
+
+.THIS .rlmSplitViewSidebar {
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+        opacity var(--rlm-kx-duration-short) var(--rlm-kx-ease-out),
+        transform var(--rlm-kx-duration-short) var(--rlm-kx-ease-out);
+    visibility: visible;
+}
+
+.THIS .rlmSplitViewBody.is-collapsed .rlmSplitViewSidebar {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(0.25rem);
+    visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .THIS .rlmSplitViewBody,
+    .THIS .rlmSplitViewSidebar {
+        transition: none;
+    }
+}
