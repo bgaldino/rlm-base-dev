@@ -12,15 +12,15 @@ type Quote {
 
     rule(lineitems[APIAccessRequests], "disable", "relation", "LineItem", "type", "QuantumBitCollaborationSuite", "message", "Not compatible with QuantumBit Collaboration Suite");
 
-    require(lineitems[APIAccessRequests], lineitems[QuantumBitDatabase], "Unable to add Quantum Bit Database");
+    require(lineitems[APIAccessRequests], lineitems[QuantumBitDatabase], "Unable to add QuantumBit Database");
 
     rule(lineitems[APIAccessRequests], "recommend", "type", "QuantumBitEssentialsTraining", "message", "QuantumBit Essentials Training to help you with API access");
 
     rule(lineitems[APIAccessRequests], "recommend", "type", "QuantumBitFundamentalsTraining", "message", "QuantumBit Fundamentals Training to help you with API access");
 
-    rule(assetLineItems[QuantumBitCompleteSolution], "disable", "relation", "AssetLineItem", "type", "QuantumBitDatabaseTokenCommitEach", "message", "Quantum Bit Token Each can't be bought");
+    rule(assetLineItems[QuantumBitCompleteSolution], "disable", "relation", "AssetLineItem", "type", "QuantumBitDatabaseTokenCommitEach", "message", "QuantumBit Token Each can't be bought");
 
-    rule(assetLineItems[QuantumBitCompleteSolution], "recommend", "type", "QuantumBitDatabaseTokenCommitFlat", "message", "Recommends Quantum Bit Database Token Commit Flat");
+    rule(assetLineItems[QuantumBitCompleteSolution], "recommend", "type", "QuantumBitDatabaseTokenCommitFlat", "message", "Recommends QuantumBit Database Token Commit Flat");
 
 }
 
