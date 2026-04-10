@@ -13,7 +13,7 @@ Read this when editing **Robot setup tests** under `robot/rlm-base/tests/setup/`
 2. **`composed: true` on events** — When dispatching events that must cross shadow boundaries, use `composed: true` (see `patterns.md` and existing setup suites).
 3. **No `//` in Robot `Execute JavaScript` blocks** — Robot joins continuation lines; `//` comments break the script. Use `/* */`.
 4. **LWC inputs** — Do not use `Input Text` on Lightning inputs; use the **native setter** pattern documented in `patterns.md`.
-5. **VF / Classic iframe** — Some flows (e.g. CRM Analytics) use **Visualforce iframes**, not shadow DOM. Use **frame switch** helpers (see `AnalyticsSetupHelper.py`, `enable_analytics.robot`) — do not apply shadow traversal to iframe content.
+5. **VF / Classic iframe** — Some Setup flows may still use **Visualforce iframes**. In 262+ CRM Analytics no longer uses a VF iframe — it runs in the main Lightning DOM with shadow traversal (see `AnalyticsSetupHelper.py`, `enable_analytics.robot`). If you encounter a genuine VF iframe flow, use **frame switch** helpers — do not apply shadow traversal to iframe content.
 6. **Authentication** — Use `sf org open --url-only` with `self.org_config.username` in Python wrappers; wrap URL logging with `Set Log Level NONE` so session tokens never appear in `log.html`.
 7. **Retries** — Setup pages can be slow or flaky; follow **existing** timeout/save-staleness patterns in `SetupToggles.robot` and related resources instead of ad-hoc long `Sleep`.
 
@@ -29,7 +29,7 @@ Read this when editing **Robot setup tests** under `robot/rlm-base/tests/setup/`
 |------|----------|
 | Shared toggle / checkbox keywords | `robot/rlm-base/resources/SetupToggles.robot` |
 | Chrome / driver resolution | `robot/rlm-base/resources/WebDriverManager.py` |
-| Analytics (VF iframe) | `robot/rlm-base/resources/AnalyticsSetupHelper.py`, `robot/rlm-base/tests/setup/enable_analytics.robot` |
+| Analytics (Lightning DOM) | `robot/rlm-base/resources/AnalyticsSetupHelper.py`, `robot/rlm-base/tests/setup/enable_analytics.robot` |
 | Variables (URLs, labels) | `robot/rlm-base/variables/SetupVariables.robot` |
 
 After substantive changes, run `cci task run validate_setup` (no org) and exercise the relevant `configure_*` / `enable_*` task against a scratch org when possible.
