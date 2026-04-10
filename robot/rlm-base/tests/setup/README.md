@@ -10,6 +10,7 @@ Robot Framework tests that configure Salesforce Setup page options that cannot b
 | `enable_constraints_settings.robot` | `enable_constraints_settings` | Set Default Transaction Type, Asset Context picklist, and enable Constraints Engine toggle |
 | `configure_revenue_settings.robot` | `configure_revenue_settings` | Set Pricing Procedure, Usage Rating Procedure, enable Instant Pricing toggle, set Create Orders Flow |
 | `configure_core_pricing_setup.robot` | `configure_core_pricing_setup` | Set default Pricing Procedure on Salesforce Pricing Setup page (CorePricingSetup) |
+| `configure_billing_email_settings.robot` | `configure_billing_email_settings` | Cycle the Configure Email Delivery Settings toggle via the UI to trigger auto-creation of the default invoice email template (Metadata API cycling alone does not trigger this) |
 
 ## Prerequisites
 
@@ -127,7 +128,8 @@ The Default Transaction Type field is a `<lightning-combobox>` component (distin
 ### Idempotency
 
 All tests detect current state before making changes:
-- **Toggles:** Read `checked` property via JavaScript; skip click if already enabled
+- **Toggles (general):** Read `checked` property via JavaScript; skip click if already in target state
+- **Billing email delivery toggle:** Always performs the off→on cycle (the click keywords check `inp.checked` and skip the click if already in the target state), then polls up to 30s for the Default Invoice Email Template field to be populated — safe to re-run because the backend template creation is idempotent
 - **Combobox-recipe fields (Pricing, Usage Rating, Asset Context):** Check if correct value is shown in pill within the scoped `<li>`; skip if matched. If wrong value, clear pill, wait for dropdown, select correct value.
 - **Lightning combobox (Transaction Type):** Check `Get Selected List Label`; skip if already correct
 - **Text inputs (Create Orders Flow):** Compare current value; skip if already correct
@@ -140,6 +142,7 @@ All tests detect current state before making changes:
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
 | `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
 | `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
+| `configure_billing_email_settings` | `prepare_billing` | Step 14 (when `billing` is true) |
 
 ## Generated Output
 
