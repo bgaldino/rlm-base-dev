@@ -1,6 +1,12 @@
 ---
 description: Reminder to verify documentation consistency after code changes — task names, flag tables, plan READMEs, generated references
-globs: cumulusci.yml,tasks/**/*.py,datasets/sfdmu/**/export.json,robot/**/*.robot,.cursor/skills/**/*.md
+globs:
+  - cumulusci.yml
+  - tasks/**/*.py
+  - datasets/sfdmu/**/export.json
+  - datasets/sfdmu/**/*.csv
+  - robot/**/*.robot
+  - .cursor/skills/**/*.md
 alwaysApply: false
 ---
 
