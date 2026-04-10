@@ -850,7 +850,7 @@
 
 ### `create_personas_sales_rep_user`
 
-**Description:** Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative profile and permission set group. Appends a unique username suffix to avoid conflicts.
+**Description:** Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from config/users/sales-rep-def.json using the sf CLI, with the profile defined in that file. Appends a unique username suffix to avoid conflicts.
 
 **Class:** `tasks.rlm_create_persona_user.CreatePersonaUser`
 
