@@ -76,6 +76,9 @@ orgs:
     tfid-qb-tso:
       config_file: orgs/tfid-qb-tso.json
       days: 30
+    tfid-sb0:
+      config_file: orgs/tfid-sb0.json
+      days: 30
     tfid-sdo:
       config_file: orgs/tfid-sdo.json
       days: 30
@@ -122,6 +125,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
+    large_stx: true          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
     dro: true                 # Dynamic Revenue Orchestration
@@ -159,7 +163,7 @@ project:
     ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
 
     # ── Deployment Options ─────────────────────────────────────────────────────
-    sharingsettings: false    # Sharing Settings
+    personas: true            # Persona profiles and permission set groups (post_personas)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -955,12 +959,6 @@ tasks:
     options:
       path: unpackaged/post_agents
 
-  deploy_sharing_rules:
-    description: Deploy Sharing Rules
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_sharing
-
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -979,12 +977,71 @@ tasks:
     options:
       path: unpackaged/post_prm
 
+  set_personas_org_wide_defaults:
+    group: Revenue Lifecycle Management
+    description: >
+      Sets Organization-Wide Defaults for standard Sales Cloud objects to support
+      the Sales Rep persona. Account/Asset/Contact/Contract/Order → Public Read/Write
+      (all internal users can see and edit). Opportunity stays Private (reps own
+      their pipeline).
+    class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
+    options:
+      org_wide_defaults:
+        - api_name: Account
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Asset
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Contact
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Contract
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Order
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: ProductCatalog
+          internal_sharing_model: Read
+          external_sharing_model: Read
+
   deploy_post_personas:
     group: Revenue Lifecycle Management
     description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_personas
+
+  create_personas_sales_rep_user:
+    group: Revenue Lifecycle Management
+    description: >
+      Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from
+      config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative
+      profile. Idempotent: skips creation when a matching user already exists. Appends a
+      unique username suffix to avoid conflicts on initial create.
+    class_path: tasks.rlm_create_persona_user.CreatePersonaUser
+    options:
+      definition_file: config/users/sales-rep-def.json
+      alias: sales-rep-user
+      set_unique_username: true
+
+  recalculate_personas_sales_rep_psg:
+    group: Revenue Lifecycle Management
+    description: Recalculate the RLM_Sales_Representative permission set group before user assignment.
+    class_path: tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups
+    options:
+      api_names:
+        - RLM_Sales_Representative
+
+  assign_personas_sales_rep_psg:
+    group: Revenue Lifecycle Management
+    description: Assign RLM_Sales_Representative PSG to the sales-rep-user persona using tolerant assignment.
+    class_path: tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant
+    options:
+      api_names:
+        - RLM_Sales_Representative
+      user_alias: salesrep
 
   deploy_post_approvals:
     description: >
@@ -1077,6 +1134,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_utils
+
+  deploy_post_large_stx:
+    group: Revenue Lifecycle Management
+    description: Deploy Large Sales Transaction metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_large_stx
 
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
@@ -2497,13 +2561,19 @@ flows:
       26:
         flow: prepare_ramp_builder
       27:
+        flow: prepare_large_stx
+        when: project_config.project__custom__large_stx
+      28:
+        flow: prepare_personas
+        when: project_config.project__custom__personas
+      29:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      28:
-        flow: prepare_scratch
-      29:
-        flow: refresh_all_decision_tables
       30:
+        flow: prepare_scratch
+      31:
+        flow: refresh_all_decision_tables
+      32:
         flow: stamp_git_commit
 
   prepare_core:
@@ -2724,6 +2794,13 @@ flows:
         options:
           api_names: *rlm_tso_ps_api_names
 
+  prepare_large_stx:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_large_stx
+        when: project_config.project__custom__large_stx
+
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management
     description: Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
@@ -2868,17 +2945,14 @@ flows:
         options:
           name: rlm
       7:
-        task: deploy_sharing_rules
-        when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
-      8:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
-      9:
+      8:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      10:
+      9:
         task: manage_context_definition
         when: project_config.project__custom__prm
         options:
@@ -3178,10 +3252,10 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 28 of
-      prepare_rlm_org, after all feature provisioning is complete, ensuring all
-      referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation.
+      applications, profiles) from feature-conditional templates. Runs at step 29 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 28)
+      is complete, ensuring all referenced objects, fields, and components exist before
+      UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3225,10 +3299,35 @@ flows:
 
   prepare_personas:
     group: Revenue Lifecycle Management
-    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas. Not wired into prepare_rlm_org.
+    description: >
+      Deploy persona metadata (profiles, permission set groups, permission sets) from
+      unpackaged/post_personas and create the Sales Rep scratch user. Gated by the
+      personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux
+      (step 29), so that persona profile templates are assembled and deployed by
+      the UX assembler in the same pass.
     steps:
       1:
+        task: set_personas_org_wide_defaults
+        when: project_config.project__custom__personas
+      2:
         task: deploy_post_personas
+        when: project_config.project__custom__personas
+      3:
+        task: recalculate_personas_sales_rep_psg
+        when: project_config.project__custom__personas
+      4:
+        task: create_personas_sales_rep_user
+        when: project_config.project__custom__personas
+      5:
+        task: assign_personas_sales_rep_psg
+        when: project_config.project__custom__personas
+      6:
+        task: assign_permission_sets
+        when: project_config.project__custom__personas
+        options:
+          api_names:
+            - RLM_QuantumBit_Sales_Representative
+          user_alias: salesrep
 
   run_qb_extracts:
     group: Data Management - Extract

@@ -1,7 +1,7 @@
 {
-  "assembled_at": "2026-04-07T03:26:47.369634Z",
+  "assembled_at": "2026-04-10T05:21:06.933639Z",
   "feature_flags": {
-    "qb": true,
+    "quantumbit": true,
     "billing": true,
     "billing_ui": true,
     "tax": true,
@@ -19,7 +19,9 @@
     "constraints": true,
     "analytics": true,
     "procedureplans": true,
-    "collections": false
+    "large_stx": true,
+    "collections": false,
+    "personas": true
   },
   "assembled": [
     {
@@ -32,6 +34,11 @@
           "feature": "utils",
           "patch_type": "insert_action",
           "description": "insert actions: Account.RLM_QuickQuote"
+        },
+        {
+          "feature": "large_stx",
+          "patch_type": "insert_action",
+          "description": "insert actions: Account.RLM_Set_Up_Quote"
         }
       ]
     },
@@ -246,6 +253,11 @@
       "patches": [
         {
           "feature": "billing_ui",
+          "patch_type": "insert_action",
+          "description": "insert actions: PreviewInvoices, BillNow"
+        },
+        {
+          "feature": "billing_ui",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <name>detailTabContent</name>"
         },
@@ -253,11 +265,6 @@
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <identifier>detailTab</identifier>"
-        },
-        {
-          "feature": "billing_ui",
-          "patch_type": "insert_after_xml",
-          "description": "insert XML after <value>BrowseCatalog</value>"
         },
         {
           "feature": "billing_ui",
@@ -297,7 +304,13 @@
       "name": "RLM_Product_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Product_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Record_Page.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "constraints",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>"
+        }
+      ]
     },
     {
       "type": "flexipage",
@@ -402,6 +415,16 @@
           "feature": "ramp_builder",
           "patch_type": "add_facet_field",
           "description": "add fields to System Information: RLM_Approval_Level__c"
+        },
+        {
+          "feature": "large_stx",
+          "patch_type": "add_facet_field",
+          "description": "add fields to Quote Information: IsLargeDeal"
+        },
+        {
+          "feature": "personas",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
         }
       ]
     },
@@ -757,6 +780,12 @@
           "description": "layout: Order-RLM Order Layout"
         }
       ]
+    },
+    {
+      "type": "profile",
+      "name": "RLM Sales Representative.profile-meta.xml",
+      "dest": "unpackaged/post_ux/profiles/RLM Sales Representative.profile-meta.xml",
+      "patches": []
     },
     {
       "type": "CustomObject",

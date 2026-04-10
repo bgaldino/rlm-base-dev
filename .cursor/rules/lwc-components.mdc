@@ -1,0 +1,145 @@
+---
+description: LWC component authoring rules — template syntax, ARIA/accessibility, performance, error messages
+globs:
+  - unpackaged/**/lwc/**/*.html
+  - unpackaged/**/lwc/**/*.js
+  - force-app/**/lwc/**/*.html
+  - force-app/**/lwc/**/*.js
+alwaysApply: false
+---
+
+# LWC Component Rules
+
+## DO NOT
+
+- Use `class:foo={bar}` attribute directives in templates — not valid in LWC, causes compile failure
+- Put `role="tablist"` on a list whose items have no `role="tab"`, `aria-selected`, or keyboard handling
+- Render a custom modal without `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`
+- Make rename/edit interactions discoverable only via `ondblclick` — always provide a keyboard-accessible trigger
+- Call `JSON.parse` or a helper that parses the same prop more than once per render cycle — parse once, pass through
+- Surface raw debug output (char codes, JSON repr, per-column details) in user-facing error messages
+
+## Template Syntax
+
+### Class bindings — use computed strings, not `class:` directives
+
+```html
+<!-- GOOD -->
+<div class={row.rowClass}></div>   <!-- rowClass computed in JS getter -->
+
+<!-- BAD — compile error -->
+<div class:selected={row.isSelected}></div>
+```
+
+Build class strings in the JS getter (e.g., `visibleRows`) using string concatenation:
+
+```js
+rowClass: 'tree-row' + (isSelected ? ' tree-row-selected' : '')
+```
+
+## Accessibility
+
+### Modal dialogs
+
+Every custom modal overlay must have:
+
+```html
+<div class="modal-card"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="my-modal-title">
+    <h2 id="my-modal-title">Modal Title</h2>
+    ...
+</div>
+```
+
+- Set initial focus to the first interactive element or the dialog itself on open
+- Trap focus within the modal while it is open
+
+### Step indicators / progress trackers
+
+Use a plain `<ol>` or `<ul>` with `aria-label`:
+
+```html
+<!-- GOOD -->
+<ul class="step-indicator" aria-label="Wizard steps">
+
+<!-- BAD — tablist requires interactive tab children -->
+<ul class="step-indicator" role="tablist">
+```
+
+### Interactive controls
+
+Every custom button or control that isn't a native `<button>` needs:
+- `aria-label` describing the action (not just a title attribute)
+- `aria-expanded` (string `'true'`/`'false'`) if it toggles a region
+- Keyboard handler (`onkeydown`) supporting at minimum Enter/Space
+
+### Rename / edit actions
+
+If a node can be renamed, always provide both:
+1. A `lightning-button-icon` (or equivalent) that fires the rename handler — keyboard reachable
+2. The existing `ondblclick` shortcut for mouse users
+
+```html
+<lightning-button-icon
+    icon-name="utility:edit"
+    alternative-text="Rename"
+    title="Rename"
+    data-path={row.path}
+    onclick={handleRenameClick}
+></lightning-button-icon>
+```
+
+## Performance
+
+### Parse JSON once per render
+
+When a getter calls a parse helper (`_pathCounts()`, `JSON.parse(...)`) and a sub-method also calls it, pass the parsed result as a parameter rather than re-parsing:
+
+```js
+// GOOD
+get visibleRows() {
+    const pathCounts = this._pathCounts();                          // parse once
+    const metrics = this._buildMetrics(pathCounts);                // pass through
+    ...
+}
+_buildMetrics(pathCounts = null) {
+    if (!pathCounts) pathCounts = this._pathCounts();              // fallback for standalone calls
+    ...
+}
+
+// BAD — parses productCountsJson twice per render
+get visibleRows() {
+    const pathCounts = this._pathCounts();
+    const metrics = this._buildMetrics();                          // calls _pathCounts() again internally
+}
+```
+
+### CSV / hierarchy path — avoid redundant parsing
+
+When a CSV path already re-parses `hierarchyJson` internally, do not call `parseParentsList()` as a gate first:
+
+```js
+// GOOD — countCsvLines handles empty hierarchy itself
+if (csvImportData) {
+    newFromHierarchy = countCsvImportLines(hierarchyJson, csvImportData);
+} else {
+    const parents = parseParentsList(hierarchyJson);
+    if (parents?.length) newFromHierarchy = sumProductCounts(productCountsJson);
+}
+```
+
+## Error Messages
+
+User-facing error messages must be **concise and actionable** — no raw file content, char codes, or JSON representations:
+
+```js
+// GOOD
+out.error = 'Invalid CSV header. Expected: ' + EXPECTED_HEADER + '. Check that the file was not modified.';
+
+// BAD — exposes file internals, overwhelms the user
+out.error = 'Invalid header.\n--- DEBUG ---\nRaw line: ' + JSON.stringify(rawLine) + '\nChar codes: ' + codes.join(',') + ...;
+```
+
+Log debug details to `console.error` only, not the UI.

@@ -13,16 +13,22 @@
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>PreviewInvoices</value>
+                            <value>Account.RLM_QuickQuote</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Account.RLM_QuickQuote</value>
+                            <value>Account.RLM_Set_Up_Quote</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Account.RLM_Reset_Account</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>PreviewInvoices</value>
                         </valueListItems>
                         <valueListItems>
                             <value>BillNow</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Account.RLM_Reset_Account</value>
+                            <value>Account.RLM_Generate_Account_Statement</value>
                         </valueListItems>
                         <valueListItems>
                             <value>SuspendBilling</value>
@@ -112,10 +118,6 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>

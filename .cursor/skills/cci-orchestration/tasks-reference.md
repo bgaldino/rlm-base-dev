@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**197 tasks** across **9 groups**.
+**199 tasks** across **9 groups**.
 
 ---
 
@@ -546,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*122 task(s)*
+*124 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -662,13 +662,9 @@
 
 ### `activate_rates`
 
-**Description:** Activate Rates
+**Description:** Activate Draft RateCardEntry records (Status → Active). Uses REST Composite API instead of Apex DML — Apex path raises UNKNOWN_EXCEPTION in Release 262 (platform regression in SOAP Execute Anonymous for RateCardEntry).
 
-**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
-
-**Options:**
-
-- `path`: `scripts/apex/activateRateCardEntries.apex`
+**Class:** `tasks.rlm_activate_rates.ActivateRateCardEntries`
 
 ---
 
@@ -849,6 +845,20 @@
 **Options:**
 
 - `path`: `scripts/apex/createDRORuleLibrary.apex`
+
+---
+
+### `create_personas_sales_rep_user`
+
+**Description:** Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from config/users/sales-rep-def.json using the sf CLI, with the profile defined in that file. Appends a unique username suffix to avoid conflicts.
+
+**Class:** `tasks.rlm_create_persona_user.CreatePersonaUser`
+
+**Options:**
+
+- `definition_file`: `config/users/sales-rep-def.json`
+- `alias`: `sales-rep-user`
+- `set_unique_username`: `True`
 
 ---
 
@@ -1174,6 +1184,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_collections`
+
+---
+
+### `deploy_post_large_stx`
+
+**Description:** Deploy Large Sales Transaction metadata
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_large_stx`
 
 ---
 
@@ -2496,7 +2518,7 @@
 
 ### `enable_analytics_replication`
 
-**Description:** Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
+**Description:** Enable CRM Analytics via browser automation (Robot/Selenium, clicks "Enable CRM Analytics" on InsightsSetupGettingStarted/home; VF iframe approach removed in 262)
 
 **Class:** `tasks.rlm_analytics.EnableAnalyticsReplication`
 

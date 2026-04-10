@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**38 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
+**40 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
 
 ---
 
@@ -32,8 +32,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
+| `large_stx` | `True` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
+| `personas` | `True` | 2 flow step(s) |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
@@ -197,6 +199,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
 
+### `large_stx` (default: `True`)
+
+- `prepare_rlm_org` step 27 → `prepare_large_stx`
+- `prepare_large_stx` step 1 → `deploy_post_large_stx`
+
 ### `payments` (default: `True`)
 
 - `prepare_payments` step 1 → `create_payments_webhook`
@@ -205,6 +212,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 4 → `revert_payments_site_after_deploy`
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
+
+### `personas` (default: `True`)
+
+- `prepare_rlm_org` step 28 → `prepare_personas`
+- `prepare_personas` step 1 → `deploy_post_personas`
+- `prepare_personas` step 2 → `create_personas_sales_rep_user`
 
 ### `prm` (default: `True`)
 
@@ -353,7 +366,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 28 → `prepare_ux`
+- `prepare_rlm_org` step 29 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 

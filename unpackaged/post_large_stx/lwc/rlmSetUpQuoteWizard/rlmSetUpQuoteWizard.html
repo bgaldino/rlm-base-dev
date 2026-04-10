@@ -1,0 +1,772 @@
+<template>
+    <div class="modal-overlay" onkeydown={handleModalKeydown}>
+        <div class={modalCardClass} role="dialog" aria-modal="true" aria-labelledby="setup-quote-modal-title" tabindex="-1">
+            <header class="modal-header">
+                <div class="modal-header-text">
+                    <h2 class="modal-title" id="setup-quote-modal-title">Set Up Quote</h2>
+                    <p class="modal-subtitle">Create or modify a quote and set up hierarchy</p>
+                </div>
+                <lightning-button-icon icon-name="utility:close" alternative-text="Close" onclick={handleClose} class="close-btn"></lightning-button-icon>
+            </header>
+
+            <div class="step-indicator-wrap">
+                <ul class="step-indicator" aria-label="Wizard steps">
+                    <template for:each={stepsList} for:item="s">
+                        <li key={s.id} class="step-indicator-item" data-step-id={s.id}>
+                            <span class={s.stepClass}>
+                                <template if:true={s.isCompleted}>
+                                    <lightning-icon icon-name="utility:success" size="xx-small" alternative-text="Done" class="step-icon step-icon-done"></lightning-icon>
+                                </template>
+                                <template if:false={s.isCompleted}>
+                                    <span class="step-num">{s.stepNum}</span>
+                                </template>
+                            </span>
+                            <span class="step-label">{s.label}</span>
+                            <template if:false={s.isLast}>
+                                <span class="step-connector">→</span>
+                            </template>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+
+            <div class="modal-body">
+                <!-- Step 1: Create or Modify (clickable cards) -->
+                <template if:true={isStep1}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Create or Modify</h3>
+                        <p class="slds-m-bottom_medium slds-text-body_regular">Create a new quote or modify an existing one.</p>
+                        <div class="choice-cards">
+                            <button type="button" class="choice-card" onclick={handleCreate} data-choice="create">
+                                <span class="choice-card-label">Create a new quote</span>
+                            </button>
+                            <button type="button" class="choice-card" onclick={handleModify} data-choice="modify">
+                                <span class="choice-card-label">Modify an existing quote</span>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Step 2: Quote -->
+                <template if:true={isStep2}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Quote details</h3>
+                        <template if:true={isCreate}>
+                            <template if:true={showCreateModeEntryControls}>
+                                <lightning-input data-step="quote-name" label="New quote name" value={newQuoteName} oninput={handleNewQuoteNameInput} onchange={handleNewQuoteNameChange} onkeydown={handleQuoteNameKeydown} required></lightning-input>
+                                <p class="slds-text-body_small slds-m-top_small slds-m-bottom_x-small slds-text-color_weak">Choose creation mode (locked for this run).</p>
+                                <div class="choice-cards slds-m-bottom_small">
+                                    <button type="button" class={createModeScratchClass} data-mode="SCRATCH" onclick={handleCreateModeChange}>
+                                        <span class="choice-card-label">Create from scratch</span>
+                                    </button>
+                                    <button type="button" class={createModeCsvClass} data-mode="CSV" onclick={handleCreateModeChange}>
+                                        <span class="choice-card-label">Create from CSV</span>
+                                    </button>
+                                    <button type="button" class={createModePreviousClass} data-mode="PREVIOUS_QUOTES" onclick={handleCreateModeChange}>
+                                        <span class="choice-card-label">Create from previous quotes</span>
+                                    </button>
+                                </div>
+                            </template>
+                            <template if:false={showCreateModeEntryControls}>
+                                <p class="slds-text-body_small slds-m-bottom_x-small"><strong>New quote name:</strong> {newQuoteName}</p>
+                                <p class="slds-text-body_small slds-m-bottom_small"><strong>Mode:</strong> Create from previous quotes</p>
+                            </template>
+                            <template if:true={isCreatePreviousMode}>
+                                <lightning-combobox
+                                    label="Account for historical quote lookup"
+                                    value={repeatBuyAccountId}
+                                    options={repeatBuyAccountOptions}
+                                    onchange={handleRepeatBuyAccountChange}
+                                    placeholder="Select an account"
+                                ></lightning-combobox>
+                                <template if:true={repeatBuyAccountsLoading}>
+                                    <div class="loading-wrap slds-m-top_x-small">
+                                        <lightning-spinner alternative-text="Loading accounts" size="small"></lightning-spinner>
+                                        <p class="loading-message">Loading accounts…</p>
+                                    </div>
+                                </template>
+                                <template if:true={repeatBuyQuotesLoading}>
+                                    <div class="loading-wrap slds-m-top_x-small slds-m-bottom_small">
+                                        <lightning-spinner alternative-text="Loading quotes" size="small"></lightning-spinner>
+                                        <p class="loading-message">Loading recent quotes…</p>
+                                    </div>
+                                </template>
+                                <lightning-dual-listbox
+                                    name="repeatbuy-quotes"
+                                    label="Select source quotes (one or more)"
+                                    source-label="Available quotes"
+                                    selected-label="Selected quotes"
+                                    options={repeatBuyQuoteOptions}
+                                    value={repeatBuySelectedQuoteIds}
+                                    onchange={handleRepeatBuyQuotesSelect}
+                                ></lightning-dual-listbox>
+                            </template>
+                        </template>
+                        <template if:false={isCreate}>
+                            <template if:true={quoteOptionsLoading}>
+                                <div class="loading-wrap">
+                                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                    <p class="loading-message">Loading quotes…</p>
+                                </div>
+                            </template>
+                            <template if:false={quoteOptionsLoading}>
+                                <lightning-combobox
+                                    data-step="quote-id"
+                                    label="Select an existing quote"
+                                    value={quoteId}
+                                    options={quoteOptionsForCombobox}
+                                    onchange={handleQuoteSelect}
+                                    placeholder="Select a quote"
+                                    required>
+                                </lightning-combobox>
+                            </template>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Step 3: Build group hierarchy (Create or Modify: CSV or manual for new groups) -->
+                <template if:true={isStep3}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Build group hierarchy</h3>
+                        <template if:true={isCreate}>
+                            <template if:true={isCreatePreviousMode}>
+                                <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                    Historical groups are pre-seeded from selected source quotes. You can add additional groups/subgroups here.
+                                </p>
+                                <lightning-radio-group
+                                    class="slds-m-bottom_small"
+                                    label="When duplicate group names exist"
+                                    options={repeatBuyDuplicateResolutionOptions}
+                                    value={repeatBuyDuplicateResolutionMode}
+                                    type="button"
+                                    onchange={handleRepeatBuyDuplicateResolutionChange}
+                                ></lightning-radio-group>
+                            </template>
+                            <template if:false={isCreatePreviousMode}>
+                                <template if:false={importMethod}>
+                                    <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">Choose how to add groups and products.</p>
+                                    <div class="choice-cards">
+                                        <button type="button" class="choice-card" data-choice="csv" onclick={handleImportMethodChoice}>
+                                            <span class="choice-card-label">Import from CSV</span>
+                                        </button>
+                                        <button type="button" class="choice-card" data-choice="manual" onclick={handleImportMethodChoice}>
+                                            <span class="choice-card-label">Build manually</span>
+                                        </button>
+                                    </div>
+                                </template>
+                                <template if:true={importMethod}>
+                                    <template if:true={isCsvImport}>
+                                        <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">Select a CSV file with the exact header and columns (Group 1–5, Bundle Product, Product, Quantity). Each row is a path: Group 2 is under Group 1, Group 3 under Group 2, and so on. Use the same Group 1 text on every row of a branch so you do not create a second top-level group.</p>
+                                        <input type="file" accept=".csv" class="slds-m-bottom_small" onchange={handleCsvFileChange} />
+                                        <template if:true={csvFileError}>
+                                            <pre class="slds-m-bottom_small slds-text-color_error csv-debug-block">{csvFileError}</pre>
+                                        </template>
+                                        <template if:true={csvSummary}>
+                                            <div class="slds-m-top_small slds-text-body_small">
+                                                <template if:true={csvFileName}>
+                                                    <p class="slds-m-bottom_xx-small">File: <strong>{csvFileName}</strong></p>
+                                                </template>
+                                                <p>Rows: {csvSummary.rowCount} · Groups: {csvSummary.groupCount} · Line items: {csvSummary.lineItemCount}</p>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={isCsvImport}>
+                                        <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">Add parent groups and nested subgroups. Product counts are set in the next step.</p>
+                                    </template>
+                                </template>
+                            </template>
+                        </template>
+                        <template if:false={isCreate}>
+                            <div class="modify-hierarchy-master-detail">
+                                <nav class="modify-hierarchy-rail" aria-label="Hierarchy sections">
+                                    <ul class="modify-hierarchy-rail-list">
+                                        <li>
+                                            <button
+                                                type="button"
+                                                class={modifyRailExistingClass}
+                                                data-rail="existing"
+                                                onclick={handleModifyRailSelect}
+                                                aria-current={modifyRailExistingAriaCurrent}
+                                            >
+                                                Existing groups
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                type="button"
+                                                class={modifyRailManualClass}
+                                                data-rail="manual"
+                                                onclick={handleModifyRailSelect}
+                                                aria-current={modifyRailManualAriaCurrent}
+                                            >
+                                                New groups (manual)
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                type="button"
+                                                class={modifyRailCsvClass}
+                                                data-rail="csv"
+                                                onclick={handleModifyRailSelect}
+                                                aria-current={modifyRailCsvAriaCurrent}
+                                            >
+                                                New groups (CSV)
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                                <div class="modify-hierarchy-pane">
+                                    <div class={modifyPaneExistingClass}>
+                                        <h4 class="slds-text-heading_small slds-m-bottom_x-small">Existing groups on this quote</h4>
+                                        <template if:true={existingHierarchyLoading}>
+                                            <div class="loading-wrap">
+                                                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                                <p class="loading-message">Loading existing groups…</p>
+                                            </div>
+                                        </template>
+                                        <template if:false={existingHierarchyLoading}>
+                                            <template if:true={hasExistingGroupsToShow}>
+                                                <c-rlm-set-up-quote-hierarchy-tree
+                                                    data-step="existing-hierarchy-tree"
+                                                    display-hierarchy-json={existingTreeDisplayJson}
+                                                    modify-existing-mode
+                                                    show-existing-line-item-counts
+                                                    allow-add-nodes
+                                                    allow-rename
+                                                    show-section-header={existingGroupsTreeShowSectionHeader}
+                                                    onexistingtreemutated={handleExistingTreeMutated}
+                                                    onexistingtreegroupdelete={handleExistingTreeGroupDelete}
+                                                ></c-rlm-set-up-quote-hierarchy-tree>
+                                            </template>
+                                            <template if:false={hasExistingGroupsToShow}>
+                                                <p class="slds-text-body_small slds-text-color_weak">No existing groups, or all have been marked for deletion.</p>
+                                            </template>
+                                        </template>
+                                    </div>
+                                    <div class={modifyPaneManualClass}>
+                                        <h4 class="slds-text-heading_small slds-m-bottom_x-small">Add new groups (manual)</h4>
+                                        <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                            Add parent groups and nested subgroups. Product counts are set in the next step (demo products), unless you import new groups from CSV in the other section.
+                                        </p>
+                                        <c-rlm-set-up-quote-hierarchy-tree
+                                            data-step="hierarchy-edit"
+                                            allow-add-nodes
+                                        ></c-rlm-set-up-quote-hierarchy-tree>
+                                    </div>
+                                    <div class={modifyPaneCsvClass}>
+                                        <h4 class="slds-text-heading_small slds-m-bottom_x-small">Add new groups (CSV)</h4>
+                                        <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                            Select a CSV file with the exact header and columns (Group 1–5, Bundle Product, Product, Quantity). New groups and lines from the file are added after existing changes (deletes, renames, new subgroups) are applied.
+                                        </p>
+                                        <input type="file" accept=".csv" class="slds-m-bottom_small" onchange={handleCsvFileChange} />
+                                        <template if:true={csvFileError}>
+                                            <pre class="slds-m-bottom_small slds-text-color_error csv-debug-block">{csvFileError}</pre>
+                                        </template>
+                                        <template if:true={csvSummary}>
+                                            <div class="slds-m-top_small slds-text-body_small slds-m-bottom_small">
+                                                <template if:true={csvFileName}>
+                                                    <p class="slds-m-bottom_xx-small">File: <strong>{csvFileName}</strong></p>
+                                                </template>
+                                                <p>Rows: {csvSummary.rowCount} · Groups: {csvSummary.groupCount} · Line items: {csvSummary.lineItemCount}</p>
+                                            </div>
+                                        </template>
+                                        <template if:true={modifyCsvPreviewTreeVisible}>
+                                            <c-rlm-set-up-quote-hierarchy-tree
+                                                data-step="hierarchy-modify-csv-preview"
+                                                initial-hierarchy-json={csvHierarchyForTree}
+                                                read-only-hierarchy={isCsvImportReadOnlyHierarchy}
+                                                allow-add-nodes={hierarchyEditAllowAddNodes}
+                                            ></c-rlm-set-up-quote-hierarchy-tree>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:true={showHierarchyTree}>
+                            <c-rlm-set-up-quote-hierarchy-tree
+                                data-step="hierarchy-edit"
+                                initial-hierarchy-json={csvHierarchyForTree}
+                                read-only-hierarchy={isCsvImportReadOnlyHierarchy}
+                                allow-add-nodes={hierarchyEditAllowAddNodes}
+                            ></c-rlm-set-up-quote-hierarchy-tree>
+                        </template>
+                        <template if:true={hierarchyValidationError}>
+                            <p class="slds-m-top_small slds-text-color_error">{hierarchyValidationError}</p>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Step 4: Assign repeated lines to groups -->
+                <template if:true={isStep4}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Assign repeated lines to groups</h3>
+                        <template if:true={repeatBuyAssignmentsVisible}>
+                            <lightning-input
+                                type="search"
+                                label="Filter repeated lines (product / SKU / group)"
+                                value={repeatBuyFilter}
+                                onchange={handleRepeatBuyFilterChange}
+                            ></lightning-input>
+                            <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">
+                                Historical prices are reference-only; final pricing is recalculated.
+                            </p>
+                            <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">
+                                Select rows with the first checkbox, then set target group once using "Apply to selected". Use row actions for duplicate/remove.
+                            </p>
+                            <div class="repeat-master-detail slds-m-top_small">
+                                <nav class="repeat-master-nav" aria-label="Source quote and group hierarchy">
+                                    <template for:each={repeatBuyMasterNodes} for:item="node">
+                                        <button
+                                            key={node.key}
+                                            type="button"
+                                            class={node.cssClass}
+                                            data-master-key={node.key}
+                                            onclick={handleRepeatBuyMasterSelect}
+                                        >
+                                            <span class="repeat-master-node-label">{node.label}</span>
+                                            <span class="repeat-master-node-count">{node.count}</span>
+                                        </button>
+                                    </template>
+                                </nav>
+                                <div class="repeat-detail-pane">
+                                    <p class="slds-text-body_small slds-m-bottom_x-small">
+                                        <strong>Selected:</strong> {repeatBuySelectedMasterLabel}
+                                    </p>
+                                    <div class="repeat-grid-shell">
+                                        <div class="repeat-sticky-top">
+                                            <div class="repeat-bulk-bar">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    variant="label-hidden"
+                                                    checked={repeatBuyAllSelectedGlobal}
+                                                    onchange={handleSelectAllRowsGlobal}
+                                                ></lightning-input>
+                                                <span class="repeat-bulk-count">{repeatBuySelectedCount} selected of {repeatBuyTotalCount} total (all selected source quotes)</span>
+                                                <span class="repeat-bulk-stats">{repeatBuyStatusText}</span>
+                                                <lightning-combobox
+                                                    class="repeat-bulk-target"
+                                                    label="Bulk target group"
+                                                    variant="label-hidden"
+                                                    placeholder="Set target group for selected rows"
+                                                    value={repeatBuyBulkTargetPath}
+                                                    options={assignmentTargetOptions}
+                                                    onchange={handleRepeatBuyBulkTargetChange}
+                                                ></lightning-combobox>
+                                                <lightning-button
+                                                    label="Apply to selected"
+                                                    variant="neutral"
+                                                    onclick={handleApplyTargetToSelected}
+                                                    disabled={repeatBuyBulkActionsDisabled}
+                                                ></lightning-button>
+                                                <lightning-button-icon
+                                                    icon-name="utility:copy"
+                                                    alternative-text="Duplicate selected to target"
+                                                    title="Duplicate selected to target"
+                                                    onclick={handleBulkDuplicateSelected}
+                                                    disabled={repeatBuyBulkActionsDisabled}
+                                                    class="repeat-bulk-icon-btn"
+                                                ></lightning-button-icon>
+                                                <lightning-button-icon
+                                                    icon-name="utility:delete"
+                                                    alternative-text="Remove selected from add"
+                                                    title="Remove selected from add"
+                                                    onclick={handleBulkRemoveSelected}
+                                                    disabled={repeatBuyBulkActionsDisabled}
+                                                    class="repeat-bulk-icon-btn"
+                                                ></lightning-button-icon>
+                                                <lightning-button-icon
+                                                    icon-name="utility:refresh"
+                                                    alternative-text="Restore selected rows"
+                                                    title="Restore selected rows"
+                                                    onclick={handleBulkRestoreSelected}
+                                                    disabled={repeatBuyBulkActionsDisabled}
+                                                    class="repeat-bulk-icon-btn"
+                                                ></lightning-button-icon>
+                                            </div>
+                                            <template if:true={repeatBuyLastActionMessage}>
+                                                <div class="repeat-action-banner" role="status">
+                                                    {repeatBuyLastActionMessage}
+                                                </div>
+                                            </template>
+                                            <div class="repeat-grid-header">
+                                            <div class="repeat-cell repeat-cell-header">Select</div>
+                                            <div class="repeat-cell repeat-cell-header">Historical Group</div>
+                                            <div class="repeat-cell repeat-cell-header">Product</div>
+                                            <div class="repeat-cell repeat-cell-header">SKU</div>
+                                            <div class="repeat-cell repeat-cell-header">Unit Price</div>
+                                            <div class="repeat-cell repeat-cell-header">Net Total</div>
+                                            <div class="repeat-cell repeat-cell-header">Qty</div>
+                                            <div class="repeat-cell repeat-cell-header">Actions</div>
+                                        </div>
+                                        </div>
+                                        <div class="repeat-grid-scroll">
+                                            <div class="repeat-grid">
+                                        <template for:each={repeatBuyDetailRows} for:item="row">
+                                            <div key={row.key} class="repeat-grid-row">
+                                                <div class="repeat-cell">
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        variant="label-hidden"
+                                                        data-key={row.key}
+                                                        checked={row.selected}
+                                                        onchange={handleAssignmentSelectChange}
+                                                    ></lightning-input>
+                                                </div>
+                                                <div class="repeat-cell">{row.historicalGroupName}</div>
+                                                <div class="repeat-cell">{row.productName}</div>
+                                                <div class="repeat-cell">{row.productCode}</div>
+                                                <div class="repeat-cell">{row.historicalUnitPrice}</div>
+                                                <div class="repeat-cell">{row.historicalNetTotal}</div>
+                                                <div class="repeat-cell">
+                                                    <lightning-input type="number" min="1" variant="label-hidden" data-key={row.key} value={row.quantity} onchange={handleAssignmentQuantityChange}></lightning-input>
+                                                </div>
+                                                <div class="repeat-cell repeat-cell-actions">
+                                                    <lightning-button-icon
+                                                        icon-name={row.duplicateActionIcon}
+                                                        alternative-text={row.duplicateActionLabel}
+                                                        title={row.duplicateActionLabel}
+                                                        variant="border-filled"
+                                                        data-key={row.key}
+                                                        onclick={handleAssignmentDuplicateAction}
+                                                        class="repeat-action-icon"
+                                                    ></lightning-button-icon>
+                                                    <lightning-button-icon
+                                                        icon-name={row.removeActionIcon}
+                                                        alternative-text={row.removeActionLabel}
+                                                        title={row.removeActionLabel}
+                                                        variant="border-filled"
+                                                        data-key={row.key}
+                                                        onclick={handleAssignmentRemoveAction}
+                                                        class={row.removeActionClass}
+                                                    ></lightning-button-icon>
+                                                </div>
+                                            </div>
+                                        </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <template if:false={hasRepeatBuyDetailRows}>
+                                        <p class="slds-text-color_weak slds-text-body_small slds-m-top_small">No lines for this selection.</p>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:false={repeatBuyAssignmentsVisible}>
+                            <p class="slds-text-color_weak slds-text-body_small">No repeated lines available. Continue to create hierarchy-only quote if desired.</p>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Step 5: Product count per group (independent step) -->
+                <template if:true={isStep5}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Product count per group</h3>
+                        <template if:true={showQuoteLinePreviewBanner}>
+                            <div class={quoteLinePreviewBannerClass} role="status">
+                                <template if:true={quoteLinePreviewShowStatusLine}>
+                                    <p class="quote-line-preview-primary slds-text-body_regular">{quoteLinePreviewStatusLine}</p>
+                                </template>
+                                <template if:true={quoteLinePreviewBreakdownVisible}>
+                                    <div class="quote-line-preview-simple slds-text-body_small slds-m-top_x-small slds-text-color_weak">
+                                        <p class="quote-line-preview-line">
+                                            Existing rows in the quote:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewCurrentTotal}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line">
+                                            Rows added in existing groups:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewExistingAddsSum}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line">
+                                            Rows added in new groups:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewNewGroupsAdds}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line">
+                                            Rows from repeated lines:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewRepeatAdds}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line quote-line-preview-line_total slds-m-top_x-small slds-text-color_default">
+                                            Estimated total after Run:
+                                            <strong> {quoteLinePreviewProjectedTotal}</strong>
+                                        </p>
+                                    </div>
+                                </template>
+                                <p class="quote-line-preview-footnote slds-text-body_small slds-m-top_xx-small slds-text-color_weak">
+                                    {quoteLinePreviewSimplifiedFootnote}
+                                </p>
+                            </div>
+                        </template>
+                        <template if:true={hasProductCountsStep}>
+                            <template if:true={isCreate}>
+                                <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">
+                                    Set additional product counts per group. Repeated lines from previous quotes are preserved separately and included in the estimate above.
+                                </p>
+                                <div class="product-counts-list">
+                                    <template for:each={productCountsFlatList} for:item="node">
+                                        <div key={node.groupKey} class="product-count-row">
+                                            <span class="product-count-label" style={node.indentStyle}>{node.name}</span>
+                                            <lightning-input
+                                                type="number"
+                                                data-step="product-count"
+                                                data-group-key={node.groupKey}
+                                                data-key-type={node.keyType}
+                                                value={node.count}
+                                                min="0"
+                                                variant="label-hidden"
+                                                class="product-count-input"
+                                                onchange={handleCreateProductCountChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:false={isCreate}>
+                                <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">
+                                    Same layout as Build group hierarchy: pick a section on the left, then set demo product counts in the tree.
+                                </p>
+                                <div class="modify-hierarchy-master-detail">
+                                    <nav class="modify-hierarchy-rail" aria-label="Product count sections">
+                                        <ul class="modify-hierarchy-rail-list">
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    class={modifyProductCountsRailExistingClass}
+                                                    data-rail="existing"
+                                                    onclick={handleModifyProductCountsRailSelect}
+                                                >
+                                                    Existing groups
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    class={modifyProductCountsRailManualClass}
+                                                    data-rail="manual"
+                                                    onclick={handleModifyProductCountsRailSelect}
+                                                >
+                                                    New groups (add parent flow)
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                    <div class="modify-hierarchy-pane">
+                                        <div class={modifyProductCountsPaneExistingClass}>
+                                            <h4 class="slds-text-heading_small slds-m-bottom_x-small">Existing groups</h4>
+                                            <template if:true={hasProductCountsModifyExistingPane}>
+                                                <c-rlm-set-up-quote-hierarchy-tree
+                                                    data-step="product-counts-existing"
+                                                    display-hierarchy-json={existingTreeDisplayJson}
+                                                    product-counts-json={existingGroupCountsJsonForTree}
+                                                    product-counts-edit-mode
+                                                    product-counts-external-grand-summary={quoteLinePreviewTreeGrandSummary}
+                                                    allow-add-nodes={productCountsTreeAllowAdd}
+                                                    allow-rename={productCountsTreeAllowRename}
+                                                    show-section-header={productCountsTreeShowSectionHeader}
+                                                    onquotelinepreviewsync={handleQuoteLinePreviewSync}
+                                                ></c-rlm-set-up-quote-hierarchy-tree>
+                                            </template>
+                                            <template if:false={hasProductCountsModifyExistingPane}>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    No existing groups in scope for counts on this step.
+                                                </p>
+                                            </template>
+                                        </div>
+                                        <div class={modifyProductCountsPaneManualClass}>
+                                            <h4 class="slds-text-heading_small slds-m-bottom_x-small">New groups (add parent flow)</h4>
+                                            <template if:true={isCsvImport}>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    New groups and products come from your CSV — there are no demo product counts to set for them here.
+                                                </p>
+                                            </template>
+                                            <template if:false={isCsvImport}>
+                                                <template if:true={hasNewManualGroupsForProductCounts}>
+                                                    <c-rlm-set-up-quote-hierarchy-tree
+                                                        data-step="product-counts-new-manual"
+                                                        display-hierarchy-json={confirmDisplayHierarchyJson}
+                                                        product-counts-json={_productCountsJson}
+                                                        product-counts-edit-mode
+                                                        product-counts-external-grand-summary={quoteLinePreviewTreeGrandSummary}
+                                                        allow-add-nodes={productCountsTreeAllowAdd}
+                                                        allow-rename={productCountsTreeAllowRename}
+                                                        show-section-header={productCountsTreeShowSectionHeader}
+                                                        onquotelinepreviewsync={handleQuoteLinePreviewSync}
+                                                    ></c-rlm-set-up-quote-hierarchy-tree>
+                                                </template>
+                                                <template if:false={hasNewManualGroupsForProductCounts}>
+                                                    <p class="slds-text-body_small slds-text-color_weak">
+                                                        No new parent groups added. Go back to the hierarchy step if you need to add a manual subtree.
+                                                    </p>
+                                                </template>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={hasProductCountsStep}>
+                            <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">{step4EmptyHelperMessage}</p>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Step 6: Large Deal (hidden when Modify + quote already Large Deal) -->
+                <template if:true={isStep6}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Large Deal</h3>
+                        <lightning-input
+                            data-step="large-deal"
+                            type="checkbox"
+                            label="Mark this quote as a Large Deal?"
+                            checked={effectiveLargeDeal}
+                            disabled={isLargeDealRequired}
+                            required={isLargeDealRequired}
+                        ></lightning-input>
+                        <template if:true={largeDealRequirementHelpText}>
+                            <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">{largeDealRequirementHelpText}</p>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Step 7: Confirm -->
+                <template if:true={isStep7}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Review and run</h3>
+                        <template if:true={showQuoteLinePreviewBanner}>
+                            <div class={quoteLinePreviewBannerClass} role="status">
+                                <template if:true={quoteLinePreviewShowStatusLine}>
+                                    <p class="quote-line-preview-primary slds-text-body_regular">{quoteLinePreviewStatusLine}</p>
+                                </template>
+                                <template if:true={quoteLinePreviewBreakdownVisible}>
+                                    <div class="quote-line-preview-simple slds-text-body_small slds-m-top_x-small slds-text-color_weak">
+                                        <p class="quote-line-preview-line">
+                                            Existing rows in the quote:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewCurrentTotal}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line">
+                                            Rows added in existing groups:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewExistingAddsSum}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line">
+                                            Rows added in new groups:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewNewGroupsAdds}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line">
+                                            Rows from repeated lines:
+                                            <strong class="slds-text-color_default"> {quoteLinePreviewRepeatAdds}</strong>
+                                        </p>
+                                        <p class="quote-line-preview-line quote-line-preview-line_total slds-m-top_x-small slds-text-color_default">
+                                            Estimated total after Run:
+                                            <strong> {quoteLinePreviewProjectedTotal}</strong>
+                                        </p>
+                                    </div>
+                                </template>
+                                <p class="quote-line-preview-footnote slds-text-body_small slds-m-top_xx-small slds-text-color_weak">
+                                    {quoteLinePreviewSimplifiedFootnote}
+                                </p>
+                            </div>
+                        </template>
+                        <div class="confirm-summary-rows">
+                            <div class="confirm-row"><span class="confirm-label">Mode</span><span class="confirm-value">{confirmModeLabel}</span></div>
+                            <div class="confirm-row"><span class="confirm-label">Quote</span><span class="confirm-value">{confirmQuoteLabel}</span></div>
+                            <template if:true={confirmGroupsToDeleteCount}>
+                                <div class="confirm-row"><span class="confirm-label">Groups to delete</span><span class="confirm-value">{confirmGroupsToDeleteCount} group(s) and their line items</span></div>
+                            </template>
+                            <template if:true={confirmRenamesCount}>
+                                <div class="confirm-row"><span class="confirm-label">Groups to rename</span><span class="confirm-value">{confirmRenamesCount} group(s)</span></div>
+                            </template>
+                            <template if:true={confirmNewSubgroupsCount}>
+                                <div class="confirm-row"><span class="confirm-label">New subgroups under existing</span><span class="confirm-value">{confirmNewSubgroupsCount} new subgroup(s)</span></div>
+                            </template>
+                            <div class="confirm-row"><span class="confirm-label">Large Deal</span><span class="confirm-value">{confirmLargeDealLabel}</span></div>
+                        </div>
+                        <div class="confirm-hierarchy-wrap">
+                            <p class="slds-text-body_small slds-m-bottom_x-small confirm-hierarchy-heading">Hierarchy</p>
+                            <template if:true={confirmHasHierarchy}>
+                                <c-rlm-set-up-quote-hierarchy-tree
+                                    data-step="hierarchy-confirm"
+                                    display-hierarchy-json={confirmDisplayHierarchyJson}
+                                    product-counts-json={confirmEffectiveProductCountsJson}
+                                    show-product-counts={hierarchyConfirmShowProductCounts}
+                                    allow-add-nodes={hierarchyConfirmAllowAddNodes}
+                                    allow-rename={hierarchyConfirmAllowRename}
+                                    suppress-sync={hierarchyConfirmSuppressSync}
+                                    show-section-header={hierarchyConfirmShowSectionHeader}
+                                ></c-rlm-set-up-quote-hierarchy-tree>
+                            </template>
+                            <template if:false={confirmHasHierarchy}>
+                                <p class="slds-text-color_weak slds-text-body_small">No groups added.</p>
+                            </template>
+                        </div>
+                        <p class="slds-m-top_medium slds-text-body_small">Click Run to execute Set Up Quote.</p>
+                    </div>
+                </template>
+
+                <!-- Step 8: Result -->
+                <template if:true={isStep8}>
+                    <div class="wizard-card">
+                        <h3 class="wizard-card-title">Result</h3>
+                        <template if:true={result}>
+                            <template if:true={result.success}>
+                                <div class="result-block result-success">
+                                    <lightning-icon icon-name="utility:success" size="small" class="result-icon"></lightning-icon>
+                                    <div>
+                                        <p class="result-title">Success</p>
+                                        <p class="result-detail">Quote Id: {result.quoteId}</p>
+                                        <template if:true={result.warningMessage}>
+                                            <p class="result-warning slds-m-top_small">{result.warningMessage}</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                            <template if:false={result.success}>
+                                <div class="result-block result-error">
+                                    <lightning-icon icon-name="utility:error" size="small" class="result-icon"></lightning-icon>
+                                    <div>
+                                        <p class="result-title">Failed</p>
+                                        <p class="result-detail">{result.errorMessage}</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <footer class="modal-footer">
+                <template if:true={showCancel}>
+                    <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-right_small"></lightning-button>
+                </template>
+                <template if:true={showBack}>
+                    <lightning-button label="Back" onclick={handleBack} class="slds-m-right_small"></lightning-button>
+                </template>
+                <template if:true={showNext}>
+                    <template if:true={isStep2}>
+                        <lightning-button label="Next" variant="brand" onclick={handleQuoteInfoNext} disabled={step2NextDisabled}></lightning-button>
+                    </template>
+                    <template if:true={isStep3}>
+                        <lightning-button label="Next" variant="brand" onclick={handleHierarchyNext} disabled={step3NextDisabled}></lightning-button>
+                    </template>
+                    <template if:true={isStep4}>
+                        <template if:true={isCreatePreviousMode}>
+                            <lightning-button label="Next" variant="brand" onclick={handleAssignRepeatNext} disabled={loading}></lightning-button>
+                        </template>
+                        <template if:false={isCreatePreviousMode}>
+                            <lightning-button label="Next" variant="brand" onclick={handleProductCountsNext} disabled={loading}></lightning-button>
+                        </template>
+                    </template>
+                    <template if:true={isStep5}>
+                        <lightning-button label="Next" variant="brand" onclick={handleProductCountsNext} disabled={loading}></lightning-button>
+                    </template>
+                    <template if:true={isStep6}>
+                        <lightning-button label="Next" variant="brand" onclick={handleLargeDealNext} disabled={loading}></lightning-button>
+                    </template>
+                </template>
+                <template if:true={showSubmit}>
+                    <lightning-button label="Run" variant="brand" onclick={handleSubmit} disabled={loading}></lightning-button>
+                </template>
+                <template if:true={showDone}>
+                    <lightning-button label="Done" variant="brand" onclick={handleDone}></lightning-button>
+                </template>
+            </footer>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,16 @@
+feature: personas
+feature_flag: personas
+# Hides the path assistant (Status Bar) from the RLM Sales Representative
+# profile. This profile only exists when personas=true so this patch must
+# not be baked into the base template.
+patches:
+  - type: insert_after_xml
+    anchor: "<identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
+    xml: |
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!$User.Profile.Name}</leftValue>
+                        <operator>NE</operator>
+                        <rightValue>RLM Sales Representative</rightValue>
+                    </criteria>
+                </visibilityRule>

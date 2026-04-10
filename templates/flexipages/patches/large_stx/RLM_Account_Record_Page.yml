@@ -1,0 +1,11 @@
+feature: large_stx
+feature_flag: large_stx
+# Adds the Set Up Quote screen action to the Account highlights panel.
+# Anchors after RLM_QuickQuote (inserted by the utils/quantumbit patch which
+# runs earlier) to produce the desired order: Edit → QuickQuote → SetUpQuote →
+# ResetAccount. Requires quantumbit=true to be active alongside large_stx=true.
+patches:
+  - type: insert_action
+    after: "Account.RLM_QuickQuote"
+    actions:
+      - "Account.RLM_Set_Up_Quote"

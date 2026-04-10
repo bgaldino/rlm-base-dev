@@ -39,15 +39,7 @@ force-app/main/default/expressionSetDefinition/Salesforce_Pricing_Discovery_Proc
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryPricingProcedure.expressionSetDefinition-meta.xml
 #force-app/main/default/expressionSetDefinition/RLM_ProductDiscoveryQualificationProcedure.expressionSetDefinition-meta.xml
 
-# unpackaged/post_sharing
-unpackaged/post_sharing/objects/AttributeBasedAdjRule/AttributeBasedAdjRule.object-meta.xml
-#unpackaged/post_sharing/objects/AttrPicklistExcludedValue/AttrPicklistExcludedValue.object-meta.xml
-unpackaged/post_sharing/objects/PriceAdjustmentSchedule/PriceAdjustmentSchedule.object-meta.xml
-unpackaged/post_sharing/objects/PriceBookEntryDerivedPrice/PriceBookEntryDerivedPrice.object-meta.xml
-#unpackaged/post_sharing/objects/ProductComponentGrpOverride/ProductComponentGrpOverride.object-meta.xml
-unpackaged/post_sharing/objects/ProductConfigurationRule/ProductConfigurationRule.object-meta.xml
-unpackaged/post_sharing/objects/SalesTransactionType/SalesTransactionType.object-meta.xml
-#unpackaged/post_sharing/objects
+# unpackaged/post_sharing — objects/ directory removed; OWD is not managed here
 # pricingActionParameters
 unpackaged/post_quantumbit/pricingActionParameters
 # Misc

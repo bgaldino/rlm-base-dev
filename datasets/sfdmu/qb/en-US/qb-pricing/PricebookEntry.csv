@@ -113,3 +113,154 @@ TEST-SUB;Evergreen Annual;USD,USD,true,false,QuantumBit Subscription,Standard Pr
 TEST-SUB;Evergreen Monthly;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Evergreen Monthly;Evergreen,35
 TEST-SUB;Term Annual;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Annual;TermDefined,360
 TEST-SUB;Term Monthly;USD,USD,true,false,QuantumBit Subscription,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,30
+PROD-1000281857;One-Time;USD,USD,true,false,Switch ASIC,Standard Price Book;true,PROD-1000281857,One-Time;OneTime,2500
+PROD-1002254785;One-Time;USD,USD,true,false,PDU Outlet Whip,Standard Price Book;true,PROD-1002254785,One-Time;OneTime,250
+PROD-1008704562;One-Time;USD,USD,true,false,Network Fabric,Standard Price Book;true,PROD-1008704562,One-Time;OneTime,26700
+PROD-1038139044;One-Time;USD,USD,true,false,NVMe U.2 SSD 3.84TB,Standard Price Book;true,PROD-1038139044,One-Time;OneTime,300
+PROD-1046989797;One-Time;USD,USD,true,false,Breaker Set,Standard Price Book;true,PROD-1046989797,One-Time;OneTime,125
+PROD-1054187061;One-Time;USD,USD,true,false,Charger Module,Standard Price Book;true,PROD-1054187061,One-Time;OneTime,500
+PROD-1065068854;One-Time;USD,USD,true,false,Bypass Switch,Standard Price Book;true,PROD-1065068854,One-Time;OneTime,230
+PROD-1066573967;One-Time;USD,USD,true,false,Front Door,Standard Price Book;true,PROD-1066573967,One-Time;OneTime,45
+PROD-1078575407;One-Time;USD,USD,true,false,Dual PSU & Fan Modules,Standard Price Book;true,PROD-1078575407,One-Time;OneTime,1700
+PROD-111239623;One-Time;USD,USD,true,false,1U LCD Tray,Standard Price Book;true,PROD-111239623,One-Time;OneTime,400
+PROD-1128940216;One-Time;USD,USD,true,false,Perforated Doors,Standard Price Book;true,PROD-1128940216,One-Time;OneTime,560
+PROD-1153963439;One-Time;USD,USD,true,false,Metering Board,Standard Price Book;true,PROD-1153963439,One-Time;OneTime,120
+PROD-1160394163;One-Time;USD,USD,true,false,Online UPS Module,Standard Price Book;true,PROD-1160394163,One-Time;OneTime,2500
+PROD-1167731127;One-Time;USD,USD,true,false,Outlet Strips,Standard Price Book;true,PROD-1167731127,One-Time;OneTime,300
+PROD-1176699896;One-Time;USD,USD,true,false,Cable Tie Pack,Standard Price Book;true,PROD-1176699896,One-Time;OneTime,10
+PROD-1202444971;One-Time;USD,USD,true,false,External Battery Pack,Standard Price Book;true,PROD-1202444971,One-Time;OneTime,800
+PROD-1223537488;One-Time;USD,USD,true,false,Generic Component A,Standard Price Book;true,PROD-1223537488,One-Time;OneTime,1250
+PROD-1232611253;One-Time;USD,USD,true,false,Generic Component A,Standard Price Book;true,PROD-1232611253,One-Time;OneTime,850
+PROD-1234105735;One-Time;USD,USD,true,false,Redundant PDUs (A/B),Standard Price Book;true,PROD-1234105735,One-Time;OneTime,1090
+PROD-1247640563;One-Time;USD,USD,true,false,PSU Set (2x),Standard Price Book;true,PROD-1247640563,One-Time;OneTime,2000
+PROD-1249967782;One-Time;USD,USD,true,false,USB Console Cable,Standard Price Book;true,PROD-1249967782,One-Time;OneTime,15
+PROD-1289692484;One-Time;USD,USD,true,false,Generic Component A,Standard Price Book;true,PROD-1289692484,One-Time;OneTime,400
+PROD-1298719794;One-Time;USD,USD,true,false,Brush Strips & Baffles,Standard Price Book;true,PROD-1298719794,One-Time;OneTime,70
+PROD-1302496369;One-Time;USD,USD,true,false,Mgmt Appliance Chassis,Standard Price Book;true,PROD-1302496369,One-Time;OneTime,500
+PROD-1310694555;One-Time;USD,USD,true,false,24‑bay NVMe JBOF,Standard Price Book;true,PROD-1310694555,One-Time;OneTime,4000
+PROD-1324161108;One-Time;USD,USD,true,false,Rails & Mounting,Standard Price Book;true,PROD-1324161108,One-Time;OneTime,4400
+PROD-1361853679;One-Time;USD,USD,true,false,24‑bay SAS Shelf,Standard Price Book;true,PROD-1361853679,One-Time;OneTime,3000
+PROD-1380327064;One-Time;USD,USD,true,false,Dual IOM (PCIe),Standard Price Book;true,PROD-1380327064,One-Time;OneTime,3000
+PROD-1427074895;One-Time;USD,USD,true,false,Outlet Strips,Standard Price Book;true,PROD-1427074895,One-Time;OneTime,300
+PROD-1448587501;One-Time;USD,USD,true,false,Generic Component B,Standard Price Book;true,PROD-1448587501,One-Time;OneTime,400
+PROD-1472536093;One-Time;USD,USD,true,false,128x 100GbE Spine,Standard Price Book;true,PROD-1472536093,One-Time;OneTime,16000
+PROD-148835828;One-Time;USD,USD,true,false,Compute Cluster,Standard Price Book;true,PROD-148835828,One-Time;OneTime,21000
+PROD-1491788725;One-Time;USD,USD,true,false,Dual IOM (SAS),Standard Price Book;true,PROD-1491788725,One-Time;OneTime,2000
+PROD-1511371870;One-Time;USD,USD,true,false,Rack Screw & Cage Nut (set),Standard Price Book;true,PROD-1511371870,One-Time;OneTime,15
+PROD-1514472773;One-Time;USD,USD,true,false,RJ‑45 Patch 3m,Standard Price Book;true,PROD-1514472773,One-Time;OneTime,8
+PROD-1517433427;One-Time;USD,USD,true,false,1U Dual‑CPU Servers,Standard Price Book;true,PROD-1517433427,One-Time;OneTime,9000
+PROD-1533783581;One-Time;USD,USD,true,false,Fan Controller Board,Standard Price Book;true,PROD-1533783581,One-Time;OneTime,400
+PROD-1536519560;One-Time;USD,USD,true,false,Generic Component B,Standard Price Book;true,PROD-1536519560,One-Time;OneTime,50
+PROD-1547313492;One-Time;USD,USD,true,false,Generic Component A,Standard Price Book;true,PROD-1547313492,One-Time;OneTime,35
+PROD-1559036382;One-Time;USD,USD,true,false,42U Uprights/Beams,Standard Price Book;true,PROD-1559036382,One-Time;OneTime,2550
+PROD-1563124993;One-Time;USD,USD,true,false,In‑Rack Fan Trays,Standard Price Book;true,PROD-1563124993,One-Time;OneTime,680
+PROD-1563341377;One-Time;USD,USD,true,false,Side Panels,Standard Price Book;true,PROD-1563341377,One-Time;OneTime,260
+PROD-1574258426;One-Time;USD,USD,true,false,Rail Mount Bracket,Standard Price Book;true,PROD-1574258426,One-Time;OneTime,20
+PROD-1576658789;One-Time;USD,USD,true,false,Generic Component B,Standard Price Book;true,PROD-1576658789,One-Time;OneTime,1250
+PROD-1593141905;One-Time;USD,USD,true,false,Rear Door,Standard Price Book;true,PROD-1593141905,One-Time;OneTime,85
+PROD-159863330;One-Time;USD,USD,true,false,PDU‑A (30A/3‑phase),Standard Price Book;true,PROD-159863330,One-Time;OneTime,545
+PROD-1603627899;One-Time;USD,USD,true,false,Airflow Management (Blanking/Brush),Standard Price Book;true,PROD-1603627899,One-Time;OneTime,165
+PROD-1607828377;One-Time;USD,USD,true,false,Motherboard (2‑socket),Standard Price Book;true,PROD-1607828377,One-Time;OneTime,7000
+PROD-1609709205;One-Time;USD,USD,true,false,Blanking Panels Set,Standard Price Book;true,PROD-1609709205,One-Time;OneTime,95
+PROD-1616292046;One-Time;USD,USD,true,false,Dual NIC & BMC,Standard Price Book;true,PROD-1616292046,One-Time;OneTime,300
+PROD-1673140239;One-Time;USD,USD,true,false,M.2 SSD 512GB (OS),Standard Price Book;true,PROD-1673140239,One-Time;OneTime,50
+PROD-1704766065;One-Time;USD,USD,true,false,Battery String,Standard Price Book;true,PROD-1704766065,One-Time;OneTime,300
+PROD-1744092313;One-Time;USD,USD,true,false,Security & Safety,Standard Price Book;true,PROD-1744092313,One-Time;OneTime,3985
+PROD-1766568232;One-Time;USD,USD,true,false,Inverter Module,Standard Price Book;true,PROD-1766568232,One-Time;OneTime,1500
+PROD-1768772247;One-Time;USD,USD,true,false,Heatsink Assembly,Standard Price Book;true,PROD-1768772247,One-Time;OneTime,60
+PROD-1776230868;One-Time;USD,USD,true,false,Hot‑swap Fan Tray,Standard Price Book;true,PROD-1776230868,One-Time;OneTime,280
+PROD-1795624702;One-Time;USD,USD,true,false,Inlet Cordset (IEC‑309),Standard Price Book;true,PROD-1795624702,One-Time;OneTime,330
+PROD-1803530052;One-Time;USD,USD,true,false,Hardware Kit,Standard Price Book;true,PROD-1803530052,One-Time;OneTime,245
+PROD-1809409779;One-Time;USD,USD,true,false,LCD/KVM‑over‑IP Console,Standard Price Book;true,PROD-1809409779,One-Time;OneTime,680
+PROD-186801522;One-Time;USD,USD,true,false,NVMe Backplane Cable,Standard Price Book;true,PROD-186801522,One-Time;OneTime,45
+PROD-1878093187;One-Time;USD,USD,true,false,2U Dual‑CPU Servers,Standard Price Book;true,PROD-1878093187,One-Time;OneTime,12000
+PROD-188088183;One-Time;USD,USD,true,false,Breaker Module 30A,Standard Price Book;true,PROD-188088183,One-Time;OneTime,45
+PROD-1897393325;One-Time;USD,USD,true,false,Cabling & Harnesses,Standard Price Book;true,PROD-1897393325,One-Time;OneTime,225
+PROD-1917148511;One-Time;USD,USD,true,false,PSU Power Cord (C19),Standard Price Book;true,PROD-1917148511,One-Time;OneTime,25
+PROD-192607526;One-Time;USD,USD,true,false,SAS Cable (Mini‑SAS HD),Standard Price Book;true,PROD-192607526,One-Time;OneTime,40
+PROD-1939884557;One-Time;USD,USD,true,false,Smart Rack Locks & Access,Standard Price Book;true,PROD-1939884557,One-Time;OneTime,3400
+PROD-1941355444;One-Time;USD,USD,true,false,Management & Monitoring,Standard Price Book;true,PROD-1941355444,One-Time;OneTime,1480
+PROD-1956857281;One-Time;USD,USD,true,false,Kensington Lock Anchor,Standard Price Book;true,PROD-1956857281,One-Time;OneTime,30
+PROD-1977133047;One-Time;USD,USD,true,false,Rear Door,Standard Price Book;true,PROD-1977133047,One-Time;OneTime,180
+PROD-2001013682;One-Time;USD,USD,true,false,Leveling Foot,Standard Price Book;true,PROD-2001013682,One-Time;OneTime,15
+PROD-2003786421;One-Time;USD,USD,true,false,Cooling System,Standard Price Book;true,PROD-2003786421,One-Time;OneTime,845
+PROD-2004313496;One-Time;USD,USD,true,false,Front Door,Standard Price Book;true,PROD-2004313496,One-Time;OneTime,380
+PROD-2006854732;One-Time;USD,USD,true,false,25/100GbE NIC,Standard Price Book;true,PROD-2006854732,One-Time;OneTime,350
+PROD-2035320005;One-Time;USD,USD,true,false,Harness,Standard Price Book;true,PROD-2035320005,One-Time;OneTime,200
+PROD-204534203;One-Time;USD,USD,true,false,Universal Sliding Rails,Standard Price Book;true,PROD-204534203,One-Time;OneTime,4250
+PROD-2058355083;One-Time;USD,USD,true,false,Motherboard (2‑socket),Standard Price Book;true,PROD-2058355083,One-Time;OneTime,6500
+PROD-2059567741;One-Time;USD,USD,true,false,Generic Component B,Standard Price Book;true,PROD-2059567741,One-Time;OneTime,850
+PROD-2063526037;One-Time;USD,USD,true,false,Rear Door,Standard Price Book;true,PROD-2063526037,One-Time;OneTime,15
+PROD-2108848830;One-Time;USD,USD,true,false,Chassis & Backplane (2U),Standard Price Book;true,PROD-2108848830,One-Time;OneTime,3000
+PROD-2115474628;One-Time;USD,USD,true,false,SmartNIC 2x100GbE,Standard Price Book;true,PROD-2115474628,One-Time;OneTime,750
+PROD-2116311267;One-Time;USD,USD,true,false,Storage Subsystem,Standard Price Book;true,PROD-2116311267,One-Time;OneTime,12000
+PROD-217263495;One-Time;USD,USD,true,false,Temp Probe Cable,Standard Price Book;true,PROD-217263495,One-Time;OneTime,35
+PROD-217937560;One-Time;USD,USD,true,false,Environmental & Fire Sensors,Standard Price Book;true,PROD-217937560,One-Time;OneTime,585
+PROD-275930088;One-Time;USD,USD,true,false,Leak Sensor Rope 3m,Standard Price Book;true,PROD-275930088,One-Time;OneTime,120
+PROD-279707357;One-Time;USD,USD,true,false,Fan Module Set,Standard Price Book;true,PROD-279707357,One-Time;OneTime,2500
+PROD-293991009;One-Time;USD,USD,true,false,LC‑LC OM4 Patch 2m,Standard Price Book;true,PROD-293991009,One-Time;OneTime,15
+PROD-310172567;One-Time;USD,USD,true,false,Airflow Blanking Panel 1U,Standard Price Book;true,PROD-310172567,One-Time;OneTime,15
+PROD-322363365;One-Time;USD,USD,true,false,Doors & Panels,Standard Price Book;true,PROD-322363365,One-Time;OneTime,820
+PROD-337489460;One-Time;USD,USD,true,false,SAS HDD 12TB,Standard Price Book;true,PROD-337489460,One-Time;OneTime,220
+PROD-356310368;One-Time;USD,USD,true,false,Aggregation/Spine Switches,Standard Price Book;true,PROD-356310368,One-Time;OneTime,18500
+PROD-362281425;One-Time;USD,USD,true,false,Velcro Strap Pack,Standard Price Book;true,PROD-362281425,One-Time;OneTime,15
+PROD-384361183;One-Time;USD,USD,true,false,Generic Component B,Standard Price Book;true,PROD-384361183,One-Time;OneTime,8000
+PROD-384933134;One-Time;USD,USD,true,false,QSFP28 100G Transceiver,Standard Price Book;true,PROD-384933134,One-Time;OneTime,140
+PROD-387008033;One-Time;USD,USD,true,false,Fan Tray Frame,Standard Price Book;true,PROD-387008033,One-Time;OneTime,100
+PROD-398656864;One-Time;USD,USD,true,false,DDR5 DIMM 32GB,Standard Price Book;true,PROD-398656864,One-Time;OneTime,200
+PROD-406950016;One-Time;USD,USD,true,false,Thermal Paste Pack,Standard Price Book;true,PROD-406950016,One-Time;OneTime,10
+PROD-409095263;One-Time;USD,USD,true,false,Side Panel Set,Standard Price Book;true,PROD-409095263,One-Time;OneTime,60
+PROD-410431707;One-Time;USD,USD,true,false,Drive Tray Latch,Standard Price Book;true,PROD-410431707,One-Time;OneTime,5
+PROD-416568204;One-Time;USD,USD,true,false,Switch Mainboard,Standard Price Book;true,PROD-416568204,One-Time;OneTime,1500
+PROD-44164144;One-Time;USD,USD,true,false,Electro‑mechanical Lock,Standard Price Book;true,PROD-44164144,One-Time;OneTime,3400
+PROD-448734868;One-Time;USD,USD,true,false,Brush Strip 1U,Standard Price Book;true,PROD-448734868,One-Time;OneTime,25
+PROD-455868158;One-Time;USD,USD,true,false,QuantumBit - OmniRack DC42 Series,Standard Price Book;true,PROD-455868158,One-Time;OneTime,78495
+PROD-460189389;One-Time;USD,USD,true,false,Cable Management Hook,Standard Price Book;true,PROD-460189389,One-Time;OneTime,5
+PROD-462218852;One-Time;USD,USD,true,false,Generic Component A,Standard Price Book;true,PROD-462218852,One-Time;OneTime,50
+PROD-490571009;One-Time;USD,USD,true,false,Copper Harness Kits,Standard Price Book;true,PROD-490571009,One-Time;OneTime,100
+PROD-498531761;One-Time;USD,USD,true,false,Upright Posts,Standard Price Book;true,PROD-498531761,One-Time;OneTime,55
+PROD-518530525;One-Time;USD,USD,true,false,SAS/NL‑SAS Disk Shelves,Standard Price Book;true,PROD-518530525,One-Time;OneTime,5000
+PROD-518677116;One-Time;USD,USD,true,false,PDU‑B (30A/3‑phase),Standard Price Book;true,PROD-518677116,One-Time;OneTime,545
+PROD-522303157;One-Time;USD,USD,true,false,Fiber Harness Kits,Standard Price Book;true,PROD-522303157,One-Time;OneTime,125
+PROD-536938805;One-Time;USD,USD,true,false,C13‑C14 Power Cord,Standard Price Book;true,PROD-536938805,One-Time;OneTime,15
+PROD-544673184;One-Time;USD,USD,true,false,Power System,Standard Price Book;true,PROD-544673184,One-Time;OneTime,4390
+PROD-545409999;One-Time;USD,USD,true,false,Metering Board,Standard Price Book;true,PROD-545409999,One-Time;OneTime,120
+PROD-550606303;One-Time;USD,USD,true,false,Label Sheet (Avery),Standard Price Book;true,PROD-550606303,One-Time;OneTime,20
+PROD-557364787;One-Time;USD,USD,true,false,Chassis & Backplane (1U),Standard Price Book;true,PROD-557364787,One-Time;OneTime,2500
+PROD-597705628;One-Time;USD,USD,true,false,Side Panel Set,Standard Price Book;true,PROD-597705628,One-Time;OneTime,380
+PROD-604480020;One-Time;USD,USD,true,false,Cross‑Beams,Standard Price Book;true,PROD-604480020,One-Time;OneTime,2250
+PROD-617615202;One-Time;USD,USD,true,false,Hot‑swap Fan Module,Standard Price Book;true,PROD-617615202,One-Time;OneTime,50
+PROD-630065671;One-Time;USD,USD,true,false,Frame Assembly,Standard Price Book;true,PROD-630065671,One-Time;OneTime,2650
+PROD-630070740;One-Time;USD,USD,true,false,MCU Board,Standard Price Book;true,PROD-630070740,One-Time;OneTime,200
+PROD-65259457;One-Time;USD,USD,true,false,ESD Wrist Strap,Standard Price Book;true,PROD-65259457,One-Time;OneTime,15
+PROD-657569692;One-Time;USD,USD,true,false,RJ‑45 Patch 1m,Standard Price Book;true,PROD-657569692,One-Time;OneTime,5
+PROD-6630506;One-Time;USD,USD,true,false,Generic Component A,Standard Price Book;true,PROD-6630506,One-Time;OneTime,8000
+PROD-670848332;One-Time;USD,USD,true,false,OOB Mgmt Gateway,Standard Price Book;true,PROD-670848332,One-Time;OneTime,800
+PROD-683520187;One-Time;USD,USD,true,false,Dual PSU & Fan Modules,Standard Price Book;true,PROD-683520187,One-Time;OneTime,2500
+PROD-689623762;One-Time;USD,USD,true,false,Breaker Set,Standard Price Book;true,PROD-689623762,One-Time;OneTime,125
+PROD-697645794;One-Time;USD,USD,true,false,Rack UPS & Battery Pack,Standard Price Book;true,PROD-697645794,One-Time;OneTime,3300
+PROD-711527748;One-Time;USD,USD,true,false,KVM Switch Core,Standard Price Book;true,PROD-711527748,One-Time;OneTime,280
+PROD-720237395;One-Time;USD,USD,true,false,EMI Shield Gasket,Standard Price Book;true,PROD-720237395,One-Time;OneTime,10
+PROD-755090702;One-Time;USD,USD,true,false,Side Panel Set,Standard Price Book;true,PROD-755090702,One-Time;OneTime,35
+PROD-764576755;One-Time;USD,USD,true,false,Caster Wheel,Standard Price Book;true,PROD-764576755,One-Time;OneTime,25
+PROD-775691186;One-Time;USD,USD,true,false,CPU (Sapphire Rapids),Standard Price Book;true,PROD-775691186,One-Time;OneTime,2000
+PROD-77740090;One-Time;USD,USD,true,false,Hot‑swap Fan (x6),Standard Price Book;true,PROD-77740090,One-Time;OneTime,180
+PROD-781554326;One-Time;USD,USD,true,false,Top‑of‑Rack Switches,Standard Price Book;true,PROD-781554326,One-Time;OneTime,8200
+PROD-784779396;One-Time;USD,USD,true,false,MPO‑12 OM4 Trunk 10m,Standard Price Book;true,PROD-784779396,One-Time;OneTime,120
+PROD-789058761;One-Time;USD,USD,true,false,Rack Enclosure (42U),Standard Price Book;true,PROD-789058761,One-Time;OneTime,3470
+PROD-795190764;One-Time;USD,USD,true,false,Vertical Cable Managers,Standard Price Book;true,PROD-795190764,One-Time;OneTime,150
+PROD-799314932;One-Time;USD,USD,true,false,Leveling Feet & Casters,Standard Price Book;true,PROD-799314932,One-Time;OneTime,100
+PROD-828674135;One-Time;USD,USD,true,false,Generic Component B,Standard Price Book;true,PROD-828674135,One-Time;OneTime,35
+PROD-84107093;One-Time;USD,USD,true,false,Documentation Packet,Standard Price Book;true,PROD-84107093,One-Time;OneTime,15
+PROD-844684431;One-Time;USD,USD,true,false,Smoke Detector Head,Standard Price Book;true,PROD-844684431,One-Time;OneTime,55
+PROD-860612882;One-Time;USD,USD,true,false,Bypass Module,Standard Price Book;true,PROD-860612882,One-Time;OneTime,500
+PROD-86201530;One-Time;USD,USD,true,false,32x 100GbE Switch (TOR),Standard Price Book;true,PROD-86201530,One-Time;OneTime,6500
+PROD-890173745;One-Time;USD,USD,true,false,SFP28 25G Transceiver,Standard Price Book;true,PROD-890173745,One-Time;OneTime,75
+PROD-915112779;One-Time;USD,USD,true,false,Door Lock Key Set,Standard Price Book;true,PROD-915112779,One-Time;OneTime,10
+PROD-942049373;One-Time;USD,USD,true,false,Fan Screws (set),Standard Price Book;true,PROD-942049373,One-Time;OneTime,5
+PROD-950775878;One-Time;USD,USD,true,false,Front Door,Standard Price Book;true,PROD-950775878,One-Time;OneTime,115
+PROD-9614201;One-Time;USD,USD,true,false,PCIe Riser,Standard Price Book;true,PROD-9614201,One-Time;OneTime,40
+PROD-961586782;One-Time;USD,USD,true,false,Grounding Kit,Standard Price Book;true,PROD-961586782,One-Time;OneTime,30
+PROD-970871438;One-Time;USD,USD,true,false,QSFP28 DAC 1m,Standard Price Book;true,PROD-970871438,One-Time;OneTime,45
+PROD-988309468;One-Time;USD,USD,true,false,Rack Stabilizer Bracket,Standard Price Book;true,PROD-988309468,One-Time;OneTime,30
+PROD-990828007;One-Time;USD,USD,true,false,NVMe JBOF Enclosures,Standard Price Book;true,PROD-990828007,One-Time;OneTime,7000

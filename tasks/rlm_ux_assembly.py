@@ -54,9 +54,9 @@ except ImportError:
         return str(val).lower() in ("true", "1", "yes")
 
 try:
-    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES
 except ImportError:
-    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES
 
 
 # Salesforce metadata XML namespace
@@ -769,17 +769,19 @@ class AssembleAndDeployUX(SFDXBaseTask):
         skipped = []
         # Patch order matches deploy-sequence (approvals before docgen before ramps)
         feature_patch_order = [
-            ("qb",          "quantumbit"),
-            ("qb",          "utils"),
+            ("quantumbit",  "quantumbit"),
+            ("quantumbit",  "utils"),
             ("billing",     "billing"),
             ("billing_ui",  "billing_ui"),
             ("payments",    "payments"),
-            ("qb",          "approvals"),
+            ("quantumbit",  "approvals"),
             ("docgen",      "docgen"),
             ("tso",         "tso"),
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
+            ("large_stx",   "large_stx"),
             ("collections", "collections"),
+            ("personas",    "personas"),
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -1027,7 +1029,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if not filter_name or filter_name == rev_cloud_name:
             if features.get("tso"):
                 src_dir = app_base / "tso"
-            elif features.get("qb"):
+            elif features.get("quantumbit"):
                 src_dir = app_base / "quantumbit"
             else:
                 src_dir = app_base / "base"
@@ -1037,7 +1039,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
+                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("quantumbit") else "base")
 
                 # Apply feature-conditional actionOverride patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
@@ -1139,6 +1141,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
         for base_file in sorted(profiles_base.glob("*.profile-meta.xml")):
             fname = base_file.name
             if filter_name and fname != filter_name:
+                continue
+            if fname in PERSONAS_PROFILES and not features.get("personas"):
+                self.logger.info(f"  [profile] skipping {fname} (personas feature flag is false)")
                 continue
 
             root = ET.parse(str(base_file)).getroot()

@@ -7,13 +7,30 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
+                            <value>BrowseCatalog</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
                             <value>ActivateOrder</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!Record.Status}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>Draft</rightValue>
+                                </criteria>
+                            </visibilityRule>
                         </valueListItems>
                         <valueListItems>
                             <value>Deactivate</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!Record.Status}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>Activated</rightValue>
+                                </criteria>
+                            </visibilityRule>
                         </valueListItems>
                         <valueListItems>
                             <value>headlessPricingAction</value>
@@ -23,9 +40,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>ChangeRecordType</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
                             <value>PreviewInvoices</value>

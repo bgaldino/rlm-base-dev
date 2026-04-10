@@ -1,0 +1,15 @@
+feature: constraints
+feature_flag: constraints
+# Adds the Product Constraint Models component into its tab facet.
+# This component requires the constraints package and must not be deployed
+# to orgs where constraints=false.
+patches:
+  - type: insert_after_xml
+    anchor: "<identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>\n            </componentInstance>\n        </itemInstances>"
+    xml: |2
+              <itemInstances>
+                  <componentInstance>
+                      <componentName>runtime_industries_cfg:productConstraintModelsWrapper</componentName>
+                      <identifier>runtime_industries_cfg_productConstraintModelsWrapper</identifier>
+                  </componentInstance>
+              </itemInstances>

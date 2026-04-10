@@ -1539,16 +1539,16 @@
                 <identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>
             </componentInstance>
         </itemInstances>
-        <name>Facet-fc252c14-769a-457b-bf19-8bf6e4cf074d</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
         <itemInstances>
             <componentInstance>
                 <componentName>runtime_industries_cfg:productConstraintModelsWrapper</componentName>
                 <identifier>runtime_industries_cfg_productConstraintModelsWrapper</identifier>
             </componentInstance>
         </itemInstances>
+        <name>Facet-fc252c14-769a-457b-bf19-8bf6e4cf074d</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
         <name>Facet-a9bff4db-55f8-4935-b88d-7a89c8ee9da5</name>
         <type>Facet</type>
     </flexiPageRegions>
