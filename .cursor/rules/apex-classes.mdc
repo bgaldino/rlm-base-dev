@@ -1,6 +1,8 @@
 ---
 description: Apex class authoring rules — sharing enforcement, Id validation, SOQL safety, error handling, test patterns
-globs: unpackaged/**/*.cls,force-app/**/*.cls
+globs:
+  - unpackaged/**/*.cls
+  - force-app/**/*.cls
 alwaysApply: false
 ---
 

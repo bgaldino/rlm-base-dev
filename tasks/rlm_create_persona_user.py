@@ -6,6 +6,7 @@ Wraps `sf org create user --definition-file <path> --set-alias <alias>
 """
 import json
 import subprocess
+from pathlib import Path
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -43,6 +44,9 @@ class CreatePersonaUser(BaseTask):
             raise TaskOptionsError("definition_file is required.")
         if not alias:
             raise TaskOptionsError("alias is required.")
+
+        repo_root = Path(self.project_config.repo_root)
+        definition_file = str(repo_root / definition_file)
 
         user_def = self._load_user_definition(definition_file)
         existing_user = self._find_existing_user(user_def)

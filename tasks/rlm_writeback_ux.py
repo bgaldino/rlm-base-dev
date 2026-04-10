@@ -226,6 +226,7 @@ class WriteBackUXTemplates(BaseTask):
             ("ramps", "ramp_builder"),
             ("large_stx", "large_stx"),
             ("collections", "collections"),
+            ("personas", "personas"),
         ]
 
         results = []

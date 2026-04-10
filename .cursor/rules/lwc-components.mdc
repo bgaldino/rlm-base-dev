@@ -1,6 +1,10 @@
 ---
 description: LWC component authoring rules — template syntax, ARIA/accessibility, performance, error messages
-globs: unpackaged/**/lwc/**/*.html,unpackaged/**/lwc/**/*.js,force-app/**/lwc/**/*.html,force-app/**/lwc/**/*.js
+globs:
+  - unpackaged/**/lwc/**/*.html
+  - unpackaged/**/lwc/**/*.js
+  - force-app/**/lwc/**/*.html
+  - force-app/**/lwc/**/*.js
 alwaysApply: false
 ---
 
