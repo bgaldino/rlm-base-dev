@@ -19,6 +19,7 @@ repo root.
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
+| Review docs before merge | Doc Consistency | `doc-consistency/SKILL.md` |
 | Debug a build/deploy failure | Troubleshooting | `troubleshooting/SKILL.md` |
 
 ## How Skills Are Structured
@@ -43,3 +44,4 @@ Non-Cursor agents can read these files directly or use the equivalent skill:
 | `apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
 | `ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
+| `doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
