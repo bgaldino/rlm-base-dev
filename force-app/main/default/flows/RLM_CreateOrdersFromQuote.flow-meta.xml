@@ -159,6 +159,22 @@
         </connector>
     </assignments>
     <constants>
+        <description>Allowed Quote.CalculationStatus API value for &quot;Completed&quot; (pricing only). Add a matching constant and extend fxn_Quote_Calculation_Status_Allows_Order / fxn_Invalid_Calculation_Status when new values are allowed.</description>
+        <name>const_QuoteCalcStatus_Completed</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Completed</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <description>Allowed Quote.CalculationStatus API value for completed pricing and tax (label often &quot;Completed With Tax&quot;). Must match the picklist API name in Setup.</description>
+        <name>const_QuoteCalcStatus_CompletedWithTax</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>CompletedWithTax</stringValue>
+        </value>
+    </constants>
+    <constants>
         <name>Error_message</name>
         <dataType>String</dataType>
     </constants>
@@ -201,7 +217,7 @@
             <name>Yes_Transfer</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_Quote_Original_Action_Type.OriginalActionType</leftValueReference>
+                <leftValueReference>Get_Quote_For_Readiness_And_Transfer.OriginalActionType</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <stringValue>Transfer</stringValue>
@@ -211,6 +227,32 @@
                 <targetReference>Create_Orders_From_Tfr_Quote</targetReference>
             </connector>
             <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Verify Bill To Contact, quote lines, Bill To / Ship To addresses, and CalculationStatus before calling createOrdersFromQuote (applies to transfer and non-transfer paths).</description>
+        <name>Quote_Ready_For_Ordering</name>
+        <label>Quote Ready For Ordering</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>S00_Quote_Not_Ready</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Ready</defaultConnectorLabel>
+        <rules>
+            <name>Ready</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>fxn_Quote_Ready_For_Ordering</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Is_Transfer_Quote</targetReference>
+            </connector>
+            <label>Ready</label>
         </rules>
     </decisions>
     <decisions>
@@ -238,6 +280,69 @@
     </decisions>
     <description>Revenue Cloud Default Create Orders From Quote Flow</description>
     <environments>Default</environments>
+    <formulas>
+        <description>True when Bill To street, city, or country is missing on the quote.</description>
+        <name>fxn_Incomplete_BillToAddress</name>
+        <dataType>Boolean</dataType>
+        <expression>OR(
+  ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingStreet}),
+  ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingCity}),
+  ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingCountry})
+)</expression>
+    </formulas>
+    <formulas>
+        <description>True when Ship To street, city, or country is missing on the quote.</description>
+        <name>fxn_Incomplete_ShipToAddress</name>
+        <dataType>Boolean</dataType>
+        <expression>OR(
+  ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingStreet}),
+  ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingCity}),
+  ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingCountry})
+)</expression>
+    </formulas>
+    <formulas>
+        <description>True when CalculationStatus is not one of the allowed API values (see const_QuoteCalcStatus_*). Extend fxn_Quote_Calculation_Status_Allows_Order when new values are allowed.</description>
+        <name>fxn_Invalid_Calculation_Status</name>
+        <dataType>Boolean</dataType>
+        <expression>NOT({!fxn_Quote_Calculation_Status_Allows_Order})</expression>
+    </formulas>
+    <formulas>
+        <description>True when Bill To Contact is not set.</description>
+        <name>fxn_Missing_BillToContact</name>
+        <dataType>Boolean</dataType>
+        <expression>ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillToContactId})</expression>
+    </formulas>
+    <formulas>
+        <description>True when the quote has no line items.</description>
+        <name>fxn_No_Quote_Lines</name>
+        <dataType>Boolean</dataType>
+        <expression>{!Get_Quote_For_Readiness_And_Transfer.LineItemCount} &lt; 1</expression>
+    </formulas>
+    <formulas>
+        <description>True when Quote.CalculationStatus matches an allowed picklist API value. Uses const_QuoteCalcStatus_* so admins can align values with Setup picklist API names.</description>
+        <name>fxn_Quote_Calculation_Status_Allows_Order</name>
+        <dataType>Boolean</dataType>
+        <expression>OR(
+  TEXT({!Get_Quote_For_Readiness_And_Transfer.CalculationStatus}) = {!const_QuoteCalcStatus_Completed},
+  TEXT({!Get_Quote_For_Readiness_And_Transfer.CalculationStatus}) = {!const_QuoteCalcStatus_CompletedWithTax}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>All prerequisites for createOrdersFromQuote: Bill To Contact, at least one line, Bill To / Ship To street, city, country, and allowed CalculationStatus.</description>
+        <name>fxn_Quote_Ready_For_Ordering</name>
+        <dataType>Boolean</dataType>
+        <expression>AND(
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillToContactId})),
+  {!Get_Quote_For_Readiness_And_Transfer.LineItemCount} &gt;= 1,
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingStreet})),
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingCity})),
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingCountry})),
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingStreet})),
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingCity})),
+  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingCountry})),
+  {!fxn_Quote_Calculation_Status_Allows_Order}
+)</expression>
+    </formulas>
     <interviewLabel>RLM Create Orders From Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Create Orders From Quote</label>
     <loops>
@@ -268,14 +373,14 @@
     </processMetadataValues>
     <processType>Flow</processType>
     <recordLookups>
-        <description>&quot;Get the quote&apos;s OriginalActionType value.&quot;</description>
-        <name>Get_Quote_Original_Action_Type</name>
-        <label>Get Quote Original Action Type</label>
+        <description>Loads the current quote by Id. Fields are used to (1) route transfer vs. standard order creation via OriginalActionType, (2) validate order readiness (BillToContactId, LineItemCount, Bill To and Ship To street/city/country, CalculationStatus), and (3) power readiness formulas and the not-ready screen.</description>
+        <name>Get_Quote_For_Readiness_And_Transfer</name>
+        <label>Get Quote for Readiness and Transfer Routing</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Is_Transfer_Quote</targetReference>
+            <targetReference>Quote_Ready_For_Ordering</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -289,6 +394,15 @@
         <object>Quote</object>
         <queriedFields>Id</queriedFields>
         <queriedFields>OriginalActionType</queriedFields>
+        <queriedFields>BillToContactId</queriedFields>
+        <queriedFields>LineItemCount</queriedFields>
+        <queriedFields>BillingStreet</queriedFields>
+        <queriedFields>BillingCity</queriedFields>
+        <queriedFields>BillingCountry</queriedFields>
+        <queriedFields>ShippingStreet</queriedFields>
+        <queriedFields>ShippingCity</queriedFields>
+        <queriedFields>ShippingCountry</queriedFields>
+        <queriedFields>CalculationStatus</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <runInMode>DefaultMode</runInMode>
@@ -371,13 +485,154 @@
         <showHeader>false</showHeader>
     </screens>
     <screens>
-        <name>S01_CreateOrdersScreen</name>
-        <label>S01_CreateOrdersScreen</label>
+        <description>Shows specific guidance when the quote is missing Bill To Contact, quote lines, Bill To / Ship To address data, or has a disallowed CalculationStatus.</description>
+        <name>S00_Quote_Not_Ready</name>
+        <label>Quote Not Ready</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
+        <fields>
+            <name>S00_Header</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px;&quot;&gt;This quote isn&apos;t ready to create orders yet.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Update the quote as described below, save, then run &lt;strong&gt;Create Orders from Quote&lt;/strong&gt; again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>S00_Msg_CalculationStatus</name>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(194, 57, 52);&quot;&gt;We couldn&apos;t create an order for this quote because the calculation status of the quote is invalid.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Allow the quote to finish calculating until &lt;strong&gt;Calculation Status&lt;/strong&gt; is &lt;strong&gt;Completed&lt;/strong&gt; or &lt;strong&gt;Completed With Tax&lt;/strong&gt;, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>fxn_Invalid_Calculation_Status</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>S00_Msg_BillToContact</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Bill To Contact&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Open the quote and set &lt;strong&gt;Bill To Contact&lt;/strong&gt; on the quote (Quote Details). Choose the contact who should be associated with billing for this order.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>fxn_Missing_BillToContact</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>S00_Msg_QuoteLines</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Quote lines&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Add at least one &lt;strong&gt;Quote Line&lt;/strong&gt; with a product or subscription before creating orders.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>fxn_No_Quote_Lines</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>S00_Msg_BillToAddress</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Bill To address&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Complete the quote&apos;s &lt;strong&gt;Bill To&lt;/strong&gt; address: &lt;strong&gt;Street&lt;/strong&gt;, &lt;strong&gt;City&lt;/strong&gt;, and &lt;strong&gt;Country&lt;/strong&gt; must all be filled in. You can copy from the account or edit the quote address fields directly.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>fxn_Incomplete_BillToAddress</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>S00_Msg_ShipToAddress</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Ship To address&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Complete the quote&apos;s &lt;strong&gt;Ship To&lt;/strong&gt; address: &lt;strong&gt;Street&lt;/strong&gt;, &lt;strong&gt;City&lt;/strong&gt;, and &lt;strong&gt;Country&lt;/strong&gt; must all be filled in.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>fxn_Incomplete_ShipToAddress</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <nextOrFinishButtonLabel>Close</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <name>S01_CreateOrdersScreen</name>
+        <label>S01_CreateOrdersScreen</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
         <connector>
             <targetReference>Create_Orders_From_Quote</targetReference>
         </connector>
@@ -429,39 +684,75 @@
             </styleProperties>
         </fields>
         <fields>
-            <name>redirectToOrder</name>
-            <extensionName>flowruntime:toggle</extensionName>
-            <fieldType>ComponentInstance</fieldType>
-            <inputParameters>
-                <name>label</name>
-                <value>
-                    <stringValue>Redirect to Order</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>messageToggleActive</name>
-                <value>
-                    <stringValue>Redirect</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>messageToggleInactive</name>
-                <value>
-                    <stringValue>Stay on Quote</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>value</name>
-                <value>
-                    <booleanValue>true</booleanValue>
-                </value>
-            </inputParameters>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-            <isRequired>true</isRequired>
-            <outputParameters>
-                <assignToReference>varRedirectToOrder</assignToReference>
-                <name>value</name>
-            </outputParameters>
+            <name>S01_CreateOrdersScreen_Section1</name>
+            <fieldType>RegionContainer</fieldType>
+            <fields>
+                <name>S01_CreateOrdersScreen_Section1_Column1</name>
+                <fieldType>Region</fieldType>
+                <inputParameters>
+                    <name>width</name>
+                    <value>
+                        <stringValue>9</stringValue>
+                    </value>
+                </inputParameters>
+                <isRequired>false</isRequired>
+            </fields>
+            <fields>
+                <name>S01_CreateOrdersScreen_Section1_Column2</name>
+                <fieldType>Region</fieldType>
+                <fields>
+                    <name>redirectToOrder</name>
+                    <extensionName>flowruntime:toggle</extensionName>
+                    <fieldType>ComponentInstance</fieldType>
+                    <inputParameters>
+                        <name>label</name>
+                        <value>
+                            <stringValue>Redirect to Order</stringValue>
+                        </value>
+                    </inputParameters>
+                    <inputParameters>
+                        <name>messageToggleActive</name>
+                        <value>
+                            <stringValue>Redirect</stringValue>
+                        </value>
+                    </inputParameters>
+                    <inputParameters>
+                        <name>messageToggleInactive</name>
+                        <value>
+                            <stringValue>Stay on Quote</stringValue>
+                        </value>
+                    </inputParameters>
+                    <inputParameters>
+                        <name>value</name>
+                        <value>
+                            <booleanValue>true</booleanValue>
+                        </value>
+                    </inputParameters>
+                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+                    <isRequired>true</isRequired>
+                    <outputParameters>
+                        <assignToReference>varRedirectToOrder</assignToReference>
+                        <name>value</name>
+                    </outputParameters>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>12</stringValue>
+                        </width>
+                    </styleProperties>
+                </fields>
+                <inputParameters>
+                    <name>width</name>
+                    <value>
+                        <stringValue>3</stringValue>
+                    </value>
+                </inputParameters>
+                <isRequired>false</isRequired>
+            </fields>
+            <isRequired>false</isRequired>
+            <regionContainerType>SectionWithoutHeader</regionContainerType>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>
@@ -480,7 +771,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Quote_Original_Action_Type</targetReference>
+            <targetReference>Get_Quote_For_Readiness_And_Transfer</targetReference>
         </connector>
     </start>
     <status>Active</status>
