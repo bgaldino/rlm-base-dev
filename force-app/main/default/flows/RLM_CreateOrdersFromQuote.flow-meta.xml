@@ -159,7 +159,7 @@
         </connector>
     </assignments>
     <constants>
-        <description>Allowed Quote.CalculationStatus API value for &quot;Completed&quot; (pricing only). Add a matching constant and extend fxn_Quote_Calculation_Status_Allows_Order / fxn_Invalid_Calculation_Status when new values are allowed.</description>
+        <description>Allowed Quote.CalculationStatus API value for &quot;Completed&quot; (pricing only). Add a matching constant and extend fxn_Quote_Calculation_Status_Allows_Order when new values are allowed.</description>
         <name>const_QuoteCalcStatus_Completed</name>
         <dataType>String</dataType>
         <value>
@@ -301,7 +301,7 @@
 )</expression>
     </formulas>
     <formulas>
-        <description>True when CalculationStatus is not one of the allowed API values (see const_QuoteCalcStatus_*). Extend fxn_Quote_Calculation_Status_Allows_Order when new values are allowed.</description>
+        <description>True when CalculationStatus is not one of the allowed API values (see const_QuoteCalcStatus_*). To add new allowed values, extend fxn_Quote_Calculation_Status_Allows_Order.</description>
         <name>fxn_Invalid_Calculation_Status</name>
         <dataType>Boolean</dataType>
         <expression>NOT({!fxn_Quote_Calculation_Status_Allows_Order})</expression>
@@ -332,15 +332,11 @@
         <name>fxn_Quote_Ready_For_Ordering</name>
         <dataType>Boolean</dataType>
         <expression>AND(
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillToContactId})),
-  {!Get_Quote_For_Readiness_And_Transfer.LineItemCount} &gt;= 1,
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingStreet})),
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingCity})),
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.BillingCountry})),
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingStreet})),
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingCity})),
-  NOT(ISBLANK({!Get_Quote_For_Readiness_And_Transfer.ShippingCountry})),
-  {!fxn_Quote_Calculation_Status_Allows_Order}
+  NOT({!fxn_Missing_BillToContact}),
+  NOT({!fxn_No_Quote_Lines}),
+  NOT({!fxn_Incomplete_BillToAddress}),
+  NOT({!fxn_Incomplete_ShipToAddress}),
+  NOT({!fxn_Invalid_Calculation_Status})
 )</expression>
     </formulas>
     <interviewLabel>RLM Create Orders From Quote {!$Flow.CurrentDateTime}</interviewLabel>
@@ -508,7 +504,7 @@
         </fields>
         <fields>
             <name>S00_Msg_CalculationStatus</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(194, 57, 52);&quot;&gt;We couldn&apos;t create an order for this quote because the calculation status of the quote is invalid.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Allow the quote to finish calculating until &lt;strong&gt;Calculation Status&lt;/strong&gt; is &lt;strong&gt;Completed&lt;/strong&gt; or &lt;strong&gt;Completed With Tax&lt;/strong&gt;, then try again.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;color: rgb(194, 57, 52);&quot;&gt;We couldn&apos;t create an order for this quote because its current &lt;strong&gt;Calculation Status&lt;/strong&gt; is &lt;strong&gt;{!Get_Quote_For_Readiness_And_Transfer.CalculationStatus}&lt;/strong&gt;.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Allow the quote to finish calculating until &lt;strong&gt;Calculation Status&lt;/strong&gt; is &lt;strong&gt;Completed&lt;/strong&gt; or &lt;strong&gt;Completed With Tax&lt;/strong&gt;, then try again.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
