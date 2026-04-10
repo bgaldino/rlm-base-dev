@@ -31,6 +31,6 @@ at `.cursor/skills/doc-consistency/SKILL.md`.
    `README.md` troubleshooting if the suite name or behavior changed.
 
 5. **`.cursor/skills/**`** — if adding a new skill or sub-file, register
-   it in `AGENTS.md` (Skill Index / Sub-Files) and `skills/README.md`.
+   it in `AGENTS.md` (Skill Index / Sub-Files) and `.cursor/skills/README.md`.
 
 For the full change-surface map, read `.cursor/skills/doc-consistency/SKILL.md`.
