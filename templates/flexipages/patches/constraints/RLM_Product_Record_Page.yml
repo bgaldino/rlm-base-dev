@@ -5,7 +5,7 @@ feature_flag: constraints
 # to orgs where constraints=false.
 patches:
   - type: insert_after_xml
-    anchor: "<name>Facet-fc252c14-769a-457b-bf19-8bf6e4cf074d</name>\n        <type>Facet</type>"
+    anchor: "<identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>\n            </componentInstance>\n        </itemInstances>"
     xml: |2
               <itemInstances>
                   <componentInstance>

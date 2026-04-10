@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-04-10T01:04:56.819880Z",
+  "assembled_at": "2026-04-10T05:21:06.933639Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -308,7 +308,7 @@
         {
           "feature": "constraints",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <name>Facet-fc252c14-769a-457b-bf19-8bf6e4cf074d</name>"
+          "description": "insert XML after <identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>"
         }
       ]
     },
