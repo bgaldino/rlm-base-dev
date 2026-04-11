@@ -174,19 +174,10 @@
                             <value>QuoteLineItem.UnitCost</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.Unit_Cost__c</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>QuoteLineItem.TotalCost</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.Total_Cost__c</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>QuoteLineItem.Margin</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.Margin__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Covered_Asset__r.Name[Asset]</value>

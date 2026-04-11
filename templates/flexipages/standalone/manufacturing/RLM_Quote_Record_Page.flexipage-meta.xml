@@ -173,12 +173,6 @@
                             <value>QuoteLineItem.RLM_Approval_Level_Calc__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.Unit_Cost__c</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.Total_Cost__c</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>Quote.Margin__c</value>
                         </valueListItems>
                         <valueListItems>

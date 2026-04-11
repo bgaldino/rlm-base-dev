@@ -2079,6 +2079,17 @@ tasks:
       start_date: "2020-01-01T00:00:00.000Z"
       fallback_expression_set_name: RLM_DefaultPricingDiscoveryProcedure
 
+  reconfigure_mfg_pricing_discovery:
+    group: Revenue Lifecycle Management
+    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh."
+    class_path: tasks.rlm_reconfigure_expression_set.ReconfigureExpressionSet
+    options:
+      expression_set_name: Salesforce_Default_Pricing_Discovery_Procedure
+      context_definition_name: *mfg_sales_transaction_context_name
+      rank: 1
+      start_date: "2020-01-01T00:00:00.000Z"
+      fallback_expression_set_name: RLM_DefaultPricingDiscoveryProcedure
+
   create_dro_rule_library:
     group: Revenue Lifecycle Management
     description: Create DRO Rule Library
@@ -2756,25 +2767,27 @@ flows:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro and project_config.project__custom__badger
       13:
+        task: reconfigure_mfg_pricing_discovery
+      14:
         flow: prepare_badger_visuals
         when: project_config.project__custom__mfg_visuals
-      14:
-        flow: prepare_badger_guidedselling
       15:
-        flow: prepare_badger_rebates
+        flow: prepare_badger_guidedselling
       16:
-        flow: prepare_badger_aaf
+        flow: prepare_badger_rebates
       17:
+        flow: prepare_badger_aaf
+      18:
         task: util_sleep
         options:
           seconds: *sleep_default
-      18:
+      19:
         task: configure_mfg_revenue_settings
         when: project_config.project__custom__badger
-      19:
+      20:
         flow: prepare_mfg_ux
         when: project_config.project__custom__ux
-      20:
+      21:
         task: activate_mfg_theme
         when: project_config.project__custom__badger
   prepare_core:
@@ -3649,6 +3662,9 @@ flows:
       from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/,
       and templates/applications/manufacturing/. Output is written to
       unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call.
+      Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages,
+      MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
+      Must run after all manufacturing metadata is deployed (step 19 of prepare_badger_flow).
       Run this flow independently to test manufacturing UX assembly without running the full
       prepare_rlm_org flow. Gated by ux=true in prepare_badger_flow.
     steps:
@@ -3656,7 +3672,7 @@ flows:
         task: assemble_and_deploy_ux
         options:
           output_path: unpackaged/post_manufacturing_ux
-          extra_flags: mfg_ux
+          manufacturing: true
 
   prepare_personas:
     group: Revenue Lifecycle Management

@@ -125,3 +125,4 @@ cumulusci.yml.backup
 dev
 postman/archive/
 core.code-workspace
+unpackaged/post_manufacturing/test/**
