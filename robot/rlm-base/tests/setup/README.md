@@ -1,14 +1,15 @@
 # Setup Automation (Robot Framework)
 
-Robot Framework tests that configure Salesforce Revenue Settings page options that cannot be set via Metadata API. These include toggles, picklist selections, and text inputs on the Revenue Settings Lightning Setup page.
+Robot Framework tests that configure Salesforce Setup page options that cannot be set via Metadata API. These include toggles, picklist selections, and text inputs across multiple Lightning Setup pages (Revenue Settings, General Settings, Pricing Setup, and more).
 
 ## Test Suites
 
 | Suite | CCI Task | Description |
 |-------|----------|-------------|
-| `enable_document_builder.robot` | `enable_document_builder_toggle` | Enable Document Builder on Revenue Settings, Document Templates Export and Design Document Templates in Salesforce on General Settings (Document Generation) |
+| `enable_document_builder.robot` | `enable_document_builder_toggle` | Enable Document Builder on Revenue Settings, then Design Document Templates in Salesforce and Document Templates Export on General Settings (Design must run before Export — it is a prerequisite) |
 | `enable_constraints_settings.robot` | `enable_constraints_settings` | Set Default Transaction Type, Asset Context picklist, and enable Constraints Engine toggle |
 | `configure_revenue_settings.robot` | `configure_revenue_settings` | Set Pricing Procedure, Usage Rating Procedure, enable Instant Pricing toggle, set Create Orders Flow |
+| `configure_core_pricing_setup.robot` | `configure_core_pricing_setup` | Set default Pricing Procedure on Salesforce Pricing Setup page (CorePricingSetup) |
 
 ## Prerequisites
 
@@ -32,6 +33,7 @@ From the repo root. **Recommended:** pass an org alias so the test uses `sf org 
 cci task run enable_document_builder_toggle --org my-scratch
 cci task run enable_constraints_settings --org my-scratch
 cci task run configure_revenue_settings --org my-scratch
+cci task run configure_core_pricing_setup --org my-scratch
 
 # As part of the full org build
 cci flow run prepare_rlm_org --org my-scratch
@@ -48,9 +50,12 @@ robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/enable_constraints_sett
 
 # Revenue Settings (Pricing, Usage Rating, Instant Pricing, Create Orders Flow)
 robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_revenue_settings.robot
+
+# Salesforce Pricing Setup (CorePricingSetup default Pricing Procedure)
+robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
 ```
 
-If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the Revenue Settings page.
+If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the target Setup page.
 
 ## Variables
 
@@ -85,6 +90,12 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 | `PRICING_PROCEDURE` | Default pricing procedure name (default: "RLM Revenue Management Default Pricing Procedure"). |
 | `USAGE_RATING_PROCEDURE` | Default usage rating procedure name (default: "RLM Default Rating Discovery Procedure"). |
 | `CREATE_ORDERS_FLOW` | API name of the Create Orders from Quotes flow (default: "RLM_CreateOrdersFromQuote"). |
+
+### configure_core_pricing_setup.robot
+
+| Variable | Description |
+|----------|-------------|
+| `PRICING_PROCEDURE` | Default pricing procedure name for CorePricingSetup (default: "RLM Revenue Management Default Pricing Procedure"). |
 
 ## Implementation Notes
 
@@ -127,7 +138,8 @@ All tests detect current state before making changes:
 |------|------|------|
 | `enable_document_builder_toggle` | `prepare_docgen` | Step 2 |
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
-| `configure_revenue_settings` | `prepare_rlm_org` | Step 27 |
+| `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
+| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
 
 ## Generated Output
 

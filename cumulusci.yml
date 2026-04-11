@@ -2068,6 +2068,24 @@ tasks:
     options:
       path: unpackaged/post_manufacturing/3_theme
 
+  configure_core_pricing_setup:
+    group: Revenue Lifecycle Management
+    description: "Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated."
+    class_path: tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup
+    options:
+      suite: robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: RLM Revenue Management Default Pricing Procedure
+
+  configure_product_discovery_settings:
+    group: Revenue Lifecycle Management
+    description: "Set the Default Catalog in Product Discovery Settings to 'QuantumBit Software' (Robot test). Must run after QB product catalog data is loaded. Only relevant when qb=true."
+    class_path: tasks.rlm_configure_product_discovery_settings.ConfigureProductDiscoverySettings
+    options:
+      suite: robot/rlm-base/tests/setup/configure_product_discovery_settings.robot
+      outputdir: robot/rlm-base/results
+      default_catalog: QuantumBit Software
+
   reconfigure_pricing_discovery:
     group: Revenue Lifecycle Management
     description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh."
@@ -3381,12 +3399,17 @@ flows:
         when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
         options:
           manage_assets_flow: RLM_ARC_Assets
+      3:
+        task: configure_core_pricing_setup
 
   prepare_pricing_discovery:
     group: Revenue Lifecycle Management
     steps:
       1:
         task: reconfigure_pricing_discovery
+      2:
+        task: configure_product_discovery_settings
+        when: project_config.project__custom__qb
 
 ## Badger Flows - Prepare Badger
 
