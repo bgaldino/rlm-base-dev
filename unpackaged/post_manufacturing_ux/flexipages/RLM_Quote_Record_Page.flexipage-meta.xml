@@ -182,7 +182,7 @@
                             <value>Quote.RLM_MFG_Margin__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.Covered_Asset__r.Name[Asset]</value>
+                            <value>QuoteLineItem.RLM_MFG_Covered_Asset__r.Name[Asset]</value>
                         </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
@@ -1046,7 +1046,7 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.RLM_MFG_Total_Cost__c</fieldItem>
-                <identifier>RecordRLM_MFG_Total_Cost__cField</identifier>
+                <identifier>RecordTotal_Cost__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1056,7 +1056,7 @@
                     <value>none</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.RLM_MFG_Margin__c</fieldItem>
-                <identifier>RecordRLM_MFG_Margin__cField</identifier>
+                <identifier>RecordMargin__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>

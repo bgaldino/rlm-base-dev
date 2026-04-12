@@ -7,7 +7,7 @@
                     <name>actionNames</name>
                     <valueList>
                         <valueListItems>
-                            <value>SalesAgreement.Activate</value>
+                            <value>SalesAgreement.RLM_MFG_Activate</value>
                             <visibilityRule>
                                 <criteria>
                                     <leftValue>{!Record.Status}</leftValue>
@@ -20,7 +20,7 @@
                             <value>SABrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>SalesAgreement.Quick_Quote</value>
+                            <value>SalesAgreement.RLM_MFG_Quick_Quote</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>
