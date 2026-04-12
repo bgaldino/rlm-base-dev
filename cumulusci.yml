@@ -116,7 +116,7 @@ project:
     #pas_debug: false          # Debug Price Adjustment Schedules
     constraints: true         # Use Constraint Builder
     constraints_data: false   # Use Constraint Builder Data
-    guidedselling: true      # Use Guided Selling
+    guidedselling: false      # Use Guided Selling
     procedureplans: false     # Use Procedure Plans
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
@@ -1301,61 +1301,76 @@ tasks:
 
   # Badger Deploy Full Tasks
 
-  deploy_full_badger_1:
-    description: Deploy Badger Metadata
+  deploy_mfg_core_assets:
+    description: >
+      Deploy Manufacturing brand assets, product/part/chemical images, Babylon.js 3D libraries,
+      and Industries/IndustriesManufacturing platform settings. Must deploy before theme_and_fields
+      because the BrandingSet references these ContentAssets.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/1_initial_setup
+      path: unpackaged/post_manufacturing/core_assets
 
-  deploy_full_badger_2:
-    description: Deploy Badger Metadata
+  deploy_mfg_theme_and_fields:
+    description: >
+      Deploy Manufacturing Lightning Experience theme definition (BrandingSet, LightningExperienceTheme)
+      and custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule,
+      Quote, QuoteLineItem, and ServiceContract objects.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/2_initial_setup
+      path: unpackaged/post_manufacturing/theme_and_fields
 
-  deploy_full_badger_3:
-    description: Deploy Badger Metadata
+  deploy_mfg_core_setup:
+    description: >
+      Deploy Manufacturing core Apex classes (salesAgreementRLMOrder, serviceContractQuote),
+      OpenSObject Aura component, MFG_RCA permission set, MFG_scratch permission set group,
+      and SalesAgreement settings.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/3_initial_setup
+      path: unpackaged/post_manufacturing/core_setup
 
-  deploy_full_badger_3.5:
-    description: Deploy Badger Metadata
+  deploy_mfg_tso_perms:
+    description: >
+      Deploy Manufacturing production permission set group (MFG). Required when tso=true.
+      Deployed separately from core_setup so it can be gated by the tso feature flag.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/3.5_initial_setup
+      path: unpackaged/post_manufacturing/tso_perms
 
-  deploy_full_badger_4:
-    description: Deploy Badger Metadata
+  deploy_mfg_flows_and_actions:
+    description: >
+      Deploy all Manufacturing business process flows and Quick Actions in a single transaction:
+      Sales Agreement creation and activation flows, quote-to-contract flows, DRO work order
+      creation, Service Contract quoting, and the Quick Actions on Account, Contract, Quote, and
+      SalesAgreement that invoke them. Runs after core_setup (SA settings + custom fields + perms)
+      with a propagation sleep, so all SA-DML flows validate cleanly. Requires the
+      IndustriesManufacturing scratch org feature (orgs/dev-mfg.json).
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/4_initial_setup
+      path: unpackaged/post_manufacturing/flows_and_actions
 
-  deploy_full_badger_5:
-    description: Deploy Badger Metadata
+  deploy_mfg_pricing_recipe:
+    description: >
+      Deploy Manufacturing default NGP pricing recipe (NGPDefaultRecipe). Must deploy before
+      deploy_mfg_pricing_procedure because the ExpressionSetDefinition references this recipe.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/5_initial_setup
+      path: unpackaged/post_manufacturing/pricing_setup/pricing_recipe
 
-  deploy_badger_pricing_1:
-    description: deploy badger pricing recipe
+  deploy_mfg_pricing_procedure:
+    description: >
+      Deploy Manufacturing default pricing procedure ExpressionSetDefinition
+      (MFG_Rev_Mgmt_Default_Pricing_Procedure). Performs find-and-replace to inject live
+      PriceAdjustmentSchedule IDs for attribute-based, volume, and bundle adjustments.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/mfg_pricingsetup/1_pricing
-
-  deploy_badger_pricing_2:
-    description: Deploy Badger Pricing Procedure
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
-    options:
-      path: unpackaged/post_manufacturing/mfg_pricingsetup/2_pricing
+      path: unpackaged/post_manufacturing/pricing_setup/pricing_procedure
       transforms:
         - transform: find_replace
           options:
@@ -1370,96 +1385,113 @@ tasks:
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
 
-  #Badger Omniscript Tasks
+  # Manufacturing Document Generation Tasks
 
-  deploy_badger_omniscripts_1:
-    description: Deploy Badger Doc Gen
+  deploy_mfg_omni_datatransforms:
+    description: >
+      Deploy Manufacturing OmniDataTransforms for document generation (Quote/Contract extraction,
+      field mapping, and template name extraction used by the doc gen OmniScript).
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/mfg_omni/omniDataTransforms
+      path: unpackaged/post_manufacturing/docgen/omniDataTransforms
 
-  deploy_badger_omniscripts_2:
-    description: Deploy Badger Doc Gen
+  deploy_mfg_omni_integration_procedures:
+    description: >
+      Deploy Manufacturing OmniIntegrationProcedure for document generation orchestration
+      (doc_Generation_Procedure). Must deploy after OmniDataTransforms.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/mfg_omni/omniIntegrationProcedures
+      path: unpackaged/post_manufacturing/docgen/omniIntegrationProcedures
 
-  deploy_badger_omniscripts_3:
-    description: Deploy Badger Doc Gen
+  deploy_mfg_omni_base_docgen_script:
+    description: >
+      Deploy Manufacturing base document generation OmniScript (doc_GenerationCore_English).
+      Orchestrates the core document generation flow for proposals and contracts.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/mfg_omni/base_docgen_omniscript/omniScripts
+      path: unpackaged/post_manufacturing/docgen/base_docgen_omniscript/omniScripts
 
-  deploy_badger_omniscripts_4:
-    description: Deploy Badger Doc Gen
+  deploy_mfg_omni_quote_script:
+    description: >
+      Deploy Manufacturing Quote Proposal OmniScript (doc_QuoteProposal_English).
+      Provides the user-facing UI for generating quote proposal documents.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/mfg_omni/quote_omniscript/omniScripts
+      path: unpackaged/post_manufacturing/docgen/quote_omniscript/omniScripts
 
-  deploy_badger_doc_templates:
-    description: Deploy Badger Doc Gen
+  deploy_mfg_doc_templates:
+    description: >
+      Deploy Manufacturing document templates (Badger_Proposal and Price_Contract).
+      Must deploy after OmniScripts that reference these templates.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/mfg_omni/documentTemplates
+      path: unpackaged/post_manufacturing/docgen/documentTemplates
 
-  #Deploy Badger Guided Selling
+  # Manufacturing Guided Selling
 
-  deploy_badger_guidedselling:
-    description: Deploy Badger Guided Selling
+  deploy_mfg_guided_selling:
+    description: >
+      Deploy Manufacturing Guided Selling metadata: AssessmentQuestions for chemicals and
+      power management, Guided Selling OmniScripts, and ProductDiscovery settings.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
       path: unpackaged/post_manufacturing/guided_selling
 
-  #Deploy Badger Rebates
-  deploy_badger_rebates:
-    description: Deploy Badger Rebates
+  # Manufacturing Rebates
+
+  deploy_mfg_rebates:
+    description: >
+      Deploy Manufacturing rebate metadata: ObjectHierarchyRelationship settings for
+      Opportunity, Quote, SalesAgreement, and TransactionJournal, plus the
+      Aggregate_by_Member_Rebates BatchCalcJobDefinition.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
       path: unpackaged/post_manufacturing/rebates
 
-  # Deploy Badger Advanced Forecasting
-  deploy_badger_aaf_1:
-    description: Deploy Badger Advanced Forecasting
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
-    options:
-      path: unpackaged/post_manufacturing/aaf/1_aaf
+  # Manufacturing Advanced Account Forecasting
 
-  deploy_badger_aaf_2:
-    description: Deploy Badger Advanced Forecasting
+  deploy_mfg_aaf_fields:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting object extensions: custom fields on
+      AdvAccountForecastFact and en_US ObjectTranslation for AdvAcctForecastSetPartner.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/2_aaf
+      path: unpackaged/post_manufacturing/aaf/fields
 
-  deploy_badger_aaf_3:
-    description: Deploy Badger Advanced Forecasting
+  deploy_mfg_aaf_permissions:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting permission set (MFG_AAF).
+      Must deploy after aaf/fields so the permission set can reference the custom fields.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/3_aaf
+      path: unpackaged/post_manufacturing/aaf/permissions
 
-  deploy_badger_aaf_4:
-    description: Deploy Badger Advanced Forecasting
+  deploy_mfg_aaf_dim_source:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting dimension source (Category).
+      Defines the Category dimension used by the forecast set configuration.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/4_aaf
+      path: unpackaged/post_manufacturing/aaf/dim_source
 
-  # Test Task
-  deploy_test:
-    description: Test deployment
+  deploy_mfg_aaf_forecast_set:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting forecast set (CategoryForecastSet).
+      Must deploy after dim_source because the forecast set references the Category dimension.
     class_path: cumulusci.tasks.salesforce.Deploy
-    group: Badger RCA
+    group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/test
+      path: unpackaged/post_manufacturing/aaf/forecast_set
   
   deploy_full:
     description: Deploy all metadata
@@ -1565,66 +1597,66 @@ tasks:
     description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
 
-  # Badger Load Data Tasks
+  # Manufacturing Load Data Tasks
 
   insert_test_data:
-    group: Badger RCA
+    group: Manufacturing
     description: Insert Test Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: "datasets/sfdmu/test"
 
   insert_badger_pcm_data:
-    group: Badger RCA
-    description: Insert Badger PCM Data
+    group: Manufacturing
+    description: Insert Manufacturing PCM product data (products, product categories, attributes).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_product_dataset
 
   insert_badger_pricing_data:
-    group: Badger RCA
-    description: Insert Badger Pricing Data
+    group: Manufacturing
+    description: Insert Manufacturing pricing data (price books, price book entries, price adjustments).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_pricing_dataset
 
   insert_badger_dro_data:
-    group: Badger RCA
-    description: Insert Badger Pricing Data
+    group: Manufacturing
+    description: Insert Manufacturing DRO fulfillment decomposition seed data. Assigns dynamic user.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_dro_dataset
       dynamic_assigned_to_user: true
 
   insert_badger_guidedselling_data:
-    group: Badger RCA
-    description: Insert QuantumBit Guided Selling Data
+    group: Manufacturing
+    description: Insert Manufacturing Guided Selling product assignment data.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_guidedselling_dataset
 
   insert_badger_rebates_data:
-    group: Badger RCA
-    description: Insert Badger Rebates Data
+    group: Manufacturing
+    description: Insert Manufacturing rebates seed data.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *badger_rebates_dataset
 
   insert_badger_aaf_data:
-    group: Badger RCA
+    group: Manufacturing
     description: >
-      Load Advanced Account Forecast data. Syncs Period, Product2, and ProductCategory
-      Ids from the target org, injects PeriodId, ProductId, and CategoryId into
+      Load Manufacturing Advanced Account Forecast data. Syncs Period, Product2, and ProductCategory
+      IDs from the target org, injects PeriodId, ProductId, and CategoryId into
       AdvAccountForecastFact before SFDMU run.
     class_path: tasks.rlm_aaf_load.LoadAAFData
     options:
       pathtoexportjson: *badger_aaf_dataset
 
   delete_badger_aaf_data:
-    group: Badger RCA
+    group: Manufacturing
     description: >
       Delete all Insert-operation records from the mfg-aaf plan (AdvAccountForecastFact,
-      AdvAcctForecastSetPartner) in reverse plan order. Run before load_aaf_data for a fresh reload.
+      AdvAcctForecastSetPartner) in reverse plan order. Run before insert_badger_aaf_data for a fresh reload.
     class_path: tasks.rlm_sfdmu.DeleteSFDMUData
     options:
       pathtoexportjson: *badger_aaf_dataset
@@ -1766,7 +1798,7 @@ tasks:
     options:
       pathtoexportjson: *badger_tax_dataset
 
-  deploy_badger_visualization:
+  deploy_mfg_visualization:
     group: Manufacturing
     description: >
       Deploy Manufacturing 3D Visualization metadata (LWC renderDraw3DConfigurationPrototype,
@@ -2060,13 +2092,14 @@ tasks:
   activate_mfg_theme:
     group: Manufacturing
     description: >
-      Activate the Badger Lightning Experience Theme by deploying
+      Activate the Manufacturing Lightning Experience Theme by deploying
       LightningExperienceSettings with activeThemeName=Badger.
-      Source: unpackaged/post_manufacturing/3_theme/settings/LightningExperience.settings-meta.xml.
+      Source: unpackaged/post_manufacturing/theme_activation/settings/LightningExperience.settings-meta.xml.
+      Runs last in prepare_manufacturing so the theme activates only after all metadata is in place.
       Idempotent: deploying the same activeThemeName twice is safe.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
-      path: unpackaged/post_manufacturing/3_theme
+      path: unpackaged/post_manufacturing/theme_activation
 
   configure_core_pricing_setup:
     group: Revenue Lifecycle Management
@@ -2744,7 +2777,7 @@ flows:
         flow: prepare_ux
         when: project_config.project__custom__ux
       30:
-        flow: prepare_badger_flow
+        flow: prepare_manufacturing
         when: project_config.project__custom__badger
       31:
         flow: refresh_all_decision_tables
@@ -2753,61 +2786,79 @@ flows:
         options:
           flow_name: prepare_rlm_org
 
-# Badger Master Flow
+# Manufacturing Master Flow
 
-  prepare_badger_flow:
-    group: Badger RCA
+  prepare_mfg_core:
+    group: Manufacturing
+    description: >
+      Deploy core Manufacturing metadata in dependency order: brand assets and feature settings,
+      Lightning Experience theme definition and custom fields, core Apex/Aura/permissions/SA settings,
+      and TSO-specific production permission set group (when tso=true). Does not deploy flows —
+      prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
     steps:
       1:
-        task: deploy_full_badger_1
+        task: deploy_mfg_core_assets
       2:
-        task: deploy_full_badger_2
+        task: deploy_mfg_theme_and_fields
       3:
-        task: deploy_full_badger_3
+        task: deploy_mfg_core_setup
       4:
-        task: deploy_full_badger_3.5
+        task: deploy_mfg_tso_perms
         when: project_config.project__custom__tso
+
+  prepare_manufacturing:
+    group: Manufacturing
+    description: >
+      Full Manufacturing feature setup: deploys core metadata (assets, theme, fields, Apex),
+      assigns Manufacturing permission sets and groups (with propagation sleep), deploys all
+      business process flows and Quick Actions, OmniStudio document generation components,
+      context plan extensions, pricing setup, seed data (PCM, pricing, DRO, CML, tax, billing),
+      guided selling, rebates, advanced account forecasting, revenue settings configuration,
+      UX assembly, and theme activation. Gated by badger=true in prepare_rlm_org (step 30).
+    steps:
+      1:
+        flow: prepare_mfg_core
+      2:
+        flow: prepare_mfg_perms
+      3:
+        task: deploy_mfg_flows_and_actions
+      4:
+        flow: prepare_mfg_docgen
       5:
-        flow: prepare_badger_perms
+        flow: prepare_mfg_context_plan
       6:
-        task: deploy_full_badger_4
+        flow: prepare_mfg_pricing
       7:
-        flow: prepare_badger_omni_docgen
+        flow: prepare_mfg_data
       8:
-        task: deploy_full_badger_5
-      9:
-        flow: prepare_badger_context_plan
-      10:
-        flow: prepare_badger_pricing
-      11:
-        flow: prepare_badger_data
-      12:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro and project_config.project__custom__badger
-      13:
+      9:
         task: reconfigure_mfg_pricing_discovery
-      14:
-        flow: prepare_badger_visuals
+        when: project_config.project__custom__badger
+      10:
+        flow: prepare_mfg_visuals
         when: project_config.project__custom__mfg_visuals
-      15:
-        flow: prepare_badger_guidedselling
-      16:
-        flow: prepare_badger_rebates
-      17:
-        flow: prepare_badger_aaf
-      18:
+      11:
+        flow: prepare_mfg_guided_selling
+      12:
+        flow: prepare_mfg_rebates
+      13:
+        flow: prepare_mfg_aaf
+      14:
         task: util_sleep
         options:
           seconds: *sleep_default
-      19:
+      15:
         task: configure_mfg_revenue_settings
         when: project_config.project__custom__badger
-      20:
+      16:
         flow: prepare_mfg_ux
         when: project_config.project__custom__ux
-      21:
+      17:
         task: activate_mfg_theme
         when: project_config.project__custom__badger
+
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
@@ -3411,10 +3462,14 @@ flows:
         task: configure_product_discovery_settings
         when: project_config.project__custom__qb
 
-## Badger Flows - Prepare Badger
+## Manufacturing Sub-flows
 
-  prepare_badger_perms:
-    group: Badger
+  prepare_mfg_perms:
+    group: Manufacturing
+    description: >
+      Assign Manufacturing permission sets and permission set groups to the running user.
+      Waits for metadata deployment to settle before assigning. Assigns either the scratch
+      PSG (non-TSO) or production PSG (TSO) based on the tso feature flag.
     steps:
       1:
         task: util_sleep
@@ -3422,7 +3477,6 @@ flows:
           seconds: *sleep_default
       2:
         task: assign_permission_sets
-        #class: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
         when: project_config.project__custom__badger
         options:
           api_names: *badger_mfg_ps
@@ -3437,31 +3491,34 @@ flows:
         options:
           api_names: *badger_mfg_psg
 
-# Badger Omniscript Flow
-
-  prepare_badger_omni_docgen:
-    group: Badger
+  prepare_mfg_docgen:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing OmniStudio document generation components in dependency order:
+      OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal
+      OmniScript, and document templates (Badger_Proposal, Price_Contract).
     steps:
       1:
-        task: deploy_badger_omniscripts_1
+        task: deploy_mfg_omni_datatransforms
         when: project_config.project__custom__badger
       2:
-        task: deploy_badger_omniscripts_2
+        task: deploy_mfg_omni_integration_procedures
         when: project_config.project__custom__badger
       3:
-        task: deploy_badger_omniscripts_3
+        task: deploy_mfg_omni_base_docgen_script
         when: project_config.project__custom__badger
       4:
-        task: deploy_badger_omniscripts_4
+        task: deploy_mfg_omni_quote_script
         when: project_config.project__custom__badger
       5:
-        task: deploy_badger_doc_templates
+        task: deploy_mfg_doc_templates
         when: project_config.project__custom__badger
 
-  # Badger Insert Data Flow
-
-  prepare_badger_data:
-    group: Badger
+  prepare_mfg_data:
+    group: Manufacturing
+    description: >
+      Load all Manufacturing seed data: PCM products, pricing records, DRO fulfillment rules,
+      CML constraint models (GeneratorSet, FuelCell), and conditionally tax and billing records.
     steps:
       1:
         task: insert_badger_pcm_data
@@ -3483,7 +3540,7 @@ flows:
         when: project_config.project__custom__badger and project_config.project__custom__billing
 
   prepare_mfg_billing:
-    group: Badger
+    group: Manufacturing
     description: >
       Load and activate Manufacturing billing seed data (LegalEntity, AccountingPeriod,
       BillingPolicy, BillingTreatment, BillingTreatmentItem, GeneralLedgerAccount,
@@ -3512,7 +3569,7 @@ flows:
         when: project_config.project__custom__billing
 
   prepare_mfg_tax:
-    group: Badger
+    group: Manufacturing
     description: >
       Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatment,
       Product2 TaxPolicy assignments). Uses a two-pass SFDMU plan: Pass 1 inserts records in
@@ -3526,10 +3583,12 @@ flows:
         task: activate_tax_records
         when: project_config.project__custom__tax
 
-# Badger Context Plan Flow
-
-  prepare_badger_context_plan:
-    group: Badger
+  prepare_mfg_context_plan:
+    group: Manufacturing
+    description: >
+      Extend and apply the Manufacturing Sales Transaction context definition. Runs
+      extend_context_sales_transaction_mfg then applies the MFG SalesTransactionContext twice
+      (two-pass pattern required for full attribute population).
     steps:
       1:
         task: extend_context_sales_transaction_mfg
@@ -3541,16 +3600,18 @@ flows:
         task: apply_mfg_SalesTransactionContext
         when: project_config.project__custom__badger
 
-  # Badger Pricing Flow - deploy metadata
-
-  prepare_badger_pricing:
-    group: Badger
+  prepare_mfg_pricing:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing pricing metadata and activate the pricing procedure. Deploys the
+      NGP default pricing recipe, then the MFG_Rev_Mgmt_Default_Pricing_Procedure ExpressionSetDefinition
+      (with live PriceAdjustmentSchedule ID injection), then activates version V1.
     steps:
       1:
-        task: deploy_badger_pricing_1
+        task: deploy_mfg_pricing_recipe
         when: project_config.project__custom__badger
       2:
-        task: deploy_badger_pricing_2
+        task: deploy_mfg_pricing_procedure
         when: project_config.project__custom__badger
       3:
         task: manage_expression_sets
@@ -3560,7 +3621,7 @@ flows:
           version_full_names: "MFG_Rev_Mgmt_Default_Pricing_Procedure_V1"
 
   import_mfg_cml:
-    group: Badger
+    group: Manufacturing
     steps:
       1:
         task: import_cml
@@ -3579,8 +3640,11 @@ flows:
           operation: activate_versions
           version_full_names: "GeneratorSet_V1,Fuel_Cell_V1"
 
-  prepare_badger_dro:
-    group: Badger
+  prepare_mfg_dro:
+    group: Manufacturing
+    description: >
+      Load Manufacturing DRO seed data and update product fulfillment decomposition rules.
+      Standalone flow; DRO steps are also embedded in prepare_mfg_data and prepare_manufacturing.
     steps:
       1:
         task: insert_badger_dro_data
@@ -3589,34 +3653,46 @@ flows:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__badger
 
-  prepare_badger_guidedselling:
-    group: Revenue Lifecycle Management
+  prepare_mfg_guided_selling:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions,
+      OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments.
+      Gated by guidedselling=true and badger=true.
     steps:
       1:
         task: insert_badger_guidedselling_data
         when: project_config.project__custom__guidedselling and project_config.project__custom__badger
       2:
-        task: deploy_badger_guidedselling
+        task: deploy_mfg_guided_selling
         when: project_config.project__custom__guidedselling and project_config.project__custom__badger
 
-  prepare_badger_rebates:
-    group: Badger
+  prepare_mfg_rebates:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing rebate metadata (ObjectHierarchyRelationship settings and
+      BatchCalcJobDefinition) then load rebate seed data.
+      Gated by badger=true and mfg_rebates=true.
     steps:
       1:
-        task: deploy_badger_rebates
+        task: deploy_mfg_rebates
         when: project_config.project__custom__badger and project_config.project__custom__mfg_rebates
       2:
         task: insert_badger_rebates_data
         when: project_config.project__custom__badger and project_config.project__custom__mfg_rebates
 
-  prepare_badger_aaf:
-    group: Badger
+  prepare_mfg_aaf:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting metadata in dependency order: object fields
+      and translations, permission set, then waits before deploying the dimension source and forecast
+      set configuration. Loads AAF seed data last. Gated by badger=true and mfg_aaf=true.
     steps:
       1:
-        task: deploy_badger_aaf_1
+        task: deploy_mfg_aaf_fields
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
       2:
-        task: deploy_badger_aaf_2
+        task: deploy_mfg_aaf_permissions
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
       3:
         task: assign_permission_sets
@@ -3629,12 +3705,12 @@ flows:
           seconds: *sleep_default
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
       5:
-        task: deploy_badger_aaf_3
+        task: deploy_mfg_aaf_dim_source
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
       6:
-        task: deploy_badger_aaf_4
+        task: deploy_mfg_aaf_forecast_set
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
-      7: 
+      7:
         task: insert_badger_aaf_data
         when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
 
@@ -3687,9 +3763,9 @@ flows:
       unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call.
       Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages,
       MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
-      Must run after all manufacturing metadata is deployed (step 19 of prepare_badger_flow).
+      Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing).
       Run this flow independently to test manufacturing UX assembly without running the full
-      prepare_rlm_org flow. Gated by ux=true in prepare_badger_flow.
+      prepare_rlm_org flow. Gated by ux=true in prepare_manufacturing.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3761,7 +3837,7 @@ flows:
       9:
         task: test_qb_guidedselling_idempotency
 
-  prepare_badger_visuals:
+  prepare_mfg_visuals:
     group: Manufacturing
     description: >
       Deploy Manufacturing 3D Visualization metadata and load product configuration flow
@@ -3769,10 +3845,10 @@ flows:
       CSP Trusted Site, RenderDraw flow). Step 2 inserts ProductConfigurationFlow and
       ProductConfigFlowAssignment records from datasets/sfdmu/mfg/en-US/mfg-configflow.
       Gated by mfg_visuals=true. Run independently to test visualization deployment
-      before adding to prepare_badger_flow.
+      before adding to prepare_manufacturing.
     steps:
       1:
-        task: deploy_badger_visualization
+        task: deploy_mfg_visualization
         when: project_config.project__custom__mfg_visuals
       2:
         task: insert_mfg_configflow_data

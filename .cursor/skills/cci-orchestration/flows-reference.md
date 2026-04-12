@@ -3,11 +3,22 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 flows** across **5 groups**.
+**52 flows** across **5 groups**.
 
 ---
 
 ## Data Management - Extract
+
+### `extract_mfg_aaf_with_category_fix`
+
+Extract mfg-aaf from org, then fix Category__r.Code (SFDMU v5 workaround). Equivalent to extract_mfg_aaf_data followed by fix_mfg_aaf_category_extraction.
+
+**Steps:**
+
+1. **task** `extract_mfg_aaf_data`
+2. **task** `fix_mfg_aaf_category_extraction`
+
+---
 
 ### `run_qb_extracts`
 
@@ -47,54 +58,236 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 
 ---
 
-## RLM Administration
+## Manufacturing
 
-### `stamp_git_commit`
-
-Stamp the git commit hash into the org
+### `import_mfg_cml`
 
 **Steps:**
 
-1. **task** `stamp_git_commit`
-   - `flow_name`: `prepare_rlm_org`
+1. **task** `import_cml`  `when: project_config.project__custom__badger`
+   - `data_dir`: `datasets/constraints/mfg/genSet`
+2. **task** `import_cml`  `when: project_config.project__custom__badger`
+   - `data_dir`: `datasets/constraints/mfg/fuelCell`
+3. **task** `manage_expression_sets`  `when: project_config.project__custom__badger`
+   - `operation`: `activate_versions`
+   - `version_full_names`: `GeneratorSet_V1,Fuel_Cell_V1`
+
+---
+
+### `prepare_manufacturing`
+
+Full Manufacturing feature setup: deploys core metadata (assets, theme, fields, Apex), assigns Manufacturing permission sets and groups (with propagation sleep), deploys all business process flows and Quick Actions, OmniStudio document generation components, context plan extensions, pricing setup, seed data (PCM, pricing, DRO, CML, tax, billing), guided selling, rebates, advanced account forecasting, revenue settings configuration, UX assembly, and theme activation. Gated by badger=true in prepare_rlm_org (step 30).
+
+**Steps:**
+
+1. **flow** `prepare_mfg_core`
+2. **flow** `prepare_mfg_perms`
+3. **task** `deploy_mfg_flows_and_actions`
+4. **flow** `prepare_mfg_docgen`
+5. **flow** `prepare_mfg_context_plan`
+6. **flow** `prepare_mfg_pricing`
+7. **flow** `prepare_mfg_data`
+8. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro and project_config.project__custom__badger`
+9. **task** `reconfigure_mfg_pricing_discovery`  `when: project_config.project__custom__badger`
+10. **flow** `prepare_mfg_visuals`  `when: project_config.project__custom__mfg_visuals`
+11. **flow** `prepare_mfg_guided_selling`
+12. **flow** `prepare_mfg_rebates`
+13. **flow** `prepare_mfg_aaf`
+14. **task** `util_sleep`
+   - `seconds`: `30`
+15. **task** `configure_mfg_revenue_settings`  `when: project_config.project__custom__badger`
+16. **flow** `prepare_mfg_ux`  `when: project_config.project__custom__ux`
+17. **task** `activate_mfg_theme`  `when: project_config.project__custom__badger`
+
+---
+
+### `prepare_mfg_aaf`
+
+Deploy Manufacturing Advanced Account Forecasting metadata in dependency order: object fields and translations, permission set, then waits before deploying the dimension source and forecast set configuration. Loads AAF seed data last. Gated by badger=true and mfg_aaf=true.
+
+**Steps:**
+
+1. **task** `deploy_mfg_aaf_fields`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+2. **task** `deploy_mfg_aaf_permissions`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+   - `api_names`: `['MFG_AAF']`
+4. **task** `util_sleep`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+   - `seconds`: `30`
+5. **task** `deploy_mfg_aaf_dim_source`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+6. **task** `deploy_mfg_aaf_forecast_set`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+7. **task** `insert_badger_aaf_data`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf`
+
+---
+
+### `prepare_mfg_billing`
+
+Load and activate Manufacturing billing seed data (LegalEntity, AccountingPeriod, BillingPolicy, BillingTreatment, BillingTreatmentItem, GeneralLedgerAccount, GeneralLedgerAcctAsgntRule, Product2 billing policy assignments). Activates billing records and deploys billing metadata. Runs when badger=true and billing=true.
+
+**Steps:**
+
+1. **task** `insert_mfg_billing_data`  `when: project_config.project__custom__billing`
+2. **task** `activate_flow`  `when: project_config.project__custom__billing`
+   - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
+3. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
+4. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
+5. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
+6. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
+
+---
+
+### `prepare_mfg_context_plan`
+
+Extend and apply the Manufacturing Sales Transaction context definition. Runs extend_context_sales_transaction_mfg then applies the MFG SalesTransactionContext twice (two-pass pattern required for full attribute population).
+
+**Steps:**
+
+1. **task** `extend_context_sales_transaction_mfg`  `when: project_config.project__custom__badger`
+2. **task** `apply_mfg_SalesTransactionContext`  `when: project_config.project__custom__badger`
+3. **task** `apply_mfg_SalesTransactionContext`  `when: project_config.project__custom__badger`
+
+---
+
+### `prepare_mfg_core`
+
+Deploy core Manufacturing metadata in dependency order: brand assets and feature settings, Lightning Experience theme definition and custom fields, core Apex/Aura/permissions/SA settings, and TSO-specific production permission set group (when tso=true). Does not deploy flows — prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
+
+**Steps:**
+
+1. **task** `deploy_mfg_core_assets`
+2. **task** `deploy_mfg_theme_and_fields`
+3. **task** `deploy_mfg_core_setup`
+4. **task** `deploy_mfg_tso_perms`  `when: project_config.project__custom__tso`
+
+---
+
+### `prepare_mfg_data`
+
+Load all Manufacturing seed data: PCM products, pricing records, DRO fulfillment rules, CML constraint models (GeneratorSet, FuelCell), and conditionally tax and billing records.
+
+**Steps:**
+
+1. **task** `insert_badger_pcm_data`  `when: project_config.project__custom__badger`
+2. **task** `insert_badger_pricing_data`  `when: project_config.project__custom__badger`
+3. **task** `insert_badger_dro_data`  `when: project_config.project__custom__badger`
+4. **flow** `import_mfg_cml`  `when: project_config.project__custom__badger`
+5. **flow** `prepare_mfg_tax`  `when: project_config.project__custom__badger and project_config.project__custom__tax`
+6. **flow** `prepare_mfg_billing`  `when: project_config.project__custom__badger and project_config.project__custom__billing`
+
+---
+
+### `prepare_mfg_docgen`
+
+Deploy Manufacturing OmniStudio document generation components in dependency order: OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal OmniScript, and document templates (Badger_Proposal, Price_Contract).
+
+**Steps:**
+
+1. **task** `deploy_mfg_omni_datatransforms`  `when: project_config.project__custom__badger`
+2. **task** `deploy_mfg_omni_integration_procedures`  `when: project_config.project__custom__badger`
+3. **task** `deploy_mfg_omni_base_docgen_script`  `when: project_config.project__custom__badger`
+4. **task** `deploy_mfg_omni_quote_script`  `when: project_config.project__custom__badger`
+5. **task** `deploy_mfg_doc_templates`  `when: project_config.project__custom__badger`
+
+---
+
+### `prepare_mfg_dro`
+
+Load Manufacturing DRO seed data and update product fulfillment decomposition rules. Standalone flow; DRO steps are also embedded in prepare_mfg_data and prepare_manufacturing.
+
+**Steps:**
+
+1. **task** `insert_badger_dro_data`  `when: project_config.project__custom__badger`
+2. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__badger`
+
+---
+
+### `prepare_mfg_guided_selling`
+
+Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions, OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments. Gated by guidedselling=true and badger=true.
+
+**Steps:**
+
+1. **task** `insert_badger_guidedselling_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__badger`
+2. **task** `deploy_mfg_guided_selling`  `when: project_config.project__custom__guidedselling and project_config.project__custom__badger`
+
+---
+
+### `prepare_mfg_perms`
+
+Assign Manufacturing permission sets and permission set groups to the running user. Waits for metadata deployment to settle before assigning. Assigns either the scratch PSG (non-TSO) or production PSG (TSO) based on the tso feature flag.
+
+**Steps:**
+
+1. **task** `util_sleep`
+   - `seconds`: `30`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__badger`
+   - `api_names`: `['MFG_RCA']`
+3. **task** `assign_permission_set_groups`  `when: project_config.project__custom__badger and not project__custom__tso`
+   - `api_names`: `['MFG_scratch']`
+4. **task** `assign_permission_set_groups`  `when: project_config.project__custom__badger and project__custom__tso`
+   - `api_names`: `['MFG']`
+
+---
+
+### `prepare_mfg_pricing`
+
+Deploy Manufacturing pricing metadata and activate the pricing procedure. Deploys the NGP default pricing recipe, then the MFG_Rev_Mgmt_Default_Pricing_Procedure ExpressionSetDefinition (with live PriceAdjustmentSchedule ID injection), then activates version V1.
+
+**Steps:**
+
+1. **task** `deploy_mfg_pricing_recipe`  `when: project_config.project__custom__badger`
+2. **task** `deploy_mfg_pricing_procedure`  `when: project_config.project__custom__badger`
+3. **task** `manage_expression_sets`  `when: project_config.project__custom__badger`
+   - `operation`: `activate_versions`
+   - `version_full_names`: `MFG_Rev_Mgmt_Default_Pricing_Procedure_V1`
+
+---
+
+### `prepare_mfg_rebates`
+
+Deploy Manufacturing rebate metadata (ObjectHierarchyRelationship settings and BatchCalcJobDefinition) then load rebate seed data. Gated by badger=true and mfg_rebates=true.
+
+**Steps:**
+
+1. **task** `deploy_mfg_rebates`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_rebates`
+2. **task** `insert_badger_rebates_data`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_rebates`
+
+---
+
+### `prepare_mfg_tax`
+
+Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatment, Product2 TaxPolicy assignments). Uses a two-pass SFDMU plan: Pass 1 inserts records in Draft status; Pass 2 activates TaxTreatment and TaxPolicy and sets DefaultTaxTreatmentId. Runs when badger=true and tax=true.
+
+**Steps:**
+
+1. **task** `insert_mfg_tax_data`  `when: project_config.project__custom__tax`
+2. **task** `activate_tax_records`  `when: project_config.project__custom__tax`
+
+---
+
+### `prepare_mfg_ux`
+
+Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications) from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/, and templates/applications/manufacturing/. Output is written to unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call. Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages, MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included. Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing). Run this flow independently to test manufacturing UX assembly without running the full prepare_rlm_org flow. Gated by ux=true in prepare_manufacturing.
+
+**Steps:**
+
+1. **task** `assemble_and_deploy_ux`
+   - `output_path`: `unpackaged/post_manufacturing_ux`
+   - `manufacturing`: `True`
+
+---
+
+### `prepare_mfg_visuals`
+
+Deploy Manufacturing 3D Visualization metadata and load product configuration flow assignments. Step 1 deploys unpackaged/post_manufacturing_visualization (LWC, VF page, CSP Trusted Site, RenderDraw flow). Step 2 inserts ProductConfigurationFlow and ProductConfigFlowAssignment records from datasets/sfdmu/mfg/en-US/mfg-configflow. Gated by mfg_visuals=true. Run independently to test visualization deployment before adding to prepare_manufacturing.
+
+**Steps:**
+
+1. **task** `deploy_mfg_visualization`  `when: project_config.project__custom__mfg_visuals`
+2. **task** `insert_mfg_configflow_data`  `when: project_config.project__custom__mfg_visuals`
 
 ---
 
 ## Revenue Lifecycle Management
-
-### `assign_feature_permission_sets`
-
-Assign feature-gated permission sets after PSGs are updated
-
-**Steps:**
-
-1. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
-   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
-2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
-   - `api_names`: `['EinsteinGPTPromptTemplateManager']`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and not project_config.project__custom__dev_ed`
-   - `api_names`: `['SalesCloudEinsteinAll']`
-4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
-   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
-
----
-
-### `assign_feature_psls`
-
-Assign feature-gated permission set licenses after pre-deploy metadata is in place
-
-**Steps:**
-
-1. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__clm`
-   - `api_names`: `['AIAcceleratorPsl', 'ClauseManagementUser', 'CLMAnalyticsPsl', 'ContractManagementUser', 'Contra...`
-2. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__einstein`
-   - `api_names`: `['AgentforceServiceAgentBuilderPsl', 'EinsteinGPTCopilotPsl', 'EinsteinGPTPromptTemplatesPsl']`
-3. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__analytics`
-   - `api_names`: `['EinsteinAnalyticsPlusPsl']`
-4. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
-   - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
-
----
 
 ### `extend_context_definitions`
 
@@ -154,7 +347,7 @@ Extract rating and rates data from an org into CSV files
 2. **task** `create_approval_email_templates`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
    - `api_names`: `['RLM_Approvals']`
-4. **task** `insert_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+4. **task** `insert_qb_approvals_data`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
 
 ---
 
@@ -162,21 +355,15 @@ Extract rating and rates data from an org into CSV files
 
 **Steps:**
 
-1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
-3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3`
-4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
-5. **task** `activate_flow`  `when: project_config.project__custom__billing`
+1. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3`
+3. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
-6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
-7. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
-9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
-10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
-11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
-12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
-   - `api_names`: `['RLM_BillingUI']`
-13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+4. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
+5. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
+6. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
+7. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
+8. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
 
 ---
 
@@ -205,12 +392,12 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `insert_qb_transactionprocessingtypes_data`  `when: project_config.project__custom__constraints and project_config.project__custom__quantumbit`
+1. **task** `insert_qb_transactionprocessingtypes_data`  `when: project_config.project__custom__constraints`
 2. **task** `deploy_post_constraints`  `when: project_config.project__custom__constraints`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__constraints`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__constraints`
    - `api_names`: `['RLM_Constraints']`
 4. **task** `apply_context_constraint_engine_node_status`  `when: project_config.project__custom__constraints`
-5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints_data`
+5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints`
 6. **task** `validate_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `cml_dir`: `scripts/cml`
    - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
@@ -237,19 +424,31 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `exclude_active_decision_tables`
 5. **task** `deploy_pre`
 6. **task** `restore_decision_tables`
-7. **flow** `assign_feature_psls`
-8. **task** `recalculate_permission_set_groups`
+7. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__clm`
+   - `api_names`: `['AIAcceleratorPsl', 'ClauseManagementUser', 'CLMAnalyticsPsl', 'ContractManagementUser', 'Contra...`
+8. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__einstein`
+   - `api_names`: `['AgentforceServiceAgentBuilderPsl', 'EinsteinGPTCopilotPsl', 'EinsteinGPTPromptTemplatesPsl']`
+9. **task** `util_sleep`
+   - `seconds`: `30`
+10. **task** `assign_permission_set_licenses`
+   - `api_names`: `EinsteinAnalyticsPlusPsl`
+11. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-9. **task** `assign_permission_set_groups_tolerant`
+12. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-10. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
-   - `api_names`: `['RLM_TSO']`
-11. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
-   - `api_names`: `['RLM_TSO']`
-12. **flow** `extend_context_definitions`
-13. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-14. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-15. **flow** `assign_feature_permission_sets`
+13. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
+   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
+14. **flow** `extend_context_definitions`
+15. **task** `util_sleep`
+   - `seconds`: `30`
+16. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+17. **task** `util_sleep`  `when: project_config.project__custom__breconfig`
+   - `seconds`: `30`
+18. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+19. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
+   - `api_names`: `['EinsteinGPTPromptTemplateManager', 'SalesCloudEinsteinAll']`
+20. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
+   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
 
 ---
 
@@ -283,13 +482,10 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `manage_fulfillment_scope_cnfg`  `when: project_config.project__custom__dro`
-   - `operation`: `upsert`
-   - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
-2. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
-3. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
-4. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
-5. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro`
+1. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
+2. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
+3. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
+4. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro`
 
 ---
 
@@ -358,6 +554,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 **Steps:**
 
 1. **task** `reconfigure_pricing_discovery`
+2. **task** `configure_product_discovery_settings`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -454,6 +651,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 1. **task** `configure_revenue_settings`  `when: not (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
 2. **task** `configure_revenue_settings`  `when: project_config.project__custom__quantumbit or project_config.project__custom__tso`
    - `manage_assets_flow`: `RLM_ARC_Assets`
+3. **task** `configure_core_pricing_setup`
 
 ---
 
@@ -467,31 +665,33 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 4. **flow** `prepare_payments`
 5. **task** `deploy_full`
 6. **flow** `prepare_price_adjustment_schedules`
-7. **flow** `prepare_payments`
-8. **flow** `prepare_quantumbit`
-9. **flow** `prepare_product_data`
-10. **flow** `prepare_pricing_data`
-11. **flow** `prepare_docgen`
-12. **flow** `prepare_dro`
-13. **flow** `prepare_tax`
-14. **flow** `prepare_billing`
-15. **flow** `prepare_analytics`
-16. **flow** `prepare_clm`
-17. **flow** `prepare_rating`
-18. **task** `activate_and_deploy_expression_sets`
-19. **flow** `prepare_tso`
-20. **flow** `prepare_procedureplans`
-21. **flow** `prepare_prm`
-22. **flow** `prepare_agents`
-23. **flow** `prepare_constraints`
-24. **flow** `prepare_guidedselling`
-25. **flow** `prepare_revenue_settings`
-26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_ramp_builder`
-28. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-29. **flow** `prepare_scratch`
-30. **flow** `refresh_all_decision_tables`
-31. **flow** `stamp_git_commit`
+7. **flow** `prepare_scratch`
+8. **flow** `prepare_payments`
+9. **flow** `prepare_quantumbit`
+10. **flow** `prepare_product_data`
+11. **flow** `prepare_pricing_data`
+12. **flow** `prepare_docgen`
+13. **flow** `prepare_dro`
+14. **flow** `prepare_tax`
+15. **flow** `prepare_billing`
+16. **flow** `prepare_analytics`
+17. **flow** `prepare_clm`
+18. **flow** `prepare_rating`
+19. **task** `activate_and_deploy_expression_sets`
+20. **flow** `prepare_tso`
+21. **flow** `prepare_procedureplans`
+22. **flow** `prepare_prm`
+23. **flow** `prepare_agents`
+24. **flow** `prepare_constraints`
+25. **flow** `prepare_guidedselling`
+26. **flow** `prepare_revenue_settings`
+27. **flow** `prepare_pricing_discovery`
+28. **flow** `prepare_ramp_builder`
+29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+30. **flow** `prepare_manufacturing`  `when: project_config.project__custom__badger`
+31. **flow** `refresh_all_decision_tables`
+32. **task** `stamp_git_commit`
+   - `flow_name`: `prepare_rlm_org`
 
 ---
 
@@ -518,12 +718,16 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 **Steps:**
 
-1. **task** `assign_permission_set_groups`  `when: project_config.project__custom__tso`
+1. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
+   - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
+2. **task** `assign_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['CopilotSalesforceUserPSG', 'CopilotSalesforceAdminPSG', 'UnifiedCatalogAdminPsl', 'UnifiedCatal...`
-2. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
-3. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
-4. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
+3. **task** `deploy_post_utils`  `when: project_config.project__custom__tso`
+4. **task** `deploy_post_tso`  `when: project_config.project__custom__tso`
+5. **task** `assign_permission_sets`  `when: project_config.project__custom__tso`
    - `api_names`: `['ERIBasic', 'RLM_UtilitiesPermset', 'OrchestrationProcessManagerPermissionSet', 'EventMonitoring...`
+6. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+   - `api_names`: `['RLM_TSO']`
 
 ---
 
@@ -540,48 +744,11 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 ---
 
-### `upsert_fulfillment_scope_cnfg`
-
-Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
-
-**Steps:**
-
-1. **task** `manage_fulfillment_scope_cnfg`
-   - `operation`: `upsert`
-   - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
-
----
-
 ## UX Personalization
-
-### `apply_ux_drift`
-
-Writes back org-retrieved flexipages into base templates by reverse-applying active feature patches (new_base = org_state - patches), then re-assembles and diffs to verify zero drift. Run capture_ux_drift first to review drift, then run this flow to update templates/ automatically.
-
-**Steps:**
-
-1. **task** `writeback_ux_templates`
-   - `dry_run`: `False`
-2. **task** `assemble_and_deploy_ux`
-   - `deploy`: `False`
-3. **task** `diff_ux_templates`
-
----
-
-### `capture_ux_drift`
-
-Retrieves live flexipages from the target org into unpackaged/post_ux/, then diffs them against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions and writes drift_report.json. Does not modify templates/. After reviewing the report, edit templates/ manually then run assemble_and_deploy_ux to deploy.
-
-**Steps:**
-
-1. **task** `retrieve_ux_from_org`
-2. **task** `diff_ux_templates`
-
----
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 27 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, app menus, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation — required on Trialforce orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
 
 **Steps:**
 

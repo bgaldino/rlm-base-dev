@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
     <flexiPageRegions>
         <itemInstances>
@@ -226,7 +226,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>filter</name>
-                    <value>{"datasets":{"MFG_SalesAgreementProductSchedule":[{"fields":["SalesAgreementProduct.SalesAgreementId"],"filter":{"operator":"in","values":["$Id"]},"locked":null,"hidden":null}]}}</value>
+                    <value>{&quot;datasets&quot;:{&quot;MFG_SalesAgreementProductSchedule&quot;:[{&quot;fields&quot;:[&quot;SalesAgreementProduct.SalesAgreementId&quot;],&quot;filter&quot;:{&quot;operator&quot;:&quot;in&quot;,&quot;values&quot;:[&quot;$Id&quot;]},&quot;locked&quot;:null,&quot;hidden&quot;:null}]}}</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>height</name>
@@ -272,7 +272,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>filter</name>
-                    <value>{"datasets":{"MFG_SalesAgreementProductSchedule":[{"fields":["SalesAgreementProduct.SalesAgreementId"],"filter":{"operator":"in","values":["$Id"]},"locked":null,"hidden":null}]}}</value>
+                    <value>{&quot;datasets&quot;:{&quot;MFG_SalesAgreementProductSchedule&quot;:[{&quot;fields&quot;:[&quot;SalesAgreementProduct.SalesAgreementId&quot;],&quot;filter&quot;:{&quot;operator&quot;:&quot;in&quot;,&quot;values&quot;:[&quot;$Id&quot;]},&quot;locked&quot;:null,&quot;hidden&quot;:null}]}}</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>height</name>
@@ -318,7 +318,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>filter</name>
-                    <value>{"datasets":{"MFG_SalesAgreementProductSchedule":[{"fields":["SalesAgreementProduct.SalesAgreementId"],"filter":{"operator":"in","values":["$Id"]},"locked":null,"hidden":null}]}}</value>
+                    <value>{&quot;datasets&quot;:{&quot;MFG_SalesAgreementProductSchedule&quot;:[{&quot;fields&quot;:[&quot;SalesAgreementProduct.SalesAgreementId&quot;],&quot;filter&quot;:{&quot;operator&quot;:&quot;in&quot;,&quot;values&quot;:[&quot;$Id&quot;]},&quot;locked&quot;:null,&quot;hidden&quot;:null}]}}</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>height</name>
