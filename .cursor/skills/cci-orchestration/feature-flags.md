@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**39 feature flags**, **89 configuration values**, **33 YAML anchors** under `project.custom`.
+**40 feature flags**, **89 configuration values**, **33 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 1 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `badger` | `True` | 41 flow step(s) |
+| `badger` | `False` | 49 flow step(s) |
 | `badger_data` | `True` | — |
 | `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
@@ -31,10 +31,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `False` | 2 flow step(s) |
-| `guidedselling` | `False` | 4 flow step(s) |
+| `guidedselling` | `False` | 2 flow step(s) |
 | `mfg_aaf` | `True` | 7 flow step(s) |
+| `mfg_guidedselling` | `True` | 2 flow step(s) |
 | `mfg_rebates` | `True` | 2 flow step(s) |
-| `mfg_visuals` | `True` | 3 flow step(s) |
+| `mfg_visuals` | `True` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
@@ -75,13 +76,20 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 
-### `badger` (default: `True`)
+### `badger` (default: `False`)
 
 - `prepare_rlm_org` step 30 → `prepare_manufacturing`
+- `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
+- `prepare_mfg_core` step 2 → `deploy_mfg_theme_and_fields`
+- `prepare_mfg_core` step 3 → `deploy_mfg_core_setup`
+- `prepare_mfg_core` step 4 → `deploy_mfg_tso_perms`
+- `prepare_manufacturing` step 3 → `deploy_mfg_flows_and_actions`
 - `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
 - `prepare_manufacturing` step 9 → `reconfigure_mfg_pricing_discovery`
+- `prepare_manufacturing` step 14 → `util_sleep`
 - `prepare_manufacturing` step 15 → `configure_mfg_revenue_settings`
 - `prepare_manufacturing` step 17 → `activate_mfg_theme`
+- `prepare_mfg_perms` step 1 → `util_sleep`
 - `prepare_mfg_perms` step 2 → `assign_permission_sets`
 - `prepare_mfg_perms` step 3 → `assign_permission_set_groups`
 - `prepare_mfg_perms` step 4 → `assign_permission_set_groups`
@@ -118,6 +126,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
 - `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
 - `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
 
 ### `billing` (default: `True`)
 
@@ -230,8 +239,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
-- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
-- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
 
 ### `mfg_aaf` (default: `True`)
 
@@ -243,6 +250,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
 - `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
 
+### `mfg_guidedselling` (default: `True`)
+
+- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
+- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
+
 ### `mfg_rebates` (default: `True`)
 
 - `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
@@ -250,7 +262,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `mfg_visuals` (default: `True`)
 
-- `prepare_manufacturing` step 10 → `prepare_mfg_visuals`
 - `prepare_mfg_visuals` step 1 → `deploy_mfg_visualization`
 - `prepare_mfg_visuals` step 2 → `insert_mfg_configflow_data`
 
@@ -414,9 +425,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `ux` (default: `True`)
 
 - `prepare_rlm_org` step 29 → `prepare_ux`
-- `prepare_manufacturing` step 16 → `prepare_mfg_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
 
 ### `org_config.scratch` (runtime)
 
@@ -538,19 +549,19 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 *1 items:*
 
-- `MFG_RCA`
+- `RLM_MFG_RCA`
 
 ### `badger_mfg_psg`
 
 *1 items:*
 
-- `MFG`
+- `RLM_MFG`
 
 ### `badger_mfg_scratch_psg`
 
 *1 items:*
 
-- `MFG_scratch`
+- `RLM_MFG_scratch`
 
 ### `dt_activation_decision_tables`
 

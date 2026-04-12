@@ -96,7 +96,7 @@
         <layoutColumns>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>Contract__c</field>
+                <field>RLM_MFG_Contract__c</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Required</behavior>

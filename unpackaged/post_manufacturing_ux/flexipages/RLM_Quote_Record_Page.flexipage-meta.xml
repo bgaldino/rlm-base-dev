@@ -25,10 +25,10 @@
                             <value>GenerateQuoteDocument</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.Create_Sales_Agreement</value>
+                            <value>Quote.RLM_MFG_Create_Sales_Agreement</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.Create_Service_Contract</value>
+                            <value>Quote.RLM_MFG_Create_Service_Contract</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_CreateContract</value>
@@ -179,7 +179,7 @@
                             <value>QuoteLineItem.RLM_Approval_Level_Calc__c</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.Margin__c</value>
+                            <value>Quote.RLM_MFG_Margin__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.Covered_Asset__r.Name[Asset]</value>
@@ -207,13 +207,13 @@
                             <value>Quote.Subtotal</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.Total_Cost__c</value>
+                            <value>Quote.RLM_MFG_Total_Cost__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.Discount</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.Margin__c</value>
+                            <value>Quote.RLM_MFG_Margin__c</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.GrandTotal</value>
@@ -1045,8 +1045,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Total_Cost__c</fieldItem>
-                <identifier>RecordTotal_Cost__cField</identifier>
+                <fieldItem>Record.RLM_MFG_Total_Cost__c</fieldItem>
+                <identifier>RecordRLM_MFG_Total_Cost__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <itemInstances>
@@ -1055,8 +1055,8 @@
                     <name>uiBehavior</name>
                     <value>none</value>
                 </fieldInstanceProperties>
-                <fieldItem>Record.Margin__c</fieldItem>
-                <identifier>RecordMargin__cField</identifier>
+                <fieldItem>Record.RLM_MFG_Margin__c</fieldItem>
+                <identifier>RecordRLM_MFG_Margin__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>

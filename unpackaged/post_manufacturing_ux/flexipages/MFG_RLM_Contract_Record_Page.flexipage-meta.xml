@@ -13,10 +13,10 @@
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Contract.Create_Sales_Agreement</value>
+                            <value>Contract.RLM_MFG_Create_Sales_Agreement</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Contract.New_Quote</value>
+                            <value>Contract.RLM_MFG_New_Quote</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Delete</value>

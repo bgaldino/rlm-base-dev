@@ -82,21 +82,21 @@ Full Manufacturing feature setup: deploys core metadata (assets, theme, fields, 
 
 1. **flow** `prepare_mfg_core`
 2. **flow** `prepare_mfg_perms`
-3. **task** `deploy_mfg_flows_and_actions`
+3. **task** `deploy_mfg_flows_and_actions`  `when: project_config.project__custom__badger`
 4. **flow** `prepare_mfg_docgen`
 5. **flow** `prepare_mfg_context_plan`
 6. **flow** `prepare_mfg_pricing`
 7. **flow** `prepare_mfg_data`
 8. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro and project_config.project__custom__badger`
 9. **task** `reconfigure_mfg_pricing_discovery`  `when: project_config.project__custom__badger`
-10. **flow** `prepare_mfg_visuals`  `when: project_config.project__custom__mfg_visuals`
+10. **flow** `prepare_mfg_visuals`
 11. **flow** `prepare_mfg_guided_selling`
 12. **flow** `prepare_mfg_rebates`
 13. **flow** `prepare_mfg_aaf`
-14. **task** `util_sleep`
+14. **task** `util_sleep`  `when: project_config.project__custom__badger`
    - `seconds`: `30`
 15. **task** `configure_mfg_revenue_settings`  `when: project_config.project__custom__badger`
-16. **flow** `prepare_mfg_ux`  `when: project_config.project__custom__ux`
+16. **flow** `prepare_mfg_ux`
 17. **task** `activate_mfg_theme`  `when: project_config.project__custom__badger`
 
 ---
@@ -153,10 +153,10 @@ Deploy core Manufacturing metadata in dependency order: brand assets and feature
 
 **Steps:**
 
-1. **task** `deploy_mfg_core_assets`
-2. **task** `deploy_mfg_theme_and_fields`
-3. **task** `deploy_mfg_core_setup`
-4. **task** `deploy_mfg_tso_perms`  `when: project_config.project__custom__tso`
+1. **task** `deploy_mfg_core_assets`  `when: project_config.project__custom__badger`
+2. **task** `deploy_mfg_theme_and_fields`  `when: project_config.project__custom__badger`
+3. **task** `deploy_mfg_core_setup`  `when: project_config.project__custom__badger`
+4. **task** `deploy_mfg_tso_perms`  `when: project_config.project__custom__badger and project_config.project__custom__tso`
 
 ---
 
@@ -202,12 +202,12 @@ Load Manufacturing DRO seed data and update product fulfillment decomposition ru
 
 ### `prepare_mfg_guided_selling`
 
-Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions, OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments. Gated by guidedselling=true and badger=true.
+Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions, OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments. Gated by badger=true and mfg_guidedselling=true.
 
 **Steps:**
 
-1. **task** `insert_badger_guidedselling_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__badger`
-2. **task** `deploy_mfg_guided_selling`  `when: project_config.project__custom__guidedselling and project_config.project__custom__badger`
+1. **task** `insert_badger_guidedselling_data`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_guidedselling`
+2. **task** `deploy_mfg_guided_selling`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_guidedselling`
 
 ---
 
@@ -217,14 +217,14 @@ Assign Manufacturing permission sets and permission set groups to the running us
 
 **Steps:**
 
-1. **task** `util_sleep`
+1. **task** `util_sleep`  `when: project_config.project__custom__badger`
    - `seconds`: `30`
 2. **task** `assign_permission_sets`  `when: project_config.project__custom__badger`
-   - `api_names`: `['MFG_RCA']`
+   - `api_names`: `['RLM_MFG_RCA']`
 3. **task** `assign_permission_set_groups`  `when: project_config.project__custom__badger and not project__custom__tso`
-   - `api_names`: `['MFG_scratch']`
+   - `api_names`: `['RLM_MFG_scratch']`
 4. **task** `assign_permission_set_groups`  `when: project_config.project__custom__badger and project__custom__tso`
-   - `api_names`: `['MFG']`
+   - `api_names`: `['RLM_MFG']`
 
 ---
 
@@ -266,11 +266,11 @@ Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatm
 
 ### `prepare_mfg_ux`
 
-Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications) from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/, and templates/applications/manufacturing/. Output is written to unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call. Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages, MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included. Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing). Run this flow independently to test manufacturing UX assembly without running the full prepare_rlm_org flow. Gated by ux=true in prepare_manufacturing.
+Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications) from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/, and templates/applications/manufacturing/. Output is written to unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call. Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages, MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included. Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing). Run this flow independently to test manufacturing UX assembly without running the full prepare_rlm_org flow. Gated by badger=true and ux=true in prepare_manufacturing.
 
 **Steps:**
 
-1. **task** `assemble_and_deploy_ux`
+1. **task** `assemble_and_deploy_ux`  `when: project_config.project__custom__badger and project_config.project__custom__ux`
    - `output_path`: `unpackaged/post_manufacturing_ux`
    - `manufacturing`: `True`
 

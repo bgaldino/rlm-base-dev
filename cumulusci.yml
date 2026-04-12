@@ -125,6 +125,7 @@ project:
     badger_data: true        #Badger Data Insertion
     mfg_aaf: true             #Badger MFG Advanced Account Forecast
     mfg_rebates: true         #Badger MFG Rebates
+    mfg_guidedselling: true  #Badger MFG Guided Selling
     mfg_visuals: true        # Badger MFG 3D Visualization (RenderDraw) and configuration flows
 
 #------------------------------#
@@ -326,13 +327,13 @@ project:
 
 #Badger Perms
     badger_mfg_ps: &badger_mfg_ps
-      - MFG_RCA
+      - RLM_MFG_RCA
 
     badger_mfg_scratch_psg: &badger_mfg_scratch_psg
-      - MFG_scratch
+      - RLM_MFG_scratch
 
     badger_mfg_psg: &badger_mfg_psg
-      - MFG
+      - RLM_MFG
 
     badger_aaf_ps: &badger_aaf_ps
       - MFG_AAF
@@ -1323,8 +1324,8 @@ tasks:
 
   deploy_mfg_core_setup:
     description: >
-      Deploy Manufacturing core Apex classes (salesAgreementRLMOrder, serviceContractQuote),
-      OpenSObject Aura component, MFG_RCA permission set, MFG_scratch permission set group,
+      Deploy Manufacturing core Apex classes (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote),
+      OpenSObject Aura component, RLM_MFG_RCA permission set, RLM_MFG_scratch permission set group,
       and SalesAgreement settings.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
@@ -2798,13 +2799,16 @@ flows:
     steps:
       1:
         task: deploy_mfg_core_assets
+        when: project_config.project__custom__badger
       2:
         task: deploy_mfg_theme_and_fields
+        when: project_config.project__custom__badger
       3:
         task: deploy_mfg_core_setup
+        when: project_config.project__custom__badger
       4:
         task: deploy_mfg_tso_perms
-        when: project_config.project__custom__tso
+        when: project_config.project__custom__badger and project_config.project__custom__tso
 
   prepare_manufacturing:
     group: Manufacturing
@@ -2822,6 +2826,7 @@ flows:
         flow: prepare_mfg_perms
       3:
         task: deploy_mfg_flows_and_actions
+        when: project_config.project__custom__badger
       4:
         flow: prepare_mfg_docgen
       5:
@@ -2838,7 +2843,6 @@ flows:
         when: project_config.project__custom__badger
       10:
         flow: prepare_mfg_visuals
-        when: project_config.project__custom__mfg_visuals
       11:
         flow: prepare_mfg_guided_selling
       12:
@@ -2847,6 +2851,7 @@ flows:
         flow: prepare_mfg_aaf
       14:
         task: util_sleep
+        when: project_config.project__custom__badger
         options:
           seconds: *sleep_default
       15:
@@ -2854,7 +2859,6 @@ flows:
         when: project_config.project__custom__badger
       16:
         flow: prepare_mfg_ux
-        when: project_config.project__custom__ux
       17:
         task: activate_mfg_theme
         when: project_config.project__custom__badger
@@ -3473,6 +3477,7 @@ flows:
     steps:
       1:
         task: util_sleep
+        when: project_config.project__custom__badger
         options:
           seconds: *sleep_default
       2:
@@ -3658,14 +3663,14 @@ flows:
     description: >
       Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions,
       OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments.
-      Gated by guidedselling=true and badger=true.
+      Gated by badger=true and mfg_guidedselling=true.
     steps:
       1:
         task: insert_badger_guidedselling_data
-        when: project_config.project__custom__guidedselling and project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_guidedselling
       2:
         task: deploy_mfg_guided_selling
-        when: project_config.project__custom__guidedselling and project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_guidedselling
 
   prepare_mfg_rebates:
     group: Manufacturing
@@ -3765,10 +3770,11 @@ flows:
       MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
       Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing).
       Run this flow independently to test manufacturing UX assembly without running the full
-      prepare_rlm_org flow. Gated by ux=true in prepare_manufacturing.
+      prepare_rlm_org flow. Gated by badger=true and ux=true in prepare_manufacturing.
     steps:
       1:
         task: assemble_and_deploy_ux
+        when: project_config.project__custom__badger and project_config.project__custom__ux
         options:
           output_path: unpackaged/post_manufacturing_ux
           manufacturing: true

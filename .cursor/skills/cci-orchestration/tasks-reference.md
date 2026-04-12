@@ -611,7 +611,7 @@
 
 ### `deploy_mfg_core_setup`
 
-**Description:** Deploy Manufacturing core Apex classes (salesAgreementRLMOrder, serviceContractQuote), OpenSObject Aura component, MFG_RCA permission set, MFG_scratch permission set group, and SalesAgreement settings.
+**Description:** Deploy Manufacturing core Apex classes (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote), OpenSObject Aura component, RLM_MFG_RCA permission set, RLM_MFG_scratch permission set group, and SalesAgreement settings.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
