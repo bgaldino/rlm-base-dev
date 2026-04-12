@@ -186,7 +186,7 @@
       "contextAttribute": "SalesAgreement__c",
       "mappingType": "SOBJECT",
       "sObject": "Quote",
-      "sObjectField": "Sales_Agreement__c"
+      "sObjectField": "RLM_MFG_Sales_Agreement__c"
     },
     {
       "mappingName": "OrderEntitiesMapping",
@@ -202,7 +202,7 @@
       "contextAttribute": "ConstraintEngineNodeStatus__c",
       "mappingType": "SOBJECT",
       "sObject": "SalesAgreementProduct",
-      "sObjectField": "ConstraintEngineNodeStatus__c"
+      "sObjectField": "RLM_MFG_ConstraintEngineNodeStatus__c"
     },
     {
       "mappingName": "ContractNodeMapping",
@@ -394,7 +394,7 @@
       "contextAttribute": "SalesAgreement__c",
       "mappingType": "SOBJECT",
       "sObject": "Quote",
-      "sObjectField": "Sales_Agreement__c"
+      "sObjectField": "RLM_MFG_Sales_Agreement__c"
     },
     {
       "mappingName": "ContractToSalesTxnMapping",
