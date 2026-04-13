@@ -1,0 +1,4 @@
+﻿"Id","Category","Code","Description","Name","Status","UsageResourceBillingPolicyId","UsageDefinitionProductId","UnitOfMeasureClassId","DefaultUnitOfMeasureId","Errors"
+"1BRak000000ASO1GAO","Usage","SF-UR-STORAGE","Snowflake optimized storage (TB-month average)","Snowflake Optimized Storage","Draft","1cfak000000A4yQAAS","01tak00000Q4YnTAAV","1BQak000000AAxNGAW","0hEak000000DNtOEAW","#N/A"
+"1BRak000000ASO2GAO","Usage","SF-UR-EGRESS","Snowflake cross-cloud/region data egress","Snowflake Data Egress","Draft","1cfak000000A4yPAAS","01tak00000Q4YnUAAV","1BQak000000AAxNGAW","0hEak000000DNtHEAW","#N/A"
+"1BRak000000ASO3GAO","Usage","SF-UR-COMPUTE","Snowflake compute credits (warehouse consumption)","Snowflake Compute Credits","Draft","1cfak000000A4yPAAS","01tak00000Q4YnVAAV","1BQak000000ACO5GAO","0hEak000000DQj3EAG","#N/A"

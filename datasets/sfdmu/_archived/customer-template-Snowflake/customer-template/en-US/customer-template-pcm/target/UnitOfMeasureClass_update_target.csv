@@ -1,0 +1,3 @@
+﻿"Id","Code","Description","Name","Status","Type","BaseUnitOfMeasureId","DefaultUnitOfMeasureId","Errors"
+"1BQak000000AAxNGAW","DATAVOL","Data volume (storage and transfer)","Data Volume","Draft","Usage","0hEak000000DNtHEAW","0hEak000000DNtHEAW","#N/A"
+"1BQak000000ACO5GAO","SNFCRED","Snowflake-style capacity credits","Snowflake Credits","Draft","Usage","0hEak000000DQj3EAG","0hEak000000DQj3EAG","#N/A"

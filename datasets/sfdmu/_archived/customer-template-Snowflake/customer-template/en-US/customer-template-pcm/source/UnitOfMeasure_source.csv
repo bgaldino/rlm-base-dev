@@ -1,0 +1,5 @@
+﻿"Id","ConversionFactor","Description","Name","RoundingMethod","Scale","Sequence","Status","Type","UnitCode","UnitOfMeasureClass.Code","UnitOfMeasureClassId","UnitOfMeasureClass.Id"
+"IVRHHDEZWZ9HWSPTLS","1","#N/A","Gigabyte","#N/A","#N/A","4","Active","Data","GB","DATAVOL","ZPERFQ5HIKLEMMI4GE","ZPERFQ5HIKLEMMI4GE"
+"MBYYBXCT5DT6OGWDPG","0.001","#N/A","Terabyte","#N/A","#N/A","5","Active","Data","TB","DATAVOL","ZPERFQ5HIKLEMMI4GE","ZPERFQ5HIKLEMMI4GE"
+"OJBLNOXQFZOKXICNEQ","1","#N/A","Snowflake Credit","#N/A","#N/A","1","Active","Count","CRD","SNFCRED","FAKBE1IWWAE83DZKEA","FAKBE1IWWAE83DZKEA"
+"ID0000000000000001","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","#N/A","EACH","#N/A","#N/A","#N/A"

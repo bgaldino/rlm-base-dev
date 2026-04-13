@@ -1,0 +1,4 @@
+﻿"Id","RatingFrequencyPolicy.RatingPeriod","UsageAggregationPolicy.Code","UsageCommitmentPolicy.Name","UsageOveragePolicy.Name","UsageAggregationPolicyId","UsageOveragePolicyId","RatingFrequencyPolicyId","ProductUsageResourceId","UsageCommitmentPolicyId"
+"VFKABSRSW4XPWQYXAG","Monthly","monthlypeak","#N/A","Default Usage Overage Policy","XXDMXTEXG1XXNNKLHN","BD2AMQBJSGIQ2A7SFH","H8J0V03BB0OYAEX9VQ","DGIVMM3F6EODDG5OZN","#N/A"
+"7QBG3GKYI2ZEQCA5AK","Monthly","monthlytotal","#N/A","Default Usage Overage Policy","45VM9BK8DPISFODNWU","BD2AMQBJSGIQ2A7SFH","H8J0V03BB0OYAEX9VQ","0LKSCOBNSKJ308JC4Q","#N/A"
+"2UASI8GLRUNULRAX9E","Monthly","monthlytotal","#N/A","Default Usage Overage Policy","45VM9BK8DPISFODNWU","BD2AMQBJSGIQ2A7SFH","H8J0V03BB0OYAEX9VQ","W4T2HMYLLXSG7TQRCR","#N/A"

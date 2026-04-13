@@ -1,0 +1,2 @@
+﻿"Id","BillingType","Controller","Description","FlatAmount","MilestoneStartDateOffset","MilestoneStartDateOffsetUnit","MilestoneStartDate","MilestoneType","Name","Percentage","ProcessingOrder","Sequencing","Status","Type","Handling0Amount","BillingTreatmentId","Errors"
+"1BDak000000IXgfGAG","Arrears","BillingScheduleGroup","Invoice in arrears for demo","#N/A","#N/A","#N/A","#N/A","#N/A","Snowflake Demo BTI Arrears","#N/A","1","Manual","Draft","Remainder","CreateInvoice","1BTak00000021zJGAQ","#N/A"

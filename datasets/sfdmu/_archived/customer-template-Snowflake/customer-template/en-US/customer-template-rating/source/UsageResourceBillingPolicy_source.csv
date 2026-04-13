@@ -1,0 +1,3 @@
+﻿"Id","Code","Name","Status","UsageAccumulationMethod","UsageAccumulationPeriod"
+"XXDMXTEXG1XXNNKLHN","monthlypeak","Monthly Peak","Active","Peak","Monthly"
+"45VM9BK8DPISFODNWU","monthlytotal","Monthly Total","Active","Sum","Monthly"

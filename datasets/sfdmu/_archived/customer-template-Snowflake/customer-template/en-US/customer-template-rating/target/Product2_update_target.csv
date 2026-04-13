@@ -1,0 +1,4 @@
+﻿"Id","Name","ProductCode","StockKeepingUnit","UsageModelType","Errors"
+"01tak00000Q4YnTAAV","#N/A","#N/A","SF-BLNG-STORAGE","#N/A","Required fields are missing: [Name]"
+"01tak00000Q4YnUAAV","#N/A","#N/A","SF-BLNG-EGRESS","#N/A","Required fields are missing: [Name]"
+"01tak00000Q4YnVAAV","#N/A","#N/A","SF-BLNG-COMPUTE","#N/A","Required fields are missing: [Name]"

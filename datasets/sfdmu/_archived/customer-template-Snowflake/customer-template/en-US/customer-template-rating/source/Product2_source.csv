@@ -1,0 +1,7 @@
+﻿"Id","Name","ProductCode","StockKeepingUnit","UsageModelType"
+"CPQAEXGYBMUTTWUG1V","Snowflake — Metered Optimized Storage","SF-USG-STORAGE","SF-USG-STORAGE","Anchor"
+"JTUKADGZALB8RNX9WM","Snowflake — Metered Data Egress","SF-USG-EGRESS","SF-USG-EGRESS","Anchor"
+"D146D3UPG2SJNMXAN7","Snowflake — Metered Compute Credits","SF-USG-COMPUTE","SF-USG-COMPUTE","Anchor"
+"ID0000000000000001","#N/A","#N/A","SF-BLNG-STORAGE","#N/A"
+"ID0000000000000002","#N/A","#N/A","SF-BLNG-EGRESS","#N/A"
+"ID0000000000000003","#N/A","#N/A","SF-BLNG-COMPUTE","#N/A"

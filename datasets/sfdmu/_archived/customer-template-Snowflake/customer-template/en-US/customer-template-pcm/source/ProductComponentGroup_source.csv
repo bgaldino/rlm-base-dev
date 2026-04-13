@@ -1,0 +1,3 @@
+﻿"Id","Code","Description","MaxBundleComponents","MinBundleComponents","Name","ParentProduct.StockKeepingUnit","Sequence","ParentProductId","ParentGroupId","ParentGroup.Code"
+"Q3QZ1BS8FU1PWHYEGZ","PCG-SF-START","Starter bundle components","2","2","Core","SF-BND-STARTER","1","JWBIFBUESXHHNREJS6","ID0000000000000005","ID0000000000000006"
+"Y129O5TRZUKKVUYMG2","PCG-SF-GROW","Growth bundle components","2","2","Core","SF-BND-GROWTH","1","OJGJ8CGGZGMOG30AHJ","ID0000000000000007","ID0000000000000008"

@@ -1,0 +1,2 @@
+﻿"Id","Code","IsRenewalAllowed","Name","RenewalFrequency","RenewalFrequencyUnit","Status"
+"FOXZGACCWWTOP2Z6V4","SF-DEMO-USG-RENEW","true","Snowflake Demo Usage Grant Renewal","1","Month","Active"
