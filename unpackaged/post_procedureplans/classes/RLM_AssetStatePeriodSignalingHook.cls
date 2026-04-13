@@ -301,7 +301,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             }
 
             response.status = RevSignaling.TransactionStatus.SUCCESS;
-            response.message = 'ItemInstallBaseAmount__c updated for ' + nodeUpdates.size() + ' line(s).';
+            response.message = 'Data path and attributes updated for ' + nodeUpdates.size() + ' node(s).';
             System.debug(LoggingLevel.DEBUG, DBG + '.execute: SUCCESS message=' + response.message);
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, DBG + '.execute: FAILED ' + e.getMessage() + ' ' + e.getStackTraceString());
@@ -1099,7 +1099,6 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             DBG +
                 '.buildSalesTransactionAttributes: enter' +
                 ' contributingLines=' + rollup.contributingLineCount +
-                ' totalInstallBase=' + rollup.totalInstallBase +
                 ' netNew=' + rollup.netNewAmount +
                 ' expansion=' + rollup.expansionAmount +
                 ' churned=' + rollup.churnedAmount +
@@ -1196,7 +1195,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
      * and written to the SalesTransaction header node after all lines are processed.
      */
     private class TransactionRollupTotals {
-        public Decimal totalInstallBase = 0;
+//        public Decimal totalInstallBase = 0;
         public Decimal netNewAmount = 0;
         public Decimal expansionAmount = 0;
         public Decimal churnedAmount = 0;
@@ -1217,7 +1216,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             Decimal lineChurnedArr, Decimal lineRenewalArr, Decimal lineIarr
         ) {
             System.debug(LoggingLevel.DEBUG, DBG + '.TransactionRollupTotals.accumulateLine: enter');
-            totalInstallBase += nz(lineTotal);
+//            totalInstallBase += nz(lineTotal);
             netNewAmount += nz(lineNetNew);
             expansionAmount += nz(lineExpansion);
             churnedAmount += nz(lineChurned);
@@ -1233,7 +1232,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             System.debug(
                 LoggingLevel.DEBUG,
                 DBG + '.TransactionRollupTotals.accumulateLine: exit lineCount=' + contributingLineCount +
-                    ' runningInstallBase=' + totalInstallBase
+                    ' totalARR=' + arr
             );
         }
 

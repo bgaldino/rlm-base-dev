@@ -26,25 +26,26 @@ private class RLM_AssetStatePeriodSignalingHookTest {
     }
 
     @IsTest
-    static void proratedAmount_fullOverlap() {
+    static void proratedAmount_fullMonthOverlap() {
         Date lineS = Date.newInstance(2025, 1, 1);
-        Date lineE = Date.newInstance(2025, 1, 10);
+        Date lineE = Date.newInstance(2025, 1, 31);
         Date aspS = Date.newInstance(2025, 1, 1);
-        Date aspE = Date.newInstance(2025, 1, 10);
-        Decimal amt = 100;
-        Decimal got = RLM_AssetStatePeriodSignalingHook.proratedAmountForOverlap(lineS, lineE, aspS, aspE, amt);
-        System.assertEquals(100, got);
+        Date aspE = Date.newInstance(2025, 1, 31);
+        Decimal mrr = 100;
+        Decimal got = RLM_AssetStatePeriodSignalingHook.proratedAmountForOverlap(lineS, lineE, aspS, aspE, mrr);
+        System.assertEquals(100, got, 'Full calendar month overlap = 1 * MRR');
     }
 
     @IsTest
-    static void proratedAmount_halfOverlap() {
+    static void proratedAmount_partialMonthOverlap() {
         Date lineS = Date.newInstance(2025, 1, 1);
-        Date lineE = Date.newInstance(2025, 1, 5);
+        Date lineE = Date.newInstance(2025, 1, 15);
         Date aspS = Date.newInstance(2025, 1, 1);
-        Date aspE = Date.newInstance(2025, 1, 10);
-        // overlap 5 days, asp 10 days -> 50%
-        Decimal got = RLM_AssetStatePeriodSignalingHook.proratedAmountForOverlap(lineS, lineE, aspS, aspE, 100);
-        System.assertEquals(50, got);
+        Date aspE = Date.newInstance(2025, 1, 31);
+        Decimal mrr = 310;
+        Decimal got = RLM_AssetStatePeriodSignalingHook.proratedAmountForOverlap(lineS, lineE, aspS, aspE, mrr);
+        Decimal expected = mrr * (Decimal.valueOf(15) / Decimal.valueOf(31));
+        System.assertEquals(expected, got, 'Partial month fraction = 15/31 * MRR');
     }
 
     @IsTest
@@ -70,10 +71,12 @@ private class RLM_AssetStatePeriodSignalingHookTest {
     }
 
     @IsTest
-    static void proratedAmount_zeroAspDays_usesFullAmountWhenOverlap() {
-        // Same start/end for ASP: inclusive count is 1, not zero — normal path
+    static void proratedAmount_singleDayOverlap() {
         Date d = Date.newInstance(2025, 3, 1);
-        System.assertEquals(42, RLM_AssetStatePeriodSignalingHook.proratedAmountForOverlap(d, d, d, d, 42));
+        Decimal mrr = 42;
+        Decimal got = RLM_AssetStatePeriodSignalingHook.proratedAmountForOverlap(d, d, d, d, mrr);
+        Decimal expected = mrr * (Decimal.valueOf(1) / Decimal.valueOf(31));
+        System.assertEquals(expected, got, 'Single day in March = 1/31 * MRR');
     }
 
     @IsTest
@@ -105,6 +108,84 @@ private class RLM_AssetStatePeriodSignalingHookTest {
     }
 
     @IsTest
+    static void resolveAccountIdFromNode_nullNode() {
+        System.assertEquals(null, RLM_AssetStatePeriodSignalingHook.resolveAccountIdFromNode(null));
+    }
+
+    @IsTest
+    static void resolveAccountIdFromNode_noTagValue() {
+        Map<String, Object> node = new Map<String, Object>{ 'dataPath' => new List<Object>{ 'a' } };
+        System.assertEquals(null, RLM_AssetStatePeriodSignalingHook.resolveAccountIdFromNode(node));
+    }
+
+    @IsTest
+    static void resolveAccountIdFromNode_resolves_Account() {
+        Id userId = UserInfo.getUserId();
+        Map<String, Object> node = new Map<String, Object>{
+            'tagValue' => new Map<String, Object>{
+                'Account' => new Map<String, Object>{ 'tagValue' => String.valueOf(userId) }
+            }
+        };
+        System.assertEquals(userId, RLM_AssetStatePeriodSignalingHook.resolveAccountIdFromNode(node));
+    }
+
+    @IsTest
+    static void resolveAccountIdFromNode_fallsBackToQuoteAccount() {
+        Id userId = UserInfo.getUserId();
+        Map<String, Object> node = new Map<String, Object>{
+            'tagValue' => new Map<String, Object>{
+                'QuoteAccount' => new Map<String, Object>{ 'tagValue' => String.valueOf(userId) }
+            }
+        };
+        System.assertEquals(userId, RLM_AssetStatePeriodSignalingHook.resolveAccountIdFromNode(node));
+    }
+
+    @IsTest
+    static void salesTransactionDataPath_nullNode() {
+        System.assertEquals(null, RLM_AssetStatePeriodSignalingHook.salesTransactionDataPath(null));
+    }
+
+    @IsTest
+    static void salesTransactionDataPath_noDataPath() {
+        Map<String, Object> node = new Map<String, Object>{
+            'tagValue' => new Map<String, Object>{ 'Account' => 'x' }
+        };
+        System.assertEquals(null, RLM_AssetStatePeriodSignalingHook.salesTransactionDataPath(node));
+    }
+
+    @IsTest
+    static void salesTransactionDataPath_returnsCopy() {
+        List<Object> original = new List<Object>{ 'root', 'child' };
+        Map<String, Object> node = new Map<String, Object>{
+            'dataPath' => original
+        };
+        List<Object> result = RLM_AssetStatePeriodSignalingHook.salesTransactionDataPath(node);
+        System.assertEquals(2, result.size());
+        System.assertEquals('root', result[0]);
+        System.assertEquals('child', result[1]);
+        result.add('extra');
+        System.assertEquals(2, original.size(), 'Original dataPath should not be mutated');
+    }
+
+    @IsTest
+    static void execute_nullRequest_fails() {
+        RLM_AssetStatePeriodSignalingHook hook = new RLM_AssetStatePeriodSignalingHook();
+        RevSignaling.TransactionResponse resp = hook.execute(null);
+        System.assertEquals(RevSignaling.TransactionStatus.FAILED, resp.status);
+    }
+
+    @IsTest
+    static void execute_blankCtxInstanceId_fails() {
+        RLM_AssetStatePeriodSignalingHook hook = new RLM_AssetStatePeriodSignalingHook();
+        RevSignaling.TransactionRequest req =
+            (RevSignaling.TransactionRequest) JSON.deserialize(
+                '{"ctxInstanceId":""}', RevSignaling.TransactionRequest.class
+            );
+        RevSignaling.TransactionResponse resp = hook.execute(req);
+        System.assertEquals(RevSignaling.TransactionStatus.FAILED, resp.status);
+    }
+
+    @IsTest
     static void buildLineContextRow_deleted_skips() {
         Map<String, Object> itemNode = new Map<String, Object>{
             'dataPath' => new List<Object>{ 'a', 'b', 'c' },
@@ -125,8 +206,8 @@ private class RLM_AssetStatePeriodSignalingHookTest {
             'dataPath' => new List<Object>{ 'root', 'mid', 'leaf' },
             'tagValue' => new Map<String, Object>{
                 'LineItem' => new Map<String, Object>{ 'tagValue' => 'QLI001' },
-                'StartDate' => new Map<String, Object>{ 'tagValue' => '2025-01-01' },
-                'EndDate' => new Map<String, Object>{ 'tagValue' => '2025-01-31' },
+                'EffectiveFrom' => new Map<String, Object>{ 'tagValue' => '2025-01-01' },
+                'EffectiveTo' => new Map<String, Object>{ 'tagValue' => '2025-01-31' },
                 'Product' => new Map<String, Object>{ 'tagValue' => String.valueOf(productId) },
                 'SellingModelType' => new Map<String, Object>{ 'tagValue' => 'Recurring' }
             }
