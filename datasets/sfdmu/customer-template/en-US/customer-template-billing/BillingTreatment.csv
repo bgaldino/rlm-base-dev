@@ -1,2 +1,1 @@
 BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
-Snowflake Demo Billing Policy,USD,Snowflake demo US billing treatment,false,No,Snowflake Demo Legal Entity - US,Snowflake Demo Billing Treatment - US,Draft,Snowflake Demo Billing Treatment - US;Snowflake Demo Billing Policy;Snowflake Demo Legal Entity - US

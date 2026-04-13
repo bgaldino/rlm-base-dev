@@ -1,4 +1,1 @@
 ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
-1,,Gigabyte,,,4,Active,Data,GB,DATAVOL
-0.001,,Terabyte,,,5,Active,Data,TB,DATAVOL
-1,,Snowflake Credit,,,1,Active,Count,CRD,SNFCRED
