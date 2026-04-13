@@ -2,6 +2,8 @@
 
 The plans under `en-US/` ship as **structure-only**: CSV files retain **headers** (and `export.json` / README learnings per subfolder) but **no sample data rows**. Use this as a starting point when onboarding a new customer demo catalog.
 
+The previous populated Snowflake-style sample (including SFDMU `source/`, `target/`, and `reports/MissingParentRecordsReport.csv`, which are normally gitignored under active plans) is preserved under **`datasets/sfdmu/_archived/customer-template-Snowflake/`** for reference only. Do not point CCI tasks at that path unless you intend to reload that snapshot.
+
 ## What to fill in
 
 | Area | Path | Also update |
