@@ -1,0 +1,2 @@
+CompanyName,CurrencyIsoCode,Description,LegalEntityCity,LegalEntityCountry,LegalEntityPostalCode,LegalEntityState,LegalEntityStreet,Name,Status
+Snowflake Inc.,USD,Snowflake customer demo legal entity,Bozeman,US,59715,MT,106 East Babcock Street,Snowflake Demo Legal Entity - US,Active

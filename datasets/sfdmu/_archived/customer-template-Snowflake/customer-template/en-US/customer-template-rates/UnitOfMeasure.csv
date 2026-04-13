@@ -1,0 +1,5 @@
+Name,UnitCode,UnitOfMeasureClass.Name
+Gigabyte,GB,Data Volume
+Terabyte,TB,Data Volume
+Snowflake Credit,CRD,Snowflake Credits
+USD,USD,Currency

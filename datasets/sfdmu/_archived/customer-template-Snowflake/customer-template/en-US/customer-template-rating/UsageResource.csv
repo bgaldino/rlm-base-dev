@@ -1,0 +1,4 @@
+Category,Code,DefaultUnitOfMeasure.UnitCode,DefaultUnitOfMeasure.Name,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UnitOfMeasureClass.Name,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,SF-UR-STORAGE,TB,Terabyte,Snowflake optimized storage (TB-month average),Snowflake Optimized Storage,Draft,,DATAVOL,Data Volume,SF-BLNG-STORAGE,monthlypeak
+Usage,SF-UR-EGRESS,GB,Gigabyte,Snowflake cross-cloud/region data egress,Snowflake Data Egress,Draft,,DATAVOL,Data Volume,SF-BLNG-EGRESS,monthlytotal
+Usage,SF-UR-COMPUTE,CRD,Snowflake Credit,Snowflake compute credits (warehouse consumption),Snowflake Compute Credits,Draft,,SNFCRED,Snowflake Credits,SF-BLNG-COMPUTE,monthlytotal
