@@ -1,0 +1,13 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,,Stainless steel micromesh gutter protection system for existing gutters,,LeafFilter,true,true,false,LeafFilter Gutter Protection System,LF-GUARD-CORE,EACH,,LF-GUARD-CORE,,EACH
+,false,,Certified professional installation with proper pitch and seal,,LeafFilter,true,true,false,LeafFilter Professional Installation,LF-INSTALL-STD,EACH,,LF-INSTALL-STD,,EACH
+,false,,On-site measurement and consultation before install,,LeafFilter,true,false,false,LeafFilter Site Survey,LF-SITE-SURVEY,EACH,,LF-SITE-SURVEY,,EACH
+,false,,Pre-install gutter cleaning and debris removal,,LeafFilter,true,false,false,LeafFilter Pre-Install Gutter Cleaning,LF-GUTTER-CLEAN,EACH,,LF-GUTTER-CLEAN,,EACH
+,false,,Seamless gutter segment or replacement scope,,LeafFilter,true,true,false,LeafFilter Seamless Gutter Segment,LF-SEAMLESS-SEG,EACH,,LF-SEAMLESS-SEG,,EACH
+,false,,Downspout extensions and drainage accessories,,LeafFilter,true,true,false,LeafFilter Downspout Accessory Kit,LF-DOWNSPOUT-KIT,EACH,,LF-DOWNSPOUT-KIT,,EACH
+,false,,Maintenance brush for occasional top-of-guard debris,,LeafFilter,true,false,false,LeafFilter Surface Maintenance Kit,LF-DEBRIS-BRUSH,EACH,,LF-DEBRIS-BRUSH,,EACH
+,false,Allowed,Bundle of micromesh system plus standard installation,,LeafFilter,true,true,false,LeafFilter Guard and Install Bundle,LF-BUNDLE-GUARD-INSTALL,EACH,,LF-BUNDLE-GUARD-INSTALL,Bundle,EACH
+,false,Allowed,Complete package with optional upgrades,,LeafFilter,true,true,false,LeafFilter Complete Home Package,LF-BUNDLE-GUARD-FULL,EACH,,LF-BUNDLE-GUARD-FULL,Bundle,EACH
+,false,,Annual inspection tune-up and priority scheduling,,LeafFilter,true,false,false,LeafFilter Annual Care Plan,LF-CARE-ANNUAL,EACH,,LF-CARE-ANNUAL,,EACH
+,false,,Warranty registration and documentation fee,,LeafFilter,true,false,false,LeafFilter Warranty Registration,LF-WARRANTY-REG,EACH,,LF-WARRANTY-REG,,EACH
+,false,,Outdoor lighting consultation add-on,,LeafFilter,true,false,false,LeafFilter Outdoor Lighting Add-On,LF-OUTDOOR-LIGHT-ADDON,EACH,,LF-OUTDOOR-LIGHT-ADDON,,EACH

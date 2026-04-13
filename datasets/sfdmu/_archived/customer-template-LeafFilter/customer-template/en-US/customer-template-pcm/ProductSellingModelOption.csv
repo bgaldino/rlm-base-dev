@@ -1,0 +1,13 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+LF-GUARD-CORE;One-Time;OneTime,true,LF-GUARD-CORE,One-Time;OneTime,
+LF-INSTALL-STD;One-Time;OneTime,true,LF-INSTALL-STD,One-Time;OneTime,
+LF-SITE-SURVEY;One-Time;OneTime,true,LF-SITE-SURVEY,One-Time;OneTime,
+LF-GUTTER-CLEAN;One-Time;OneTime,true,LF-GUTTER-CLEAN,One-Time;OneTime,
+LF-SEAMLESS-SEG;One-Time;OneTime,true,LF-SEAMLESS-SEG,One-Time;OneTime,
+LF-DOWNSPOUT-KIT;One-Time;OneTime,true,LF-DOWNSPOUT-KIT,One-Time;OneTime,
+LF-DEBRIS-BRUSH;One-Time;OneTime,true,LF-DEBRIS-BRUSH,One-Time;OneTime,
+LF-BUNDLE-GUARD-INSTALL;One-Time;OneTime,true,LF-BUNDLE-GUARD-INSTALL,One-Time;OneTime,
+LF-BUNDLE-GUARD-FULL;One-Time;OneTime,true,LF-BUNDLE-GUARD-FULL,One-Time;OneTime,
+LF-CARE-ANNUAL;Term Annual;TermDefined,true,LF-CARE-ANNUAL,Term Annual;TermDefined,Default Proration Policy
+LF-WARRANTY-REG;One-Time;OneTime,true,LF-WARRANTY-REG,One-Time;OneTime,
+LF-OUTDOOR-LIGHT-ADDON;One-Time;OneTime,true,LF-OUTDOOR-LIGHT-ADDON,One-Time;OneTime,

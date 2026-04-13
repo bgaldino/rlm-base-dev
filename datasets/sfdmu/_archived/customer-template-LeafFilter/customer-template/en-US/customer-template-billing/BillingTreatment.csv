@@ -1,0 +1,2 @@
+BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
+LeafFilter Demo Billing Policy,USD,LeafFilter demo US billing treatment,false,No,LeafFilter Demo Legal Entity - US,LeafFilter Demo Billing Treatment - US,Draft,LeafFilter Demo Billing Treatment - US;LeafFilter Demo Billing Policy;LeafFilter Demo Legal Entity - US

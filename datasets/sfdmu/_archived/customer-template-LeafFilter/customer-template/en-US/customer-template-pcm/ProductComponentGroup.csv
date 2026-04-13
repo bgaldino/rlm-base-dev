@@ -1,0 +1,5 @@
+$$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+PCG-LF-INST-CORE;LF-BUNDLE-GUARD-INSTALL,PCG-LF-INST-CORE,,2,2,Required system and install,,LF-BUNDLE-GUARD-INSTALL,1
+PCG-LF-INST-OPT;LF-BUNDLE-GUARD-INSTALL,PCG-LF-INST-OPT,,2,0,Optional prep services,,LF-BUNDLE-GUARD-INSTALL,2
+PCG-LF-FULL-CORE;LF-BUNDLE-GUARD-FULL,PCG-LF-FULL-CORE,,2,2,Required system and install,,LF-BUNDLE-GUARD-FULL,1
+PCG-LF-FULL-ADD;LF-BUNDLE-GUARD-FULL,PCG-LF-FULL-ADD,,6,0,Optional upgrades and prep,,LF-BUNDLE-GUARD-FULL,2

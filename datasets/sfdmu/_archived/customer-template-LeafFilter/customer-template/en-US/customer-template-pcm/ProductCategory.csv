@@ -1,0 +1,6 @@
+Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+LF-PC-BUNDLE,Bundles,CD-DEMO-CAT,Configured bundle offers,true,5,
+LF-PC-GUTTER,Gutter Protection,CD-DEMO-CAT,LeafFilter micromesh system and core SKUs,true,10,
+LF-PC-SVC,Gutter Services,CD-DEMO-CAT,Cleaning survey and related services,true,20,
+LF-PC-DRAIN,Gutters and Drainage,CD-DEMO-CAT,Seamless gutters downspouts and add-ons,true,30,
+LF-PC-CARE,Care and Inspection,CD-DEMO-CAT,Annual care and warranty-adjacent lines,true,40,

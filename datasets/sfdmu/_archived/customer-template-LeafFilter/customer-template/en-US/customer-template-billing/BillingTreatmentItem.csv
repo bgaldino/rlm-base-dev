@@ -1,0 +1,2 @@
+$$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount
+LeafFilter Demo BTI Arrears;LeafFilter Demo Billing Treatment - US,LeafFilter Demo Billing Treatment - US,Arrears,BillingScheduleGroup,USD,Invoice in arrears for demo,,,,,,LeafFilter Demo BTI Arrears,,1,Manual,Draft,Remainder,CreateInvoice
