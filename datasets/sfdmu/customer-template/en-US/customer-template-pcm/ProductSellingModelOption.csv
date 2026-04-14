@@ -1,1 +1,20 @@
 $$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+SF-SNOW-EDU-STD;Term Monthly;TermDefined,true,SF-SNOW-EDU-STD,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-EDU-ENT;Term Monthly;TermDefined,true,SF-SNOW-EDU-ENT,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-EDU-BC;Term Monthly;TermDefined,true,SF-SNOW-EDU-BC,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-EDU-VPS;Term Monthly;TermDefined,true,SF-SNOW-EDU-VPS,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-SUPPORT-STD;Term Monthly;TermDefined,true,SF-SNOW-SUPPORT-STD,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-SUPPORT-PREM;Term Monthly;TermDefined,true,SF-SNOW-SUPPORT-PREM,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-BND-STARTER;Term Monthly;TermDefined,true,SF-SNOW-BND-STARTER,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-BND-GROWTH;Term Monthly;TermDefined,true,SF-SNOW-BND-GROWTH,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-PS-MIGRATE;One-Time;OneTime,true,SF-SNOW-PS-MIGRATE,One-Time;OneTime,
+SF-USG-STORAGE;Term Monthly;TermDefined,true,SF-USG-STORAGE,Term Monthly;TermDefined,Default Proration Policy
+SF-USG-EGRESS;Term Monthly;TermDefined,true,SF-USG-EGRESS,Term Monthly;TermDefined,Default Proration Policy
+SF-USG-COMPUTE;Term Monthly;TermDefined,true,SF-USG-COMPUTE,Term Monthly;TermDefined,Default Proration Policy
+SF-BLNG-STORAGE;Term Monthly;TermDefined,true,SF-BLNG-STORAGE,Term Monthly;TermDefined,Default Proration Policy
+SF-BLNG-EGRESS;Term Monthly;TermDefined,true,SF-BLNG-EGRESS,Term Monthly;TermDefined,Default Proration Policy
+SF-BLNG-COMPUTE;Term Monthly;TermDefined,true,SF-BLNG-COMPUTE,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-MKT-DATA-PKG;Term Monthly;TermDefined,true,SF-SNOW-MKT-DATA-PKG,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-SHARE-CONN;Term Monthly;TermDefined,true,SF-SNOW-SHARE-CONN,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-PRV-LINK;Term Monthly;TermDefined,true,SF-SNOW-PRV-LINK,Term Monthly;TermDefined,Default Proration Policy
+SF-SNOW-PS-RESIDENT;Term Monthly;TermDefined,true,SF-SNOW-PS-RESIDENT,Term Monthly;TermDefined,Default Proration Policy

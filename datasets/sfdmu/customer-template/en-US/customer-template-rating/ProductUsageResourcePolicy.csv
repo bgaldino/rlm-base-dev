@@ -1,1 +1,4 @@
 ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource.Code,RatingFrequencyPolicy.RatingPeriod,UsageAggregationPolicy.Code,UsageCommitmentPolicy.Name,UsageOveragePolicy.Name
+SF-USG-STORAGE,SF-UR-STORAGE,Monthly,monthlypeak,,Default Usage Overage Policy
+SF-USG-EGRESS,SF-UR-EGRESS,Monthly,monthlytotal,,Default Usage Overage Policy
+SF-USG-COMPUTE,SF-UR-COMPUTE,Monthly,monthlytotal,,Default Usage Overage Policy

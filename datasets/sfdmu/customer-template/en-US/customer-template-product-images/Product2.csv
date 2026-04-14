@@ -1,1 +1,20 @@
 DisplayUrl,Name,StockKeepingUnit
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Standard Edition,SF-SNOW-EDU-STD
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Enterprise Edition,SF-SNOW-EDU-ENT
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Business Critical Edition,SF-SNOW-EDU-BC
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Virtual Private Snowflake,SF-SNOW-EDU-VPS
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Standard Success,SF-SNOW-SUPPORT-STD
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Premier Success,SF-SNOW-SUPPORT-PREM
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Starter Success Bundle,SF-SNOW-BND-STARTER
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Growth Premier Bundle,SF-SNOW-BND-GROWTH
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Migration Quickstart Workshop,SF-SNOW-PS-MIGRATE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Resident Architect,SF-SNOW-PS-RESIDENT
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Marketplace Data Package,SF-SNOW-MKT-DATA-PKG
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Secure Data Sharing Connector,SF-SNOW-SHARE-CONN
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Private Connectivity Add-on,SF-SNOW-PRV-LINK
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Metered Optimized Storage,SF-USG-STORAGE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Metered Data Egress,SF-USG-EGRESS
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Metered Compute Credits,SF-USG-COMPUTE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Usage Definition (Storage),SF-BLNG-STORAGE
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Usage Definition (Egress),SF-BLNG-EGRESS
+/resource/RLM_customer_snowflake_logo_sq,Snowflake — Usage Definition (Compute),SF-BLNG-COMPUTE

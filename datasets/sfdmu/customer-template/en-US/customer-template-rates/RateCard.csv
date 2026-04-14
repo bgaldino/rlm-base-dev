@@ -1,1 +1,3 @@
 $$Name$Type,Description,EffectiveFrom,EffectiveTo,Name,Type
+CD-DEMO Base Rate Card;Base,Customer demo flat usage rates,2024-01-01T20:00:00.000+0000,,CD-DEMO Base Rate Card,Base
+CD-DEMO Tier Rate Card;Tier,Customer demo tiered usage rates (RateAdjustmentByTier),2024-01-01T20:00:00.000+0000,,CD-DEMO Tier Rate Card,Tier

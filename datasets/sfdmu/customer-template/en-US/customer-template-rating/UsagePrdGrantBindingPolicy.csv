@@ -1,1 +1,4 @@
 $$Name$Product2.StockKeepingUnit,GrantBindingTargetType,GrantBindingType,Name,Product2.StockKeepingUnit
+Snowflake Metered Storage;SF-USG-STORAGE,,Self,Snowflake Metered Storage,SF-USG-STORAGE
+Snowflake Data Egress;SF-USG-EGRESS,,Self,Snowflake Data Egress,SF-USG-EGRESS
+Snowflake Metered Compute;SF-USG-COMPUTE,,Self,Snowflake Metered Compute,SF-USG-COMPUTE

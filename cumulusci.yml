@@ -1347,8 +1347,9 @@ tasks:
   customer_demo_purge_records:
     group: Revenue Lifecycle Management
     description: >
-      Pre-import cleanup: removes QuotLineItmUseRsrcGrant and OrderItemUsageRsrcGrant rows tied to
-      demo UsageResource codes SF-UR-* so later delete_customer_demo_rating_data can drop meters.
+      Pre-import cleanup: removes QuotLineItmUsageRsrcPlcy and OrderItemUsageRsrcPlcy rows tied to
+      demo ProductUsageResourcePolicy (SF-USG-* PURs), then QuotLineItmUseRsrcGrant and
+      OrderItemUsageRsrcGrant on SF-UR-* so delete_customer_demo_rating_data can drop PURP/PUR/UR.
       Does not delete Product2/PCM; full catalog reload follows in prepare_customer_demo_catalog.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -1431,6 +1432,18 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteCustomerDemoRatingData.apex
+
+  delete_customer_demo_catalog_data:
+    group: Data Maintenance
+    description: >
+      Delete customer-template PCM/catalog/billing after rates + rating teardown: Product2 (SF-SNOW-%, SF-USG-%,
+      SF-BLNG-%), SF-DEMO-CAT categories/catalog, SF-SW classification, SF-DEMO-USG-* grant policies, Snowflake Demo
+      billing policy/treatment/legal entity. Does not delete shared UOM classes (DATAVOL, SNFCRED) or URBP codes
+      monthlypeak/monthlytotal. Requires customer_demo_purge_records, delete_customer_demo_rates_data, and
+      delete_customer_demo_rating_data first; quote/order lines on demo SKUs may block Product2 delete.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteCustomerDemoCatalogData.apex
 
   insert_customer_demo_rating_data:
     group: Revenue Lifecycle Management
@@ -2588,6 +2601,22 @@ flows:
         task: activate_rating_records
       6:
         task: activate_rates
+
+  purge_customer_demo_catalog:
+    group: Revenue Lifecycle Management
+    description: >
+      Full teardown of org data loaded from customer-template plans: purge quote/order usage rows on demo meters,
+      delete CD-DEMO rate cards, delete rating slice (PUR/PUG/UR), then delete demo products, catalog SF-DEMO-CAT,
+      and Snowflake Demo billing foundation.
+    steps:
+      1:
+        task: customer_demo_purge_records
+      2:
+        task: delete_customer_demo_rates_data
+      3:
+        task: delete_customer_demo_rating_data
+      4:
+        task: delete_customer_demo_catalog_data
 
   prepare_pricing_data:
     group: Revenue Lifecycle Management
