@@ -1,0 +1,13 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+RK-COMM-PREM;Term Monthly;TermDefined,true,RK-COMM-PREM,Term Monthly;TermDefined,Default Proration Policy
+RK-RES-365;Term Monthly;TermDefined,true,RK-RES-365,Term Monthly;TermDefined,Default Proration Policy
+RK-RODENT;Term Monthly;TermDefined,true,RK-RODENT,Term Monthly;TermDefined,Default Proration Policy
+RK-INSECT;Term Monthly;TermDefined,true,RK-INSECT,Term Monthly;TermDefined,Default Proration Policy
+RK-BIRD;Term Monthly;TermDefined,true,RK-BIRD,Term Monthly;TermDefined,Default Proration Policy
+RK-TERMITE;Term Monthly;TermDefined,true,RK-TERMITE,Term Monthly;TermDefined,Default Proration Policy
+RK-USG-CONNECT;Term Monthly;TermDefined,true,RK-USG-CONNECT,Term Monthly;TermDefined,Default Proration Policy
+RK-FUMIGATION;One-Time;OneTime,true,RK-FUMIGATION,One-Time;OneTime,
+RK-HEATTREAT;One-Time;OneTime,true,RK-HEATTREAT,One-Time;OneTime,
+RK-MOSQUITO;Term Monthly;TermDefined,true,RK-MOSQUITO,Term Monthly;TermDefined,Default Proration Policy
+RK-AUTOGATE;One-Time;OneTime,true,RK-AUTOGATE,One-Time;OneTime,
+RK-RADAR;One-Time;OneTime,true,RK-RADAR,One-Time;OneTime,

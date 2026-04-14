@@ -1,0 +1,3 @@
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,Type
+EVENT,DEVICE_EVENTS,EVENT,PestConnect device monitoring events,Device Events,Draft,Usage
+USD,CURRENCY,USD,,Currency,Draft,Currency

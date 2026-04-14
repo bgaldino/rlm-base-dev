@@ -1,0 +1,3 @@
+$$Name$SellingModelType,DoesAutoRenewAssetByDefault,Name,PricingTerm,PricingTermUnit,SellingModelType,Status
+Term Monthly;TermDefined,false,Term Monthly,1,Months,TermDefined,Active
+One-Time;OneTime,false,One-Time,,,OneTime,Active

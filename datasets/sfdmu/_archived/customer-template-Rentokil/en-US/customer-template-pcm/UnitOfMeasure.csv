@@ -1,0 +1,3 @@
+ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
+1,PestConnect monitoring event,Event,,,1,Active,Count,EVENT,DEVICE_EVENTS
+1,,USD,,,1,Active,Cost,USD,CURRENCY

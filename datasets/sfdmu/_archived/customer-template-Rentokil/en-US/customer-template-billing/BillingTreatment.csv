@@ -1,0 +1,2 @@
+$$Name$BillingPolicy.Name$LegalEntity.Name,Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,IsMilestoneBilling,LegalEntity.Name,Status
+Rentokil Billing Treatment - US;Rentokil Standard Billing;Rentokil Initial,Rentokil Billing Treatment - US,Rentokil Standard Billing,USD,,No,false,Rentokil Initial,Draft

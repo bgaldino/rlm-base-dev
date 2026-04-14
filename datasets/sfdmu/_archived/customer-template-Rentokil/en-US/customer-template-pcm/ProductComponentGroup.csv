@@ -1,0 +1,5 @@
+$$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+PCG-RK-CORE-IPM;RK-COMM-PREM,PCG-RK-CORE-IPM,,3,2,Core IPM Services,,RK-COMM-PREM,1
+PCG-RK-ADDONS;RK-COMM-PREM,PCG-RK-ADDONS,,3,0,Add-On Services,,RK-COMM-PREM,2
+PCG-RK-HOME;RK-RES-365,PCG-RK-HOME,,2,2,Home Protection,,RK-RES-365,1
+PCG-RK-SEASONAL;RK-RES-365,PCG-RK-SEASONAL,,2,0,Seasonal Add-Ons,,RK-RES-365,2

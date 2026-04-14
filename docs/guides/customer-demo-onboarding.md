@@ -39,12 +39,15 @@ After any PCM load, if behavior is suspicious, open **`datasets/sfdmu/.../custom
 - **`scripts/customer-demo/customer-pricebook-entries.csv`** drives both API pricebook recreation and **`customer_demo_verify_catalog`**.
 - Include **`ProductTypeExpected`**: `Bundle` on bundle SKUs, **empty** on all others — verify then enforces **Type = Bundle vs blank** (not “any non-null type”).
 - If `ProductTypeExpected` is **absent**, **`require_product_type`** (default **true**) requires `Type` non-blank on every row.
+- **`CategoryCode` is required** — populate with the **`ProductCategory.Code`** for each SKU (e.g. `PC-RK-COMMERCIAL`). The verify task checks that a `ProductCategoryProduct` row exists for each SKU + category pair. Leaving `CategoryCode` empty causes the verify step to report **"ProductCategoryProduct missing for category"** on every SKU, even when catalog objects loaded correctly.
 
 ## Usage and rates prerequisites
 
 - **PCM** must define **sellable** usage products (**`SF-USG-*`**), **usage-definition** `Product2` rows (**`SF-BLNG-*`**), and **UOM / UOM class** codes referenced by `UsageResource` (template uses `DATAVOL`, `SNFCRED`; keep names aligned across PCM, rating, and rates lookup CSVs).
 - **`UsageModelType` on sellable usage SKUs (`SF-USG-*`):** the **`customer-template-rating`** and **`customer-template-rates`** plans set **`Anchor`** (same as QuantumBit **`QB-DB`**). **`Pack`** is invalid for this shape: the platform **rejects `ProductUsageResourcePolicy`** (“pack usage model type” error), **PURP** never persists, and quote save can fail with **`PlaceSalesTransactionPersistException`** (e.g. index / persist errors). Do not change **`SF-USG-*`** back to **`Pack`** for tier-1 usage demos.
 - **`UsageResource` design:** see **`docs/references/customer-template-usage-resource.md`** — **`Category = Usage`**, **default UOM ∈ UOM class**, **`UsageDefinitionProduct`** (`SF-BLNG-*`), **`UsageResourceBillingPolicy`** (template Upserts **`monthlypeak`** + **`monthlytotal`**; shared policies are **not** deleted by `delete_customer_demo_rating_data`).
+- **Grant policies must reference existing org records** — `UsageGrantRenewalPolicy`, `UsageGrantRolloverPolicy`, and `UsageOveragePolicy` are **setup-like objects** that SFDMU may silently fail to create (the REST API Insert logs "processed 1" while the record never persists). **Do not create customer-specific policy records via SFDMU.** Instead, reference policies already in the org (e.g. `SF-DEMO-USG-RENEW`, `SF-DEMO-USG-ROLL`, `Default Usage Overage Policy`). If a matching policy does not exist, create it via Apex or the UI before running the SFDMU load.
+- **`ProductUsageGrant` — verify after every load** — SFDMU's `Insert` operation for `ProductUsageGrant` can silently report success ("1 records processed, 0 records failed") while the record never appears in the org. This is a confirmed SFDMU v5 behavior with `ProductUsageGrant` specifically. After any rating load, **always verify**: `sf data query -q "SELECT Id, Quantity, Status FROM ProductUsageGrant WHERE ProductUsageResource.Product.StockKeepingUnit = '<usage-sku>'"`. If the PUG is missing, insert via Apex (see Troubleshooting).
 - **`Default Proration Policy`** must exist (or change `ProductSellingModelOption` CSV to match the org’s proration policy **Name**).
 
 ## Testing on a quote
@@ -70,6 +73,25 @@ Template list price for usage lines is often **0**; **overage** is illustrated v
 - **Tier rates confusion**: Usage **rate card** volume bands are **`RateAdjustmentByTier`** ( **`customer-template-rates/RateAdjustmentByTier.csv`** ), not **`PriceAdjustmentTier`**. Tier **`RateCardEntry`** rows keep **`Rate`** empty. See **`docs/references/customer-template-tier-rate-card-lessons-learned.md`**.
 - **`delete_customer_demo_rating_data` fails on `UsageResource`**: Run **`delete_customer_demo_rates_data`** first if **CD-DEMO** rate entries reference **`SF-UR-*`**. If the error cites **quote line item usage resource grants** (**QLIURG** / **`QuotLineItmUseRsrcGrant`**), run **`cci task run customer_demo_purge_records`** (deletes those grants for **`SF-UR-*`**), or remove the quote lines manually, then retry.
 - **`ProductUsageGrant` missing-parent / empty grants in org:** ensure **`UnitOfMeasure.Name`** and **`UnitOfMeasureClass.Name`** are present in **`ProductUsageGrant.csv`** (SFDMU v5 resolves those lookups like **`UsageResource.csv`**); see **`customer-template-rating/README.md`**.
+- **`AttributePicklistValue` duplicate `Code`**: `Code` is the **global externalId** across all picklists. Two values with the same `Code` but different `Picklist.Name` will collide — the second insert fails or overwrites the first. Use unique codes per value (e.g. `Enterprise` for service tier, `XLarge` for property size). A failed APV cascades: the `AttributeDefinition` referencing that picklist may still load, but downstream `AttributeCategoryAttribute`, `ProductClassificationAttr`, and `ProductAttributeDefinition` fail with **missing parent** errors, potentially aborting the entire PCM job.
+- **`AttributeDefinition.DeveloperName` conflicts**: `DeveloperName` must be unique across the org. If an RLM org already has a `Service_Tier` or `Property_Size` developer name from another package, the insert fails silently in the SFDMU batch. Prefix customer-specific developer names (e.g. `RK_Service_Tier`) to avoid collisions.
+- **`UnitOfMeasure` update failures on re-run**: When UOMs like `USD` already exist in the org (from `qb-pcm`), the Upsert's Update phase may fail because fields like `ConversionFactor` or `Type` are not updatable. This is **benign** — the existing UOM is correct. The Insert phase for truly new UOMs (e.g. `EVENT`) succeeds.
+- **Product images and static resources**: `DisplayUrl` should be left **empty** in the PCM `Product2.csv`. The flow deploys static resources at step 3 (after PCM at step 2), then the `customer-template-product-images` SFDMU step (step 5) sets `DisplayUrl` to `/resource/<StaticResourceName>`. Setting `DisplayUrl` in PCM before resources exist results in a temporarily broken image URL.
+- **`ProductUsageGrant` SFDMU silent failure (SFDMU v5 bug)**: SFDMU `Insert` for `ProductUsageGrant` can report "1 records processed, 0 records failed" while the record never persists in the org. This was confirmed on multiple runs — even with all parent lookups resolving correctly (no `MissingParentRecordsReport.csv` entries), the PUG does not appear in the org. **Workaround:** after the rating load, query for the PUG. If missing, insert via Apex:
+
+```bash
+# Verify PUG exists
+sf data query -q "SELECT Id, Quantity, Status FROM ProductUsageGrant \
+  WHERE ProductUsageResource.Product.StockKeepingUnit = '<usage-sku>'" \
+  --target-org <alias>
+
+# If missing, insert via Apex (adjust fields for your customer):
+sf apex run --target-org <alias> --file scripts/customer-demo/insert_pug_fallback.apex
+```
+
+The `activate_rating_records` script (Step 6) will activate the PUG once it exists. If you inserted via Apex after activation already ran, activate the PUG manually: `pug.Status = 'Active'; update pug;`.
+- **Grant policy objects silently fail to create via SFDMU**: `UsageGrantRenewalPolicy`, `UsageGrantRolloverPolicy`, and `UsageOveragePolicy` Upserts can log "Inserted 1" while the records never persist. The downstream `ProductUsageGrant` and `ProductUsageResourcePolicy` then fail parent lookups (visible in `MissingParentRecordsReport.csv`). **Fix:** always reference **existing org policies** (e.g. `SF-DEMO-USG-RENEW`, `SF-DEMO-USG-ROLL`, `Default Usage Overage Policy`) instead of creating new ones. If you need a custom policy, create it via Apex or UI before running the SFDMU plan. **Symptom:** `MissingParentRecordsReport.csv` shows `RenewalPolicy.Code`, `RolloverPolicy.Code`, or `UsageOveragePolicy.Name` as missing parents for `ProductUsageGrant` or `ProductUsageResourcePolicy`.
+- **Re-running after partial failure**: The PCM Upsert operations are safe to re-run — existing records match on `externalId` and are updated. Objects that failed on the first run will be inserted on the second. However, the flow will also re-run downstream steps (static resources, billing, pricebook), which is harmless but adds time.
 
 ## Related paths
 

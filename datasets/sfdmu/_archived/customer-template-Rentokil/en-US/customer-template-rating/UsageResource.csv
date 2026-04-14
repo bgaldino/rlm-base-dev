@@ -1,0 +1,2 @@
+Category,Code,DefaultUnitOfMeasure.UnitCode,DefaultUnitOfMeasure.Name,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UnitOfMeasureClass.Name,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,RK-UR-EVENTS,EVENT,Event,PestConnect IoT device monitoring events aggregated monthly,PestConnect Events,Draft,,DEVICE_EVENTS,Device Events,RK-BLNG-CONNECT,monthlytotal

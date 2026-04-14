@@ -1,0 +1,7 @@
+Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
+CAT-RK-SVC,PC-RK-COMMERCIAL,,true,Commercial,,10
+CAT-RK-SVC,PC-RK-RESIDENTIAL,,true,Residential,,20
+CAT-RK-SVC,PC-RK-PESTCTRL,,false,Pest Control,,30
+CAT-RK-SVC,PC-RK-DIGITAL,,true,Digital Solutions,,40
+CAT-RK-SVC,PC-RK-TREATMENTS,,true,Specialist Treatments,,50
+CAT-RK-SVC,PC-RK-EQUIPMENT,,true,Equipment,,60

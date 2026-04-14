@@ -1,0 +1,14 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,Allowed,Commercial Premium Integrated Pest Management bundle including rodent insect and bird control with optional add-ons.,,Commercial,true,true,false,Commercial Premium IPM,RK-COMM-PREM,,,RK-COMM-PREM,Bundle,
+,false,Allowed,Year-round residential pest protection covering over 36 common pests with unlimited service calls.,,Residential,true,true,false,PestFree365 Home Plan,RK-RES-365,,,RK-RES-365,Bundle,
+,false,,Professional rodent control service with scheduled inspection and baiting programs.,,Pest Control,true,true,false,Rodent Control Service,RK-RODENT,EACH,,RK-RODENT,,EACH
+,false,,General insect prevention and treatment service covering cockroaches ants and crawling insects.,,Pest Control,true,true,false,Insect Control Service,RK-INSECT,EACH,,RK-INSECT,,EACH
+,false,,Bird deterrent installation and maintenance service for commercial properties.,,Pest Control,true,true,false,Bird Deterrent Service,RK-BIRD,EACH,,RK-BIRD,,EACH
+,false,,Annual termite inspection and treatment warranty with preventative protection.,,Pest Control,true,true,false,Termite Protection Plan,RK-TERMITE,EACH,,RK-TERMITE,,EACH
+,false,,PestConnect 24/7 IoT digital monitoring with real-time alerts and automated reporting per connected device.,,Digital,true,true,false,PestConnect Monitoring,RK-USG-CONNECT,EACH,,RK-USG-CONNECT,,EACH
+,false,,Usage definition product for PestConnect monitoring event metering and rating.,,Digital,true,true,false,PestConnect Events Definition,RK-BLNG-CONNECT,EACH,,RK-BLNG-CONNECT,,EACH
+,false,,Full commercial fumigation treatment for warehouses food processing and storage facilities.,,Treatments,true,true,false,Commercial Fumigation,RK-FUMIGATION,EACH,,RK-FUMIGATION,,EACH
+,false,,Thermal pest elimination using controlled heat for bed bugs and stored product insects.,,Treatments,true,true,false,Thermal Pest Elimination,RK-HEATTREAT,EACH,,RK-HEATTREAT,,EACH
+,false,,Seasonal mosquito management program with targeted treatments and monitoring.,,Treatments,true,true,false,Seasonal Mosquito Program,RK-MOSQUITO,EACH,,RK-MOSQUITO,,EACH
+,false,,AutoGate Connect IoT rodent monitoring and capture unit with intelligent gate mechanism.,,Equipment,true,true,false,AutoGate Connect Device,RK-AUTOGATE,EACH,,RK-AUTOGATE,,EACH
+,false,,RADAR X Connect bait-free mouse monitoring unit using CO2 controlled release technology.,,Equipment,true,true,false,RADAR X Connect Device,RK-RADAR,EACH,,RK-RADAR,,EACH

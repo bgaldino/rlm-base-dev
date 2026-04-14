@@ -1,1 +1,1 @@
-Code,Name,Status,ParentProductClassificationId
+Code,Name,ParentProductClassification.Code,Status

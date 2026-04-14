@@ -1,0 +1,14 @@
+DisplayUrl,Name,StockKeepingUnit
+/resource/RLM_rk_comm_prem,Commercial Premium IPM,RK-COMM-PREM
+/resource/RLM_rk_res_365,PestFree365 Home Plan,RK-RES-365
+/resource/RLM_rk_rodent,Rodent Control Service,RK-RODENT
+/resource/RLM_rk_insect,Insect Control Service,RK-INSECT
+/resource/RLM_rk_bird,Bird Deterrent Service,RK-BIRD
+/resource/RLM_rk_termite,Termite Protection Plan,RK-TERMITE
+/resource/RLM_rk_pestconnect,PestConnect Monitoring,RK-USG-CONNECT
+/resource/RLM_rk_pestconnect,PestConnect Events Definition,RK-BLNG-CONNECT
+/resource/RLM_rk_fumigation,Commercial Fumigation,RK-FUMIGATION
+/resource/RLM_rk_heattreat,Thermal Pest Elimination,RK-HEATTREAT
+/resource/RLM_rk_mosquito,Seasonal Mosquito Program,RK-MOSQUITO
+/resource/RLM_rk_autogate,AutoGate Connect Device,RK-AUTOGATE
+/resource/RLM_rk_radar,RADAR X Connect Device,RK-RADAR

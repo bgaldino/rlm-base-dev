@@ -1,0 +1,4 @@
+DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
+Text,,Service Tier Picklist,Service Tier Picklist,Active,
+Text,,Property Size Picklist,Property Size Picklist,Active,
+Text,,Visit Frequency Picklist,Visit Frequency Picklist,Active,

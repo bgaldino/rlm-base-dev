@@ -1,0 +1,3 @@
+Description,IsDefault,Name,Status
+Net 30 payment terms for commercial accounts,false,Net 30,Draft
+Immediate payment due on receipt,false,Due on Receipt,Draft

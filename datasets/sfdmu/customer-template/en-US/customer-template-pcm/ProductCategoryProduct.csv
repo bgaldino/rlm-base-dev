@@ -1,1 +1,1 @@
-ProductCategory.Code,Product.StockKeepingUnit,Catalog.Code,IsPrimaryCategory,$$ProductCategory.Code$Product.StockKeepingUnit
+$$ProductCategory.Code$Product.StockKeepingUnit,Catalog.Code,IsPrimaryCategory,Product.StockKeepingUnit,ProductCategory.Code

@@ -1,0 +1,4 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+ATTR-RK-TIER,Picklist,,Standard,,RK_Service_Tier,true,false,Service Tier,Service Tier,Service Tier Picklist,,,
+ATTR-RK-PROPSIZE,Picklist,,Medium,,RK_Property_Size,true,false,Property Size,Property Size,Property Size Picklist,,,
+ATTR-RK-VISITFREQ,Picklist,,Monthly,,RK_Visit_Frequency,true,false,Visit Frequency,Visit Frequency,Visit Frequency Picklist,,,

@@ -1,0 +1,4 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+AC-RK-SERVICE,ATTR-RK-TIER,Service Tier,Standard,,RadioButton,,false,true,false,false,,,,,Service Tier,PC-RK-PESTCONTROL,10,Active,,,
+AC-RK-SERVICE,ATTR-RK-PROPSIZE,Property Size,Medium,,RadioButton,,false,false,false,false,,,,,Property Size,PC-RK-PESTCONTROL,20,Active,,,
+AC-RK-SERVICE,ATTR-RK-VISITFREQ,Visit Frequency,Monthly,,RadioButton,,false,false,false,false,,,,,Visit Frequency,PC-RK-PESTCONTROL,30,Active,,,

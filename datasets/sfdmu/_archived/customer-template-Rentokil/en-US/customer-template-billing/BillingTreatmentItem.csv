@@ -1,0 +1,2 @@
+$$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,Handling0Amount,MilestoneStartDate,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type
+Rentokil Billing Item - Advance;Rentokil Billing Treatment - US,Rentokil Billing Treatment - US,Advance,BillingScheduleGroup,USD,,,CreateInvoice,,,,,Rentokil Billing Item - Advance,,1,Manual,Draft,Remainder

@@ -1,1 +1,1 @@
-Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder

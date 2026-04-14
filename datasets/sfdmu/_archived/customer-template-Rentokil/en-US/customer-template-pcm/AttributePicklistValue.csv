@@ -1,0 +1,11 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,Standard,Standard,true,Standard,Service Tier Picklist,1,Active,Standard
+,Premium,Premium,false,Premium,Service Tier Picklist,2,Active,Premium
+,Enterprise,Enterprise,false,Enterprise,Service Tier Picklist,3,Active,Enterprise
+,Small,Small,false,Small,Property Size Picklist,1,Active,Small
+,Medium,Medium,true,Medium,Property Size Picklist,2,Active,Medium
+,Large,Large,false,Large,Property Size Picklist,3,Active,Large
+,XLarge,Enterprise,false,Enterprise Property,Property Size Picklist,4,Active,Enterprise
+,Monthly,Monthly,true,Monthly,Visit Frequency Picklist,1,Active,Monthly
+,BiWeekly,Bi-Weekly,false,Bi-Weekly,Visit Frequency Picklist,2,Active,Bi-Weekly
+,Weekly,Weekly,false,Weekly,Visit Frequency Picklist,3,Active,Weekly

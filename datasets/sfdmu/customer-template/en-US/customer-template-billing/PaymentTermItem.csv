@@ -1,1 +1,1 @@
-Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type,$$PaymentTerm.Name$Type
+$$PaymentTerm.Name$Type,Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type

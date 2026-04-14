@@ -116,8 +116,8 @@ project:
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
-    customer_demo_usage: true # After PCM catalog load: optional SF-USG-* usage + SF-UR-* + CD-DEMO rate card (see prepare_customer_demo_usage)
-    customer_demo_branding: false # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
+    customer_demo_usage: false # After PCM catalog load: optional SF-USG-* usage + SF-UR-* + CD-DEMO rate card (see prepare_customer_demo_usage)
+    customer_demo_branding: false  # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
