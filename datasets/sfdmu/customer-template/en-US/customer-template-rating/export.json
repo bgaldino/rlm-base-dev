@@ -1,11 +1,11 @@
 {
-  "$comment_plan": "Snowflake customer demo usage: SF-USG-* + SF-UR-* + PUR + PURP + PUG + grant policies. UsageAggregationPolicy.Code on PURP matches UsageResourceBillingPolicy.Code (monthlypeak/monthlytotal). Run delete_customer_demo_rating_data before each load. See docs/references/customer-template-usage-resource.md.",
+  "$comment_plan": "Customer-template usage rating (populate CSVs per onboarding): sellable usage SKUs, matching UsageResource codes, PUR/PURP/PUG + grant policies. UsageAggregationPolicy.Code on PURP must match UsageResourceBillingPolicy.Code (e.g. monthlypeak/monthlytotal). Run delete_customer_demo_rating_data before each reload. See docs/references/customer-template-usage-resource.md.",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,
   "objectSets": [
     {
-      "name": "First Pass - Customer demo usage (Draft)",
+      "name": "First Pass - Customer template usage (Draft)",
       "objects": [
         {
           "query": "SELECT Code, Name, Status, UsageAccumulationMethod, UsageAccumulationPeriod FROM UsageResourceBillingPolicy ORDER BY Code ASC",
@@ -79,7 +79,7 @@
       ]
     },
     {
-      "name": "Second Pass - Activate UnitOfMeasureClass and UsageResource",
+      "name": "Second Pass - Activate UsageResource",
       "objects": [
         {
           "query": "SELECT Code, Status FROM UsageResource ORDER BY Code ASC",

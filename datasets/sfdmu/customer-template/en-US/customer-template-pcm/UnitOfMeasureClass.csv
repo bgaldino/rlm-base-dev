@@ -1,3 +1,1 @@
 BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,Type
-GB,DATAVOL,GB,Data volume (storage and transfer),Data Volume,Draft,Usage
-CRD,SNFCRED,CRD,Snowflake-style capacity credits,Snowflake Credits,Draft,Usage

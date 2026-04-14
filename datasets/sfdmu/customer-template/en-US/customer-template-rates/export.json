@@ -1,5 +1,5 @@
 {
-  "$comment_plan": "Snowflake customer demo rates: CD-DEMO Base + Tier rate cards, RateCardEntry rows, RateAdjustmentByTier on Tier card only. RABT inserts while parent RCE is Draft (same pass). ProductSellingModel matches Standard PBE (Term Monthly/TermDefined for SF-USG-*). Load after rating, then activate_rates. See docs/references/customer-template-rate-card-entry.md and docs/references/customer-template-tier-rate-card-lessons-learned.md.",
+  "$comment_plan": "Customer-template rates (populate CSVs): demo rate card names (e.g. CD-DEMO Base/Tier), RateCardEntry, RateAdjustmentByTier on Tier only. RABT inserts while parent RCE is Draft (same pass). ProductSellingModel on each RCE must match Standard PricebookEntry for that SKU. Load after rating, then activate_rates. See docs/references/customer-template-rate-card-entry.md and docs/references/customer-template-tier-rate-card-lessons-learned.md.",
   "$comment_composite_keys": "RateCardEntry uses Insert without deleteOldData to avoid wiping org-wide entries; run delete_customer_demo_rates_data before each load. PriceBookRateCard is Upsert-only (no deleteOldData).",
   "apiVersion": "66.0",
   "excludeIdsFromCSVFiles": "false",

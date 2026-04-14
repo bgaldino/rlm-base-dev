@@ -1,17 +1,1 @@
 SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName,ProductTypeExpected
-SF-SNOW-EDU-STD,5000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-EDU-ENT,15000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-EDU-BC,35000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-EDU-VPS,75000,USD,Term Monthly,TermDefined,true,SF-CAT-EDU,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-SUPPORT-STD,1200,USD,Term Monthly,TermDefined,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-SUPPORT-PREM,4800,USD,Term Monthly,TermDefined,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-BND-STARTER,0,USD,Term Monthly,TermDefined,true,SF-CAT-BND,true,true,Snowflake Demo Billing Policy,Bundle
-SF-SNOW-BND-GROWTH,0,USD,Term Monthly,TermDefined,true,SF-CAT-BND,true,true,Snowflake Demo Billing Policy,Bundle
-SF-SNOW-PS-MIGRATE,25000,USD,One-Time,OneTime,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-PS-RESIDENT,12000,USD,Term Monthly,TermDefined,true,SF-CAT-SVC,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-MKT-DATA-PKG,800,USD,Term Monthly,TermDefined,true,SF-CAT-COLLAB,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-SHARE-CONN,600,USD,Term Monthly,TermDefined,true,SF-CAT-COLLAB,true,true,Snowflake Demo Billing Policy,
-SF-SNOW-PRV-LINK,2400,USD,Term Monthly,TermDefined,true,SF-CAT-COLLAB,true,true,Snowflake Demo Billing Policy,
-SF-USG-STORAGE,0,USD,Term Monthly,TermDefined,true,SF-CAT-USG,true,true,Snowflake Demo Billing Policy,
-SF-USG-EGRESS,0,USD,Term Monthly,TermDefined,true,SF-CAT-USG,true,true,Snowflake Demo Billing Policy,
-SF-USG-COMPUTE,0,USD,Term Monthly,TermDefined,true,SF-CAT-USG,true,true,Snowflake Demo Billing Policy,

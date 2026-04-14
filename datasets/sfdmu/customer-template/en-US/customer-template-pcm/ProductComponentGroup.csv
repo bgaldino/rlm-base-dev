@@ -1,5 +1,1 @@
 $$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
-PCG-SF-START;SF-SNOW-BND-STARTER,PCG-SF-START,Starter bundle components,2,2,Core,,SF-SNOW-BND-STARTER,1
-PCG-SF-GROW;SF-SNOW-BND-GROWTH,PCG-SF-GROW,Growth bundle components,2,2,Core,,SF-SNOW-BND-GROWTH,1
-PCG-SF-USAGE-ST;SF-SNOW-BND-STARTER,PCG-SF-USAGE-ST,,,,Consumption meters,,,SF-SNOW-BND-STARTER,5
-PCG-SF-USAGE-GR;SF-SNOW-BND-GROWTH,PCG-SF-USAGE-GR,,,,Consumption meters,,,SF-SNOW-BND-GROWTH,5
