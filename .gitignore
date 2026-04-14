@@ -107,6 +107,7 @@ selenium-screenshot*.png
 **/*.tsbuildinfo
 agents256*/**
 unpackaged/*bak/**
+unpackaged/post_customer_demo/branding/
 .claude/
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**

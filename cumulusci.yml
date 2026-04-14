@@ -117,6 +117,7 @@ project:
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
     customer_demo_usage: true # After PCM catalog load: optional SF-USG-* usage + SF-UR-* + CD-DEMO rate card (see prepare_customer_demo_usage)
+    customer_demo_branding: false # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -1376,6 +1377,32 @@ tasks:
     options:
       path: unpackaged/post_customer_demo/staticresources
 
+  prepare_customer_demo_branding:
+    group: Revenue Lifecycle Management
+    description: >
+      Download a customer logo and generate a branded Lightning Experience Theme
+      (ContentAsset + BrandingSet + LightningExperienceTheme) in
+      unpackaged/post_customer_demo/branding. Run before deploy_customer_demo_branding.
+      Theme activation is manual (Setup → Themes and Branding → Activate).
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: >-
+        python3 scripts/customer-demo/prepare_customer_branding.py
+        --company-name "{company_name}"
+        --logo-url "{logo_url}"
+        --brand-color "{brand_color}"
+
+  deploy_customer_demo_branding:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy customer demo branding metadata (ContentAsset, BrandingSet,
+      LightningExperienceTheme) from unpackaged/post_customer_demo/branding.
+      After deploy, manually activate the theme at
+      <org-url>/lightning/setup/ThemingAndBranding/home.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_customer_demo/branding
+
   insert_customer_demo_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert customer demo PCM foundation data (PSM, Product2, defaults, catalog, categories).
@@ -2546,8 +2573,10 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Customer demo onboarding flow (post-setup): optional purge, load customer PCM
-      records, apply product images and billing assignments, recreate standard
+      records, apply product images, branding, and billing assignments, recreate standard
       pricebook rows via API with ProductSellingModelId, and verify go/no-go checks.
+      When customer_demo_branding is true, deploys a customer-branded Lightning Experience
+      Theme (activate after flow completes at <org-url>/lightning/setup/ThemingAndBranding/home).
     steps:
       1:
         task: customer_demo_purge_records
@@ -2556,29 +2585,32 @@ flows:
       3:
         task: deploy_customer_demo_staticresources
       4:
-        task: insert_customer_demo_product_images_data
+        task: deploy_customer_demo_branding
+        when: project_config.project__custom__customer_demo_branding
       5:
-        task: insert_customer_demo_billing_data
+        task: insert_customer_demo_product_images_data
       6:
-        task: customer_demo_recreate_pricebook_via_api
+        task: insert_customer_demo_billing_data
       7:
-        task: customer_demo_verify_catalog
+        task: customer_demo_recreate_pricebook_via_api
       8:
+        task: customer_demo_verify_catalog
+      9:
         task: delete_customer_demo_rates_data
         when: project_config.project__custom__customer_demo_usage
-      9:
+      10:
         task: delete_customer_demo_rating_data
         when: project_config.project__custom__customer_demo_usage
-      10:
+      11:
         task: insert_customer_demo_rating_data
         when: project_config.project__custom__customer_demo_usage
-      11:
+      12:
         task: insert_customer_demo_rates_data
         when: project_config.project__custom__customer_demo_usage
-      12:
+      13:
         task: activate_rating_records
         when: project_config.project__custom__customer_demo_usage
-      13:
+      14:
         task: activate_rates
         when: project_config.project__custom__customer_demo_usage
 
