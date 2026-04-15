@@ -1,24 +1,24 @@
 {
   "apiVersion": "66.0",
-  "excludeIdsFromCSVFiles": "false",
+  "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
+      "name": "Guided Selling Data",
       "objects": [
         {
           "query": "SELECT DeveloperName, Language, MasterLabel FROM AssessmentQuestionConfig",
-          "operation": "Upsert",
+          "operation": "Readonly",
           "externalId": "DeveloperName",
           "excluded": false
         },
         {
           "query": "SELECT DeveloperName, Language, MasterLabel FROM AssessmentQuestionSetConfig",
-          "operation": "Upsert",
+          "operation": "Readonly",
           "externalId": "DeveloperName",
           "excluded": false
         },
         {
-          "query": "SELECT ActiveVersionId, CurrencyIsoCode, DataType, Description, DeveloperName, Name, QuestionCategory, QuestionText, RelatedQuestionId, ShouldExcludeFromMetadata, ShouldHideInDesigner, UniqueIndex FROM AssessmentQuestion",
+          "query": "SELECT CurrencyIsoCode, DataType, Description, DeveloperName, Name, QuestionCategory, QuestionText, RelatedQuestionId, ShouldExcludeFromMetadata, ShouldHideInDesigner, UniqueIndex FROM AssessmentQuestion",
           "operation": "Upsert",
           "externalId": "UniqueIndex",
           "excluded": false
@@ -30,17 +30,15 @@
           "excluded": false
         },
         {
-          "query": "SELECT AssessmentQuestion.UniqueIndex, AssessmentQuestionSet.UniqueIndex FROM AssessmentQuestionAssignment",
-          "operation": "Insert",
+          "query": "SELECT AssessmentQuestionId, AssessmentQuestion.UniqueIndex, AssessmentQuestionSetId, AssessmentQuestionSet.UniqueIndex FROM AssessmentQuestionAssignment",
+          "operation": "Upsert",
           "externalId": "AssessmentQuestion.UniqueIndex;AssessmentQuestionSet.UniqueIndex",
-          "deleteOldData": true,
           "excluded": false
         },
         {
-          "query": "SELECT AdditionalInformation, AssessmentQuestion.UniqueIndex, CurrencyIsoCode, DataType, DeactivationDateTime, Description, ExternalAsmtContentVersion, GuidanceInformation, HelpText, IsActive, IsOptionSourceResponseValue, Name, QuestionText, ResponseValues, Status, VersionNumber FROM AssessmentQuestionVersion WHERE Status = 'Active'",
-          "operation": "Insert",
+          "query": "SELECT AdditionalInformation, AssessmentQuestion.UniqueIndex, CurrencyIsoCode, Description, GuidanceInformation, HelpText, IsActive, IsOptionSourceResponseValue, Name, QuestionText, ResponseValues FROM AssessmentQuestionVersion WHERE Status = 'Active'",
+          "operation": "Upsert",
           "externalId": "Name",
-          "deleteOldData": true,
           "excluded": false
         },
         {
@@ -51,22 +49,20 @@
         },
         {
           "query": "SELECT DeveloperName, Language, MasterLabel FROM OmniScriptConfig",
-          "operation": "Upsert",
+          "operation": "Readonly",
           "externalId": "DeveloperName",
           "excluded": false
         },
         {
-          "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcess.UniqueName, OmniProcessVersionNumber, ParentElement.OmniProcess.UniqueName, ParentElement.Name, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
-          "operation": "Insert",
+          "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, Level, Name, OmniProcessId, OmniProcess.UniqueName, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
+          "operation": "Upsert",
           "externalId": "OmniProcess.UniqueName;Name",
-          "deleteOldData": true,
           "excluded": false
         },
         {
-          "query": "SELECT AssessmentQuestionVersion.Name, AssessmentQuestionVersion.AssessmentQuestion.UniqueIndex, AssessmentQuestionVersion.VersionNumber, IsPrefill, OmniProcess.UniqueName, OmniProcessElement.Name, OmniProcessElement.OmniProcess.UniqueName FROM OmniProcessAsmtQuestionVer",
-          "operation": "Insert",
+          "query": "SELECT AssessmentQuestionVersionId, AssessmentQuestionVersion.Name, IsPrefill, OmniProcessElementId, OmniProcessElement.Name, OmniProcessId, OmniProcess.UniqueName FROM OmniProcessAsmtQuestionVer",
+          "operation": "Upsert",
           "externalId": "AssessmentQuestionVersion.Name;OmniProcessElement.Name",
-          "deleteOldData": true,
           "excluded": false
         }
       ]

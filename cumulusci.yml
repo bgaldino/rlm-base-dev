@@ -136,7 +136,7 @@ project:
     constraints: true         # Constraint Builder
     constraints_data: true    # Constraint Builder sample data
     breconfig: false          # Business Rules Engine configuration
-    guidedselling: false      # Guided Selling
+    guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
@@ -1694,6 +1694,20 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_approvals_dataset
 
+  deactivate_guidedselling_omniscripts:
+    group: Revenue Lifecycle Management
+    description: Deactivate Guided Selling OmniScripts (required before inserting OmniProcessElement records)
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deactivateGuidedSellingOmniScripts.apex
+
+  activate_guidedselling_omniscripts:
+    group: Revenue Lifecycle Management
+    description: Activate Guided Selling OmniScripts after data load
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateGuidedSellingOmniScripts.apex
+
   deactivate_decision_tables:
     group: Revenue Lifecycle Management
     description: Deactivate Decision Tables (required before updating active decision tables)
@@ -3101,11 +3115,17 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_qb_guidedselling_data
+        task: deactivate_guidedselling_omniscripts
         when: project_config.project__custom__guidedselling and project_config.project__custom__qb
       2:
+        task: insert_qb_guidedselling_data
+        when: project_config.project__custom__guidedselling and project_config.project__custom__qb
+      3:
         task: deploy_post_guidedselling
         when: project_config.project__custom__guidedselling
+      4:
+        task: activate_guidedselling_omniscripts
+        when: project_config.project__custom__guidedselling and project_config.project__custom__qb
 
   prepare_analytics:
     group: Revenue Lifecycle Management

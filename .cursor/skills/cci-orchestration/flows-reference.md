@@ -72,7 +72,7 @@ Assign feature-gated permission sets after PSGs are updated
    - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
 2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
    - `api_names`: `['EinsteinGPTPromptTemplateManager']`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and not project_config.project__custom__dev_ed`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])`
    - `api_names`: `['SalesCloudEinsteinAll']`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
    - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
@@ -307,8 +307,10 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `insert_qb_guidedselling_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
-2. **task** `deploy_post_guidedselling`  `when: project_config.project__custom__guidedselling`
+1. **task** `deactivate_guidedselling_omniscripts`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
+2. **task** `insert_qb_guidedselling_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
+3. **task** `activate_guidedselling_omniscripts`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
+4. **task** `deploy_post_guidedselling`  `when: project_config.project__custom__guidedselling`
 
 ---
 
@@ -358,6 +360,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 **Steps:**
 
 1. **task** `reconfigure_pricing_discovery`
+2. **task** `configure_product_discovery_settings`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -454,6 +457,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 1. **task** `configure_revenue_settings`  `when: not (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
 2. **task** `configure_revenue_settings`  `when: project_config.project__custom__quantumbit or project_config.project__custom__tso`
    - `manage_assets_flow`: `RLM_ARC_Assets`
+3. **task** `configure_core_pricing_setup`
 
 ---
 
@@ -467,31 +471,30 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 4. **flow** `prepare_payments`
 5. **task** `deploy_full`
 6. **flow** `prepare_price_adjustment_schedules`
-7. **flow** `prepare_payments`
-8. **flow** `prepare_quantumbit`
-9. **flow** `prepare_product_data`
-10. **flow** `prepare_pricing_data`
-11. **flow** `prepare_docgen`
-12. **flow** `prepare_dro`
-13. **flow** `prepare_tax`
-14. **flow** `prepare_billing`
-15. **flow** `prepare_analytics`
-16. **flow** `prepare_clm`
-17. **flow** `prepare_rating`
-18. **task** `activate_and_deploy_expression_sets`
-19. **flow** `prepare_tso`
-20. **flow** `prepare_procedureplans`
-21. **flow** `prepare_prm`
-22. **flow** `prepare_agents`
-23. **flow** `prepare_constraints`
-24. **flow** `prepare_guidedselling`
-25. **flow** `prepare_revenue_settings`
-26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_ramp_builder`
-28. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-29. **flow** `prepare_scratch`
-30. **flow** `refresh_all_decision_tables`
-31. **flow** `stamp_git_commit`
+7. **flow** `prepare_quantumbit`
+8. **flow** `prepare_product_data`
+9. **flow** `prepare_pricing_data`
+10. **flow** `prepare_docgen`
+11. **flow** `prepare_dro`
+12. **flow** `prepare_tax`
+13. **flow** `prepare_billing`
+14. **flow** `prepare_analytics`
+15. **flow** `prepare_clm`
+16. **flow** `prepare_rating`
+17. **task** `activate_and_deploy_expression_sets`
+18. **flow** `prepare_tso`
+19. **flow** `prepare_procedureplans`
+20. **flow** `prepare_prm`
+21. **flow** `prepare_agents`
+22. **flow** `prepare_constraints`
+23. **flow** `prepare_guidedselling`
+24. **flow** `prepare_revenue_settings`
+25. **flow** `prepare_pricing_discovery`
+26. **flow** `prepare_ramp_builder`
+27. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+28. **flow** `prepare_scratch`
+29. **flow** `refresh_all_decision_tables`
+30. **flow** `stamp_git_commit`
 
 ---
 
@@ -581,7 +584,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 27 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 28 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

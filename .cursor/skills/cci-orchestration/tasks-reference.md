@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**197 tasks** across **9 groups**.
+**201 tasks** across **9 groups**.
 
 ---
 
@@ -546,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*122 task(s)*
+*126 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -620,6 +620,18 @@
 
 - `operation`: `activate_versions`
 - `metadata_path`: `force-app/main/default/expressionSetDefinition`
+
+---
+
+### `activate_guidedselling_omniscripts`
+
+**Description:** Activate Guided Selling OmniScripts after data load
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/activateGuidedSellingOmniScripts.apex`
 
 ---
 
@@ -788,6 +800,34 @@
 
 ---
 
+### `configure_core_pricing_setup`
+
+**Description:** Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated.
+
+**Class:** `tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_product_discovery_settings`
+
+**Description:** Set the Default Catalog in Product Discovery Settings to 'QuantumBit Software' (Robot test). Must run after QB product catalog data is loaded. Only relevant when qb=true.
+
+**Class:** `tasks.rlm_configure_product_discovery_settings.ConfigureProductDiscoverySettings`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_product_discovery_settings.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `default_catalog`: `QuantumBit Software`
+
+---
+
 ### `configure_revenue_settings`
 
 **Description:** Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders from Quote flow, and optionally Manage Assets flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh.
@@ -930,6 +970,18 @@
 
 - `operation`: `deactivate_versions`
 - `metadata_path`: `force-app/main/default/expressionSetDefinition`
+
+---
+
+### `deactivate_guidedselling_omniscripts`
+
+**Description:** Deactivate Guided Selling OmniScripts (required before inserting OmniProcessElement records)
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deactivateGuidedSellingOmniScripts.apex`
 
 ---
 

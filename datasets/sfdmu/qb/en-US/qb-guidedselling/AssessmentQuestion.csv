@@ -1,5 +1,5 @@
-ActiveVersion.$$AssessmentQuestion.UniqueIndex$VersionNumber,CurrencyIsoCode,DataType,Description,DeveloperName,Name,QuestionCategory,QuestionText,RelatedQuestion.UniqueIndex,ShouldExcludeFromMetadata,ShouldHideInDesigner,UniqueIndex
-solution_type_looking_for;1,USD,Radio,,solution_type_looking_for,What type of Solution are you looking for?,Demographic,What type of Solution are you looking for?,,false,false,solution_type_looking_for
-Security_Monitoring;1,USD,Radio,,Security_Monitoring,Security Monitoring,Demographic,Is Security Monitoring required as part of the solution?,,false,false,Security_Monitoring
-Implementation_Options;1,USD,Radio,,Implementation_Options,Implementation Options,Demographic,Implementation Options,,false,false,Implementation_Options
-Industry;1,USD,Radio,,Industry,Industry,Demographic,Industry,,false,false,Industry
+CurrencyIsoCode,DataType,Description,DeveloperName,Name,QuestionCategory,QuestionText,RelatedQuestion.UniqueIndex,ShouldExcludeFromMetadata,ShouldHideInDesigner,UniqueIndex
+USD,Radio,,solution_type_looking_for,What type of Solution are you looking for?,Demographic,What type of Solution are you looking for?,,false,false,solution_type_looking_for
+USD,Radio,,Security_Monitoring,Security Monitoring,Demographic,Is Security Monitoring required as part of the solution?,,false,false,Security_Monitoring
+USD,Radio,,Implementation_Options,Implementation Options,Demographic,Implementation Options,,false,false,Implementation_Options
+USD,Radio,,Industry,Industry,Demographic,Industry,,false,false,Industry

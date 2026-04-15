@@ -31,7 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
-| `guidedselling` | `False` | 2 flow step(s) |
+| `guidedselling` | `True` | 4 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
 | `prm` | `True` | 9 flow step(s) |
@@ -39,7 +39,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 5 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 19 flow step(s) |
+| `qb` | `True` | 22 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 3 flow step(s) |
@@ -192,10 +192,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `assign_feature_permission_sets` step 2 → `assign_permission_sets`
 - `assign_feature_permission_sets` step 3 → `assign_permission_sets`
 
-### `guidedselling` (default: `False`)
+### `guidedselling` (default: `True`)
 
-- `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
-- `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
+- `prepare_guidedselling` step 1 → `deactivate_guidedselling_omniscripts`
+- `prepare_guidedselling` step 2 → `insert_qb_guidedselling_data`
+- `prepare_guidedselling` step 3 → `activate_guidedselling_omniscripts`
+- `prepare_guidedselling` step 4 → `deploy_post_guidedselling`
 
 ### `payments` (default: `True`)
 
@@ -263,7 +265,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
-- `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
+- `prepare_guidedselling` step 1 → `deactivate_guidedselling_omniscripts`
+- `prepare_guidedselling` step 2 → `insert_qb_guidedselling_data`
+- `prepare_guidedselling` step 3 → `activate_guidedselling_omniscripts`
+- `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 
 ### `quantumbit` (default: `True`)
 
@@ -353,7 +358,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 28 → `prepare_ux`
+- `prepare_rlm_org` step 27 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 
