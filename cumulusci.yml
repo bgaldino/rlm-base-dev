@@ -139,7 +139,7 @@ project:
 
     # ── Partner & Commerce ─────────────────────────────────────────────────────
     prm: true                 # Partner Relationship Management
-    prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
+    prm_exp_bundle: false      # PRM Experience Bundle (post_prm site content)
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
@@ -994,9 +994,9 @@ tasks:
         - api_name: Asset
           internal_sharing_model: ReadWrite
           external_sharing_model: Private
-        - api_name: Contact
-          internal_sharing_model: ReadWrite
-          external_sharing_model: Private
+        #- api_name: Contact
+        #  internal_sharing_model: ReadWrite
+        #  external_sharing_model: Private
         - api_name: Contract
           internal_sharing_model: ReadWrite
           external_sharing_model: Private
