@@ -25,30 +25,30 @@
   "assembled": [
     {
       "type": "flexipage",
-      "name": "MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Contract_Record_Page.flexipage-meta.xml",
+      "name": "RLM_MFG_Contract_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_MFG_Contract_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_MFG_Contract_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
-      "name": "MFG_RLM_Order_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Order_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Order_Record_Page.flexipage-meta.xml",
+      "name": "RLM_MFG_Order_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_MFG_Order_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_MFG_Order_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
-      "name": "MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Quote_Record_Page.flexipage-meta.xml",
+      "name": "RLM_MFG_Quote_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_MFG_Quote_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_MFG_Quote_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
       "type": "flexipage",
-      "name": "MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_manufacturing_ux/flexipages/MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/manufacturing/MFG_RLM_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "name": "RLM_MFG_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/flexipages/RLM_MFG_Sales_Agreement_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/manufacturing/RLM_MFG_Sales_Agreement_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -594,8 +594,8 @@
     },
     {
       "type": "layout",
-      "name": "SalesAgreement-MFG RCA Sales Agreement Layout.layout-meta.xml",
-      "dest": "unpackaged/post_manufacturing_ux/layouts/SalesAgreement-MFG RCA Sales Agreement Layout.layout-meta.xml",
+      "name": "SalesAgreement-RLM MFG Sales Agreement Layout.layout-meta.xml",
+      "dest": "unpackaged/post_manufacturing_ux/layouts/SalesAgreement-RLM MFG Sales Agreement Layout.layout-meta.xml",
       "source_tier": "manufacturing",
       "action": "copy"
     },

@@ -64,6 +64,9 @@ orgs:
     dev-mfg:
       config_file: orgs/dev-mfg.json
       days: 30
+    dev-mfg-previous:
+      config_file: orgs/dev-mfg-previous.json
+      days: 30
 
 # Project configuration settings
 # Defines the project name, package details, and source format
@@ -3767,7 +3770,7 @@ flows:
       and templates/applications/manufacturing/. Output is written to
       unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call.
       Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages,
-      MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
+      RLM_MFG_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
       Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing).
       Run this flow independently to test manufacturing UX assembly without running the full
       prepare_rlm_org flow. Gated by badger=true and ux=true in prepare_manufacturing.

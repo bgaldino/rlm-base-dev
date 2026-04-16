@@ -405,7 +405,7 @@
         <name>sidebar</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>MFG RLM Sales Agreement Record Page</masterLabel>
+    <masterLabel>RLM MFG Sales Agreement Record Page</masterLabel>
     <parentFlexiPage>industries_manufacturing__SaleAgmt_rec_L</parentFlexiPage>
     <sobjectType>SalesAgreement</sobjectType>
     <template>

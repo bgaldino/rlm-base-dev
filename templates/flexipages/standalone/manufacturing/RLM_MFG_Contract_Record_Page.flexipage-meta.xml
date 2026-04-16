@@ -1353,7 +1353,7 @@
         <name>main</name>
         <type>Region</type>
     </flexiPageRegions>
-    <masterLabel>MFG RLM Contract Record Page</masterLabel>
+    <masterLabel>RLM MFG Contract Record Page</masterLabel>
     <sobjectType>Contract</sobjectType>
     <template>
         <name>flexipage:recordHomeSimpleViewTemplate</name>
