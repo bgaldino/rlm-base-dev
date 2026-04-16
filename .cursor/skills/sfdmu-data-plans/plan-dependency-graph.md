@@ -48,8 +48,8 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-prm (5 objects, 2 passes)
             │       Account (partner), ChannelProgram, ChannelProgramMember
             │
-            ├──→ qb-approvals (2 objects)
-            │       ApprovalAlertContentDef (requires EmailTemplate metadata)
+            ├──→ qb-approvals (5 objects)
+            │       EmailTemplate Readonly; Group, User Readonly; GroupMember Upsert (CEO users × Manager/Director/VP); ApprovalAlertContentDef Upsert
             │
             └──→ qb-transactionprocessingtypes (1 object, standalone)
                     TransactionProcessingType

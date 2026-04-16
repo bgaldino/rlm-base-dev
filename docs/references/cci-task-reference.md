@@ -378,7 +378,7 @@ cci task info <task_name>
 | `insert_q3_rates_data` | Insert Q3 Rates Data |
 | `insert_q3_rating_data` | Insert Q3 Rating Data |
 | `insert_q3_tax_data` | Insert Q3 Tax Data |
-| `insert_qb_approvals_data` | Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for discount and payment terms approval notifications. Requires post_approvals metadata (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction). |
+| `insert_qb_approvals_data` | Insert QuantumBit Approvals data via SFDMU (EmailTemplate, Group/User Readonly, GroupMember for CEO users in Manager/Director/VP groups, ApprovalAlertContentDef). Runtime materialization of User/GroupMember CSVs from the target org. Requires post_approvals metadata and create_approval_email_templates first. EmailTemplatePage FlexiPages excluded from deploy (platform restriction). |
 | `insert_qb_constraints_component_data` | Insert QuantumBit Constraints Product Related Component Data |
 | `insert_qb_constraints_product_data` | Insert QuantumBit Constraints Product Data |
 | `insert_qb_dro_data` | Insert QuantumBit DRO Data (scratch and prod; AssignedTo resolved from target org) |
@@ -562,8 +562,7 @@ cci task info <task_name>
 
 | Task | Description |
 |---|---|
-| `extract_qb_approvals_data` | Extract qb-approvals (ApprovalAlertContentDef) from org to CSV. Output in |
-| `datasets/sfdmu/extractions/qb-approva` | ls/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
+| `extract_qb_approvals_data` | Extract qb-approvals (EmailTemplate, Group, User, GroupMember, ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_billing_data` | Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in |
 | `datasets/sfdmu/extractions/qb-billing` | /<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_clm_data` | Extract qb-clm from org to CSV. Output in datasets/sfdmu/extractions/qb-clm/<ti mestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
@@ -592,7 +591,7 @@ cci task info <task_name>
 
 | Task | Description |
 |---|---|
-| `test_qb_approvals_idempotency` | Idempotency test for qb-approvals (ApprovalAlertContentDef). |
+| `test_qb_approvals_idempotency` | Idempotency test for qb-approvals (EmailTemplate, Group/User, GroupMember, ApprovalAlertContentDef). |
 | `test_qb_clm_idempotency` | Idempotency test for qb-clm. |
 | `test_qb_dro_idempotency` | Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ). |
 | `test_qb_guidedselling_idempotency` | Idempotency test for qb-guidedselling. |

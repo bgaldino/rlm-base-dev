@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**197 tasks** across **9 groups**.
+**199 tasks** across **9 groups**.
 
 ---
 
@@ -97,7 +97,7 @@
 
 ### `extract_qb_approvals_data`
 
-**Description:** Extract qb-approvals (ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract qb-approvals (EmailTemplate, Group, User, GroupMember, ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -270,7 +270,7 @@
 
 ### `test_qb_approvals_idempotency`
 
-**Description:** Idempotency test for qb-approvals (ApprovalAlertContentDef).
+**Description:** Idempotency test for qb-approvals (EmailTemplate, Group/User Readonly, GroupMember, ApprovalAlertContentDef).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -546,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*122 task(s)*
+*124 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -785,6 +785,34 @@
 
 - `path`: `unpackaged/pre`
 - `remove_for_scratch`: `True`
+
+---
+
+### `configure_core_pricing_setup`
+
+**Description:** Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated.
+
+**Class:** `tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_product_discovery_settings`
+
+**Description:** Set the Default Catalog in Product Discovery Settings to 'QuantumBit Software' (Robot test). Must run after QB product catalog data is loaded. Only relevant when qb=true.
+
+**Class:** `tasks.rlm_configure_product_discovery_settings.ConfigureProductDiscoverySettings`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_product_discovery_settings.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `default_catalog`: `QuantumBit Software`
 
 ---
 
@@ -1655,13 +1683,14 @@
 
 ### `insert_qb_approvals_data`
 
-**Description:** Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for discount and payment terms approval notifications. Requires post_approvals metadata (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
+**Description:** Insert QuantumBit Approvals data via SFDMU: EmailTemplate Readonly, Group and User Readonly, GroupMember Upsert (CEO-role active users into Manager, Director, and VP Regular public groups from force-app metadata), then ApprovalAlertContentDef Upsert. GroupMember rows are materialized at task runtime from the target org (see dynamic_qb_approvals_group_members on LoadSFDMUData). Requires post_approvals metadata (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
+- `dynamic_qb_approvals_group_members`: `True`
 
 ---
 

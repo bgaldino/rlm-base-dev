@@ -1686,13 +1686,17 @@ tasks:
   insert_qb_approvals_data:
     group: Revenue Lifecycle Management
     description: >
-      Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for
-      discount and payment terms approval notifications. Requires post_approvals metadata
-      (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates
+      Insert QuantumBit Approvals data via SFDMU: EmailTemplate Readonly, Group and User
+      Readonly, GroupMember Upsert (CEO-role active users into Manager, Director, and VP
+      Regular public groups from force-app metadata), then ApprovalAlertContentDef Upsert.
+      GroupMember rows are materialized at task runtime from the target org (see
+      dynamic_qb_approvals_group_members on LoadSFDMUData). Requires post_approvals
+      metadata (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates
       to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_approvals_dataset
+      dynamic_qb_approvals_group_members: true
 
   deactivate_decision_tables:
     group: Revenue Lifecycle Management
@@ -2100,7 +2104,7 @@ tasks:
 
   extract_qb_approvals_data:
     group: Data Management - Extract
-    description: "Extract qb-approvals (ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract qb-approvals (EmailTemplate, Group, User, GroupMember, ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_approvals_dataset
@@ -2210,7 +2214,7 @@ tasks:
 
   test_qb_approvals_idempotency:
     group: Data Management - Idempotency
-    description: Idempotency test for qb-approvals (ApprovalAlertContentDef).
+    description: Idempotency test for qb-approvals (EmailTemplate, Group/User Readonly, GroupMember, ApprovalAlertContentDef).
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_approvals_dataset

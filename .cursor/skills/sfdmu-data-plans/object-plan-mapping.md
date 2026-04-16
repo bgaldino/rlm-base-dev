@@ -180,6 +180,9 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | qb-product-images | Product2 | `StockKeepingUnit` | Update (DisplayUrl) |
 | qb-approvals | ApprovalAlertContentDef | `Name` | Upsert |
 | qb-approvals | EmailTemplate | — | ReadOnly |
+| qb-approvals | Group | `Name;Type` | Readonly |
+| qb-approvals | User | `Username` | Readonly |
+| qb-approvals | GroupMember | `Group.Name;Group.Type;UserOrGroupId$User.Username` | Upsert |
 | scratch_data | Account | `Name` | Upsert |
 | scratch_data | Contact | `Name` | Upsert |
 | scratch_data | BillingAccount | `Name` | Upsert |

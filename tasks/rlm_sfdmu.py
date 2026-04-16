@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import re
@@ -38,6 +39,10 @@ EXPORT_JSON_FILENAME = "export.json"
 DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
 DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv", "UserAndGroup.csv")
 
+# QuantumBit qb-approvals: materialize CEO users × Manager/Director/VP GroupMember rows at load time
+# (Usernames come from the target org; static CSVs cannot list every future CEO user).
+QB_APPROVALS_GROUP_NAMES = ("Director", "Manager", "VP")
+
 
 def strip_ansi_codes(text: str) -> str:
     """Strip ANSI escape codes from subprocess output for readable logs."""
@@ -73,6 +78,115 @@ def run_post_process_script(
     if logger and result.stderr:
         for line in result.stderr.splitlines():
             logger.warning(strip_ansi_codes(line))
+
+
+def _sf_data_query_records_standalone(org_for_cli: str, soql: str, logger=None) -> List[dict]:
+    """Run `sf data query --json` against an org; return the records array."""
+    if not org_for_cli or "@" not in str(org_for_cli):
+        raise CommandException(
+            "Org username is required for sf data query (scratch or connected org with username)."
+        )
+    result = subprocess.run(
+        ["sf", "data", "query", "-q", soql, "-o", str(org_for_cli), "--json"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        if logger:
+            logger.error(f"sf data query STDERR: {strip_ansi_codes(result.stderr)}")
+        raise CommandException(f"SOQL query failed: {strip_ansi_codes(result.stderr or result.stdout)}")
+    out = json.loads(result.stdout)
+    return out.get("result", {}).get("records") or []
+
+
+def _userrole_dev_from_record(rec: dict) -> str:
+    ur = rec.get("UserRole")
+    if isinstance(ur, dict):
+        return (ur.get("DeveloperName") or "").strip()
+    return (rec.get("UserRole.DeveloperName") or "").strip()
+
+
+def materialize_qb_approvals_group_member_plan(
+    plan_dir: str,
+    org_for_cli: str,
+    logger=None,
+) -> Optional[str]:
+    """Copy qb-approvals plan to a temp dir with User.csv and GroupMember.csv from target org CEOs.
+
+    Returns the temp directory path, or None if ``plan_dir`` is not the qb-approvals dataset.
+    """
+    norm = os.path.normpath(plan_dir).replace("\\", "/")
+    if "qb-approvals" not in norm:
+        return None
+
+    ceo_query = (
+        "SELECT Username, UserRole.DeveloperName FROM User "
+        "WHERE UserRole.DeveloperName = 'CEO' AND IsActive = true "
+        "ORDER BY Username ASC"
+    )
+    records = _sf_data_query_records_standalone(org_for_cli, ceo_query, logger)
+    if not records:
+        escaped = str(org_for_cli).replace("\\", "\\\\").replace("'", "\\'")
+        records = _sf_data_query_records_standalone(
+            org_for_cli,
+            "SELECT Username, UserRole.DeveloperName FROM User "
+            f"WHERE Username = '{escaped}' AND IsActive = true LIMIT 1",
+            logger,
+        )
+    if not records:
+        raise CommandException(
+            "qb-approvals GroupMember materialization: no active CEO-role users and running user not found in target org."
+        )
+
+    usernames = [r.get("Username") for r in records if r.get("Username")]
+    if not usernames:
+        raise CommandException(
+            "qb-approvals GroupMember materialization: resolved user records have no Username."
+        )
+
+    if logger:
+        logger.info(
+            "qb-approvals: materializing GroupMember for %s CEO user(s) × %s public groups",
+            len(usernames),
+            len(QB_APPROVALS_GROUP_NAMES),
+        )
+
+    tmp = tempfile.mkdtemp(prefix="sfdmu_qb_approvals_")
+    try:
+        base = os.path.normpath(os.path.abspath(plan_dir))
+        for item in os.listdir(base):
+            src = os.path.join(base, item)
+            dst = os.path.join(tmp, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy2(src, dst)
+
+        user_path = os.path.join(tmp, "User.csv")
+        with open(user_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Username", "UserRole.DeveloperName"])
+            for r in records:
+                writer.writerow([r.get("Username") or "", _userrole_dev_from_record(r) or "CEO"])
+
+        gm_path = os.path.join(tmp, "GroupMember.csv")
+        gm_headers = [
+            "$$Group.Name$Group.Type$UserOrGroupId$User.Username",
+            "Group.Name",
+            "Group.Type",
+            "UserOrGroupId$User.Username",
+        ]
+        with open(gm_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(gm_headers)
+            for group_name in QB_APPROVALS_GROUP_NAMES:
+                for un in usernames:
+                    composite = f"{group_name};Regular;{un}"
+                    writer.writerow([composite, group_name, "Regular", un])
+        return tmp
+    except Exception:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
 
 
 class LoadSFDMUData(SFDXBaseTask):
@@ -117,7 +231,17 @@ class LoadSFDMUData(SFDXBaseTask):
         "simulation": {
             "description": "If true, run SFDMU in simulation mode (dry run without writing to the target org).",
             "required": False
-        }
+        },
+        "dynamic_qb_approvals_group_members": {
+            "description": (
+                "If true (default), when loading the qb-approvals plan: query the target org for active users "
+                "with UserRole DeveloperName CEO, copy the plan to a temp directory, and rewrite User.csv plus "
+                "GroupMember.csv so CEO users are members of Manager, Director, and VP public groups (Regular). "
+                "If no CEO users exist, falls back to the running user's Username. Set false to use only "
+                "version-controlled CSVs."
+            ),
+            "required": False
+        },
     }
 
     def _sync_objectset_source_to_source(self) -> None:
@@ -250,12 +374,30 @@ class LoadSFDMUData(SFDXBaseTask):
             raise CommandException("User record has no Name.")
         return name
 
+    def _apply_dynamic_qb_approvals_group_members(self) -> None:
+        """Copy qb-approvals plan to temp; rewrite User.csv and GroupMember.csv from CEO users in target org."""
+        if not self.options.get("dynamic_qb_approvals_group_members", True):
+            self.logger.info("dynamic_qb_approvals_group_members is false; skipping CEO GroupMember materialization.")
+            return
+
+        org_for_cli = getattr(self.org_config, "username", None) or self.targetusername
+        tmp = materialize_qb_approvals_group_member_plan(self._source_plan_dir, org_for_cli, self.logger)
+        if not tmp:
+            return
+
+        if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
+            shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+            self._temp_plan_dir = None
+
+        self._temp_plan_dir = tmp
+        self.pathtoexportjson = tmp
+
     def _apply_dynamic_assigned_to_user(self) -> None:
         """Copy plan to a temp dir and replace DRO assigned-to placeholder with target org user Name."""
         placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
         user_name = self._get_target_org_user_name()
         self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
-        source_dir = self.pathtoexportjson
+        source_dir = getattr(self, "_source_plan_dir", None) or self.pathtoexportjson
         self._temp_plan_dir = tempfile.mkdtemp(prefix="sfdmu_dro_")
         try:
             for item in os.listdir(source_dir):
@@ -326,20 +468,29 @@ class LoadSFDMUData(SFDXBaseTask):
     def _prep_runtime(self) -> None:
         if "org" not in self.options or not self.options["org"]:
             self._load_keychain()
-        
-        self.pathtoexportjson = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+
+        raw_plan = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        self._source_plan_dir = os.path.normpath(os.path.abspath(raw_plan))
+        self.pathtoexportjson = self._source_plan_dir
         self._temp_plan_dir = None
 
         if isinstance(self.org_config, ScratchOrgConfig):
             self.targetusername = self.org_config.username
         else:
-            self.targetusername = self.options.get("targetusername") or self.org_config.access_token
+            self.targetusername = (
+                self.options.get("targetusername")
+                or getattr(self.org_config, "username", None)
+                or self.org_config.access_token
+            )
 
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
 
         if self.options.get("dynamic_assigned_to_user"):
             self._apply_dynamic_assigned_to_user()
+        norm_plan = self._source_plan_dir.replace("\\", "/")
+        if self.options.get("dynamic_qb_approvals_group_members", True) and "qb-approvals" in norm_plan:
+            self._apply_dynamic_qb_approvals_group_members()
         if self.options.get("sync_objectset_source_to_source"):
             self._sync_objectset_source_to_source()
         self._prepare_export_json_file()
@@ -730,6 +881,13 @@ class TestSFDMUIdempotency(SFDXBaseTask):
 
     def _run_load_once(self, plan_dir: Optional[str] = None) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        plan_dir = os.path.normpath(os.path.abspath(plan_dir))
+        alt = materialize_qb_approvals_group_member_plan(plan_dir, self._get_org_for_cli(), self.logger)
+        if alt:
+            if not hasattr(self, "_qb_approvals_temp_dirs"):
+                self._qb_approvals_temp_dirs = []
+            self._qb_approvals_temp_dirs.append(alt)
+            plan_dir = alt
         export_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
         if not os.path.isfile(export_path):
             raise FileNotFoundError(f"export.json not found: {export_path}")
@@ -808,6 +966,14 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             self.logger.info(strip_ansi_codes(line))
 
     def _run_task(self) -> None:
+        self._qb_approvals_temp_dirs = []
+        try:
+            self._run_task_inner()
+        finally:
+            for d in getattr(self, "_qb_approvals_temp_dirs", []):
+                shutil.rmtree(d, ignore_errors=True)
+
+    def _run_task_inner(self) -> None:
         if "org" not in self.options or not self.options["org"]:
             self._load_keychain()
         plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")

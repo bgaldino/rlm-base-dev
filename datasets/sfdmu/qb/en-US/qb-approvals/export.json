@@ -1,6 +1,6 @@
 {
   "apiVersion": "66.0",
-  "excludeIdsFromCSVFiles": "false",
+  "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
       "name": "Lightning Email Templates",
@@ -8,6 +8,30 @@
         {
           "query": "SELECT Name, DeveloperName, Subject, HtmlValue, UiType FROM EmailTemplate WHERE Name LIKE 'RLM%'",
           "operation": "Readonly"
+        }
+      ]
+    },
+    {
+      "name": "CEO public group membership",
+      "objects": [
+        {
+          "query": "SELECT Name, Type FROM Group WHERE Type = 'Regular' AND Name IN ('Director', 'Manager', 'VP') ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name;Type",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Username, UserRole.DeveloperName FROM User WHERE UserRole.DeveloperName = 'CEO' AND IsActive = true ORDER BY Username ASC",
+          "operation": "Readonly",
+          "externalId": "Username",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Group.Name, Group.Type, UserOrGroupId$User.Username FROM GroupMember ORDER BY Group.Name ASC, UserOrGroupId$User.Username ASC",
+          "operation": "Upsert",
+          "externalId": "Group.Name;Group.Type;UserOrGroupId$User.Username",
+          "skipExistingRecords": true,
+          "excluded": false
         }
       ]
     },
