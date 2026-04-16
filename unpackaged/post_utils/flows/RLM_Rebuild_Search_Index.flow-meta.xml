@@ -96,7 +96,7 @@
             <targetReference>Build_Index_and_Search</targetReference>
         </connector>
     </start>
-    <status>Active</status>
+    <status>Draft</status>
     <variables>
         <name>ErrorMessage</name>
         <dataType>String</dataType>
