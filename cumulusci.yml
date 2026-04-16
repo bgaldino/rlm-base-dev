@@ -161,6 +161,7 @@ project:
     quantumbit: true          # QuantumBit app deployment
     product_dataset: qb       # Default product dataset
     ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
+    sample_data: true         # Sample data
 
     # ── Deployment Options ─────────────────────────────────────────────────────
     personas: true            # Persona profiles and permission set groups (post_personas)
@@ -349,7 +350,6 @@ project:
       # Agent-specific permission sets
       - RLM_QuotingAgent
 
-
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
       - RLM_Constraints
@@ -365,6 +365,14 @@ project:
     ps_prm: &ps_prm
       # PRM-specific permission sets
       - RLM_PRM
+
+    ps_large_stx: &ps_large_stx
+      # Large STX-specific permission sets
+      - RLM_LargeSalesTransaction
+
+    ps_persona_sales_rep: &ps_persona_sales_rep
+      # Persona sales rep-specific permission sets
+      - RLM_QuantumBit_Sales_Representative
 
 #-----------------#
 # DECISION TABLES #
@@ -2751,7 +2759,7 @@ flows:
     steps:
       1:
         task: insert_scratch_data
-        when: org_config.scratch and not project_config.project__custom__tso
+        when: project_config.project__custom__sample_data
 
   prepare_quantumbit:
     group: Revenue Lifecycle Management
@@ -2801,6 +2809,11 @@ flows:
       1:
         task: deploy_post_large_stx
         when: project_config.project__custom__large_stx
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__large_stx
+        options:
+          api_names: *ps_large_stx
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management
@@ -3332,8 +3345,13 @@ flows:
         task: assign_permission_sets
         when: project_config.project__custom__personas
         options:
-          api_names:
-            - RLM_QuantumBit_Sales_Representative
+          api_names: *ps_persona_sales_rep
+          user_alias: salesrep
+      7:
+        task: assign_permission_sets
+        when: project_config.project__custom__personas
+        options:
+          api_names: *ps_large_stx
           user_alias: salesrep
 
   run_qb_extracts:
