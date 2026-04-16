@@ -1170,6 +1170,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
     ) {
         System.debug(LoggingLevel.DEBUG, DBG + '.appendSalesTransactionNodeUpdate: enter');
         List<Object> stPath = salesTransactionDataPath(salesTransactionNode);
+        system.debug('stPath: ' + stPath);
         if (stPath == null) {
             System.debug(
                 LoggingLevel.WARN,
