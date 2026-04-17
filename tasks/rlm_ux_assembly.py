@@ -1046,10 +1046,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # --- RLM_Revenue_Cloud (versioned selection + feature patches) ---
         rev_cloud_name = "RLM_Revenue_Cloud.app-meta.xml"
         if not filter_name or filter_name == rev_cloud_name:
-            if features.get("tso"):
-                src_dir = app_base / "tso"
-            elif manufacturing_mode and features.get("badger"):
+            if manufacturing_mode and features.get("badger"):
                 src_dir = app_base / "manufacturing"
+            elif features.get("tso"):
+                src_dir = app_base / "tso"
             elif features.get("qb"):
                 src_dir = app_base / "quantumbit"
             else:
@@ -1060,10 +1060,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                if features.get("tso"):
-                    tier = "tso"
-                elif manufacturing_mode and features.get("badger"):
+                if manufacturing_mode and features.get("badger"):
                     tier = "manufacturing"
+                elif features.get("tso"):
+                    tier = "tso"
                 elif features.get("qb"):
                     tier = "quantumbit"
                 else:
@@ -1072,9 +1072,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # Apply feature-conditional actionOverride patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
                 # and contain bare <actionOverrides> elements (no root wrapper).
-                # TSO template already contains all overrides; patches only run for non-TSO builds.
+                # TSO and manufacturing templates are standalone and already contain all overrides;
+                # patches only run for non-TSO, non-manufacturing builds.
                 patches_applied = []
-                if not features.get("tso"):
+                if not features.get("tso") and not (manufacturing_mode and features.get("badger")):
                     patch_features = ["billing", "rates", "ramps"]
                     for pf in patch_features:
                         if not features.get(pf):
