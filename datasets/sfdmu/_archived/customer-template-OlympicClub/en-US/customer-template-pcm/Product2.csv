@@ -1,0 +1,16 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,,Active membership (35+) — combined operating and capital dues (demo).,,Software,true,true,false,OC Active (35+) Monthly Dues,OC-ACT-35P-DUES,EACH,,OC-ACT-35P-DUES,,EACH
+,false,,Social membership monthly dues (demo).,,Software,true,true,false,OC Social Monthly Dues,OC-SOC-DUES,EACH,,OC-SOC-DUES,,EACH
+,false,,Junior membership monthly dues (demo).,,Software,true,true,false,OC Junior Monthly Dues,OC-JR-DUES,EACH,,OC-JR-DUES,,EACH
+,false,,Nonresident membership quarterly dues (demo).,,Software,true,true,false,OC Nonresident Quarterly Dues,OC-NR-Q-DUES,EACH,,OC-NR-Q-DUES,,EACH
+,false,,Monthly green dues — age 30+ (demo).,,Software,true,true,false,OC Monthly Green Dues (30+),OC-GRN-30P,EACH,,OC-GRN-30P,,EACH
+,false,,Golf cart recurring monthly (demo).,,Software,true,true,false,OC Golf Cart Monthly,OC-CART-MO,EACH,,OC-CART-MO,,EACH
+,false,,Annual golf cart subscription (demo).,,Software,true,true,false,OC Annual Cart Subscription,OC-CART-ANN,EACH,,OC-CART-ANN,,EACH
+,false,,Monthly tennis dues — age 40+ (demo).,,Software,true,true,false,OC Monthly Tennis Dues (40+),OC-TNS-MO-40P,EACH,,OC-TNS-MO-40P,,EACH
+,false,,City clubhouse full locker — monthly (demo).,,Software,true,true,false,OC City Clubhouse Full Locker,OC-LKR-CITY-F,EACH,,OC-LKR-CITY-F,,EACH
+,false,,Member initiation fee — Active 35–39 tier (demo).,,Software,true,true,false,OC Member Initiation (Active 35–39),OC-INIT-3539,EACH,,OC-INIT-3539,,EACH
+,false,,Golf privilege — one-time (demo).,,Software,true,true,false,OC Golf Privilege,OC-PRIV-GOLF,EACH,,OC-PRIV-GOLF,,EACH
+,false,,Tennis privilege (30+) — one-time (demo).,,Software,true,true,false,OC Tennis Privilege (30+),OC-PRIV-TNS30,EACH,,OC-PRIV-TNS30,,EACH
+,false,Allowed,Bundle: monthly green dues plus cart (demo).,,Software,true,true,false,OC Golf Plus Bundle,OC-BND-GOLF-PLUS,EACH,,OC-BND-GOLF-PLUS,Bundle,EACH
+,false,,Usage definition product for metered green fee rounds — not sold standalone.,,,true,true,false,OC Usage Definition (Green Rounds),OC-BLNG-GREEN,EACH,,OC-BLNG-GREEN,,EACH
+,false,,Metered green fee rounds — Lake member weekday baseline rate on CD-DEMO cards (demo).,,Software,true,true,false,OC Metered Green Fee Rounds,OC-USG-GREEN-ROUNDS,EACH,,OC-USG-GREEN-ROUNDS,,EACH

@@ -1,0 +1,2 @@
+Code,IsRenewalAllowed,Name,RenewalFrequency,RenewalFrequencyUnit,Status
+SF-DEMO-USG-RENEW,true,Snowflake Demo Usage Grant Renewal,1,Month,Active

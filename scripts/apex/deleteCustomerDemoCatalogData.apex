@@ -4,10 +4,10 @@
 // Prerequisites (run in order via purge_customer_demo_catalog flow):
 //   1) customer_demo_purge_records — QLIURP / QLIURG / order grants
 //   2) delete_customer_demo_rates_data — CD-DEMO rate cards
-//   3) delete_customer_demo_rating_data — PUR/PUG/PURP/SF-UR-*
+//   3) delete_customer_demo_rating_data — PUR/PUG/PURP/SF-UR-* / OC-UR-*
 //
-// Scope: Product2 where StockKeepingUnit matches SF-SNOW-%, SF-USG-%, or SF-BLNG-%;
-// ProductCatalog Code = SF-DEMO-CAT; ProductClassification Code = SF-SW;
+// Scope: Product2 where StockKeepingUnit matches SF-SNOW-%, SF-USG-%, SF-BLNG-%, or OC-%;
+// ProductCatalog Code = SF-DEMO-CAT or OC-DEMO-CAT; ProductClassification Code = SF-SW or OC-CLUB;
 // demo UsageGrantRenewalPolicy / UsageGrantRolloverPolicy codes SF-DEMO-USG-*;
 // billing records named in customer-template-billing CSVs.
 //
@@ -17,11 +17,20 @@
 // Quote lines or order items referencing demo SKUs will block PricebookEntry/Product2 delete — remove those
 // transaction rows first, then re-run this script.
 
-final String DEMO_CATALOG_CODE = 'SF-DEMO-CAT';
-final String DEMO_CLASSIFICATION_CODE = 'SF-SW';
-final String DEMO_BILLING_POLICY = 'Snowflake Demo Billing Policy';
-final String DEMO_LEGAL_ENTITY = 'Snowflake Demo Legal Entity - US';
-final String DEMO_BILLING_TREATMENT = 'Snowflake Demo Billing Treatment - US';
+final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT' };
+final List<String> DEMO_CLASSIFICATION_CODES = new List<String>{ 'SF-SW', 'OC-CLUB' };
+final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
+    new List<String>{
+        'Snowflake Demo Billing Policy',
+        'Snowflake Demo Billing Treatment - US',
+        'Snowflake Demo Legal Entity - US'
+    },
+    new List<String>{
+        'Olympic Demo Billing Policy',
+        'Olympic Demo Billing Treatment - US',
+        'Olympic Demo Legal Entity - US'
+    }
+};
 
 List<Product2> demoProducts = [
     SELECT Id, Type, StockKeepingUnit
@@ -31,6 +40,7 @@ List<Product2> demoProducts = [
         (StockKeepingUnit LIKE 'SF-SNOW-%')
         OR (StockKeepingUnit LIKE 'SF-USG-%')
         OR (StockKeepingUnit LIKE 'SF-BLNG-%')
+        OR (StockKeepingUnit LIKE 'OC-%')
 ];
 Set<Id> demoProductIds = new Map<Id, Product2>(demoProducts).keySet();
 
@@ -140,13 +150,16 @@ if (demoProductIds.isEmpty()) {
     }
 }
 
-List<ProductCatalog> demoCatalog = [
-    SELECT Id
-    FROM ProductCatalog
-    WHERE Code = :DEMO_CATALOG_CODE
-    LIMIT 1
-];
-if (!demoCatalog.isEmpty()) {
+for (String catalogCode : DEMO_CATALOG_CODES) {
+    List<ProductCatalog> demoCatalog = [
+        SELECT Id, Code
+        FROM ProductCatalog
+        WHERE Code = :catalogCode
+        LIMIT 1
+    ];
+    if (demoCatalog.isEmpty()) {
+        continue;
+    }
     Id catalogId = demoCatalog[0].Id;
     Integer guard = 0;
     while (guard++ < 25) {
@@ -173,21 +186,23 @@ if (!demoCatalog.isEmpty()) {
             break;
         }
         Database.delete(leaves, false);
-        System.debug('Deleted ' + leaves.size() + ' ProductCategory leaf row(s) under demo catalog.');
+        System.debug('Deleted ' + leaves.size() + ' ProductCategory leaf row(s) under demo catalog ' + catalogCode + '.');
     }
     delete demoCatalog;
-    System.debug('Deleted ProductCatalog ' + DEMO_CATALOG_CODE + '.');
+    System.debug('Deleted ProductCatalog ' + catalogCode + '.');
 }
 
-List<ProductClassification> demoClass = [
-    SELECT Id
-    FROM ProductClassification
-    WHERE Code = :DEMO_CLASSIFICATION_CODE
-    LIMIT 1
-];
-if (!demoClass.isEmpty()) {
-    Database.delete(demoClass, false);
-    System.debug('Deleted ProductClassification ' + DEMO_CLASSIFICATION_CODE + ' (if no FK block).');
+for (String classificationCode : DEMO_CLASSIFICATION_CODES) {
+    List<ProductClassification> demoClass = [
+        SELECT Id
+        FROM ProductClassification
+        WHERE Code = :classificationCode
+        LIMIT 1
+    ];
+    if (!demoClass.isEmpty()) {
+        Database.delete(demoClass, false);
+        System.debug('Deleted ProductClassification ' + classificationCode + ' (if no FK block).');
+    }
 }
 
 List<UsageGrantRenewalPolicy> renewDemo = [
@@ -203,25 +218,32 @@ if (!rollDemo.isEmpty()) {
     Database.delete(rollDemo, false);
 }
 
-List<BillingTreatmentItem> btis = [
-    SELECT Id FROM BillingTreatmentItem WHERE BillingTreatment.Name = :DEMO_BILLING_TREATMENT
-];
-if (!btis.isEmpty()) {
-    Database.delete(btis, false);
-}
-List<BillingTreatment> bts = [
-    SELECT Id FROM BillingTreatment WHERE Name = :DEMO_BILLING_TREATMENT AND BillingPolicy.Name = :DEMO_BILLING_POLICY
-];
-if (!bts.isEmpty()) {
-    Database.delete(bts, false);
-}
-List<BillingPolicy> bps = [SELECT Id FROM BillingPolicy WHERE Name = :DEMO_BILLING_POLICY LIMIT 1];
-if (!bps.isEmpty()) {
-    Database.delete(bps, false);
-}
-List<LegalEntity> les = [SELECT Id FROM LegalEntity WHERE Name = :DEMO_LEGAL_ENTITY LIMIT 1];
-if (!les.isEmpty()) {
-    Database.delete(les, false);
+for (List<String> stack : DEMO_BILLING_STACKS) {
+    String demoBillingPolicy = stack[0];
+    String demoBillingTreatment = stack[1];
+    String demoLegalEntity = stack[2];
+    List<BillingTreatmentItem> btis = [
+        SELECT Id FROM BillingTreatmentItem WHERE BillingTreatment.Name = :demoBillingTreatment
+    ];
+    if (!btis.isEmpty()) {
+        Database.delete(btis, false);
+    }
+    List<BillingTreatment> bts = [
+        SELECT Id
+        FROM BillingTreatment
+        WHERE Name = :demoBillingTreatment AND BillingPolicy.Name = :demoBillingPolicy
+    ];
+    if (!bts.isEmpty()) {
+        Database.delete(bts, false);
+    }
+    List<BillingPolicy> bps = [SELECT Id FROM BillingPolicy WHERE Name = :demoBillingPolicy LIMIT 1];
+    if (!bps.isEmpty()) {
+        Database.delete(bps, false);
+    }
+    List<LegalEntity> les = [SELECT Id FROM LegalEntity WHERE Name = :demoLegalEntity LIMIT 1];
+    if (!les.isEmpty()) {
+        Database.delete(les, false);
+    }
 }
 
 System.debug('deleteCustomerDemoCatalogData: finished.');

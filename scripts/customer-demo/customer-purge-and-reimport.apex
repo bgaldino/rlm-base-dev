@@ -14,7 +14,8 @@
 final Set<String> demoUsageProductSkus = new Set<String>{
     'SF-USG-STORAGE',
     'SF-USG-EGRESS',
-    'SF-USG-COMPUTE'
+    'SF-USG-COMPUTE',
+    'OC-USG-GREEN-ROUNDS'
 };
 
 List<ProductUsageResource> demoPurs = [
@@ -55,7 +56,8 @@ if (!demoPurIds.isEmpty()) {
 final Set<String> demoUsageResourceCodes = new Set<String>{
     'SF-UR-STORAGE',
     'SF-UR-EGRESS',
-    'SF-UR-COMPUTE'
+    'SF-UR-COMPUTE',
+    'OC-UR-GREEN'
 };
 
 List<UsageResource> demoUrs = [

@@ -117,7 +117,7 @@ project:
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
     customer_demo_usage: false # After PCM catalog load: optional SF-USG-* usage + SF-UR-* + CD-DEMO rate card (see prepare_customer_demo_usage)
-    customer_demo_branding: false  # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
+    customer_demo_branding: true  # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -1349,8 +1349,8 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Pre-import cleanup: removes QuotLineItmUsageRsrcPlcy and OrderItemUsageRsrcPlcy rows tied to
-      demo ProductUsageResourcePolicy (SF-USG-* PURs), then QuotLineItmUseRsrcGrant and
-      OrderItemUsageRsrcGrant on SF-UR-* so delete_customer_demo_rating_data can drop PURP/PUR/UR.
+      demo ProductUsageResourcePolicy (SF-USG-* / OC-USG-* PURs), then QuotLineItmUseRsrcGrant and
+      OrderItemUsageRsrcGrant on SF-UR-* / OC-UR-* so delete_customer_demo_rating_data can drop PURP/PUR/UR.
       Does not delete Product2/PCM; full catalog reload follows in prepare_customer_demo_catalog.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -1464,10 +1464,11 @@ tasks:
     group: Data Maintenance
     description: >
       Delete customer-template PCM/catalog/billing after rates + rating teardown: Product2 (SF-SNOW-%, SF-USG-%,
-      SF-BLNG-%), SF-DEMO-CAT categories/catalog, SF-SW classification, SF-DEMO-USG-* grant policies, Snowflake Demo
-      billing policy/treatment/legal entity. Does not delete shared UOM classes (DATAVOL, SNFCRED) or URBP codes
-      monthlypeak/monthlytotal. Requires customer_demo_purge_records, delete_customer_demo_rates_data, and
-      delete_customer_demo_rating_data first; quote/order lines on demo SKUs may block Product2 delete.
+      SF-BLNG-%, OC-%), SF-DEMO-CAT / OC-DEMO-CAT categories/catalog, SF-SW / OC-CLUB classification, SF-DEMO-USG-*
+      grant policies, Snowflake Demo and Olympic Demo billing policy/treatment/legal entity stacks. Does not delete
+      shared UOM classes (DATAVOL, SNFCRED, OC-GOLF) or URBP codes monthlypeak/monthlytotal. Requires
+      customer_demo_purge_records, delete_customer_demo_rates_data, and delete_customer_demo_rating_data first;
+      quote/order lines on demo SKUs may block Product2 delete.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteCustomerDemoCatalogData.apex
@@ -1476,9 +1477,10 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Load customer demo usage rating (UsageResource, PUR, ProductUsageResourcePolicy, ProductUsageGrant,
-      grant binding + renewal/rollover/overage + rating frequency policies). Requires PCM rows for SF-USG-*,
-      SF-BLNG-*, and UoM (DATAVOL, SNFCRED). Run delete_customer_demo_rates_data before delete_customer_demo_rating_data
-      when RateCardEntry references SF-UR-*.
+      grant binding + renewal/rollover/overage + rating frequency policies). Requires PCM rows for sellable usage
+      (SF-USG-* / OC-USG-*), usage-definition (SF-BLNG-* / OC-BLNG-*), and UoM classes referenced by UsageResource
+      (e.g. DATAVOL/SNFCRED or OC-GOLF). Run delete_customer_demo_rates_data before delete_customer_demo_rating_data
+      when RateCardEntry references SF-UR-* / OC-UR-*.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *customer_demo_rating_dataset

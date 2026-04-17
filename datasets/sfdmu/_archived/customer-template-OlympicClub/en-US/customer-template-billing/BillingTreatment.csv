@@ -1,0 +1,2 @@
+BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
+Olympic Demo Billing Policy,USD,Olympic Club demo US billing treatment,false,No,Olympic Demo Legal Entity - US,Olympic Demo Billing Treatment - US,Draft,Olympic Demo Billing Treatment - US;Olympic Demo Billing Policy;Olympic Demo Legal Entity - US

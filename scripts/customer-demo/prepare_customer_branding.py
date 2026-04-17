@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate customer-branded Lightning Experience Theme metadata.
 
-Creates three deployable metadata artifacts from a customer logo URL,
+Creates three deployable metadata artifacts from a customer logo (**URL** or **local file**),
 brand color, and company name:
 
   1. ContentAsset   — the logo image resized/letterboxed to 600×120 PNG
@@ -85,6 +85,20 @@ def _download_logo(url: str) -> bytes:
     if len(payload) > MAX_DOWNLOAD_BYTES:
         raise ValueError(
             f"Downloaded logo is {len(payload):,} bytes, exceeds {MAX_DOWNLOAD_BYTES:,} byte limit."
+        )
+    return payload
+
+
+def _load_logo_from_path(path: Path) -> bytes:
+    """Read logo image bytes from a local file (PNG, JPEG, etc.)."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Logo file not found: {path}")
+    payload = path.read_bytes()
+    if not payload:
+        raise ValueError(f"Logo file is empty: {path}")
+    if len(payload) > MAX_DOWNLOAD_BYTES:
+        raise ValueError(
+            f"Logo file is {len(payload):,} bytes, exceeds {MAX_DOWNLOAD_BYTES:,} byte limit."
         )
     return payload
 
@@ -211,7 +225,15 @@ def main() -> None:
         )
     )
     parser.add_argument("--company-name", required=True, help="Customer/company name for the theme label.")
-    parser.add_argument("--logo-url", required=True, help="Public URL to a logo image (any size; resized to 600x120).")
+    logo_src = parser.add_mutually_exclusive_group(required=True)
+    logo_src.add_argument(
+        "--logo-url",
+        help="Public URL to a logo image (any size; resized to 600x120).",
+    )
+    logo_src.add_argument(
+        "--logo-path",
+        help="Path to a local logo file (PNG, JPEG, etc.); relative paths resolve from repo root.",
+    )
     parser.add_argument("--brand-color", required=True, help="Hex brand color (e.g. #0176D3).")
     parser.add_argument(
         "--bg-color",
@@ -237,9 +259,16 @@ def main() -> None:
 
     output_dir = Path(args.output_dir).resolve()
 
-    # --- Download and process logo ---
-    print(f"Downloading logo from {args.logo_url} ...")
-    raw_bytes = _download_logo(args.logo_url)
+    # --- Load and process logo ---
+    if args.logo_path:
+        logo_path = Path(args.logo_path)
+        if not logo_path.is_absolute():
+            logo_path = (REPO_ROOT / logo_path).resolve()
+        print(f"Loading logo from {logo_path} ...")
+        raw_bytes = _load_logo_from_path(logo_path)
+    else:
+        print(f"Downloading logo from {args.logo_url} ...")
+        raw_bytes = _download_logo(args.logo_url)
 
     src_img = Image.open(io.BytesIO(raw_bytes))
     print(f"  Source image:  {src_img.size[0]}x{src_img.size[1]} {src_img.format or 'unknown'}")

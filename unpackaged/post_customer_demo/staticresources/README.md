@@ -12,3 +12,5 @@ Naming convention:
 - `RLM_customer_<company_slug>_logo_sq`
 
 After files are generated, deploy this folder with the `deploy_customer_demo_staticresources` CCI task.
+
+Committed example: `RLM_customer_olympic_club_logo` (PNG) for The Olympic Club customer-template `DisplayUrl` paths (`/resource/RLM_customer_olympic_club_logo`).

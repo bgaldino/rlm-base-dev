@@ -1,1 +1,1 @@
-$$Name$BillingPolicy.Name$LegalEntity.Name,Name,BillingPolicy.Name,CurrencyIsoCode,Description,ExcludeFromBilling,IsMilestoneBilling,LegalEntity.Name,Status
+BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name

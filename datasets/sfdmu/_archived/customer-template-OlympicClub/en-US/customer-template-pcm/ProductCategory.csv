@@ -1,0 +1,7 @@
+Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+OC-CAT-ROOT,The Olympic Club,OC-DEMO-CAT,,true,1,
+OC-CAT-MEM,Membership & Dues,OC-DEMO-CAT,,true,10,OC-CAT-ROOT
+OC-CAT-GOLF,Golf,OC-DEMO-CAT,,true,20,OC-CAT-ROOT
+OC-CAT-TNS,Tennis,OC-DEMO-CAT,,true,30,OC-CAT-ROOT
+OC-CAT-INIT,Initiation & Privileges,OC-DEMO-CAT,,true,40,OC-CAT-ROOT
+OC-CAT-AMN,Amenities & Add-ons,OC-DEMO-CAT,,true,50,OC-CAT-ROOT

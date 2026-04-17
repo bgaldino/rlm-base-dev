@@ -1,0 +1,2 @@
+Category,Code,DefaultUnitOfMeasure.UnitCode,DefaultUnitOfMeasure.Name,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UnitOfMeasureClass.Name,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,OC-UR-GREEN,ROUND,Round,Metered golf green fee rounds (demo),OC Green Fee Rounds,Draft,,OC-GOLF,Golf Round,OC-BLNG-GREEN,monthlytotal
