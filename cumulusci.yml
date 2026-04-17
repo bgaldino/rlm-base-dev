@@ -1335,6 +1335,19 @@ tasks:
     options:
       path: unpackaged/post_manufacturing/core_setup
 
+  grant_mfg_ext_credential_access:
+    group: Manufacturing
+    description: >
+      Grant External Credential Principal Access to the RLM_MFG_RCA permission set.
+      Salesforce Metadata API does not support externalCredentialPrincipalAccess in
+      PermissionSet deploy or retrieve, so this script uses a Tooling API callout to
+      locate the named principals for BillingSystemExtCredentials and
+      SalesforceContractsExtCredentials, then grants SetupEntityAccess via DML.
+      Idempotent: skips principals already granted.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/grantMfgExternalCredentialAccess.apex
+
   deploy_mfg_tso_perms:
     description: >
       Deploy Manufacturing production permission set group (MFG). Required when tso=true.
@@ -3476,7 +3489,9 @@ flows:
     description: >
       Assign Manufacturing permission sets and permission set groups to the running user.
       Waits for metadata deployment to settle before assigning. Assigns either the scratch
-      PSG (non-TSO) or production PSG (TSO) based on the tso feature flag.
+      PSG (non-TSO) or production PSG (TSO) based on the tso feature flag. Also grants
+      External Credential Principal Access to RLM_MFG_RCA (Metadata API limitation
+      workaround via Tooling API callout + SetupEntityAccess DML).
     steps:
       1:
         task: util_sleep
@@ -3498,6 +3513,9 @@ flows:
         when: project_config.project__custom__badger and project__custom__tso
         options:
           api_names: *badger_mfg_psg
+      5:
+        task: grant_mfg_ext_credential_access
+        when: project_config.project__custom__badger
 
   prepare_mfg_docgen:
     group: Manufacturing
