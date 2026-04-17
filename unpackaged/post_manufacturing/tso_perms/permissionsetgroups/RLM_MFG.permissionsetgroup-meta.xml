@@ -8,7 +8,6 @@
     <permissionSets>force__DecimalQuantityDesigntime</permissionSets>
     <permissionSets>force__DecimalQuantityRuntime</permissionSets>
     <permissionSets>force__EinsteinForManufacturingPsl</permissionSets>
-    <permissionSets>force__GenAiForManufacturingForSalesPsl</permissionSets>
     <permissionSets>force__ManagePricingFeaturesForMfg</permissionSets>
     <permissionSets>force__ManufacturingAccountForecastPsl</permissionSets>
     <permissionSets>force__ManufacturingAccountManagerTargetsPsl</permissionSets>
