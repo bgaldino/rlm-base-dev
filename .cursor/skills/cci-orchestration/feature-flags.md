@@ -16,7 +16,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 1 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `badger` | `True` | 49 flow step(s) |
 | `badger_data` | `True` | — |
 | `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
@@ -32,6 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `False` | 2 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
+| `manufacturing` | `True` | 49 flow step(s) |
 | `mfg_aaf` | `True` | 7 flow step(s) |
 | `mfg_docgen` | `True` | 5 flow step(s) |
 | `mfg_guidedselling` | `True` | 2 flow step(s) |
@@ -76,58 +76,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 2 → `create_approval_email_templates`
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
-
-### `badger` (default: `True`)
-
-- `prepare_rlm_org` step 30 → `prepare_manufacturing`
-- `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
-- `prepare_mfg_core` step 2 → `deploy_mfg_core`
-- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
-- `prepare_manufacturing` step 3 → `deploy_mfg_flows_and_actions`
-- `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
-- `prepare_manufacturing` step 9 → `reconfigure_mfg_pricing_discovery`
-- `prepare_manufacturing` step 14 → `util_sleep`
-- `prepare_manufacturing` step 15 → `configure_mfg_revenue_settings`
-- `prepare_manufacturing` step 17 → `activate_mfg_theme`
-- `prepare_mfg_perms` step 1 → `util_sleep`
-- `prepare_mfg_perms` step 2 → `assign_permission_sets`
-- `prepare_mfg_perms` step 3 → `assign_permission_set_groups`
-- `prepare_mfg_perms` step 4 → `assign_permission_set_groups`
-- `prepare_mfg_perms` step 5 → `grant_mfg_ext_credential_access`
-- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
-- `prepare_mfg_docgen` step 2 → `deploy_mfg_omni_integration_procedures`
-- `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
-- `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
-- `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
-- `prepare_mfg_data` step 1 → `insert_badger_pcm_data`
-- `prepare_mfg_data` step 2 → `insert_badger_pricing_data`
-- `prepare_mfg_data` step 3 → `insert_badger_dro_data`
-- `prepare_mfg_data` step 4 → `import_mfg_cml`
-- `prepare_mfg_data` step 5 → `prepare_mfg_tax`
-- `prepare_mfg_data` step 6 → `prepare_mfg_billing`
-- `prepare_mfg_context_plan` step 1 → `extend_context_sales_transaction_mfg`
-- `prepare_mfg_context_plan` step 2 → `apply_mfg_SalesTransactionContext`
-- `prepare_mfg_context_plan` step 3 → `apply_mfg_SalesTransactionContext`
-- `prepare_mfg_pricing` step 1 → `deploy_mfg_pricing_recipe`
-- `prepare_mfg_pricing` step 2 → `deploy_mfg_pricing_procedure`
-- `prepare_mfg_pricing` step 3 → `manage_expression_sets`
-- `import_mfg_cml` step 1 → `import_cml`
-- `import_mfg_cml` step 2 → `import_cml`
-- `import_mfg_cml` step 3 → `manage_expression_sets`
-- `prepare_mfg_dro` step 1 → `insert_badger_dro_data`
-- `prepare_mfg_dro` step 2 → `update_product_fulfillment_decomp_rules`
-- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
-- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
-- `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
-- `prepare_mfg_rebates` step 2 → `insert_badger_rebates_data`
-- `prepare_mfg_aaf` step 1 → `deploy_mfg_aaf_fields`
-- `prepare_mfg_aaf` step 2 → `deploy_mfg_aaf_permissions`
-- `prepare_mfg_aaf` step 3 → `assign_permission_sets`
-- `prepare_mfg_aaf` step 4 → `util_sleep`
-- `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
-- `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
-- `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
-- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
 
 ### `billing` (default: `True`)
 
@@ -240,6 +188,58 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
+
+### `manufacturing` (default: `True`)
+
+- `prepare_rlm_org` step 30 → `prepare_manufacturing`
+- `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
+- `prepare_mfg_core` step 2 → `deploy_mfg_core`
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
+- `prepare_manufacturing` step 3 → `deploy_mfg_flows_and_actions`
+- `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
+- `prepare_manufacturing` step 9 → `reconfigure_mfg_pricing_discovery`
+- `prepare_manufacturing` step 14 → `util_sleep`
+- `prepare_manufacturing` step 15 → `configure_mfg_revenue_settings`
+- `prepare_manufacturing` step 17 → `activate_mfg_theme`
+- `prepare_mfg_perms` step 1 → `util_sleep`
+- `prepare_mfg_perms` step 2 → `assign_permission_sets`
+- `prepare_mfg_perms` step 3 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 4 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 5 → `grant_mfg_ext_credential_access`
+- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
+- `prepare_mfg_docgen` step 2 → `deploy_mfg_omni_integration_procedures`
+- `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
+- `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
+- `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
+- `prepare_mfg_data` step 1 → `insert_badger_pcm_data`
+- `prepare_mfg_data` step 2 → `insert_badger_pricing_data`
+- `prepare_mfg_data` step 3 → `insert_badger_dro_data`
+- `prepare_mfg_data` step 4 → `import_mfg_cml`
+- `prepare_mfg_data` step 5 → `prepare_mfg_tax`
+- `prepare_mfg_data` step 6 → `prepare_mfg_billing`
+- `prepare_mfg_context_plan` step 1 → `extend_context_sales_transaction_mfg`
+- `prepare_mfg_context_plan` step 2 → `apply_mfg_SalesTransactionContext`
+- `prepare_mfg_context_plan` step 3 → `apply_mfg_SalesTransactionContext`
+- `prepare_mfg_pricing` step 1 → `deploy_mfg_pricing_recipe`
+- `prepare_mfg_pricing` step 2 → `deploy_mfg_pricing_procedure`
+- `prepare_mfg_pricing` step 3 → `manage_expression_sets`
+- `import_mfg_cml` step 1 → `import_cml`
+- `import_mfg_cml` step 2 → `import_cml`
+- `import_mfg_cml` step 3 → `manage_expression_sets`
+- `prepare_mfg_dro` step 1 → `insert_badger_dro_data`
+- `prepare_mfg_dro` step 2 → `update_product_fulfillment_decomp_rules`
+- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
+- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
+- `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
+- `prepare_mfg_rebates` step 2 → `insert_badger_rebates_data`
+- `prepare_mfg_aaf` step 1 → `deploy_mfg_aaf_fields`
+- `prepare_mfg_aaf` step 2 → `deploy_mfg_aaf_permissions`
+- `prepare_mfg_aaf` step 3 → `assign_permission_sets`
+- `prepare_mfg_aaf` step 4 → `util_sleep`
+- `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
+- `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
+- `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
 
 ### `mfg_aaf` (default: `True`)
 

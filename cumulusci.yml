@@ -124,7 +124,7 @@ project:
     sharingsettings: false    # Deploy Sharing Settings
     analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
-    badger: true              #Badger Metadata & Dataset
+    manufacturing: true       #Manufacturing Metadata & Dataset
     badger_data: true        #Badger Data Insertion
     mfg_aaf: true             #Badger MFG Advanced Account Forecast
     mfg_rebates: true         #Badger MFG Rebates
@@ -2795,7 +2795,7 @@ flows:
         when: project_config.project__custom__ux
       30:
         flow: prepare_manufacturing
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       31:
         flow: refresh_all_decision_tables
       32:
@@ -2817,13 +2817,13 @@ flows:
     steps:
       1:
         task: deploy_mfg_core_assets
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       2:
         task: deploy_mfg_core
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       3:
         task: deploy_mfg_tso_perms
-        when: project_config.project__custom__badger and project_config.project__custom__tso
+        when: project_config.project__custom__manufacturing and project_config.project__custom__tso
 
   prepare_manufacturing:
     group: Manufacturing
@@ -2833,7 +2833,7 @@ flows:
       business process flows and Quick Actions, OmniStudio document generation components,
       context plan extensions, pricing setup, seed data (PCM, pricing, DRO, CML, tax, billing),
       guided selling, rebates, advanced account forecasting, revenue settings configuration,
-      UX assembly, and theme activation. Gated by badger=true in prepare_rlm_org (step 30).
+      UX assembly, and theme activation. Gated by manufacturing=true in prepare_rlm_org (step 30).
     steps:
       1:
         flow: prepare_mfg_core
@@ -2841,7 +2841,7 @@ flows:
         flow: prepare_mfg_perms
       3:
         task: deploy_mfg_flows_and_actions
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       4:
         flow: prepare_mfg_docgen
       5:
@@ -2852,10 +2852,10 @@ flows:
         flow: prepare_mfg_data
       8:
         task: update_product_fulfillment_decomp_rules
-        when: project_config.project__custom__dro and project_config.project__custom__badger
+        when: project_config.project__custom__dro and project_config.project__custom__manufacturing
       9:
         task: reconfigure_mfg_pricing_discovery
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       10:
         flow: prepare_mfg_visuals
       11:
@@ -2866,17 +2866,17 @@ flows:
         flow: prepare_mfg_aaf
       14:
         task: util_sleep
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           seconds: *sleep_default
       15:
         task: configure_mfg_revenue_settings
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       16:
         flow: prepare_mfg_ux
       17:
         task: activate_mfg_theme
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
 
   prepare_core:
     group: Revenue Lifecycle Management
@@ -3494,27 +3494,27 @@ flows:
     steps:
       1:
         task: util_sleep
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           seconds: *sleep_default
       2:
         task: assign_permission_sets
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           api_names: *badger_mfg_ps
       3:
         task: assign_permission_set_groups
-        when: project_config.project__custom__badger and not project__custom__tso
+        when: project_config.project__custom__manufacturing and not project__custom__tso
         options:
           api_names: *badger_mfg_scratch_psg
       4:
         task: assign_permission_set_groups
-        when: project_config.project__custom__badger and project__custom__tso
+        when: project_config.project__custom__manufacturing and project__custom__tso
         options:
           api_names: *badger_mfg_psg
       5:
         task: grant_mfg_ext_credential_access
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
 
   prepare_mfg_docgen:
     group: Manufacturing
@@ -3522,23 +3522,23 @@ flows:
       Deploy Manufacturing OmniStudio document generation components in dependency order:
       OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal
       OmniScript, and document templates (Badger_Proposal, Price_Contract).
-      Gated by badger=true and mfg_docgen=true.
+      Gated by manufacturing=true and mfg_docgen=true.
     steps:
       1:
         task: deploy_mfg_omni_datatransforms
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       2:
         task: deploy_mfg_omni_integration_procedures
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       3:
         task: deploy_mfg_omni_base_docgen_script
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       4:
         task: deploy_mfg_omni_quote_script
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       5:
         task: deploy_mfg_doc_templates
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
 
   prepare_mfg_data:
     group: Manufacturing
@@ -3548,22 +3548,22 @@ flows:
     steps:
       1:
         task: insert_badger_pcm_data
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       2:
         task: insert_badger_pricing_data
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       3:
         task: insert_badger_dro_data
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       4:
         flow: import_mfg_cml
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       5:
         flow: prepare_mfg_tax
-        when: project_config.project__custom__badger and project_config.project__custom__tax
+        when: project_config.project__custom__manufacturing and project_config.project__custom__tax
       6:
         flow: prepare_mfg_billing
-        when: project_config.project__custom__badger and project_config.project__custom__billing
+        when: project_config.project__custom__manufacturing and project_config.project__custom__billing
 
   prepare_mfg_billing:
     group: Manufacturing
@@ -3571,7 +3571,7 @@ flows:
       Load and activate Manufacturing billing seed data (LegalEntity, AccountingPeriod,
       BillingPolicy, BillingTreatment, BillingTreatmentItem, GeneralLedgerAccount,
       GeneralLedgerAcctAsgntRule, Product2 billing policy assignments). Activates billing
-      records and deploys billing metadata. Runs when badger=true and billing=true.
+      records and deploys billing metadata. Runs when manufacturing=true and billing=true.
     steps:
       1:
         task: insert_mfg_billing_data
@@ -3600,7 +3600,7 @@ flows:
       Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatment,
       Product2 TaxPolicy assignments). Uses a two-pass SFDMU plan: Pass 1 inserts records in
       Draft status; Pass 2 activates TaxTreatment and TaxPolicy and sets DefaultTaxTreatmentId.
-      Runs when badger=true and tax=true.
+      Runs when manufacturing=true and tax=true.
     steps:
       1:
         task: insert_mfg_tax_data
@@ -3618,13 +3618,13 @@ flows:
     steps:
       1:
         task: extend_context_sales_transaction_mfg
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       2:
         task: apply_mfg_SalesTransactionContext
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       3:
         task: apply_mfg_SalesTransactionContext
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
 
   prepare_mfg_pricing:
     group: Manufacturing
@@ -3635,13 +3635,13 @@ flows:
     steps:
       1:
         task: deploy_mfg_pricing_recipe
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       2:
         task: deploy_mfg_pricing_procedure
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       3:
         task: manage_expression_sets
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           operation: activate_versions
           version_full_names: "MFG_Rev_Mgmt_Default_Pricing_Procedure_V1"
@@ -3651,17 +3651,17 @@ flows:
     steps:
       1:
         task: import_cml
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           data_dir: *genSet_mfg_cml
       2:
         task: import_cml
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           data_dir: *fuelCell_mfg_cml
       3:
         task: manage_expression_sets
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
         options:
           operation: activate_versions
           version_full_names: "GeneratorSet_V1,Fuel_Cell_V1"
@@ -3674,71 +3674,71 @@ flows:
     steps:
       1:
         task: insert_badger_dro_data
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
       2:
         task: update_product_fulfillment_decomp_rules
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__manufacturing
 
   prepare_mfg_guided_selling:
     group: Manufacturing
     description: >
       Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions,
       OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments.
-      Gated by badger=true and mfg_guidedselling=true.
+      Gated by manufacturing=true and mfg_guidedselling=true.
     steps:
       1:
         task: insert_badger_guidedselling_data
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_guidedselling
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_guidedselling
       2:
         task: deploy_mfg_guided_selling
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_guidedselling
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_guidedselling
 
   prepare_mfg_rebates:
     group: Manufacturing
     description: >
       Deploy Manufacturing rebate metadata (ObjectHierarchyRelationship settings and
       BatchCalcJobDefinition) then load rebate seed data.
-      Gated by badger=true and mfg_rebates=true.
+      Gated by manufacturing=true and mfg_rebates=true.
     steps:
       1:
         task: deploy_mfg_rebates
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_rebates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_rebates
       2:
         task: insert_badger_rebates_data
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_rebates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_rebates
 
   prepare_mfg_aaf:
     group: Manufacturing
     description: >
       Deploy Manufacturing Advanced Account Forecasting metadata in dependency order: object fields
       and translations, permission set, then waits before deploying the dimension source and forecast
-      set configuration. Loads AAF seed data last. Gated by badger=true and mfg_aaf=true.
+      set configuration. Loads AAF seed data last. Gated by manufacturing=true and mfg_aaf=true.
     steps:
       1:
         task: deploy_mfg_aaf_fields
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
       2:
         task: deploy_mfg_aaf_permissions
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
         options:
           api_names: *badger_aaf_ps
       4:
         task: util_sleep
         options:
           seconds: *sleep_default
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
       5:
         task: deploy_mfg_aaf_dim_source
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
       6:
         task: deploy_mfg_aaf_forecast_set
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
       7:
         task: insert_badger_aaf_data
-        when: project_config.project__custom__badger and project_config.project__custom__mfg_aaf
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
 
   prepare_ramp_builder:
     group: Revenue Lifecycle Management
@@ -3791,11 +3791,11 @@ flows:
       RLM_MFG_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
       Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing).
       Run this flow independently to test manufacturing UX assembly without running the full
-      prepare_rlm_org flow. Gated by badger=true and ux=true in prepare_manufacturing.
+      prepare_rlm_org flow. Gated by manufacturing=true and ux=true in prepare_manufacturing.
     steps:
       1:
         task: assemble_and_deploy_ux
-        when: project_config.project__custom__badger and project_config.project__custom__ux
+        when: project_config.project__custom__manufacturing and project_config.project__custom__ux
         options:
           output_path: unpackaged/post_manufacturing_ux
           manufacturing: true
