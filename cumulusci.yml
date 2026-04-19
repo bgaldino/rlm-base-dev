@@ -1306,35 +1306,22 @@ tasks:
 
   # Badger Deploy Full Tasks
 
-  deploy_mfg_core_assets:
+  deploy_mfg_core:
     description: >
-      Deploy Manufacturing brand assets, product/part/chemical images, Babylon.js 3D libraries,
-      and Industries/IndustriesManufacturing platform settings. Must deploy before theme_and_fields
-      because the BrandingSet references these ContentAssets.
+      Deploy all unconditional Manufacturing core metadata in a single transaction:
+      brand assets (ContentAssets, StaticResources), Industries/IndustriesManufacturing platform
+      settings, Lightning Experience theme definition (BrandingSet, LightningExperienceTheme),
+      custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule,
+      Quote, QuoteLineItem, and ServiceContract objects, core Apex classes
+      (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote), OpenSObject Aura component,
+      RLM_MFG_RCA permission set, RLM_MFG_scratch permission set group, and SalesAgreement settings.
+      Consolidates the former core_assets, theme_and_fields, and core_setup deploys into one
+      Metadata API transaction. Salesforce resolves intra-package ordering internally
+      (fields before PSets, PSets before PSG).
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/core_assets
-
-  deploy_mfg_theme_and_fields:
-    description: >
-      Deploy Manufacturing Lightning Experience theme definition (BrandingSet, LightningExperienceTheme)
-      and custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule,
-      Quote, QuoteLineItem, and ServiceContract objects.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Manufacturing
-    options:
-      path: unpackaged/post_manufacturing/theme_and_fields
-
-  deploy_mfg_core_setup:
-    description: >
-      Deploy Manufacturing core Apex classes (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote),
-      OpenSObject Aura component, RLM_MFG_RCA permission set, RLM_MFG_scratch permission set group,
-      and SalesAgreement settings.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Manufacturing
-    options:
-      path: unpackaged/post_manufacturing/core_setup
+      path: unpackaged/post_manufacturing_core
 
   grant_mfg_ext_credential_access:
     group: Manufacturing
@@ -2809,21 +2796,15 @@ flows:
   prepare_mfg_core:
     group: Manufacturing
     description: >
-      Deploy core Manufacturing metadata in dependency order: brand assets and feature settings,
-      Lightning Experience theme definition and custom fields, core Apex/Aura/permissions/SA settings,
-      and TSO-specific production permission set group (when tso=true). Does not deploy flows —
-      prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
+      Deploy core Manufacturing metadata in a single consolidated transaction (brand assets,
+      theme, custom fields, Apex, Aura, permission sets, PSG, SA settings), then conditionally
+      deploy the TSO-specific production permission set group (when tso=true). Does not deploy
+      flows — prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
     steps:
       1:
-        task: deploy_mfg_core_assets
+        task: deploy_mfg_core
         when: project_config.project__custom__badger
       2:
-        task: deploy_mfg_theme_and_fields
-        when: project_config.project__custom__badger
-      3:
-        task: deploy_mfg_core_setup
-        when: project_config.project__custom__badger
-      4:
         task: deploy_mfg_tso_perms
         when: project_config.project__custom__badger and project_config.project__custom__tso
 
