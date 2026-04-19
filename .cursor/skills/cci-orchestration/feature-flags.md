@@ -31,9 +31,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `False` | 2 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
-| `manufacturing` | `True` | 53 flow step(s) |
+| `manufacturing` | `True` | 55 flow step(s) |
 | `mfg_aaf` | `True` | 7 flow step(s) |
-| `mfg_docgen` | `True` | 5 flow step(s) |
+| `mfg_docgen` | `True` | 7 flow step(s) |
 | `mfg_guidedselling` | `True` | 2 flow step(s) |
 | `mfg_rebates` | `True` | 2 flow step(s) |
 | `mfg_visuals` | `True` | 2 flow step(s) |
@@ -215,6 +215,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
 - `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
 - `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
+- `prepare_mfg_docgen` step 6 → `activate_mfg_docgen_templates`
+- `prepare_mfg_docgen` step 7 → `fix_mfg_document_template_binaries`
 - `prepare_mfg_data` step 1 → `insert_badger_pcm_data`
 - `prepare_mfg_data` step 2 → `insert_badger_pricing_data`
 - `prepare_mfg_data` step 3 → `insert_badger_dro_data`
@@ -262,6 +264,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
 - `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
 - `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
+- `prepare_mfg_docgen` step 6 → `activate_mfg_docgen_templates`
+- `prepare_mfg_docgen` step 7 → `fix_mfg_document_template_binaries`
 
 ### `mfg_guidedselling` (default: `True`)
 

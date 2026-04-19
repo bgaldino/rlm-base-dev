@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**229 tasks** across **9 groups**.
+**231 tasks** across **9 groups**.
 
 ---
 
@@ -507,7 +507,19 @@
 
 ## Manufacturing
 
-*33 task(s)*
+*35 task(s)*
+
+### `activate_mfg_docgen_templates`
+
+**Description:** Activate the latest version of each Manufacturing OmniStudio DocumentTemplate (Badger_Proposal, Price_Contract). DocumentTemplates always deploy as inactive. Run after deploy_mfg_doc_templates.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/activateMfgDocgenTemplates.apex`
+
+---
 
 ### `activate_mfg_theme`
 
@@ -777,6 +789,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_manufacturing_visualization`
+
+---
+
+### `fix_mfg_document_template_binaries`
+
+**Description:** Corrects Manufacturing DocumentTemplate ContentDocument binaries after a batch metadata deploy. Same Salesforce metadata API bug as fix_document_template_binaries: all DocumentTemplates deployed together receive the same ContentDocument binary (first alphabetically — Badger_Proposal wins, Price_Contract gets the wrong binary). Uploads the correct .dt binary from unpackaged/post_manufacturing_docgen/documentTemplates for each template. Run after deploy_mfg_doc_templates + activate_mfg_docgen_templates.
+
+**Class:** `tasks.rlm_docgen.FixDocumentTemplateBinaries`
+
+**Options:**
+
+- `templates_dir`: `unpackaged/post_manufacturing_docgen/documentTemplates`
 
 ---
 

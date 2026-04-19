@@ -1073,6 +1073,29 @@ tasks:
       ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
     class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
 
+  activate_mfg_docgen_templates:
+    group: Manufacturing
+    description: >
+      Activate the latest version of each Manufacturing OmniStudio DocumentTemplate
+      (Badger_Proposal, Price_Contract). DocumentTemplates always deploy as inactive.
+      Run after deploy_mfg_doc_templates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateMfgDocgenTemplates.apex
+
+  fix_mfg_document_template_binaries:
+    group: Manufacturing
+    description: >
+      Corrects Manufacturing DocumentTemplate ContentDocument binaries after a batch
+      metadata deploy. Same Salesforce metadata API bug as fix_document_template_binaries:
+      all DocumentTemplates deployed together receive the same ContentDocument binary
+      (first alphabetically — Badger_Proposal wins, Price_Contract gets the wrong binary).
+      Uploads the correct .dt binary from unpackaged/post_manufacturing_docgen/documentTemplates
+      for each template. Run after deploy_mfg_doc_templates + activate_mfg_docgen_templates.
+    class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
+    options:
+      templates_dir: unpackaged/post_manufacturing_docgen/documentTemplates
+
   deploy_post_constraints:
     description: Deploy Constraints Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -3546,7 +3569,9 @@ flows:
     description: >
       Deploy Manufacturing OmniStudio document generation components in dependency order:
       OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal
-      OmniScript, and document templates (Badger_Proposal, Price_Contract).
+      OmniScript, and document templates (Badger_Proposal, Price_Contract). After deploying
+      templates, activates them (step 6) and fixes the Salesforce batch-deploy binary bug
+      that causes all templates to receive the same ContentDocument binary (step 7).
       Gated by manufacturing=true and mfg_docgen=true.
     steps:
       1:
@@ -3563,6 +3588,12 @@ flows:
         when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       5:
         task: deploy_mfg_doc_templates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      6:
+        task: activate_mfg_docgen_templates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      7:
+        task: fix_mfg_document_template_binaries
         when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
 
   prepare_mfg_data:

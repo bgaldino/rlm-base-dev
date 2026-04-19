@@ -176,7 +176,7 @@ Load all Manufacturing seed data: PCM products, pricing records, DRO fulfillment
 
 ### `prepare_mfg_docgen`
 
-Deploy Manufacturing OmniStudio document generation components in dependency order: OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal OmniScript, and document templates (Badger_Proposal, Price_Contract). Gated by manufacturing=true and mfg_docgen=true.
+Deploy Manufacturing OmniStudio document generation components in dependency order: OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal OmniScript, and document templates (Badger_Proposal, Price_Contract). After deploying templates, activates them (step 6) and fixes the Salesforce batch-deploy binary bug that causes all templates to receive the same ContentDocument binary (step 7). Gated by manufacturing=true and mfg_docgen=true.
 
 **Steps:**
 
@@ -185,6 +185,8 @@ Deploy Manufacturing OmniStudio document generation components in dependency ord
 3. **task** `deploy_mfg_omni_base_docgen_script`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen`
 4. **task** `deploy_mfg_omni_quote_script`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen`
 5. **task** `deploy_mfg_doc_templates`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen`
+6. **task** `activate_mfg_docgen_templates`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen`
+7. **task** `fix_mfg_document_template_binaries`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen`
 
 ---
 
