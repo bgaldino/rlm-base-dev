@@ -31,7 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `False` | 2 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
-| `manufacturing` | `True` | 49 flow step(s) |
+| `manufacturing` | `True` | 53 flow step(s) |
 | `mfg_aaf` | `True` | 7 flow step(s) |
 | `mfg_docgen` | `True` | 5 flow step(s) |
 | `mfg_guidedselling` | `True` | 2 flow step(s) |
@@ -199,8 +199,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
 - `prepare_manufacturing` step 9 → `reconfigure_mfg_pricing_discovery`
 - `prepare_manufacturing` step 14 → `util_sleep`
-- `prepare_manufacturing` step 15 → `configure_mfg_revenue_settings`
 - `prepare_manufacturing` step 17 → `activate_mfg_theme`
+- `prepare_revenue_settings` step 1 → `configure_revenue_settings`
+- `prepare_revenue_settings` step 2 → `configure_revenue_settings`
+- `prepare_revenue_settings` step 3 → `configure_core_pricing_setup`
+- `prepare_mfg_revenue_settings` step 1 → `configure_mfg_revenue_settings`
+- `prepare_mfg_revenue_settings` step 2 → `configure_mfg_core_pricing_setup`
 - `prepare_mfg_perms` step 1 → `util_sleep`
 - `prepare_mfg_perms` step 2 → `assign_permission_sets`
 - `prepare_mfg_perms` step 3 → `assign_permission_set_groups`

@@ -2127,6 +2127,15 @@ tasks:
       outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
 
+  configure_mfg_core_pricing_setup:
+    group: Manufacturing
+    description: "Configure Salesforce Pricing Setup (CorePricingSetup) page for Manufacturing orgs: set the default Pricing Procedure to the MFG pricing procedure (Robot test). Must run after the MFG Pricing Procedure expression set is deployed and activated."
+    class_path: tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup
+    options:
+      suite: robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: MFG Revenue Management Default Pricing Procedure
+
   configure_product_discovery_settings:
     group: Revenue Lifecycle Management
     description: "Set the Default Catalog in Product Discovery Settings to 'QuantumBit Software' (Robot test). Must run after QB product catalog data is loaded. Only relevant when qb=true."
@@ -2870,8 +2879,7 @@ flows:
         options:
           seconds: *sleep_default
       15:
-        task: configure_mfg_revenue_settings
-        when: project_config.project__custom__manufacturing
+        flow: prepare_mfg_revenue_settings
       16:
         flow: prepare_mfg_ux
       17:
@@ -3463,14 +3471,15 @@ flows:
     steps:
       1:
         task: configure_revenue_settings
-        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
+        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso or project_config.project__custom__manufacturing)"
       2:
         task: configure_revenue_settings
-        when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
+        when: "(project_config.project__custom__quantumbit or project_config.project__custom__tso) and not project_config.project__custom__manufacturing"
         options:
           manage_assets_flow: RLM_ARC_Assets
       3:
         task: configure_core_pricing_setup
+        when: "not project_config.project__custom__manufacturing"
 
   prepare_pricing_discovery:
     group: Revenue Lifecycle Management
@@ -3482,6 +3491,22 @@ flows:
         when: project_config.project__custom__qb
 
 ## Manufacturing Sub-flows
+
+  prepare_mfg_revenue_settings:
+    group: Manufacturing
+    description: >
+      Configure Revenue Settings and Pricing Setup for Manufacturing orgs. Replaces
+      prepare_revenue_settings when manufacturing=true. Step 1 configures the Revenue
+      Settings page with the MFG pricing procedure. Step 2 configures the CorePricingSetup
+      page with the MFG pricing procedure (MFG Revenue Management Default Pricing Procedure).
+      Both steps are gated by manufacturing=true.
+    steps:
+      1:
+        task: configure_mfg_revenue_settings
+        when: project_config.project__custom__manufacturing
+      2:
+        task: configure_mfg_core_pricing_setup
+        when: project_config.project__custom__manufacturing
 
   prepare_mfg_perms:
     group: Manufacturing

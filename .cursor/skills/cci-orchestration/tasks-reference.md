@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**228 tasks** across **9 groups**.
+**229 tasks** across **9 groups**.
 
 ---
 
@@ -507,7 +507,7 @@
 
 ## Manufacturing
 
-*32 task(s)*
+*33 task(s)*
 
 ### `activate_mfg_theme`
 
@@ -518,6 +518,20 @@
 **Options:**
 
 - `path`: `unpackaged/post_manufacturing/theme_activation`
+
+---
+
+### `configure_mfg_core_pricing_setup`
+
+**Description:** Configure Salesforce Pricing Setup (CorePricingSetup) page for Manufacturing orgs: set the default Pricing Procedure to the MFG pricing procedure (Robot test). Must run after the MFG Pricing Procedure expression set is deployed and activated.
+
+**Class:** `tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `pricing_procedure`: `MFG Revenue Management Default Pricing Procedure`
 
 ---
 

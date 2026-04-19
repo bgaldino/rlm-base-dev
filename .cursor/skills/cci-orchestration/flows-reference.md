@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**52 flows** across **5 groups**.
+**53 flows** across **5 groups**.
 
 ---
 
@@ -95,7 +95,7 @@ Full Manufacturing feature setup: deploys core metadata (assets, theme, fields, 
 13. **flow** `prepare_mfg_aaf`
 14. **task** `util_sleep`  `when: project_config.project__custom__manufacturing`
    - `seconds`: `30`
-15. **task** `configure_mfg_revenue_settings`  `when: project_config.project__custom__manufacturing`
+15. **flow** `prepare_mfg_revenue_settings`
 16. **flow** `prepare_mfg_ux`
 17. **task** `activate_mfg_theme`  `when: project_config.project__custom__manufacturing`
 
@@ -250,6 +250,17 @@ Deploy Manufacturing rebate metadata (ObjectHierarchyRelationship settings and B
 
 1. **task** `deploy_mfg_rebates`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_rebates`
 2. **task** `insert_badger_rebates_data`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_rebates`
+
+---
+
+### `prepare_mfg_revenue_settings`
+
+Configure Revenue Settings and Pricing Setup for Manufacturing orgs. Replaces prepare_revenue_settings when manufacturing=true. Step 1 configures the Revenue Settings page with the MFG pricing procedure. Step 2 configures the CorePricingSetup page with the MFG pricing procedure (MFG Revenue Management Default Pricing Procedure). Both steps are gated by manufacturing=true.
+
+**Steps:**
+
+1. **task** `configure_mfg_revenue_settings`  `when: project_config.project__custom__manufacturing`
+2. **task** `configure_mfg_core_pricing_setup`  `when: project_config.project__custom__manufacturing`
 
 ---
 
@@ -648,10 +659,10 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 **Steps:**
 
-1. **task** `configure_revenue_settings`  `when: not (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
-2. **task** `configure_revenue_settings`  `when: project_config.project__custom__quantumbit or project_config.project__custom__tso`
+1. **task** `configure_revenue_settings`  `when: not (project_config.project__custom__quantumbit or project_config.project__custom__tso or project_config.project__custom__manufacturing)`
+2. **task** `configure_revenue_settings`  `when: (project_config.project__custom__quantumbit or project_config.project__custom__tso) and not project_config.project__custom__manufacturing`
    - `manage_assets_flow`: `RLM_ARC_Assets`
-3. **task** `configure_core_pricing_setup`
+3. **task** `configure_core_pricing_setup`  `when: not project_config.project__custom__manufacturing`
 
 ---
 
