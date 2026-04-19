@@ -177,15 +177,15 @@ Load all Manufacturing seed data: PCM products, pricing records, DRO fulfillment
 
 ### `prepare_mfg_docgen`
 
-Deploy Manufacturing OmniStudio document generation components in dependency order: OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal OmniScript, and document templates (Badger_Proposal, Price_Contract).
+Deploy Manufacturing OmniStudio document generation components in dependency order: OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal OmniScript, and document templates (Badger_Proposal, Price_Contract). Gated by badger=true and mfg_docgen=true.
 
 **Steps:**
 
-1. **task** `deploy_mfg_omni_datatransforms`  `when: project_config.project__custom__badger`
-2. **task** `deploy_mfg_omni_integration_procedures`  `when: project_config.project__custom__badger`
-3. **task** `deploy_mfg_omni_base_docgen_script`  `when: project_config.project__custom__badger`
-4. **task** `deploy_mfg_omni_quote_script`  `when: project_config.project__custom__badger`
-5. **task** `deploy_mfg_doc_templates`  `when: project_config.project__custom__badger`
+1. **task** `deploy_mfg_omni_datatransforms`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen`
+2. **task** `deploy_mfg_omni_integration_procedures`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen`
+3. **task** `deploy_mfg_omni_base_docgen_script`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen`
+4. **task** `deploy_mfg_omni_quote_script`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen`
+5. **task** `deploy_mfg_doc_templates`  `when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen`
 
 ---
 
@@ -213,7 +213,7 @@ Deploy Manufacturing Guided Selling metadata and load seed data. Deploys Assessm
 
 ### `prepare_mfg_perms`
 
-Assign Manufacturing permission sets and permission set groups to the running user. Waits for metadata deployment to settle before assigning. Assigns either the scratch PSG (non-TSO) or production PSG (TSO) based on the tso feature flag.
+Assign Manufacturing permission sets and permission set groups to the running user. Waits for metadata deployment to settle before assigning. Assigns either the scratch PSG (non-TSO) or production PSG (TSO) based on the tso feature flag. Also grants External Credential Principal Access to RLM_MFG_RCA (Metadata API limitation workaround via Tooling API callout + SetupEntityAccess DML).
 
 **Steps:**
 
@@ -225,6 +225,7 @@ Assign Manufacturing permission sets and permission set groups to the running us
    - `api_names`: `['RLM_MFG_scratch']`
 4. **task** `assign_permission_set_groups`  `when: project_config.project__custom__badger and project__custom__tso`
    - `api_names`: `['RLM_MFG']`
+5. **task** `grant_mfg_ext_credential_access`  `when: project_config.project__custom__badger`
 
 ---
 
@@ -266,7 +267,7 @@ Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatm
 
 ### `prepare_mfg_ux`
 
-Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications) from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/, and templates/applications/manufacturing/. Output is written to unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call. Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages, MFG_RLM_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included. Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing). Run this flow independently to test manufacturing UX assembly without running the full prepare_rlm_org flow. Gated by badger=true and ux=true in prepare_manufacturing.
+Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications) from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/, and templates/applications/manufacturing/. Output is written to unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call. Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages, RLM_MFG_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included. Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing). Run this flow independently to test manufacturing UX assembly without running the full prepare_rlm_org flow. Gated by badger=true and ux=true in prepare_manufacturing.
 
 **Steps:**
 

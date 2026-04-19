@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**228 tasks** across **9 groups**.
+**229 tasks** across **9 groups**.
 
 ---
 
@@ -507,7 +507,7 @@
 
 ## Manufacturing
 
-*32 task(s)*
+*33 task(s)*
 
 ### `activate_mfg_theme`
 
@@ -557,7 +557,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/aaf/dim_source`
+- `path`: `unpackaged/post_manufacturing_aaf/dim_source`
 
 ---
 
@@ -569,7 +569,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/aaf/fields`
+- `path`: `unpackaged/post_manufacturing_aaf/fields`
 
 ---
 
@@ -581,7 +581,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/aaf/forecast_set`
+- `path`: `unpackaged/post_manufacturing_aaf/forecast_set`
 
 ---
 
@@ -593,7 +593,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/aaf/permissions`
+- `path`: `unpackaged/post_manufacturing_aaf/permissions`
 
 ---
 
@@ -629,7 +629,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/docgen/documentTemplates`
+- `path`: `unpackaged/post_manufacturing_docgen/documentTemplates`
 
 ---
 
@@ -653,7 +653,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/guided_selling`
+- `path`: `unpackaged/post_manufacturing_guidedselling`
 
 ---
 
@@ -665,7 +665,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/docgen/base_docgen_omniscript/omniScripts`
+- `path`: `unpackaged/post_manufacturing_docgen/base_docgen_omniscript/omniScripts`
 
 ---
 
@@ -677,7 +677,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/docgen/omniDataTransforms`
+- `path`: `unpackaged/post_manufacturing_docgen/omniDataTransforms`
 
 ---
 
@@ -689,7 +689,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/docgen/omniIntegrationProcedures`
+- `path`: `unpackaged/post_manufacturing_docgen/omniIntegrationProcedures`
 
 ---
 
@@ -701,7 +701,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/docgen/quote_omniscript/omniScripts`
+- `path`: `unpackaged/post_manufacturing_docgen/quote_omniscript/omniScripts`
 
 ---
 
@@ -713,7 +713,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/pricing_setup/pricing_procedure`
+- `path`: `unpackaged/post_manufacturing_pricing/pricing_procedure`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
 
 ---
@@ -726,7 +726,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/pricing_setup/pricing_recipe`
+- `path`: `unpackaged/post_manufacturing_pricing/pricing_recipe`
 
 ---
 
@@ -738,7 +738,7 @@
 
 **Options:**
 
-- `path`: `unpackaged/post_manufacturing/rebates`
+- `path`: `unpackaged/post_manufacturing_rebates`
 
 ---
 
@@ -775,6 +775,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_manufacturing_visualization`
+
+---
+
+### `grant_mfg_ext_credential_access`
+
+**Description:** Grant External Credential Principal Access to the RLM_MFG_RCA permission set. Salesforce Metadata API does not support externalCredentialPrincipalAccess in PermissionSet deploy or retrieve, so this script uses a Tooling API callout to locate the named principals for BillingSystemExtCredentials and SalesforceContractsExtCredentials, then grants SetupEntityAccess via DML. Idempotent: skips principals already granted.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/grantMfgExternalCredentialAccess.apex`
 
 ---
 

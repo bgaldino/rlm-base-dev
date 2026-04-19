@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**40 feature flags**, **89 configuration values**, **33 YAML anchors** under `project.custom`.
+**41 feature flags**, **89 configuration values**, **33 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 1 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `badger` | `False` | 49 flow step(s) |
+| `badger` | `True` | 50 flow step(s) |
 | `badger_data` | `True` | — |
 | `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
@@ -33,6 +33,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `einstein` | `False` | 2 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
 | `mfg_aaf` | `True` | 7 flow step(s) |
+| `mfg_docgen` | `True` | 5 flow step(s) |
 | `mfg_guidedselling` | `True` | 2 flow step(s) |
 | `mfg_rebates` | `True` | 2 flow step(s) |
 | `mfg_visuals` | `True` | 2 flow step(s) |
@@ -76,7 +77,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 
-### `badger` (default: `False`)
+### `badger` (default: `True`)
 
 - `prepare_rlm_org` step 30 → `prepare_manufacturing`
 - `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
@@ -93,6 +94,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_perms` step 2 → `assign_permission_sets`
 - `prepare_mfg_perms` step 3 → `assign_permission_set_groups`
 - `prepare_mfg_perms` step 4 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 5 → `grant_mfg_ext_credential_access`
 - `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
 - `prepare_mfg_docgen` step 2 → `deploy_mfg_omni_integration_procedures`
 - `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
@@ -249,6 +251,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
 - `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
 - `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+
+### `mfg_docgen` (default: `True`)
+
+- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
+- `prepare_mfg_docgen` step 2 → `deploy_mfg_omni_integration_procedures`
+- `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
+- `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
+- `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
 
 ### `mfg_guidedselling` (default: `True`)
 

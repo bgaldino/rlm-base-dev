@@ -129,6 +129,7 @@ project:
     mfg_aaf: true             #Badger MFG Advanced Account Forecast
     mfg_rebates: true         #Badger MFG Rebates
     mfg_guidedselling: true  #Badger MFG Guided Selling
+    mfg_docgen: true         #Badger MFG OmniStudio Document Generation
     mfg_visuals: true        # Badger MFG 3D Visualization (RenderDraw) and configuration flows
 
 #------------------------------#
@@ -1377,7 +1378,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/pricing_setup/pricing_recipe
+      path: unpackaged/post_manufacturing_pricing/pricing_recipe
 
   deploy_mfg_pricing_procedure:
     description: >
@@ -1387,7 +1388,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/pricing_setup/pricing_procedure
+      path: unpackaged/post_manufacturing_pricing/pricing_procedure
       transforms:
         - transform: find_replace
           options:
@@ -1411,7 +1412,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/docgen/omniDataTransforms
+      path: unpackaged/post_manufacturing_docgen/omniDataTransforms
 
   deploy_mfg_omni_integration_procedures:
     description: >
@@ -1420,7 +1421,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/docgen/omniIntegrationProcedures
+      path: unpackaged/post_manufacturing_docgen/omniIntegrationProcedures
 
   deploy_mfg_omni_base_docgen_script:
     description: >
@@ -1429,7 +1430,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/docgen/base_docgen_omniscript/omniScripts
+      path: unpackaged/post_manufacturing_docgen/base_docgen_omniscript/omniScripts
 
   deploy_mfg_omni_quote_script:
     description: >
@@ -1438,7 +1439,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/docgen/quote_omniscript/omniScripts
+      path: unpackaged/post_manufacturing_docgen/quote_omniscript/omniScripts
 
   deploy_mfg_doc_templates:
     description: >
@@ -1447,7 +1448,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/docgen/documentTemplates
+      path: unpackaged/post_manufacturing_docgen/documentTemplates
 
   # Manufacturing Guided Selling
 
@@ -1458,7 +1459,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/guided_selling
+      path: unpackaged/post_manufacturing_guidedselling
 
   # Manufacturing Rebates
 
@@ -1470,7 +1471,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/rebates
+      path: unpackaged/post_manufacturing_rebates
 
   # Manufacturing Advanced Account Forecasting
 
@@ -1481,7 +1482,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/fields
+      path: unpackaged/post_manufacturing_aaf/fields
 
   deploy_mfg_aaf_permissions:
     description: >
@@ -1490,7 +1491,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/permissions
+      path: unpackaged/post_manufacturing_aaf/permissions
 
   deploy_mfg_aaf_dim_source:
     description: >
@@ -1499,7 +1500,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/dim_source
+      path: unpackaged/post_manufacturing_aaf/dim_source
 
   deploy_mfg_aaf_forecast_set:
     description: >
@@ -1508,7 +1509,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
-      path: unpackaged/post_manufacturing/aaf/forecast_set
+      path: unpackaged/post_manufacturing_aaf/forecast_set
   
   deploy_full:
     description: Deploy all metadata
@@ -3523,22 +3524,23 @@ flows:
       Deploy Manufacturing OmniStudio document generation components in dependency order:
       OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal
       OmniScript, and document templates (Badger_Proposal, Price_Contract).
+      Gated by badger=true and mfg_docgen=true.
     steps:
       1:
         task: deploy_mfg_omni_datatransforms
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
       2:
         task: deploy_mfg_omni_integration_procedures
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
       3:
         task: deploy_mfg_omni_base_docgen_script
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
       4:
         task: deploy_mfg_omni_quote_script
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
       5:
         task: deploy_mfg_doc_templates
-        when: project_config.project__custom__badger
+        when: project_config.project__custom__badger and project_config.project__custom__mfg_docgen
 
   prepare_mfg_data:
     group: Manufacturing
