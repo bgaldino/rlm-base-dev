@@ -913,7 +913,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("constraints",   templates_path / "layouts" / "constraints",   features.get("constraints", False)),
             # Manufacturing layouts (SalesAgreement etc.) only when manufacturing_mode=True,
             # because SalesAgreement doesn't exist until prepare_badger_flow has run.
-            ("manufacturing", templates_path / "layouts" / "manufacturing", manufacturing_mode and features.get("badger", False)),
+            ("manufacturing", templates_path / "layouts" / "manufacturing", manufacturing_mode and features.get("manufacturing", False)),
         ]
 
         copied_names: Set[str] = set()
@@ -1046,7 +1046,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # --- RLM_Revenue_Cloud (versioned selection + feature patches) ---
         rev_cloud_name = "RLM_Revenue_Cloud.app-meta.xml"
         if not filter_name or filter_name == rev_cloud_name:
-            if manufacturing_mode and features.get("badger"):
+            if manufacturing_mode and features.get("manufacturing"):
                 src_dir = app_base / "manufacturing"
             elif features.get("tso"):
                 src_dir = app_base / "tso"
@@ -1060,7 +1060,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                if manufacturing_mode and features.get("badger"):
+                if manufacturing_mode and features.get("manufacturing"):
                     tier = "manufacturing"
                 elif features.get("tso"):
                     tier = "tso"
@@ -1075,7 +1075,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO and manufacturing templates are standalone and already contain all overrides;
                 # patches only run for non-TSO, non-manufacturing builds.
                 patches_applied = []
-                if not features.get("tso") and not (manufacturing_mode and features.get("badger")):
+                if not features.get("tso") and not (manufacturing_mode and features.get("manufacturing")):
                     patch_features = ["billing", "rates", "ramps"]
                     for pf in patch_features:
                         if not features.get(pf):
@@ -1113,7 +1113,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 (app_base / "conditional" / "collections" / "standard__CollectionConsole.app-meta.xml", "collections"),
                 (app_base / "conditional" / "collections" / "RLM_Receivables_Management.app-meta.xml", "collections"),
             ]
-        if manufacturing_mode and features.get("badger"):
+        if manufacturing_mode and features.get("manufacturing"):
             conditional_apps.append(
                 (app_base / "conditional" / "manufacturing" / "Rebates.app-meta.xml", "manufacturing")
             )

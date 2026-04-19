@@ -22,7 +22,7 @@ UX_KNOWN_FLAGS: List[str] = [
     "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans",
-    "collections", "badger",
+    "collections", "manufacturing",
 ]
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
@@ -45,7 +45,7 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
 ]
 
 #: Manufacturing standalone entry — appended only when manufacturing_mode=True.
-_MANUFACTURING_STANDALONE: Tuple[str, str] = ("manufacturing", "badger")
+_MANUFACTURING_STANDALONE: Tuple[str, str] = ("manufacturing", "manufacturing")
 
 
 def get_ux_feature_flags(project_config) -> Dict[str, bool]:
