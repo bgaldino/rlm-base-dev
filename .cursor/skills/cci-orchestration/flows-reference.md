@@ -149,12 +149,13 @@ Extend and apply the Manufacturing Sales Transaction context definition. Runs ex
 
 ### `prepare_mfg_core`
 
-Deploy core Manufacturing metadata in a single consolidated transaction (brand assets, theme, custom fields, Apex, Aura, permission sets, PSG, SA settings), then conditionally deploy the TSO-specific production permission set group (when tso=true). Does not deploy flows — prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
+Deploy core Manufacturing metadata in dependency order. Step 1 deploys brand assets and IndustriesManufacturing settings (activating SalesAgreement objects) as a committed transaction. Step 2 deploys theme, custom fields, Apex, permissions, and SA settings in a single transaction (SalesAgreement objects now exist). Step 3 conditionally deploys the TSO production PSG (when tso=true). Does not deploy flows — prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
 
 **Steps:**
 
-1. **task** `deploy_mfg_core`  `when: project_config.project__custom__badger`
-2. **task** `deploy_mfg_tso_perms`  `when: project_config.project__custom__badger and project_config.project__custom__tso`
+1. **task** `deploy_mfg_core_assets`  `when: project_config.project__custom__badger`
+2. **task** `deploy_mfg_core`  `when: project_config.project__custom__badger`
+3. **task** `deploy_mfg_tso_perms`  `when: project_config.project__custom__badger and project_config.project__custom__tso`
 
 ---
 

@@ -1306,18 +1306,30 @@ tasks:
 
   # Badger Deploy Full Tasks
 
+  deploy_mfg_core_assets:
+    description: >
+      Deploy Manufacturing brand assets and platform feature settings: ContentAssets (logo variants),
+      StaticResources (product images, Babylon.js 3D libraries), Industries rebates setting, and
+      IndustriesManufacturing settings (enableIndManufacturing, enableRevMgmtForSlsAgr, AAF).
+      Must run as a separate transaction before deploy_mfg_core because the IndustriesManufacturing
+      settings activate the SalesAgreement, SalesAgreementProduct, and SalesAgreementProductSchedule
+      sObject types — these objects must exist in the schema before custom fields and Apex that
+      reference them can deploy. The BrandingSet in deploy_mfg_core also references these ContentAssets.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing/core_assets
+
   deploy_mfg_core:
     description: >
-      Deploy all unconditional Manufacturing core metadata in a single transaction:
-      brand assets (ContentAssets, StaticResources), Industries/IndustriesManufacturing platform
-      settings, Lightning Experience theme definition (BrandingSet, LightningExperienceTheme),
-      custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule,
-      Quote, QuoteLineItem, and ServiceContract objects, core Apex classes
-      (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote), OpenSObject Aura component,
-      RLM_MFG_RCA permission set, RLM_MFG_scratch permission set group, and SalesAgreement settings.
-      Consolidates the former core_assets, theme_and_fields, and core_setup deploys into one
-      Metadata API transaction. Salesforce resolves intra-package ordering internally
-      (fields before PSets, PSets before PSG).
+      Deploy Manufacturing theme, custom fields, Apex, and permissions in a single transaction.
+      Requires deploy_mfg_core_assets to have committed first (activates SalesAgreement objects).
+      Deploys: Lightning Experience theme (BrandingSet, LightningExperienceTheme), custom fields
+      on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule, Quote, QuoteLineItem,
+      and ServiceContract, core Apex classes (RLM_MFG_SalesAgreementRLMOrder,
+      RLM_MFG_ServiceContractQuote), OpenSObject Aura component, SalesAgreement settings,
+      RLM_MFG_RCA permission set, and RLM_MFG_scratch permission set group.
+      Salesforce resolves intra-package ordering internally (fields before PSets, PSets before PSG).
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
@@ -2796,15 +2808,20 @@ flows:
   prepare_mfg_core:
     group: Manufacturing
     description: >
-      Deploy core Manufacturing metadata in a single consolidated transaction (brand assets,
-      theme, custom fields, Apex, Aura, permission sets, PSG, SA settings), then conditionally
-      deploy the TSO-specific production permission set group (when tso=true). Does not deploy
-      flows — prepare_mfg_perms runs next to assign the Manufacturing PSG before flow deployment.
+      Deploy core Manufacturing metadata in dependency order. Step 1 deploys brand assets and
+      IndustriesManufacturing settings (activating SalesAgreement objects) as a committed
+      transaction. Step 2 deploys theme, custom fields, Apex, permissions, and SA settings in
+      a single transaction (SalesAgreement objects now exist). Step 3 conditionally deploys the
+      TSO production PSG (when tso=true). Does not deploy flows — prepare_mfg_perms runs next
+      to assign the Manufacturing PSG before flow deployment.
     steps:
       1:
-        task: deploy_mfg_core
+        task: deploy_mfg_core_assets
         when: project_config.project__custom__badger
       2:
+        task: deploy_mfg_core
+        when: project_config.project__custom__badger
+      3:
         task: deploy_mfg_tso_perms
         when: project_config.project__custom__badger and project_config.project__custom__tso
 

@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 1 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `badger` | `True` | 48 flow step(s) |
+| `badger` | `True` | 49 flow step(s) |
 | `badger_data` | `True` | — |
 | `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
@@ -80,8 +80,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `badger` (default: `True`)
 
 - `prepare_rlm_org` step 30 → `prepare_manufacturing`
-- `prepare_mfg_core` step 1 → `deploy_mfg_core`
-- `prepare_mfg_core` step 2 → `deploy_mfg_tso_perms`
+- `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
+- `prepare_mfg_core` step 2 → `deploy_mfg_core`
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
 - `prepare_manufacturing` step 3 → `deploy_mfg_flows_and_actions`
 - `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
 - `prepare_manufacturing` step 9 → `reconfigure_mfg_pricing_discovery`
@@ -413,7 +414,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tso` (default: `False`)
 
-- `prepare_mfg_core` step 2 → `deploy_mfg_tso_perms`
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
 - `prepare_core` step 13 → `assign_permission_sets`
 - `prepare_scratch` step 1 → `insert_scratch_data`
 - `prepare_tso` step 1 → `assign_permission_set_licenses`

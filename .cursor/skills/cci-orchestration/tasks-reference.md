@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**227 tasks** across **9 groups**.
+**228 tasks** across **9 groups**.
 
 ---
 
@@ -507,7 +507,7 @@
 
 ## Manufacturing
 
-*31 task(s)*
+*32 task(s)*
 
 ### `activate_mfg_theme`
 
@@ -599,13 +599,25 @@
 
 ### `deploy_mfg_core`
 
-**Description:** Deploy all unconditional Manufacturing core metadata in a single transaction: brand assets (ContentAssets, StaticResources), Industries/IndustriesManufacturing platform settings, Lightning Experience theme definition (BrandingSet, LightningExperienceTheme), custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule, Quote, QuoteLineItem, and ServiceContract objects, core Apex classes (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote), OpenSObject Aura component, RLM_MFG_RCA permission set, RLM_MFG_scratch permission set group, and SalesAgreement settings. Consolidates the former core_assets, theme_and_fields, and core_setup deploys into one Metadata API transaction. Salesforce resolves intra-package ordering internally (fields before PSets, PSets before PSG).
+**Description:** Deploy Manufacturing theme, custom fields, Apex, and permissions in a single transaction. Requires deploy_mfg_core_assets to have committed first (activates SalesAgreement objects). Deploys: Lightning Experience theme (BrandingSet, LightningExperienceTheme), custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule, Quote, QuoteLineItem, and ServiceContract, core Apex classes (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote), OpenSObject Aura component, SalesAgreement settings, RLM_MFG_RCA permission set, and RLM_MFG_scratch permission set group. Salesforce resolves intra-package ordering internally (fields before PSets, PSets before PSG).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
 **Options:**
 
 - `path`: `unpackaged/post_manufacturing_core`
+
+---
+
+### `deploy_mfg_core_assets`
+
+**Description:** Deploy Manufacturing brand assets and platform feature settings: ContentAssets (logo variants), StaticResources (product images, Babylon.js 3D libraries), Industries rebates setting, and IndustriesManufacturing settings (enableIndManufacturing, enableRevMgmtForSlsAgr, AAF). Must run as a separate transaction before deploy_mfg_core because the IndustriesManufacturing settings activate the SalesAgreement, SalesAgreementProduct, and SalesAgreementProductSchedule sObject types — these objects must exist in the schema before custom fields and Apex that reference them can deploy. The BrandingSet in deploy_mfg_core also references these ContentAssets.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing/core_assets`
 
 ---
 
