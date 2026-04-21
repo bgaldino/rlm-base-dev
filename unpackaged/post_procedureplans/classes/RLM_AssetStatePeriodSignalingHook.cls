@@ -1170,7 +1170,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
     ) {
         System.debug(LoggingLevel.DEBUG, DBG + '.appendSalesTransactionNodeUpdate: enter');
         List<Object> stPath = salesTransactionDataPath(salesTransactionNode);
-        system.debug('stPath: ' + stPath);
+        System.debug(LoggingLevel.DEBUG, DBG + '.appendSalesTransactionNodeUpdate: stPath=' + stPath);
         if (stPath == null) {
             System.debug(
                 LoggingLevel.WARN,
@@ -1262,15 +1262,17 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         public Boolean skip;
 
         /**
-         * Same trimming as common pricing hooks: use indices 1 and 2 of the full dataPath for field updates.
+         * Returns the full SalesTransactionItem dataPath from queryTags (context root + quote + line).
+         * Matches the SalesTransaction header path style (full dataPath from the node) for
+         * IndustriesContext.updateContextAttributes so Quote and QuoteLineItem nodes resolve the same way.
          */
         public List<Object> pathForFieldUpdate() {
             System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: enter dataPath size=' + (dataPathFull == null ? null : dataPathFull.size()));
-            if (dataPathFull == null || dataPathFull.size() <= 2) {
+            if (dataPathFull == null || dataPathFull.size() < 3) {
                 System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: insufficient path -> null');
                 return null;
             }
-            List<Object> path = new List<Object>{ dataPathFull[1], dataPathFull[2] };
+            List<Object> path = new List<Object>(dataPathFull);
             System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: exit path=' + path);
             return path;
         }
