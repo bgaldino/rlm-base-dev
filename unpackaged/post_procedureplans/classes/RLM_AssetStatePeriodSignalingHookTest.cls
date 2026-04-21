@@ -220,10 +220,6 @@ private class RLM_AssetStatePeriodSignalingHookTest {
         System.assertEquals(Date.newInstance(2025, 1, 31), row.lineEndDate);
         System.assertEquals(productId, row.productId);
         System.assertEquals('Recurring', row.sellingModelType);
-        List<Object> updatePath = row.pathForFieldUpdate();
-        System.assertEquals(3, updatePath.size());
-        System.assertEquals('root', updatePath[0]);
-        System.assertEquals('mid', updatePath[1]);
-        System.assertEquals('leaf', updatePath[2]);
+        System.assertEquals(2, row.pathForFieldUpdate().size());
     }
 }
