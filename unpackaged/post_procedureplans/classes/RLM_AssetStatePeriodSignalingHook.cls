@@ -1262,15 +1262,18 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         public Boolean skip;
 
         /**
-         * Same trimming as common pricing hooks: use indices 1 and 2 of the full dataPath for field updates.
+         * Use the full SalesTransactionItem dataPath (including the context-instance root) when calling
+         * IndustriesContext.updateContextAttributes. Header-level updates already use the full
+         * SalesTransaction path [ctxInstanceId, quoteId]; line updates use [ctxInstanceId, quoteId, lineId]
+         * so persistence resolves nodes the same way as the header rollup.
          */
         public List<Object> pathForFieldUpdate() {
             System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: enter dataPath size=' + (dataPathFull == null ? null : dataPathFull.size()));
-            if (dataPathFull == null || dataPathFull.size() <= 2) {
+            if (dataPathFull == null || dataPathFull.size() < 3) {
                 System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: insufficient path -> null');
                 return null;
             }
-            List<Object> path = new List<Object>{ dataPathFull[1], dataPathFull[2] };
+            List<Object> path = new List<Object>(dataPathFull);
             System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: exit path=' + path);
             return path;
         }
