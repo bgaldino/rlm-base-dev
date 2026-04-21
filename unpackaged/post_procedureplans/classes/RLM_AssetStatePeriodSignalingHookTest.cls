@@ -154,17 +154,24 @@ private class RLM_AssetStatePeriodSignalingHookTest {
     }
 
     @IsTest
-    static void salesTransactionDataPath_returnsCopy() {
-        List<Object> original = new List<Object>{ 'root', 'child' };
+    static void salesTransactionDataPath_stripsContextRoot() {
+        List<Object> original = new List<Object>{ 'ctx-instance-id', 'quote-id' };
         Map<String, Object> node = new Map<String, Object>{
             'dataPath' => original
         };
         List<Object> result = RLM_AssetStatePeriodSignalingHook.salesTransactionDataPath(node);
-        System.assertEquals(2, result.size());
-        System.assertEquals('root', result[0]);
-        System.assertEquals('child', result[1]);
+        System.assertEquals(1, result.size(), 'Expected single-segment path (context root stripped)');
+        System.assertEquals('quote-id', result[0]);
         result.add('extra');
         System.assertEquals(2, original.size(), 'Original dataPath should not be mutated');
+    }
+
+    @IsTest
+    static void salesTransactionDataPath_rootOnly_returnsNull() {
+        Map<String, Object> node = new Map<String, Object>{
+            'dataPath' => new List<Object>{ 'ctx-instance-id' }
+        };
+        System.assertEquals(null, RLM_AssetStatePeriodSignalingHook.salesTransactionDataPath(node));
     }
 
     @IsTest
@@ -221,9 +228,8 @@ private class RLM_AssetStatePeriodSignalingHookTest {
         System.assertEquals(productId, row.productId);
         System.assertEquals('Recurring', row.sellingModelType);
         List<Object> updatePath = row.pathForFieldUpdate();
-        System.assertEquals(3, updatePath.size());
-        System.assertEquals('root', updatePath[0]);
-        System.assertEquals('mid', updatePath[1]);
-        System.assertEquals('leaf', updatePath[2]);
+        System.assertEquals(2, updatePath.size(), 'Expected [quote, line] — context-instance root stripped');
+        System.assertEquals('mid', updatePath[0]);
+        System.assertEquals('leaf', updatePath[1]);
     }
 }

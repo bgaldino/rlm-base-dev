@@ -374,7 +374,10 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
     }
 
     /**
-     * Returns the full dataPath list from a SalesTransaction node for header-level attribute updates.
+     * Returns the SalesTransaction node path that IndustriesContext.updateContextAttributes accepts
+     * for header-level writes: [QuoteId]. The queryTags dataPath is [contextInstanceId, QuoteId]; we
+     * strip the context-instance root because including it causes silent drops (the API returns
+     * success, but Quote.RLM_* fields never persist — mirrors the line-level trimming behavior).
      */
     @TestVisible
     static List<Object> salesTransactionDataPath(Map<String, Object> salesTransactionNode) {
@@ -384,12 +387,13 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             return null;
         }
         List<Object> dataPath = (List<Object>) salesTransactionNode.get('dataPath');
-        if (dataPath == null || dataPath.isEmpty()) {
-            System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: empty dataPath -> null');
+        if (dataPath == null || dataPath.size() < 2) {
+            System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: empty or root-only dataPath -> null');
             return null;
         }
-        System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: exit segments=' + dataPath.size());
-        return new List<Object>(dataPath);
+        List<Object> trimmed = new List<Object>{ dataPath[1] };
+        System.debug(LoggingLevel.DEBUG, DBG + '.salesTransactionDataPath: exit segments=' + trimmed.size() + ' path=' + trimmed);
+        return trimmed;
     }
 
     private static List<LineContextRow> querySalesTransactionItems(
@@ -1262,9 +1266,11 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         public Boolean skip;
 
         /**
-         * Returns the full SalesTransactionItem dataPath from queryTags (context root + quote + line).
-         * Matches the SalesTransaction header path style (full dataPath from the node) for
-         * IndustriesContext.updateContextAttributes so Quote and QuoteLineItem nodes resolve the same way.
+         * Trims the context-instance root from the queryTags dataPath so
+         * IndustriesContext.updateContextAttributes sees [QuoteId, QLI Id] — the addressable path from
+         * the SalesTransaction (Quote) root down to the line node. Including the context-instance id as
+         * the first segment causes silent drops: the call returns success but the attribute writes do
+         * not persist to QuoteLineItem.
          */
         public List<Object> pathForFieldUpdate() {
             System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: enter dataPath size=' + (dataPathFull == null ? null : dataPathFull.size()));
@@ -1272,7 +1278,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: insufficient path -> null');
                 return null;
             }
-            List<Object> path = new List<Object>(dataPathFull);
+            List<Object> path = new List<Object>{ dataPathFull[1], dataPathFull[2] };
             System.debug(LoggingLevel.DEBUG, DBG + '.LineContextRow.pathForFieldUpdate: exit path=' + path);
             return path;
         }
