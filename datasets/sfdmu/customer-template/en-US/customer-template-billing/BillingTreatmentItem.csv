@@ -1,1 +1,2 @@
 $$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount
+APTIM Demo BTI Arrears;APTIM Demo Billing Treatment - US,APTIM Demo Billing Treatment - US,Arrears,BillingScheduleGroup,USD,Invoice in arrears for demo,,,,,,APTIM Demo BTI Arrears,,1,Manual,Draft,Remainder,CreateInvoice

@@ -1,1 +1,15 @@
 SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName,ProductTypeExpected
+APT-BND-ENTERPRISE-PM,45000,USD,Term Monthly,TermDefined,true,APT_CAT_PROG,true,true,APTIM Demo Billing Policy,Bundle
+APT-PM-FRAMEWORK,22000,USD,Term Monthly,TermDefined,true,APT_CAT_PROG,true,true,APTIM Demo Billing Policy,
+APT-COST-SCHED-QC,3500,USD,Term Monthly,TermDefined,true,APT_CAT_PROG,true,true,APTIM Demo Billing Policy,
+APT-BND-IND-ENERGY,38000,USD,Term Monthly,TermDefined,true,APT_CAT_IND,true,true,APTIM Demo Billing Policy,Bundle
+APT-TAR-OUTAGE,95000,USD,One-Time,OneTime,true,APT_CAT_IND,true,true,APTIM Demo Billing Policy,
+APT-RCM-MAINT,42000,USD,Term Annual,TermDefined,true,APT_CAT_IND,true,true,APTIM Demo Billing Policy,
+APT-BND-FUEL-SYS,485000,USD,One-Time,OneTime,true,APT_CAT_ENG,true,true,APTIM Demo Billing Policy,Bundle
+APT-FUEL-ENG,75000,USD,One-Time,OneTime,true,APT_CAT_ENG,true,true,APTIM Demo Billing Policy,
+APT-FUEL-CONST,285000,USD,One-Time,OneTime,true,APT_CAT_ENG,true,true,APTIM Demo Billing Policy,
+APT-BND-CIVIL-STRUCT,175000,USD,One-Time,OneTime,true,APT_CAT_ENG,true,true,APTIM Demo Billing Policy,Bundle
+APT-SITE-INFRA,92000,USD,One-Time,OneTime,true,APT_CAT_ENG,true,true,APTIM Demo Billing Policy,
+APT-BIM-DIGITAL,7800,USD,Term Monthly,TermDefined,true,APT_CAT_ENG,true,true,APTIM Demo Billing Policy,
+APT-REM-COMPLY,6500,USD,Term Monthly,TermDefined,true,APT_CAT_ENV,true,true,APTIM Demo Billing Policy,
+APT-EMERG-RESPONSE,55000,USD,One-Time,OneTime,true,APT_CAT_RES,true,true,APTIM Demo Billing Policy,

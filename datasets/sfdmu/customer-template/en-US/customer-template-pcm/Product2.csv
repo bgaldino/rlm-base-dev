@@ -1,1 +1,15 @@
 BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,Allowed,"Enterprise construction program management bundle with optional controls and digital delivery.",,Professional Services,true,true,false,Enterprise Program Management Bundle,,EACH,,APT-BND-ENTERPRISE-PM,Bundle,EACH
+,false,,Construction management framework for scheduling cost controls safety and performance quality.,,Professional Services,true,true,false,Construction Management Framework,,EACH,,APT-PM-FRAMEWORK,,EACH
+,false,,Cost schedule and quality controls add-on for active programs.,,Professional Services,true,true,false,"Cost, Schedule & Quality Controls Add-On",,EACH,,APT-COST-SCHED-QC,,EACH
+,false,Allowed,"Industrial and energy field services bundle maintenance turnaround and outage support.",,Professional Services,true,true,false,Industrial & Energy Field Services Bundle,,EACH,,APT-BND-IND-ENERGY,Bundle,EACH
+,false,,Turnaround and outage management for critical facilities.,,Professional Services,true,true,false,Turnaround & Outage Support,,EACH,,APT-TAR-OUTAGE,,EACH
+,false,,Reliability-centered maintenance program for sustained operations.,,Professional Services,true,true,false,Reliability-Centered Maintenance Program,,EACH,,APT-RCM-MAINT,,EACH
+,false,Allowed,"Turnkey fuel storage and distribution engineering construction and commissioning.",,Professional Services,true,true,false,Fuel Systems Turnkey Bundle,,EACH,,APT-BND-FUEL-SYS,Bundle,EACH
+,false,,Fuel storage and distribution engineering design and integration.,,Professional Services,true,true,false,Fuel Storage & Distribution Engineering,,EACH,,APT-FUEL-ENG,,EACH
+,false,,Fuel systems construction repairs and upgrades.,,Professional Services,true,true,false,Fuel Systems Construction & Repair,,EACH,,APT-FUEL-CONST,,EACH
+,false,Allowed,Civil structural and site infrastructure delivery bundle.,,Professional Services,true,true,false,Civil & Structural Delivery Bundle,,EACH,,APT-BND-CIVIL-STRUCT,Bundle,EACH
+,false,,Site development grading drainage utilities foundations and structural concrete work.,,Professional Services,true,true,false,Site Development & Infrastructure,,EACH,,APT-SITE-INFRA,,EACH
+,false,,BIM modeling structural evaluations and construction technology.,,Professional Services,true,true,false,BIM & Construction Technology Services,,EACH,,APT-BIM-DIGITAL,,EACH
+,false,,Site assessment environmental compliance and remediation advisory.,,Professional Services,true,true,false,Site Assessment & Environmental Compliance,,EACH,,APT-REM-COMPLY,,EACH
+,false,,Emergency preparedness rapid mobilization and resilience response window.,,Professional Services,true,true,false,Emergency Response & Rapid Mobilization,,EACH,,APT-EMERG-RESPONSE,,EACH

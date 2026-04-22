@@ -1,1 +1,15 @@
 $$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+APT-BND-ENTERPRISE-PM;Term Monthly;TermDefined,true,APT-BND-ENTERPRISE-PM,Term Monthly;TermDefined,Default Proration Policy
+APT-PM-FRAMEWORK;Term Monthly;TermDefined,true,APT-PM-FRAMEWORK,Term Monthly;TermDefined,Default Proration Policy
+APT-COST-SCHED-QC;Term Monthly;TermDefined,true,APT-COST-SCHED-QC,Term Monthly;TermDefined,Default Proration Policy
+APT-BND-IND-ENERGY;Term Monthly;TermDefined,true,APT-BND-IND-ENERGY,Term Monthly;TermDefined,Default Proration Policy
+APT-TAR-OUTAGE;One-Time;OneTime,true,APT-TAR-OUTAGE,One-Time;OneTime,
+APT-RCM-MAINT;Term Annual;TermDefined,true,APT-RCM-MAINT,Term Annual;TermDefined,Default Proration Policy
+APT-BND-FUEL-SYS;One-Time;OneTime,true,APT-BND-FUEL-SYS,One-Time;OneTime,
+APT-FUEL-ENG;One-Time;OneTime,true,APT-FUEL-ENG,One-Time;OneTime,
+APT-FUEL-CONST;One-Time;OneTime,true,APT-FUEL-CONST,One-Time;OneTime,
+APT-BND-CIVIL-STRUCT;One-Time;OneTime,true,APT-BND-CIVIL-STRUCT,One-Time;OneTime,
+APT-SITE-INFRA;One-Time;OneTime,true,APT-SITE-INFRA,One-Time;OneTime,
+APT-BIM-DIGITAL;Term Monthly;TermDefined,true,APT-BIM-DIGITAL,Term Monthly;TermDefined,Default Proration Policy
+APT-REM-COMPLY;Term Monthly;TermDefined,true,APT-REM-COMPLY,Term Monthly;TermDefined,Default Proration Policy
+APT-EMERG-RESPONSE;One-Time;OneTime,true,APT-EMERG-RESPONSE,One-Time;OneTime,

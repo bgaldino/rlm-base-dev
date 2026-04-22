@@ -1,1 +1,6 @@
 Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+APT_CAT_PROG,Program & Construction Delivery,CAT-APT-DEMO,,true,10,
+APT_CAT_IND,Industrial & Energy Field Services,CAT-APT-DEMO,,true,20,
+APT_CAT_ENG,Engineering & Digital,CAT-APT-DEMO,,true,30,
+APT_CAT_ENV,Environmental & Remediation,CAT-APT-DEMO,,true,40,
+APT_CAT_RES,Emergency & Resilience,CAT-APT-DEMO,,true,50,

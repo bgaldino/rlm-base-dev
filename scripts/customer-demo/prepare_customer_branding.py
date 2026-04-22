@@ -35,7 +35,10 @@ except ImportError:
         "Install it:  pip install Pillow   (or:  pip install -r requirements-branding.txt)"
     )
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None  # optional when using --logo-path only
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "unpackaged" / "post_customer_demo" / "branding"
@@ -77,6 +80,12 @@ def _validate_hex_color(color: str) -> str:
 
 def _download_logo(url: str) -> bytes:
     """Download logo image bytes from a public URL."""
+    if requests is None:
+        raise SystemExit(
+            "The 'requests' package is required for --logo-url.\n"
+            "Install it:  pip install requests\n"
+            "Or use --logo-path with a local image file instead."
+        )
     response = requests.get(url, timeout=60)
     response.raise_for_status()
     payload = response.content

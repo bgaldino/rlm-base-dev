@@ -1,1 +1,6 @@
 $$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.$$Code$ParentProduct.StockKeepingUnit,ParentProduct.StockKeepingUnit,Sequence
+APT_PCG_ENT_CORE;APT-BND-ENTERPRISE-PM,APT_PCG_ENT_CORE,,1,1,Core Program Services,,APT-BND-ENTERPRISE-PM,1
+APT_PCG_ENT_ADD;APT-BND-ENTERPRISE-PM,APT_PCG_ENT_ADD,,3,0,Program Add-Ons,,APT-BND-ENTERPRISE-PM,2
+APT_PCG_IND_OPS;APT-BND-IND-ENERGY,APT_PCG_IND_OPS,,3,0,Field Operations,,APT-BND-IND-ENERGY,1
+APT_PCG_FUEL_SCOPE;APT-BND-FUEL-SYS,APT_PCG_FUEL_SCOPE,,2,2,Fuel Systems Scope,,APT-BND-FUEL-SYS,1
+APT_PCG_CIV_SCOPE;APT-BND-CIVIL-STRUCT,APT_PCG_CIV_SCOPE,,2,1,Civil & Structural Scope,,APT-BND-CIVIL-STRUCT,1

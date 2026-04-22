@@ -1,1 +1,15 @@
 BillingPolicy.Name,StockKeepingUnit
+APTIM Demo Billing Policy,APT-BND-ENTERPRISE-PM
+APTIM Demo Billing Policy,APT-PM-FRAMEWORK
+APTIM Demo Billing Policy,APT-COST-SCHED-QC
+APTIM Demo Billing Policy,APT-BND-IND-ENERGY
+APTIM Demo Billing Policy,APT-TAR-OUTAGE
+APTIM Demo Billing Policy,APT-RCM-MAINT
+APTIM Demo Billing Policy,APT-BND-FUEL-SYS
+APTIM Demo Billing Policy,APT-FUEL-ENG
+APTIM Demo Billing Policy,APT-FUEL-CONST
+APTIM Demo Billing Policy,APT-BND-CIVIL-STRUCT
+APTIM Demo Billing Policy,APT-SITE-INFRA
+APTIM Demo Billing Policy,APT-BIM-DIGITAL
+APTIM Demo Billing Policy,APT-REM-COMPLY
+APTIM Demo Billing Policy,APT-EMERG-RESPONSE

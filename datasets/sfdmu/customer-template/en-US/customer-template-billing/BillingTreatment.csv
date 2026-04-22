@@ -1,1 +1,2 @@
 BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
+APTIM Demo Billing Policy,USD,APTIM demo US billing treatment,false,No,APTIM Demo Legal Entity - US,APTIM Demo Billing Treatment - US,Draft,APTIM Demo Billing Treatment - US;APTIM Demo Billing Policy;APTIM Demo Legal Entity - US

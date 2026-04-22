@@ -6,8 +6,8 @@
 //   2) delete_customer_demo_rates_data — CD-DEMO rate cards
 //   3) delete_customer_demo_rating_data — PUR/PUG/PURP/SF-UR-* / OC-UR-*
 //
-// Scope: Product2 where StockKeepingUnit matches SF-SNOW-%, SF-USG-%, SF-BLNG-%, or OC-%;
-// ProductCatalog Code = SF-DEMO-CAT or OC-DEMO-CAT; ProductClassification Code = SF-SW or OC-CLUB;
+// Scope: Product2 where StockKeepingUnit matches SF-SNOW-%, SF-USG-%, SF-BLNG-%, OC-%, or APT-%;
+// ProductCatalog Code = SF-DEMO-CAT, OC-DEMO-CAT, or CAT-APT-DEMO; ProductClassification Code = SF-SW or OC-CLUB;
 // demo UsageGrantRenewalPolicy / UsageGrantRolloverPolicy codes SF-DEMO-USG-*;
 // billing records named in customer-template-billing CSVs.
 //
@@ -17,7 +17,7 @@
 // Quote lines or order items referencing demo SKUs will block PricebookEntry/Product2 delete — remove those
 // transaction rows first, then re-run this script.
 
-final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT' };
+final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT', 'CAT-APT-DEMO' };
 final List<String> DEMO_CLASSIFICATION_CODES = new List<String>{ 'SF-SW', 'OC-CLUB' };
 final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
     new List<String>{
@@ -29,6 +29,11 @@ final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
         'Olympic Demo Billing Policy',
         'Olympic Demo Billing Treatment - US',
         'Olympic Demo Legal Entity - US'
+    },
+    new List<String>{
+        'APTIM Demo Billing Policy',
+        'APTIM Demo Billing Treatment - US',
+        'APTIM Demo Legal Entity - US'
     }
 };
 
@@ -41,6 +46,7 @@ List<Product2> demoProducts = [
         OR (StockKeepingUnit LIKE 'SF-USG-%')
         OR (StockKeepingUnit LIKE 'SF-BLNG-%')
         OR (StockKeepingUnit LIKE 'OC-%')
+        OR (StockKeepingUnit LIKE 'APT-%')
 ];
 Set<Id> demoProductIds = new Map<Id, Product2>(demoProducts).keySet();
 
@@ -244,6 +250,19 @@ for (List<String> stack : DEMO_BILLING_STACKS) {
     if (!les.isEmpty()) {
         Database.delete(les, false);
     }
+}
+
+// customer-template-billing demo payment terms (e.g. APTIM Demo Net 30) — not tied to BillingPolicy
+List<PaymentTerm> demoTerms = [SELECT Id FROM PaymentTerm WHERE Name = 'APTIM Demo Net 30' LIMIT 1];
+if (!demoTerms.isEmpty()) {
+    List<PaymentTermItem> ptiApt = [
+        SELECT Id FROM PaymentTermItem WHERE PaymentTermId = :demoTerms[0].Id
+    ];
+    if (!ptiApt.isEmpty()) {
+        Database.delete(ptiApt, false);
+    }
+    Database.delete(demoTerms, false);
+    System.debug('Deleted PaymentTerm APTIM Demo Net 30 (if no FK block).');
 }
 
 System.debug('deleteCustomerDemoCatalogData: finished.');

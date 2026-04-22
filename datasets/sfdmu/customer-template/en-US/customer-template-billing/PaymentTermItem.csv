@@ -1,1 +1,2 @@
 $$PaymentTerm.Name$Type,Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
+APTIM Demo Net 30;Period-Based,,APTIM Demo Net 30,Standard,30,Days,Period-Based
