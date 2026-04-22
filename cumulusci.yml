@@ -13,35 +13,8 @@ orgs:
     beta:
       config_file: orgs/beta.json
       days: 30
-    dev:
-      config_file: orgs/dev.json
-      days: 30
-    dev-r1:
-      config_file: orgs/dev-r1.json
-      days: 30
     dev-sb0:
       config_file: orgs/dev-sb0.json
-      days: 30
-    dev_preview:
-      config_file: orgs/dev_preview.json
-      days: 30
-    dev_previous:
-      config_file: orgs/dev_previous.json
-      days: 30
-    dev_enhanced:
-      config_file: orgs/dev-enhanced.json
-      days: 30
-    dev_datacloud:
-      config_file: orgs/dev-datacloud.json
-      days: 30
-    ent:
-      config_file: orgs/ent.json
-      days: 30
-    ent-r1:
-      config_file: orgs/ent-r1.json
-      days: 30
-    ent-sb0:
-      config_file: orgs/ent-sb0.json
       days: 30
     test-sb0:
       config_file: orgs/test-sb0.json
@@ -73,6 +46,27 @@ orgs:
     tfid-enable:
       config_file: orgs/tfid-enable.json
       days: 30
+    dev_preview:
+      config_file: orgs/dev_preview.json
+      days: 30
+    dev_previous:
+      config_file: orgs/dev_previous.json
+      days: 30
+    dev_datacloud:
+      config_file: orgs/dev_datacloud.json
+      days: 30
+    dev:
+      config_file: orgs/dev.json
+      days: 30
+    dev_enhanced:
+      config_file: orgs/dev-enhanced.json
+      days: 30
+    dev-mfg:
+      config_file: orgs/dev-mfg.json
+      days: 30
+    dev-mfg-previous:
+      config_file: orgs/dev-mfg-previous.json
+      days: 30
 
 # Project configuration settings
 # Defines the project name, package details, and source format
@@ -85,70 +79,58 @@ project:
     default_branch: "main"
   source_format: sfdx
 
-#------------------#
-# CUSTOM SETTINGS  #
-#------------------#
-# Feature flags and configuration options used throughout the deployment process.
-# Toggle any flag on/off to conditionally enable or disable specific tasks and flows.
+#-----------------#
+# CUSTOM SETTINGS #
+#-----------------#
+# These custom settings control feature flags and configuration options
+# They are used throughout the deployment process to conditionally execute tasks
+# Each setting can be toggled on/off to enable/disable specific features
 
   custom:
-
-    # ── Org Type & Mode ────────────────────────────────────────────────────────
-    qbrix: false              # Use xDO base layer (disable for orgs without xDO licenses)
-    tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
-    pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
-    trial: false              # Public Trial org (EE, no qbrix or custom UX)
-    dev_ed: false             # Developer Edition org — set true for non-standard dev orgs to suppress Enterprise-only PS assignments
-    refresh: false            # Data refresh mode — skips insert steps during re-runs
-
-    # ── Core Revenue Cloud Features ────────────────────────────────────────────
-    billing: true             # Billing
-    billing_ui: true          # Billing UI LWC components (post_billing_ui)
-    billing_portal: false     # Self-Service Billing Portal community
-    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
-    payments: true            # Payments
-    approvals: true           # Approvals
-    tax: true                 # Tax engine
-    calmdelete: true          # CALM Delete
-
-    # ── Revenue Orchestration ──────────────────────────────────────────────────
-    dro: true                 # Dynamic Revenue Orchestration
-    rating: true              # Rating design-time data
-    rates: true               # Rates
-    ramps: true               # Ramps
-
-    # ── Contracts & CLM ────────────────────────────────────────────────────────
-    clm: true                 # Contract Lifecycle Management
-    clm_data: false           # CLM sample data
-
-    # ── Partner & Commerce ─────────────────────────────────────────────────────
-    prm: true                 # Partner Relationship Management
-    prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
-    commerce: false           # Commerce
-
-    # ── AI & Analytics ─────────────────────────────────────────────────────────
-    einstein: true            # Einstein AI
-    agents: false             # Agentforce agent configurations
-    analytics: true           # Data Sync / CRM Analytics replication (enableWaveReplication)
-
-    # ── Configurators & Tooling ────────────────────────────────────────────────
-    docgen: true              # Document Generation
-    constraints: true         # Constraint Builder
-    constraints_data: true    # Constraint Builder sample data
+    qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
+    tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
+    qb: false                  # Is QuantumBit?
+    q3: false                 # Include Q3 data
+    calmdelete: true          # Use CALM Delete
+    tax: true                 # Use Tax engine
+    billing: true             # Use Billing
+    payments: true            # Use Payments
+    approvals: true           # Use Approvals
+    clm: false                # Use Contract Lifecycle Management
+    clm_data: false           # Use Contract Lifecycle Management Data
+    dro: true                 # Use Dynamic Revenue Orchestration
+    rating: true              # Insert Rating Design Time Data
+    rates: true               # Insert Rates
+    ramps: true               # Insert and configure ramps
+    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
+    einstein: false            # Use Einstein AI
+    product_dataset: qb       # Default product dataset to use=
+    agents: false             # Deploy Agentforce Agent Configurations
+    refresh: false            # Data refresh flag
+    prm: true                # Use Partner Relationship Management
+    prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
+    billing_portal: false     # Use Self-Service Billing Portal community
+    billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
+    commerce: false           # Use Commerce
+    quantumbit: true          # Use QuantumBit
     breconfig: false          # Business Rules Engine configuration
-    guidedselling: false      # Guided Selling
-    procedureplans: true      # Procedure Plans
-
-    # ── Data & UX ──────────────────────────────────────────────────────────────
-    qb: true                  # QuantumBit data
-    q3: false                 # Q3 data
-    quantumbit: true          # QuantumBit app deployment
-    product_dataset: qb       # Default product dataset
-    ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
-
-    # ── Deployment Options ─────────────────────────────────────────────────────
-    sharingsettings: false    # Sharing Settings
+    docgen: true              # Use Document Generation
+    #psg_debug: false          # Debug Permission Set Groups
+    #pas_debug: false          # Debug Price Adjustment Schedules
+    constraints: true         # Use Constraint Builder
+    constraints_data: false   # Use Constraint Builder Data
+    guidedselling: false      # Use Guided Selling
+    procedureplans: false     # Use Procedure Plans
+    sharingsettings: false    # Deploy Sharing Settings
+    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
     locale: en_US             # Default locale
+    manufacturing: true       #Manufacturing Metadata & Dataset
+    badger_data: true        #Badger Data Insertion
+    mfg_aaf: true             #Badger MFG Advanced Account Forecast
+    mfg_rebates: true         #Badger MFG Rebates
+    mfg_guidedselling: true  #Badger MFG Guided Selling
+    mfg_docgen: true         #Badger MFG OmniStudio Document Generation
+    mfg_visuals: true        # Badger MFG 3D Visualization (RenderDraw) and configuration flows
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -215,11 +197,8 @@ project:
       - TableauSelfServiceAnalyst
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
-      # AI-related permission sets (all org editions)
+      # AI-related permission sets
       - EinsteinGPTPromptTemplateManager
-
-    rlm_ai_ps_enterprise_api_names: &rlm_ai_ps_enterprise_api_names
-      # AI permission sets — Enterprise edition only (not assignable on Developer edition)
       - SalesCloudEinsteinAll
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
@@ -350,6 +329,19 @@ project:
       # PRM-specific permission sets
       - RLM_PRM
 
+#Badger Perms
+    badger_mfg_ps: &badger_mfg_ps
+      - RLM_MFG_RCA
+
+    badger_mfg_scratch_psg: &badger_mfg_scratch_psg
+      - RLM_MFG_scratch
+
+    badger_mfg_psg: &badger_mfg_psg
+      - RLM_MFG
+
+    badger_aaf_ps: &badger_aaf_ps
+      - MFG_AAF
+
 #-----------------#
 # DECISION TABLES #
 #-----------------#
@@ -452,6 +444,8 @@ project:
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
     sales_transaction_context_base_reference: &sales_transaction_context_base_reference SalesTransactionContext__stdctx
+    #Badger MFG Sales Transaction Context
+    mfg_sales_transaction_context_name: &mfg_sales_transaction_context_name MFG_SalesTransactionContext
 
     product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
     product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
@@ -546,6 +540,19 @@ project:
     q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3/en-US/q3-tax"                                                 # Q3 tax data
     q3_rating_dataset: &q3_rating_dataset "datasets/sfdmu/q3/en-US/q3-rating"                                    # Q3 rating data
     q3_rates_dataset: &q3_rates_dataset "datasets/sfdmu/q3/en-US/q3-rates"                                           # Q3 rates data
+
+# Badger MFG Datasets
+    badger_product_dataset: &badger_product_dataset "datasets/sfdmu/mfg/en-US/mfg-pcm"         # Badger product data
+    badger_pricing_dataset: &badger_pricing_dataset "datasets/sfdmu/mfg/en-US/mfg-pricing"     # Badger pricing data
+    badger_dro_dataset: &badger_dro_dataset "datasets/sfdmu/mfg/en-US/mfg-dro"     # Badger DRO dataset
+    badger_billing_dataset: &badger_billing_dataset "datasets/sfdmu/mfg/en-US/mfg-billing"     # Badger MFG billing data (BillingTreatment, BillingPolicy, PaymentTerm, GL accounts)
+    badger_tax_dataset: &badger_tax_dataset "datasets/sfdmu/mfg/en-US/mfg-tax"               # Badger MFG tax data (TaxPolicy, TaxTreatment, Product2 TaxPolicy assignments)
+    genSet_mfg_cml: &genSet_mfg_cml "datasets/constraints/mfg/genSet" #Badger MFG Generator Set
+    fuelCell_mfg_cml: &fuelCell_mfg_cml "datasets/constraints/mfg/fuelCell" #Badger MFG Fuel Cell
+    badger_guidedselling_dataset: &badger_guidedselling_dataset "datasets/sfdmu/mfg/en-US/mfg-guidedselling" #Badger MFG Guided Selling
+    badger_rebates_dataset: &badger_rebates_dataset "datasets/sfdmu/mfg/en-US/mfg-rebates" #Badger MFG Rebates
+    badger_aaf_dataset: &badger_aaf_dataset "datasets/sfdmu/mfg/en-US/mfg-aaf" #Badger MFG Advanced Account Forecast
+    badger_configflow_dataset: &badger_configflow_dataset "datasets/sfdmu/mfg/en-US/mfg-configflow" # Badger MFG product configuration flows (ProductConfigurationFlow, ProductConfigFlowAssignment)
 
     sleep_default: &sleep_default 30   # Default sleep duration (in seconds) for wait tasks
 #-------#
@@ -688,6 +695,33 @@ tasks:
       defaultMapping: *sales_transaction_context_default_mapping
       activate: true
 
+#MFG Sales Transaction Context
+  extend_context_sales_transaction_mfg:
+    group: Revenue Lifecycle Management
+    description: Extend Standard Sales Transaction Context
+    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
+    options:
+      name: *mfg_sales_transaction_context_name
+      description: "Extension of Standard Sales Transaction Context Definition"
+      developerName: *mfg_sales_transaction_context_name
+      baseReference: *sales_transaction_context_base_reference
+      startDate: *default_context_start_date
+      contextTtl: *default_context_ttl
+      defaultMapping: *sales_transaction_context_default_mapping
+      activate: true
+
+  apply_mfg_SalesTransactionContext:
+    group: Revenue Lifecycle Management
+    description: Apply ConstraintEngineNodeStatus mappings to Sales Transaction context for MFG
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *mfg_sales_transaction_context_name
+      plan_file: datasets/context_plans/mfg/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   apply_context_ramp_mode:
     group: Revenue Lifecycle Management
     description: >
@@ -711,21 +745,6 @@ tasks:
     options:
       developer_name: *sales_transaction_context_name
       plan_file: datasets/context_plans/ConstraintEngineNodeStatus/manifest.json
-      translate_plan: true
-      deactivate_before: false
-      activate: true
-      verify: true
-
-  apply_context_billing_order:
-    group: Revenue Lifecycle Management
-    description: >
-      Adds BillingArrangement__std and BillingProfile__std Order field mappings to the
-      RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node).
-      Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c.
-      SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
-    class_path: tasks.rlm_context_service.ManageContextDefinition
-    options:
-      plan_file: datasets/context_plans/Billing/manifest.json
       translate_plan: true
       deactivate_before: false
       activate: true
@@ -1054,6 +1073,29 @@ tasks:
       ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
     class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
 
+  activate_mfg_docgen_templates:
+    group: Manufacturing
+    description: >
+      Activate the latest version of each Manufacturing OmniStudio DocumentTemplate
+      (Badger_Proposal, Price_Contract). DocumentTemplates always deploy as inactive.
+      Run after deploy_mfg_doc_templates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateMfgDocgenTemplates.apex
+
+  fix_mfg_document_template_binaries:
+    group: Manufacturing
+    description: >
+      Corrects Manufacturing DocumentTemplate ContentDocument binaries after a batch
+      metadata deploy. Same Salesforce metadata API bug as fix_document_template_binaries:
+      all DocumentTemplates deployed together receive the same ContentDocument binary
+      (first alphabetically — Badger_Proposal wins, Price_Contract gets the wrong binary).
+      Uploads the correct .dt binary from unpackaged/post_manufacturing_docgen/documentTemplates
+      for each template. Run after deploy_mfg_doc_templates + activate_mfg_docgen_templates.
+    class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
+    options:
+      templates_dir: unpackaged/post_manufacturing_docgen/documentTemplates
+
   deploy_post_constraints:
     description: Deploy Constraints Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1102,26 +1144,6 @@ tasks:
     options:
       path: unpackaged/post_billing
 
-  deploy_post_billing_ui:
-    group: Revenue Lifecycle Management
-    description: >
-      Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components
-      (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus,
-      rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder,
-      rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart,
-      rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary,
-      rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards,
-      rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account),
-      2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c),
-      2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
-      2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
-      the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
-      (field access + Apex class access + RunFlow). Flexipages for billing_ui are
-      deployed via assemble_and_deploy_ux (billing_ui feature flag).
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_billing_ui
-
   deploy_billing_id_settings:
     description: Deploy Billing Settings with org-specific record IDs (resolved via XPath transform queries at deploy time)
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1141,46 +1163,6 @@ tasks:
               - xpath: //BillingSettings/defaultTaxTreatment[text()="__DEFAULT_TAX_TREATMENT_ID__"]
                 replace_record_id_query: SELECT Id FROM TaxTreatment WHERE Name = 'Default Tax Policy' AND Status = 'Active' LIMIT 1
                 api: rest
-              - xpath: //BillingSettings/acctRecGlAccount[text()="__ACCT_REC_GL_ACCOUNT_ID__"]
-                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '1100' LIMIT 1
-                api: rest
-              - xpath: //BillingSettings/realisedGainGlAccount[text()="__REALISED_GAIN_GL_ACCOUNT_ID__"]
-                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4610' LIMIT 1
-                api: rest
-              - xpath: //BillingSettings/realisedLossGlAccount[text()="__REALISED_LOSS_GL_ACCOUNT_ID__"]
-                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8510' LIMIT 1
-                api: rest
-              - xpath: //BillingSettings/unrealisedGainGlAccount[text()="__UNREALISED_GAIN_GL_ACCOUNT_ID__"]
-                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4600' LIMIT 1
-                api: rest
-              - xpath: //BillingSettings/unrealisedLossGlAccount[text()="__UNREALISED_LOSS_GL_ACCOUNT_ID__"]
-                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
-                api: rest
-
-  deploy_billing_template_id_settings:
-    description: >
-      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with
-      auto-generated template IDs (resolved after deploy_billing_template_settings
-      triggers template auto-creation). Sets defaultEmailTemplate,
-      defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings
-      auto-default these values; explicit deployment is not required.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_billing_template_id_settings
-      transforms:
-        - transform: find_replace
-          options:
-            patterns:
-              - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
-                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE Name = 'Default Invoice Email Template' ORDER BY CreatedDate DESC LIMIT 1
-                api: rest
-              - xpath: //BillingSettings/defaultInvPreviewTemplate[text()="__DEFAULT_INV_PREVIEW_TEMPLATE_ID__"]
-                replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoicePreviewTemplate' LIMIT 1
-                api: rest
-              - xpath: //BillingSettings/defaultInvoiceDocTemplate[text()="__DEFAULT_INVOICE_DOC_TEMPLATE_ID__"]
-                replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoiceTemplate' LIMIT 1
-                api: rest
 
   deploy_billing_template_settings:
     description: Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
@@ -1199,7 +1181,7 @@ tasks:
     group: UX Personalization
     description: >
       Assembles feature-conditional UX metadata (flexipages, layouts, applications,
-      profiles) from base templates and YAML patch files in templates/.
+      app menus, profiles) from base templates and YAML patch files in templates/.
       Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
@@ -1220,34 +1202,6 @@ tasks:
     options:
       suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
       outputdir: robot/rlm-base/results
-
-  retrieve_ux_from_org:
-    group: UX Personalization
-    description: >
-      Retrieves live UX metadata (flexipages) from the target org into
-      unpackaged/post_ux/, replacing the assembled output with the org's current
-      state. Use before diff_ux_templates to capture drift between the org and
-      the assembler templates. Scope to a single page with the metadata_name option.
-    class_path: tasks.rlm_retrieve_ux.RetrieveUXFromOrg
-
-  diff_ux_templates:
-    group: UX Personalization
-    description: >
-      Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against
-      what the assembler would produce from current templates/. Reports added,
-      removed, modified, and repositioned flexiPageRegions per page. Writes a
-      drift_report.json to unpackaged/post_ux/. Does not modify any files.
-    class_path: tasks.rlm_diff_ux.DiffUXTemplates
-
-  writeback_ux_templates:
-    group: UX Personalization
-    description: >
-      Reverse-applies active feature patches against org-retrieved flexipages
-      and writes the result as updated base templates. Computes
-      new_base = org_state - patches so the assembler reproduces org state
-      without double-applying non-idempotent patches. Defaults to dry_run mode.
-      Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
-    class_path: tasks.rlm_writeback_ux.WriteBackUXTemplates
 
   deploy_post_collections:
     group: Revenue Lifecycle Management
@@ -1373,6 +1327,212 @@ tasks:
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
 
+  # Badger Deploy Full Tasks
+
+  deploy_mfg_core_assets:
+    description: >
+      Deploy Manufacturing brand assets and platform feature settings: ContentAssets (logo variants),
+      StaticResources (product images, Babylon.js 3D libraries), Industries rebates setting, and
+      IndustriesManufacturing settings (enableIndManufacturing, enableRevMgmtForSlsAgr, AAF).
+      Must run as a separate transaction before deploy_mfg_core because the IndustriesManufacturing
+      settings activate the SalesAgreement, SalesAgreementProduct, and SalesAgreementProductSchedule
+      sObject types — these objects must exist in the schema before custom fields and Apex that
+      reference them can deploy. The BrandingSet in deploy_mfg_core also references these ContentAssets.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing/core_assets
+
+  deploy_mfg_core:
+    description: >
+      Deploy Manufacturing theme, custom fields, Apex, and permissions in a single transaction.
+      Requires deploy_mfg_core_assets to have committed first (activates SalesAgreement objects).
+      Deploys: Lightning Experience theme (BrandingSet, LightningExperienceTheme), custom fields
+      on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule, Quote, QuoteLineItem,
+      and ServiceContract, core Apex classes (RLM_MFG_SalesAgreementRLMOrder,
+      RLM_MFG_ServiceContractQuote), OpenSObject Aura component, SalesAgreement settings,
+      RLM_MFG_RCA permission set, and RLM_MFG_scratch permission set group.
+      Salesforce resolves intra-package ordering internally (fields before PSets, PSets before PSG).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_core
+
+  grant_mfg_ext_credential_access:
+    group: Manufacturing
+    description: >
+      Grant External Credential Principal Access to the RLM_MFG_RCA permission set.
+      Salesforce Metadata API does not support externalCredentialPrincipalAccess in
+      PermissionSet deploy or retrieve, so this script uses a Tooling API callout to
+      locate the named principals for BillingSystemExtCredentials and
+      SalesforceContractsExtCredentials, then grants SetupEntityAccess via DML.
+      Idempotent: skips principals already granted.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/grantMfgExternalCredentialAccess.apex
+
+  deploy_mfg_tso_perms:
+    description: >
+      Deploy Manufacturing production permission set group (MFG). Required when tso=true.
+      Deployed separately from core_setup so it can be gated by the tso feature flag.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing/tso_perms
+
+  deploy_mfg_flows_and_actions:
+    description: >
+      Deploy all Manufacturing business process flows and Quick Actions in a single transaction:
+      Sales Agreement creation and activation flows, quote-to-contract flows, DRO work order
+      creation, Service Contract quoting, and the Quick Actions on Account, Contract, Quote, and
+      SalesAgreement that invoke them. Runs after core_setup (SA settings + custom fields + perms)
+      with a propagation sleep, so all SA-DML flows validate cleanly. Requires the
+      IndustriesManufacturing scratch org feature (orgs/dev-mfg.json).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing/flows_and_actions
+
+  deploy_mfg_pricing_recipe:
+    description: >
+      Deploy Manufacturing default NGP pricing recipe (NGPDefaultRecipe). Must deploy before
+      deploy_mfg_pricing_procedure because the ExpressionSetDefinition references this recipe.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_pricing/pricing_recipe
+
+  deploy_mfg_pricing_procedure:
+    description: >
+      Deploy Manufacturing default pricing procedure ExpressionSetDefinition
+      (MFG_Rev_Mgmt_Default_Pricing_Procedure). Performs find-and-replace to inject live
+      PriceAdjustmentSchedule IDs for attribute-based, volume, and bundle adjustments.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_pricing/pricing_procedure
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__ATTRIBUTEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Price Adjustment Tier' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+
+  # Manufacturing Document Generation Tasks
+
+  deploy_mfg_omni_datatransforms:
+    description: >
+      Deploy Manufacturing OmniDataTransforms for document generation (Quote/Contract extraction,
+      field mapping, and template name extraction used by the doc gen OmniScript).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_docgen/omniDataTransforms
+
+  deploy_mfg_omni_integration_procedures:
+    description: >
+      Deploy Manufacturing OmniIntegrationProcedure for document generation orchestration
+      (doc_Generation_Procedure). Must deploy after OmniDataTransforms.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_docgen/omniIntegrationProcedures
+
+  deploy_mfg_omni_base_docgen_script:
+    description: >
+      Deploy Manufacturing base document generation OmniScript (doc_GenerationCore_English).
+      Orchestrates the core document generation flow for proposals and contracts.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_docgen/base_docgen_omniscript/omniScripts
+
+  deploy_mfg_omni_quote_script:
+    description: >
+      Deploy Manufacturing Quote Proposal OmniScript (doc_QuoteProposal_English).
+      Provides the user-facing UI for generating quote proposal documents.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_docgen/quote_omniscript/omniScripts
+
+  deploy_mfg_doc_templates:
+    description: >
+      Deploy Manufacturing document templates (Badger_Proposal and Price_Contract).
+      Must deploy after OmniScripts that reference these templates.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_docgen/documentTemplates
+
+  # Manufacturing Guided Selling
+
+  deploy_mfg_guided_selling:
+    description: >
+      Deploy Manufacturing Guided Selling metadata: AssessmentQuestions for chemicals and
+      power management, Guided Selling OmniScripts, and ProductDiscovery settings.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_guidedselling
+
+  # Manufacturing Rebates
+
+  deploy_mfg_rebates:
+    description: >
+      Deploy Manufacturing rebate metadata: ObjectHierarchyRelationship settings for
+      Opportunity, Quote, SalesAgreement, and TransactionJournal, plus the
+      Aggregate_by_Member_Rebates BatchCalcJobDefinition.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_rebates
+
+  # Manufacturing Advanced Account Forecasting
+
+  deploy_mfg_aaf_fields:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting object extensions: custom fields on
+      AdvAccountForecastFact and en_US ObjectTranslation for AdvAcctForecastSetPartner.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_aaf/fields
+
+  deploy_mfg_aaf_permissions:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting permission set (MFG_AAF).
+      Must deploy after aaf/fields so the permission set can reference the custom fields.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_aaf/permissions
+
+  deploy_mfg_aaf_dim_source:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting dimension source (Category).
+      Defines the Category dimension used by the forecast set configuration.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_aaf/dim_source
+
+  deploy_mfg_aaf_forecast_set:
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting forecast set (CategoryForecastSet).
+      Must deploy after dim_source because the forecast set references the Category dimension.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_manufacturing_aaf/forecast_set
+  
   deploy_full:
     description: Deploy all metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1476,6 +1636,70 @@ tasks:
     group: Revenue Lifecycle Management
     description: Load SFDMU Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
+
+  # Manufacturing Load Data Tasks
+
+  insert_test_data:
+    group: Manufacturing
+    description: Insert Test Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: "datasets/sfdmu/test"
+
+  insert_badger_pcm_data:
+    group: Manufacturing
+    description: Insert Manufacturing PCM product data (products, product categories, attributes).
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_product_dataset
+
+  insert_badger_pricing_data:
+    group: Manufacturing
+    description: Insert Manufacturing pricing data (price books, price book entries, price adjustments).
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_pricing_dataset
+
+  insert_badger_dro_data:
+    group: Manufacturing
+    description: Insert Manufacturing DRO fulfillment decomposition seed data. Assigns dynamic user.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_dro_dataset
+      dynamic_assigned_to_user: true
+
+  insert_badger_guidedselling_data:
+    group: Manufacturing
+    description: Insert Manufacturing Guided Selling product assignment data.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_guidedselling_dataset
+
+  insert_badger_rebates_data:
+    group: Manufacturing
+    description: Insert Manufacturing rebates seed data.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_rebates_dataset
+
+  insert_badger_aaf_data:
+    group: Manufacturing
+    description: >
+      Load Manufacturing Advanced Account Forecast data. Syncs Period, Product2, and ProductCategory
+      IDs from the target org, injects PeriodId, ProductId, and CategoryId into
+      AdvAccountForecastFact before SFDMU run.
+    class_path: tasks.rlm_aaf_load.LoadAAFData
+    options:
+      pathtoexportjson: *badger_aaf_dataset
+
+  delete_badger_aaf_data:
+    group: Manufacturing
+    description: >
+      Delete all Insert-operation records from the mfg-aaf plan (AdvAccountForecastFact,
+      AdvAcctForecastSetPartner) in reverse plan order. Run before insert_badger_aaf_data for a fresh reload.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *badger_aaf_dataset
 
   insert_quantumbit_pcm_data:
     group: Revenue Lifecycle Management
@@ -1592,6 +1816,48 @@ tasks:
     options:
       pathtoexportjson: *q3_billing_dataset
 
+  insert_mfg_billing_data:
+    group: Manufacturing
+    description: >
+      Insert Manufacturing billing seed data (BillingTreatment, BillingPolicy, PaymentTerm,
+      LegalEntity, AccountingPeriod, GeneralLedgerAccount, GeneralLedgerAcctAsgntRule) and
+      assign BillingPolicy to all MFG products. Required for order activation on badger orgs
+      when billing=true. Source: datasets/sfdmu/mfg/en-US/mfg-billing.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_billing_dataset
+
+
+  insert_mfg_tax_data:
+    group: Manufacturing
+    description: >
+      Insert Manufacturing tax seed data (TaxPolicy, TaxTreatment, Product2 TaxPolicy assignments).
+      Activates TaxPolicy and TaxTreatment via a two-pass SFDMU plan. Required for order activation
+      on badger orgs when tax=true. Source: datasets/sfdmu/mfg/en-US/mfg-tax.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_tax_dataset
+
+  deploy_mfg_visualization:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing 3D Visualization metadata (LWC renderDraw3DConfigurationPrototype,
+      RenderDraw_Product_Configurator_Flow, X3DVisualization VF page, RenderDraw_SRC CSP Trusted Site).
+      Required when mfg_visuals=true. Source: unpackaged/post_manufacturing_visualization.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_manufacturing_visualization
+
+  insert_mfg_configflow_data:
+    group: Manufacturing
+    description: >
+      Insert Manufacturing product configuration flow assignments
+      (ProductConfigurationFlow, ProductConfigFlowAssignment). Maps MFG products to their
+      RenderDraw configuration flows. Required when mfg_visuals=true.
+      Source: datasets/sfdmu/mfg/en-US/mfg-configflow.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *badger_configflow_dataset
 
   insert_qb_rating_data:
     group: Revenue Lifecycle Management
@@ -1654,6 +1920,25 @@ tasks:
       pathtoexportjson: *quantumbit_constraints_component_dataset
 
   # --- CML Constraint Model Tasks ---
+
+# Badger MFG CML Tasks
+  export_cml_genSet:
+    group: Revenue Lifecycle Management
+    description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+    class_path: tasks.rlm_cml.ExportCML
+    options:
+      developer_name: "GeneratorSet"
+      version: 1
+      output_dir: "datasets/constraints/mfg/genSet"
+  export_cml_fuelCell:
+    group: Revenue Lifecycle Management
+    description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+    class_path: tasks.rlm_cml.ExportCML
+    options:
+      developer_name: "Fuel_Cell"
+      version: 1
+      output_dir: "datasets/constraints/mfg/fuelCell"
+
   export_cml:
     group: Revenue Lifecycle Management
     description: Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
@@ -1797,17 +2082,6 @@ tasks:
       suite: robot/rlm-base/tests/setup/enable_document_builder.robot
       outputdir: robot/rlm-base/results
 
-  enable_timeline:
-    group: Revenue Lifecycle Management
-    description: >
-      Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium).
-      Required before billing_ui flexipages that reference industries_common:timeline can be deployed.
-      Once enabled, this toggle cannot be disabled.
-    class_path: tasks.rlm_enable_timeline.EnableTimeline
-    options:
-      suite: robot/rlm-base/tests/setup/enable_timeline.robot
-      outputdir: robot/rlm-base/results
-
   enable_constraints_settings:
     group: Revenue Lifecycle Management
     description: "Set Default Transaction Type, Asset Context for Product Configurator, and enable Constraints Engine toggle on Revenue Settings (Robot test). Required before CML constraint data import."
@@ -1844,6 +2118,29 @@ tasks:
       usage_rating_procedure: RLM Default Rating Discovery Procedure
       create_orders_flow: RLM_CreateOrdersFromQuote
 
+  configure_mfg_revenue_settings:
+    group: Manufacturing
+    description: "Configure Revenue Settings page defaults for Manufacturing (Badger) orgs. Same as configure_revenue_settings but sets pricing_procedure to the MFG pricing procedure (MFG Revenue Management Default Pricing Procedure) deployed via unpackaged/post_manufacturing/mfg_pricingsetup."
+    class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
+    options:
+      suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: MFG Revenue Management Default Pricing Procedure
+      usage_rating_procedure: RLM Default Rating Discovery Procedure
+      create_orders_flow: RLM_CreateOrdersFromQuote
+
+  activate_mfg_theme:
+    group: Manufacturing
+    description: >
+      Activate the Manufacturing Lightning Experience Theme by deploying
+      LightningExperienceSettings with activeThemeName=Badger.
+      Source: unpackaged/post_manufacturing/theme_activation/settings/LightningExperience.settings-meta.xml.
+      Runs last in prepare_manufacturing so the theme activates only after all metadata is in place.
+      Idempotent: deploying the same activeThemeName twice is safe.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_manufacturing/theme_activation
+
   configure_core_pricing_setup:
     group: Revenue Lifecycle Management
     description: "Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated."
@@ -1852,6 +2149,15 @@ tasks:
       suite: robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
       outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
+
+  configure_mfg_core_pricing_setup:
+    group: Manufacturing
+    description: "Configure Salesforce Pricing Setup (CorePricingSetup) page for Manufacturing orgs: set the default Pricing Procedure to the MFG pricing procedure (Robot test). Must run after the MFG Pricing Procedure expression set is deployed and activated."
+    class_path: tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup
+    options:
+      suite: robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
+      outputdir: robot/rlm-base/results
+      pricing_procedure: MFG Revenue Management Default Pricing Procedure
 
   configure_product_discovery_settings:
     group: Revenue Lifecycle Management
@@ -1869,6 +2175,17 @@ tasks:
     options:
       expression_set_name: Salesforce_Default_Pricing_Discovery_Procedure
       context_definition_name: *sales_transaction_context_name
+      rank: 1
+      start_date: "2020-01-01T00:00:00.000Z"
+      fallback_expression_set_name: RLM_DefaultPricingDiscoveryProcedure
+
+  reconfigure_mfg_pricing_discovery:
+    group: Revenue Lifecycle Management
+    description: "Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh."
+    class_path: tasks.rlm_reconfigure_expression_set.ReconfigureExpressionSet
+    options:
+      expression_set_name: Salesforce_Default_Pricing_Discovery_Procedure
+      context_definition_name: *mfg_sales_transaction_context_name
       rank: 1
       start_date: "2020-01-01T00:00:00.000Z"
       fallback_expression_set_name: RLM_DefaultPricingDiscoveryProcedure
@@ -1900,28 +2217,6 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateBillingRecords.apex
-
-  create_sequence_policies:
-    group: Revenue Lifecycle Management
-    description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
-    class_path: tasks.rlm_billing.CreateSequencePolicies
-
-  update_currency_rates_csv:
-    group: Data Management - Currency
-    description: >
-      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update
-      CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch
-      org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP').
-      Use dry_run true to preview without writing.
-    class_path: tasks.rlm_currency.UpdateCurrencyRatesCsv
-
-  update_currency_rates:
-    group: Data Management - Currency
-    description: >
-      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch
-      CurrencyType.ConversionRate for all active non-corporate currencies in a running org.
-      Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
-    class_path: tasks.rlm_currency.UpdateCurrencyRates
 
   query_billing_state:
     group: Revenue Lifecycle Management
@@ -1973,6 +2268,21 @@ tasks:
 # a data plan to avoid duplicates (e.g. before test_*_idempotency). Add tasks
 # here for each plan that has a delete script (rates, rating, billing, etc.).
 
+  # Badger Delete Tasks
+  delete_badger_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice,
+      PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment,
+      AttributeAdjustmentCondition, PriceAdjustmentTier)
+      in reverse plan order (children first). Shape-agnostic: clears all records of
+      each type regardless of which data shape populated them. Run before
+      insert_quantumbit_pricing_data when layering multiple pricing shapes.
+      Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *badger_pricing_dataset
+
   delete_quantumbit_pricing_data:
     group: Data Maintenance
     description: >
@@ -2022,11 +2332,26 @@ tasks:
     options:
       command: "python3 scripts/post_process_extraction.py {extraction_dir} {plan_dir}"
 
+  #Badger Post Processing Tasks
+  post_process_extraction_badger_pcm:
+    group: Revenue Lifecycle Management
+    description: Post-process extracted CSVs into import-ready format
+    class_path: cumulusci.tasks.command.Command
+    options:
+      command: "python3 scripts/post_process_extraction.py datasets/sfdmu/extractions/mfg-pcm/2026-03-05T165417 datasets/sfdmu/mfg/en-US/mfg-pcm"
+
 #-------------------------------------#
 # DATA MANAGEMENT: EXTRACT & TEST      #
 #-------------------------------------#
 # Extract tasks (group: Data Management - Extract): SFDMU org → CSV. Output in datasets/sfdmu/extractions/<plan_name>/<timestamp>. Post-process runs by default; re-import-ready CSVs in <timestamp>/processed/.
 # Idempotency tasks (group: Data Management - Idempotency): run plan load twice, assert no record count increase. Use --group to list or run by group.
+
+  extract_badger_pricing_data:
+    group: Revenue Lifecycle Management
+    description: Extract Badger Pricing Data
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *badger_pricing_dataset
 
   extract_qb_pcm_data:
     group: Data Management - Extract
@@ -2055,13 +2380,6 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_dro_dataset
-
-  export_bre_rule_library:
-    group: Data Management - Extract
-    description: "Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all."
-    class_path: tasks.rlm_bre.ExportBRE
-    options:
-      output_dir: datasets/bre/exports
 
   extract_qb_clm_data:
     group: Data Management - Extract
@@ -2112,27 +2430,58 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_prm_dataset
 
-  extract_scratch_data:
+  extract_mfg_aaf_data:
     group: Data Management - Extract
-    description: "Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract mfg-aaf (Advanced Account Forecast) from org to CSV. Output in datasets/sfdmu/extractions/mfg-aaf/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
-      pathtoexportjson: "datasets/sfdmu/scratch_data"
-      extractions_base_dir: "datasets/sfdmu/extractions"
+      pathtoexportjson: *badger_aaf_dataset
 
-  extract_qb_billing_data:
+  fix_mfg_aaf_category_extraction:
     group: Data Management - Extract
-    description: "Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in datasets/sfdmu/extractions/qb-billing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_billing_dataset
+    description: >
+      Fix Category__r.Code in mfg-aaf extraction output. SFDMU v5 returns #N/A
+      for this custom relationship field; this task queries the org and merges
+      the correct values. Run after extract_mfg_aaf_data. Use extraction_dir to
+      target a specific extraction, or omit to fix the most recent.
+    class_path: tasks.rlm_aaf_category_fix.FixAAFCategoryExtraction
 
-  extract_qb_tax_data:
-    group: Data Management - Extract
-    description: "Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+# Badger Idempotency Tasks
+  test_badger_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pcm/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
-      pathtoexportjson: *quantumbit_tax_dataset
+      pathtoexportjson: *badger_product_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_badger_testdata_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pcm/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: "datasets/sfdmu/test"
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_badger_pricing_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *badger_pricing_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_badger_dro_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *badger_dro_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
 
   test_qb_pcm_idempotency:
     group: Data Management - Idempotency
@@ -2222,22 +2571,6 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_prm_dataset
-      use_extraction_roundtrip: false
-
-  test_qb_billing_idempotency:
-    group: Data Management - Idempotency
-    description: "Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import."
-    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
-    options:
-      pathtoexportjson: *quantumbit_billing_dataset
-      use_extraction_roundtrip: false
-
-  test_qb_tax_idempotency:
-    group: Data Management - Idempotency
-    description: Idempotency test for qb-tax (tax policies and treatments).
-    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
-    options:
-      pathtoexportjson: *quantumbit_tax_dataset
       use_extraction_roundtrip: false
 
 #------------------#
@@ -2337,22 +2670,6 @@ tasks:
     class_path: tasks.rlm_manage_transaction_processing_types.ManageTransactionProcessingTypes
     options:
       operation: list  # Options: 'list', 'upsert'
-      input_file: null  # Required for upsert; JSON array of records
-      key_field: DeveloperName
-      api_version: null
-      dry_run: false
-
-  manage_fulfillment_scope_cnfg:
-    group: Revenue Lifecycle Management
-    description: >
-      Manage CustomFulfillmentScopeCnfg records via Tooling API (DRO/Industries
-      Fulfillment setup object; apiAccess="never", introduced API v65.0).
-      Operations: 'list' (log to console), 'extract' (write to output_file as
-      JSON array), 'upsert' (create/update from input_file JSON array).
-    class_path: tasks.rlm_manage_fulfillment_scope_cnfg.ManageFulfillmentScopeCnfg
-    options:
-      operation: list  # Options: 'list', 'extract', 'upsert'
-      output_file: datasets/tooling/CustomFulfillmentScopeCnfg.json  # Used by extract
       input_file: null  # Required for upsert; JSON array of records
       key_field: DeveloperName
       api_version: null
@@ -2462,54 +2779,135 @@ flows:
       6:
         flow: prepare_price_adjustment_schedules
       7:
-        flow: prepare_quantumbit
+        flow: prepare_scratch
       8:
-        flow: prepare_product_data
+        flow: prepare_payments
       9:
-        flow: prepare_pricing_data
+        flow: prepare_quantumbit
       10:
-        flow: prepare_docgen
+        flow: prepare_product_data
       11:
-        flow: prepare_dro
+        flow: prepare_pricing_data
       12:
-        flow: prepare_tax
+        flow: prepare_docgen
       13:
-        flow: prepare_billing
+        flow: prepare_dro
       14:
-        flow: prepare_analytics
+        flow: prepare_tax
       15:
-        flow: prepare_clm
+        flow: prepare_billing
       16:
-        flow: prepare_rating
+        flow: prepare_analytics
       17:
-        task: activate_and_deploy_expression_sets
+        flow: prepare_clm
       18:
-        flow: prepare_tso
+        flow: prepare_rating
       19:
-        flow: prepare_procedureplans
+        task: activate_and_deploy_expression_sets
       20:
-        flow: prepare_prm
+        flow: prepare_tso
       21:
-        flow: prepare_agents
+        flow: prepare_procedureplans
       22:
-        flow: prepare_constraints
+        flow: prepare_prm
       23:
-        flow: prepare_guidedselling
+        flow: prepare_agents
       24:
-        flow: prepare_revenue_settings
+        flow: prepare_constraints
       25:
-        flow: prepare_pricing_discovery
+        flow: prepare_guidedselling
       26:
-        flow: prepare_ramp_builder
+        flow: prepare_revenue_settings
       27:
+        flow: prepare_pricing_discovery
+      28:
+        flow: prepare_ramp_builder
+      29:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      28:
-        flow: prepare_scratch
-      29:
-        flow: refresh_all_decision_tables
       30:
-        flow: stamp_git_commit
+        flow: prepare_manufacturing
+        when: project_config.project__custom__manufacturing
+      31:
+        flow: refresh_all_decision_tables
+      32:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org
+
+# Manufacturing Master Flow
+
+  prepare_mfg_core:
+    group: Manufacturing
+    description: >
+      Deploy core Manufacturing metadata in dependency order. Step 1 deploys brand assets and
+      IndustriesManufacturing settings (activating SalesAgreement objects) as a committed
+      transaction. Step 2 deploys theme, custom fields, Apex, permissions, and SA settings in
+      a single transaction (SalesAgreement objects now exist). Step 3 conditionally deploys the
+      TSO production PSG (when tso=true). Does not deploy flows — prepare_mfg_perms runs next
+      to assign the Manufacturing PSG before flow deployment.
+    steps:
+      1:
+        task: deploy_mfg_core_assets
+        when: project_config.project__custom__manufacturing
+      2:
+        task: deploy_mfg_core
+        when: project_config.project__custom__manufacturing
+      3:
+        task: deploy_mfg_tso_perms
+        when: project_config.project__custom__manufacturing and project_config.project__custom__tso
+
+  prepare_manufacturing:
+    group: Manufacturing
+    description: >
+      Full Manufacturing feature setup: deploys core metadata (assets, theme, fields, Apex),
+      assigns Manufacturing permission sets and groups (with propagation sleep), deploys all
+      business process flows and Quick Actions, OmniStudio document generation components,
+      context plan extensions, pricing setup, seed data (PCM, pricing, DRO, CML, tax, billing),
+      guided selling, rebates, advanced account forecasting, revenue settings configuration,
+      UX assembly, and theme activation. Gated by manufacturing=true in prepare_rlm_org (step 30).
+    steps:
+      1:
+        flow: prepare_mfg_core
+      2:
+        flow: prepare_mfg_perms
+      3:
+        task: deploy_mfg_flows_and_actions
+        when: project_config.project__custom__manufacturing
+      4:
+        flow: prepare_mfg_docgen
+      5:
+        flow: prepare_mfg_context_plan
+      6:
+        flow: prepare_mfg_pricing
+      7:
+        flow: prepare_mfg_data
+      8:
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__dro and project_config.project__custom__manufacturing
+      9:
+        task: reconfigure_mfg_pricing_discovery
+        when: project_config.project__custom__manufacturing
+      10:
+        flow: prepare_mfg_visuals
+      11:
+        flow: prepare_mfg_guided_selling
+      12:
+        flow: prepare_mfg_rebates
+      13:
+        flow: prepare_mfg_aaf
+      14:
+        task: util_sleep
+        when: project_config.project__custom__manufacturing
+        options:
+          seconds: *sleep_default
+      15:
+        flow: prepare_mfg_revenue_settings
+      16:
+        flow: prepare_mfg_ux
+      17:
+        task: activate_mfg_theme
+        when: project_config.project__custom__manufacturing
 
   prepare_core:
     group: Revenue Lifecycle Management
@@ -2532,82 +2930,59 @@ flows:
         task: restore_decision_tables
         #when: org_config.scratch
       7:
-        flow: assign_feature_psls
-      8:
-        task: recalculate_permission_set_groups
-        options:
-          api_names: *rlm_psg_api_names
-      9:
-        task: assign_permission_set_groups_tolerant
-        options:
-          api_names: *rlm_psg_api_names
-      10:
-        task: recalculate_permission_set_groups
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      11:
-        task: assign_permission_set_groups_tolerant
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      12:
-        flow: extend_context_definitions
-      13:
-        task: create_rule_library
-        when: project_config.project__custom__breconfig
-      14:
-        task: create_dro_rule_library
-        when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      15:
-        flow: assign_feature_permission_sets
-
-  assign_feature_psls:
-    group: Revenue Lifecycle Management
-    description: Assign feature-gated permission set licenses after pre-deploy metadata is in place
-    steps:
-      1:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
-      2:
+      8:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein
         options:
-          api_names: *rlm_ai_psl_api_names
-      3:
-        task: assign_permission_set_licenses
-        when: project_config.project__custom__analytics
+          api_names: *rlm_ai_psl_api_names  
+      9:
+        task: util_sleep
         options:
-          api_names:
-            - EinsteinAnalyticsPlusPsl
-      4:
+          seconds: *sleep_default
+      10:
         task: assign_permission_set_licenses
-        when: project_config.project__custom__tso
         options:
-          api_names: *rlm_tso_psl_api_names
-
-  assign_feature_permission_sets:
-    group: Revenue Lifecycle Management
-    description: Assign feature-gated permission sets after PSGs are updated
-    steps:
-      1:
+          api_names: EinsteinAnalyticsPlusPsl
+      11:
+        task: recalculate_permission_set_groups
+        options:
+          api_names: *rlm_psg_api_names
+      12:
+        task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      13:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      2:
+      14:
+        flow: extend_context_definitions
+      15:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+      16:
+        task: create_rule_library
+        when: project_config.project__custom__breconfig
+      17:
+        task: util_sleep
+        when: project_config.project__custom__breconfig
+        options:
+          seconds: *sleep_default
+      18:
+        task: create_dro_rule_library
+        when: project_config.project__custom__dro and project_config.project__custom__breconfig
+      19:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      3:
-        task: assign_permission_sets
-        when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])
-        options:
-          api_names: *rlm_ai_ps_enterprise_api_names
-      4:
+      20:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -2713,51 +3088,45 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__tso
+        options:
+          api_names: *rlm_tso_psl_api_names
+      2:
         task: assign_permission_set_groups
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_psg_api_names
-      2:
+      3:
         task: deploy_post_utils
         when: project_config.project__custom__tso
-      3:
+      4:
         task: deploy_post_tso
         when: project_config.project__custom__tso
-      4:
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-
-  upsert_fulfillment_scope_cnfg:
-    group: Revenue Lifecycle Management
-    description: Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
-    steps:
-      1:
-        task: manage_fulfillment_scope_cnfg
+      6:
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
         options:
-          operation: upsert
-          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+          api_names: *psg_tso
 
   prepare_dro:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: manage_fulfillment_scope_cnfg
-        when: project_config.project__custom__dro
-        options:
-          operation: upsert
-          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
-      2:
         task: insert_qb_dro_data
         when: project_config.project__custom__dro and project_config.project__custom__qb
-      3:
+      2:
         task: insert_q3_dro_data_scratch
         when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      4:
+      3:
         task: insert_q3_dro_data_prod
         when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      5:
+      4:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro
 
@@ -2808,49 +3177,31 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_billing
-        when: project_config.project__custom__billing
-      2:
         task: insert_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
-      3:
+      2:
         task: insert_q3_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
-      4:
-        task: create_sequence_policies
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
-      5:
+      3:
         task: activate_flow
         when: project_config.project__custom__billing
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      6:
+      4:
         task: activate_default_payment_term
         when: project_config.project__custom__billing
-      7:
+      5:
         task: activate_billing_records
         when: project_config.project__custom__billing
-      8:
-        task: enable_timeline
-        when: project_config.project__custom__billing_ui
-      9:
-        task: deploy_billing_id_settings
+      6:
+        task: deploy_post_billing
         when: project_config.project__custom__billing
-      10:
+      7:
+        task: deploy_billing_id_settings
+        when: project_config.project__custom__billing and project_config.project__custom__qb
+      8:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
-      11:
-        task: deploy_post_billing_ui
-        when: project_config.project__custom__billing_ui
-      12:
-        task: assign_permission_sets
-        when: project_config.project__custom__billing_ui
-        options:
-          api_names:
-            - RLM_BillingUI
-      13:
-        task: apply_context_billing_order
-        when: project_config.project__custom__billing and project_config.project__custom__billing_ui
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -3039,13 +3390,13 @@ flows:
     steps:
       1:
         task: insert_qb_transactionprocessingtypes_data
-        when: project_config.project__custom__constraints and project_config.project__custom__quantumbit
+        when: project_config.project__custom__constraints
       2:
         task: deploy_post_constraints
         when: project_config.project__custom__constraints
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__constraints
+        when: project_config.project__custom__tso and project_config.project__custom__constraints
         options:
           api_names: *ps_constraints
       4:
@@ -3053,7 +3404,7 @@ flows:
         when: project_config.project__custom__constraints
       5:
         task: enable_constraints_settings
-        when: project_config.project__custom__constraints_data
+        when: project_config.project__custom__constraints
       6:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
@@ -3095,7 +3446,7 @@ flows:
           api_names: *ps_approvals
       4:
         task: insert_qb_approvals_data
-        when: project_config.project__custom__qb and project_config.project__custom__approvals
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management
@@ -3143,14 +3494,15 @@ flows:
     steps:
       1:
         task: configure_revenue_settings
-        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso)"
+        when: "not (project_config.project__custom__quantumbit or project_config.project__custom__tso or project_config.project__custom__manufacturing)"
       2:
         task: configure_revenue_settings
-        when: "project_config.project__custom__quantumbit or project_config.project__custom__tso"
+        when: "(project_config.project__custom__quantumbit or project_config.project__custom__tso) and not project_config.project__custom__manufacturing"
         options:
           manage_assets_flow: RLM_ARC_Assets
       3:
         task: configure_core_pricing_setup
+        when: "not project_config.project__custom__manufacturing"
 
   prepare_pricing_discovery:
     group: Revenue Lifecycle Management
@@ -3160,6 +3512,289 @@ flows:
       2:
         task: configure_product_discovery_settings
         when: project_config.project__custom__qb
+
+## Manufacturing Sub-flows
+
+  prepare_mfg_revenue_settings:
+    group: Manufacturing
+    description: >
+      Configure Revenue Settings and Pricing Setup for Manufacturing orgs. Replaces
+      prepare_revenue_settings when manufacturing=true. Step 1 configures the Revenue
+      Settings page with the MFG pricing procedure. Step 2 configures the CorePricingSetup
+      page with the MFG pricing procedure (MFG Revenue Management Default Pricing Procedure).
+      Both steps are gated by manufacturing=true.
+    steps:
+      1:
+        task: configure_mfg_revenue_settings
+        when: project_config.project__custom__manufacturing
+      2:
+        task: configure_mfg_core_pricing_setup
+        when: project_config.project__custom__manufacturing
+
+  prepare_mfg_perms:
+    group: Manufacturing
+    description: >
+      Assign Manufacturing permission sets and permission set groups to the running user.
+      Waits for metadata deployment to settle before assigning. Assigns either the scratch
+      PSG (non-TSO) or production PSG (TSO) based on the tso feature flag. Also grants
+      External Credential Principal Access to RLM_MFG_RCA (Metadata API limitation
+      workaround via Tooling API callout + SetupEntityAccess DML).
+    steps:
+      1:
+        task: util_sleep
+        when: project_config.project__custom__manufacturing
+        options:
+          seconds: *sleep_default
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__manufacturing
+        options:
+          api_names: *badger_mfg_ps
+      3:
+        task: assign_permission_set_groups
+        when: project_config.project__custom__manufacturing and not project__custom__tso
+        options:
+          api_names: *badger_mfg_scratch_psg
+      4:
+        task: assign_permission_set_groups
+        when: project_config.project__custom__manufacturing and project__custom__tso
+        options:
+          api_names: *badger_mfg_psg
+      5:
+        task: grant_mfg_ext_credential_access
+        when: project_config.project__custom__manufacturing
+
+  prepare_mfg_docgen:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing OmniStudio document generation components in dependency order:
+      OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal
+      OmniScript, and document templates (Badger_Proposal, Price_Contract). After deploying
+      templates, activates them (step 6) and fixes the Salesforce batch-deploy binary bug
+      that causes all templates to receive the same ContentDocument binary (step 7).
+      Gated by manufacturing=true and mfg_docgen=true.
+    steps:
+      1:
+        task: deploy_mfg_omni_datatransforms
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      2:
+        task: deploy_mfg_omni_integration_procedures
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      3:
+        task: deploy_mfg_omni_base_docgen_script
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      4:
+        task: deploy_mfg_omni_quote_script
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      5:
+        task: deploy_mfg_doc_templates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      6:
+        task: activate_mfg_docgen_templates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+      7:
+        task: fix_mfg_document_template_binaries
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
+
+  prepare_mfg_data:
+    group: Manufacturing
+    description: >
+      Load all Manufacturing seed data: PCM products, pricing records, DRO fulfillment rules,
+      CML constraint models (GeneratorSet, FuelCell), and conditionally tax and billing records.
+    steps:
+      1:
+        task: insert_badger_pcm_data
+        when: project_config.project__custom__manufacturing
+      2:
+        task: insert_badger_pricing_data
+        when: project_config.project__custom__manufacturing
+      3:
+        task: insert_badger_dro_data
+        when: project_config.project__custom__manufacturing
+      4:
+        flow: import_mfg_cml
+        when: project_config.project__custom__manufacturing
+      5:
+        flow: prepare_mfg_tax
+        when: project_config.project__custom__manufacturing and project_config.project__custom__tax
+      6:
+        flow: prepare_mfg_billing
+        when: project_config.project__custom__manufacturing and project_config.project__custom__billing
+
+  prepare_mfg_billing:
+    group: Manufacturing
+    description: >
+      Load and activate Manufacturing billing seed data (LegalEntity, AccountingPeriod,
+      BillingPolicy, BillingTreatment, BillingTreatmentItem, GeneralLedgerAccount,
+      GeneralLedgerAcctAsgntRule, Product2 billing policy assignments). Activates billing
+      records and deploys billing metadata. Runs when manufacturing=true and billing=true.
+    steps:
+      1:
+        task: insert_mfg_billing_data
+        when: project_config.project__custom__billing
+      2:
+        task: activate_flow
+        when: project_config.project__custom__billing
+        options:
+          developer_names: RLM_Order_to_Billing_Schedule_Flow
+      3:
+        task: activate_default_payment_term
+        when: project_config.project__custom__billing
+      4:
+        task: activate_billing_records
+        when: project_config.project__custom__billing
+      5:
+        task: deploy_post_billing
+        when: project_config.project__custom__billing
+      6:
+        task: deploy_billing_template_settings
+        when: project_config.project__custom__billing
+
+  prepare_mfg_tax:
+    group: Manufacturing
+    description: >
+      Load and activate Manufacturing tax seed data (LegalEntity, TaxPolicy, TaxTreatment,
+      Product2 TaxPolicy assignments). Uses a two-pass SFDMU plan: Pass 1 inserts records in
+      Draft status; Pass 2 activates TaxTreatment and TaxPolicy and sets DefaultTaxTreatmentId.
+      Runs when manufacturing=true and tax=true.
+    steps:
+      1:
+        task: insert_mfg_tax_data
+        when: project_config.project__custom__tax
+      2:
+        task: activate_tax_records
+        when: project_config.project__custom__tax
+
+  prepare_mfg_context_plan:
+    group: Manufacturing
+    description: >
+      Extend and apply the Manufacturing Sales Transaction context definition. Runs
+      extend_context_sales_transaction_mfg then applies the MFG SalesTransactionContext twice
+      (two-pass pattern required for full attribute population).
+    steps:
+      1:
+        task: extend_context_sales_transaction_mfg
+        when: project_config.project__custom__manufacturing
+      2:
+        task: apply_mfg_SalesTransactionContext
+        when: project_config.project__custom__manufacturing
+      3:
+        task: apply_mfg_SalesTransactionContext
+        when: project_config.project__custom__manufacturing
+
+  prepare_mfg_pricing:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing pricing metadata and activate the pricing procedure. Deploys the
+      NGP default pricing recipe, then the MFG_Rev_Mgmt_Default_Pricing_Procedure ExpressionSetDefinition
+      (with live PriceAdjustmentSchedule ID injection), then activates version V1.
+    steps:
+      1:
+        task: deploy_mfg_pricing_recipe
+        when: project_config.project__custom__manufacturing
+      2:
+        task: deploy_mfg_pricing_procedure
+        when: project_config.project__custom__manufacturing
+      3:
+        task: manage_expression_sets
+        when: project_config.project__custom__manufacturing
+        options:
+          operation: activate_versions
+          version_full_names: "MFG_Rev_Mgmt_Default_Pricing_Procedure_V1"
+
+  import_mfg_cml:
+    group: Manufacturing
+    steps:
+      1:
+        task: import_cml
+        when: project_config.project__custom__manufacturing
+        options:
+          data_dir: *genSet_mfg_cml
+      2:
+        task: import_cml
+        when: project_config.project__custom__manufacturing
+        options:
+          data_dir: *fuelCell_mfg_cml
+      3:
+        task: manage_expression_sets
+        when: project_config.project__custom__manufacturing
+        options:
+          operation: activate_versions
+          version_full_names: "GeneratorSet_V1,Fuel_Cell_V1"
+
+  prepare_mfg_dro:
+    group: Manufacturing
+    description: >
+      Load Manufacturing DRO seed data and update product fulfillment decomposition rules.
+      Standalone flow; DRO steps are also embedded in prepare_mfg_data and prepare_manufacturing.
+    steps:
+      1:
+        task: insert_badger_dro_data
+        when: project_config.project__custom__manufacturing
+      2:
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__manufacturing
+
+  prepare_mfg_guided_selling:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing Guided Selling metadata and load seed data. Deploys AssessmentQuestions,
+      OmniScripts, and ProductDiscovery settings, then inserts guided selling product assignments.
+      Gated by manufacturing=true and mfg_guidedselling=true.
+    steps:
+      1:
+        task: insert_badger_guidedselling_data
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_guidedselling
+      2:
+        task: deploy_mfg_guided_selling
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_guidedselling
+
+  prepare_mfg_rebates:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing rebate metadata (ObjectHierarchyRelationship settings and
+      BatchCalcJobDefinition) then load rebate seed data.
+      Gated by manufacturing=true and mfg_rebates=true.
+    steps:
+      1:
+        task: deploy_mfg_rebates
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_rebates
+      2:
+        task: insert_badger_rebates_data
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_rebates
+
+  prepare_mfg_aaf:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing Advanced Account Forecasting metadata in dependency order: object fields
+      and translations, permission set, then waits before deploying the dimension source and forecast
+      set configuration. Loads AAF seed data last. Gated by manufacturing=true and mfg_aaf=true.
+    steps:
+      1:
+        task: deploy_mfg_aaf_fields
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
+      2:
+        task: deploy_mfg_aaf_permissions
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
+        options:
+          api_names: *badger_aaf_ps
+      4:
+        task: util_sleep
+        options:
+          seconds: *sleep_default
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
+      5:
+        task: deploy_mfg_aaf_dim_source
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
+      6:
+        task: deploy_mfg_aaf_forecast_set
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
+      7:
+        task: insert_badger_aaf_data
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_aaf
 
   prepare_ramp_builder:
     group: Revenue Lifecycle Management
@@ -3188,10 +3823,11 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 28 of
-      prepare_rlm_org, after all feature provisioning is complete, ensuring all
-      referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation.
+      applications, app menus, profiles) from feature-conditional templates. Runs at
+      step 29 of prepare_rlm_org, after all feature provisioning is complete, ensuring
+      all referenced objects, fields, and components exist before UX metadata is deployed.
+      Step 2 reorders the App Launcher via browser automation — required on Trialforce
+      orgs where the Metadata API AppSwitcher deploy is blocked by managed ConnectedApps.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3200,38 +3836,25 @@ flows:
         task: reorder_app_launcher
         when: project_config.project__custom__ux
 
-  capture_ux_drift:
-    group: UX Personalization
+  prepare_mfg_ux:
+    group: Manufacturing
     description: >
-      Retrieves live flexipages from the target org into unpackaged/post_ux/, then
-      diffs them against what the assembler would produce from current templates/.
-      Reports added, removed, modified, and repositioned flexiPageRegions and writes
-      drift_report.json. Does not modify templates/. After reviewing the report,
-      edit templates/ manually then run assemble_and_deploy_ux to deploy.
+      Assemble and deploy Manufacturing UX metadata (flexipages, layouts, applications)
+      from templates/flexipages/standalone/manufacturing/, templates/layouts/manufacturing/,
+      and templates/applications/manufacturing/. Output is written to
+      unpackaged/post_manufacturing_ux/ and deployed in a single sf project deploy start call.
+      Passes manufacturing=true so that manufacturing-specific content (SalesAgreement pages,
+      RLM_MFG_* flexipages, manufacturing RLM_Revenue_Cloud variant) is included.
+      Must run after all manufacturing metadata is deployed (step 14 of prepare_manufacturing).
+      Run this flow independently to test manufacturing UX assembly without running the full
+      prepare_rlm_org flow. Gated by manufacturing=true and ux=true in prepare_manufacturing.
     steps:
       1:
-        task: retrieve_ux_from_org
-      2:
-        task: diff_ux_templates
-
-  apply_ux_drift:
-    group: UX Personalization
-    description: >
-      Writes back org-retrieved flexipages into base templates by reverse-applying
-      active feature patches (new_base = org_state - patches), then re-assembles
-      and diffs to verify zero drift. Run capture_ux_drift first to review drift,
-      then run this flow to update templates/ automatically.
-    steps:
-      1:
-        task: writeback_ux_templates
-        options:
-          dry_run: false
-      2:
         task: assemble_and_deploy_ux
+        when: project_config.project__custom__manufacturing and project_config.project__custom__ux
         options:
-          deploy: false
-      3:
-        task: diff_ux_templates
+          output_path: unpackaged/post_manufacturing_ux
+          manufacturing: true
 
   prepare_personas:
     group: Revenue Lifecycle Management
@@ -3263,6 +3886,17 @@ flows:
       9:
         task: extract_qb_guidedselling_data
 
+  extract_mfg_aaf_with_category_fix:
+    group: Data Management - Extract
+    description: >
+      Extract mfg-aaf from org, then fix Category__r.Code (SFDMU v5 workaround).
+      Equivalent to extract_mfg_aaf_data followed by fix_mfg_aaf_category_extraction.
+    steps:
+      1:
+        task: extract_mfg_aaf_data
+      2:
+        task: fix_mfg_aaf_category_extraction
+
   run_qb_idempotency_tests:
     group: Data Management - Idempotency
     description: Run all QB data idempotency tests (load twice, assert no new records). Use --org to specify target org.
@@ -3286,11 +3920,19 @@ flows:
       9:
         task: test_qb_guidedselling_idempotency
 
-  stamp_git_commit:
-    group: RLM Administration
-    description: Stamp the git commit hash into the org
+  prepare_mfg_visuals:
+    group: Manufacturing
+    description: >
+      Deploy Manufacturing 3D Visualization metadata and load product configuration flow
+      assignments. Step 1 deploys unpackaged/post_manufacturing_visualization (LWC, VF page,
+      CSP Trusted Site, RenderDraw flow). Step 2 inserts ProductConfigurationFlow and
+      ProductConfigFlowAssignment records from datasets/sfdmu/mfg/en-US/mfg-configflow.
+      Gated by mfg_visuals=true. Run independently to test visualization deployment
+      before adding to prepare_manufacturing.
     steps:
       1:
-        task: stamp_git_commit
-        options:
-          flow_name: prepare_rlm_org
+        task: deploy_mfg_visualization
+        when: project_config.project__custom__mfg_visuals
+      2:
+        task: insert_mfg_configflow_data
+        when: project_config.project__custom__mfg_visuals

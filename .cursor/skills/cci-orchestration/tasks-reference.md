@@ -3,13 +3,25 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**197 tasks** across **9 groups**.
+**231 tasks** across **9 groups**.
 
 ---
 
 ## Data Maintenance
 
-*4 task(s)*
+*5 task(s)*
+
+### `delete_badger_pricing_data`
+
+**Description:** Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes. Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
+
+**Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-pricing`
+
+---
 
 ### `delete_draft_billing_records`
 
@@ -59,39 +71,19 @@
 
 ---
 
-## Data Management - Currency
-
-*2 task(s)*
-
-### `update_currency_rates`
-
-**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch CurrencyType.ConversionRate for all active non-corporate currencies in a running org. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
-
-**Class:** `tasks.rlm_currency.UpdateCurrencyRates`
-
----
-
-### `update_currency_rates_csv`
-
-**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without writing.
-
-**Class:** `tasks.rlm_currency.UpdateCurrencyRatesCsv`
-
----
-
 ## Data Management - Extract
 
-*15 task(s)*
+*13 task(s)*
 
-### `export_bre_rule_library`
+### `extract_mfg_aaf_data`
 
-**Description:** Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all.
+**Description:** Extract mfg-aaf (Advanced Account Forecast) from org to CSV. Output in datasets/sfdmu/extractions/mfg-aaf/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
 
-**Class:** `tasks.rlm_bre.ExportBRE`
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
 **Options:**
 
-- `output_dir`: `datasets/bre/exports`
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-aaf`
 
 ---
 
@@ -104,18 +96,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
-
----
-
-### `extract_qb_billing_data`
-
-**Description:** Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in datasets/sfdmu/extractions/qb-billing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
-
-**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-billing`
 
 ---
 
@@ -227,18 +207,6 @@
 
 ---
 
-### `extract_qb_tax_data`
-
-**Description:** Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
-
-**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
-
----
-
 ### `extract_qb_transactionprocessingtypes_data`
 
 **Description:** Extract qb-transactionprocessingtypes from org to CSV. Output in datasets/sfdmu/extractions/qb-transactionprocessingtypes/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -251,22 +219,73 @@
 
 ---
 
-### `extract_scratch_data`
+### `fix_mfg_aaf_category_extraction`
 
-**Description:** Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Fix Category__r.Code in mfg-aaf extraction output. SFDMU v5 returns #N/A for this custom relationship field; this task queries the org and merges the correct values. Run after extract_mfg_aaf_data. Use extraction_dir to target a specific extraction, or omit to fix the most recent.
 
-**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/scratch_data`
-- `extractions_base_dir`: `datasets/sfdmu/extractions`
+**Class:** `tasks.rlm_aaf_category_fix.FixAAFCategoryExtraction`
 
 ---
 
 ## Data Management - Idempotency
 
-*13 task(s)*
+*15 task(s)*
+
+### `test_badger_dro_idempotency`
+
+**Description:** Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-dro`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
+
+### `test_badger_pcm_idempotency`
+
+**Description:** Idempotency test for badger-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pcm/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-pcm`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
+
+### `test_badger_pricing_idempotency`
+
+**Description:** Idempotency test for badger-pricing. Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pricing/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-pricing`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
+
+### `test_badger_testdata_idempotency`
+
+**Description:** Idempotency test for badger-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/mfg-pcm/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/test`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
 
 ### `test_qb_approvals_idempotency`
 
@@ -277,19 +296,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
-- `use_extraction_roundtrip`: `False`
-
----
-
-### `test_qb_billing_idempotency`
-
-**Description:** Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import.
-
-**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-billing`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -413,19 +419,6 @@
 
 ---
 
-### `test_qb_tax_idempotency`
-
-**Description:** Idempotency test for qb-tax (tax policies and treatments).
-
-**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
-- `use_extraction_roundtrip`: `False`
-
----
-
 ### `test_qb_transactionprocessingtypes_idempotency`
 
 **Description:** Idempotency test for qb-transactionprocessingtypes.
@@ -512,6 +505,438 @@
 
 ---
 
+## Manufacturing
+
+*35 task(s)*
+
+### `activate_mfg_docgen_templates`
+
+**Description:** Activate the latest version of each Manufacturing OmniStudio DocumentTemplate (Badger_Proposal, Price_Contract). DocumentTemplates always deploy as inactive. Run after deploy_mfg_doc_templates.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/activateMfgDocgenTemplates.apex`
+
+---
+
+### `activate_mfg_theme`
+
+**Description:** Activate the Manufacturing Lightning Experience Theme by deploying LightningExperienceSettings with activeThemeName=Badger. Source: unpackaged/post_manufacturing/theme_activation/settings/LightningExperience.settings-meta.xml. Runs last in prepare_manufacturing so the theme activates only after all metadata is in place. Idempotent: deploying the same activeThemeName twice is safe.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing/theme_activation`
+
+---
+
+### `configure_mfg_core_pricing_setup`
+
+**Description:** Configure Salesforce Pricing Setup (CorePricingSetup) page for Manufacturing orgs: set the default Pricing Procedure to the MFG pricing procedure (Robot test). Must run after the MFG Pricing Procedure expression set is deployed and activated.
+
+**Class:** `tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `pricing_procedure`: `MFG Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_mfg_revenue_settings`
+
+**Description:** Configure Revenue Settings page defaults for Manufacturing (Badger) orgs. Same as configure_revenue_settings but sets pricing_procedure to the MFG pricing procedure (MFG Revenue Management Default Pricing Procedure) deployed via unpackaged/post_manufacturing/mfg_pricingsetup.
+
+**Class:** `tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_revenue_settings.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `pricing_procedure`: `MFG Revenue Management Default Pricing Procedure`
+- `usage_rating_procedure`: `RLM Default Rating Discovery Procedure`
+- `create_orders_flow`: `RLM_CreateOrdersFromQuote`
+
+---
+
+### `delete_badger_aaf_data`
+
+**Description:** Delete all Insert-operation records from the mfg-aaf plan (AdvAccountForecastFact, AdvAcctForecastSetPartner) in reverse plan order. Run before insert_badger_aaf_data for a fresh reload.
+
+**Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-aaf`
+
+---
+
+### `deploy_mfg_aaf_dim_source`
+
+**Description:** Deploy Manufacturing Advanced Account Forecasting dimension source (Category). Defines the Category dimension used by the forecast set configuration.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_aaf/dim_source`
+
+---
+
+### `deploy_mfg_aaf_fields`
+
+**Description:** Deploy Manufacturing Advanced Account Forecasting object extensions: custom fields on AdvAccountForecastFact and en_US ObjectTranslation for AdvAcctForecastSetPartner.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_aaf/fields`
+
+---
+
+### `deploy_mfg_aaf_forecast_set`
+
+**Description:** Deploy Manufacturing Advanced Account Forecasting forecast set (CategoryForecastSet). Must deploy after dim_source because the forecast set references the Category dimension.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_aaf/forecast_set`
+
+---
+
+### `deploy_mfg_aaf_permissions`
+
+**Description:** Deploy Manufacturing Advanced Account Forecasting permission set (MFG_AAF). Must deploy after aaf/fields so the permission set can reference the custom fields.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_aaf/permissions`
+
+---
+
+### `deploy_mfg_core`
+
+**Description:** Deploy Manufacturing theme, custom fields, Apex, and permissions in a single transaction. Requires deploy_mfg_core_assets to have committed first (activates SalesAgreement objects). Deploys: Lightning Experience theme (BrandingSet, LightningExperienceTheme), custom fields on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule, Quote, QuoteLineItem, and ServiceContract, core Apex classes (RLM_MFG_SalesAgreementRLMOrder, RLM_MFG_ServiceContractQuote), OpenSObject Aura component, SalesAgreement settings, RLM_MFG_RCA permission set, and RLM_MFG_scratch permission set group. Salesforce resolves intra-package ordering internally (fields before PSets, PSets before PSG).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_core`
+
+---
+
+### `deploy_mfg_core_assets`
+
+**Description:** Deploy Manufacturing brand assets and platform feature settings: ContentAssets (logo variants), StaticResources (product images, Babylon.js 3D libraries), Industries rebates setting, and IndustriesManufacturing settings (enableIndManufacturing, enableRevMgmtForSlsAgr, AAF). Must run as a separate transaction before deploy_mfg_core because the IndustriesManufacturing settings activate the SalesAgreement, SalesAgreementProduct, and SalesAgreementProductSchedule sObject types — these objects must exist in the schema before custom fields and Apex that reference them can deploy. The BrandingSet in deploy_mfg_core also references these ContentAssets.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing/core_assets`
+
+---
+
+### `deploy_mfg_doc_templates`
+
+**Description:** Deploy Manufacturing document templates (Badger_Proposal and Price_Contract). Must deploy after OmniScripts that reference these templates.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_docgen/documentTemplates`
+
+---
+
+### `deploy_mfg_flows_and_actions`
+
+**Description:** Deploy all Manufacturing business process flows and Quick Actions in a single transaction: Sales Agreement creation and activation flows, quote-to-contract flows, DRO work order creation, Service Contract quoting, and the Quick Actions on Account, Contract, Quote, and SalesAgreement that invoke them. Runs after core_setup (SA settings + custom fields + perms) with a propagation sleep, so all SA-DML flows validate cleanly. Requires the IndustriesManufacturing scratch org feature (orgs/dev-mfg.json).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing/flows_and_actions`
+
+---
+
+### `deploy_mfg_guided_selling`
+
+**Description:** Deploy Manufacturing Guided Selling metadata: AssessmentQuestions for chemicals and power management, Guided Selling OmniScripts, and ProductDiscovery settings.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_guidedselling`
+
+---
+
+### `deploy_mfg_omni_base_docgen_script`
+
+**Description:** Deploy Manufacturing base document generation OmniScript (doc_GenerationCore_English). Orchestrates the core document generation flow for proposals and contracts.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_docgen/base_docgen_omniscript/omniScripts`
+
+---
+
+### `deploy_mfg_omni_datatransforms`
+
+**Description:** Deploy Manufacturing OmniDataTransforms for document generation (Quote/Contract extraction, field mapping, and template name extraction used by the doc gen OmniScript).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_docgen/omniDataTransforms`
+
+---
+
+### `deploy_mfg_omni_integration_procedures`
+
+**Description:** Deploy Manufacturing OmniIntegrationProcedure for document generation orchestration (doc_Generation_Procedure). Must deploy after OmniDataTransforms.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_docgen/omniIntegrationProcedures`
+
+---
+
+### `deploy_mfg_omni_quote_script`
+
+**Description:** Deploy Manufacturing Quote Proposal OmniScript (doc_QuoteProposal_English). Provides the user-facing UI for generating quote proposal documents.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_docgen/quote_omniscript/omniScripts`
+
+---
+
+### `deploy_mfg_pricing_procedure`
+
+**Description:** Deploy Manufacturing default pricing procedure ExpressionSetDefinition (MFG_Rev_Mgmt_Default_Pricing_Procedure). Performs find-and-replace to inject live PriceAdjustmentSchedule IDs for attribute-based, volume, and bundle adjustments.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_pricing/pricing_procedure`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
+
+---
+
+### `deploy_mfg_pricing_recipe`
+
+**Description:** Deploy Manufacturing default NGP pricing recipe (NGPDefaultRecipe). Must deploy before deploy_mfg_pricing_procedure because the ExpressionSetDefinition references this recipe.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_pricing/pricing_recipe`
+
+---
+
+### `deploy_mfg_rebates`
+
+**Description:** Deploy Manufacturing rebate metadata: ObjectHierarchyRelationship settings for Opportunity, Quote, SalesAgreement, and TransactionJournal, plus the Aggregate_by_Member_Rebates BatchCalcJobDefinition.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_rebates`
+
+---
+
+### `deploy_mfg_tso_perms`
+
+**Description:** Deploy Manufacturing production permission set group (MFG). Required when tso=true. Deployed separately from core_setup so it can be gated by the tso feature flag.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing/tso_perms`
+
+---
+
+### `deploy_mfg_visualization`
+
+**Description:** Deploy Manufacturing 3D Visualization metadata (LWC renderDraw3DConfigurationPrototype, RenderDraw_Product_Configurator_Flow, X3DVisualization VF page, RenderDraw_SRC CSP Trusted Site). Required when mfg_visuals=true. Source: unpackaged/post_manufacturing_visualization.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_manufacturing_visualization`
+
+---
+
+### `fix_mfg_document_template_binaries`
+
+**Description:** Corrects Manufacturing DocumentTemplate ContentDocument binaries after a batch metadata deploy. Same Salesforce metadata API bug as fix_document_template_binaries: all DocumentTemplates deployed together receive the same ContentDocument binary (first alphabetically — Badger_Proposal wins, Price_Contract gets the wrong binary). Uploads the correct .dt binary from unpackaged/post_manufacturing_docgen/documentTemplates for each template. Run after deploy_mfg_doc_templates + activate_mfg_docgen_templates.
+
+**Class:** `tasks.rlm_docgen.FixDocumentTemplateBinaries`
+
+**Options:**
+
+- `templates_dir`: `unpackaged/post_manufacturing_docgen/documentTemplates`
+
+---
+
+### `grant_mfg_ext_credential_access`
+
+**Description:** Grant External Credential Principal Access to the RLM_MFG_RCA permission set. Salesforce Metadata API does not support externalCredentialPrincipalAccess in PermissionSet deploy or retrieve, so this script uses a Tooling API callout to locate the named principals for BillingSystemExtCredentials and SalesforceContractsExtCredentials, then grants SetupEntityAccess via DML. Idempotent: skips principals already granted.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/grantMfgExternalCredentialAccess.apex`
+
+---
+
+### `insert_badger_aaf_data`
+
+**Description:** Load Manufacturing Advanced Account Forecast data. Syncs Period, Product2, and ProductCategory IDs from the target org, injects PeriodId, ProductId, and CategoryId into AdvAccountForecastFact before SFDMU run.
+
+**Class:** `tasks.rlm_aaf_load.LoadAAFData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-aaf`
+
+---
+
+### `insert_badger_dro_data`
+
+**Description:** Insert Manufacturing DRO fulfillment decomposition seed data. Assigns dynamic user.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-dro`
+- `dynamic_assigned_to_user`: `True`
+
+---
+
+### `insert_badger_guidedselling_data`
+
+**Description:** Insert Manufacturing Guided Selling product assignment data.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-guidedselling`
+
+---
+
+### `insert_badger_pcm_data`
+
+**Description:** Insert Manufacturing PCM product data (products, product categories, attributes).
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-pcm`
+
+---
+
+### `insert_badger_pricing_data`
+
+**Description:** Insert Manufacturing pricing data (price books, price book entries, price adjustments).
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-pricing`
+
+---
+
+### `insert_badger_rebates_data`
+
+**Description:** Insert Manufacturing rebates seed data.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-rebates`
+
+---
+
+### `insert_mfg_billing_data`
+
+**Description:** Insert Manufacturing billing seed data (BillingTreatment, BillingPolicy, PaymentTerm, LegalEntity, AccountingPeriod, GeneralLedgerAccount, GeneralLedgerAcctAsgntRule) and assign BillingPolicy to all MFG products. Required for order activation on badger orgs when billing=true. Source: datasets/sfdmu/mfg/en-US/mfg-billing.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-billing`
+
+---
+
+### `insert_mfg_configflow_data`
+
+**Description:** Insert Manufacturing product configuration flow assignments (ProductConfigurationFlow, ProductConfigFlowAssignment). Maps MFG products to their RenderDraw configuration flows. Required when mfg_visuals=true. Source: datasets/sfdmu/mfg/en-US/mfg-configflow.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-configflow`
+
+---
+
+### `insert_mfg_tax_data`
+
+**Description:** Insert Manufacturing tax seed data (TaxPolicy, TaxTreatment, Product2 TaxPolicy assignments). Activates TaxPolicy and TaxTreatment via a two-pass SFDMU plan. Required for order activation on badger orgs when tax=true. Source: datasets/sfdmu/mfg/en-US/mfg-tax.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-tax`
+
+---
+
+### `insert_test_data`
+
+**Description:** Insert Test Data
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/test`
+
+---
+
 ## Partner Relationship Management
 
 *3 task(s)*
@@ -546,7 +971,7 @@
 
 ## Revenue Lifecycle Management
 
-*122 task(s)*
+*125 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -696,22 +1121,6 @@
 
 ---
 
-### `apply_context_billing_order`
-
-**Description:** Adds BillingArrangement__std and BillingProfile__std Order field mappings to the RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node). Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c. SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
-
-**Class:** `tasks.rlm_context_service.ManageContextDefinition`
-
-**Options:**
-
-- `plan_file`: `datasets/context_plans/Billing/manifest.json`
-- `translate_plan`: `True`
-- `deactivate_before`: `False`
-- `activate`: `True`
-- `verify`: `True`
-
----
-
 ### `apply_context_constraint_engine_node_status`
 
 **Description:** Apply ConstraintEngineNodeStatus mappings to Sales Transaction context
@@ -762,6 +1171,23 @@
 
 ---
 
+### `apply_mfg_SalesTransactionContext`
+
+**Description:** Apply ConstraintEngineNodeStatus mappings to Sales Transaction context for MFG
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `MFG_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/mfg/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
+
+---
+
 ### `assign_permission_set_groups_tolerant`
 
 **Description:** Assign Permission Set Groups with tolerance for permission warnings
@@ -785,6 +1211,34 @@
 
 - `path`: `unpackaged/pre`
 - `remove_for_scratch`: `True`
+
+---
+
+### `configure_core_pricing_setup`
+
+**Description:** Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated.
+
+**Class:** `tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_product_discovery_settings`
+
+**Description:** Set the Default Catalog in Product Discovery Settings to 'QuantumBit Software' (Robot test). Must run after QB product catalog data is loaded. Only relevant when qb=true.
+
+**Class:** `tasks.rlm_configure_product_discovery_settings.ConfigureProductDiscoverySettings`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/configure_product_discovery_settings.robot`
+- `outputdir`: `robot/rlm-base/results`
+- `default_catalog`: `QuantumBit Software`
 
 ---
 
@@ -885,14 +1339,6 @@
 **Options:**
 
 - `path`: `scripts/apex/createRuleLibrary.apex`
-
----
-
-### `create_sequence_policies`
-
-**Description:** Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
-
-**Class:** `tasks.rlm_billing.CreateSequencePolicies`
 
 ---
 
@@ -1042,19 +1488,6 @@
 
 ---
 
-### `deploy_billing_template_id_settings`
-
-**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with auto-generated template IDs (resolved after deploy_billing_template_settings triggers template auto-creation). Sets defaultEmailTemplate, defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings auto-default these values; explicit deployment is not required.
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_billing_template_id_settings`
-- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultEmailTemplate[text()="__D...`
-
----
-
 ### `deploy_billing_template_settings`
 
 **Description:** Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
@@ -1153,18 +1586,6 @@
 
 ---
 
-### `deploy_post_billing_ui`
-
-**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access + Apex class access + RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_billing_ui`
-
----
-
 ### `deploy_post_collections`
 
 **Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore.
@@ -1241,19 +1662,6 @@
 
 ---
 
-### `enable_timeline`
-
-**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled.
-
-**Class:** `tasks.rlm_enable_timeline.EnableTimeline`
-
-**Options:**
-
-- `suite`: `robot/rlm-base/tests/setup/enable_timeline.robot`
-- `outputdir`: `robot/rlm-base/results`
-
----
-
 ### `exclude_active_decision_tables`
 
 **Description:** Exclude active decision tables from deployment (TODO: implement proper deactivation)
@@ -1271,6 +1679,34 @@
 **Description:** Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
 
 **Class:** `tasks.rlm_cml.ExportCML`
+
+---
+
+### `export_cml_fuelCell`
+
+**Description:** Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+
+**Class:** `tasks.rlm_cml.ExportCML`
+
+**Options:**
+
+- `developer_name`: `Fuel_Cell`
+- `version`: `1`
+- `output_dir`: `datasets/constraints/mfg/fuelCell`
+
+---
+
+### `export_cml_genSet`
+
+**Description:** Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
+
+**Class:** `tasks.rlm_cml.ExportCML`
+
+**Options:**
+
+- `developer_name`: `GeneratorSet`
+- `version`: `1`
+- `output_dir`: `datasets/constraints/mfg/genSet`
 
 ---
 
@@ -1483,6 +1919,25 @@
 
 ---
 
+### `extend_context_sales_transaction_mfg`
+
+**Description:** Extend Standard Sales Transaction Context
+
+**Class:** `tasks.rlm_extend_stdctx.ExtendStandardContext`
+
+**Options:**
+
+- `name`: `MFG_SalesTransactionContext`
+- `description`: `Extension of Standard Sales Transaction Context Definition`
+- `developerName`: `MFG_SalesTransactionContext`
+- `baseReference`: `SalesTransactionContext__stdctx`
+- `startDate`: `2020-01-01T00:00:00.000Z`
+- `contextTtl`: `30`
+- `defaultMapping`: `QuoteEntitiesMapping`
+- `activate`: `True`
+
+---
+
 ### `extend_standard_context`
 
 **Description:** Extend a standard context definition and optionally apply a plan
@@ -1500,6 +1955,18 @@
 - `defaultMapping`: `None`
 - `activate`: `True`
 - `plan_file`: `None`
+
+---
+
+### `extract_badger_pricing_data`
+
+**Description:** Extract Badger Pricing Data
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-pricing`
 
 ---
 
@@ -1898,23 +2365,6 @@
 
 ---
 
-### `manage_fulfillment_scope_cnfg`
-
-**Description:** Manage CustomFulfillmentScopeCnfg records via Tooling API (DRO/Industries Fulfillment setup object; apiAccess="never", introduced API v65.0). Operations: 'list' (log to console), 'extract' (write to output_file as JSON array), 'upsert' (create/update from input_file JSON array).
-
-**Class:** `tasks.rlm_manage_fulfillment_scope_cnfg.ManageFulfillmentScopeCnfg`
-
-**Options:**
-
-- `operation`: `list`
-- `output_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
-- `input_file`: `None`
-- `key_field`: `DeveloperName`
-- `api_version`: `None`
-- `dry_run`: `False`
-
----
-
 ### `manage_transaction_processing_types`
 
 **Description:** Manage TransactionProcessingType entries via Tooling API
@@ -1951,6 +2401,18 @@
 
 ---
 
+### `post_process_extraction_badger_pcm`
+
+**Description:** Post-process extracted CSVs into import-ready format
+
+**Class:** `cumulusci.tasks.command.Command`
+
+**Options:**
+
+- `command`: `python3 scripts/post_process_extraction.py datasets/sfdmu/extractions/mfg-pcm/2026-03-05T165417 datasets/sfdmu/mfg/en...`
+
+---
+
 ### `query_billing_state`
 
 **Description:** Query billing record state (PaymentTerm, BillingTreatment, BillingPolicy, BillingTreatmentItem) for validation; check debug logs for output.
@@ -1980,6 +2442,22 @@
 - `retry_delay_seconds`: `120`
 - `post_trigger_delay_seconds`: `90`
 - `use_tooling_api`: `False`
+
+---
+
+### `reconfigure_mfg_pricing_discovery`
+
+**Description:** Reconfigure the autoproc Salesforce_Default_Pricing_Discovery_Procedure expression set: fix context definition, set rank and start date, and reactivate. When the autoproc expression set does not exist (e.g. tso=true orgs), activates the fallback RLM_DefaultPricingDiscoveryProcedure instead. Required before decision table refresh.
+
+**Class:** `tasks.rlm_reconfigure_expression_set.ReconfigureExpressionSet`
+
+**Options:**
+
+- `expression_set_name`: `Salesforce_Default_Pricing_Discovery_Procedure`
+- `context_definition_name`: `MFG_SalesTransactionContext`
+- `rank`: `1`
+- `start_date`: `2020-01-01T00:00:00.000Z`
+- `fallback_expression_set_name`: `RLM_DefaultPricingDiscoveryProcedure`
 
 ---
 
@@ -2159,21 +2637,13 @@
 
 ## UX Personalization
 
-*5 task(s)*
+*2 task(s)*
 
 ### `assemble_and_deploy_ux`
 
-**Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
+**Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, app menus, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
 
 **Class:** `tasks.rlm_ux_assembly.AssembleAndDeployUX`
-
----
-
-### `diff_ux_templates`
-
-**Description:** Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions per page. Writes a drift_report.json to unpackaged/post_ux/. Does not modify any files.
-
-**Class:** `tasks.rlm_diff_ux.DiffUXTemplates`
 
 ---
 
@@ -2187,22 +2657,6 @@
 
 - `suite`: `robot/rlm-base/tests/setup/reorder_app_launcher.robot`
 - `outputdir`: `robot/rlm-base/results`
-
----
-
-### `retrieve_ux_from_org`
-
-**Description:** Retrieves live UX metadata (flexipages) from the target org into unpackaged/post_ux/, replacing the assembled output with the org's current state. Use before diff_ux_templates to capture drift between the org and the assembler templates. Scope to a single page with the metadata_name option.
-
-**Class:** `tasks.rlm_retrieve_ux.RetrieveUXFromOrg`
-
----
-
-### `writeback_ux_templates`
-
-**Description:** Reverse-applies active feature patches against org-retrieved flexipages and writes the result as updated base templates. Computes new_base = org_state - patches so the assembler reproduces org state without double-applying non-idempotent patches. Defaults to dry_run mode. Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
-
-**Class:** `tasks.rlm_writeback_ux.WriteBackUXTemplates`
 
 ---
 

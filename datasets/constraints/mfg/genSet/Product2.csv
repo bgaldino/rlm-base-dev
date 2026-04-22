@@ -1,0 +1,236 @@
+Id,Name
+01tWs00000C0wwaIAB,PowerControl - Paralleling Switchgear
+01tWs00000C0wxDIAR,FESBA Generator Set
+01tWs00000C0wxeIAB,FESBA 900kW
+01tWs00000C0wxfIAB,FESBA 1200kW
+01tWs00000C0wxgIAB,FESBA 1500kW
+01tWs00000C0wxhIAB,FESBA 1750kW
+01tWs00000C0wxiIAB,FESBA 2500kW
+01tWs00000C0wxjIAB,"220/380,3 Phase,Wye,4 Wire"
+01tWs00000C0wxkIAB,"240/416,3 Phase,Wye,4 Wire"
+01tWs00000C0wxlIAB,"255/440,3 Phase,Wye,4 Wire"
+01tWs00000C0wxmIAB,"277/480,3 Phase,Wye,4 Wire"
+01tWs00000C0wxnIAB,"347/600,3 Phase,Wye,4 Wire"
+01tWs00000C0wxoIAB,"2400/4160,3 Phase,Wye,4Wire"
+01tWs00000C0wxpIAB,"7200/12470,3 Ph,Wye,4 Wire"
+01tWs00000C0wxqIAB,"7621/13200,3 Ph,Wye,4 Wire"
+01tWs00000C0wxrIAB,"7976/13800,3 Ph,Wye,4 Wire"
+01tWs00000C0wxsIAB,"Alternator - 60Hz, 3-Phase, Wye, 2400/4160V, 105/80C, StbyPrm"
+01tWs00000C0wxtIAB,"ALT-60Hz, Wye,12.47-13.8kV,125/105/80C (S/P/C)"
+01tWs00000C0wxuIAB,"ALT-60Hz,2400/4160V,125/105/80C (S/P/C)"
+01tWs00000C0wxvIAB,"ALT-60Hz,Wye,12.47kV,105/80C (S/P)"
+01tWs00000C0wxwIAB,"Alt-60Hz,Wye,220/380V,150/125/105C-SD/P/C,40C amb"
+01tWs00000C0yWjIAJ,"Alt-60Hz,Wye,220/380V,125/105/80C-StbyPrmCont"
+01tWs00000C0yWkIAJ,"Alt-60Hz,Wye,220/380V,105/80C-StbyPrm"
+01tWs00000C0yWlIAJ,"Alternator-60Hz, 3Phase, 480Volt, 105/80C-StbyPrm"
+01tWs00000C0yWmIAJ,"Alternator-60Hz, 3Phase, 480Volt, 80C-Stby"
+01tWs00000C0yWnIAJ,"Alt-60Hz,347/600V,125/105/80C-SPC"
+01tWs00000C0yWoIAJ,"Alternator-60Hz, 347/600Volt, 105/80C-StbyPrm"
+01tWs00000C0yWpIAJ,"Alternator-60Hz, 347/600Volt, 80C-Stby"
+01tWs00000C0yWqIAJ,"Alternator-60Hz, Wye, 12.47kVolt, 80C-Stby"
+01tWs00000C0yWrIAJ,"Alt-60Hz, Wye, 13.2-13.8kVolt, 105/80C-StbyPrm"
+01tWs00000C0yWsIAJ,"Alternator-60Hz, Wye, 13.2-13.8kVolt, 80C-Stby"
+01tWs00000C0yWtIAJ,"Alternator-60 Hz, Wye, 380 Volt, 80C-Stby"
+01tWs00000C0yWuIAJ,"Alt-60Hz,Wye,440V,125-80C-SPC"
+01tWs00000C0yWvIAJ,"Alternator-60 Hz, Wye, 440 Volt,105/80C-StbyPrm"
+01tWs00000C0yWwIAJ,"Alternator-60Hz, Wye, 440 Volt,80C-Stby"
+01tWs00000C0yWxIAJ,"Alt-60Hz,Wye,440V,150/125SP,40C amb"
+01tWs00000C0yWyIAJ,"Alternator-60 Hz,Wye,240/416 Volt,105/80C-StbyPrm"
+01tWs00000C0yWzIAJ,"Alt-60Hz, 3Phase, 480Volt, 125/105/80C-StbyPrmCont"
+01tWs00000C0yX0IAJ,"Alternator-60Hz,3Phase,480Volt,150C-Stby,40C amb"
+01tWs00000C0yX1IAJ,"Alternator-60Hz,3Phase,600Volt,150C-Stby,40C amb"
+01tWs00000C0yX2IAJ,"Alt-60Hz,3Ph,277/480V,80C, Stby-Prime,IncrMtrStart"
+01tWs00000C0yX3IAJ,"Alt-60Hz,3Ph,347/600V,80C, Stby-Prime,IncrMtrStart"
+01tWs00000C0yX4IAJ,"Alt-60Hz,3Ph,2400/4160V,80C, Stby-Prime,IncrMtrStart"
+01tWs00000C0yX5IAJ,"Alt-60Hz,3Ph,7200/12470V,80C, Stby-Prime,IncrMtrStart"
+01tWs00000C0yX6IAJ,"Alt-60Hz,3Ph,7620/13200V,80C, Stby-Prime,IncrMtrStart"
+01tWs00000C0yX7IAJ,"Alt-60Hz,3Ph,7968/13800V,80C, Stby-Prime,IncrMtrStart"
+01tWs00000C0yX8IAJ,"Alt-60Hz,3Ph,Wye,380V,105C-DCC,40C Amb"
+01tWs00000C0yX9IAJ,"Alt-60Hz,3Ph,Wye,416V,105C-DCC,40C Amb"
+01tWs00000C0yXAIAZ,"Alt-60Hz,3Ph,Wye,440V,105C-DCC,40C Amb"
+01tWs00000C0yXBIAZ,"Alt-60Hz,3Ph,Wye,480V,80C-DCC,40C Amb"
+01tWs00000C0yXCIAZ,"Alt-60Hz,3Ph,Wye,480V,105C-DCC,40C Amb"
+01tWs00000C0yXDIAZ,"Alt-60Hz,3Ph,Wye,600V,80C-DCC,40C Amb"
+01tWs00000C0yXEIAZ,"Alt-60Hz,3Ph,Wye,600V,105C-DCC,40C Amb"
+01tWs00000C0yXFIAZ,"Alt-60Hz,3Ph,Wye,4160V,80C-DCC,40C Amb"
+01tWs00000C0yXGIAZ,"Alt-60Hz,3Ph,Wye,12.47kV,80C-DCC,40C Amb"
+01tWs00000C0yXHIAZ,"Alt-60Hz,3Ph,Wye,13.2kV,80C-DCC,40C Amb"
+01tWs00000C0yXIIAZ,"Alt-60Hz,3Ph,Wye,13.8kV,80C-DCC,40C Amb"
+01tWs00000C0yXJIAZ,"Alt-60Hz,3Ph,Wye,440V,80C-DCC,40C Amb"
+01tWs00000C0yXKIAZ,"Alt-60Hz,3Ph,Wye,380V,80C-DCC,40C Amb"
+01tWs00000C0yXLIAZ,"Alt-60Hz,3Ph,Wye,416V,80C-DCC,40C Amb"
+01tWs00000C0yXMIAZ,Engine - QSK60-G6
+01tWs00000C0yXNIAZ,Normal Duty Air Cleaner
+01tWs00000C0yXOIAZ,Heavy Duty Air Cleaner
+01tWs00000C0yXPIAZ,Electric Starter Motor - 24V DC
+01tWs00000C0yXQIAZ,Battery Charging Alternator
+01tWs00000C0yXRIAZ,"Filters-Eng Oil,Full Flow/Bypass"
+01tWs00000C0yXSIAZ,Oil Sampling Valve
+01tWs00000C0yXTIAZ,Oil Pan-High Capacity
+01tWs00000C0yXUIAZ,"Fuel Filters-Engine, Standard"
+01tWs00000C0yXVIAZ,"Fuel Filters-Engine, Duplex"
+01tWs00000C0yXWIAZ,"Coolant Heater-208/240/480V, 40F Minimum Ambient Temp"
+01tWs00000C0yXXIAZ,"Coolant Heater-208/240/480V, Below 40F Ambient Temp"
+01tWs00000C0yXYIAZ,None Supplied (Remote Cooling)
+01tWs00000C0yXZIAZ,Engine Cooling-High Ambient Air Temperature
+01tWs00000C0yXaIAJ,Engine Cooling-Enhanced High Ambient Air Temperature
+01tWs00000C0yXbIAJ,"Eng Cooling-High Ambient Air Temp, Ship Loose"
+01tWs00000C0yXcIAJ,(Remote Cooling) Flanged Connectors ASA
+01tWs00000C0yXdIAJ,Shutdown-Low Coolant Level
+01tWs00000C0yXeIAJ,Warning-Low Coolant Level
+01tWs00000C0yXfIAJ,"Temp Sens-Stator, 2 RTD/Ph"
+01tWs00000C0yXgIAJ,"Bearing,1 RTD NDE"
+01tWs00000C0yXhIAJ,"Heater-Alternator, 120 Volt AC"
+01tWs00000C0yXiIAJ,"Heater-Alternator, 240 Volt AC"
+01tWs00000C0yXjIAJ,Separator-Fuel/Water
+01tWs00000C0yXkIAJ,"Heater-Alternator, 110/220 (120/240) Volt AC"
+01tWs00000C0yXlIAJ,PMG
+01tWs00000C0yXmIAJ,Hardened Bearing Cartridge
+01tWs00000C0yXnIAJ,"Output Terminals-2-Hole Lug, NEMA"
+01tWs00000C0yXoIAJ,Differential CT's P7
+01tWs00000C0yXpIAJ,Differential CT's P80
+01tWs00000C0yXqIAJ,Circuit Breaker or Entrance Box-None
+01tWs00000C0yXrIAJ,Housing Arrangement - Left Entry
+01tWs00000C0yXsIAJ,Housing Arrangement - Right Entry
+01tWs00000C0yXtIAJ,Housing Arrangement - Left & Right Entry
+01tWs00000C0yXuIAJ,"Terminal Hsg-Alternator Mounted,BotEntr,LV,NEMA 2-HoleConn"
+01tWs00000C0yXvIAJ,"Terminal Hsg-Alternator Mounted,TopEntr,LV,NEMA 2-HoleConn"
+01tWs00000C0yXwIAJ,"Terminal Housing-Bottom Entrance,Medium/High Volts"
+01tWs00000C0yXxIAJ,"Terminal Housing-Top Entrance,Medium/High Volts"
+01tWs00000C0yXyIAJ,"Entrance Box-Low Voltage,Left"
+01tWs00000C0yXzIAJ,"Terminal Box-Low Voltage,Left"
+01tWs00000C0yY0IAJ,"CB-600A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%"
+01tWs00000C0yY1IAJ,"CB-800A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yY2IAJ,"CB-1200A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yY3IAJ,"CB-1600A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yY4IAJ,"CB-2000A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yY5IAJ,"CB-2500A,Left,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yY6IAJ,"CB-3000A,Left,3P,UL 600,IEC 690,UL Serv Ent,100%"
+01tWs00000C0yY7IAJ,"Top Entry, Left"
+01tWs00000C0yY8IAJ,"Bottom Entry, Left"
+01tWs00000C0yY9IAJ,"Bottom Entry Chute, Left"
+01tWs00000C0yYAIAZ,Entrance Box-Right
+01tWs00000C0yYBIAZ,"Entrance Box-Low Voltage,Right"
+01tWs00000C0yYCIAZ,"Terminal Box-Low Voltage,Right"
+01tWs00000C0yYDIAZ,"CB-600A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%"
+01tWs00000C0yYEIAZ,"CB-800A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yYFIAZ,"CB-1200A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yYGIAZ,"CB-1600A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yYHIAZ,"CB-2000A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yYIIAZ,"CB-2500A,Right,3P,UL 600,IEC 415,UL Serv Ent,100%"
+01tWs00000C0yYJIAZ,"CB-3000A,Right,3P,UL 600,IEC 690,UL Serv Ent,100%"
+01tWs00000C0yYKIAZ,"Top Entry, Right"
+01tWs00000C0yYLIAZ,"Bottom Entry, Right"
+01tWs00000C0yYMIAZ,"Bottom Entry Chute, Right"
+01tWs00000C0yYNIAZ,"Indication-Ground Fault,3-PoleXfrSw"
+01tWs00000C0yYOIAZ,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Left"
+01tWs00000C0yYPIAZ,"Indication-Ground Fault, Terminal Box (or) Circuit Breaker Box - Right"
+01tWs00000C0yYQIAZ,Ckt Brkr Access-Right Side
+01tWs00000C0yYRIAZ,Ckt Brkr Access-Left Side
+01tWs00000C0yYSIAZ,"Ckt Brkr Lugs-Mechanical, Left Side"
+01tWs00000C0yYTIAZ,"Ckt Brkr Lugs-Mechanical, Right Side"
+01tWs00000C0yYUIAZ,Ground Fault Indication Relay - None
+01tWs00000C0yYVIAZ,PowerCommand 3.3
+01tWs00000C0yYWIAZ,PowerCommand 3.3 with MLD
+01tWs00000C0yYXIAZ,120/240VAC compatible
+01tWs00000C0yYYIAZ,"Meters-AC Output,Analog"
+01tWs00000C0yYZIAZ,Display - Control LCD
+01tWs00000C0yYaIAJ,AmpSentryTM Protective Relay
+01tWs00000C0yYbIAJ,"Display, Running Time"
+01tWs00000C0yYcIAJ,"Alarm-Audible, Engine Shutdown"
+01tWs00000C0yYdIAJ,RELAYS-USER CONFIGURED
+01tWs00000C0yYeIAJ,"Signals - Auxiliary, 8 Inputs/8 Outputs"
+01tWs00000C0yYfIAJ,"Signals - Auxiliary 2, 8 Inputs/8 Outputs"
+01tWs00000C0yYgIAJ,Gauge-Exhaust Gas Temperature
+01tWs00000C0yYhIAJ,Test - Standard Factory
+01tWs00000C0yYiIAJ,Test Record-Certified
+01tWs00000C0yYjIAJ,Test - Witness
+01tWs00000C0yYkIAJ,"Test-Extended, Prime Load, 1Hr"
+01tWs00000C0yYlIAJ,"Test-Extnd, Prime Ld,2Hr"
+01tWs00000C0yYmIAJ,"Test-Extnd, Prime Ld,4Hr"
+01tWs00000C0yYnIAJ,"Test-Extended, Prime Load, 8Hr"
+01tWs00000C0yYoIAJ,"Test-Extended, Standby Load, 1"
+01tWs00000C0yYpIAJ,"Test-Extended, Standby Load, 2"
+01tWs00000C0yYqIAJ,"Test-Extended, Standby Load, 4"
+01tWs00000C0yYrIAJ,"Test-Extnd,Stndby Ld,8Hr"
+01tWs00000C0yYsIAJ,"Test-Varied Load,1 Hour,2 Step"
+01tWs00000C0yYtIAJ,"Test-Varied Load,2Hr,2 Step"
+01tWs00000C0yYuIAJ,"Test-Varied Load, 4Hr, 2Step"
+01tWs00000C0yYvIAJ,"Test-Varied Ld,6Hr,3 Step"
+01tWs00000C0yYwIAJ,Test-Independent Laboratory
+01tWs00000C0yYxIAJ,Test Record-Strip Chart
+01tWs00000C0yYyIAJ,Test Record-Safety Shutdowns
+01tWs00000C0yYzIAJ,Test Record-Amb Temp/Pres
+01tWs00000C0yZ0IAJ,Test Record-Exhaust Temp
+01tWs00000C0yZ1IAJ,Genset Warranty Base
+01tWs00000C0yZ2IAJ,ST 3YR 1500HR PARTS
+01tWs00000C0yZ3IAJ,ST 5YR 2500HR PARTS
+01tWs00000C0yZ4IAJ,ST 10YR 5000HR PARTS
+01tWs00000C0yZ5IAJ,ST 3YR 1500HR Parts + Labor
+01tWs00000C0yZ6IAJ,ST 5YR 2500HR Parts + Labor
+01tWs00000C0yZ7IAJ,ST 10YR 5000HR Parts + Labor
+01tWs00000C0yZ8IAJ,ST 3YR 1500HR Parts + Labor + Travel
+01tWs00000C0yZ9IAJ,ST 5YR 2500HR Parts + Labor + Travel
+01tWs00000C0yZAIAZ,ST 10YR 5000HR Parts + Labor + Travel
+01tWs00000C0yZBIAZ,PR 2YR 4000HR P + L + T
+01tWs00000C0yZCIAZ,PR 3YR 6000HR P + L + T
+01tWs00000C0yZDIAZ,DCC 3YR UNLIMITED HR PARTS
+01tWs00000C0yZEIAZ,DCC 5YR UNLIMITED HR PARTS
+01tWs00000C0yZFIAZ,DCC 10YR UNLIMITED HR PARTS
+01tWs00000C0yZGIAZ,DCC 3YR UNLIMITED HR P + L
+01tWs00000C0yZHIAZ,DCC 5YR UNLIMITED HR P + L
+01tWs00000C0yZIIAZ,DCC 10YR UNLIMITED HR P + L
+01tWs00000C0yZJIAZ,DCC 3YR UNLIMITED HR P + L + T
+01tWs00000C0yZKIAZ,DCC 5YR UNLIMITED HR P + L + T
+01tWs00000C0yZLIAZ,DCC 10YR UNLIMITED HR P + L + T
+01tWs00000C0yZMIAZ,Literature-Chinese
+01tWs00000C0yZNIAZ,Literature-Danish
+01tWs00000C0yZOIAZ,Literature-Dutch
+01tWs00000C0yZPIAZ,Literature-English
+01tWs00000C0yZQIAZ,Literature-Finnish
+01tWs00000C0yZRIAZ,Literature-French
+01tWs00000C0yZSIAZ,Literature-German
+01tWs00000C0yZTIAZ,Literature-Greek
+01tWs00000C0yZUIAZ,Literature-Italian
+01tWs00000C0yZVIAZ,Literature-Norwegian
+01tWs00000C0yZWIAZ,Literature-Portuguese
+01tWs00000C0yZXIAZ,Literature-Brazilian Portuguese
+01tWs00000C0yZYIAZ,Literature-Russian
+01tWs00000C0yZZIAZ,Literature-Spanish
+01tWs00000C0yZaIAJ,Literature-Swedish
+01tWs00000C0yZbIAJ,Packing-None
+01tWs00000C0yZcIAJ,0155-2341-10
+01tWs00000C0yZdIAJ,0155-2696-07
+01tWs00000C0yZeIAJ,0300-5929-01
+01tWs00000C0yZfIAJ,0300-5929-02
+01tWs00000C0yZgIAJ,0416-0439
+01tWs00000C0yZhIAJ,0416-0527
+01tWs00000C0yZiIAJ,0541-1204
+01tWs00000C0yZjIAJ,A030S169
+01tWs00000C0yZkIAJ,A035K427
+01tWs00000C0yZlIAJ,A046D218
+01tWs00000C0yZmIAJ,A048N280
+01tWs00000C0yZnIAJ,A051H785
+01tWs00000C0yZoIAJ,A051K118
+01tWs00000C0yZpIAJ,A052X578
+01tWs00000C0yZqIAJ,A052X580
+01tWs00000C0yZrIAJ,A052X582
+01tWs00000C0yZsIAJ,A052X584
+01tWs00000C0yZtIAJ,0155-2342-10
+01tWs00000C0yZuIAJ,A052X586
+01tWs00000C0yZvIAJ,0402-0750-01
+01tWs00000C0yZwIAJ,No Enclosure
+01tWs00000C0yZxIAJ,Level 1 Sound Attenuated Enclosure
+01tWs00000C0yZyIAJ,Level 2 Sound Attenuated Enclosure
+01tWs00000C0yZzIAJ,Level 3 Sound Attenuated Enclosure
+01tWs00000C0ya0IAB,Electrical Engineer
+01tWs00000C0ya1IAB,Mechanical Engineer
+01tWs00000C0ya2IAB,Civil Engineer
+01tWs00000C0ya3IAB,Installation Fee
+01tWs00000C0ya4IAB,Mounting Hardware
+01tWs00000C0ya5IAB,Wiring & Cables
+01tWs00000C0ya6IAB,Conduits and Fittings
+01tWs00000C0ya7IAB,Weather Protected Enclosure
+01tWs00000C0yaBIAR,Load Breaker
+01tWs00000C0yaCIAR,Low Voltage - Generator Breaker
+01tWs00000C0yaDIAR,Medium Voltage - Generator Breaker

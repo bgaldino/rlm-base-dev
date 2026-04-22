@@ -1,0 +1,93 @@
+type LineItem;
+
+type FuelCellPowerModule700 : LineItem {
+    relation hydrogenstoragetank700bar : HydrogenStorageTank700bar;
+
+    relation automaticpurgevalves : AutomaticPurgeValves;
+
+    relation hydrogenstoragetank350bar : HydrogenStorageTank350bar;
+
+    relation naturalgasreformer : NaturalGasReformer;
+
+    relation fuelqualityfiltrationkit : FuelQualityFiltrationKit;
+
+    relation coolantpreheater : CoolantPreheater;
+
+    relation radiatorfanassembly : RadiatorFanAssembly;
+
+    relation coolantcirculationsystem : CoolantCirculationSystem;
+
+    relation remotemonitoringmodule : RemoteMonitoringModule;
+
+    relation dcacinverter : DCACInverter;
+
+    relation dcdcconverter : DCDCConverter;
+
+    relation startupbattery : StartupBattery;
+
+    relation powermanagementsystem : PowerManagementSystem;
+
+    relation dataloggingunit : DataLoggingUnit;
+
+    string gc_certificate = ["NONE", "UL2200", "CSA_C22.2"];
+
+    @(defaultValue = "Hydrogen (H2)")
+    string Fuel_Type = ["Hydrogen (H2)", "Methanol", "Natural Gas", "Ethanol", "Amnmonia"];
+
+    require(Fuel_Type != "Hydrogen (H2)", naturalgasreformer[NaturalGasReformer] == 1, "Non Hydrogen Fuels require a reformer");
+
+    require(naturalgasreformer[NaturalGasReformer].LineItemQuantity > 0, powermanagementsystem[PowerManagementSystem] == 1, "Natural Gas Reformer require Power Management System");
+
+    rule(Fuel_Type != "Hydrogen (H2)", "disable", "attribute", "gc_certificate");
+
+    constraint( table(Fuel_Type,gc_certificate,{"Hydrogen (H2)","NONE"},{"Methanol","NONE"},{"Natural Gas","NONE"},{"Ethanol","NONE"},{"Amnmonia","NONE"},{"Hydrogen (H2)","UL2200"},{"Hydrogen (H2)","CSA_C22.2"}) , "Only Hydrogen Fuel Types can be certified");
+
+    constraint(gc_certificate == "UL2200" -> remotemonitoringmodule[RemoteMonitoringModule].LineItemQuantity == 1);
+
+    constraint(gc_certificate == "UL2200" || gc_certificate == "CSA_C22.2" -> coolantpreheater[CoolantPreheater].LineItemQuantity == 2);
+
+    require(gc_certificate == "UL2200" && gc_certificate == "CSA_C22.2", startupbattery[StartupBattery] == 2);
+
+    message(gc_certificate == "UL2200", "The right equipment for the UL2200 is automatically added for you", "Info");
+
+}
+
+type HydrogenStorageTank700bar : LineItem;
+
+type AutomaticPurgeValves : LineItem;
+
+type HydrogenStorageTank350bar : LineItem;
+
+type NaturalGasReformer : LineItem {
+    int LineItemQuantity = this.quantity;
+
+}
+
+type FuelQualityFiltrationKit : LineItem;
+
+type CoolantPreheater : LineItem {
+    int LineItemQuantity = this.quantity;
+
+}
+
+type RadiatorFanAssembly : LineItem;
+
+type CoolantCirculationSystem : LineItem;
+
+type RemoteMonitoringModule : LineItem {
+    int LineItemQuantity = this.quantity;
+
+}
+
+type DCACInverter : LineItem;
+
+type DCDCConverter : LineItem;
+
+type StartupBattery : LineItem {
+    int LineItemQuantity = this.quantity;
+
+}
+
+type PowerManagementSystem : LineItem;
+
+type DataLoggingUnit : LineItem;

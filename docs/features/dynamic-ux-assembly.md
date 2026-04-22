@@ -3,9 +3,9 @@
 > Implemented in: `tasks/rlm_ux_assembly.py`, `tasks/rlm_writeback_ux.py`,
 > `tasks/rlm_retrieve_ux.py`, `tasks/rlm_diff_ux.py`
 > Shared utilities: `tasks/rlm_ux_utils.py` (feature flags, standalone order, source resolver)
-> Flows: `prepare_ux`, `capture_ux_drift`, `apply_ux_drift`
+> Flows: `prepare_ux`, `prepare_mfg_ux`, `capture_ux_drift`, `apply_ux_drift`
 > Template root: `templates/`
-> Output: `unpackaged/post_ux/` (git-tracked)
+> Output: `unpackaged/post_ux/` (git-tracked), `unpackaged/post_manufacturing_ux/` (git-tracked, Badger only)
 
 ---
 
@@ -15,16 +15,34 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 27** of `prepare_rlm_org` (immediately
-before `prepare_scratch` at step 27 and `refresh_all_decision_tables` at step 29).
+in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (immediately
+before `prepare_badger_flow` at step 30 and `refresh_all_decision_tables` at step 31).
+
+### Two-phase UX on Badger orgs
+
+On Badger (Manufacturing Cloud) orgs, UX assembly runs twice:
+
+1. **Step 29 — `prepare_ux`** → assembles and deploys `unpackaged/post_ux/` (base + all
+   non-manufacturing features). Manufacturing content is **excluded** (`manufacturing=false`)
+   because the `SalesAgreement` object, `Order.SalesAgreementId` field,
+   `Contract.Create_Sales_Agreement` quick action, and `QuoteProposal` OmniScript do not
+   exist until `prepare_badger_flow` runs. Base versions of shared pages (e.g.
+   `RLM_Order_Record_Page`) are deployed here as a foundation.
+
+2. **Step 30 → step 19 — `prepare_mfg_ux`** (inside `prepare_badger_flow`) → assembles and
+   deploys `unpackaged/post_manufacturing_ux/` using `manufacturing=true`. Because this runs
+   **after** `post_ux`, it correctly overrides shared pages (e.g. `RLM_Order_Record_Page`,
+   `RLM_Quote_Record_Page`) with their manufacturing variants, and adds manufacturing-only
+   pages (`MFG_RLM_*`, `Sales_Agreement_Record_Page`), manufacturing layouts, and the
+   manufacturing `RLM_Revenue_Cloud` app variant.
 
 ### Problems it solves
 
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 27 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 27 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 29 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 29 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -40,8 +58,8 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 `prepare_ux` runs only when `ux=true`:
 
 ```yaml
-# prepare_rlm_org step 27
-27:
+# prepare_rlm_org step 29
+29:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```
@@ -55,45 +73,59 @@ To skip UX during testing, pass `ux=false` to the flow or set it in your org def
 ```
 templates/
 ├── flexipages/
-│   ├── base/                           # 25 base flexipages (moved from force-app/main/default/flexipages/)
+│   ├── base/                           # Base flexipages (source of truth for non-manufacturing orgs)
 │   │   ├── RLM_Quote_Record_Page.flexipage-meta.xml
-│   │   └── ... (24 others)
+│   │   └── ... (others)
 │   ├── standalone/                     # Feature-specific pages (new pages or non-additive overrides)
 │   │   ├── approvals/                  # RLM_Quote_Discount_Approval_Template, RLM_Quote_Payment_Terms_Approval_Template
 │   │   ├── billing/                    # RLM_Invoice_Record_Page (billing-specific override)
+│   │   ├── billing_ui/                 # Billing UI overrides
 │   │   ├── collections/                # 4 collections flexipages
 │   │   ├── constraints/                # RLM_Asset_Action_Source_Record_Page
 │   │   ├── docgen/                     # RLM_QuantumBit_Quote (ServiceDocument type)
+│   │   ├── manufacturing/              # 7 Manufacturing (Badger) pages — MFG_RLM_Contract/Order/Quote/
+│   │   │                               #   Sales_Agreement_Record_Page, RLM_Order/Quote_Record_Page overrides
+│   │   │                               #   (included only when manufacturing=true, i.e. prepare_mfg_ux)
 │   │   ├── payments/                   # RLM_Account_Record_Page (payments override) + 1 other
-│   │   ├── quantumbit/                 # 19 QB-specific pages (billing schedules, usage, etc.)
-│   │   ├── tso/                        # 6 TSO-specific overrides
+│   │   ├── quantumbit/                 # QB-specific pages (billing schedules, usage, etc.)
+│   │   ├── tso/                        # TSO-specific overrides
 │   │   └── utils/                      # RLM_Home_Page_Default
 │   └── patches/                        # YAML patch files for additive/positional changes
 │       ├── approvals/
 │       │   └── RLM_Quote_Record_Page.yml
-│       ├── billing/
-│       │   └── RLM_Quote_Record_Page.yml
-│       ├── constraints/
+│       ├── billing_ui/
+│       │   └── RLM_Order_Record_Page.yml
 │       ├── docgen/
 │       │   └── RLM_Quote_Record_Page.yml
-│       ├── payments/
-│       ├── quantumbit/
+│       ├── manufacturing/              # (empty placeholder — manufacturing pages are standalone, not patched)
 │       ├── ramp_builder/
 │       │   └── RLM_Quote_Record_Page.yml
-│       ├── tso/
 │       └── utils/
 │           └── RLM_Account_Record_Page.yml
 ├── layouts/
-│   ├── base/                           # 17 base layouts (moved from force-app/main/default/layouts/)
-│   ├── billing/                        # 3 billing-specific layouts
-│   └── constraints/                    # 2 constraints overrides (OrderItem, QuoteLineItem)
+│   ├── base/                           # Base layouts
+│   ├── billing/                        # Billing-specific layouts
+│   ├── constraints/                    # Constraints overrides (OrderItem, QuoteLineItem)
+│   └── manufacturing/                  # Manufacturing layouts — SalesAgreement-MFG RCA Sales Agreement Layout
+│                                       # (included only when manufacturing=true, i.e. prepare_mfg_ux)
 ├── applications/
 │   ├── base/                           # RLM_Revenue_Cloud.app-meta.xml (core/minimal)
+│   ├── manufacturing/                  # RLM_Revenue_Cloud Manufacturing variant — includes SalesAgreement
+│   │                                   # action overrides and tab (selected when badger=true, manufacturing=true)
 │   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when qb=true)
 │   ├── tso/                            # RLM_Revenue_Cloud TSO variant (selected when tso=true)
+│   ├── patches/                        # Feature-conditional actionOverride patches
+│   │   ├── billing/
+│   │   ├── ramps/
+│   │   └── rates/
 │   └── conditional/
-│       ├── billing/                    # standard__BillingConsole (conditional)
-│       └── collections/                # CollectionConsole + Receivables Management (conditional)
+│       ├── billing/                    # standard__BillingConsole (active when billing=true)
+│       ├── billing_ui/                 # Billing UI app (active when billing_ui=true)
+│       ├── collections/                # CollectionConsole + Receivables Management (active when collections=true)
+│       └── manufacturing/              # Manufacturing-specific standalone apps (active when badger=true)
+├── appMenus/
+│   └── base/                           # App launcher menu (not deployed via Metadata API;
+│                                       # ordering is handled at runtime by reorder_app_launcher)
 ├── objects/
 │   ├── base/                           # Compact layouts and list views from force-app
 │   │   ├── Asset/
@@ -130,6 +162,8 @@ templates/
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
    `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   When `manufacturing=true` (i.e. `prepare_mfg_ux`), `manufacturing` is appended:
+   `... → collections → manufacturing`
    *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
@@ -186,6 +220,9 @@ be added again.
 1. `templates/layouts/base/` — always
 2. `templates/layouts/billing/` — when `billing=true`
 3. `templates/layouts/constraints/` — when `constraints=true` (overrides `OrderItem` and `QuoteLineItem`)
+4. `templates/layouts/manufacturing/` — when `badger=true` **and** `manufacturing=true` (i.e. `prepare_mfg_ux` only)
+   Adds `SalesAgreement-MFG RCA Sales Agreement Layout`. Not included in `prepare_ux` because the
+   `SalesAgreement` object does not exist until `prepare_badger_flow` has run.
 
 No patching — layouts are copied as-is.
 
@@ -196,6 +233,8 @@ No patching — layouts are copied as-is.
 
 **Versioned selection** for `RLM_Revenue_Cloud.app-meta.xml` (highest-priority active flag wins):
 - `tso=true` → `templates/applications/tso/`
+- `badger=true` **and** `manufacturing=true` → `templates/applications/manufacturing/`
+  (includes `SalesAgreement` action overrides and tab; only selected in `prepare_mfg_ux`)
 - `qb=true` → `templates/applications/quantumbit/`
 - fallback → `templates/applications/base/`
 
@@ -209,7 +248,7 @@ No patching — layouts are copied as-is.
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 27, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 29, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -244,8 +283,9 @@ cci task run assemble_and_deploy_ux [options]
 |--------|---------|-------------|
 | `-o metadata_type` | `all` | `all`, `flexipages`, `layouts`, `applications`, `profiles`, `objects` |
 | `-o metadata_name` | (none) | Full source filename to generate one item, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`. Type is inferred from suffix. |
-| `-o deploy` | `true` | Set `false` to assemble without deploying (inspect `unpackaged/post_ux/` output) |
+| `-o deploy` | `true` | Set `false` to assemble without deploying (inspect output directory) |
 | `-o output_path` | `unpackaged/post_ux` | Override output directory |
+| `-o manufacturing` | `false` | Include manufacturing standalone flexipages, manufacturing layouts, and the manufacturing `RLM_Revenue_Cloud` app variant. Set to `true` only via `prepare_mfg_ux` — these resources require the `SalesAgreement` object and other manufacturing metadata to already be deployed. |
 
 **Examples:**
 
@@ -269,6 +309,12 @@ cci task run assemble_and_deploy_ux \
 # Assemble only layouts
 cci task run assemble_and_deploy_ux \
     -o metadata_type layouts -o deploy false --org dev-sb0
+
+# Assemble manufacturing UX (dry-run) — requires manufacturing metadata to be deployed first
+cci task run assemble_and_deploy_ux \
+    -o output_path unpackaged/post_manufacturing_ux \
+    -o manufacturing true \
+    -o deploy false --org dev-sb0
 ```
 
 ### `prepare_ux` flow
@@ -277,8 +323,24 @@ cci task run assemble_and_deploy_ux \
 cci flow run prepare_ux --org dev-sb0
 ```
 
-Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
-`reorder_app_launcher`. Runs as step 27 of `prepare_rlm_org` when `ux=true`.
+Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy, `manufacturing=false`)
+then `reorder_app_launcher`. Runs as **step 29** of `prepare_rlm_org` when `ux=true`.
+Deliberately excludes manufacturing content even on Badger orgs — manufacturing UX is
+deployed separately by `prepare_mfg_ux` after all manufacturing metadata exists.
+
+### `prepare_mfg_ux` flow
+
+```bash
+cci flow run prepare_mfg_ux --org dev-sb0
+```
+
+Assembles and deploys manufacturing UX metadata to `unpackaged/post_manufacturing_ux/`
+with `manufacturing=true`. Runs as **step 19 of `prepare_badger_flow`** (step 30 of
+`prepare_rlm_org`), after all manufacturing metadata (`SalesAgreement` object, layouts,
+quick actions, OmniScripts) is in place.
+
+Can be run independently to iterate on manufacturing UX changes without running the full
+`prepare_rlm_org` flow, provided manufacturing metadata is already deployed.
 
 ---
 
@@ -534,7 +596,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 27
+2. Confirm all UX deploys succeed at step 29
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages

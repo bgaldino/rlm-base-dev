@@ -118,5 +118,11 @@ unpackaged/post_ux/drift_report.json
 tmp-metadata/
 .cursor/plans/**
 retrieved_rlm_bundle/
+
+
+#MFG Ignored Files
+cumulusci.yml.backup
+dev
 postman/archive/
 core.code-workspace
+unpackaged/post_manufacturing/test/**

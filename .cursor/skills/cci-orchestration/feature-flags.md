@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**38 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
+**41 feature flags**, **89 configuration values**, **33 YAML anchors** under `project.custom`.
 
 ---
 
@@ -14,43 +14,46 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
 | `agents` | `False` | 4 flow step(s) |
-| `analytics` | `True` | 2 flow step(s) |
+| `analytics` | `True` | 1 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `billing` | `True` | 19 flow step(s) |
+| `badger_data` | `True` | — |
+| `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
-| `billing_ui` | `True` | 4 flow step(s) |
-| `breconfig` | `False` | 2 flow step(s) |
+| `breconfig` | `False` | 3 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
-| `clm` | `True` | 4 flow step(s) |
+| `clm` | `False` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 9 flow step(s) |
-| `constraints_data` | `True` | 5 flow step(s) |
-| `dev_ed` | `False` | 1 flow step(s) |
+| `constraints_data` | `False` | 4 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
-| `einstein` | `True` | 3 flow step(s) |
+| `einstein` | `False` | 2 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
+| `manufacturing` | `True` | 55 flow step(s) |
+| `mfg_aaf` | `True` | 7 flow step(s) |
+| `mfg_docgen` | `True` | 7 flow step(s) |
+| `mfg_guidedselling` | `True` | 2 flow step(s) |
+| `mfg_rebates` | `True` | 2 flow step(s) |
+| `mfg_visuals` | `True` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
-| `pde` | `False` | — |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
-| `procedureplans` | `True` | 5 flow step(s) |
+| `procedureplans` | `False` | 5 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 19 flow step(s) |
+| `qb` | `False` | 19 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 3 flow step(s) |
 | `rates` | `True` | 5 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
-| `refresh` | `False` | 11 flow step(s) |
+| `refresh` | `False` | 10 flow step(s) |
 | `sharingsettings` | `False` | 1 flow step(s) |
-| `tax` | `True` | 4 flow step(s) |
-| `trial` | `False` | — |
-| `tso` | `False` | 15 flow step(s) |
-| `ux` | `True` | 3 flow step(s) |
+| `tax` | `True` | 7 flow step(s) |
+| `tso` | `False` | 16 flow step(s) |
+| `ux` | `True` | 4 flow step(s) |
 
 ---
 
@@ -65,7 +68,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `analytics` (default: `True`)
 
-- `assign_feature_psls` step 3 → `assign_permission_set_licenses`
 - `prepare_analytics` step 1 → `enable_analytics_replication`
 
 ### `approvals` (default: `True`)
@@ -77,25 +79,27 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing` (default: `True`)
 
-- `assign_feature_permission_sets` step 4 → `assign_permission_sets`
+- `prepare_core` step 20 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
-- `prepare_billing` step 1 → `deploy_post_billing`
-- `prepare_billing` step 2 → `insert_billing_data`
-- `prepare_billing` step 3 → `insert_q3_billing_data`
-- `prepare_billing` step 4 → `create_sequence_policies`
-- `prepare_billing` step 5 → `activate_flow`
-- `prepare_billing` step 6 → `activate_default_payment_term`
-- `prepare_billing` step 7 → `activate_billing_records`
-- `prepare_billing` step 8 → `enable_timeline`
-- `prepare_billing` step 9 → `deploy_billing_id_settings`
-- `prepare_billing` step 10 → `deploy_billing_template_settings`
-- `prepare_billing` step 11 → `deploy_post_billing_ui`
-- `prepare_billing` step 12 → `assign_permission_sets`
-- `prepare_billing` step 13 → `apply_context_billing_order`
+- `prepare_billing` step 1 → `insert_billing_data`
+- `prepare_billing` step 2 → `insert_q3_billing_data`
+- `prepare_billing` step 3 → `activate_flow`
+- `prepare_billing` step 4 → `activate_default_payment_term`
+- `prepare_billing` step 5 → `activate_billing_records`
+- `prepare_billing` step 6 → `deploy_post_billing`
+- `prepare_billing` step 7 → `deploy_billing_id_settings`
+- `prepare_billing` step 8 → `deploy_billing_template_settings`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
 - `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_mfg_data` step 6 → `prepare_mfg_billing`
+- `prepare_mfg_billing` step 1 → `insert_mfg_billing_data`
+- `prepare_mfg_billing` step 2 → `activate_flow`
+- `prepare_mfg_billing` step 3 → `activate_default_payment_term`
+- `prepare_mfg_billing` step 4 → `activate_billing_records`
+- `prepare_mfg_billing` step 5 → `deploy_post_billing`
+- `prepare_mfg_billing` step 6 → `deploy_billing_template_settings`
 
 ### `billing_portal` (default: `False`)
 
@@ -107,25 +111,19 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
 
-### `billing_ui` (default: `True`)
-
-- `prepare_billing` step 8 → `enable_timeline`
-- `prepare_billing` step 11 → `deploy_post_billing_ui`
-- `prepare_billing` step 12 → `assign_permission_sets`
-- `prepare_billing` step 13 → `apply_context_billing_order`
-
 ### `breconfig` (default: `False`)
 
-- `prepare_core` step 13 → `create_rule_library`
-- `prepare_core` step 14 → `create_dro_rule_library`
+- `prepare_core` step 16 → `create_rule_library`
+- `prepare_core` step 17 → `util_sleep`
+- `prepare_core` step 18 → `create_dro_rule_library`
 
 ### `calmdelete` (default: `True`)
 
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
 
-### `clm` (default: `True`)
+### `clm` (default: `False`)
 
-- `assign_feature_psls` step 1 → `assign_permission_set_licenses`
+- `prepare_core` step 7 → `assign_permission_set_licenses`
 - `extend_context_definitions` step 7 → `extend_context_contracts`
 - `extend_context_definitions` step 8 → `extend_context_contracts_extraction`
 - `prepare_clm` step 1 → `insert_clm_data`
@@ -151,17 +149,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `manage_expression_sets`
 
-### `constraints_data` (default: `True`)
+### `constraints_data` (default: `False`)
 
-- `prepare_constraints` step 5 → `enable_constraints_settings`
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `manage_expression_sets`
-
-### `dev_ed` (default: `False`)
-
-- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
 
 ### `docgen` (default: `True`)
 
@@ -178,24 +171,116 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `dro` (default: `True`)
 
-- `prepare_core` step 14 → `create_dro_rule_library`
+- `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
+- `prepare_core` step 18 → `create_dro_rule_library`
 - `extend_context_definitions` step 6 → `extend_context_fulfillment_asset`
-- `prepare_dro` step 1 → `manage_fulfillment_scope_cnfg`
-- `prepare_dro` step 2 → `insert_qb_dro_data`
-- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
-- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
-- `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`
+- `prepare_dro` step 1 → `insert_qb_dro_data`
+- `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 3 → `insert_q3_dro_data_prod`
+- `prepare_dro` step 4 → `update_product_fulfillment_decomp_rules`
 
-### `einstein` (default: `True`)
+### `einstein` (default: `False`)
 
-- `assign_feature_psls` step 2 → `assign_permission_set_licenses`
-- `assign_feature_permission_sets` step 2 → `assign_permission_sets`
-- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
+- `prepare_core` step 8 → `assign_permission_set_licenses`
+- `prepare_core` step 19 → `assign_permission_sets`
 
 ### `guidedselling` (default: `False`)
 
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
+
+### `manufacturing` (default: `True`)
+
+- `prepare_rlm_org` step 30 → `prepare_manufacturing`
+- `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
+- `prepare_mfg_core` step 2 → `deploy_mfg_core`
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
+- `prepare_manufacturing` step 3 → `deploy_mfg_flows_and_actions`
+- `prepare_manufacturing` step 8 → `update_product_fulfillment_decomp_rules`
+- `prepare_manufacturing` step 9 → `reconfigure_mfg_pricing_discovery`
+- `prepare_manufacturing` step 14 → `util_sleep`
+- `prepare_manufacturing` step 17 → `activate_mfg_theme`
+- `prepare_revenue_settings` step 1 → `configure_revenue_settings`
+- `prepare_revenue_settings` step 2 → `configure_revenue_settings`
+- `prepare_revenue_settings` step 3 → `configure_core_pricing_setup`
+- `prepare_mfg_revenue_settings` step 1 → `configure_mfg_revenue_settings`
+- `prepare_mfg_revenue_settings` step 2 → `configure_mfg_core_pricing_setup`
+- `prepare_mfg_perms` step 1 → `util_sleep`
+- `prepare_mfg_perms` step 2 → `assign_permission_sets`
+- `prepare_mfg_perms` step 3 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 4 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 5 → `grant_mfg_ext_credential_access`
+- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
+- `prepare_mfg_docgen` step 2 → `deploy_mfg_omni_integration_procedures`
+- `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
+- `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
+- `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
+- `prepare_mfg_docgen` step 6 → `activate_mfg_docgen_templates`
+- `prepare_mfg_docgen` step 7 → `fix_mfg_document_template_binaries`
+- `prepare_mfg_data` step 1 → `insert_badger_pcm_data`
+- `prepare_mfg_data` step 2 → `insert_badger_pricing_data`
+- `prepare_mfg_data` step 3 → `insert_badger_dro_data`
+- `prepare_mfg_data` step 4 → `import_mfg_cml`
+- `prepare_mfg_data` step 5 → `prepare_mfg_tax`
+- `prepare_mfg_data` step 6 → `prepare_mfg_billing`
+- `prepare_mfg_context_plan` step 1 → `extend_context_sales_transaction_mfg`
+- `prepare_mfg_context_plan` step 2 → `apply_mfg_SalesTransactionContext`
+- `prepare_mfg_context_plan` step 3 → `apply_mfg_SalesTransactionContext`
+- `prepare_mfg_pricing` step 1 → `deploy_mfg_pricing_recipe`
+- `prepare_mfg_pricing` step 2 → `deploy_mfg_pricing_procedure`
+- `prepare_mfg_pricing` step 3 → `manage_expression_sets`
+- `import_mfg_cml` step 1 → `import_cml`
+- `import_mfg_cml` step 2 → `import_cml`
+- `import_mfg_cml` step 3 → `manage_expression_sets`
+- `prepare_mfg_dro` step 1 → `insert_badger_dro_data`
+- `prepare_mfg_dro` step 2 → `update_product_fulfillment_decomp_rules`
+- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
+- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
+- `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
+- `prepare_mfg_rebates` step 2 → `insert_badger_rebates_data`
+- `prepare_mfg_aaf` step 1 → `deploy_mfg_aaf_fields`
+- `prepare_mfg_aaf` step 2 → `deploy_mfg_aaf_permissions`
+- `prepare_mfg_aaf` step 3 → `assign_permission_sets`
+- `prepare_mfg_aaf` step 4 → `util_sleep`
+- `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
+- `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
+- `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
+
+### `mfg_aaf` (default: `True`)
+
+- `prepare_mfg_aaf` step 1 → `deploy_mfg_aaf_fields`
+- `prepare_mfg_aaf` step 2 → `deploy_mfg_aaf_permissions`
+- `prepare_mfg_aaf` step 3 → `assign_permission_sets`
+- `prepare_mfg_aaf` step 4 → `util_sleep`
+- `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
+- `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
+- `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+
+### `mfg_docgen` (default: `True`)
+
+- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
+- `prepare_mfg_docgen` step 2 → `deploy_mfg_omni_integration_procedures`
+- `prepare_mfg_docgen` step 3 → `deploy_mfg_omni_base_docgen_script`
+- `prepare_mfg_docgen` step 4 → `deploy_mfg_omni_quote_script`
+- `prepare_mfg_docgen` step 5 → `deploy_mfg_doc_templates`
+- `prepare_mfg_docgen` step 6 → `activate_mfg_docgen_templates`
+- `prepare_mfg_docgen` step 7 → `fix_mfg_document_template_binaries`
+
+### `mfg_guidedselling` (default: `True`)
+
+- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
+- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
+
+### `mfg_rebates` (default: `True`)
+
+- `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
+- `prepare_mfg_rebates` step 2 → `insert_badger_rebates_data`
+
+### `mfg_visuals` (default: `True`)
+
+- `prepare_mfg_visuals` step 1 → `deploy_mfg_visualization`
+- `prepare_mfg_visuals` step 2 → `insert_mfg_configflow_data`
 
 ### `payments` (default: `True`)
 
@@ -225,7 +310,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 8 → `assign_permission_sets`
 
-### `procedureplans` (default: `True`)
+### `procedureplans` (default: `False`)
 
 - `prepare_procedureplans` step 1 → `deploy_post_procedureplans`
 - `prepare_procedureplans` step 2 → `activate_procedure_plan_expression_sets`
@@ -236,22 +321,22 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `q3` (default: `False`)
 
 - `prepare_product_data` step 2 → `insert_q3_data`
-- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
-- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
-- `prepare_billing` step 3 → `insert_q3_billing_data`
+- `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 3 → `insert_q3_dro_data_prod`
+- `prepare_billing` step 2 → `insert_q3_billing_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 4 → `insert_q3_rating_data`
 - `prepare_rating` step 6 → `insert_q3_rates_data`
 
-### `qb` (default: `True`)
+### `qb` (default: `False`)
 
 - `prepare_product_data` step 1 → `insert_quantumbit_pcm_data`
 - `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
-- `prepare_dro` step 2 → `insert_qb_dro_data`
-- `prepare_billing` step 2 → `insert_billing_data`
-- `prepare_billing` step 4 → `create_sequence_policies`
+- `prepare_dro` step 1 → `insert_qb_dro_data`
+- `prepare_billing` step 1 → `insert_billing_data`
+- `prepare_billing` step 7 → `deploy_billing_id_settings`
 - `prepare_prm` step 9 → `insert_quantumbit_prm_data`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
@@ -262,8 +347,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `manage_expression_sets`
-- `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
+- `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 
 ### `quantumbit` (default: `True`)
 
@@ -271,10 +356,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 3 → `deploy_quantumbit`
 - `prepare_quantumbit` step 4 → `assign_permission_sets`
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
-- `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
 - `prepare_approvals` step 3 → `assign_permission_sets`
+- `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 
@@ -310,9 +395,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `refresh` (default: `False`)
 
-- `prepare_billing` step 2 → `insert_billing_data`
-- `prepare_billing` step 3 → `insert_q3_billing_data`
-- `prepare_billing` step 4 → `create_sequence_policies`
+- `prepare_billing` step 1 → `insert_billing_data`
+- `prepare_billing` step 2 → `insert_q3_billing_data`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
@@ -332,36 +416,41 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
+- `prepare_mfg_data` step 5 → `prepare_mfg_tax`
+- `prepare_mfg_tax` step 1 → `insert_mfg_tax_data`
+- `prepare_mfg_tax` step 2 → `activate_tax_records`
 
 ### `tso` (default: `False`)
 
-- `prepare_core` step 10 → `recalculate_permission_set_groups`
-- `prepare_core` step 11 → `assign_permission_set_groups_tolerant`
-- `assign_feature_psls` step 4 → `assign_permission_set_licenses`
-- `assign_feature_permission_sets` step 1 → `assign_permission_sets`
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
+- `prepare_core` step 13 → `assign_permission_sets`
 - `prepare_scratch` step 1 → `insert_scratch_data`
-- `prepare_tso` step 1 → `assign_permission_set_groups`
-- `prepare_tso` step 2 → `deploy_post_utils`
-- `prepare_tso` step 3 → `deploy_post_tso`
-- `prepare_tso` step 4 → `assign_permission_sets`
+- `prepare_tso` step 1 → `assign_permission_set_licenses`
+- `prepare_tso` step 2 → `assign_permission_set_groups`
+- `prepare_tso` step 3 → `deploy_post_utils`
+- `prepare_tso` step 4 → `deploy_post_tso`
+- `prepare_tso` step 5 → `assign_permission_sets`
+- `prepare_tso` step 6 → `assign_permission_set_groups_tolerant`
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 8 → `assign_permission_sets`
+- `prepare_constraints` step 3 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 28 → `prepare_ux`
+- `prepare_rlm_org` step 29 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
 
 ### `org_config.scratch` (runtime)
 
 - `prepare_scratch` step 1 → `insert_scratch_data`
-- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
-- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
+- `prepare_dro` step 2 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 3 → `insert_q3_dro_data_prod`
 
 ---
 
@@ -374,6 +463,15 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `asset_context_base_reference` | `AssetContext__stdctx` |
 | `asset_context_default_mapping` | `AssetEntitiesMapping` |
 | `asset_context_name` | `RLM_AssetContext` |
+| `badger_aaf_dataset` | `datasets/sfdmu/mfg/en-US/mfg-aaf` |
+| `badger_billing_dataset` | `datasets/sfdmu/mfg/en-US/mfg-billing` |
+| `badger_configflow_dataset` | `datasets/sfdmu/mfg/en-US/mfg-configflow` |
+| `badger_dro_dataset` | `datasets/sfdmu/mfg/en-US/mfg-dro` |
+| `badger_guidedselling_dataset` | `datasets/sfdmu/mfg/en-US/mfg-guidedselling` |
+| `badger_pricing_dataset` | `datasets/sfdmu/mfg/en-US/mfg-pricing` |
+| `badger_product_dataset` | `datasets/sfdmu/mfg/en-US/mfg-pcm` |
+| `badger_rebates_dataset` | `datasets/sfdmu/mfg/en-US/mfg-rebates` |
+| `badger_tax_dataset` | `datasets/sfdmu/mfg/en-US/mfg-tax` |
 | `billing_context_base_reference` | `BillingContext__stdctx` |
 | `billing_context_default_mapping` | `BSGEntitiesMapping` |
 | `billing_context_name` | `RLM_BillingContext` |
@@ -395,10 +493,13 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `contracts_extraction_context_name` | `RLM_ContractsExtractionContext` |
 | `default_context_start_date` | `2020-01-01T00:00:00.000Z` |
 | `default_context_ttl` | `30` |
+| `fuelCell_mfg_cml` | `datasets/constraints/mfg/fuelCell` |
 | `fulfillment_asset_context_base_reference` | `FulfillmentAssetContext__stdctx` |
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
+| `genSet_mfg_cml` | `datasets/constraints/mfg/genSet` |
 | `locale` | `en_US` |
+| `mfg_sales_transaction_context_name` | `MFG_SalesTransactionContext` |
 | `procedure_plan_definition_description` | `Procedure Plan Definition for Quote Pricing` |
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
@@ -454,6 +555,30 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 ## YAML Anchors (lists/maps)
 
 These `project.custom` entries are YAML anchors (lists or maps) reused throughout the file for permission sets, decision tables, dataset paths, etc.
+
+### `badger_aaf_ps`
+
+*1 items:*
+
+- `MFG_AAF`
+
+### `badger_mfg_ps`
+
+*1 items:*
+
+- `RLM_MFG_RCA`
+
+### `badger_mfg_psg`
+
+*1 items:*
+
+- `RLM_MFG`
+
+### `badger_mfg_scratch_psg`
+
+*1 items:*
+
+- `RLM_MFG_scratch`
 
 ### `dt_activation_decision_tables`
 
@@ -601,14 +726,9 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_ai_ps_api_names`
 
-*1 items:*
+*2 items:*
 
 - `EinsteinGPTPromptTemplateManager`
-
-### `rlm_ai_ps_enterprise_api_names`
-
-*1 items:*
-
 - `SalesCloudEinsteinAll`
 
 ### `rlm_ai_psg_api_names`

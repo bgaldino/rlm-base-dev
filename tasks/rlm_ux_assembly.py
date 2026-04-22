@@ -592,6 +592,18 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ),
             "required": False,
         },
+        "manufacturing": {
+            "description": (
+                "Include manufacturing (Badger) standalone flexipages, layouts, and the "
+                "manufacturing RLM_Revenue_Cloud app variant. Defaults to false. "
+                "Set to true only when called from prepare_mfg_ux, which runs inside "
+                "prepare_badger_flow after all manufacturing metadata has been deployed. "
+                "Must NOT be true when called from prepare_ux (step 29 of prepare_rlm_org) "
+                "because SalesAgreement, Order.SalesAgreementId, Contract.Create_Sales_Agreement, "
+                "and QuoteProposal OmniScript do not exist at that point."
+            ),
+            "required": False,
+        },
     }
 
     def _validate_options(self):
@@ -636,8 +648,12 @@ class AssembleAndDeployUX(SFDXBaseTask):
         else:
             self.logger.info(f"Assembling metadata type(s): {metadata_type}")
 
+        manufacturing_mode = process_bool_arg(self.options.get("manufacturing", False))
+
         features = self._get_feature_flags()
         self.logger.info(f"Active features: {', '.join(k for k, v in features.items() if v) or 'none'}")
+        if manufacturing_mode:
+            self.logger.info("Manufacturing mode: enabled (manufacturing standalone content included)")
 
         # Clean output subdirectories for the types being assembled to prevent stale files
         # from previous runs (e.g. files that are no longer emitted due to skip rules).
@@ -673,20 +689,20 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         if should_run("flexipages"):
             items, skipped = self._assemble_flexipages(
-                templates_path, output_path, features, metadata_name
+                templates_path, output_path, features, metadata_name, manufacturing_mode
             )
             manifest["assembled"].extend(items)
             manifest["skipped"].extend(skipped)
 
         if should_run("layouts"):
             items = self._assemble_layouts(
-                templates_path, output_path, features, metadata_name
+                templates_path, output_path, features, metadata_name, manufacturing_mode
             )
             manifest["assembled"].extend(items)
 
         if should_run("applications"):
             items = self._assemble_applications(
-                templates_path, output_path, features, metadata_name
+                templates_path, output_path, features, metadata_name, manufacturing_mode
             )
             manifest["assembled"].extend(items)
 
@@ -739,6 +755,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path: Path,
         features: Dict[str, bool],
         filter_name: Optional[str] = None,
+        manufacturing_mode: bool = False,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
         base_dir = templates_path / "flexipages" / "base"
         patches_dir = templates_path / "flexipages" / "patches"
@@ -752,7 +769,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # Build a map of page filename → authoritative source file.
         # Seeds from base/ then overlays active standalone dirs in deploy order.
         # Order is defined in rlm_ux_utils._STANDALONE_ORDER (last writer wins).
-        page_sources = resolve_flexipage_sources(base_dir, standalone_dir, features)
+        # Manufacturing standalone content is only included when manufacturing_mode=True.
+        page_sources = resolve_flexipage_sources(
+            base_dir, standalone_dir, features, manufacturing_mode=manufacturing_mode
+        )
 
         # Filter to single item if requested
         if filter_name:
@@ -882,14 +902,18 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path: Path,
         features: Dict[str, bool],
         filter_name: Optional[str] = None,
+        manufacturing_mode: bool = False,
     ) -> List[Dict[str, Any]]:
         out_dir = output_path / "layouts"
         assembled = []
 
         source_dirs = [
-            ("base", templates_path / "layouts" / "base", True),
-            ("billing", templates_path / "layouts" / "billing", features.get("billing", False)),
-            ("constraints", templates_path / "layouts" / "constraints", features.get("constraints", False)),
+            ("base",          templates_path / "layouts" / "base",          True),
+            ("billing",       templates_path / "layouts" / "billing",       features.get("billing", False)),
+            ("constraints",   templates_path / "layouts" / "constraints",   features.get("constraints", False)),
+            # Manufacturing layouts (SalesAgreement etc.) only when manufacturing_mode=True,
+            # because SalesAgreement doesn't exist until prepare_badger_flow has run.
+            ("manufacturing", templates_path / "layouts" / "manufacturing", manufacturing_mode and features.get("manufacturing", False)),
         ]
 
         copied_names: Set[str] = set()
@@ -981,21 +1005,13 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ff_order.get((ao.findtext(f"{{{NS}}}formFactor") or "").strip(), 2),
         ))
 
-        # Re-insert before the first non-actionOverrides element after the overrides block
-        # Find insertion index: after existing leading non-actionOverride elements
-        insert_before = None
-        for i, child in enumerate(list(app_root)):
-            tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-            if tag not in ("actionOverrides",) and i > 0:
-                insert_before = i
-                break
-
-        if insert_before is not None:
-            for idx, ao in enumerate(all_overrides):
-                app_root.insert(insert_before + idx, ao)
-        else:
-            for ao in all_overrides:
-                app_root.append(ao)
+        # Re-insert all sorted actionOverrides at index 0.
+        # All actionOverrides were removed above, so the remaining children are
+        # formFactors, isNavAutoTempTabsDisabled, etc. — which must come AFTER
+        # actionOverrides in the CustomApplication schema. Inserting at 0 ensures
+        # no stray formFactors element gets stranded before the overrides block.
+        for idx, ao in enumerate(all_overrides):
+            app_root.insert(idx, ao)
 
         ET.indent(app_tree, space="    ")
         app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=NS)
@@ -1007,12 +1023,17 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path: Path,
         features: Dict[str, bool],
         filter_name: Optional[str] = None,
+        manufacturing_mode: bool = False,
     ) -> List[Dict[str, Any]]:
         """
         Assemble application metadata from versioned templates.
 
         RLM_Revenue_Cloud selection priority (highest wins):
-          tso > quantumbit > base
+          tso > manufacturing (badger, manufacturing_mode only) > quantumbit > base
+
+        The manufacturing variant references SalesAgreement action overrides and tab,
+        so it is only selected when manufacturing_mode=True (i.e. prepare_mfg_ux),
+        after all manufacturing metadata has been deployed.
 
         Conditional standalone apps:
           standard__BillingConsole  — billing_ui=true wins over billing=true (priority: billing_ui > billing)
@@ -1025,7 +1046,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # --- RLM_Revenue_Cloud (versioned selection + feature patches) ---
         rev_cloud_name = "RLM_Revenue_Cloud.app-meta.xml"
         if not filter_name or filter_name == rev_cloud_name:
-            if features.get("tso"):
+            if manufacturing_mode and features.get("manufacturing"):
+                src_dir = app_base / "manufacturing"
+            elif features.get("tso"):
                 src_dir = app_base / "tso"
             elif features.get("qb"):
                 src_dir = app_base / "quantumbit"
@@ -1037,14 +1060,22 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
+                if manufacturing_mode and features.get("manufacturing"):
+                    tier = "manufacturing"
+                elif features.get("tso"):
+                    tier = "tso"
+                elif features.get("qb"):
+                    tier = "quantumbit"
+                else:
+                    tier = "base"
 
                 # Apply feature-conditional actionOverride patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
                 # and contain bare <actionOverrides> elements (no root wrapper).
-                # TSO template already contains all overrides; patches only run for non-TSO builds.
+                # TSO and manufacturing templates are standalone and already contain all overrides;
+                # patches only run for non-TSO, non-manufacturing builds.
                 patches_applied = []
-                if not features.get("tso"):
+                if not features.get("tso") and not (manufacturing_mode and features.get("manufacturing")):
                     patch_features = ["billing", "rates", "ramps"]
                     for pf in patch_features:
                         if not features.get(pf):
@@ -1082,6 +1113,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 (app_base / "conditional" / "collections" / "standard__CollectionConsole.app-meta.xml", "collections"),
                 (app_base / "conditional" / "collections" / "RLM_Receivables_Management.app-meta.xml", "collections"),
             ]
+        if manufacturing_mode and features.get("manufacturing"):
+            conditional_apps.append(
+                (app_base / "conditional" / "manufacturing" / "Rebates.app-meta.xml", "manufacturing")
+            )
 
         for src_file, feature_name in conditional_apps:
             fname = src_file.name
