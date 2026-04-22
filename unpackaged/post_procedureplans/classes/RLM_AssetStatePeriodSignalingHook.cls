@@ -39,6 +39,11 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
 
     private static final String DBG = 'RLM_AssetStatePeriodSignalingHook';
 
+    /** Null-coalesce a Decimal to 0. Keeps arithmetic and setScale calls NPE-free for missing context values. */
+    private static Decimal nzd(Decimal d) {
+        return d == null ? 0 : d;
+    }
+
     global RevSignaling.TransactionResponse execute(RevSignaling.TransactionRequest request) {
         System.debug(LoggingLevel.DEBUG, DBG + '.execute: enter');
         RevSignaling.TransactionResponse response = new RevSignaling.TransactionResponse();
@@ -72,17 +77,17 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             Integer lineIndex = 0;
             for (LineContextRow line : lines) {
                 lineIndex++;
-                if (line.skip) {
-                    System.debug(LoggingLevel.DEBUG, DBG + '.execute: line ' + lineIndex + ' skipped');
+                if (line == null || line.skip) {
+                    System.debug(LoggingLevel.DEBUG, DBG + '.execute: line ' + lineIndex + ' skipped (null or flagged)');
                     continue;
                 }
                 Date lineStart = line.lineStartDate;
                 Date lineEnd = line.lineEndDate != null ? line.lineEndDate : line.lineStartDate;
                 if (lineStart == null) {
-                    System.debug(LoggingLevel.DEBUG, DBG + '.execute: line ' + lineIndex + ' no StartDate');
+                    System.debug(LoggingLevel.DEBUG, DBG + '.execute: line ' + lineIndex + ' no StartDate — skipping');
                     continue;
                 }
-                if (lineEnd < lineStart) {
+                if (lineEnd == null || lineEnd < lineStart) {
                     lineEnd = lineStart;
                 }
 
@@ -99,14 +104,14 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 Decimal renewalARR = 0;
                 Decimal iARR = 0;
             
-                if (isOneTime(line.sellingModelType)) {
+                if (line.sellingModelType == 'OneTime') {
                     // Per requirements, do not query AssetStatePeriod when SellingModelType is OneTime.
                     System.debug(
                         LoggingLevel.DEBUG,
                         DBG + '.execute: line ' + lineIndex + ' OneTime — skip ASP query, total=0'
                     );
                     total = 0;
-                    nrr = line.netTotalPrice;
+                    nrr = nzd(line.netTotalPrice);
                     System.debug(
                         LoggingLevel.DEBUG,
                         DBG +
@@ -117,21 +122,21 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                             ' (other revenue fields left 0)'
                     );
                 } else {
-                    total = computeInstallBaseForLine(accountId, lineStart, lineEnd, line.productId);
+                    total = nzd(computeInstallBaseForLine(accountId, lineStart, lineEnd, line.productId));
                     System.debug(
                         LoggingLevel.DEBUG,
                         DBG + '.execute: line ' + lineIndex + ' computed total=' + total + ' productId=' + line.productId
                     );
                     
-                    netNewAmount = calcNetNewAmount(line.transactionActionType, total, line.netTotalPrice);
-                    expansionAmount = calcExpansionAmount(line.transactionActionType, total, line.netTotalPrice, line.startQuantity, line.endQuantity);
-                    churnedAmount = calcChurnedAmount(line.transactionActionType, total, line.netTotalPrice, line.startQuantity, line.endQuantity);
-                    renewalAmount = calcRenewalAmount(line.transactionActionType, total, line.netTotalPrice);
-                    arr = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, line.netTotalPrice);   
-                    netNewARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, netNewAmount);
-                    expansionARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, expansionAmount);
-                    churnedARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, churnedAmount);
-                    renewalARR = calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, renewalAmount);
+                    netNewAmount = nzd(calcNetNewAmount(line.transactionActionType, total, line.netTotalPrice));
+                    expansionAmount = nzd(calcExpansionAmount(line.transactionActionType, total, line.netTotalPrice, line.startQuantity, line.endQuantity));
+                    churnedAmount = nzd(calcChurnedAmount(line.transactionActionType, total, line.netTotalPrice, line.startQuantity, line.endQuantity));
+                    renewalAmount = nzd(calcRenewalAmount(line.transactionActionType, total, line.netTotalPrice));
+                    arr = nzd(calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, line.netTotalPrice));
+                    netNewARR = nzd(calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, netNewAmount));
+                    expansionARR = nzd(calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, expansionAmount));
+                    churnedARR = nzd(calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, churnedAmount));
+                    renewalARR = nzd(calculateARR(line.pricingTermUnit, line.pricingTerm, line.pricingTermCount, renewalAmount));
                     iARR = netNewARR + expansionARR - churnedARR;
                     System.debug(
                         LoggingLevel.DEBUG,
@@ -165,7 +170,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
 
                 rollup.accumulateLine(
                     total, netNewAmount, expansionAmount, churnedAmount, renewalAmount,
-                    nrr, arr, netNewARR, expansionARR, churnedARR, renewalARR, iARR
+                    nrr, arr, netNewARR, expansionARR, churnedARR, renewalARR, iARR, line.productFamily
                 );
 
                 List<Object> pathForUpdate = line.pathForFieldUpdate();
@@ -192,42 +197,42 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => ATTR_ITEM_INSTALL_BASE,
-                        'attributeValue' => String.valueOf(total.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(total).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemNetNewAmount__c',
-                        'attributeValue' => String.valueOf(netNewAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(netNewAmount).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemExpansionAmount__c',
-                        'attributeValue' => String.valueOf(expansionAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(expansionAmount).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemChurnedAmount__c',
-                        'attributeValue' => String.valueOf(churnedAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(churnedAmount).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
                 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemRenewalAmount__c',
-                        'attributeValue' => String.valueOf(renewalAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(renewalAmount).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemNRR__c',
-                        'attributeValue' => String.valueOf(nrr.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(nrr).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
                 
@@ -235,7 +240,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemARR__c',
-                        'attributeValue' => String.valueOf(arr.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(arr).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
                 
@@ -243,7 +248,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemNetNewARR__c',
-                        'attributeValue' => String.valueOf(netNewARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(netNewARR).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
                 
@@ -251,28 +256,28 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemExpansionARR__c',
-                        'attributeValue' => String.valueOf(expansionARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(expansionARR).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );  
                 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemChurnedARR__c',
-                        'attributeValue' => String.valueOf(churnedARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(churnedARR).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemRenewalARR__c',
-                        'attributeValue' => String.valueOf(renewalARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(renewalARR).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
                 attributesForUpdate.add(
                     new Map<String, Object>{
                         'attributeName' => 'ItemiARR__c',
-                        'attributeValue' => String.valueOf(iARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+                        'attributeValue' => String.valueOf(nzd(iARR).setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
                     }
                 );
 
@@ -717,19 +722,24 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 ' amount=' +
                 amount
         );
+        Decimal amt = nzd(amount);
+        Decimal term = nzd(pricingTerm);
+        Decimal termCount = nzd(pricingTermCount);
         Decimal arr = 0;
-        if (pricingTermUnit == 'Months' && pricingTermCount > 0) {
-            arr = (amount / (pricingTerm * pricingTermCount)) * 12;
+        if (pricingTermUnit == 'Months' && termCount > 0 && term > 0) {
+            arr = (amt / (term * termCount)) * 12;
             System.debug(LoggingLevel.DEBUG, DBG + '.calculateARR: branch Months — arr=' + arr);
-        } else if (pricingTermUnit == 'Annual' && pricingTermCount > 0) {
-            arr = amount / (pricingTermCount / pricingTerm);
+        } else if (pricingTermUnit == 'Annual' && termCount > 0 && term > 0) {
+            arr = amt / (termCount / term);
             System.debug(LoggingLevel.DEBUG, DBG + '.calculateARR: branch Years — arr=' + arr);
         } else {
             System.debug(
                 LoggingLevel.DEBUG,
                 DBG +
-                    '.calculateARR: no matching unit or non-positive termCount — arr=0 (unit=' +
+                    '.calculateARR: no matching unit or non-positive term/termCount — arr=0 (unit=' +
                     pricingTermUnit +
+                    ' term=' +
+                    pricingTerm +
                     ' count=' +
                     pricingTermCount +
                     ')'
@@ -750,9 +760,11 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 ' netTotal=' +
                 netTotalPrice
         );
+        Decimal installBase = nzd(installBaseAmount);
+        Decimal netTotal = nzd(netTotalPrice);
         Decimal netNewAmount = 0;
-        if (String.isBlank(transactionActionType) && (installBaseAmount == null || installBaseAmount <= 0)) {
-            netNewAmount = netTotalPrice;
+        if (String.isBlank(transactionActionType) && installBase <= 0) {
+            netNewAmount = netTotal;
             System.debug(LoggingLevel.DEBUG, DBG + '.calcNetNewAmount: net-new business (blank action, no install base) — netNew=' + netNewAmount);
         } else {
             System.debug(LoggingLevel.DEBUG, DBG + '.calcNetNewAmount: not classified as net-new — netNew=0');
@@ -782,15 +794,17 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 ' endQty=' +
                 endQuantity
         );
+        Decimal installBase = nzd(installBaseAmount);
+        Decimal netTotal = nzd(netTotalPrice);
         Decimal expansionAmount = 0;
-        if (String.isBlank(transactionActionType) && (installBaseAmount != null && installBaseAmount > 0)) {
-            expansionAmount = netTotalPrice;
+        if (String.isBlank(transactionActionType) && installBase > 0) {
+            expansionAmount = netTotal;
             System.debug(LoggingLevel.DEBUG, DBG + '.calcExpansionAmount: branch blank action with install base — expansion=' + expansionAmount);
-        } else if (transactionActionType == 'Amend' && (installBaseAmount != null && installBaseAmount > 0)) {
-            expansionAmount = netTotalPrice;
+        } else if (transactionActionType == 'Amend' && installBase > 0) {
+            expansionAmount = netTotal;
             System.debug(LoggingLevel.DEBUG, DBG + '.calcExpansionAmount: branch Amend with install base — expansion=' + expansionAmount);
-        } else if (transactionActionType == 'Renewal' && (installBaseAmount != null && installBaseAmount < netTotalPrice)) {
-            expansionAmount = netTotalPrice - installBaseAmount;
+        } else if (transactionActionType == 'Renewal' && installBase > 0 && installBase < netTotal) {
+            expansionAmount = netTotal - installBase;
             System.debug(
                 LoggingLevel.DEBUG,
                 DBG + '.calcExpansionAmount: branch Renewal (install base < net total) — expansion=' + expansionAmount
@@ -823,19 +837,23 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 ' endQty=' +
                 endQuantity
         );
+        Decimal installBase = nzd(installBaseAmount);
+        Decimal netTotal = nzd(netTotalPrice);
+        Decimal startQty = nzd(startQuantity);
+        Decimal endQty = nzd(endQuantity);
         Decimal churnedAmount = 0;
         if (transactionActionType == 'Cancel') {
-            churnedAmount = Math.abs(netTotalPrice);
+            churnedAmount = netTotal.abs();
             System.debug(LoggingLevel.DEBUG, DBG + '.calcChurnedAmount: branch Cancel — churned=' + churnedAmount);
         } else if (
             transactionActionType == 'Amend' &&
-            (installBaseAmount != null && installBaseAmount > 0) &&
-            (startQuantity > endQuantity)
+            installBase > 0 &&
+            startQty > endQty
         ) {
-            churnedAmount = Math.abs(netTotalPrice);
+            churnedAmount = netTotal.abs();
             System.debug(LoggingLevel.DEBUG, DBG + '.calcChurnedAmount: branch Amend (qty down) — churned=' + churnedAmount);
-        } else if (transactionActionType == 'Renewal' && (installBaseAmount != null && installBaseAmount > netTotalPrice)) {
-            churnedAmount = Math.abs(netTotalPrice - installBaseAmount);
+        } else if (transactionActionType == 'Renewal' && installBase > netTotal) {
+            churnedAmount = (netTotal - installBase).abs();
             System.debug(LoggingLevel.DEBUG, DBG + '.calcChurnedAmount: branch Renewal (install base > net total) — churned=' + churnedAmount);
         } else {
             System.debug(LoggingLevel.DEBUG, DBG + '.calcChurnedAmount: no churn branch matched — churned=0');
@@ -856,9 +874,10 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
                 ' netTotal=' +
                 netTotalPrice
         );
+        Decimal installBase = nzd(installBaseAmount);
         Decimal renewalAmount = 0;
-        if (transactionActionType == 'Renewal' && (installBaseAmount != null && installBaseAmount > 0)) {
-            renewalAmount = installBaseAmount;
+        if (transactionActionType == 'Renewal' && installBase > 0) {
+            renewalAmount = installBase;
             System.debug(LoggingLevel.DEBUG, DBG + '.calcRenewalAmount: branch Renewal with install base — renewalBase=' + renewalAmount);
         } else {
             System.debug(LoggingLevel.DEBUG, DBG + '.calcRenewalAmount: not a renewal base case — renewal=0');
@@ -1034,6 +1053,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         row.netTotalPrice = parseContextDecimal(tags, 'ItemNetTotalPrice');
         row.startQuantity = parseContextDecimal(tags, 'ItemStartQuantity');
         row.endQuantity = parseContextDecimal(tags, 'ItemEndQuantity');
+        row.productFamily = parseContextString(tags, 'ItemProductFamily__c');
         System.debug(
             LoggingLevel.DEBUG,
             DBG +
@@ -1160,6 +1180,18 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             'attributeName' => ATTR_ST_I_ARR,
             'attributeValue' => String.valueOf(rollup.iARR.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
         });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => 'SoftwareTotal__c',
+            'attributeValue' => String.valueOf(rollup.softwareAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => 'HardwareTotal__c',
+            'attributeValue' => String.valueOf(rollup.hardwareAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
+        attrs.add(new Map<String, Object>{
+            'attributeName' => 'ServicesTotal__c',
+            'attributeValue' => String.valueOf(rollup.servicesAmount.setScale(AMOUNT_SCALE, RoundingMode.HALF_UP))
+        });
         System.debug(LoggingLevel.DEBUG, DBG + '.buildSalesTransactionAttributes: exit attrs=' + attrs.size());
         return attrs;
     }
@@ -1212,13 +1244,16 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         public Decimal churnedARR = 0;
         public Decimal renewalARR = 0;
         public Decimal iARR = 0;
+        public Decimal softwareAmount = 0;
+        public Decimal hardwareAmount = 0;
+        public Decimal servicesAmount = 0;
         public Integer contributingLineCount = 0;
 
         public void accumulateLine(
             Decimal lineTotal, Decimal lineNetNew, Decimal lineExpansion,
             Decimal lineChurned, Decimal lineRenewal, Decimal lineNrr,
             Decimal lineArr, Decimal lineNetNewArr, Decimal lineExpansionArr,
-            Decimal lineChurnedArr, Decimal lineRenewalArr, Decimal lineIarr
+            Decimal lineChurnedArr, Decimal lineRenewalArr, Decimal lineIarr, String lineProductFamily
         ) {
             System.debug(LoggingLevel.DEBUG, DBG + '.TransactionRollupTotals.accumulateLine: enter');
 //            totalInstallBase += nz(lineTotal);
@@ -1234,6 +1269,13 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
             renewalARR += nz(lineRenewalArr);
             iARR += nz(lineIarr);
             contributingLineCount++;
+            if (lineProductFamily == 'Software') {
+                softwareAmount += nz(lineTotal);
+            } else if (lineProductFamily == 'Hardware') {
+                hardwareAmount += nz(lineTotal);
+            } else if (lineProductFamily == 'Services') {
+                servicesAmount += nz(lineTotal);
+            }
             System.debug(
                 LoggingLevel.DEBUG,
                 DBG + '.TransactionRollupTotals.accumulateLine: exit lineCount=' + contributingLineCount +
@@ -1262,6 +1304,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         public Decimal netTotalPrice;
         public Decimal startQuantity;
         public Decimal endQuantity;
+        public String productFamily;
         public List<Object> dataPathFull;
         public Boolean skip;
 
