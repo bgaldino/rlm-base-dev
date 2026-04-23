@@ -79,58 +79,79 @@ project:
     default_branch: "main"
   source_format: sfdx
 
-#-----------------#
-# CUSTOM SETTINGS #
-#-----------------#
-# These custom settings control feature flags and configuration options
-# They are used throughout the deployment process to conditionally execute tasks
-# Each setting can be toggled on/off to enable/disable specific features
+#------------------#
+# CUSTOM SETTINGS  #
+#------------------#
+# Feature flags and configuration options used throughout the deployment process.
+# Toggle any flag on/off to conditionally enable or disable specific tasks and flows.
 
   custom:
-    qbrix: false               # Use xDO base (false for dev scratch orgs without xDO licenses)
-    tso: false                # Is Trialforce Source Org? Set true when targeting a TSO scratch org
-    qb: false                  # Is QuantumBit?
-    q3: false                 # Include Q3 data
-    calmdelete: true          # Use CALM Delete
-    tax: true                 # Use Tax engine
-    billing: true             # Use Billing
-    payments: true            # Use Payments
-    approvals: true           # Use Approvals
-    clm: false                # Use Contract Lifecycle Management
-    clm_data: false           # Use Contract Lifecycle Management Data
-    dro: true                 # Use Dynamic Revenue Orchestration
-    rating: true              # Insert Rating Design Time Data
-    rates: true               # Insert Rates
-    ramps: true               # Insert and configure ramps
-    ux: true                  # Assemble and deploy dynamic UX (flexipages, layouts, applications, profiles). Set false to skip prepare_ux entirely (useful when testing feature deploys in isolation before UX is ready).
-    einstein: false            # Use Einstein AI
-    product_dataset: qb       # Default product dataset to use=
-    agents: false             # Deploy Agentforce Agent Configurations
-    refresh: false            # Data refresh flag
-    prm: true                # Use Partner Relationship Management
-    prm_exp_bundle: true      # Use PRM Experience Bundle (deploy post_prm site content)
-    billing_portal: false     # Use Self-Service Billing Portal community
-    billing_portal_deploy: true   # Deploy post_billing_portal site content when billing_portal is true
-    commerce: false           # Use Commerce
-    quantumbit: true          # Use QuantumBit
+
+    # ── Org Type & Mode ────────────────────────────────────────────────────────
+    qbrix: false              # Use xDO base layer (disable for orgs without xDO licenses)
+    tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
+    pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
+    trial: false              # Public Trial org (EE, no qbrix or custom UX)
+    dev_ed: false             # Developer Edition org — set true for non-standard dev orgs to suppress Enterprise-only PS assignments
+    refresh: false            # Data refresh mode — skips insert steps during re-runs
+
+    # ── Core Revenue Cloud Features ────────────────────────────────────────────
+    billing: true             # Billing
+    billing_ui: true          # Billing UI LWC components (post_billing_ui)
+    billing_portal: false     # Self-Service Billing Portal community
+    billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
+    payments: true            # Payments
+    approvals: true           # Approvals
+    tax: true                 # Tax engine
+    calmdelete: true          # CALM Delete
+
+    # ── Revenue Orchestration ──────────────────────────────────────────────────
+    dro: true                 # Dynamic Revenue Orchestration
+    rating: true              # Rating design-time data
+    rates: true               # Rates
+    ramps: true               # Ramps
+
+    # ── Contracts & CLM ────────────────────────────────────────────────────────
+    clm: false                # Contract Lifecycle Management
+    clm_data: false           # CLM sample data
+
+    # ── Partner & Commerce ─────────────────────────────────────────────────────
+    prm: true                 # Partner Relationship Management
+    prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
+    commerce: false           # Commerce
+
+    # ── AI & Analytics ─────────────────────────────────────────────────────────
+    einstein: false           # Einstein AI
+    agents: false             # Agentforce agent configurations
+    analytics: true           # Data Sync / CRM Analytics replication (enableWaveReplication)
+
+    # ── Configurators & Tooling ────────────────────────────────────────────────
+    docgen: true              # Document Generation
+    constraints: true         # Constraint Builder
+    constraints_data: false   # Constraint Builder sample data
     breconfig: false          # Business Rules Engine configuration
-    docgen: true              # Use Document Generation
-    #psg_debug: false          # Debug Permission Set Groups
-    #pas_debug: false          # Debug Price Adjustment Schedules
-    constraints: true         # Use Constraint Builder
-    constraints_data: false   # Use Constraint Builder Data
-    guidedselling: false      # Use Guided Selling
-    procedureplans: false     # Use Procedure Plans
-    sharingsettings: false    # Deploy Sharing Settings
-    analytics: true          # Enable Data Sync/Connections replication (enableWaveReplication); does not require full CRM Analytics
+    guidedselling: false      # Guided Selling
+    procedureplans: false     # Procedure Plans
+
+    # ── Data & UX ──────────────────────────────────────────────────────────────
+    qb: false                 # QuantumBit data
+    q3: false                 # Q3 data
+    quantumbit: true          # QuantumBit app deployment
+    product_dataset: qb       # Default product dataset
+    ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
+
+    # ── Deployment Options ─────────────────────────────────────────────────────
+    sharingsettings: false    # Sharing Settings
     locale: en_US             # Default locale
-    manufacturing: true       #Manufacturing Metadata & Dataset
-    badger_data: true        #Badger Data Insertion
-    mfg_aaf: true             #Badger MFG Advanced Account Forecast
-    mfg_rebates: true         #Badger MFG Rebates
-    mfg_guidedselling: true  #Badger MFG Guided Selling
-    mfg_docgen: true         #Badger MFG OmniStudio Document Generation
-    mfg_visuals: true        # Badger MFG 3D Visualization (RenderDraw) and configuration flows
+
+    # ── Manufacturing ───────────────────────────────────────────────────────────
+    manufacturing: true       # Manufacturing Metadata & Dataset
+    badger_data: true         # Badger Data Insertion
+    mfg_aaf: true             # Badger MFG Advanced Account Forecast
+    mfg_rebates: true         # Badger MFG Rebates
+    mfg_guidedselling: true   # Badger MFG Guided Selling
+    mfg_docgen: true          # Badger MFG OmniStudio Document Generation
+    mfg_visuals: true         # Badger MFG 3D Visualization (RenderDraw) and configuration flows
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -197,8 +218,11 @@ project:
       - TableauSelfServiceAnalyst
 
     rlm_ai_ps_api_names: &rlm_ai_ps_api_names
-      # AI-related permission sets
+      # AI-related permission sets (all org editions)
       - EinsteinGPTPromptTemplateManager
+
+    rlm_ai_ps_enterprise_api_names: &rlm_ai_ps_enterprise_api_names
+      # AI permission sets — Enterprise edition only (not assignable on Developer edition)
       - SalesCloudEinsteinAll
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
@@ -750,6 +774,21 @@ tasks:
       activate: true
       verify: true
 
+  apply_context_billing_order:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds BillingArrangement__std and BillingProfile__std Order field mappings to the
+      RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node).
+      Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c.
+      SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      plan_file: datasets/context_plans/Billing/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   apply_context_docgen:
     group: Revenue Lifecycle Management
     description: >
@@ -1163,6 +1202,21 @@ tasks:
               - xpath: //BillingSettings/defaultTaxTreatment[text()="__DEFAULT_TAX_TREATMENT_ID__"]
                 replace_record_id_query: SELECT Id FROM TaxTreatment WHERE Name = 'Default Tax Policy' AND Status = 'Active' LIMIT 1
                 api: rest
+              - xpath: //BillingSettings/acctRecGlAccount[text()="__ACCT_REC_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '1100' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/realisedGainGlAccount[text()="__REALISED_GAIN_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4610' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/realisedLossGlAccount[text()="__REALISED_LOSS_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8510' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/unrealisedGainGlAccount[text()="__UNREALISED_GAIN_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4600' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/unrealisedLossGlAccount[text()="__UNREALISED_LOSS_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
+                api: rest
 
   deploy_billing_template_settings:
     description: Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
@@ -1170,6 +1224,51 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_billing_template_settings
+
+  deploy_post_billing_ui:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components
+      (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus,
+      rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder,
+      rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart,
+      rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary,
+      rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards,
+      rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account),
+      2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c),
+      2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
+      2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
+      the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
+      (field access + Apex class access + RunFlow). Flexipages for billing_ui are
+      deployed via assemble_and_deploy_ux (billing_ui feature flag).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_billing_ui
+
+  deploy_billing_template_id_settings:
+    description: >
+      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with
+      auto-generated template IDs (resolved after deploy_billing_template_settings
+      triggers template auto-creation). Sets defaultEmailTemplate,
+      defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings
+      auto-default these values; explicit deployment is not required.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_billing_template_id_settings
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE Name = 'Default Invoice Email Template' ORDER BY CreatedDate DESC LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultInvPreviewTemplate[text()="__DEFAULT_INV_PREVIEW_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoicePreviewTemplate' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultInvoiceDocTemplate[text()="__DEFAULT_INVOICE_DOC_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoiceTemplate' LIMIT 1
+                api: rest
 
   deploy_post_guidedselling:
     description: Deploy Guided Selling Metadata
@@ -1186,6 +1285,34 @@ tasks:
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
     class_path: tasks.rlm_ux_assembly.AssembleAndDeployUX
+
+  retrieve_ux_from_org:
+    group: UX Personalization
+    description: >
+      Retrieves live UX metadata (flexipages) from the target org into
+      unpackaged/post_ux/, replacing the assembled output with the org's current
+      state. Use before diff_ux_templates to capture drift between the org and
+      the assembler templates. Scope to a single page with the metadata_name option.
+    class_path: tasks.rlm_retrieve_ux.RetrieveUXFromOrg
+
+  diff_ux_templates:
+    group: UX Personalization
+    description: >
+      Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against
+      what the assembler would produce from current templates/. Reports added,
+      removed, modified, and repositioned flexiPageRegions per page. Writes a
+      drift_report.json to unpackaged/post_ux/. Does not modify any files.
+    class_path: tasks.rlm_diff_ux.DiffUXTemplates
+
+  writeback_ux_templates:
+    group: UX Personalization
+    description: >
+      Reverse-applies active feature patches against org-retrieved flexipages
+      and writes the result as updated base templates. Computes
+      new_base = org_state - patches so the assembler reproduces org state
+      without double-applying non-idempotent patches. Defaults to dry_run mode.
+      Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
+    class_path: tasks.rlm_writeback_ux.WriteBackUXTemplates
 
   reorder_app_launcher:
     group: UX Personalization
@@ -2082,6 +2209,17 @@ tasks:
       suite: robot/rlm-base/tests/setup/enable_document_builder.robot
       outputdir: robot/rlm-base/results
 
+  enable_timeline:
+    group: Revenue Lifecycle Management
+    description: >
+      Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium).
+      Required before billing_ui flexipages that reference industries_common:timeline can be deployed.
+      Once enabled, this toggle cannot be disabled.
+    class_path: tasks.rlm_enable_timeline.EnableTimeline
+    options:
+      suite: robot/rlm-base/tests/setup/enable_timeline.robot
+      outputdir: robot/rlm-base/results
+
   enable_constraints_settings:
     group: Revenue Lifecycle Management
     description: "Set Default Transaction Type, Asset Context for Product Configurator, and enable Constraints Engine toggle on Revenue Settings (Robot test). Required before CML constraint data import."
@@ -2217,6 +2355,28 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/activateBillingRecords.apex
+
+  create_sequence_policies:
+    group: Revenue Lifecycle Management
+    description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
+    class_path: tasks.rlm_billing.CreateSequencePolicies
+
+  update_currency_rates_csv:
+    group: Data Management - Currency
+    description: >
+      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update
+      CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch
+      org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP').
+      Use dry_run true to preview without writing.
+    class_path: tasks.rlm_currency.UpdateCurrencyRatesCsv
+
+  update_currency_rates:
+    group: Data Management - Currency
+    description: >
+      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch
+      CurrencyType.ConversionRate for all active non-corporate currencies in a running org.
+      Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+    class_path: tasks.rlm_currency.UpdateCurrencyRates
 
   query_billing_state:
     group: Revenue Lifecycle Management
@@ -2380,6 +2540,35 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_dro_dataset
+
+  export_bre_rule_library:
+    group: Data Management - Extract
+    description: "Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all."
+    class_path: tasks.rlm_bre.ExportBRE
+    options:
+      output_dir: datasets/bre/exports
+
+  extract_scratch_data:
+    group: Data Management - Extract
+    description: "Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: "datasets/sfdmu/scratch_data"
+      extractions_base_dir: "datasets/sfdmu/extractions"
+
+  extract_qb_billing_data:
+    group: Data Management - Extract
+    description: "Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in datasets/sfdmu/extractions/qb-billing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_billing_dataset
+
+  extract_qb_tax_data:
+    group: Data Management - Extract
+    description: "Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_tax_dataset
 
   extract_qb_clm_data:
     group: Data Management - Extract
@@ -2573,6 +2762,22 @@ tasks:
       pathtoexportjson: *quantumbit_prm_dataset
       use_extraction_roundtrip: false
 
+  test_qb_billing_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_billing_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_tax_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-tax (tax policies and treatments).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_tax_dataset
+      use_extraction_roundtrip: false
+
 #------------------#
 # PYTHON CCI TASKS #
 #------------------#
@@ -2670,6 +2875,22 @@ tasks:
     class_path: tasks.rlm_manage_transaction_processing_types.ManageTransactionProcessingTypes
     options:
       operation: list  # Options: 'list', 'upsert'
+      input_file: null  # Required for upsert; JSON array of records
+      key_field: DeveloperName
+      api_version: null
+      dry_run: false
+
+  manage_fulfillment_scope_cnfg:
+    group: Revenue Lifecycle Management
+    description: >
+      Manage CustomFulfillmentScopeCnfg records via Tooling API (DRO/Industries
+      Fulfillment setup object; apiAccess="never", introduced API v65.0).
+      Operations: 'list' (log to console), 'extract' (write to output_file as
+      JSON array), 'upsert' (create/update from input_file JSON array).
+    class_path: tasks.rlm_manage_fulfillment_scope_cnfg.ManageFulfillmentScopeCnfg
+    options:
+      operation: list  # Options: 'list', 'extract', 'upsert'
+      output_file: datasets/tooling/CustomFulfillmentScopeCnfg.json  # Used by extract
       input_file: null  # Required for upsert; JSON array of records
       key_field: DeveloperName
       api_version: null
@@ -2930,59 +3151,82 @@ flows:
         task: restore_decision_tables
         #when: org_config.scratch
       7:
+        flow: assign_feature_psls
+      8:
+        task: recalculate_permission_set_groups
+        options:
+          api_names: *rlm_psg_api_names
+      9:
+        task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      10:
+        task: recalculate_permission_set_groups
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
+      11:
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
+      12:
+        flow: extend_context_definitions
+      13:
+        task: create_rule_library
+        when: project_config.project__custom__breconfig
+      14:
+        task: create_dro_rule_library
+        when: project_config.project__custom__dro and project_config.project__custom__breconfig
+      15:
+        flow: assign_feature_permission_sets
+
+  assign_feature_psls:
+    group: Revenue Lifecycle Management
+    description: Assign feature-gated permission set licenses after pre-deploy metadata is in place
+    steps:
+      1:
         task: assign_permission_set_licenses
         when: project_config.project__custom__clm
         options:
           api_names: *rlm_clm_psl_api_names
-      8:
+      2:
         task: assign_permission_set_licenses
         when: project_config.project__custom__einstein
         options:
-          api_names: *rlm_ai_psl_api_names  
-      9:
-        task: util_sleep
-        options:
-          seconds: *sleep_default
-      10:
+          api_names: *rlm_ai_psl_api_names
+      3:
         task: assign_permission_set_licenses
+        when: project_config.project__custom__analytics
         options:
-          api_names: EinsteinAnalyticsPlusPsl
-      11:
-        task: recalculate_permission_set_groups
+          api_names:
+            - EinsteinAnalyticsPlusPsl
+      4:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__tso
         options:
-          api_names: *rlm_psg_api_names
-      12:
-        task: assign_permission_set_groups_tolerant
-        options:
-          api_names: *rlm_psg_api_names
-      13:
+          api_names: *rlm_tso_psl_api_names
+
+  assign_feature_permission_sets:
+    group: Revenue Lifecycle Management
+    description: Assign feature-gated permission sets after PSGs are updated
+    steps:
+      1:
         task: assign_permission_sets
         when: project_config.project__custom__tso and project_config.project__custom__psg_debug
         options:
           api_names: *rlm_pcm_ps_api_names
-      14:
-        flow: extend_context_definitions
-      15:
-        task: util_sleep
-        options:
-          seconds: *sleep_default
-      16:
-        task: create_rule_library
-        when: project_config.project__custom__breconfig
-      17:
-        task: util_sleep
-        when: project_config.project__custom__breconfig
-        options:
-          seconds: *sleep_default
-      18:
-        task: create_dro_rule_library
-        when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      19:
+      2:
         task: assign_permission_sets
         when: project_config.project__custom__einstein
         options:
           api_names: *rlm_ai_ps_api_names
-      20:
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])
+        options:
+          api_names: *rlm_ai_ps_enterprise_api_names
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__billing and project_config.project__custom__psg_debug
         options:
@@ -3114,19 +3358,35 @@ flows:
         options:
           api_names: *psg_tso
 
+  upsert_fulfillment_scope_cnfg:
+    group: Revenue Lifecycle Management
+    description: Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
+    steps:
+      1:
+        task: manage_fulfillment_scope_cnfg
+        options:
+          operation: upsert
+          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+
   prepare_dro:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: manage_fulfillment_scope_cnfg
+        when: project_config.project__custom__dro
+        options:
+          operation: upsert
+          input_file: datasets/tooling/CustomFulfillmentScopeCnfg.json
+      2:
         task: insert_qb_dro_data
         when: project_config.project__custom__dro and project_config.project__custom__qb
-      2:
+      3:
         task: insert_q3_dro_data_scratch
         when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      3:
+      4:
         task: insert_q3_dro_data_prod
         when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
-      4:
+      5:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro
 
@@ -3177,31 +3437,49 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
+        task: deploy_post_billing
+        when: project_config.project__custom__billing
+      2:
         task: insert_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
-      2:
+      3:
         task: insert_q3_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
-      3:
+      4:
+        task: create_sequence_policies
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+      5:
         task: activate_flow
         when: project_config.project__custom__billing
         options:
           developer_names: RLM_Order_to_Billing_Schedule_Flow
-      4:
+      6:
         task: activate_default_payment_term
         when: project_config.project__custom__billing
-      5:
+      7:
         task: activate_billing_records
         when: project_config.project__custom__billing
-      6:
-        task: deploy_post_billing
-        when: project_config.project__custom__billing
-      7:
-        task: deploy_billing_id_settings
-        when: project_config.project__custom__billing and project_config.project__custom__qb
       8:
+        task: enable_timeline
+        when: project_config.project__custom__billing_ui
+      9:
+        task: deploy_billing_id_settings
+        when: project_config.project__custom__billing
+      10:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
+      11:
+        task: deploy_post_billing_ui
+        when: project_config.project__custom__billing_ui
+      12:
+        task: assign_permission_sets
+        when: project_config.project__custom__billing_ui
+        options:
+          api_names:
+            - RLM_BillingUI
+      13:
+        task: apply_context_billing_order
+        when: project_config.project__custom__billing and project_config.project__custom__billing_ui
 
   prepare_prm:
     group: Revenue Lifecycle Management
@@ -3390,13 +3668,13 @@ flows:
     steps:
       1:
         task: insert_qb_transactionprocessingtypes_data
-        when: project_config.project__custom__constraints
+        when: project_config.project__custom__constraints and project_config.project__custom__quantumbit
       2:
         task: deploy_post_constraints
         when: project_config.project__custom__constraints
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__tso and project_config.project__custom__constraints
+        when: project_config.project__custom__constraints
         options:
           api_names: *ps_constraints
       4:
@@ -3404,7 +3682,7 @@ flows:
         when: project_config.project__custom__constraints
       5:
         task: enable_constraints_settings
-        when: project_config.project__custom__constraints
+        when: project_config.project__custom__constraints_data
       6:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
@@ -3856,6 +4134,39 @@ flows:
           output_path: unpackaged/post_manufacturing_ux
           manufacturing: true
 
+  capture_ux_drift:
+    group: UX Personalization
+    description: >
+      Retrieves live flexipages from the target org into unpackaged/post_ux/, then
+      diffs them against what the assembler would produce from current templates/.
+      Reports added, removed, modified, and repositioned flexiPageRegions and writes
+      drift_report.json. Does not modify templates/. After reviewing the report,
+      edit templates/ manually then run assemble_and_deploy_ux to deploy.
+    steps:
+      1:
+        task: retrieve_ux_from_org
+      2:
+        task: diff_ux_templates
+
+  apply_ux_drift:
+    group: UX Personalization
+    description: >
+      Writes back org-retrieved flexipages into base templates by reverse-applying
+      active feature patches (new_base = org_state - patches), then re-assembles
+      and diffs to verify zero drift. Run capture_ux_drift first to review drift,
+      then run this flow to update templates/ automatically.
+    steps:
+      1:
+        task: writeback_ux_templates
+        options:
+          dry_run: false
+      2:
+        task: assemble_and_deploy_ux
+        options:
+          deploy: false
+      3:
+        task: diff_ux_templates
+
   prepare_personas:
     group: Revenue Lifecycle Management
     description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas. Not wired into prepare_rlm_org.
@@ -3936,3 +4247,12 @@ flows:
       2:
         task: insert_mfg_configflow_data
         when: project_config.project__custom__mfg_visuals
+
+  stamp_git_commit:
+    group: RLM Administration
+    description: Stamp the git commit hash into the org
+    steps:
+      1:
+        task: stamp_git_commit
+        options:
+          flow_name: prepare_rlm_org
