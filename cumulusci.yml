@@ -1218,6 +1218,41 @@ tasks:
                 replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
                 api: rest
 
+  deploy_billing_id_settings_mfg:
+    description: Deploy Billing Settings with org-specific record IDs for Manufacturing orgs (TaxTreatment query uses MFG naming convention)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Manufacturing
+    options:
+      path: unpackaged/post_billing_id_settings
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //BillingSettings/defaultBillingTreatment[text()="__DEFAULT_BILLING_TREATMENT_ID__"]
+                replace_record_id_query: SELECT Id FROM BillingTreatment WHERE Name = 'Billing Treatment - USA - Advance' AND Status = 'Active' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultLegalEntity[text()="__DEFAULT_LEGAL_ENTITY_ID__"]
+                replace_record_id_query: SELECT Id FROM LegalEntity WHERE Name = 'Default Legal Entity - US' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/defaultTaxTreatment[text()="__DEFAULT_TAX_TREATMENT_ID__"]
+                replace_record_id_query: SELECT Id FROM TaxTreatment WHERE Name = 'Default Tax Treatment - US' AND Status = 'Active' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/acctRecGlAccount[text()="__ACCT_REC_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '1100' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/realisedGainGlAccount[text()="__REALISED_GAIN_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4610' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/realisedLossGlAccount[text()="__REALISED_LOSS_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8510' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/unrealisedGainGlAccount[text()="__UNREALISED_GAIN_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '4600' LIMIT 1
+                api: rest
+              - xpath: //BillingSettings/unrealisedLossGlAccount[text()="__UNREALISED_LOSS_GL_ACCOUNT_ID__"]
+                replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
+                api: rest
+
   deploy_billing_template_settings:
     description: Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -3464,7 +3499,7 @@ flows:
         when: project_config.project__custom__billing_ui
       9:
         task: deploy_billing_id_settings
-        when: project_config.project__custom__billing
+        when: project_config.project__custom__billing and not project_config.project__custom__manufacturing
       10:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
@@ -3922,9 +3957,12 @@ flows:
         task: activate_billing_records
         when: project_config.project__custom__billing
       5:
-        task: deploy_post_billing
+        task: deploy_billing_id_settings_mfg
         when: project_config.project__custom__billing
       6:
+        task: deploy_post_billing
+        when: project_config.project__custom__billing
+      7:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
 
