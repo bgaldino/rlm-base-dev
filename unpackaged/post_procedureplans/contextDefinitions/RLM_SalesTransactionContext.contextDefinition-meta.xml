@@ -1401,6 +1401,14 @@
                     <contextAttribute>ItemProductFamily__c</contextAttribute>
                     <contextInputAttributeName>ItemProductFamily__c</contextInputAttributeName>
                 </contextAttributeMappings>
+                <contextAttributeMappings>
+                    <contextAttrHydrationDetails>
+                        <objectName>QuoteLineItem</objectName>
+                        <queryAttribute>PricingTerm</queryAttribute>
+                    </contextAttrHydrationDetails>
+                    <contextAttribute>PricingTerm</contextAttribute>
+                    <contextInputAttributeName>PricingTerm</contextInputAttributeName>
+                </contextAttributeMappings>
                 <contextNode>SalesTransactionItem</contextNode>
                 <inheritedFrom>SalesTransactionContext__stdctx/version/QuoteEntitiesMapping/SalesTransactionItem</inheritedFrom>
                 <object>QuoteLineItem</object>

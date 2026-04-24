@@ -1048,7 +1048,7 @@ global with sharing class RLM_AssetStatePeriodSignalingHook implements RevSignal
         row.sellingModelType = parseContextString(tags, 'SellingModelType');
         row.transactionActionType = parseContextString(tags, 'SalesTransactionActionType');
         row.pricingTermUnit = parseContextString(tags, 'PricingTermUnit');
-        row.pricingTerm = parseContextDecimal(tags, 'ItemSubscriptionTerm');
+        row.pricingTerm = parseContextDecimal(tags, 'PricingTerm');
         row.pricingTermCount = parseContextDecimal(tags, 'PricingTermCount');
         row.netTotalPrice = parseContextDecimal(tags, 'ItemNetTotalPrice');
         row.startQuantity = parseContextDecimal(tags, 'ItemStartQuantity');
