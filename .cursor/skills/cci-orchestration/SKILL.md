@@ -404,6 +404,7 @@ cci flow info prepare_rlm_org
 ## Related Skills
 
 - **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
+- **Build Harness** — `.cursor/skills/build-harness/SKILL.md`
 - **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
