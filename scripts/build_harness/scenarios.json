@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "matrix_name": "dev-ent-core",
+  "description": "Core profiling matrix focused on dev/ent org shapes with current cumulusci.yml defaults.",
+  "scenarios": [
+    {
+      "scenario_id": "dev-default",
+      "org_shape": "dev",
+      "org_alias_prefix": "harness-dev-default",
+      "days": 1,
+      "flag_overrides": {},
+      "notes": "Baseline dev shape using current project.custom defaults from cumulusci.yml."
+    },
+    {
+      "scenario_id": "ent-default",
+      "org_shape": "ent",
+      "org_alias_prefix": "harness-ent-default",
+      "days": 1,
+      "flag_overrides": {},
+      "notes": "Baseline enterprise shape using current project.custom defaults from cumulusci.yml."
+    },
+    {
+      "scenario_id": "dev-lightweight",
+      "org_shape": "dev",
+      "org_alias_prefix": "harness-dev-light",
+      "days": 1,
+      "flag_overrides": {
+        "ux": false,
+        "constraints_data": false,
+        "docgen": false,
+        "prm": false,
+        "analytics": false
+      },
+      "notes": "Lower-cost profile for identifying high-duration optional domains."
+    },
+    {
+      "scenario_id": "ent-lightweight",
+      "org_shape": "ent",
+      "org_alias_prefix": "harness-ent-light",
+      "days": 1,
+      "flag_overrides": {
+        "ux": false,
+        "constraints_data": false,
+        "docgen": false,
+        "prm": false,
+        "analytics": false
+      },
+      "notes": "Enterprise equivalent lightweight profile for dev-vs-ent comparison."
+    }
+  ]
+}
