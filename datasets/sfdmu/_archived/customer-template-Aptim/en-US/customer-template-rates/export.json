@@ -1,0 +1,42 @@
+{
+  "$comment_plan": "Customer-template rates (populate CSVs): demo rate card names (e.g. CD-DEMO Base/Tier), RateCardEntry, RateAdjustmentByTier on Tier only. RABT inserts while parent RCE is Draft (same pass). ProductSellingModel on each RCE must match Standard PricebookEntry for that SKU. Load after rating, then activate_rates. See docs/references/customer-template-rate-card-entry.md and docs/references/customer-template-tier-rate-card-lessons-learned.md.",
+  "$comment_composite_keys": "RateCardEntry uses Insert without deleteOldData to avoid wiping org-wide entries; run delete_customer_demo_rates_data before each load. PriceBookRateCard is Upsert-only (no deleteOldData).",
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
+  "objects": [
+    {
+      "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+      "operation": "Update",
+      "externalId": "StockKeepingUnit",
+      "excluded": false
+    },
+    {
+      "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name;Type",
+      "excluded": false
+    },
+    {
+      "query": "SELECT PriceBookId, PriceBook.Name, RateCardId, RateCard.Name, RateCard.Type, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
+      "operation": "Upsert",
+      "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
+      "excluded": false
+    },
+    {
+      "$comment": "Insert without deleteOldData \u2014 scoped Apex delete runs first (delete_customer_demo_rates_data).",
+      "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.Name, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, ProductSellingModel.SellingModelType, Rate, RateCardId, RateCard.Name, RateCard.Type, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureClass.Name, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, Status, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
+      "operation": "Insert",
+      "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
+      "excluded": false
+    },
+    {
+      "$comment": "Parent RateCardEntry must remain Draft during this insert; activation runs via activate_rates after load. externalId uses relationship paths \u2014 Insert skips v5 Upsert TARGET SELECT bug.",
+      "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, Product.StockKeepingUnit, ProductSellingModelId, RateCardEntryId, RateCardEntry.RateCard.Name, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, UpperBound, UsageResourceId, UsageResource.Code FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
+      "operation": "Insert",
+      "externalId": "Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
+      "excluded": false
+    }
+  ],
+  "orgs": []
+}
