@@ -6,21 +6,80 @@ from typing import Any, Dict, List, Optional
 
 from scripts.build_harness.harness.io import load_json, load_jsonl, now_utc, write_json
 
+# Lines from the stamp_git_commit Apex script look like:
+#   Stamped org: commit=abc1234 (dirty), branch=main, timestamp=2026-04-29T..., flow=prepare_rlm_org, org=beta
+# The keys we care about. Anything outside this set is preserved into
+# ``extra`` so future stamp output additions surface in build_provenance.json
+# without a regex update.
+_STAMP_PREFIX = "Stamped org:"
+_STAMP_KEY_TO_PROVENANCE_FIELD = {
+    "commit": "commit_hash_short",
+    "branch": "branch",
+    "timestamp": "build_timestamp",
+    "flow": "flow_name",
+    "org": "org_definition",
+}
+# Match each ``key=value`` pair where ``value`` extends until the next
+# ``, key=`` boundary or end of line. Order-independent, tolerates extra
+# whitespace, and lets values legitimately contain commas as long as they
+# are not followed by ``\s+key=``.
+_STAMP_KV_PATTERN = re.compile(r"([a-z_]+)\s*=\s*(.+?)(?=,\s+[a-z_]+\s*=|$)")
+
 
 def parse_stamp_line(line: str) -> Optional[Dict[str, Any]]:
-    pattern = re.compile(
-        r"Stamped org: commit=(?P<commit_hash_short>[^\s,]+)"
-        r"(?P<dirty>\s+\(dirty\))?, branch=(?P<branch>[^,]+), "
-        r"timestamp=(?P<build_timestamp>[^,]+), flow=(?P<flow_name>[^,]+), org=(?P<org_definition>.+)$"
-    )
-    match = pattern.search(line.strip())
-    if not match:
+    """Parse a single ``Stamped org: ...`` line into a provenance dict.
+
+    The previous implementation used a single positional regex that required
+    the exact field order ``commit, [dirty?], branch, timestamp, flow, org``.
+    This version walks the payload as ``key=value`` pairs so that:
+
+    - the order of fields can change without breaking the parser,
+    - missing optional fields yield empty strings instead of failing the
+      whole line, and
+    - new fields added by the Apex stamp script appear in ``extra`` rather
+      than silently dropping the entire stamp.
+
+    Returns ``None`` when the line does not start with ``Stamped org:`` or
+    when no ``commit=`` value is present (a stamp line without a commit hash
+    is not useful as provenance).
+    """
+    stripped = line.strip()
+    if not stripped.startswith(_STAMP_PREFIX):
         return None
-    payload = match.groupdict()
-    payload["dirty_tree"] = bool(payload.pop("dirty"))
-    for key in ("branch", "build_timestamp", "flow_name", "org_definition"):
-        payload[key] = payload[key].strip()
-    return payload
+    payload = stripped[len(_STAMP_PREFIX):].lstrip()
+
+    pairs: Dict[str, str] = {}
+    for match in _STAMP_KV_PATTERN.finditer(payload):
+        key = match.group(1).lower()
+        value = match.group(2).strip().rstrip(",").strip()
+        pairs[key] = value
+
+    commit_value = pairs.get("commit")
+    if not commit_value:
+        return None
+
+    dirty = "(dirty)" in commit_value
+    if dirty:
+        commit_value = commit_value.replace("(dirty)", "").strip()
+
+    parsed: Dict[str, Any] = {
+        "commit_hash_short": commit_value,
+        "branch": pairs.get("branch", ""),
+        "build_timestamp": pairs.get("timestamp", ""),
+        "flow_name": pairs.get("flow", ""),
+        "org_definition": pairs.get("org", ""),
+        "dirty_tree": dirty,
+    }
+
+    extra = {
+        key: value
+        for key, value in pairs.items()
+        if key not in _STAMP_KEY_TO_PROVENANCE_FIELD
+    }
+    if extra:
+        parsed["extra"] = extra
+
+    return parsed
 
 
 def parse_stamp_from_lines(lines: List[str]) -> Dict[str, Any]:

@@ -1,0 +1,18 @@
+# Repo-level Python tooling configuration.
+#
+# This file currently only configures pytest discovery for the build harness
+# unit tests. The repo's primary build system is CumulusCI (cumulusci.yml),
+# not Python packaging, so there is no [project] table here on purpose.
+
+[tool.pytest.ini_options]
+# Scope test discovery to the build harness tests. Without this pytest would
+# scan the entire repo (including .harness/, scripts/cml/, etc.) and either
+# pick up unrelated files or fail on syntactically-foreign content.
+testpaths = ["tests/build_harness"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",      # short test summary for non-passing tests
+    "--strict-markers",
+]
