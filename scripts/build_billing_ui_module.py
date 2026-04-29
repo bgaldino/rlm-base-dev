@@ -70,7 +70,7 @@ FLEXIPAGE_MAP = {
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def apply_all_renames(text: str) -> str:
-    """Apply all LWC and Apex rename substitutions to text content."""
+    """Apply LWC/Apex renames and token normalization to text content."""
     # Sort by length desc so longer keys don't get partially replaced first
     for old, new in sorted(LWC_MAP.items(), key=lambda x: -len(x[0])):
         text = text.replace(old, new)
