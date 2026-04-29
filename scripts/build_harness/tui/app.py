@@ -9,8 +9,10 @@ import secrets
 import subprocess
 import threading
 import time
+import traceback
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from textual import events
 from textual.app import App, ComposeResult, SystemCommand
@@ -25,6 +27,7 @@ from scripts.build_harness.tui.widgets.progress_format import format_step_label
 
 SETTINGS_FILE = Path(__file__).with_name("settings.json")
 COMPACT_LAYOUT_WIDTH = 120
+TUI_RUNS_ROOT = REPO_ROOT / ".harness" / "tui-runs"
 
 
 def _validate_alias_and_days(alias: str, days_raw: str) -> Optional[str]:
@@ -97,6 +100,126 @@ def _save_tui_settings(settings: Dict[str, object]) -> Optional[str]:
 def _parse_theme_mode(settings: Dict[str, object]) -> str:
     raw = str(settings.get("theme_mode", "auto")).strip().lower()
     return raw if raw in {"auto", "light", "dark"} else "auto"
+
+
+def _parse_persistent_logging(settings: Dict[str, object]) -> bool:
+    raw = settings.get("persistent_logging", True)
+    if isinstance(raw, bool):
+        return raw
+    normalized = str(raw).strip().lower()
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    return True
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _safe_git_sha() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+class PersistentRunLogger:
+    """Write TUI run artifacts to disk for later comparison/debugging."""
+
+    def __init__(self, config: BuildConfig, settings_snapshot: Dict[str, object]) -> None:
+        self._lock = threading.Lock()
+        self._closed = False
+        self._config = config
+        self._started_at = _utc_now_iso()
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        self.run_id = f"tui-{stamp}-{config.org_alias}"
+        self.run_dir = TUI_RUNS_ROOT / self.run_id
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+
+        self.events_path = self.run_dir / "events.jsonl"
+        self.output_path = self.run_dir / "command-output.log"
+        self.summary_path = self.run_dir / "run_summary.json"
+        self.manifest_path = self.run_dir / "run_manifest.json"
+
+        manifest = {
+            "run_id": self.run_id,
+            "source": "tui",
+            "started_at": self._started_at,
+            "repo_root": str(REPO_ROOT),
+            "git_sha": _safe_git_sha(),
+            "config": {
+                "org_shape": config.org_shape,
+                "org_alias": config.org_alias,
+                "days": config.days,
+                "flag_overrides": dict(config.flag_overrides),
+            },
+            "settings": dict(settings_snapshot),
+        }
+        self.manifest_path.write_text(f"{json.dumps(manifest, indent=2)}\n", encoding="utf-8")
+
+    def record_event(self, event: RunEvent) -> None:
+        payload: Dict[str, Any] = {
+            "timestamp": _utc_now_iso(),
+            "kind": event.kind.value,
+            "payload": event.payload,
+        }
+        with self._lock:
+            if self._closed:
+                return
+            with self.events_path.open("a", encoding="utf-8") as handle:
+                handle.write(f"{json.dumps(payload, sort_keys=True)}\n")
+            if event.kind == RunEventKind.COMMAND_OUTPUT:
+                line = str(event.payload.get("line", ""))
+                if line:
+                    with self.output_path.open("a", encoding="utf-8") as handle:
+                        handle.write(f"{line}\n")
+
+    def finalize(
+        self,
+        *,
+        status: str,
+        total_steps: int,
+        completed_steps: int,
+        elapsed_seconds: float,
+        terminal_payload: Dict[str, object],
+    ) -> None:
+        with self._lock:
+            if self._closed:
+                return
+            summary = {
+                "run_id": self.run_id,
+                "status": status,
+                "started_at": self._started_at,
+                "finished_at": _utc_now_iso(),
+                "config": {
+                    "org_shape": self._config.org_shape,
+                    "org_alias": self._config.org_alias,
+                    "days": self._config.days,
+                    "flag_overrides": dict(self._config.flag_overrides),
+                },
+                "progress": {
+                    "completed_steps": completed_steps,
+                    "total_steps": total_steps,
+                    "elapsed_seconds": round(elapsed_seconds, 3),
+                },
+                "terminal_event_payload": terminal_payload,
+                "artifacts": {
+                    "events": self.events_path.name,
+                    "command_output": self.output_path.name,
+                    "manifest": self.manifest_path.name,
+                },
+            }
+            self.summary_path.write_text(f"{json.dumps(summary, indent=2)}\n", encoding="utf-8")
+            self._closed = True
 
 
 class OrgSelectionScreen(Screen[None]):
@@ -342,12 +465,18 @@ class OutputScreen(Screen[None]):
     def _apply_responsive_layout(self) -> None:
         table = self.query_one("#step-table", DataTable)
         log = self.query_one("#log", RichLog)
+        banner = self.query_one("#run-banner", Static)
         actions = self.query_one("#wizard-actions", Horizontal)
         indicator = self.query_one("#layout-indicator", Static)
         compact = self.app.is_compact_layout()
-        available = max(10, self.app.size.height - 16)
-        table_height = max(4, min(12, available // 3))
-        log_height = max(6, available - table_height)
+        banner_height = 3 if banner.has_class("banner-visible") else 0
+        available = max(8, self.app.size.height - 16 - banner_height)
+        table_height = min(12, max(3, available // 3))
+        log_height = available - table_height
+        if log_height < 3:
+            deficit = 3 - log_height
+            table_height = max(3, table_height - deficit)
+            log_height = available - table_height
         table.styles.height = table_height
         log.styles.height = log_height
         actions.set_class(compact, "wizard-actions-compact")
@@ -446,6 +575,10 @@ class OutputScreen(Screen[None]):
             failure = payload.get("failure_signature", "")
             message = payload.get("message", "Run failed.")
             log.write(f"{message} :: {failure}" if failure else str(message))
+            traceback_text = str(payload.get("traceback", "")).strip()
+            if traceback_text:
+                for line in traceback_text.splitlines():
+                    log.write(line)
             self._show_run_banner("BUILD FAILED", "banner-failed")
             self._set_stop_button_mode(is_running=False)
             return
@@ -481,6 +614,7 @@ class OutputScreen(Screen[None]):
             current.update(
                 f"Current: {format_step_label(int(payload['step_number']), str(payload['target_type']), str(payload['target_name']))}"
             )
+            status.update(self.app.status_label_running())
             return
 
         step_number = int(payload["step_number"])
@@ -543,6 +677,7 @@ class OutputScreen(Screen[None]):
         banner.set_class(style_class == "banner-success", "banner-success")
         banner.set_class(style_class == "banner-failed", "banner-failed")
         banner.set_class(style_class == "banner-cancelled", "banner-cancelled")
+        self._apply_responsive_layout()
 
     def _set_stop_button_mode(self, *, is_running: bool) -> None:
         button = self.query_one("#stop-button", Button)
@@ -952,6 +1087,7 @@ class BuildManagerApp(App[None]):
         self.flag_groups: List[tuple[str, List[str]]] = []
         self.flag_comments: Dict[str, str] = {}
         self.settings: Dict[str, object] = {}
+        self.persistent_logging_enabled: bool = True
         self.theme_mode: str = "auto"
         self.default_org_shape: str = ""
         self.selected_shape: str = ""
@@ -966,14 +1102,18 @@ class BuildManagerApp(App[None]):
         self._run_finished_monotonic: Optional[float] = None
         self._completed_steps = 0
         self._total_steps = 0
+        self._running_step_numbers: set[int] = set()
         self._output_screen: Optional[OutputScreen] = None
+        self._run_logger: Optional[PersistentRunLogger] = None
         self._active_org_alias: str = ""
         self._org_created_in_run = False
+        self._unexpected_runner_exit_reported = False
 
     def on_mount(self) -> None:
         self.settings = _load_tui_settings()
         default_shape_raw = str(self.settings.get("default_org_shape", "")).strip()
         self.theme_mode = _parse_theme_mode(self.settings)
+        self.persistent_logging_enabled = _parse_persistent_logging(self.settings)
         self._apply_theme_mode()
 
         shapes, bool_flags, _, flag_groups, flag_comments = load_tui_config()
@@ -1016,8 +1156,11 @@ class BuildManagerApp(App[None]):
         self._run_finished_monotonic = None
         self._completed_steps = 0
         self._total_steps = 0
+        self._running_step_numbers.clear()
         self._stop_event.clear()
         self._org_created_in_run = False
+        self._unexpected_runner_exit_reported = False
+        self._run_logger = None
 
         config = BuildConfig(
             org_shape=self.selected_shape,
@@ -1025,13 +1168,50 @@ class BuildManagerApp(App[None]):
             days=self.days,
             flag_overrides=dict(self.flag_overrides),
         )
+        if self.persistent_logging_enabled:
+            try:
+                self._run_logger = PersistentRunLogger(config=config, settings_snapshot=self.settings)
+            except Exception as exc:
+                self.notify(f"Failed to initialize persistent run logging: {exc}", severity="warning")
+                self._run_logger = None
+
         output = OutputScreen(config=config)
         self._output_screen = output
         self.push_screen(output)
         self._active_org_alias = config.org_alias
 
+        def _emit(event: RunEvent) -> None:
+            if self._run_logger is not None:
+                try:
+                    self._run_logger.record_event(event)
+                except Exception as exc:
+                    self._event_queue.put(
+                        RunEvent(
+                            kind=RunEventKind.COMMAND_OUTPUT,
+                            payload={
+                                "phase": "logger",
+                                "step_number": -1,
+                                "line": f"[harness] persistent log write failed: {exc}",
+                            },
+                        )
+                    )
+                    self._run_logger = None
+            self._event_queue.put(event)
+
         def _runner() -> None:
-            run_build(config=config, stop_event=self._stop_event, emit=self._event_queue.put)
+            try:
+                run_build(config=config, stop_event=self._stop_event, emit=_emit)
+            except Exception as exc:
+                _emit(
+                    RunEvent(
+                        kind=RunEventKind.RUN_FAILED,
+                        payload={
+                            "message": "Build runner crashed with an unexpected exception.",
+                            "failure_signature": str(exc),
+                            "traceback": traceback.format_exc(),
+                        },
+                    )
+                )
 
         self._runner_thread = threading.Thread(target=_runner, daemon=True)
         self._runner_thread.start()
@@ -1108,13 +1288,16 @@ class BuildManagerApp(App[None]):
         self._output_screen = None
         self._active_org_alias = ""
         self._org_created_in_run = False
+        self._run_logger = None
         self._run_started_monotonic = None
         self._run_finished_monotonic = None
         self._completed_steps = 0
         self._total_steps = 0
+        self._running_step_numbers.clear()
         self.flag_overrides = {}
         self.selected_shape = ""
         self.alias = ""
+        self._unexpected_runner_exit_reported = False
 
         safety_counter = 0
         while not isinstance(self.screen, OrgSelectionScreen) and safety_counter < 10:
@@ -1128,7 +1311,10 @@ class BuildManagerApp(App[None]):
         self._completed_steps = completed_steps
 
     def status_label_running(self) -> str:
-        return f"Running ({self._completed_steps}/{self._total_steps})"
+        running_numerator = self._completed_steps + len(self._running_step_numbers)
+        if self._total_steps > 0:
+            running_numerator = min(running_numerator, self._total_steps)
+        return f"Running ({running_numerator}/{self._total_steps})"
 
     def status_label_success(self) -> str:
         return f"Success ({self._completed_steps}/{self._total_steps})"
@@ -1138,12 +1324,23 @@ class BuildManagerApp(App[None]):
             try:
                 event = self._event_queue.get_nowait()
             except queue.Empty:
+                if self._emit_unexpected_runner_exit_event():
+                    continue
                 return
             if event.kind == RunEventKind.RUN_STARTED:
                 self._run_started_monotonic = time.monotonic()
                 self._run_finished_monotonic = None
                 self._total_steps = int(event.payload.get("total_steps", 0))
                 self._completed_steps = 0
+                self._running_step_numbers.clear()
+            if event.kind == RunEventKind.STEP_STARTED:
+                step_number = int(event.payload.get("step_number", -1))
+                if step_number > 0:
+                    self._running_step_numbers.add(step_number)
+            if event.kind in {RunEventKind.STEP_SKIPPED, RunEventKind.STEP_SUCCEEDED, RunEventKind.STEP_FAILED}:
+                step_number = int(event.payload.get("step_number", -1))
+                if step_number > 0:
+                    self._running_step_numbers.discard(step_number)
             if event.kind == RunEventKind.COMMAND_FINISHED:
                 phase = str(event.payload.get("phase", ""))
                 step_number = int(event.payload.get("step_number", -1))
@@ -1153,6 +1350,12 @@ class BuildManagerApp(App[None]):
             if event.kind in {RunEventKind.RUN_SUCCEEDED, RunEventKind.RUN_FAILED, RunEventKind.RUN_CANCELLED}:
                 if self._run_finished_monotonic is None:
                     self._run_finished_monotonic = time.monotonic()
+                status = {
+                    RunEventKind.RUN_SUCCEEDED: "success",
+                    RunEventKind.RUN_FAILED: "failed",
+                    RunEventKind.RUN_CANCELLED: "cancelled",
+                }[event.kind]
+                self._finalize_run_logger(status=status, terminal_payload=event.payload)
                 if event.kind == RunEventKind.RUN_FAILED and self._org_created_in_run and self._active_org_alias:
                     alias = self._active_org_alias
                     self.notify(f"Build failed. Cleaning up scratch org '{alias}'...", severity="warning")
@@ -1161,6 +1364,43 @@ class BuildManagerApp(App[None]):
                 self._org_created_in_run = False
             if self._output_screen is not None:
                 self._output_screen.handle_event(event)
+
+    def _emit_unexpected_runner_exit_event(self) -> bool:
+        if self._unexpected_runner_exit_reported:
+            return False
+        if self._runner_thread is None or self._runner_thread.is_alive():
+            return False
+        if self._run_started_monotonic is None or self._run_finished_monotonic is not None:
+            return False
+
+        self._unexpected_runner_exit_reported = True
+        self._event_queue.put(
+            RunEvent(
+                kind=RunEventKind.RUN_FAILED,
+                payload={
+                    "message": "Build runner stopped unexpectedly before completion.",
+                    "failure_signature": "runner_thread_exited_without_terminal_event",
+                },
+            )
+        )
+        return True
+
+    def _finalize_run_logger(self, *, status: str, terminal_payload: Dict[str, object]) -> None:
+        if self._run_logger is None:
+            return
+        elapsed = self.elapsed_seconds()
+        try:
+            self._run_logger.finalize(
+                status=status,
+                total_steps=self._total_steps,
+                completed_steps=self._completed_steps,
+                elapsed_seconds=elapsed,
+                terminal_payload=terminal_payload,
+            )
+        except Exception as exc:
+            self.notify(f"Failed to finalize persistent run log: {exc}", severity="warning")
+        finally:
+            self._run_logger = None
 
     def _delete_scratch_org(self, alias: str) -> None:
         try:
