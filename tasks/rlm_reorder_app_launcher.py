@@ -23,7 +23,7 @@ except ImportError:
     BaseTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
-from tasks.robot_utils import check_urllib3_for_robot
+from tasks.robot_utils import check_urllib3_for_robot, resolve_robot_output_dir
 
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/reorder_app_launcher.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
@@ -142,9 +142,13 @@ class ReorderAppLauncher(BaseTask):
         if not suite_path.exists():
             raise FileNotFoundError(f"Robot suite not found: {suite_path}")
 
-        outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR
-        out_path = repo_root / outputdir
-        out_path.mkdir(parents=True, exist_ok=True)
+        out_path = resolve_robot_output_dir(
+            repo_root=repo_root,
+            outputdir_option=self.options.get("outputdir"),
+            default_output_dir=DEFAULT_OUTPUT_DIR,
+            task_slug="reorder_app_launcher",
+            org_name=org_name,
+        )
 
         priority_labels = self.options.get("priority_app_labels") or DEFAULT_PRIORITY_LABELS
 
