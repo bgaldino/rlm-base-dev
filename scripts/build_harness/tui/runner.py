@@ -6,8 +6,9 @@ import subprocess
 import time
 from collections import deque
 from pathlib import Path
+from queue import Empty, Queue
 import re
-from threading import Event
+from threading import Event, Thread
 from typing import Callable, Dict, Iterable, List, Tuple
 
 from scripts.build_harness import harness
@@ -26,7 +27,7 @@ def load_tui_config() -> Tuple[
     Dict[str, str],
 ]:
     """Load org shapes and boolean flags from cumulusci.yml."""
-    cci = harness.load_cci()
+    cci = harness.load_cci(harness.CCI_FILE)
     scratch = cci.get("orgs", {}).get("scratch", {})
     shapes: List[OrgShape] = []
     for shape_name, shape_config in scratch.items():
@@ -66,7 +67,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
         return 2
 
     effective_flags = harness.compose_flags(all_default_flags, config.flag_overrides)
-    prepare_steps = harness.load_prepare_steps(harness.load_cci())
+    prepare_steps = harness.load_prepare_steps(harness.load_cci(harness.CCI_FILE))
     total_steps = len(prepare_steps)
 
     emit(RunEvent(kind=RunEventKind.RUN_STARTED, payload={"total_steps": total_steps}))
@@ -255,26 +256,92 @@ def _run_command(
         }
 
     assert process.stdout is not None
-    for line in process.stdout:
-        line = line.rstrip("\n")
-        tail.append(line)
-        emit(
-            RunEvent(
-                kind=RunEventKind.COMMAND_OUTPUT,
-                payload={
-                    "phase": phase,
-                    "step_number": step_number,
-                    "line": line,
-                },
-            )
-        )
-        if stop_event.is_set():
+    line_queue: "Queue[str]" = Queue()
+    reader_done = Event()
+    force_detached = False
+    last_output_at = time.monotonic()
+
+    def _read_stdout() -> None:
+        try:
+            for raw_line in process.stdout:
+                line_queue.put(raw_line.rstrip("\n"))
+        finally:
+            reader_done.set()
+
+    reader = Thread(target=_read_stdout, daemon=True)
+    reader.start()
+
+    while True:
+        drained_any = False
+        try:
+            while True:
+                line = line_queue.get_nowait()
+                drained_any = True
+                last_output_at = time.monotonic()
+                tail.append(line)
+                emit(
+                    RunEvent(
+                        kind=RunEventKind.COMMAND_OUTPUT,
+                        payload={
+                            "phase": phase,
+                            "step_number": step_number,
+                            "line": line,
+                        },
+                    )
+                )
+        except Empty:
+            pass
+
+        if stop_event.is_set() and process.poll() is None:
             process.terminate()
-            break
+
+        if process.poll() is not None:
+            # Some child process trees can keep stdout open even after the parent exits.
+            # Once we have no more buffered lines, detach from the stream and continue.
+            if reader_done.is_set():
+                break
+            if not drained_any and time.monotonic() - last_output_at > 1.0:
+                force_detached = True
+                emit(
+                    RunEvent(
+                        kind=RunEventKind.COMMAND_OUTPUT,
+                        payload={
+                            "phase": phase,
+                            "step_number": step_number,
+                            "line": "[harness] process exited but stdout remained open; continuing.",
+                        },
+                    )
+                )
+                try:
+                    process.stdout.close()
+                except Exception:
+                    pass
+                break
+        time.sleep(0.05)
 
     process.wait()
+    # Drain any remaining lines queued just before the reader stopped.
+    try:
+        while True:
+            line = line_queue.get_nowait()
+            tail.append(line)
+            emit(
+                RunEvent(
+                    kind=RunEventKind.COMMAND_OUTPUT,
+                    payload={
+                        "phase": phase,
+                        "step_number": step_number,
+                        "line": line,
+                    },
+                )
+            )
+    except Empty:
+        pass
+
     duration = round(time.monotonic() - started, 3)
     signature = _infer_failure_signature(list(tail))
+    if force_detached and int(process.returncode or 0) == 0 and not signature:
+        signature = "process exited with stdout detached"
     result = {
         "duration_seconds": duration,
         "exit_code": int(process.returncode),

@@ -40,12 +40,18 @@ Set `theme_mode` to control the palette:
 - `light`: force Salesforce-inspired light palette
 - `dark`: force Salesforce-inspired dark palette
 
+Set `persistent_logging` to control run artifact capture:
+
+- `true` (default): write each TUI build run to `.harness/tui-runs/<run_id>/`
+- `false`: disable persistent run artifacts (UI log still works)
+
 Example:
 
 ```json
 {
   "default_org_shape": "ent",
-  "theme_mode": "auto"
+  "theme_mode": "auto",
+  "persistent_logging": true
 }
 ```
 

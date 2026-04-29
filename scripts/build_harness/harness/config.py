@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import os
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -123,6 +124,12 @@ def prepare_scenario_project_root(
         destination = project_root / item.name
         if destination.exists() or destination.is_symlink():
             continue
+        if item.name == "scripts" and item.is_dir():
+            # Copy scripts into the temp project so path validation for
+            # file-based task options (e.g. scripts/apex/*.apex) stays inside
+            # the scenario repo_root instead of resolving to the source repo.
+            shutil.copytree(item, destination)
+            continue
         os.symlink(item, destination, target_is_directory=item.is_dir())
 
     cci_override = copy.deepcopy(base_cci)
@@ -131,3 +138,16 @@ def prepare_scenario_project_root(
     with (project_root / "cumulusci.yml").open("w", encoding="utf-8") as handle:
         yaml.safe_dump(cci_override, handle, sort_keys=False)
     return project_root
+
+
+def cleanup_scenario_project_root(project_root: Path) -> Optional[str]:
+    """Remove per-scenario cci_project workspace after a run."""
+    if project_root.name != "cci_project":
+        return f"Refusing to clean unexpected directory: {project_root}"
+    if not project_root.exists():
+        return None
+    try:
+        shutil.rmtree(project_root)
+        return None
+    except OSError as exc:
+        return f"Failed to remove {project_root}: {exc}"

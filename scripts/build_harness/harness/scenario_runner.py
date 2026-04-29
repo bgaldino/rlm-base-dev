@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from config import (
     Step,
     alias_for_scenario,
+    cleanup_scenario_project_root,
     compose_flags,
     evaluate_when,
     prepare_scenario_project_root,
@@ -118,6 +119,7 @@ def run_single_scenario(
 
     retry_budget = 2
     scenario_status = "success"
+    cleanup_workspace = True
     first_failed_step: Optional[int] = None
     first_failed_target: Optional[str] = None
     last_failure_class = "none"
@@ -129,138 +131,161 @@ def run_single_scenario(
         base.update(event)
         append_jsonl(step_results_path, base)
 
-    if not skip_validate and not is_resume:
-        validate_result = run_command(root, ["cci", "task", "run", "validate_setup"], log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
-        record_event(
-            {
-                "phase": "preflight",
-                "step_number": 0,
-                "target_type": "task",
-                "target_name": "validate_setup",
-                "status": "success" if validate_result["exit_code"] == 0 else "failed",
-                "duration_seconds": validate_result["duration_seconds"],
-                "exit_code": validate_result["exit_code"],
-                "failure_signature": validate_result["failure_signature"],
-                "failure_class": validate_result["failure_class"],
-                "retries_used": 0,
-            }
-        )
-        if validate_result["exit_code"] != 0:
-            return {
-                "scenario_id": scenario_id,
-                "status": "failed",
-                "failed_step": 0,
-                "failed_target": "validate_setup",
-                "failure_phase": "preflight",
-                "failure_signature": validate_result["failure_signature"],
-                "failure_class": validate_result["failure_class"],
-                "retry_count": 0,
-                "can_resume": False,
-                "org_alias": org_alias,
-            }
-
-    if not is_resume:
-        create_cmd = ["cci", "org", "scratch", org_shape, org_alias, "--days", str(days)]
-        create_result = run_command(root, create_cmd, log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
-        record_event(
-            {
-                "phase": "org_create",
-                "step_number": 0,
-                "target_type": "org",
-                "target_name": org_shape,
-                "status": "success" if create_result["exit_code"] == 0 else "failed",
-                "duration_seconds": create_result["duration_seconds"],
-                "exit_code": create_result["exit_code"],
-                "failure_signature": create_result["failure_signature"],
-                "failure_class": create_result["failure_class"],
-                "retries_used": 0,
-            }
-        )
-        if create_result["exit_code"] != 0:
-            return {
-                "scenario_id": scenario_id,
-                "status": "failed",
-                "failed_step": 0,
-                "failed_target": f"org_create:{org_shape}",
-                "failure_phase": "org_create",
-                "failure_signature": create_result["failure_signature"],
-                "failure_class": create_result["failure_class"],
-                "retry_count": 0,
-                "can_resume": False,
-                "org_alias": org_alias,
-            }
-    else:
-        if not org_exists(root, org_alias):
-            return {
-                "scenario_id": scenario_id,
-                "status": "resume_blocked",
-                "failed_step": resume_from_step,
-                "failed_target": "org_missing",
-                "failure_phase": "resume",
-                "failure_signature": f"Org alias `{org_alias}` does not exist.",
-                "failure_class": "deterministic",
-                "retry_count": 0,
-                "can_resume": False,
-                "org_alias": org_alias,
-            }
-
-    for step in prepare_steps:
-        if resume_from_step and step.step_number < resume_from_step:
-            continue
-        if not evaluate_when(step.when, flags=flags, org_name=org_shape):
+    try:
+        if not skip_validate and not is_resume:
+            validate_result = run_command(root, ["cci", "task", "run", "validate_setup"], log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
             record_event(
                 {
-                    "phase": "prepare_step",
-                    "step_number": step.step_number,
-                    "target_type": step.target_type,
-                    "target_name": step.target_name,
-                    "status": "skipped",
-                    "duration_seconds": 0,
-                    "exit_code": 0,
-                    "failure_signature": "",
-                    "failure_class": "none",
+                    "phase": "preflight",
+                    "step_number": 0,
+                    "target_type": "task",
+                    "target_name": "validate_setup",
+                    "status": "success" if validate_result["exit_code"] == 0 else "failed",
+                    "duration_seconds": validate_result["duration_seconds"],
+                    "exit_code": validate_result["exit_code"],
+                    "failure_signature": validate_result["failure_signature"],
+                    "failure_class": validate_result["failure_class"],
                     "retries_used": 0,
-                    "when": step.when,
                 }
             )
-            continue
+            if validate_result["exit_code"] != 0:
+                cleanup_workspace = False
+                return {
+                    "scenario_id": scenario_id,
+                    "status": "failed",
+                    "failed_step": 0,
+                    "failed_target": "validate_setup",
+                    "failure_phase": "preflight",
+                    "failure_signature": validate_result["failure_signature"],
+                    "failure_class": validate_result["failure_class"],
+                    "retry_count": 0,
+                    "can_resume": False,
+                    "org_alias": org_alias,
+                }
 
-        base_cmd = ["cci", step.target_type, "run", step.target_name, "--org", org_alias]
-        attempt = 0
-        step_completed = False
-        latest_result: Dict[str, Any] = {}
-        while attempt <= retry_budget:
-            latest_result = run_command(root, base_cmd, log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
-            failure_class = latest_result["failure_class"]
-            if latest_result["exit_code"] == 0:
-                step_completed = True
-                break
-            if failure_class != "transient" or attempt == retry_budget:
-                break
-            backoff = 30 if attempt == 0 else 90
-            total_retries += 1
-            print(f"[{scenario_id}] transient failure at step {step.step_number}, retrying in {backoff}s...")
-            time.sleep(backoff)
-            attempt += 1
+        if not is_resume:
+            create_cmd = ["cci", "org", "scratch", org_shape, org_alias, "--days", str(days)]
+            create_result = run_command(root, create_cmd, log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
+            record_event(
+                {
+                    "phase": "org_create",
+                    "step_number": 0,
+                    "target_type": "org",
+                    "target_name": org_shape,
+                    "status": "success" if create_result["exit_code"] == 0 else "failed",
+                    "duration_seconds": create_result["duration_seconds"],
+                    "exit_code": create_result["exit_code"],
+                    "failure_signature": create_result["failure_signature"],
+                    "failure_class": create_result["failure_class"],
+                    "retries_used": 0,
+                }
+            )
+            if create_result["exit_code"] != 0:
+                cleanup_workspace = False
+                return {
+                    "scenario_id": scenario_id,
+                    "status": "failed",
+                    "failed_step": 0,
+                    "failed_target": f"org_create:{org_shape}",
+                    "failure_phase": "org_create",
+                    "failure_signature": create_result["failure_signature"],
+                    "failure_class": create_result["failure_class"],
+                    "retry_count": 0,
+                    "can_resume": False,
+                    "org_alias": org_alias,
+                }
+        else:
+            if not org_exists(root, org_alias):
+                cleanup_workspace = False
+                return {
+                    "scenario_id": scenario_id,
+                    "status": "resume_blocked",
+                    "failed_step": resume_from_step,
+                    "failed_target": "org_missing",
+                    "failure_phase": "resume",
+                    "failure_signature": f"Org alias `{org_alias}` does not exist.",
+                    "failure_class": "deterministic",
+                    "retry_count": 0,
+                    "can_resume": False,
+                    "org_alias": org_alias,
+                }
 
-        event_payload = {
-            "phase": "prepare_step",
-            "step_number": step.step_number,
-            "target_type": step.target_type,
-            "target_name": step.target_name,
-            "status": "success" if step_completed else "failed",
-            "duration_seconds": latest_result.get("duration_seconds", 0),
-            "exit_code": latest_result.get("exit_code", 1),
-            "failure_signature": latest_result.get("failure_signature", ""),
-            "failure_class": latest_result.get("failure_class", "unknown"),
-            "retries_used": attempt,
-            "when": step.when,
-        }
-        if step.target_name == "stamp_git_commit":
-            event_payload["tail"] = latest_result.get("tail", [])
-        record_event(event_payload)
+        for step in prepare_steps:
+            if resume_from_step and step.step_number < resume_from_step:
+                continue
+            if not evaluate_when(step.when, flags=flags, org_name=org_shape):
+                record_event(
+                    {
+                        "phase": "prepare_step",
+                        "step_number": step.step_number,
+                        "target_type": step.target_type,
+                        "target_name": step.target_name,
+                        "status": "skipped",
+                        "duration_seconds": 0,
+                        "exit_code": 0,
+                        "failure_signature": "",
+                        "failure_class": "none",
+                        "retries_used": 0,
+                        "when": step.when,
+                    }
+                )
+                continue
 
-        if step_completed:
+            base_cmd = ["cci", step.target_type, "run", step.target_name, "--org", org_alias]
+            attempt = 0
+            step_completed = False
+            latest_result: Dict[str, Any] = {}
+            while attempt <= retry_budget:
+                latest_result = run_command(root, base_cmd, log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
+                failure_class = latest_result["failure_class"]
+                if latest_result["exit_code"] == 0:
+                    step_completed = True
+                    break
+                if failure_class != "transient" or attempt == retry_budget:
+                    break
+                backoff = 30 if attempt == 0 else 90
+                total_retries += 1
+                print(f"[{scenario_id}] transient failure at step {step.step_number}, retrying in {backoff}s...")
+                time.sleep(backoff)
+                attempt += 1
+
+            event_payload = {
+                "phase": "prepare_step",
+                "step_number": step.step_number,
+                "target_type": step.target_type,
+                "target_name": step.target_name,
+                "status": "success" if step_completed else "failed",
+                "duration_seconds": latest_result.get("duration_seconds", 0),
+                "exit_code": latest_result.get("exit_code", 1),
+                "failure_signature": latest_result.get("failure_signature", ""),
+                "failure_class": latest_result.get("failure_class", "unknown"),
+                "retries_used": attempt,
+                "when": step.when,
+            }
+            if step.target_name == "stamp_git_commit":
+                event_payload["tail"] = latest_result.get("tail", [])
+            record_event(event_payload)
+
+            if step_completed:
+                write_checkpoint(
+                    checkpoint_path,
+                    {
+                        "scenario_id": scenario_id,
+                        "org_alias": org_alias,
+                        "org_shape": org_shape,
+                        "effective_flags": flags,
+                        "last_successful_step": step.step_number,
+                        "last_successful_target": f"{step.target_type}:{step.target_name}",
+                        "updated_at": now_utc(),
+                    },
+                )
+                continue
+
+            scenario_status = "failed"
+            first_failed_step = step.step_number
+            first_failed_target = f"{step.target_type}:{step.target_name}"
+            last_failure_class = latest_result.get("failure_class", "unknown")
+            last_failure_signature = latest_result.get("failure_signature", "")
             write_checkpoint(
                 checkpoint_path,
                 {
@@ -268,86 +293,89 @@ def run_single_scenario(
                     "org_alias": org_alias,
                     "org_shape": org_shape,
                     "effective_flags": flags,
-                    "last_successful_step": step.step_number,
-                    "last_successful_target": f"{step.target_type}:{step.target_name}",
+                    "last_successful_step": step.step_number - 1,
+                    "failed_step": step.step_number,
+                    "failed_target": first_failed_target,
+                    "failure_signature": last_failure_signature,
                     "updated_at": now_utc(),
                 },
             )
-            continue
+            break
 
-        scenario_status = "failed"
-        first_failed_step = step.step_number
-        first_failed_target = f"{step.target_type}:{step.target_name}"
-        last_failure_class = latest_result.get("failure_class", "unknown")
-        last_failure_signature = latest_result.get("failure_signature", "")
-        write_checkpoint(
-            checkpoint_path,
-            {
-                "scenario_id": scenario_id,
-                "org_alias": org_alias,
-                "org_shape": org_shape,
-                "effective_flags": flags,
-                "last_successful_step": step.step_number - 1,
-                "failed_step": step.step_number,
-                "failed_target": first_failed_target,
-                "failure_signature": last_failure_signature,
-                "updated_at": now_utc(),
-            },
-        )
-        break
+        deleted_org = False
+        if scenario_status == "success" and not keep_orgs:
+            delete_result = run_command(
+                root,
+                ["cci", "org", "scratch_delete", org_alias],
+                log_path,
+                print_prefix=f"[{scenario_id}] ",
+                cwd=project_root,
+            )
+            deleted_org = delete_result["exit_code"] == 0
+            record_event(
+                {
+                    "phase": "cleanup",
+                    "step_number": 999,
+                    "target_type": "org",
+                    "target_name": "scratch_delete",
+                    "status": "success" if delete_result["exit_code"] == 0 else "failed",
+                    "duration_seconds": delete_result["duration_seconds"],
+                    "exit_code": delete_result["exit_code"],
+                    "failure_signature": delete_result["failure_signature"],
+                    "failure_class": delete_result["failure_class"],
+                    "retries_used": 0,
+                }
+            )
 
-    deleted_org = False
-    if scenario_status == "success" and not keep_orgs:
-        delete_result = run_command(
-            root,
-            ["cci", "org", "scratch_delete", org_alias],
-            log_path,
-            print_prefix=f"[{scenario_id}] ",
-            cwd=project_root,
+        can_resume = scenario_status == "failed" and org_exists(root, org_alias)
+        policy = summarize_policy(
+            status=scenario_status,
+            can_resume=can_resume,
+            failure_class=last_failure_class,
+            failed_step=first_failed_step,
+            retry_count=total_retries,
         )
-        deleted_org = delete_result["exit_code"] == 0
-        record_event(
-            {
-                "phase": "cleanup",
-                "step_number": 999,
-                "target_type": "org",
-                "target_name": "scratch_delete",
-                "status": "success" if delete_result["exit_code"] == 0 else "failed",
-                "duration_seconds": delete_result["duration_seconds"],
-                "exit_code": delete_result["exit_code"],
-                "failure_signature": delete_result["failure_signature"],
-                "failure_class": delete_result["failure_class"],
-                "retries_used": 0,
-            }
+        write_build_provenance(
+            run_dir=run_dir,
+            scenario_dir=scenario_dir,
+            scenario_id=scenario_id,
+            org_alias=org_alias,
+            org_shape=org_shape,
+            effective_flags=flags,
         )
-
-    can_resume = scenario_status == "failed" and org_exists(root, org_alias)
-    policy = summarize_policy(
-        status=scenario_status,
-        can_resume=can_resume,
-        failure_class=last_failure_class,
-        failed_step=first_failed_step,
-        retry_count=total_retries,
-    )
-    write_build_provenance(
-        run_dir=run_dir,
-        scenario_dir=scenario_dir,
-        scenario_id=scenario_id,
-        org_alias=org_alias,
-        org_shape=org_shape,
-        effective_flags=flags,
-    )
-    return {
-        "scenario_id": scenario_id,
-        "status": scenario_status,
-        "failed_step": first_failed_step,
-        "failed_target": first_failed_target,
-        "failure_phase": "prepare_step" if scenario_status == "failed" else "none",
-        "failure_signature": last_failure_signature,
-        "failure_class": last_failure_class if scenario_status == "failed" else "none",
-        "retry_count": total_retries,
-        "can_resume": can_resume,
-        "org_alias": org_alias,
-        "org_deleted": deleted_org,
-        "policy": policy,
-    }
+        if scenario_status != "success":
+            cleanup_workspace = False
+        return {
+            "scenario_id": scenario_id,
+            "status": scenario_status,
+            "failed_step": first_failed_step,
+            "failed_target": first_failed_target,
+            "failure_phase": "prepare_step" if scenario_status == "failed" else "none",
+            "failure_signature": last_failure_signature,
+            "failure_class": last_failure_class if scenario_status == "failed" else "none",
+            "retry_count": total_retries,
+            "can_resume": can_resume,
+            "org_alias": org_alias,
+            "org_deleted": deleted_org,
+            "policy": policy,
+        }
+    finally:
+        if cleanup_workspace:
+            cleanup_error = cleanup_scenario_project_root(project_root)
+            if cleanup_error:
+                with log_path.open("a", encoding="utf-8") as handle:
+                    handle.write(f"\n[{scenario_id}] WARNING workspace cleanup failed: {cleanup_error}\n")
+                record_event(
+                    {
+                        "phase": "workspace_cleanup",
+                        "step_number": 1000,
+                        "target_type": "workspace",
+                        "target_name": "remove_cci_project",
+                        "status": "failed",
+                        "duration_seconds": 0,
+                        "exit_code": 1,
+                        "failure_signature": cleanup_error,
+                        "failure_class": "deterministic",
+                        "retries_used": 0,
+                    }
+                )
