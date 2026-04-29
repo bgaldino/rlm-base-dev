@@ -16,7 +16,7 @@ except ImportError:
     BaseTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
-from tasks.robot_utils import check_urllib3_for_robot
+from tasks.robot_utils import check_urllib3_for_robot, resolve_robot_output_dir
 
 # Relative to repo root (project_config.repo_root when running under CCI)
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_document_builder.robot"
@@ -57,9 +57,13 @@ class EnableDocumentBuilderToggle(BaseTask):
         if not suite_path.exists():
             raise FileNotFoundError(f"Robot suite not found: {suite_path}")
 
-        outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR
-        out_path = repo_root / outputdir
-        out_path.mkdir(parents=True, exist_ok=True)
+        out_path = resolve_robot_output_dir(
+            repo_root=repo_root,
+            outputdir_option=self.options.get("outputdir"),
+            default_output_dir=DEFAULT_OUTPUT_DIR,
+            task_slug="enable_document_builder_toggle",
+            org_name=org_name,
+        )
 
         # Use same Python as CCI (e.g. pipx venv) so injected robot package is found
         cmd = [

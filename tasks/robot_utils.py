@@ -1,5 +1,9 @@
 """Shared utilities for CCI tasks that invoke Robot Framework setup tests."""
 
+import re
+from pathlib import Path
+from typing import Optional
+
 try:
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
@@ -51,3 +55,35 @@ def check_urllib3_for_robot(task_name: str = "") -> None:
         msg = _URLLIB3_ROOT_CAUSE.format(ver=ver_str, min_ver=min_ver_str)
         prefix = f"{task_name}: " if task_name else ""
         raise TaskOptionsError(f"{prefix}{msg} {_URLLIB3_FIX}")
+
+
+def _sanitize_path_token(value: str) -> str:
+    """Normalize a value for safe filesystem path usage."""
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-")
+    return cleaned or "unknown"
+
+
+def resolve_robot_output_dir(
+    repo_root: Path,
+    outputdir_option: Optional[str],
+    default_output_dir: str,
+    task_slug: str,
+    org_name: str,
+) -> Path:
+    """Resolve and create the Robot output directory.
+
+    If ``outputdir_option`` is provided, preserve the explicit caller choice.
+    Otherwise, isolate artifacts per task and org to avoid cross-run collisions
+    when multiple Robot wrapper tasks run in parallel.
+    """
+    if outputdir_option:
+        out_path = repo_root / outputdir_option
+    else:
+        out_path = (
+            repo_root
+            / default_output_dir
+            / _sanitize_path_token(task_slug)
+            / _sanitize_path_token(org_name)
+        )
+    out_path.mkdir(parents=True, exist_ok=True)
+    return out_path

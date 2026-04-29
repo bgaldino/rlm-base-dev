@@ -20,7 +20,7 @@ except ImportError:
     BaseTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
-from tasks.robot_utils import check_urllib3_for_robot
+from tasks.robot_utils import check_urllib3_for_robot, resolve_robot_output_dir
 
 # Relative to repo root (project_config.repo_root when running under CCI)
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_analytics.robot"
@@ -66,9 +66,13 @@ class EnableAnalyticsReplication(BaseTask):
                 "cci task run enable_analytics_replication --suite path/to/enable_analytics.robot"
             )
 
-        outputdir = self.options.get("outputdir") or DEFAULT_OUTPUT_DIR
-        out_path = repo_root / outputdir
-        out_path.mkdir(parents=True, exist_ok=True)
+        out_path = resolve_robot_output_dir(
+            repo_root=repo_root,
+            outputdir_option=self.options.get("outputdir"),
+            default_output_dir=DEFAULT_OUTPUT_DIR,
+            task_slug="enable_analytics_replication",
+            org_name=org_name,
+        )
 
         # Use same Python as CCI (e.g. pipx venv) so injected robot package is found
         cmd = [

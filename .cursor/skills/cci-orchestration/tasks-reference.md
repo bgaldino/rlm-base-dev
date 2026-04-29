@@ -1399,7 +1399,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
-- `outputdir`: `robot/rlm-base/results`
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
 
 ---
@@ -1429,7 +1428,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/configure_product_discovery_settings.robot`
-- `outputdir`: `robot/rlm-base/results`
 - `default_catalog`: `QuantumBit Software`
 
 ---
@@ -1443,7 +1441,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/configure_revenue_settings.robot`
-- `outputdir`: `robot/rlm-base/results`
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
 - `usage_rating_procedure`: `RLM Default Rating Discovery Procedure`
 - `create_orders_flow`: `RLM_CreateOrdersFromQuote`
@@ -2037,7 +2034,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/enable_constraints_settings.robot`
-- `outputdir`: `robot/rlm-base/results`
 - `default_transaction_type`: `Advanced Configurator`
 - `asset_context`: `RLM_AssetContext`
 
@@ -2052,7 +2048,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/enable_document_builder.robot`
-- `outputdir`: `robot/rlm-base/results`
 
 ---
 
@@ -2065,7 +2060,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/enable_timeline.robot`
-- `outputdir`: `robot/rlm-base/results`
 
 ---
 
@@ -3223,7 +3217,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/reorder_app_launcher.robot`
-- `outputdir`: `robot/rlm-base/results`
 
 ---
 
@@ -3516,7 +3509,6 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/enable_analytics.robot`
-- `outputdir`: `robot/rlm-base/results`
 
 ---
 

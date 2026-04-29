@@ -1531,7 +1531,6 @@ tasks:
     class_path: tasks.rlm_reorder_app_launcher.ReorderAppLauncher
     options:
       suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
-      outputdir: robot/rlm-base/results
 
   retrieve_ux_from_org:
     group: UX Personalization
@@ -1645,7 +1644,6 @@ tasks:
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
     options:
       suite: robot/rlm-base/tests/setup/enable_analytics.robot
-      outputdir: robot/rlm-base/results
 
   deploy_post_payments:
     description: Deploy Payments Metadata
@@ -2245,7 +2243,6 @@ tasks:
     class_path: tasks.rlm_enable_document_builder_toggle.EnableDocumentBuilderToggle
     options:
       suite: robot/rlm-base/tests/setup/enable_document_builder.robot
-      outputdir: robot/rlm-base/results
 
   enable_timeline:
     group: Revenue Lifecycle Management
@@ -2257,7 +2254,6 @@ tasks:
     class_path: tasks.rlm_enable_timeline.EnableTimeline
     options:
       suite: robot/rlm-base/tests/setup/enable_timeline.robot
-      outputdir: robot/rlm-base/results
 
   enable_constraints_settings:
     group: Revenue Lifecycle Management
@@ -2265,7 +2261,6 @@ tasks:
     class_path: tasks.rlm_enable_constraints_settings.EnableConstraintsSettings
     options:
       suite: robot/rlm-base/tests/setup/enable_constraints_settings.robot
-      outputdir: robot/rlm-base/results
       default_transaction_type: Advanced Configurator
       asset_context: RLM_AssetContext
 
@@ -2290,7 +2285,6 @@ tasks:
     class_path: tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings
     options:
       suite: robot/rlm-base/tests/setup/configure_revenue_settings.robot
-      outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
       usage_rating_procedure: RLM Default Rating Discovery Procedure
       create_orders_flow: RLM_CreateOrdersFromQuote
@@ -2301,7 +2295,6 @@ tasks:
     class_path: tasks.rlm_configure_core_pricing_setup.ConfigureCorePricingSetup
     options:
       suite: robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
-      outputdir: robot/rlm-base/results
       pricing_procedure: RLM Revenue Management Default Pricing Procedure
 
   configure_product_discovery_settings:
@@ -2310,7 +2303,6 @@ tasks:
     class_path: tasks.rlm_configure_product_discovery_settings.ConfigureProductDiscoverySettings
     options:
       suite: robot/rlm-base/tests/setup/configure_product_discovery_settings.robot
-      outputdir: robot/rlm-base/results
       default_catalog: QuantumBit Software
 
   reconfigure_pricing_discovery:
