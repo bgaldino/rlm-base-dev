@@ -11,10 +11,17 @@ import re
 from threading import Event, Thread
 from typing import Callable, Dict, Iterable, List, Tuple
 
-from scripts.build_harness import harness
+from scripts.build_harness.harness.config import (
+    CCI_FILE,
+    ROOT,
+    compose_flags,
+    evaluate_when,
+    load_cci,
+    load_default_flags,
+    load_prepare_steps,
+)
+from scripts.build_harness.harness.failure import infer_failure_signature
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, RunEvent, RunEventKind
-
-ROOT = Path(__file__).resolve().parents[3]
 
 EventSink = Callable[[RunEvent], None]
 
@@ -27,7 +34,7 @@ def load_tui_config() -> Tuple[
     Dict[str, str],
 ]:
     """Load org shapes and boolean flags from cumulusci.yml."""
-    cci = harness.load_cci(harness.CCI_FILE)
+    cci = load_cci(CCI_FILE)
     scratch = cci.get("orgs", {}).get("scratch", {})
     shapes: List[OrgShape] = []
     for shape_name, shape_config in scratch.items():
@@ -43,7 +50,7 @@ def load_tui_config() -> Tuple[
             )
         )
 
-    default_flags_raw = harness.load_default_flags(cci)
+    default_flags_raw = load_default_flags(cci)
     bool_flags = {
         key: value
         for key, value in default_flags_raw.items()
@@ -66,8 +73,8 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
         )
         return 2
 
-    effective_flags = harness.compose_flags(all_default_flags, config.flag_overrides)
-    prepare_steps = harness.load_prepare_steps(harness.load_cci(harness.CCI_FILE))
+    effective_flags = compose_flags(all_default_flags, config.flag_overrides)
+    prepare_steps = load_prepare_steps(load_cci(CCI_FILE))
     total_steps = len(prepare_steps)
 
     emit(RunEvent(kind=RunEventKind.RUN_STARTED, payload={"total_steps": total_steps}))
@@ -108,7 +115,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
             emit(RunEvent(kind=RunEventKind.RUN_CANCELLED, payload={"message": "Run cancelled by user."}))
             return 130
 
-        should_run = harness.evaluate_when(
+        should_run = evaluate_when(
             step.when,
             flags=effective_flags,
             org_name=config.org_shape,
@@ -339,7 +346,7 @@ def _run_command(
         pass
 
     duration = round(time.monotonic() - started, 3)
-    signature = _infer_failure_signature(list(tail))
+    signature = infer_failure_signature(list(tail))
     if force_detached and int(process.returncode or 0) == 0 and not signature:
         signature = "process exited with stdout detached"
     result = {
@@ -363,26 +370,14 @@ def _run_command(
     return result
 
 
-def _infer_failure_signature(lines: List[str]) -> str:
-    if not lines:
-        return ""
-    for candidate in reversed(lines):
-        lowered = candidate.lower()
-        if "cci error --help" in lowered or "debugging errors" in lowered:
-            continue
-        if any(token in lowered for token in ("error", "exception", "failed", "traceback")):
-            return candidate.strip()
-    return lines[-1].strip()
-
-
 def _extract_flag_groups_and_comments(
     bool_flags: Dict[str, bool]
 ) -> Tuple[List[Tuple[str, List[str]]], Dict[str, str]]:
     """Parse `project.custom` comments/order from cumulusci.yml into groups + inline descriptions."""
-    if not harness.CCI_FILE.exists():
+    if not CCI_FILE.exists():
         return [("Flags", list(bool_flags.keys()))], {}
 
-    lines = harness.CCI_FILE.read_text(encoding="utf-8").splitlines()
+    lines = CCI_FILE.read_text(encoding="utf-8").splitlines()
     in_project = False
     in_custom = False
     project_indent = 0

@@ -5,52 +5,15 @@ import subprocess
 import time
 from collections import deque
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
-TRANSIENT_PATTERNS = (
-    "timed out",
-    "timeout",
-    "connection reset",
-    "temporarily unavailable",
-    "503",
-    "502",
-    "429",
-    "service unavailable",
-    "network is unreachable",
-    "name or service not known",
-)
-
-DETERMINISTIC_PATTERNS = (
-    "invalid field",
-    "no such column",
-    "malformed",
-    "yaml",
-    "traceback",
-    "assertionerror",
-    "keyerror",
-    "validation error",
-    "does not exist",
-    "unknown option",
-    "not found",
-)
-
-
-def now_utc() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
+from scripts.build_harness.harness.failure import classify_signature, infer_failure_signature
+from scripts.build_harness.harness.io import now_utc
 
 
 def make_run_id() -> str:
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"run-{stamp}"
-
-
-def classify_signature(text: str) -> str:
-    lowered = text.lower()
-    if any(token in lowered for token in TRANSIENT_PATTERNS):
-        return "transient"
-    if any(token in lowered for token in DETERMINISTIC_PATTERNS):
-        return "deterministic"
-    return "unknown"
 
 
 def run_command(
@@ -85,16 +48,7 @@ def run_command(
 
     duration = round(time.monotonic() - start, 3)
     lines = list(tail)
-    signature_line = ""
-    for candidate in reversed(lines):
-        low = candidate.lower()
-        if "cci error --help" in low or "debugging errors" in low:
-            continue
-        if any(token in low for token in ("error", "exception", "failed", "traceback")):
-            signature_line = candidate.strip()
-            break
-    if not signature_line and lines:
-        signature_line = lines[-1].strip()
+    signature_line = infer_failure_signature(lines)
 
     return {
         "started_at": started_at,

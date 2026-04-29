@@ -17,43 +17,40 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-HARNESS_MODULES = Path(__file__).resolve().parent / "harness"
-if str(HARNESS_MODULES) not in sys.path:
-    sys.path.insert(0, str(HARNESS_MODULES))
+# Bootstrap: make the repo root importable so the absolute imports below
+# resolve when the CLI is invoked as a script (`python scripts/build_harness/
+# harness.py ...`). Script invocation only adds the script's own directory to
+# sys.path, not the repo root, so we add it here.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from config import (
+from scripts.build_harness.harness.config import (
+    CCI_FILE,
+    DEFAULT_OUTPUT_ROOT,
+    DEFAULT_SCENARIOS_FILE,
+    ROOT,
     compose_flags,
-    ensure_dir,
     load_cci,
     load_default_flags,
     load_prepare_steps,
     load_scenarios as extract_scenarios,
     select_scenarios,
 )
-from execution import make_run_id, now_utc
-from provenance import write_all_build_provenance
-from reporting import render_report, write_agent_summary, write_analysis_artifacts
-from scenario_runner import run_single_scenario
+from scripts.build_harness.harness.execution import make_run_id
+from scripts.build_harness.harness.io import ensure_dir, load_json, now_utc, write_json
+from scripts.build_harness.harness.provenance import write_all_build_provenance
+from scripts.build_harness.harness.reporting import (
+    render_report,
+    write_agent_summary,
+    write_analysis_artifacts,
+)
+from scripts.build_harness.harness.scenario_runner import run_single_scenario
 
 EXIT_SUCCESS = 0
 EXIT_BUILD_FAILED = 10
 EXIT_CONFIG_ERROR = 20
 EXIT_RESUME_BLOCKED = 30
-
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCENARIOS_FILE = ROOT / "scripts" / "build_harness" / "scenarios.json"
-DEFAULT_OUTPUT_ROOT = ROOT / ".harness" / "runs"
-CCI_FILE = ROOT / "cumulusci.yml"
-
-def load_json(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
-
-
-def write_json(path: Path, payload: Any) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
 
 
 def load_scenarios_from_file(path: Path) -> List[Dict[str, Any]]:

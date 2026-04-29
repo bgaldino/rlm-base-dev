@@ -1,37 +1,9 @@
 from __future__ import annotations
 
-import datetime as dt
-import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-
-def now_utc() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
-
-
-def load_json(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
-
-
-def load_jsonl(path: Path) -> List[Dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows: List[Dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            rows.append(json.loads(line))
-    return rows
-
-
-def write_json(path: Path, payload: Any) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+from scripts.build_harness.harness.io import load_json, load_jsonl, now_utc, write_json
 
 
 def estimate_optimization_heuristics(target_type: str, target_name: str, avg_seconds: float) -> Dict[str, str]:
