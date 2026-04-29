@@ -486,9 +486,9 @@
         <label>Quote Not Ready</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <allowBack>true</allowBack>
+        <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
-        <allowPause>true</allowPause>
+        <allowPause>false</allowPause>
         <fields>
             <name>S00_Header</name>
             <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px;&quot;&gt;This quote isn&apos;t ready to create orders yet.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Update the quote as described below, save, then run &lt;strong&gt;Create Orders from Quote&lt;/strong&gt; again.&lt;/p&gt;</fieldText>
