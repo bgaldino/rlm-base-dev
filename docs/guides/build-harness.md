@@ -17,9 +17,15 @@ The harness is designed for both human operators and AI agents.
 ## Files
 
 - Runner: `scripts/build_harness/harness.py`
+- Harness modules: `scripts/build_harness/harness/`
 - Scenario matrix: `scripts/build_harness/scenarios.json`
 - TUI package: `scripts/build_harness/tui/`
+- TUI launcher: `./tui-cci`
 - Artifacts root: `.harness/runs/<run_id>/`
+
+`harness.py` is the CLI entrypoint (`run`, `resume`, `report`).
+Execution, config loading, reporting, and provenance logic live under
+`scripts/build_harness/harness/` for easier maintenance.
 
 ## Scenario Model
 
@@ -63,6 +69,9 @@ python scripts/build_harness/harness.py resume --run-id <run_id> --scenario dev-
 python scripts/build_harness/harness.py report --run-id <run_id>
 ```
 
+`report` also (re)writes analysis artifacts and backfills
+`build_provenance.json` for each scenario in that run.
+
 ### JSON output mode (AI-friendly)
 
 ```bash
@@ -76,7 +85,7 @@ python scripts/build_harness/harness.py report --run-id <run_id> --format json
 Fast path from project root:
 
 ```bash
-./run-build-tui.sh
+./tui-cci
 ```
 
 Manual path:
@@ -102,8 +111,20 @@ TUI behavior:
 - Groups and orders flags by `project.custom` comment headers and key order
 - Shows inline per-flag descriptions from `project.custom` inline comments
 - Applies flag changes as runtime-only overrides (no file writes to `cumulusci.yml`)
-- Creates the scratch org and then runs top-level `prepare_rlm_org` steps with live elapsed time, current step, command output, and pass/fail status
-- Supports an optional default selection via `scripts/build_harness/tui/settings.json` (`default_org_shape`)
+- Uses pill-style runtime toggles (`○ OFF` / `ON ●`) for boolean flag overrides
+- Supports optional local settings in `scripts/build_harness/tui/settings.json`:
+  - `default_org_shape`: preselect shape in Step 1
+  - `theme_mode`: `auto`, `light`, or `dark`
+- Supports `Set Default Org` from Command Palette (`Ctrl+P`) to persist the currently highlighted/selected shape
+- Auto-generates alias defaults as `<shape>-<4char>` and retries on alias collisions
+- Creates the scratch org and then runs top-level `prepare_rlm_org` steps with:
+  - live `Total Elapsed` (freezes when run ends)
+  - live per-step duration updates in the table
+  - auto-scroll to newly started step rows
+  - command output and pass/fail status
+  - completion banner on success/failure/cancel
+  - `Stop Build` button while running that switches to `New Build` after completion
+- On run failure, attempts scratch delete only when the org was created in that same run
 
 ## Resume Behavior
 
@@ -138,7 +159,16 @@ Each run writes:
 - `scenarios/<scenario_id>/scenario_manifest.json`
 - `scenarios/<scenario_id>/step_results.jsonl`
 - `scenarios/<scenario_id>/checkpoint.json`
+- `scenarios/<scenario_id>/build_provenance.json`
 - `scenarios/<scenario_id>/scenario.log`
+
+`build_provenance.json` includes:
+
+- run-level provenance (`git_sha`, command, start time)
+- scenario identity (`scenario_id`, `org_alias`, `org_shape`)
+- effective flags snapshot
+- checkpoint summary
+- `stamp_git_commit` event details and parsed stamp output (when present)
 
 `report.md` includes:
 

@@ -29,7 +29,7 @@ Do **not** use this skill when:
 3. For resume, keep scenario id and flags consistent with checkpoint.
 4. For end-user org creation, default to shape `ent`, days `30`, alias auto-generated.
 5. **Before creating the org, ask the user to confirm or override all three defaults** (shape, days, alias).
-6. Remember cleanup defaults: successful run orgs are deleted unless `--keep-orgs`; failed run orgs are kept for resume.
+6. Cleanup semantics differ by entrypoint: harness CLI keeps failed orgs for resume; TUI auto-deletes on failure only if the org was created in the current run.
 
 ## DO NOT
 
@@ -86,6 +86,7 @@ python scripts/build_harness/harness.py report --run-id <run_id> --format json
 - `.harness/runs/<run_id>/report.md`
 - `.harness/runs/<run_id>/agent_summary.md`
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/checkpoint.json`
+- `.harness/runs/<run_id>/scenarios/<scenario_id>/build_provenance.json`
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/scenario.log`
 
 ---
@@ -110,7 +111,7 @@ Suggested prompt:
 ### Step 2: Launch TUI
 
 ```bash
-./run-build-tui.sh
+./tui-cci
 ```
 
 Fallback manual launch:
@@ -130,9 +131,9 @@ scripts/build_harness/tui/.venv/bin/python -m scripts.build_harness.tui
 
 ### Alias auto-generation guidance
 
-If user accepts auto-generated alias, generate a unique, readable alias (<= 60 chars), for example:
+If user accepts auto-generated alias, generate a unique, readable alias (<= 60 chars) with short random suffix, for example:
 
-- `ent-user-20260428-1455`
+- `ent-a3f9`
 
 Always share the generated alias with the user before creation.
 
@@ -141,9 +142,12 @@ Always share the generated alias with the user before creation.
 ## Safety and Cleanup Behavior
 
 - Scratch org deletion is destructive; confirm intent before manual delete actions.
-- Harness default behavior:
+- Harness CLI default behavior:
   - successful run orgs are deleted automatically
   - failed run orgs are kept for resume
+- TUI behavior:
+  - failed runs trigger scratch delete only if the org was created in that same TUI run
+  - alias defaults use `<shape>-<4char>` and retry on collisions
 - Use `--keep-orgs` when you need to retain successful orgs for debugging.
 - Resume is blocked when checkpoint prerequisites are missing or flags changed; perform a full re-run after fixing blockers.
 
