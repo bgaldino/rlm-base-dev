@@ -10,6 +10,16 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from scripts.build_harness.harness.io import ensure_dir
+
+# Repo-root anchored paths shared by both the CLI (`harness.py`) and the TUI
+# runner. Kept here (rather than in the CLI script) so the TUI can import them
+# without depending on the CLI module.
+ROOT = Path(__file__).resolve().parents[3]
+CCI_FILE = ROOT / "cumulusci.yml"
+DEFAULT_SCENARIOS_FILE = ROOT / "scripts" / "build_harness" / "scenarios.json"
+DEFAULT_OUTPUT_ROOT = ROOT / ".harness" / "runs"
+
 
 @dataclass
 class Step:
@@ -17,10 +27,6 @@ class Step:
     target_type: str  # flow or task
     target_name: str
     when: Optional[str]
-
-
-def ensure_dir(path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
 
 
 def load_cci(cci_file: Path) -> Dict[str, Any]:

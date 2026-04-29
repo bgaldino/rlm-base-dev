@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from config import (
+from scripts.build_harness.harness.config import (
     Step,
     alias_for_scenario,
     cleanup_scenario_project_root,
@@ -13,19 +12,9 @@ from config import (
     evaluate_when,
     prepare_scenario_project_root,
 )
-from execution import now_utc, org_exists, run_command
-from provenance import write_build_provenance
-
-
-def write_json(path: Path, payload: Any) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-
-
-def append_jsonl(path: Path, payload: Dict[str, Any]) -> None:
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+from scripts.build_harness.harness.execution import org_exists, run_command
+from scripts.build_harness.harness.io import append_jsonl, now_utc, write_json
+from scripts.build_harness.harness.provenance import write_build_provenance
 
 
 def write_checkpoint(path: Path, payload: Dict[str, Any]) -> None:
