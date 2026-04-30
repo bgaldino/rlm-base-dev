@@ -26,6 +26,10 @@ The harness is designed for both human operators and AI agents.
 `harness.py` is the CLI entrypoint (`run`, `resume`, `report`).
 Execution, config loading, reporting, and provenance logic live under
 `scripts/build_harness/harness/` for easier maintenance.
+Notable shared modules:
+
+- `harness/io.py` — JSON/JSONL/UTC/directory helpers and run pruning helpers
+- `harness/failure.py` — shared transient/deterministic signature classification for CLI + TUI
 
 ## Scenario Model
 
@@ -69,6 +73,19 @@ python scripts/build_harness/harness.py resume --run-id <run_id> --scenario dev-
 python scripts/build_harness/harness.py report --run-id <run_id>
 ```
 
+### Prune old run artifacts (opt-in)
+
+```bash
+python scripts/build_harness/harness.py prune --prune-older-than 7d
+```
+
+Optional prune can also run before `run` or `report`:
+
+```bash
+python scripts/build_harness/harness.py run --prune-older-than 7d
+python scripts/build_harness/harness.py report --run-id <run_id> --prune-older-than 7d
+```
+
 `report` also (re)writes analysis artifacts and backfills
 `build_provenance.json` for each scenario in that run.
 
@@ -90,17 +107,11 @@ Fast path from project root:
 
 Manual path:
 
-Create a scoped TUI virtual environment and install dependency:
+The wrapper creates and reuses a repo-scoped venv at `.harness/tui-venv`.
+Use `--upgrade` to force a dependency refresh:
 
 ```bash
-python -m venv scripts/build_harness/tui/.venv
-scripts/build_harness/tui/.venv/bin/python -m pip install -r scripts/build_harness/tui/requirements.txt
-```
-
-Start the TUI:
-
-```bash
-scripts/build_harness/tui/.venv/bin/python -m scripts.build_harness.tui
+./tui-cci --upgrade
 ```
 
 TUI behavior:
@@ -118,6 +129,7 @@ TUI behavior:
 - Supports `Set Default Org` from Command Palette (`Ctrl+P`) to persist the currently highlighted/selected shape
 - Auto-generates alias defaults as `<shape>-<4char>` and retries on alias collisions
 - Creates the scratch org and then runs top-level `prepare_rlm_org` steps with:
+  - TUI runtime overrides materialized into a per-run `cci_project` so CCI subprocesses evaluate `when:` against the selected overrides
   - live `Total Elapsed` (freezes when run ends)
   - live per-step duration updates in the table
   - auto-scroll to newly started step rows
@@ -125,6 +137,28 @@ TUI behavior:
   - completion banner on success/failure/cancel
   - `Stop Build` button while running that switches to `New Build` after completion
 - On run failure, attempts scratch delete only when the org was created in that same run
+
+## `when:` evaluation semantics
+
+`harness/config.py::evaluate_when` uses a safe AST evaluator for the subset of
+CCI `when:` expressions used by this repo:
+
+- `project_config.project__custom__<flag>`
+- `org_config.scratch`
+- `org_config.name`
+- `and` / `or` / `not` and parentheses
+- `==` / `!=` with string or boolean literals
+
+Unsupported expression forms are treated as `True` (fail-open) to match CCI's
+defensive behavior and avoid silent step skips.
+
+## Tests
+
+Run the harness unit test suite from repo root:
+
+```bash
+.harness/tui-venv/bin/python -m pytest tests/build_harness/
+```
 
 ## Resume Behavior
 

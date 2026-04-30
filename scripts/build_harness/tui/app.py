@@ -20,6 +20,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Label, RichLog, Static
 
+from scripts.build_harness.harness.config import compose_flags
 from scripts.build_harness.tui.runner import ROOT as REPO_ROOT
 from scripts.build_harness.tui.runner import load_tui_config, run_build
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, PrepareStepView, RunEvent, RunEventKind
@@ -161,6 +162,7 @@ class PersistentRunLogger:
                 "org_alias": config.org_alias,
                 "days": config.days,
                 "flag_overrides": dict(config.flag_overrides),
+                "effective_flags": dict(config.effective_flags),
             },
             "settings": dict(settings_snapshot),
         }
@@ -205,6 +207,7 @@ class PersistentRunLogger:
                     "org_alias": self._config.org_alias,
                     "days": self._config.days,
                     "flag_overrides": dict(self._config.flag_overrides),
+                    "effective_flags": dict(self._config.effective_flags),
                 },
                 "progress": {
                     "completed_steps": completed_steps,
@@ -444,7 +447,7 @@ class OutputScreen(Screen[None]):
             yield Static("Current: startup", id="current-step")
             yield DataTable(id="step-table")
             yield RichLog(id="log", wrap=True, highlight=True, markup=False)
-            with Horizontal(id="wizard-actions"):
+            with Horizontal(id="output-actions"):
                 yield Button("Stop Build", id="stop-button", variant="warning")
                 yield Static("", id="layout-indicator")
                 yield Static("", id="actions-spacer")
@@ -466,11 +469,11 @@ class OutputScreen(Screen[None]):
         table = self.query_one("#step-table", DataTable)
         log = self.query_one("#log", RichLog)
         banner = self.query_one("#run-banner", Static)
-        actions = self.query_one("#wizard-actions", Horizontal)
+        actions = self.query_one("#output-actions", Horizontal)
         indicator = self.query_one("#layout-indicator", Static)
         compact = self.app.is_compact_layout()
         banner_height = 3 if banner.has_class("banner-visible") else 0
-        available = max(8, self.app.size.height - 16 - banner_height)
+        available = max(6, self.app.size.height - 20 - banner_height)
         table_height = min(12, max(3, available // 3))
         log_height = available - table_height
         if log_height < 3:
@@ -686,7 +689,7 @@ class OutputScreen(Screen[None]):
             button.disabled = False
             button.set_class(False, "new-build-button")
             return
-        button.label = "New Build"
+        button.label = "Start New Build"
         button.disabled = False
         button.set_class(True, "new-build-button")
 
@@ -842,6 +845,11 @@ class BuildManagerApp(App[None]):
         height: auto;
         margin-top: 1;
     }
+    #output-actions {
+        dock: bottom;
+        height: auto;
+        margin-top: 1;
+    }
     #layout-indicator {
         color: #015ba7;
         text-style: bold;
@@ -851,14 +859,14 @@ class BuildManagerApp(App[None]):
         display: block;
         width: 16;
     }
-    #wizard-actions.wizard-actions-compact {
+    #wizard-actions.wizard-actions-compact, #output-actions.wizard-actions-compact {
         layout: vertical;
     }
-    #wizard-actions.wizard-actions-compact Button {
+    #wizard-actions.wizard-actions-compact Button, #output-actions.wizard-actions-compact Button {
         width: 1fr;
         margin-bottom: 1;
     }
-    #wizard-actions.wizard-actions-compact #actions-spacer {
+    #wizard-actions.wizard-actions-compact #actions-spacer, #output-actions.wizard-actions-compact #actions-spacer {
         display: none;
     }
     #actions-spacer {
@@ -1084,6 +1092,7 @@ class BuildManagerApp(App[None]):
         super().__init__()
         self.org_shapes: List[OrgShape] = []
         self.bool_flags: Dict[str, bool] = {}
+        self.default_flags: Dict[str, object] = {}
         self.flag_groups: List[tuple[str, List[str]]] = []
         self.flag_comments: Dict[str, str] = {}
         self.settings: Dict[str, object] = {}
@@ -1116,9 +1125,10 @@ class BuildManagerApp(App[None]):
         self.persistent_logging_enabled = _parse_persistent_logging(self.settings)
         self._apply_theme_mode()
 
-        shapes, bool_flags, _, flag_groups, flag_comments = load_tui_config()
+        shapes, bool_flags, default_flags, flag_groups, flag_comments = load_tui_config()
         self.org_shapes = shapes
         self.bool_flags = bool_flags
+        self.default_flags = default_flags
         self.flag_groups = flag_groups
         self.flag_comments = flag_comments
         known_shapes = {shape.name for shape in shapes}
@@ -1167,6 +1177,7 @@ class BuildManagerApp(App[None]):
             org_alias=self.alias.strip(),
             days=self.days,
             flag_overrides=dict(self.flag_overrides),
+            effective_flags=compose_flags(self.default_flags, self.flag_overrides),
         )
         if self.persistent_logging_enabled:
             try:

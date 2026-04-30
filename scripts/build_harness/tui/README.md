@@ -13,14 +13,14 @@ Flag overrides are runtime-only and are never written back to `cumulusci.yml`.
 ## Create scoped virtual environment
 
 ```bash
-python -m venv scripts/build_harness/tui/.venv
-scripts/build_harness/tui/.venv/bin/python -m pip install -r scripts/build_harness/tui/requirements.txt
+python -m venv .harness/tui-venv
+.harness/tui-venv/bin/python -m pip install -r scripts/build_harness/tui/requirements.txt
 ```
 
 ## Launch
 
 ```bash
-scripts/build_harness/tui/.venv/bin/python -m scripts.build_harness.tui
+.harness/tui-venv/bin/python -m scripts.build_harness.tui
 ```
 
 Or use the root wrapper:
@@ -69,7 +69,7 @@ the TUI falls back to the first shape in the list.
 
 ## Notes
 
-- The TUI executes `cci` commands from the repository root.
+- The TUI materializes a run-scoped `cci_project` workspace under `.harness/tui-runs/` and executes `cci` commands from that workspace so runtime flag overrides affect CCI `when:` behavior.
 - `prepare_rlm_org` execution uses top-level step parsing and `when` evaluation from the harness runner (`scripts/build_harness/harness.py` and `scripts/build_harness/harness/` modules).
 - Flag groups and inline descriptions are sourced dynamically from `project.custom` comments/order in `cumulusci.yml`.
 - Step 2 pre-fills a valid alias using shape + 4-char random suffix and retries on alias collisions.

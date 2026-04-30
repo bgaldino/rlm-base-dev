@@ -38,7 +38,14 @@ from scripts.build_harness.harness.config import (
     select_scenarios,
 )
 from scripts.build_harness.harness.execution import make_run_id
-from scripts.build_harness.harness.io import ensure_dir, load_json, now_utc, write_json
+from scripts.build_harness.harness.io import (
+    ensure_dir,
+    load_json,
+    now_utc,
+    parse_retention,
+    prune_old_runs,
+    write_json,
+)
 from scripts.build_harness.harness.provenance import write_all_build_provenance
 from scripts.build_harness.harness.reporting import (
     render_report,
@@ -57,7 +64,25 @@ def load_scenarios_from_file(path: Path) -> List[Dict[str, Any]]:
     return extract_scenarios(load_json(path))
 
 
+def _render_pruned_runs(removed: List[Path]) -> None:
+    if not removed:
+        print("[harness] prune requested; no run directories were removed.")
+        return
+    print(f"[harness] pruned {len(removed)} run directorie(s):")
+    for item in removed:
+        print(f"  - {item.name}")
+
+
+def _maybe_prune_runs(raw_retention: Optional[str]) -> None:
+    if not raw_retention:
+        return
+    retention = parse_retention(raw_retention)
+    removed = prune_old_runs(DEFAULT_OUTPUT_ROOT, retention)
+    _render_pruned_runs(removed)
+
+
 def cmd_run(args: argparse.Namespace) -> int:
+    _maybe_prune_runs(args.prune_older_than)
     run_id = args.run_id or make_run_id()
     run_dir = DEFAULT_OUTPUT_ROOT / run_id
     ensure_dir(run_dir)
@@ -221,6 +246,7 @@ def cmd_resume(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    _maybe_prune_runs(args.prune_older_than)
     run_dir = DEFAULT_OUTPUT_ROOT / args.run_id
     summary_path = run_dir / "run_summary.json"
     if not summary_path.exists():
@@ -244,6 +270,21 @@ def cmd_report(args: argparse.Namespace) -> int:
     return EXIT_SUCCESS
 
 
+def cmd_prune(args: argparse.Namespace) -> int:
+    retention = parse_retention(args.prune_older_than)
+    removed = prune_old_runs(DEFAULT_OUTPUT_ROOT, retention)
+    _render_pruned_runs(removed)
+    payload = {
+        "output_root": str(DEFAULT_OUTPUT_ROOT),
+        "retention": args.prune_older_than,
+        "removed_count": len(removed),
+        "removed": [item.name for item in removed],
+    }
+    if args.format == "json":
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    return EXIT_SUCCESS
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build profiling harness for dev/ent org shapes.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -262,6 +303,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--skip-validate", action="store_true", help="Skip validate_setup preflight.")
     run.add_argument("--keep-orgs", action="store_true", help="Keep orgs after success (default is delete on success).")
+    run.add_argument(
+        "--prune-older-than",
+        help="Optional retention window for pruning old .harness/runs dirs (e.g. 7d, 24h).",
+    )
     run.add_argument("--format", choices=("markdown", "json"), default="markdown")
     run.set_defaults(func=cmd_run)
 
@@ -279,8 +324,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="Render report for a completed run id.")
     report.add_argument("--run-id", required=True, help="Existing run id.")
+    report.add_argument(
+        "--prune-older-than",
+        help="Optional retention window for pruning old .harness/runs dirs (e.g. 7d, 24h).",
+    )
     report.add_argument("--format", choices=("markdown", "json"), default="markdown")
     report.set_defaults(func=cmd_report)
+
+    prune = sub.add_parser("prune", help="Delete old run directories under .harness/runs.")
+    prune.add_argument(
+        "--prune-older-than",
+        default="7d",
+        help="Retention window (default: 7d). Use values like 7d, 24h, 30m.",
+    )
+    prune.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    prune.set_defaults(func=cmd_prune)
 
     return parser
 
