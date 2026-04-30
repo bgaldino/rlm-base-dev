@@ -148,6 +148,7 @@ project:
 
     # ── Deployment Options ─────────────────────────────────────────────────────
     sharingsettings: false    # Sharing Settings
+    psg_debug: false          # Debug: assign individual PCM/Billing permission sets (normally handled by PSGs)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -528,8 +529,6 @@ project:
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
-    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
-    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
     quantumbit_constraints_data_dir: &quantumbit_constraints_data_dir "datasets/constraints/qb/QuantumBitComplete"  # CML constraint model data (CSVs + blob)
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
@@ -1638,20 +1637,6 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: "datasets/sfdmu/scratch_data"
-
-  insert_qb_constraints_product_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Constraints Product Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_constraints_product_dataset
-
-  insert_qb_constraints_component_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Constraints Product Related Component Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_constraints_component_dataset
 
   # --- CML Constraint Model Tasks ---
   export_cml:
@@ -3053,28 +3038,28 @@ flows:
         when: project_config.project__custom__constraints
       5:
         task: enable_constraints_settings
-        when: project_config.project__custom__constraints_data
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data
       6:
         task: validate_cml
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           cml_dir: scripts/cml
           data_dir: *quantumbit_constraints_data_dir
       7:
         task: import_cml
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           data_dir: *quantumbit_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
       8:
         task: import_cml
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           data_dir: *server2_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
       9:
         task: manage_expression_sets
-        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        when: project_config.project__custom__constraints and project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           operation: activate_versions
           version_full_names: "QuantumBitComplete_V1,Server2_V1"
