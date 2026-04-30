@@ -27,6 +27,8 @@ docker compose build
 ./docker/docker-verify.sh --quick
 ```
 
+Each `./docker-cci.sh ...` invocation now creates an isolated run context under `.docker/runs/<run-id>/` with run-scoped auth state and Docker Compose project naming.
+
 ## Fresh Environment Setup (Step-by-Step)
 
 Use this sequence on a brand-new machine:
@@ -66,7 +68,7 @@ Use this sequence on a brand-new machine:
    DOCKER_NETWORK_MODE=bridge
    ```
 
-   `DOCKER_DEVHUB_ALIAS` is optional. If unset, Docker auto-uses `dockerDevHub`.
+  `DOCKER_DEVHUB_ALIAS` is optional. If unset, `docker-cci.sh` auto-generates a run-scoped alias (for example `dockerDevHub-run-20260430...`) to prevent cross-run collisions.
 
 5. Build and verify Docker runtime:
 
@@ -91,6 +93,14 @@ Docker uses isolated local state directories:
 - `.docker/state/sf -> /root/.sf`
 - `.docker/state/sfdx -> /root/.sfdx`
 - repo workspace -> `/workspace`
+
+For parallel-safe one-off runs, `docker-cci.sh` now defaults to:
+
+- run root: `.docker/runs/<run-id>/`
+- state root: `.docker/runs/<run-id>/state/`
+- compose project: `<repo>-<run-id>`
+
+This keeps auth/keychain state isolated per invocation while still supporting simple one-off usage.
 
 Docker uses `CUMULUSCI_KEYCHAIN_CLASS=EnvironmentProjectKeychain` and reads org auth from environment variables.
 `SFDX_AUTH_URL` is required and is the only supported auth bootstrap path for Docker.
@@ -133,6 +143,7 @@ To prevent recurrence, Docker auth/config state is now isolated under repository
 - `.docker/state/cumulusci`
 
 No host `~/.sf` or `~/.sfdx` bind-mount is used in local Docker runs.
+The Docker scripts now actively reject compose files that introduce host auth mounts (`~/.sf`, `~/.sfdx`, `~/.cumulusci`) to prevent regressions.
 
 ### Operational Guidance
 
@@ -161,6 +172,27 @@ Safety behavior:
 - Uses secure temp files for `sfdxAuthUrl` and deletes them automatically.
 
 This is critical to avoid accidental mutation of existing host authorizations.
+
+## Parallel One-Off Builds
+
+Default behavior already isolates each invocation:
+
+```bash
+./docker-cci.sh cci flow run prepare_rlm_org --org dev-org-a
+./docker-cci.sh cci flow run prepare_rlm_org --org dev-org-b
+```
+
+Optional overrides:
+
+```bash
+# Pin run identity for traceability
+DOCKER_RUN_ID=my-run-a ./docker-cci.sh cci org list
+
+# Pin compose project/state root manually
+DOCKER_COMPOSE_PROJECT=rlm-docker-a \
+DOCKER_STATE_ROOT=./.docker/runs/manual-a/state \
+./docker-cci.sh sf org list
+```
 
 ## Secrets Handling (Do Not Commit)
 
@@ -237,7 +269,7 @@ Use this pattern in Docker to avoid keychain persistence issues:
   --definition-file orgs/dev.json \
   --alias <DOCKER_SCRATCH_ALIAS> \
   --duration-days 1 \
-  --target-dev-hub dockerDevHub
+  --target-dev-hub <RUN_SCOPED_DOCKER_DEVHUB_ALIAS>
 
 ./docker-cci.sh cci org import <DOCKER_SCRATCH_ALIAS> <DOCKER_SCRATCH_ALIAS>
 ```

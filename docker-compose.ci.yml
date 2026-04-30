@@ -31,8 +31,9 @@ services:
       # These can be added as needed for your CI/CD pipeline
 
     # Optional: Remove volume mounts for fully stateless CI/CD
-    # Uncomment these to prevent any state sharing with host:
+    # Uncomment these to prevent any state sharing with host/workspace:
     # volumes: []
+    # Never mount host ~/.sf, ~/.sfdx, or ~/.cumulusci here; that can cause AuthDecryptError.
 
     # Optional: Override network mode if needed for CI environments
     # network_mode: bridge

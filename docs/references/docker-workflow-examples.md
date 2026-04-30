@@ -8,6 +8,8 @@
 ./docker-cci.sh bash -lc "robot --version || true"
 ```
 
+Each command runs in its own isolated Docker context (`.docker/runs/<run-id>/state`) by default.
+
 ## Scratch Org In Container, Use On Host
 
 ```bash
@@ -16,7 +18,7 @@
   --definition-file orgs/dev.json \
   --alias <DOCKER_ORG_ALIAS> \
   --duration-days 1 \
-  --target-dev-hub dockerDevHub
+  --target-dev-hub <RUN_SCOPED_DOCKER_DEVHUB_ALIAS>
 ./docker-cci.sh cci org import <DOCKER_ORG_ALIAS> <DOCKER_ORG_ALIAS>
 ./docker-cci.sh cci flow run <FLOW_NAME> --org <DOCKER_ORG_ALIAS>
 
@@ -36,6 +38,20 @@ Important:
 - Do not use `--set-default` or `--set-default-dev-hub` during host import.
 - Always use new alias/org names to avoid touching existing host auth entries.
 - Treat `sfdxAuthUrl` as a secret; do not store it in committed files.
+
+## Parallel Builds With Explicit Run IDs
+
+```bash
+DOCKER_RUN_ID=parallel-a ./docker-cci.sh cci flow run prepare_rlm_org --org build-a
+DOCKER_RUN_ID=parallel-b ./docker-cci.sh cci flow run prepare_rlm_org --org build-b
+```
+
+Optional explicit compose isolation:
+
+```bash
+DOCKER_COMPOSE_PROJECT=rlm-build-a DOCKER_RUN_ID=build-a ./docker-cci.sh cci org list
+DOCKER_COMPOSE_PROJECT=rlm-build-b DOCKER_RUN_ID=build-b ./docker-cci.sh cci org list
+```
 
 ## Run Robot Tests
 

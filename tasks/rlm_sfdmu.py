@@ -83,7 +83,7 @@ class LoadSFDMUData(SFDXBaseTask):
             "required": True
         },
         "targetusername": {
-            "description": "Username or AccessToken of the account that will be used to upload the data",
+            "description": "Username or alias of the org that will be used to upload the data",
             "required": False
         },
         "instanceurl": {
@@ -323,6 +323,18 @@ class LoadSFDMUData(SFDXBaseTask):
             self.keychain = self.keychain_cls(self.project_config, keychain_key)
             self.project_config.keychain = self.keychain
 
+    def _get_org_for_cli(self) -> str:
+        if isinstance(self.org_config, ScratchOrgConfig):
+            return self.org_config.username
+        org_alias = self.options.get("targetusername") or getattr(self.org_config, "username", None)
+        if not org_alias:
+            raise TaskOptionsError(
+                "No target username/alias available for Salesforce CLI invocation. "
+                "Provide a valid 'targetusername' option or ensure org_config.username is set. "
+                "Falling back to org_config.access_token is not supported for CLI calls."
+            )
+        return org_alias
+
     def _prep_runtime(self) -> None:
         if "org" not in self.options or not self.options["org"]:
             self._load_keychain()
@@ -330,10 +342,7 @@ class LoadSFDMUData(SFDXBaseTask):
         self.pathtoexportjson = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         self._temp_plan_dir = None
 
-        if isinstance(self.org_config, ScratchOrgConfig):
-            self.targetusername = self.org_config.username
-        else:
-            self.targetusername = self.options.get("targetusername") or self.org_config.access_token
+        self.targetusername = self._get_org_for_cli()
 
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
@@ -352,7 +361,7 @@ class LoadSFDMUData(SFDXBaseTask):
             self.logger.info(f'Current Working Directory: {self.options.get("dir")}')
             
             cmd = self._get_command()
-            self.logger.info(f'Executing command: {cmd}')  # Log the command being executed
+            self.logger.info('Executing SFDMU load command.')
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
             
             if result.returncode != 0:
@@ -941,7 +950,7 @@ class ExtractSFDMUData(SFDXBaseTask):
             "required": True
         },
         "sourceusername": {
-            "description": "Username or alias of the org to extract from.  Defaults to the current CCI org.",
+            "description": "Username or alias of the org to extract from. Defaults to the current CCI org.",
             "required": False
         },
         "output_dir": {
@@ -1101,7 +1110,13 @@ class ExtractSFDMUData(SFDXBaseTask):
             if isinstance(self.org_config, ScratchOrgConfig):
                 self.sourceusername = self.org_config.username
             else:
-                self.sourceusername = self.options.get("sourceusername") or self.org_config.access_token
+                self.sourceusername = self.options.get("sourceusername") or getattr(self.org_config, "username", None)
+                if not self.sourceusername:
+                    raise TaskOptionsError(
+                        "No source username/alias available for Salesforce CLI extraction. "
+                        "Provide 'sourceusername' or ensure org_config.username is set. "
+                        "Falling back to org_config.access_token is not supported for CLI calls."
+                    )
 
             self.accesstoken = self.org_config.access_token
             self.instanceurl = self.org_config.instance_url

@@ -4,16 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     image: rlm-base-cci-robot:latest
-    container_name: rlm-base-cci-robot
     env_file:
       - .env
     volumes:
       # Mount your project directory
       - .:/workspace
-      # Isolated Docker auth/config state (prevents host keychain/auth drift)
-      - ./.docker/state/cumulusci:/root/.cumulusci
-      - ./.docker/state/sf:/root/.sf
-      - ./.docker/state/sfdx:/root/.sfdx
+      # Isolated Docker auth/config state (prevents host keychain/auth drift).
+      # The wrapper can override DOCKER_STATE_ROOT to provide per-run isolation.
+      - ${DOCKER_STATE_ROOT:-./.docker/state}/cumulusci:/root/.cumulusci
+      - ${DOCKER_STATE_ROOT:-./.docker/state}/sf:/root/.sf
+      - ${DOCKER_STATE_ROOT:-./.docker/state}/sfdx:/root/.sfdx
     working_dir: /workspace
     environment:
       # CumulusCI settings

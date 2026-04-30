@@ -29,15 +29,19 @@ preflight() {
         exit 1
     fi
 
-    mkdir -p ./.docker/state/cumulusci ./.docker/state/sf ./.docker/state/sfdx
+    init_docker_context "org-sharing-smoke"
+    ensure_no_host_auth_mounts
 }
+
+preflight
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Docker Org Sharing Test${NC}"
 echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}Run ID: ${DOCKER_RUN_ID}${NC}"
+echo -e "${BLUE}Compose project: ${DOCKER_COMPOSE_PROJECT}${NC}"
+echo -e "${BLUE}State root: ${DOCKER_STATE_ROOT}${NC}"
 echo ""
-
-preflight
 
 # Check if SFDX_AUTH_URL is set in .env file
 if [ -f .env ]; then
@@ -82,7 +86,7 @@ else
 fi
 
 # Generate random names to avoid collisions
-TEST_ORG_NAME="test-sharing-$(date +%s)"
+TEST_ORG_NAME="test-sharing-$(date +%s)-$RANDOM"
 HOST_SF_ALIAS="dock-xfer-${TEST_ORG_NAME}"
 HOST_CCI_ORG="dock_xfer_${TEST_ORG_NAME//-/_}"
 
@@ -90,7 +94,7 @@ echo -e "${BLUE}Step 1: Creating test scratch org in container...${NC}"
 echo -e "Org name: ${YELLOW}${TEST_ORG_NAME}${NC}"
 echo ""
 
-if compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; sf org login sfdx-url -f \"\$tmp\" -a \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null; rm -f \"\$tmp\"; sf org create scratch --definition-file orgs/dev.json --alias ${TEST_ORG_NAME} --duration-days 1 --target-dev-hub \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" --json >/dev/null"; then
+if compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; sf org login sfdx-url -f \"\$tmp\" -a \"${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null; rm -f \"\$tmp\"; sf org create scratch --definition-file orgs/dev.json --alias ${TEST_ORG_NAME} --duration-days 1 --target-dev-hub \"${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" --json >/dev/null"; then
     echo ""
     echo -e "${GREEN}✅ Scratch org created successfully in container${NC}"
 else
@@ -110,7 +114,7 @@ if [ "$HOST_CCI_AVAILABLE" = true ]; then
         echo -e "${GREEN}✅ Org transferred safely to host${NC}"
         echo ""
         echo -e "${GREEN}Org details from host:${NC}"
-        cci org info "${HOST_CCI_ORG}" || true
+        run_cci_in_project org info "${HOST_CCI_ORG}" || true
     else
         echo -e "${RED}❌ Safe host transfer failed${NC}"
         echo ""
@@ -133,7 +137,7 @@ echo -e "${BLUE}Step 3: Cleaning up test org...${NC}"
 # Cleanup Docker scratch org.
 if compose_cmd run --rm cci-robot bash -lc "sf org delete scratch --target-org ${TEST_ORG_NAME} --no-prompt >/dev/null"; then
     # Remove only host entities created by this test run.
-    cci org remove "${HOST_CCI_ORG}" >/dev/null 2>&1 || true
+    run_cci_in_project org remove "${HOST_CCI_ORG}" >/dev/null 2>&1 || true
     sf org logout --target-org "${HOST_SF_ALIAS}" --no-prompt >/dev/null 2>&1 || true
     echo -e "${GREEN}✅ Test org cleaned up${NC}"
 else

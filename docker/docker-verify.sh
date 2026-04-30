@@ -36,9 +36,14 @@ EOF
 done
 
 cd "$PROJECT_ROOT"
+init_docker_context "verify"
+ensure_no_host_auth_mounts
 
 print_header "Docker Verification"
 print_info "Mode: ${MODE}"
+print_info "Run ID: ${DOCKER_RUN_ID}"
+print_info "Compose project: ${DOCKER_COMPOSE_PROJECT}"
+print_info "State root: ${DOCKER_STATE_ROOT}"
 echo ""
 
 if ! command -v docker >/dev/null 2>&1; then

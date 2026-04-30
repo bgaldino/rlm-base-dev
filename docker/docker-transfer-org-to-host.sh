@@ -10,6 +10,7 @@ DEFAULT_DOCKER_DEVHUB_ALIAS="dockerDevHub"
 trap 'err_exit $? $LINENO' ERR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=docker/docker-lib.sh
 . "$SCRIPT_DIR/docker-lib.sh"
 
@@ -79,10 +80,15 @@ for cmd in sf cci python3; do
     fi
 done
 
+cd "$PROJECT_ROOT"
+
 if [ ! -f "./docker-cci.sh" ]; then
     echo -e "${RED}Run this script from repository root (docker-cci.sh not found).${NC}" >&2
     exit 1
 fi
+
+init_docker_context "transfer-org-to-host"
+ensure_no_host_auth_mounts
 
 LIST_JSON="$(mktemp)"
 cleanup() {
@@ -148,7 +154,7 @@ AUTH_FILE="$(mktemp)"
 chmod 600 "$ORG_JSON" "$AUTH_FILE"
 
 echo -e "${BLUE}Exporting auth URL from Docker org: ${DOCKER_ALIAS}${NC}"
-compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; org_alias=\"\$1\"; tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; sf org login sfdx-url -f \"\$tmp\" -a \"\${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null; rm -f \"\$tmp\"; sf org display --target-org \"\$org_alias\" --verbose --json" _ "$DOCKER_ALIAS" > "$ORG_JSON"
+compose_cmd run --rm cci-robot bash -lc "set -euo pipefail; org_alias=\"\$1\"; tmp=\$(mktemp); printf \"%s\" \"\$SFDX_AUTH_URL\" > \"\$tmp\"; sf org login sfdx-url -f \"\$tmp\" -a \"${DOCKER_DEVHUB_ALIAS:-${DEFAULT_DOCKER_DEVHUB_ALIAS}}\" -d >/dev/null; rm -f \"\$tmp\"; sf org display --target-org \"\$org_alias\" --verbose --json" _ "$DOCKER_ALIAS" > "$ORG_JSON"
 
 python3 - "$ORG_JSON" "$AUTH_FILE" <<'PY'
 import json
@@ -172,7 +178,7 @@ echo -e "${BLUE}Importing org into host sf alias (no defaults): ${HOST_SF_ALIAS}
 sf org login sfdx-url --sfdx-url-file "$AUTH_FILE" --alias "$HOST_SF_ALIAS"
 
 echo -e "${BLUE}Importing alias into host CCI org: ${HOST_CCI_ORG}${NC}"
-cci org import "$HOST_SF_ALIAS" "$HOST_CCI_ORG"
+run_cci_in_project org import "$HOST_SF_ALIAS" "$HOST_CCI_ORG"
 
 echo -e "${GREEN}Transfer complete.${NC}"
 echo -e "${GREEN}Host sf alias: ${HOST_SF_ALIAS}${NC}"
