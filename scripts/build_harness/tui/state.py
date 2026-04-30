@@ -40,6 +40,7 @@ class BuildConfig:
     org_alias: str
     days: int
     flag_overrides: Dict[str, bool] = field(default_factory=dict)
+    effective_flags: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

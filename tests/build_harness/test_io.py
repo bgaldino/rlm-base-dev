@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 
 import pytest
 
@@ -27,6 +28,8 @@ from scripts.build_harness.harness.io import (
     load_json,
     load_jsonl,
     now_utc,
+    parse_retention,
+    prune_old_runs,
     write_json,
 )
 
@@ -148,3 +151,49 @@ class TestAppendJsonl:
         for row in rows:
             append_jsonl(path, row)
         assert load_jsonl(path) == rows
+
+
+class TestParseRetention:
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("30s", dt.timedelta(seconds=30)),
+            ("15m", dt.timedelta(minutes=15)),
+            ("24h", dt.timedelta(hours=24)),
+            ("7d", dt.timedelta(days=7)),
+            ("2w", dt.timedelta(weeks=2)),
+        ],
+    )
+    def test_valid_units(self, raw: str, expected: dt.timedelta) -> None:
+        assert parse_retention(raw) == expected
+
+    @pytest.mark.parametrize("raw", ["", "abc", "10", "0d", "-1d", "9x"])
+    def test_invalid_values_raise(self, raw: str) -> None:
+        with pytest.raises(ValueError):
+            parse_retention(raw)
+
+
+class TestPruneOldRuns:
+    def test_prunes_only_old_directories(self, tmp_path) -> None:
+        runs = tmp_path / "runs"
+        ensure_dir(runs)
+        old_dir = runs / "run-old"
+        new_dir = runs / "run-new"
+        old_dir.mkdir()
+        new_dir.mkdir()
+        file_entry = runs / "README.txt"
+        file_entry.write_text("ignore", encoding="utf-8")
+
+        now = dt.datetime.now(dt.timezone.utc).timestamp()
+        os.utime(old_dir, (now - 10 * 24 * 60 * 60, now - 10 * 24 * 60 * 60))
+        os.utime(new_dir, (now, now))
+
+        removed = prune_old_runs(runs, dt.timedelta(days=7))
+        assert removed == [old_dir]
+        assert not old_dir.exists()
+        assert new_dir.exists()
+        assert file_entry.exists()
+
+    def test_missing_root_returns_empty(self, tmp_path) -> None:
+        removed = prune_old_runs(tmp_path / "missing-runs", dt.timedelta(days=7))
+        assert removed == []
