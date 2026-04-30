@@ -68,7 +68,7 @@ def _render_pruned_runs(removed: List[Path]) -> None:
     if not removed:
         print("[harness] prune requested; no run directories were removed.")
         return
-    print(f"[harness] pruned {len(removed)} run directorie(s):")
+    print(f"[harness] pruned {len(removed)} run directories:")
     for item in removed:
         print(f"  - {item.name}")
 
@@ -79,6 +79,15 @@ def _maybe_prune_runs(raw_retention: Optional[str]) -> None:
     retention = parse_retention(raw_retention)
     removed = prune_old_runs(DEFAULT_OUTPUT_ROOT, retention)
     _render_pruned_runs(removed)
+
+
+def _attach_analysis_artifacts(summary: Dict[str, Any], analysis: Dict[str, Any]) -> None:
+    summary["analysis_artifacts"] = {
+        "compatibility_summary": "compatibility_summary.json",
+        "dependency_summary": "dependency_summary.json",
+        "optimization_recommendations": "optimization_recommendations.json",
+    }
+    summary["optimization_recommendations"] = analysis.get("optimization_recommendations", {})
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -132,12 +141,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "scenario_results": scenario_results,
     }
     analysis = write_analysis_artifacts(run_dir, summary)
-    summary["analysis_artifacts"] = {
-        "compatibility_summary": "compatibility_summary.json",
-        "dependency_summary": "dependency_summary.json",
-        "optimization_recommendations": "optimization_recommendations.json",
-    }
-    summary["optimization_recommendations"] = analysis.get("optimization_recommendations", {})
+    _attach_analysis_artifacts(summary, analysis)
     write_json(run_dir / "run_summary.json", summary)
     write_agent_summary(run_dir, summary)
     (run_dir / "report.md").write_text(render_report(run_dir, summary), encoding="utf-8")
@@ -223,12 +227,7 @@ def cmd_resume(args: argparse.Namespace) -> int:
     summary["finished_at"] = now_utc()
     summary["status"] = "success" if all(s.get("status") == "success" for s in summary["scenario_results"]) else "failed"
     analysis = write_analysis_artifacts(run_dir, summary)
-    summary["analysis_artifacts"] = {
-        "compatibility_summary": "compatibility_summary.json",
-        "dependency_summary": "dependency_summary.json",
-        "optimization_recommendations": "optimization_recommendations.json",
-    }
-    summary["optimization_recommendations"] = analysis.get("optimization_recommendations", {})
+    _attach_analysis_artifacts(summary, analysis)
     write_json(summary_path, summary)
     write_agent_summary(run_dir, summary)
     (run_dir / "report.md").write_text(render_report(run_dir, summary), encoding="utf-8")
@@ -255,12 +254,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     summary = load_json(summary_path)
     write_all_build_provenance(run_dir, summary)
     analysis = write_analysis_artifacts(run_dir, summary)
-    summary["analysis_artifacts"] = {
-        "compatibility_summary": "compatibility_summary.json",
-        "dependency_summary": "dependency_summary.json",
-        "optimization_recommendations": "optimization_recommendations.json",
-    }
-    summary["optimization_recommendations"] = analysis.get("optimization_recommendations", {})
+    _attach_analysis_artifacts(summary, analysis)
     write_json(summary_path, summary)
     report = render_report(run_dir, summary)
     if args.format == "json":

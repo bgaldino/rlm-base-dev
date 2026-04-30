@@ -17,10 +17,6 @@ from scripts.build_harness.harness.io import append_jsonl, now_utc, write_json
 from scripts.build_harness.harness.provenance import write_build_provenance
 
 
-def write_checkpoint(path: Path, payload: Dict[str, Any]) -> None:
-    write_json(path, payload)
-
-
 def summarize_policy(
     status: str,
     can_resume: bool,
@@ -150,6 +146,11 @@ def run_single_scenario(
                     "retry_count": 0,
                     "can_resume": False,
                     "org_alias": org_alias,
+                    "policy": summarize_policy(
+                        status="failed", can_resume=False,
+                        failure_class=validate_result["failure_class"],
+                        failed_step=0, retry_count=0,
+                    ),
                 }
 
         if not is_resume:
@@ -182,6 +183,54 @@ def run_single_scenario(
                     "retry_count": 0,
                     "can_resume": False,
                     "org_alias": org_alias,
+                    "policy": summarize_policy(
+                        status="failed", can_resume=False,
+                        failure_class=create_result["failure_class"],
+                        failed_step=0, retry_count=0,
+                    ),
+                }
+            materialize_cmd = ["cci", "org", "info", org_alias]
+            materialize_result = run_command(
+                root,
+                materialize_cmd,
+                log_path,
+                print_prefix=f"[{scenario_id}] ",
+                cwd=project_root,
+            )
+            record_event(
+                {
+                    "phase": "org_materialize",
+                    "step_number": 0,
+                    "target_type": "org",
+                    "target_name": "org_info",
+                    "status": "success" if materialize_result["exit_code"] == 0 else "failed",
+                    "duration_seconds": materialize_result["duration_seconds"],
+                    "exit_code": materialize_result["exit_code"],
+                    "failure_signature": materialize_result["failure_signature"],
+                    "failure_class": materialize_result["failure_class"],
+                    "retries_used": 0,
+                }
+            )
+            if materialize_result["exit_code"] != 0:
+                cleanup_workspace = False
+                return {
+                    "scenario_id": scenario_id,
+                    "status": "failed",
+                    "failed_step": 0,
+                    "failed_target": "org_materialize:org_info",
+                    "failure_phase": "org_materialize",
+                    "failure_signature": materialize_result["failure_signature"],
+                    "failure_class": "deterministic",
+                    "retry_count": 0,
+                    "can_resume": False,
+                    "org_alias": org_alias,
+                    "policy": summarize_policy(
+                        status="failed",
+                        can_resume=False,
+                        failure_class="deterministic",
+                        failed_step=0,
+                        retry_count=0,
+                    ),
                 }
         else:
             if not org_exists(root, org_alias):
@@ -197,6 +246,11 @@ def run_single_scenario(
                     "retry_count": 0,
                     "can_resume": False,
                     "org_alias": org_alias,
+                    "policy": summarize_policy(
+                        status="resume_blocked", can_resume=False,
+                        failure_class="deterministic",
+                        failed_step=resume_from_step, retry_count=0,
+                    ),
                 }
 
         for step in prepare_steps:
@@ -256,7 +310,7 @@ def run_single_scenario(
             record_event(event_payload)
 
             if step_completed:
-                write_checkpoint(
+                write_json(
                     checkpoint_path,
                     {
                         "scenario_id": scenario_id,
@@ -275,7 +329,7 @@ def run_single_scenario(
             first_failed_target = f"{step.target_type}:{step.target_name}"
             last_failure_class = latest_result.get("failure_class", "unknown")
             last_failure_signature = latest_result.get("failure_signature", "")
-            write_checkpoint(
+            write_json(
                 checkpoint_path,
                 {
                     "scenario_id": scenario_id,

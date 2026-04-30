@@ -21,6 +21,8 @@ from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Label, RichLog, Static
 
 from scripts.build_harness.harness.config import compose_flags
+from scripts.build_harness.harness.execution import org_exists
+from scripts.build_harness.harness.io import now_utc
 from scripts.build_harness.tui.runner import ROOT as REPO_ROOT
 from scripts.build_harness.tui.runner import load_tui_config, run_build
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, PrepareStepView, RunEvent, RunEventKind
@@ -65,17 +67,10 @@ def _generate_default_alias(shape_name: str) -> str:
 def _alias_exists(alias: str) -> bool:
     """Check if CCI already has this org alias registered."""
     try:
-        result = subprocess.run(
-            ["cci", "org", "info", alias],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
+        return org_exists(REPO_ROOT, alias)
     except Exception:
         # If we cannot validate, avoid blocking alias generation.
         return False
-    return result.returncode == 0
 
 
 def _load_tui_settings() -> Dict[str, object]:
@@ -103,8 +98,8 @@ def _parse_theme_mode(settings: Dict[str, object]) -> str:
     return raw if raw in {"auto", "light", "dark"} else "auto"
 
 
-def _parse_persistent_logging(settings: Dict[str, object]) -> bool:
-    raw = settings.get("persistent_logging", True)
+def _parse_bool_setting(settings: Dict[str, object], key: str, default: bool = True) -> bool:
+    raw = settings.get(key, default)
     if isinstance(raw, bool):
         return raw
     normalized = str(raw).strip().lower()
@@ -112,11 +107,7 @@ def _parse_persistent_logging(settings: Dict[str, object]) -> bool:
         return False
     if normalized in {"1", "true", "yes", "on"}:
         return True
-    return True
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return default
 
 
 def _safe_git_sha() -> str:
@@ -136,11 +127,18 @@ def _safe_git_sha() -> str:
 class PersistentRunLogger:
     """Write TUI run artifacts to disk for later comparison/debugging."""
 
-    def __init__(self, config: BuildConfig, settings_snapshot: Dict[str, object]) -> None:
+    def __init__(
+        self,
+        *,
+        config: BuildConfig,
+        settings_snapshot: Dict[str, object],
+        effective_flags: Dict[str, Any],
+    ) -> None:
         self._lock = threading.Lock()
         self._closed = False
         self._config = config
-        self._started_at = _utc_now_iso()
+        self._effective_flags = dict(effective_flags)
+        self._started_at = now_utc()
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         self.run_id = f"tui-{stamp}-{config.org_alias}"
         self.run_dir = TUI_RUNS_ROOT / self.run_id
@@ -162,7 +160,7 @@ class PersistentRunLogger:
                 "org_alias": config.org_alias,
                 "days": config.days,
                 "flag_overrides": dict(config.flag_overrides),
-                "effective_flags": dict(config.effective_flags),
+                "effective_flags": dict(self._effective_flags),
             },
             "settings": dict(settings_snapshot),
         }
@@ -170,7 +168,7 @@ class PersistentRunLogger:
 
     def record_event(self, event: RunEvent) -> None:
         payload: Dict[str, Any] = {
-            "timestamp": _utc_now_iso(),
+            "timestamp": now_utc(),
             "kind": event.kind.value,
             "payload": event.payload,
         }
@@ -201,13 +199,13 @@ class PersistentRunLogger:
                 "run_id": self.run_id,
                 "status": status,
                 "started_at": self._started_at,
-                "finished_at": _utc_now_iso(),
+                "finished_at": now_utc(),
                 "config": {
                     "org_shape": self._config.org_shape,
                     "org_alias": self._config.org_alias,
                     "days": self._config.days,
                     "flag_overrides": dict(self._config.flag_overrides),
-                    "effective_flags": dict(self._config.effective_flags),
+                    "effective_flags": dict(self._effective_flags),
                 },
                 "progress": {
                     "completed_steps": completed_steps,
@@ -442,6 +440,7 @@ class OutputScreen(Screen[None]):
         with Vertical(id="output-panel"):
             yield Static("Step 4 of 4: Build Output", classes="section-title")
             yield Static("Starting...", id="run-status")
+            yield Static(self._format_run_config(self.config), id="run-config")
             yield Static("", id="run-banner")
             yield Static("Total Elapsed: 0.0s", id="elapsed")
             yield Static("Current: startup", id="current-step")
@@ -449,6 +448,7 @@ class OutputScreen(Screen[None]):
             yield RichLog(id="log", wrap=True, highlight=True, markup=False)
             with Horizontal(id="output-actions"):
                 yield Button("Stop Build", id="stop-button", variant="warning")
+                yield Button("Open Org", id="open-org-button")
                 yield Static("", id="layout-indicator")
                 yield Static("", id="actions-spacer")
                 yield Button("Exit", id="exit-button", variant="error")
@@ -500,6 +500,10 @@ class OutputScreen(Screen[None]):
         seconds = int(seconds_total % 60)
         return f"{minutes}m {seconds:02d}s"
 
+    @staticmethod
+    def _format_run_config(config: BuildConfig) -> str:
+        return f"Org Shape: {config.org_shape} | Alias: {config.org_alias} | Days: {config.days}"
+
     def _refresh_running_step_durations(self, *, sampled_now: float) -> None:
         if not self._running_step_started_at or len(self._step_column_keys) < 4:
             return
@@ -529,6 +533,9 @@ class OutputScreen(Screen[None]):
                 self.app.request_stop()
                 return
             self.app.start_new_build_flow()
+            return
+        if event.button.id == "open-org-button":
+            self.app.open_org_in_browser(self.config.org_alias)
             return
 
     def handle_event(self, event: RunEvent) -> None:
@@ -684,6 +691,8 @@ class OutputScreen(Screen[None]):
 
     def _set_stop_button_mode(self, *, is_running: bool) -> None:
         button = self.query_one("#stop-button", Button)
+        open_org_button = self.query_one("#open-org-button", Button)
+        open_org_button.disabled = is_running
         if is_running:
             button.label = "Stop Build"
             button.disabled = False
@@ -1097,6 +1106,7 @@ class BuildManagerApp(App[None]):
         self.flag_comments: Dict[str, str] = {}
         self.settings: Dict[str, object] = {}
         self.persistent_logging_enabled: bool = True
+        self.delete_org_on_failure: bool = True
         self.theme_mode: str = "auto"
         self.default_org_shape: str = ""
         self.selected_shape: str = ""
@@ -1122,7 +1132,8 @@ class BuildManagerApp(App[None]):
         self.settings = _load_tui_settings()
         default_shape_raw = str(self.settings.get("default_org_shape", "")).strip()
         self.theme_mode = _parse_theme_mode(self.settings)
-        self.persistent_logging_enabled = _parse_persistent_logging(self.settings)
+        self.persistent_logging_enabled = _parse_bool_setting(self.settings, "persistent_logging", True)
+        self.delete_org_on_failure = _parse_bool_setting(self.settings, "delete_org_on_failure", True)
         self._apply_theme_mode()
 
         shapes, bool_flags, default_flags, flag_groups, flag_comments = load_tui_config()
@@ -1177,11 +1188,15 @@ class BuildManagerApp(App[None]):
             org_alias=self.alias.strip(),
             days=self.days,
             flag_overrides=dict(self.flag_overrides),
-            effective_flags=compose_flags(self.default_flags, self.flag_overrides),
         )
+        effective_flags = compose_flags(self.default_flags, self.flag_overrides)
         if self.persistent_logging_enabled:
             try:
-                self._run_logger = PersistentRunLogger(config=config, settings_snapshot=self.settings)
+                self._run_logger = PersistentRunLogger(
+                    config=config,
+                    settings_snapshot=self.settings,
+                    effective_flags=effective_flags,
+                )
             except Exception as exc:
                 self.notify(f"Failed to initialize persistent run logging: {exc}", severity="warning")
                 self._run_logger = None
@@ -1369,8 +1384,11 @@ class BuildManagerApp(App[None]):
                 self._finalize_run_logger(status=status, terminal_payload=event.payload)
                 if event.kind == RunEventKind.RUN_FAILED and self._org_created_in_run and self._active_org_alias:
                     alias = self._active_org_alias
-                    self.notify(f"Build failed. Cleaning up scratch org '{alias}'...", severity="warning")
-                    self._delete_scratch_org(alias)
+                    if self.delete_org_on_failure:
+                        self.notify(f"Build failed. Cleaning up scratch org '{alias}'...", severity="warning")
+                        self._delete_scratch_org(alias)
+                    else:
+                        self.notify(f"Build failed. Scratch org '{alias}' preserved for inspection.", severity="warning")
                 self._active_org_alias = ""
                 self._org_created_in_run = False
             if self._output_screen is not None:
@@ -1433,6 +1451,34 @@ class BuildManagerApp(App[None]):
         lines = [line.strip() for line in combined.splitlines() if line.strip()]
         tail = lines[-1] if lines else ""
         message = f"scratch_delete failed for '{alias}'"
+        if tail:
+            message = f"{message}: {tail}"
+        self.notify(message, severity="warning")
+
+    def open_org_in_browser(self, alias: str) -> None:
+        alias = alias.strip()
+        if not alias:
+            self.notify("No org alias available to open.", severity="warning")
+            return
+        try:
+            result = subprocess.run(
+                ["cci", "org", "browser", alias],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+            )
+        except Exception as exc:  # pragma: no cover
+            self.notify(f"Failed to run org browser for {alias}: {exc}", severity="error")
+            return
+
+        if result.returncode == 0:
+            self.notify(f"Opened org '{alias}' in browser.")
+            return
+
+        combined = (result.stdout or "") + "\n" + (result.stderr or "")
+        lines = [line.strip() for line in combined.splitlines() if line.strip()]
+        tail = lines[-1] if lines else ""
+        message = f"org browser failed for '{alias}'"
         if tail:
             message = f"{message}: {tail}"
         self.notify(message, severity="warning")

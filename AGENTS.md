@@ -31,6 +31,7 @@ datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
+scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
 orgs/                  # Scratch org definition JSON files

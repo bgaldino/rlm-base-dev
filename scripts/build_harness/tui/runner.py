@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import subprocess
 import time
-from collections import deque
 from pathlib import Path
-from queue import Empty, Queue
 import re
-from threading import Event, Thread
+from threading import Event
 from typing import Callable, Dict, Iterable, List, Tuple
 
 from scripts.build_harness.harness.config import (
@@ -23,6 +21,7 @@ from scripts.build_harness.harness.config import (
     prepare_scenario_project_root,
 )
 from scripts.build_harness.harness.failure import infer_failure_signature
+from scripts.build_harness.harness.execution import run_command_stream
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, RunEvent, RunEventKind
 
 EventSink = Callable[[RunEvent], None]
@@ -64,8 +63,9 @@ def load_tui_config() -> Tuple[
 
 def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
     """Run scratch org creation + prepare_rlm_org top-level steps."""
-    shapes, _, all_default_flags, _, _ = load_tui_config()
-    shape_names = {shape.name for shape in shapes}
+    base_cci = load_cci(CCI_FILE)
+    scratch = base_cci.get("orgs", {}).get("scratch", {})
+    shape_names = {name for name, cfg in scratch.items() if isinstance(cfg, dict)}
     if config.org_shape not in shape_names:
         emit(
             RunEvent(
@@ -75,8 +75,8 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
         )
         return 2
 
-    effective_flags = dict(config.effective_flags) or compose_flags(all_default_flags, config.flag_overrides)
-    base_cci = load_cci(CCI_FILE)
+    all_default_flags = load_default_flags(base_cci)
+    effective_flags = compose_flags(all_default_flags, config.flag_overrides)
     prepare_steps = load_prepare_steps(base_cci)
     total_steps = len(prepare_steps)
 
@@ -124,6 +124,57 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
                 )
             )
             return int(create_result["exit_code"])
+
+        materialize_step_payload = {
+            "step_number": 0,
+            "target_type": "org",
+            "target_name": "materialize",
+            "when": None,
+            "completed_steps": 0,
+            "total_steps": total_steps,
+        }
+        emit(RunEvent(kind=RunEventKind.STEP_STARTED, payload=materialize_step_payload))
+        materialize_result = _run_command(
+            ["cci", "org", "info", config.org_alias],
+            stop_event=stop_event,
+            emit=emit,
+            phase="materialize_org",
+            step_number=0,
+            step_label=f"org_info:{config.org_alias}",
+            cwd=project_root,
+        )
+        if materialize_result["exit_code"] != 0:
+            emit(
+                RunEvent(
+                    kind=RunEventKind.STEP_FAILED,
+                    payload={
+                        **materialize_step_payload,
+                        "duration_seconds": materialize_result["duration_seconds"],
+                        "exit_code": materialize_result["exit_code"],
+                        "failure_signature": materialize_result["failure_signature"],
+                    },
+                )
+            )
+            emit(
+                RunEvent(
+                    kind=RunEventKind.RUN_FAILED,
+                    payload={
+                        "message": "Scratch org materialization failed.",
+                        "failure_signature": materialize_result["failure_signature"],
+                        "exit_code": materialize_result["exit_code"],
+                    },
+                )
+            )
+            return int(materialize_result["exit_code"])
+        emit(
+            RunEvent(
+                kind=RunEventKind.STEP_SUCCEEDED,
+                payload={
+                    **materialize_step_payload,
+                    "duration_seconds": materialize_result["duration_seconds"],
+                },
+            )
+        )
 
         completed = 0
         for step in prepare_steps:
@@ -237,8 +288,6 @@ def _run_command(
     step_label: str,
     cwd: Path | None = None,
 ) -> Dict[str, object]:
-    started = time.monotonic()
-    tail = deque(maxlen=250)
     command_list = list(command)
     emit(
         RunEvent(
@@ -252,137 +301,29 @@ def _run_command(
         )
     )
 
-    try:
-        process = subprocess.Popen(
-            command_list,
-            cwd=str(cwd or ROOT),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
-    except FileNotFoundError:
-        signature = f"Command not found: {command_list[0]}"
+    def _emit_line(line: str) -> None:
         emit(
             RunEvent(
                 kind=RunEventKind.COMMAND_OUTPUT,
                 payload={
                     "phase": phase,
                     "step_number": step_number,
-                    "line": signature,
+                    "line": line,
                 },
             )
         )
-        emit(
-            RunEvent(
-                kind=RunEventKind.COMMAND_FINISHED,
-                payload={
-                    "phase": phase,
-                    "step_number": step_number,
-                    "step_label": step_label,
-                    "duration_seconds": 0.0,
-                    "exit_code": 127,
-                    "failure_signature": signature,
-                },
-            )
-        )
-        return {
-            "duration_seconds": 0.0,
-            "exit_code": 127,
-            "failure_signature": signature,
-        }
 
-    assert process.stdout is not None
-    line_queue: "Queue[str]" = Queue()
-    reader_done = Event()
-    force_detached = False
-    last_output_at = time.monotonic()
-
-    def _read_stdout() -> None:
-        try:
-            for raw_line in process.stdout:
-                line_queue.put(raw_line.rstrip("\n"))
-        finally:
-            reader_done.set()
-
-    reader = Thread(target=_read_stdout, daemon=True)
-    reader.start()
-
-    while True:
-        drained_any = False
-        try:
-            while True:
-                line = line_queue.get_nowait()
-                drained_any = True
-                last_output_at = time.monotonic()
-                tail.append(line)
-                emit(
-                    RunEvent(
-                        kind=RunEventKind.COMMAND_OUTPUT,
-                        payload={
-                            "phase": phase,
-                            "step_number": step_number,
-                            "line": line,
-                        },
-                    )
-                )
-        except Empty:
-            pass
-
-        if stop_event.is_set() and process.poll() is None:
-            process.terminate()
-
-        if process.poll() is not None:
-            # Some child process trees can keep stdout open even after the parent exits.
-            # Once we have no more buffered lines, detach from the stream and continue.
-            if reader_done.is_set():
-                break
-            if not drained_any and time.monotonic() - last_output_at > 1.0:
-                force_detached = True
-                emit(
-                    RunEvent(
-                        kind=RunEventKind.COMMAND_OUTPUT,
-                        payload={
-                            "phase": phase,
-                            "step_number": step_number,
-                            "line": "[harness] process exited but stdout remained open; continuing.",
-                        },
-                    )
-                )
-                try:
-                    process.stdout.close()
-                except Exception:
-                    pass
-                break
-        time.sleep(0.05)
-
-    process.wait()
-    # Drain any remaining lines queued just before the reader stopped.
-    try:
-        while True:
-            line = line_queue.get_nowait()
-            tail.append(line)
-            emit(
-                RunEvent(
-                    kind=RunEventKind.COMMAND_OUTPUT,
-                    payload={
-                        "phase": phase,
-                        "step_number": step_number,
-                        "line": line,
-                    },
-                )
-            )
-    except Empty:
-        pass
-
-    duration = round(time.monotonic() - started, 3)
-    signature = infer_failure_signature(list(tail))
-    if force_detached and int(process.returncode or 0) == 0 and not signature:
-        signature = "process exited with stdout detached"
+    result = run_command_stream(
+        command_list,
+        cwd=(cwd or ROOT),
+        stop_event=stop_event,
+        on_line=_emit_line,
+        on_detached=lambda: _emit_line("[harness] process exited but stdout remained open; continuing."),
+    )
     result = {
-        "duration_seconds": duration,
-        "exit_code": int(process.returncode),
-        "failure_signature": signature,
+        "duration_seconds": float(result["duration_seconds"]),
+        "exit_code": int(result["exit_code"]),
+        "failure_signature": str(result["failure_signature"]),
     }
     emit(
         RunEvent(
@@ -391,9 +332,9 @@ def _run_command(
                 "phase": phase,
                 "step_number": step_number,
                 "step_label": step_label,
-                "duration_seconds": duration,
-                "exit_code": int(process.returncode),
-                "failure_signature": signature,
+                "duration_seconds": result["duration_seconds"],
+                "exit_code": result["exit_code"],
+                "failure_signature": result["failure_signature"],
             },
         )
     )
