@@ -72,7 +72,7 @@ Assign feature-gated permission sets after PSGs are updated
    - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
 2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
    - `api_names`: `['EinsteinGPTPromptTemplateManager']`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"`
    - `api_names`: `['SalesCloudEinsteinAll']`
 4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
    - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
@@ -320,6 +320,8 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 **Steps:**
 
 1. **task** `deploy_post_large_stx`  `when: project_config.project__custom__large_stx`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__large_stx`
+   - `api_names`: `['RLM_LargeSalesTransaction']`
 
 ---
 
@@ -351,6 +353,9 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 6. **task** `assign_permission_sets`  `when: project_config.project__custom__personas`
    - `api_names`: `['RLM_QuantumBit_Sales_Representative']`
    - `user_alias`: `salesrep`
+7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas`
+   - `api_names`: `['RLM_LargeSalesTransaction']`
+   - `user_alias`: `salesrep`
 
 ---
 
@@ -376,6 +381,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 **Steps:**
 
 1. **task** `reconfigure_pricing_discovery`
+2. **task** `configure_product_discovery_settings`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -471,6 +477,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 1. **task** `configure_revenue_settings`  `when: not (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
 2. **task** `configure_revenue_settings`  `when: project_config.project__custom__quantumbit or project_config.project__custom__tso`
    - `manage_assets_flow`: `RLM_ARC_Assets`
+3. **task** `configure_core_pricing_setup`
 
 ---
 
@@ -517,7 +524,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 **Steps:**
 
-1. **task** `insert_scratch_data`  `when: org_config.scratch and not project_config.project__custom__tso`
+1. **task** `insert_scratch_data`  `when: project_config.project__custom__sample_data`
 
 ---
 
