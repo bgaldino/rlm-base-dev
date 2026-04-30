@@ -242,7 +242,7 @@ actual CCI `when:` behavior, not just TUI display logic.
 
 If user accepts auto-generated alias, generate a unique, readable alias (<= 60 chars) with short random suffix, for example:
 
-- `ent-a3f9`
+- `ent-tui-a3f9`
 
 Always share the generated alias with the user before creation.
 
@@ -256,7 +256,7 @@ Always share the generated alias with the user before creation.
   - failed run orgs are kept for resume
 - TUI behavior:
   - failed runs trigger scratch delete only if the org was created in that same TUI run
-  - alias defaults use `<shape>-<4char>` and retry on collisions
+  - alias defaults use `<shape>-tui-<4char>` and retry on collisions
 - Use `--keep-orgs` when you need to retain successful orgs for debugging.
 - Resume is blocked when checkpoint prerequisites are missing or flags changed; perform a full re-run after fixing blockers.
 

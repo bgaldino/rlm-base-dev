@@ -51,17 +51,18 @@ def _generate_default_alias(shape_name: str) -> str:
     """Generate a valid, low-collision scratch alias."""
     normalized_shape = re.sub(r"[^a-z0-9-]", "-", shape_name.lower()).strip("-")
     normalized_shape = re.sub(r"-{2,}", "-", normalized_shape) or "org"
+    alias_prefix = f"{normalized_shape}-tui"
     alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 
     for _ in range(12):
         suffix = "".join(secrets.choice(alphabet) for _ in range(4))
-        alias = f"{normalized_shape}-{suffix}"[:60]
+        alias = f"{alias_prefix}-{suffix}"[:60]
         if not _alias_exists(alias):
             return alias
 
     # Fallback if many collisions are encountered.
     timestamp = time.strftime("%H%M%S")
-    return f"{normalized_shape}-{timestamp}"[:60]
+    return f"{alias_prefix}-{timestamp}"[:60]
 
 
 def _alias_exists(alias: str) -> bool:

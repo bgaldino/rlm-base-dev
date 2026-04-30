@@ -23,7 +23,7 @@ def _emit_collector(events: List[RunEvent]):
 def _build_config(*, overrides: Dict[str, bool]) -> BuildConfig:
     return BuildConfig(
         org_shape="ent",
-        org_alias="ent-a3f9",
+        org_alias="ent-tui-a3f9",
         days=30,
         flag_overrides=overrides,
     )
@@ -60,8 +60,8 @@ def test_run_build_materializes_workspace_with_overrides(tmp_path, monkeypatch) 
     assert observed["project_root"] is not None
     assert observed["custom"] == {"commerce": False, "billing": True}
     assert observed["commands"][:2] == [
-        ["cci", "org", "scratch", "ent", "ent-a3f9", "--days", "30"],
-        ["cci", "org", "info", "ent-a3f9"],
+        ["cci", "org", "scratch", "ent", "ent-tui-a3f9", "--days", "30"],
+        ["cci", "org", "info", "ent-tui-a3f9"],
     ]
 
 
