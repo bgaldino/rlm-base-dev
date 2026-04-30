@@ -44,4 +44,4 @@ Non-Cursor agents can read these files directly or use the equivalent skill:
 | `apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
 | `ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
-| `doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `export.json`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
+| `doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
