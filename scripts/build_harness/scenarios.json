@@ -26,7 +26,6 @@
       "days": 1,
       "flag_overrides": {
         "ux": false,
-        "constraints_data": false,
         "docgen": false,
         "prm": false,
         "analytics": false
@@ -40,7 +39,6 @@
       "days": 1,
       "flag_overrides": {
         "ux": false,
-        "constraints_data": false,
         "docgen": false,
         "prm": false,
         "analytics": false

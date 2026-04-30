@@ -128,7 +128,11 @@ TUI behavior:
   - `theme_mode`: `auto`, `light`, or `dark`
 - Supports `Set Default Org` from Command Palette (`Ctrl+P`) to persist the currently highlighted/selected shape
 - Auto-generates alias defaults as `<shape>-<4char>` and retries on alias collisions
-- Creates the scratch org and then runs top-level `prepare_rlm_org` steps with:
+- Separates scratch-org startup timing before top-level `prepare_rlm_org` steps:
+  - runs `cci org scratch <shape> <alias> --days <n>` (register alias/config)
+  - then runs `cci org info <alias>` (forces materialization/credential refresh)
+  - then runs top-level `prepare_rlm_org` steps
+- Runs top-level `prepare_rlm_org` steps with:
   - TUI runtime overrides materialized into a per-run `cci_project` so CCI subprocesses evaluate `when:` against the selected overrides
   - live `Total Elapsed` (freezes when run ends)
   - live per-step duration updates in the table

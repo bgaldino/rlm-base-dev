@@ -41,6 +41,7 @@ scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
 scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
 scripts/soql/          # Reusable SOQL query files
+scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
 tests/                 # Shell-based integration test scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)

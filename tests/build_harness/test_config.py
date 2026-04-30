@@ -89,10 +89,8 @@ class TestAliasForScenario:
             {"scenario_id": "x", "org_alias_prefix": "p"},
             run_id="run-2026-04-29-abcdef123456",
         )
-        # The "run-" prefix is stripped, then we take the last 12 chars.
-        # "2026-04-29-abcdef123456" → last 12 = "bcdef123456".
-        # Hyphens are preserved.
-        assert alias.endswith("bcdef123456") or alias.endswith("def123456")
+        # "run-" stripped → "2026-04-29-abcdef123456" → last 12 = "abcdef123456"
+        assert alias == "p-abcdef123456"
 
     def test_caps_at_60_chars(self) -> None:
         # Salesforce aliases must be <= 60 chars. With a long prefix the
