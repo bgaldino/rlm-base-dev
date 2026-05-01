@@ -1,0 +1,2 @@
+BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
+Bulls Standard Billing,USD,Standard advance billing treatment for Chicago Bulls — billed before the period begins.,false,No,Chicago Bulls LLC,Bulls Standard Billing Treatment,Draft,Bulls Standard Billing Treatment;Bulls Standard Billing;Chicago Bulls LLC

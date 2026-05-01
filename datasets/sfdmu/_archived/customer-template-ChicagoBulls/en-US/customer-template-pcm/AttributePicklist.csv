@@ -1,0 +1,4 @@
+DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
+Text,Seating section in the arena,Seat Section,BULLS-SEAT-SECTION-PL,Active,
+Text,Number of seats per game in the ticket plan,Seats Per Game,BULLS-SEATS-QTY-PL,Active,
+Text,Thematic game selection package for 10-game plans,Game Package Theme,BULLS-GAME-THEME-PL,Active,

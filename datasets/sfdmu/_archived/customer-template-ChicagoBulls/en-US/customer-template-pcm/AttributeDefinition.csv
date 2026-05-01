@@ -1,0 +1,5 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+BULLS-SEAT-SECTION,Picklist,Choose your preferred seating section in the arena.,Lower Bowl,Preferred seating section (Lower Bowl / Upper Bowl / Courtside),BULLS_Seat_Section,true,true,Seat Section,Seat Section,Seat Section,,,
+BULLS-SEATS-QTY,Picklist,Choose the number of seats per game for your plan.,2,Number of seats per game included in the ticket plan,BULLS_Seats_Per_Game,true,true,Seats Per Game,Seats Per Game,Seats Per Game,,,
+BULLS-GAME-THEME,Picklist,Select your preferred game day theme package.,All-Star,Thematic game selection (All-Star / Weekender / Weeknight),BULLS_Game_Package_Theme,true,true,Game Package Theme,Game Package Theme,Game Package Theme,,,
+BULLS-SUITE-CAP,Text,,20,Standard suite capacity — 20 total tickets (12-14 seats + 4 barstools + standing room),BULLS_Suite_Capacity,true,false,Suite Capacity,Suite Capacity,,,,

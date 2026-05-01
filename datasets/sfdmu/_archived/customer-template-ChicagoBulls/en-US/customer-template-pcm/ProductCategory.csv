@@ -1,0 +1,6 @@
+Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+BULLS-CAT-TICKETS,Season Tickets,BULLS-CAT,Chicago Bulls season ticket plans — full season and partial plans.,true,1,
+BULLS-CAT-PREMIUM,Premium Seating,BULLS-CAT,Suite rentals and all-inclusive corporate hospitality packages.,true,2,
+BULLS-CAT-EXPERIENCES,Fan Experiences,BULLS-CAT,Exclusive behind-the-scenes fan experience packages.,true,3,
+BULLS-CAT-YOUTH,Youth Programs,BULLS-CAT,Youth basketball camps and elite development programs.,true,4,
+BULLS-CAT-DIGITAL,Digital Membership,BULLS-CAT,Digital content subscriptions and premium app membership.,true,5,

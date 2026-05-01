@@ -1,0 +1,3 @@
+$$PaymentTerm.Name$Type,Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
+Net 30;Period-Based,30-day payment period,Net 30,Standard,30,Days,Period-Based
+Net 15;Period-Based,15-day payment period,Net 15,Standard,15,Days,Period-Based

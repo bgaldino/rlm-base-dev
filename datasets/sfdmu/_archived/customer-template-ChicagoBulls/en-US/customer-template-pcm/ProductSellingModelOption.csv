@@ -1,0 +1,14 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+BULLS-ST-FULL;Term Annual;TermDefined,true,BULLS-ST-FULL,Term Annual;TermDefined,Default Proration Policy
+BULLS-ST-20;Term Annual;TermDefined,true,BULLS-ST-20,Term Annual;TermDefined,Default Proration Policy
+BULLS-ST-10;Term Annual;TermDefined,true,BULLS-ST-10,Term Annual;TermDefined,Default Proration Policy
+BULLS-MBR-PRO;Term Monthly;TermDefined,true,BULLS-MBR-PRO,Term Monthly;TermDefined,Default Proration Policy
+BULLS-YTH-ELITE;Term Monthly;TermDefined,true,BULLS-YTH-ELITE,Term Monthly;TermDefined,Default Proration Policy
+BULLS-SUITE-LOWER;One-Time;OneTime,true,BULLS-SUITE-LOWER,One-Time;OneTime,
+BULLS-SUITE-CLUB;One-Time;OneTime,true,BULLS-SUITE-CLUB,One-Time;OneTime,
+BULLS-EXP-TUNNEL;One-Time;OneTime,true,BULLS-EXP-TUNNEL,One-Time;OneTime,
+BULLS-EXP-ANTHEM;One-Time;OneTime,true,BULLS-EXP-ANTHEM,One-Time;OneTime,
+BULLS-EXP-BENCH;One-Time;OneTime,true,BULLS-EXP-BENCH,One-Time;OneTime,
+BULLS-CAMP-SUMMER;One-Time;OneTime,true,BULLS-CAMP-SUMMER,One-Time;OneTime,
+BULLS-FAM-PACK;One-Time;OneTime,true,BULLS-FAM-PACK,One-Time;OneTime,
+BULLS-CORP-PKG;One-Time;OneTime,true,BULLS-CORP-PKG,One-Time;OneTime,

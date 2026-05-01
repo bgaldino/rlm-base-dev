@@ -13,7 +13,25 @@ Runbook for loading the **customer-template** datasets and avoiding common SFDMU
 cci flow run prepare_customer_demo_catalog --org <alias>
 ```
 
-**Step order (summary):** **`customer_demo_purge_records`** (removes **QLIURG** / **OrderItemUsageRsrcGrant** on **`SF-UR-*`** so rating delete can run) → PCM → deploy `unpackaged/post_customer_demo/staticresources` → product-images SFDMU → billing SFDMU → `customer_demo_recreate_pricebook_via_api` → `customer_demo_verify_catalog` → (if usage) **`delete_customer_demo_rates_data`** (clears **CD-DEMO Base + Tier**, **RCE**, **RABT**, **PriceBookRateCard**) → **`delete_customer_demo_rating_data`** → insert rating → insert rates (**RateCard**, **PBRC**, **RCE**, **`RateAdjustmentByTier`**) → `activate_rating_records` → `activate_rates`.
+**Step order (summary):**
+
+| Step | Task | Notes |
+|---|---|---|
+| 1 | `customer_demo_purge_records` | Clears QLIURG / OrderItemUsageRsrcGrant blocks on SF-UR-* so rating delete can run |
+| 2 | `insert_customer_demo_pcm_data` | Products, classifications, attributes, bundles, catalog |
+| 3 | `deploy_customer_demo_staticresources` | Logos; must precede product-images |
+| 4 | `deploy_customer_demo_branding` | Conditional (`customer_demo_branding: true`) |
+| 5 | `insert_customer_demo_product_images_data` | Sets `Product2.DisplayUrl` |
+| 6 | `insert_customer_demo_billing_data` | Billing policy, treatment, product assignment |
+| 7 | `customer_demo_recreate_pricebook_via_api` | Standard PBE with explicit `ProductSellingModelId` |
+| 8 | `delete_customer_demo_pricing_data` | Apex-scoped delete of BULLS-* ABR/ABA/AAC (idempotency) |
+| 9 | `insert_customer_demo_pricing_data` | Attribute-based pricing: ABR Upsert + AAC/ABA Insert |
+| 10 | `customer_demo_verify_catalog` | Go/no-go: images, billing, PSM, PBE, category, ABA count |
+| 11–16 | Usage steps | Conditional (`customer_demo_usage: true`) — rates delete → rating delete → rating → rates → activate_rating_records → activate_rates |
+
+**Why pricing (steps 8–9) runs after pricebook (step 7):** `AttributeBasedAdjustment` has no FK to `PricebookEntry`, so it could load earlier. Placement after pricebook recreation keeps logical flow — list prices first, adjustments second. The platform resolves ABA at quote time through `PriceAdjustmentSchedule`, not a stored PBE FK.
+
+**Why delete runs before insert (step 8):** AAC and ABA use `operation: Insert` (not Upsert). Without a pre-delete, every re-run of the flow creates duplicate AAC and ABA records. The delete is an Apex script (not `DeleteSFDMUData`) so it is scoped to `BULLS-*` rules and does not affect QB pricing data in the same org.
 
 ## Product2 CSV shape (SFDMU) — critical
 
@@ -64,6 +82,71 @@ Do **not** add **`SF-BLNG-*`** to the quote for normal usage demos — those bac
 
 Template list price for usage lines is often **0**; **overage** is illustrated via **`CD-DEMO Base Rate Card`** (flat **`Rate`**) and optional **`CD-DEMO Tier Rate Card`** (**`RateAdjustmentByTier`** bands) after rates activation.
 
+## Attribute-based pricing
+
+The `customer-template-pricing` plan loads **seat-section-driven Override prices** on the three season ticket SKUs via the RLM three-object chain:
+
+```
+AttributeBasedAdjRule → AttributeAdjustmentCondition → AttributeBasedAdjustment
+```
+
+| Product | Upper Bowl | Lower Bowl (list) | Courtside |
+|---|---|---|---|
+| `BULLS-ST-FULL` | $3,200 | $5,000 | $12,000 |
+| `BULLS-ST-20` | $1,600 | $2,500 | $6,000 |
+| `BULLS-ST-10` | $800 | $1,200 | $2,800 |
+
+The `BULLS-SEAT-SECTION` attribute is marked `IsPriceImpacting=true` on each product's `ProductAttributeDefinition`. When a rep selects a seat section on the quote, the platform applies the matching adjustment.
+
+**Extending:** to add pricing for additional attributes (e.g. suite tiers), add rows to all three pricing CSVs and update `ExpectedPricingRules` in `customer-pricebook-entries.csv`. See `customer-template-pricing/README.md` for full details.
+
+**Verification:** `customer_demo_verify_catalog` checks `ExpectedPricingRules` per SKU (season ticket SKUs expect 3 ABA records each).
+
+```bash
+# Verify pricing records manually
+sf data query -q "SELECT AttributeBasedAdjRule.Name, AdjustmentType, AdjustmentValue, Product.StockKeepingUnit FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'BULLS-%' ORDER BY AttributeBasedAdjRule.Name" --target-org <username>
+```
+
+### Attribute-based pricing — critical SFDMU v5 pitfalls
+
+These were discovered during the Chicago Bulls implementation and are documented to save future implementors significant debug time.
+
+**Pitfall 1 — Two-objectSet architecture is required when ABR is freshly inserted**
+
+SFDMU builds its parent FK lookup map during STAGE 2 (before the UPDATE/insert phase). If `AttributeBasedAdjRule` records were deleted before the run, the STAGE 2 query returns 0 ABR records → the FK map for ABR is empty → `AttributeBasedAdjustment` insert crashes with `COMMAND_UNEXPECTED_ERROR` (SFDMU internal null pointer) because it cannot resolve `AttributeBasedAdjRuleId`.
+
+The fix in this plan: **two `objectSets`** in `export.json`. Set 1 Upserts ABR only. Set 2 lists ABR as `Readonly` — SFDMU re-queries the org (after Set 1 inserts are done) to build the FK map. AAC and ABA inserts in Set 2 then resolve the FK correctly.
+
+**Pitfall 2 — SELECT queries must use direct ID fields, not relationship-traversal**
+
+SFDMU v5 generates a warning when relationship-traversal fields (e.g. `AttributeBasedAdjRule.Name`) appear in the SELECT query: `Referenced field removed from the script query`. It then removes those fields from its internal FK resolution context for the INSERT phase, causing a crash.
+
+Use direct ID fields in the SELECT — exactly as QB's export.json does:
+```sql
+-- CORRECT
+SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, ProductId, ... FROM AttributeAdjustmentCondition
+-- WRONG (triggers SFDMU crash)
+SELECT AttributeBasedAdjRule.Name, AttributeDefinition.Code, Product.StockKeepingUnit, ... FROM AttributeAdjustmentCondition
+```
+
+SFDMU automatically adds the traversal column names alongside the ID fields for FK resolution when direct ID fields are in the query.
+
+**Pitfall 3 — AAC CSV column count: 5 empty fields require 6 commas**
+
+`AttributeAdjustmentCondition` has 11 CSV columns. Columns 4–8 (BooleanValue through IntegerValue) are all empty for string-value conditions. Missing one comma silently shifts `equals` into `IntegerValue`, making all 9 rows unresolvable (SFDMU reads 0 source records). Validate with Python before loading:
+
+```python
+import csv
+with open('AttributeAdjustmentCondition.csv') as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        assert row['Operator'] == 'equals', f"Misaligned: Operator={row['Operator']!r}"
+```
+
+**Pitfall 4 — `AttributeAdjustmentCondition` cannot be deleted via direct DML**
+
+`AttributeAdjustmentCondition` is a master-detail child of `AttributeBasedAdjRule`. `delete [SELECT Id FROM AttributeAdjustmentCondition WHERE ...]` fails with `DML operation Delete not allowed`. Deletion is cascade-only — deleting `AttributeBasedAdjRule` automatically cascades to AAC. Delete `AttributeBasedAdjustment` (which IS directly deletable) first, then ABR.
+
 ## Troubleshooting
 
 - **`cci task run activate_rating_records --org <alias>`** may fail with **No such option: --org** on some CCI versions. Use **`cci org default <alias>`** then **`cci task run activate_rating_records`** (same for **`activate_rates`**), or rely on **`cci flow run prepare_customer_demo_catalog --org <alias>`**, which passes the org correctly.
@@ -92,14 +175,20 @@ sf apex run --target-org <alias> --file scripts/customer-demo/insert_pug_fallbac
 The `activate_rating_records` script (Step 6) will activate the PUG once it exists. If you inserted via Apex after activation already ran, activate the PUG manually: `pug.Status = 'Active'; update pug;`.
 - **Grant policy objects silently fail to create via SFDMU**: `UsageGrantRenewalPolicy`, `UsageGrantRolloverPolicy`, and `UsageOveragePolicy` Upserts can log "Inserted 1" while the records never persist. The downstream `ProductUsageGrant` and `ProductUsageResourcePolicy` then fail parent lookups (visible in `MissingParentRecordsReport.csv`). **Fix:** always reference **existing org policies** (e.g. `SF-DEMO-USG-RENEW`, `SF-DEMO-USG-ROLL`, `Default Usage Overage Policy`) instead of creating new ones. If you need a custom policy, create it via Apex or UI before running the SFDMU plan. **Symptom:** `MissingParentRecordsReport.csv` shows `RenewalPolicy.Code`, `RolloverPolicy.Code`, or `UsageOveragePolicy.Name` as missing parents for `ProductUsageGrant` or `ProductUsageResourcePolicy`.
 - **Re-running after partial failure**: The PCM Upsert operations are safe to re-run — existing records match on `externalId` and are updated. Objects that failed on the first run will be inserted on the second. However, the flow will also re-run downstream steps (static resources, billing, pricebook), which is harmless but adds time.
+- **Silent Product2 insert failures — always check for unquoted commas in CSV fields**: If some Product2 records load and others silently fail (SFDMU reports "processed" but the record is absent from the org), compare which SKUs failed against their `Description` values. Any CSV field containing a comma **must** be wrapped in double-quotes (`"value, with comma"`). Without quoting, SFDMU misparsed the row and all subsequent column values shift — the platform rejects the INSERT but SFDMU still logs it as processed. Run `python3 -c "import csv,os; [print(f'{f} row {i}') for f in os.listdir('.') if f.endswith('.csv') for i,r in enumerate(list(csv.reader(open(f)))[1:],2) if len(r)!=len(list(csv.reader(open(f)))[0])]"` (or the project CSV validator) to detect mismatches before loading.
+- **`AttributePicklist` silent insert failure — DataType must be Text**: If `AttributePicklist` records fail to appear in the org despite SFDMU reporting success, check that `DataType` is `Text` (or `Number`) — **not** `Picklist`. `Picklist` is not a valid value for the container object's DataType field. This cascades to `AttributePicklistValue`, `AttributeDefinition`, `AttributeCategoryAttribute`, and `ProductAttributeDefinition` all failing with missing-parent lookups.
+- **`ProductCatalog` silent insert failure — CatalogType must be Sales**: `CatalogType=Standard` is not a valid picklist value. Use `Sales` (matching the qb-pcm reference). If the catalog record fails to create, all `ProductCategory` and `ProductCategoryProduct` records fail with missing-parent lookups.
+- **`BillingPolicy` / `BillingTreatment` / `BillingTreatmentItem` silent insert failure — Status must be Draft**: Creating these objects with `Status=Active` is rejected by the platform. SFDMU still logs "Totally processed 1 records" but the record never appears in the org. Set `Status=Draft` in all three CSVs. A failed BillingPolicy INSERT leaves SFDMU's lookup cache empty, so the downstream `Product2` Update step sees "Same data: N" (null matches null) — a misleading success log that masks the root failure. After fixing, the billing load updates all 13 Product2 records with the correct `BillingPolicyId` in one pass.
+- **`customer_demo_verify_catalog` crashes with `NoneType.get` — Salesforce returns null relationships as None, not absent keys**: When `Product2.BillingPolicyId` is null, the Salesforce REST API returns `{"BillingPolicy": null}` — the key is present but the value is `None`. `dict.get("BillingPolicy", {})` does not apply the default when the key exists with a `None` value, so `.get("Name")` then fails. Use `(record.get("BillingPolicy") or {}).get("Name")` for any relationship field that may be null. This is fixed in `tasks/rlm_customer_demo.py`.
 
 ## Related paths
 
 - `docs/guides/customer-demo-usage-metered-products.md` — **durable guide** for usage-metered demo products (any customer); example **`SF-*`** data is ephemeral, patterns are not
 - `docs/references/customer-template-usage-resource.md` — **UsageResource** field model and tier-1 vs full QB (`ProductUsageResourcePolicy`)
 - `datasets/sfdmu/customer-template/en-US/customer-template-pcm/README.md`
+- `datasets/sfdmu/customer-template/en-US/customer-template-pricing/README.md` — attribute-based pricing plan; SFDMU pitfalls (two-objectSet, direct ID fields, AAC column count, AAC cascade-delete)
 - `datasets/sfdmu/customer-template/en-US/customer-template-rating/README.md`
 - `datasets/sfdmu/customer-template/en-US/customer-template-rates/README.md`
 - `docs/references/customer-template-rate-card-entry.md` — **RateCardEntry** stitches rate card, product, **UsageResource**, selling model, and UOMs; **Base** vs **Tier** (`RateAdjustmentByTier`) and effective dating
 - `docs/references/customer-template-tier-rate-card-lessons-learned.md` — **CD-DEMO Tier** + **RABT**, SFDMU order, delete cascade, vs **`PriceAdjustmentTier`**
-- `tasks/rlm_customer_demo.py` — pricebook API + `VerifyCustomerDemoCatalog` (`ProductTypeExpected`, `require_product_type`)
+- `tasks/rlm_customer_demo.py` — pricebook API + `VerifyCustomerDemoCatalog` (`ProductTypeExpected`, `require_product_type`, `ExpectedPricingRules`)

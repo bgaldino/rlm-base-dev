@@ -340,11 +340,11 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
                 verify_billing
                 and billing_required
                 and expected_billing_policy
-                and product[0].get("BillingPolicy", {}).get("Name") != expected_billing_policy
+                and (product[0].get("BillingPolicy") or {}).get("Name") != expected_billing_policy
             ):
                 failures.append(
                     f"{sku}: BillingPolicy mismatch (expected {expected_billing_policy}, "
-                    f"found {product[0].get('BillingPolicy', {}).get('Name') or 'blank'})"
+                    f"found {(product[0].get('BillingPolicy') or {}).get('Name') or 'blank'})"
                 )
 
             psm = self._query(
@@ -383,6 +383,23 @@ class VerifyCustomerDemoCatalog(BaseSalesforceTask):
             )
             if not mapping:
                 failures.append(f"{sku}: ProductCategoryProduct missing for category {category_code}")
+
+            expected_rules_raw = (row.get("ExpectedPricingRules") or "").strip()
+            if expected_rules_raw:
+                try:
+                    expected_rules = int(expected_rules_raw)
+                except ValueError:
+                    failures.append(f"{sku}: ExpectedPricingRules is not an integer ({expected_rules_raw!r})")
+                    expected_rules = 0
+                if expected_rules > 0:
+                    abas = self._query(
+                        f"SELECT Id FROM AttributeBasedAdjustment WHERE ProductId = '{product_id}'"
+                    )
+                    if len(abas) < expected_rules:
+                        failures.append(
+                            f"{sku}: expected {expected_rules} AttributeBasedAdjustment record(s), "
+                            f"found {len(abas)}"
+                        )
 
         if failures:
             raise TaskOptionsError("Catalog verification failed:\n- " + "\n- ".join(failures))

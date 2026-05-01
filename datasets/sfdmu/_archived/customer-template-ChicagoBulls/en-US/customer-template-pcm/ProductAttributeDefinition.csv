@@ -1,0 +1,11 @@
+$$AttributeDefinition.Code$Product2.StockKeepingUnit,AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,OverriddenProductAttributeDefinition.$$AttributeDefinition.Code$Product2.StockKeepingUnit,Product2.StockKeepingUnit,ProductClassificationAttribute.Name,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+BULLS-SEAT-SECTION;BULLS-ST-FULL,BULLS-CONFIG,BULLS-SEAT-SECTION,,Lower Bowl,,ComboBox,,false,true,false,true,,,,,Seat Section - Full Season,,BULLS-ST-FULL,BULLS Seat Section,1,Active,,,
+BULLS-SEATS-QTY;BULLS-ST-FULL,BULLS-CONFIG,BULLS-SEATS-QTY,,2,,ComboBox,,false,false,false,true,,,,,Seats Per Game - Full Season,,BULLS-ST-FULL,BULLS Seats Per Game,2,Active,,,
+BULLS-SEAT-SECTION;BULLS-ST-20,BULLS-CONFIG,BULLS-SEAT-SECTION,,Lower Bowl,,ComboBox,,false,true,false,true,,,,,Seat Section - 20-Game,,BULLS-ST-20,BULLS Seat Section,1,Active,,,
+BULLS-SEATS-QTY;BULLS-ST-20,BULLS-CONFIG,BULLS-SEATS-QTY,,2,,ComboBox,,false,false,false,true,,,,,Seats Per Game - 20-Game,,BULLS-ST-20,BULLS Seats Per Game,2,Active,,,
+BULLS-SEAT-SECTION;BULLS-ST-10,BULLS-CONFIG,BULLS-SEAT-SECTION,,Lower Bowl,,ComboBox,,false,true,false,true,,,,,Seat Section - 10-Game,,BULLS-ST-10,BULLS Seat Section,1,Active,,,
+BULLS-SEATS-QTY;BULLS-ST-10,BULLS-CONFIG,BULLS-SEATS-QTY,,2,,ComboBox,,false,false,false,true,,,,,Seats Per Game - 10-Game,,BULLS-ST-10,BULLS Seats Per Game,2,Active,,,
+BULLS-GAME-THEME;BULLS-ST-10,BULLS-CONFIG,BULLS-GAME-THEME,,All-Star,,ComboBox,,false,false,false,true,,,,,Game Package Theme - 10-Game,,BULLS-ST-10,BULLS Game Package Theme,3,Active,,,
+BULLS-SUITE-CAP;BULLS-SUITE-LOWER,BULLS-CONFIG,BULLS-SUITE-CAP,,20,,,,false,false,true,false,,,,,Suite Capacity - Lower Level,,BULLS-SUITE-LOWER,BULLS Suite Capacity,1,Active,,,
+BULLS-SUITE-CAP;BULLS-SUITE-CLUB,BULLS-CONFIG,BULLS-SUITE-CAP,,20,,,,false,false,true,false,,,,,Suite Capacity - Club Level,,BULLS-SUITE-CLUB,BULLS Suite Capacity,1,Active,,,
+BULLS-SUITE-CAP;BULLS-CORP-PKG,BULLS-CONFIG,BULLS-SUITE-CAP,,20,,,,false,false,true,false,,,,,Suite Capacity - Corporate,,BULLS-CORP-PKG,BULLS Suite Capacity,1,Active,,,

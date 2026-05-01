@@ -1,0 +1,5 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+BULLS-CONFIG,BULLS-SEAT-SECTION,,Lower Bowl,,ComboBox,,false,true,false,true,,,,,BULLS Seat Section,BULLS-PC-TICKET,1,Active,,,
+BULLS-CONFIG,BULLS-SEATS-QTY,,2,,ComboBox,,false,false,false,true,,,,,BULLS Seats Per Game,BULLS-PC-TICKET,2,Active,,,
+BULLS-CONFIG,BULLS-GAME-THEME,,All-Star,,ComboBox,,false,false,false,true,,,,,BULLS Game Package Theme,BULLS-PC-TICKET,3,Active,,,
+BULLS-CONFIG,BULLS-SUITE-CAP,,20,,,,false,false,true,false,,,,,BULLS Suite Capacity,BULLS-PC-SUITE,1,Active,,,

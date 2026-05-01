@@ -2,6 +2,55 @@
 
 This directory contains reusable templates for customer-specific product onboarding.
 
+## Chicago Bulls Demo — Quick Start
+
+The customer-template datasets are pre-populated with the Chicago Bulls product catalog (13 SKUs).
+Run the following commands to prepare branding, then deploy the full catalog:
+
+```bash
+# 1. Generate Bulls logo static resource (requires requests: pip install requests)
+python3 scripts/customer-demo/prepare_customer_logo_static_resource.py \
+  --company-name "Chicago Bulls" \
+  --logo-url "https://cdn.nba.com/logos/nba/1610612741/global/L/logo.svg" \
+  --resource-name "ChicagoBullsLogo"
+
+# 2. Generate Bulls Lightning Experience Theme (requires Pillow: pip install Pillow requests)
+python3 scripts/customer-demo/prepare_customer_branding.py \
+  --company-name "Chicago Bulls" \
+  --logo-url "https://cdn.nba.com/logos/nba/1610612741/global/L/logo.svg" \
+  --brand-color "#CE1141" \
+  --bg-color "#000000"
+
+# 3. Deploy and run the full catalog flow (set org alias as appropriate)
+cci flow run prepare_customer_demo_catalog --org <org-alias>
+
+# After deploy: manually activate the theme at Setup → Themes and Branding
+```
+
+### Bulls SKU Summary
+
+| SKU | Name | Model | Price |
+|-----|------|-------|-------|
+| `BULLS-ST-FULL` | Full Season Ticket (82 Games) | Term Annual | $5,000/seat/yr |
+| `BULLS-ST-20` | 20-Game Plan | Term Annual | $2,500/seat/yr |
+| `BULLS-ST-10` | 10-Game Plan | Term Annual | $1,200/seat/yr |
+| `BULLS-MBR-PRO` | Bulls Pro Digital Membership | Term Monthly | $19.99/mo |
+| `BULLS-YTH-ELITE` | Youth Elite Training Program | Term Monthly | $49.99/mo |
+| `BULLS-SUITE-LOWER` | Lower Level Suite Rental | One-Time | $16,075/event |
+| `BULLS-SUITE-CLUB` | Club Level Suite Rental | One-Time | $12,500/event |
+| `BULLS-EXP-TUNNEL` | Tunnel Experience | One-Time | $10,000/event |
+| `BULLS-EXP-ANTHEM` | Anthem Buddies | One-Time | $10,000/event |
+| `BULLS-EXP-BENCH` | Benchwarmers Warm-Up Access | One-Time | $6,000/event |
+| `BULLS-CAMP-SUMMER` | Youth Hoops Summer Camp | One-Time | $399/session |
+| `BULLS-FAM-PACK` | Family Fun Pack | One-Time | $89/ticket |
+| `BULLS-CORP-PKG` | Corporate Hospitality Package *(Bundle)* | One-Time | $29,500/event |
+
+Bundle components: Club Level Suite (required) + Tunnel Experience (optional) + Anthem Buddies (optional).
+
+Attributes configured: **Seat Section** (Lower Bowl / Upper Bowl / Courtside), **Seats Per Game** (1/2/4/6), **Game Package Theme** (All-Star / Weekender / Weeknight) on 10-Game Plan, **Suite Capacity** (read-only, 20) on suite products.
+
+Billing: **Bulls Standard Billing** (advance, Net 30) assigned to all 13 SKUs via **Chicago Bulls LLC** legal entity.
+
 - `customer-seed-products.apex`: optional Apex hook for product/catalog support records.
 - `customer-purge-and-reimport.apex`: step-1 cleanup for `prepare_customer_demo_catalog` — deletes **QuotLineItmUseRsrcGrant** / **OrderItemUsageRsrcGrant** on **`SF-UR-*`** meters so rating delete is not blocked by **QLIURG** / order grants.
 - `customer-pricebook-entries.csv`: input for API-based PricebookEntry recreation and verification checks.

@@ -510,6 +510,7 @@ project:
     customer_demo_billing_dataset: &customer_demo_billing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-billing"  # Customer demo template billing dataset
     customer_demo_rating_dataset: &customer_demo_rating_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rating"  # Customer demo usage rating (SF-USG-* + SF-UR-*)
     customer_demo_rates_dataset: &customer_demo_rates_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rates"  # Customer demo rate cards (CD-DEMO Base + Tier + RABT)
+    customer_demo_pricing_dataset: &customer_demo_pricing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-pricing"  # Customer demo attribute-based pricing (BULLS-* ABR/ABA/AAC)
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -1431,6 +1432,30 @@ tasks:
     options:
       input_csv: scripts/customer-demo/customer-pricebook-entries.csv
       delete_first: true
+
+  delete_customer_demo_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete customer-demo attribute-based pricing records scoped to BULLS-* rules:
+      AttributeBasedAdjustment and AttributeAdjustmentCondition children first,
+      then AttributeBasedAdjRule. Name-scoped so QB pricing data is unaffected.
+      Run before insert_customer_demo_pricing_data for idempotency (ABA/AAC use Insert, not Upsert).
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteCustomerDemoPricingData.apex
+
+  insert_customer_demo_pricing_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Load customer-demo attribute-based pricing: Upsert 9 AttributeBasedAdjRule records
+      (one per season ticket product x seat section value), then Insert 9
+      AttributeAdjustmentCondition (equals Seat Section value) and 9
+      AttributeBasedAdjustment (Override price) records. Requires Product2 and
+      AttributeDefinition rows from insert_customer_demo_pcm_data, and Standard
+      PricebookEntry rows from customer_demo_recreate_pricebook_via_api.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *customer_demo_pricing_dataset
 
   customer_demo_verify_catalog:
     group: Revenue Lifecycle Management
@@ -2576,7 +2601,8 @@ flows:
     description: >
       Customer demo onboarding flow (post-setup): optional purge, load customer PCM
       records, apply product images, branding, and billing assignments, recreate standard
-      pricebook rows via API with ProductSellingModelId, and verify go/no-go checks.
+      pricebook rows via API with ProductSellingModelId, load attribute-based pricing
+      (ABR/ABA/AAC for Seat Section overrides), and verify go/no-go checks.
       When customer_demo_branding is true, deploys a customer-branded Lightning Experience
       Theme (activate after flow completes at <org-url>/lightning/setup/ThemingAndBranding/home).
     steps:
@@ -2596,23 +2622,27 @@ flows:
       7:
         task: customer_demo_recreate_pricebook_via_api
       8:
-        task: customer_demo_verify_catalog
+        task: delete_customer_demo_pricing_data
       9:
+        task: insert_customer_demo_pricing_data
+      10:
+        task: customer_demo_verify_catalog
+      11:
         task: delete_customer_demo_rates_data
         when: project_config.project__custom__customer_demo_usage
-      10:
+      12:
         task: delete_customer_demo_rating_data
         when: project_config.project__custom__customer_demo_usage
-      11:
+      13:
         task: insert_customer_demo_rating_data
         when: project_config.project__custom__customer_demo_usage
-      12:
+      14:
         task: insert_customer_demo_rates_data
         when: project_config.project__custom__customer_demo_usage
-      13:
+      15:
         task: activate_rating_records
         when: project_config.project__custom__customer_demo_usage
-      14:
+      16:
         task: activate_rates
         when: project_config.project__custom__customer_demo_usage
 

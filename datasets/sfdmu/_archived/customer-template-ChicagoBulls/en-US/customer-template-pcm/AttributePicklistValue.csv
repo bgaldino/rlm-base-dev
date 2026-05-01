@@ -1,0 +1,11 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,BULLS-SEC-LOWER,Lower Bowl,true,Lower Bowl,Seat Section,1,Active,Lower Bowl
+,BULLS-SEC-UPPER,Upper Bowl,false,Upper Bowl,Seat Section,2,Active,Upper Bowl
+,BULLS-SEC-COURT,Courtside,false,Courtside,Seat Section,3,Active,Courtside
+,BULLS-QTY-1,1 Seat,false,1 Seat,Seats Per Game,1,Active,1
+,BULLS-QTY-2,2 Seats,true,2 Seats,Seats Per Game,2,Active,2
+,BULLS-QTY-4,4 Seats,false,4 Seats,Seats Per Game,3,Active,4
+,BULLS-QTY-6,6 Seats,false,6 Seats,Seats Per Game,4,Active,6
+,BULLS-THEME-ALLSTAR,All-Star,true,All-Star,Game Package Theme,1,Active,All-Star
+,BULLS-THEME-WKND,Weekender,false,Weekender,Game Package Theme,2,Active,Weekender
+,BULLS-THEME-WKNT,Weeknight,false,Weeknight,Game Package Theme,3,Active,Weeknight
