@@ -3,7 +3,7 @@
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
-      "name": "Customer Demo Billing Foundation",
+      "name": "Set 1 \u2014 Billing foundation (LegalEntity, PaymentTerm, BillingPolicy, BillingTreatment)",
       "objects": [
         {
           "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity ORDER BY Name ASC",
@@ -45,6 +45,16 @@
           "externalId": "Name;BillingTreatment.Name",
           "skipExistingRecords": true,
           "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Set 2 \u2014 BillingPolicy re-read + Product2 billing update",
+      "objects": [
+        {
+          "query": "SELECT Name FROM BillingPolicy ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name"
         },
         {
           "query": "SELECT BillingPolicyId, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",

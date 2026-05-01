@@ -1,1 +1,14 @@
 DisplayUrl,Name,StockKeepingUnit
+/resource/RLM_customer_medinah_country_club_logo_sq,Individual Golf Membership,MCC-MBR-IND
+/resource/RLM_customer_medinah_country_club_logo_sq,Family Golf Membership,MCC-MBR-FAM
+/resource/RLM_customer_medinah_country_club_logo_sq,Junior Golf Membership,MCC-MBR-JR
+/resource/RLM_customer_medinah_country_club_logo_sq,Social Membership,MCC-MBR-SOCIAL
+/resource/RLM_customer_medinah_country_club_logo_sq,Golf Membership Initiation Fee,MCC-INIT-GOLF
+/resource/RLM_customer_medinah_country_club_logo_sq,Social Membership Initiation Fee,MCC-INIT-SOCIAL
+/resource/RLM_customer_medinah_country_club_logo_sq,Guest Round Package,MCC-GOLF-GUEST
+/resource/RLM_customer_medinah_country_club_logo_sq,Golf Academy Package,MCC-GOLF-ACADEMY
+/resource/RLM_customer_medinah_country_club_logo_sq,Racquet Center Annual Pass,MCC-AMN-RACQUET
+/resource/RLM_customer_medinah_country_club_logo_sq,Gun Club Annual Membership,MCC-AMN-GUNCLUB
+/resource/RLM_customer_medinah_country_club_logo_sq,Corporate Golf Outing,MCC-EVT-CORPORATE
+/resource/RLM_customer_medinah_country_club_logo_sq,Presidents Cup VIP Package 2026,MCC-EVT-PCUP
+/resource/RLM_customer_medinah_country_club_logo_sq,Elite Membership Bundle,MCC-PKG-ELITE

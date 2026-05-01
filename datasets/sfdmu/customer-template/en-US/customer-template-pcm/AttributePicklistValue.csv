@@ -1,1 +1,5 @@
 Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+C12,MCC-CA-C12,Course 1 & 2 Only,true,Course 1 & 2 Only,MCC Course Access,1,Active,Course 1 & 2 Only
+ALL,MCC-CA-ALL,All Three Courses,false,All Three Courses,MCC Course Access,2,Active,All Three Courses
+SEMI,MCC-ST-SEMI,Semi-Private Group,true,Semi-Private Group,MCC Session Type,1,Active,Semi-Private Group
+PRIV,MCC-ST-PRIV,Private Instruction,false,Private Instruction,MCC Session Type,2,Active,Private Instruction

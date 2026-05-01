@@ -111,9 +111,29 @@ Or run the project-level validator: `python scripts/validate_sfdmu_v5_datasets.p
 
 **Fix:** use `Text` for string-valued option lists (the most common case), `Number` for numeric ranges. See the qb-pcm `AttributePicklist.csv` for reference — all entries use `Text` or `Number`.
 
-### ProductCatalog.CatalogType must be Sales (not Standard)
+### ProductCatalog.CatalogType must be Sales
 
-`ProductCatalog.CatalogType` is a restricted picklist. `Standard` is not a valid value — the platform rejects the INSERT. Use `Sales` to match the qb-pcm reference.
+`ProductCatalog.CatalogType` is a restricted picklist. `Standard` and `Commercial` are not valid values — the platform rejects the INSERT silently (SFDMU reports success but the record never appears in the org). Use `Sales` to match the qb-pcm reference.
+
+### AttributeDefinition.DataType must be Picklist (not Text) when referencing a picklist
+
+When an `AttributeDefinition` references an `AttributePicklist`, the `DataType` must be `Picklist`. Setting it to `Text` causes a platform rejection: `Select a picklist only if you selected the picklist data type.` SFDMU reports the INSERT as processed but the record never appears in the org.
+
+**Fix:** always use `DataType = Picklist` for attributes backed by an `AttributePicklist`. Use `Text` only for free-form text attributes with no picklist.
+
+### ProductClassificationAttr.DisplayType and ProductAttributeDefinition.DisplayType — restricted picklist
+
+The `DisplayType` field on both `ProductClassificationAttr` and `ProductAttributeDefinition` is a restricted picklist. `Picklist` is **not** a valid value — the platform rejects the INSERT. SFDMU returns 0 SOURCE records for the entire object in that objectSet pass (it pre-validates values before batching), causing **silent wholesale skip** with no MissingParentRecordsReport entry.
+
+Valid values: `RadioButton` (most common for picklist-backed attributes), or leave blank. See existing QB PCA rows for reference.
+
+### ProductRelatedComponent — no selling models for configurable bundles
+
+When the parent product has `ConfigureDuringSale = Allowed` (i.e. it is a configurable bundle), Salesforce rejects any `ProductRelatedComponent` row that specifies `ChildSellingModelId` or `ParentSellingModelId`. The error message is:
+
+> `The parent selling model is unsupported for configurable product bundles. Delete the parent selling model and try again.`
+
+**Fix:** leave `ChildSellingModel.$$Name$SellingModelType` and `ParentSellingModel.$$Name$SellingModelType` blank in the PRC CSV for configurable bundle components (follow the QB `ProductRelatedComponent.csv` pattern — all selling model columns are empty).
 
 ### UnitOfMeasure updates on re-run are benign
 

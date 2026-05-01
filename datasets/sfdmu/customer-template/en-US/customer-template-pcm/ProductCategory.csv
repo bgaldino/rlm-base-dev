@@ -1,1 +1,6 @@
 Code,Name,Catalog.Code,Description,IsNavigational,SortOrder,ParentCategory.Code
+MCC-CAT-GOLF-MBR,Golf Memberships,MCC-CATALOG,Annual golf membership plans for Medinah Country Club,true,1,
+MCC-CAT-INIT,Initiation Fees,MCC-CATALOG,One-time membership initiation fees,true,2,
+MCC-CAT-GOLF-EXP,Golf Experiences,MCC-CATALOG,Golf packages and learning center experiences,true,3,
+MCC-CAT-AMENITIES,Club Amenities,MCC-CATALOG,Annual amenity access plans,true,4,
+MCC-CAT-EVENTS,Events & Hospitality,MCC-CATALOG,Corporate and private event packages,true,5,

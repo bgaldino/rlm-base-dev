@@ -5,7 +5,7 @@
     {
       "objects": [
         {
-          "query": "SELECT Name FROM AttributeBasedAdjRule WHERE Name LIKE 'BULLS-%' ORDER BY Name ASC",
+          "query": "SELECT Name FROM AttributeBasedAdjRule WHERE Name LIKE 'MCC-%' ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         }
@@ -14,17 +14,17 @@
     {
       "objects": [
         {
-          "query": "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit LIKE 'BULLS-ST-%' ORDER BY StockKeepingUnit ASC",
+          "query": "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit IN ('MCC-MBR-IND', 'MCC-MBR-FAM', 'MCC-GOLF-ACADEMY') ORDER BY StockKeepingUnit ASC",
           "operation": "Readonly",
           "externalId": "StockKeepingUnit"
         },
         {
-          "query": "SELECT Code FROM AttributeDefinition WHERE Code = 'BULLS-SEAT-SECTION' ORDER BY Code ASC",
+          "query": "SELECT Code FROM AttributeDefinition WHERE Code IN ('MCC-COURSE-ACCESS', 'MCC-SESSION-TYPE') ORDER BY Code ASC",
           "operation": "Readonly",
           "externalId": "Code"
         },
         {
-          "query": "SELECT Name, SellingModelType FROM ProductSellingModel WHERE Name = 'Term Annual' AND SellingModelType = 'TermDefined' ORDER BY Name ASC",
+          "query": "SELECT Name, SellingModelType FROM ProductSellingModel WHERE (Name = 'Term Annual' AND SellingModelType = 'TermDefined') OR (Name = 'One-Time' AND SellingModelType = 'OneTime') ORDER BY Name ASC",
           "operation": "Readonly",
           "externalId": "Name;SellingModelType"
         },
@@ -34,17 +34,17 @@
           "externalId": "Name;CurrencyIsoCode"
         },
         {
-          "query": "SELECT Name FROM AttributeBasedAdjRule WHERE Name LIKE 'BULLS-%' ORDER BY Name ASC",
+          "query": "SELECT Name FROM AttributeBasedAdjRule WHERE Name LIKE 'MCC-%' ORDER BY Name ASC",
           "operation": "Readonly",
           "externalId": "Name"
         },
         {
-          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition WHERE AttributeBasedAdjRule.Name LIKE 'BULLS-%' ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
+          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition WHERE AttributeBasedAdjRule.Name LIKE 'MCC-%' ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
           "operation": "Insert",
           "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit"
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'BULLS-%' ORDER BY AttributeBasedAdjRule.Name ASC, Product.StockKeepingUnit ASC",
+          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'MCC-%' ORDER BY AttributeBasedAdjRule.Name ASC, Product.StockKeepingUnit ASC",
           "operation": "Insert",
           "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode"
         }
