@@ -1,0 +1,2 @@
+$$PaymentTerm.Name$Type,Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
+Net 30;Period-Based,Payment due within 30 days of invoice date,Net 30,Standard,30,Days,Period-Based

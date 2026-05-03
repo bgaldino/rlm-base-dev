@@ -1,0 +1,3 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+MCC-COURSE-ACCESS,Picklist,Select the course access tier for this membership.,Course 1 & 2 Only,Defines which championship courses the golf membership grants access to.,MCC_Course_Access,true,false,Course Access,MCC Course Access,MCC Course Access,,,
+MCC-SESSION-TYPE,Picklist,Select the lesson format for this golf academy package.,Semi-Private Group,Lesson format for golf academy sessions — semi-private group or private instruction.,MCC_Session_Type,true,false,Session Type,MCC Session Type,MCC Session Type,,,

@@ -1,0 +1,3 @@
+DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
+Text,Course access tier options for Medinah golf memberships,MCC Course Access,MCC-COURSE-ACCESS-PL,Active,
+Text,Lesson format options for Medinah Golf Learning Center packages,MCC Session Type,MCC-SESSION-TYPE-PL,Active,

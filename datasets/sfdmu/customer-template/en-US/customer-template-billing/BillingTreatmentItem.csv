@@ -1,2 +1,1 @@
 $$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount
-Medinah Annual Billing Item;Medinah Annual Billing,Medinah Annual Billing,Advance,BillingScheduleGroup,USD,,,,CreateInvoice,,Medinah Annual Billing Item,,1,Manual,Draft,Remainder,

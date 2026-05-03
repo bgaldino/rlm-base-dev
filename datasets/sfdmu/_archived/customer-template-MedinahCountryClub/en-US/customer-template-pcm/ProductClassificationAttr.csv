@@ -1,0 +1,3 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+MCC-GOLF-OPTIONS,MCC-COURSE-ACCESS,,Course 1 & 2 Only,,,,false,true,false,false,,,,,Course Access,MCC-PC-GOLF-MBR,1,Active,,,
+MCC-GOLF-OPTIONS,MCC-SESSION-TYPE,,Semi-Private Group,,,,false,true,false,false,,,,,Session Type,MCC-PC-ACADEMY,1,Active,,,

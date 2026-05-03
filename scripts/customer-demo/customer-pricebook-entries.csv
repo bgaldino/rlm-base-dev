@@ -1,14 +1,1 @@
 SKU,UnitPrice,CurrencyIsoCode,PSMName,PSMSellingModelType,IsActive,CategoryCode,ImageRequired,BillingRequired,BillingPolicyName,ProductTypeExpected,ExpectedPricingRules
-MCC-MBR-IND,15000,USD,Term Annual,TermDefined,true,MCC-CAT-GOLF-MBR,true,true,Medinah Standard Billing,,2
-MCC-MBR-FAM,22500,USD,Term Annual,TermDefined,true,MCC-CAT-GOLF-MBR,true,true,Medinah Standard Billing,,2
-MCC-MBR-JR,7500,USD,Term Annual,TermDefined,true,MCC-CAT-GOLF-MBR,true,true,Medinah Standard Billing,,
-MCC-MBR-SOCIAL,5000,USD,Term Annual,TermDefined,true,MCC-CAT-GOLF-MBR,true,true,Medinah Standard Billing,,
-MCC-INIT-GOLF,75000,USD,One-Time,OneTime,true,MCC-CAT-INIT,true,true,Medinah Standard Billing,,
-MCC-INIT-SOCIAL,20000,USD,One-Time,OneTime,true,MCC-CAT-INIT,true,true,Medinah Standard Billing,,
-MCC-GOLF-GUEST,2500,USD,One-Time,OneTime,true,MCC-CAT-GOLF-EXP,true,true,Medinah Standard Billing,,
-MCC-GOLF-ACADEMY,2500,USD,One-Time,OneTime,true,MCC-CAT-GOLF-EXP,true,true,Medinah Standard Billing,,2
-MCC-AMN-RACQUET,2400,USD,Term Annual,TermDefined,true,MCC-CAT-AMENITIES,true,true,Medinah Standard Billing,,
-MCC-AMN-GUNCLUB,1800,USD,Term Annual,TermDefined,true,MCC-CAT-AMENITIES,true,true,Medinah Standard Billing,,
-MCC-EVT-CORPORATE,15000,USD,One-Time,OneTime,true,MCC-CAT-EVENTS,true,true,Medinah Standard Billing,,
-MCC-EVT-PCUP,5000,USD,One-Time,OneTime,true,MCC-CAT-EVENTS,true,true,Medinah Standard Billing,,
-MCC-PKG-ELITE,19200,USD,Term Annual,TermDefined,true,MCC-CAT-GOLF-MBR,true,true,Medinah Standard Billing,Bundle,
