@@ -227,7 +227,7 @@ def prepare_scenario_project_root(
     ensure_dir(project_root)
 
     for item in root.iterdir():
-        if item.name == "cumulusci.yml":
+        if item.name in {"cumulusci.yml", ".harness"}:
             continue
         destination = project_root / item.name
         if destination.exists() or destination.is_symlink():

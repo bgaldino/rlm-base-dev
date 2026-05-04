@@ -7,7 +7,7 @@ import subprocess
 import sys
 from threading import Event
 
-from scripts.build_harness.harness.execution import make_run_id, org_exists, run_command_stream
+from scripts.build_harness.harness.execution import make_run_id, org_exists, run_command, run_command_stream
 
 
 class TestMakeRunId:
@@ -65,6 +65,19 @@ def test_run_command_stream_honors_stop_event(tmp_path) -> None:
     )
     assert seen["count"] >= 1
     assert result["exit_code"] != 0
+
+
+def test_run_command_can_suppress_stdout(tmp_path, capsys) -> None:
+    log_path = tmp_path / "scenario.log"
+    run_command(
+        tmp_path,
+        [sys.executable, "-c", "print('hidden-line')"],
+        log_path,
+        emit_output=False,
+    )
+    captured = capsys.readouterr()
+    assert "hidden-line" not in captured.out
+    assert "hidden-line" in log_path.read_text(encoding="utf-8")
 
 
 def test_org_exists_returns_false_on_timeout(tmp_path, monkeypatch) -> None:

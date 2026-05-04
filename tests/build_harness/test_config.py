@@ -411,6 +411,9 @@ class TestPrepareScenarioProjectRoot:
         # An arbitrary other dir that should be symlinked through.
         (root / "force-app").mkdir()
         (root / "force-app" / "marker.txt").write_text("hi\n", encoding="utf-8")
+        # Harness artifact roots must not be linked into cci_project.
+        (root / ".harness").mkdir()
+        (root / ".harness" / "marker.txt").write_text("keep-out\n", encoding="utf-8")
         return root
 
     def test_banner_header_is_present(self, tmp_path, fake_repo) -> None:
@@ -459,6 +462,14 @@ class TestPrepareScenarioProjectRoot:
         force_app_link = scenario_dir / "cci_project" / "force-app"
         assert force_app_link.is_symlink()
         assert (force_app_link / "marker.txt").read_text(encoding="utf-8") == "hi\n"
+
+    def test_harness_root_is_not_symlinked(self, tmp_path, fake_repo) -> None:
+        scenario_dir = tmp_path / "scenarios" / "minimal"
+        scenario_dir.mkdir(parents=True)
+        prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        assert not (scenario_dir / "cci_project" / ".harness").exists()
 
 
 class TestCleanupScenarioProjectRoot:

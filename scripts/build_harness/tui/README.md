@@ -85,7 +85,7 @@ the TUI falls back to the first shape in the list.
   - `cci org info <alias>` forces org materialization before `prepare_core`
 - `prepare_rlm_org` execution uses top-level step parsing and `when` evaluation from the harness runner (`scripts/build_harness/harness.py` and `scripts/build_harness/harness/` modules).
 - Flag groups and inline descriptions are sourced dynamically from `project.custom` comments/order in `cumulusci.yml`.
-- Step 2 pre-fills a valid alias using `<shape>-tui-<4char>` and retries on alias collisions.
+- Step 2 pre-fills a valid, low-collision alias using `<shape>-tui-<4char>`.
 - If a run fails after scratch org creation, the TUI deletes that org by default (only if it was created in the current run). Set `delete_org_on_failure` to `false` in `settings.local.json` to preserve the org for inspection.
 - Output screen behavior:
   - `Total Elapsed` freezes on success/failure/cancel
