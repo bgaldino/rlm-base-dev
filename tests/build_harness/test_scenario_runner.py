@@ -277,3 +277,70 @@ def test_run_single_scenario_uses_failed_step_retry_count_for_policy(tmp_path, m
     assert result["total_retry_count"] == 2
     assert result["policy"]["recommended_action"] == "resume"
     assert result["policy"]["confidence"] == "medium"
+
+
+def test_run_single_scenario_accumulates_duration_across_retries(tmp_path, monkeypatch) -> None:
+    run_dir = tmp_path / "runs" / "run-4"
+    run_dir.mkdir(parents=True)
+    scenario_dir = run_dir / "scenarios" / "ent-default"
+    project_root = scenario_dir / "cci_project"
+
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _defaults, _overrides: {"demo": True})
+    monkeypatch.setattr(
+        scenario_runner,
+        "prepare_scenario_project_root",
+        lambda **_kwargs: project_root,
+    )
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _root: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_kwargs: None)
+    monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(scenario_runner.time, "sleep", lambda _seconds: None)
+
+    attempt_count = {"prepare": 0}
+
+    def _run_command(_root, command, *_args, **_kwargs):
+        if command[:3] == ["cci", "org", "scratch"] or command[:3] == ["cci", "org", "info"]:
+            return {
+                "duration_seconds": 0.1,
+                "exit_code": 0,
+                "failure_signature": "",
+                "failure_class": "none",
+                "tail": [],
+            }
+        attempt_count["prepare"] += 1
+        if attempt_count["prepare"] == 1:
+            return {
+                "duration_seconds": 2.5,
+                "exit_code": 1,
+                "failure_signature": "transient",
+                "failure_class": "transient",
+                "tail": [],
+            }
+        return {
+            "duration_seconds": 3.0,
+            "exit_code": 0,
+            "failure_signature": "",
+            "failure_class": "none",
+            "tail": [],
+        }
+
+    monkeypatch.setattr(scenario_runner, "run_command", _run_command)
+
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="prepare_core", when=None)],
+        default_flags={"demo": True},
+        base_cci={},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=False,
+    )
+
+    assert result["status"] == "success"
+    step_results_path = run_dir / "scenarios" / "ent-default" / "step_results.jsonl"
+    rows = [json.loads(line) for line in step_results_path.read_text(encoding="utf-8").splitlines()]
+    prepare_row = next(row for row in rows if row["phase"] == "prepare_step")
+    assert prepare_row["status"] == "success"
+    assert prepare_row["duration_seconds"] == pytest.approx(5.5)

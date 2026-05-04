@@ -43,8 +43,10 @@ def build_run_analysis(run_dir: Path, run_summary: Dict[str, Any]) -> Dict[str, 
         step_events = load_jsonl(scenario_dir / "step_results.jsonl")
 
         flag_overrides = scenario_manifest.get("flag_overrides", {}) if isinstance(scenario_manifest, dict) else {}
-        failed_events = [e for e in step_events if e.get("status") == "failed" and e.get("phase") == "prepare_step"]
-        first_failed = failed_events[0] if failed_events else {}
+        first_failed: Dict[str, Any] = {}
+        if scenario_result.get("status") != "success":
+            failed_events = [e for e in step_events if e.get("status") == "failed" and e.get("phase") == "prepare_step"]
+            first_failed = failed_events[0] if failed_events else {}
 
         scenario_records.append(
             {
@@ -109,9 +111,10 @@ def build_run_analysis(run_dir: Path, run_summary: Dict[str, Any]) -> Dict[str, 
                 row["failed_count"] += 1
             elif status == "skipped":
                 row["skipped_count"] += 1
-            duration = float(event.get("duration_seconds") or 0)
-            row["total_duration_seconds"] += duration
-            row["samples"] += 1
+            if status in {"success", "failed"}:
+                duration = float(event.get("duration_seconds") or 0)
+                row["total_duration_seconds"] += duration
+                row["samples"] += 1
             sig = str(event.get("failure_signature") or "").strip()
             if sig:
                 row["failure_signatures"].append(sig)

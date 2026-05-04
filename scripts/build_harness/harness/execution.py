@@ -149,8 +149,8 @@ def run_command(
         )
 
     duration = float(stream_result["duration_seconds"])
-    signature_line = str(stream_result["failure_signature"])
     exit_code = int(stream_result["exit_code"])
+    signature_line = str(stream_result["failure_signature"]) if exit_code != 0 else ""
 
     return {
         "started_at": started_at,

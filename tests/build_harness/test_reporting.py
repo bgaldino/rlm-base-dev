@@ -121,3 +121,26 @@ class TestBuildRunAnalysis:
         assert "compatibility_summary" in result
         assert "dependency_summary" in result
         assert "optimization_recommendations" in result
+
+    def test_skipped_steps_do_not_count_as_timing_samples(self, tmp_path) -> None:
+        sr = [{"scenario_id": "s1", "status": "success", "failed_step": None, "failed_target": None, "failure_signature": "", "failure_class": "none", "org_alias": "a1"}]
+        events = [
+            {"phase": "prepare_step", "status": "skipped", "step_number": 1, "target_type": "task", "target_name": "demo", "duration_seconds": 0, "failure_signature": ""},
+            {"phase": "prepare_step", "status": "success", "step_number": 1, "target_type": "task", "target_name": "demo", "duration_seconds": 10, "failure_signature": ""},
+        ]
+        run_dir = self._make_run_dir(tmp_path, sr, step_events_by_scenario={"s1": events})
+        result = build_run_analysis(run_dir, {"scenario_results": sr})
+        step_row = result["dependency_summary"]["step_outcomes"][0]
+        assert step_row["target"] == "task:demo"
+        assert step_row["samples"] == 1
+        assert step_row["total_duration_seconds"] == 10
+
+    def test_successful_resume_does_not_emit_failure_dependency_hint(self, tmp_path) -> None:
+        sr = [{"scenario_id": "s1", "status": "success", "failed_step": None, "failed_target": None, "failure_signature": "", "failure_class": "none", "org_alias": "a1"}]
+        events = [
+            {"phase": "prepare_step", "status": "failed", "step_number": 3, "target_type": "task", "target_name": "deploy", "duration_seconds": 20, "failure_signature": "old failure"},
+            {"phase": "prepare_step", "status": "success", "step_number": 3, "target_type": "task", "target_name": "deploy", "duration_seconds": 12, "failure_signature": ""},
+        ]
+        run_dir = self._make_run_dir(tmp_path, sr, step_events_by_scenario={"s1": events})
+        result = build_run_analysis(run_dir, {"scenario_results": sr})
+        assert result["dependency_summary"]["failure_dependencies"] == []
