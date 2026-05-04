@@ -12,7 +12,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, ProductClassificationId, ProductConfigurationFlowId, ProductId FROM ProductConfigFlowAssignment",
+          "query": "SELECT CurrencyIsoCode, ProductClassificationId, ProductConfigurationFlowId, ProductId, ProductConfigurationFlow.FlowIdentifier, Product.StockKeepingUnit FROM ProductConfigFlowAssignment",
           "operation": "Upsert",
           "externalId": "ProductConfigurationFlow.FlowIdentifier;Product.StockKeepingUnit",
           "excluded": false

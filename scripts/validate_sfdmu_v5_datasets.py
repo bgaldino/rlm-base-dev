@@ -75,6 +75,19 @@ class SFDMUValidator:
         "PriceBookRateCard",
         "RateCardEntry",
         "RateAdjustmentByTier",
+        # MFG AAF — forecast facts use deleteOldData for full refresh
+        "AdvAccountForecastFact",
+        "AdvAcctForecastSetPartner",
+        # Guided selling — OmniProcess/AssessmentQuestion objects require deleteOldData
+        # due to complex self-referential keys that SFDMU v5 cannot upsert safely
+        "AssessmentQuestionAssignment",
+        "AssessmentQuestionVersion",
+        "OmniProcessElement",
+        "OmniProcessAsmtQuestionVer",
+        # Rating usage grants require deleteOldData due to composite key structure
+        "ProductUsageResource",
+        "ProductUsageResourcePolicy",
+        "ProductUsageGrant",
     }
 
     # Known excluded objects (from optimization doc)
@@ -85,6 +98,8 @@ class SFDMUValidator:
         "ProductDecompEnrichmentRule",
         "ProductComponentGrpOverride",
         "ProductRelComponentOverride",
+        # CostBookEntry excluded in qb-pricing (no cost book data in base dataset)
+        "CostBookEntry",
     }
 
     # Objects with known empty CSVs (0 records placeholders)
@@ -586,20 +601,28 @@ class SFDMUValidator:
                 message=f"externalId uses legacy $$ notation: '{external_id}'. SFDMU v5 requires semicolon-delimited format (e.g., 'Field1;Field2')"
             ))
 
-        # Check for nested relationship paths (v5 flattening issue)
+        # Check for nested relationship paths (v5 flattening issue).
+        # Skip for Insert operations: externalId is only used for CSV composite key
+        # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
         fields = external_id.split(";")
-        for field in fields:
-            # Count dots (more than 1 = nested relationship)
-            dot_count = field.count(".")
-            if dot_count > 1:
-                result.add_issue(Issue(
-                    severity=Severity.MEDIUM,
-                    object_name=obj_name,
-                    message=f"externalId contains nested relationship path '{field}' which may cause v5 flattening errors"
-                ))
+        operation = obj_config.get("operation", "Upsert")
+        if operation.lower() != "insert":
+            for field in fields:
+                # Count dots (more than 1 = nested relationship)
+                dot_count = field.count(".")
+                if dot_count > 1:
+                    result.add_issue(Issue(
+                        severity=Severity.MEDIUM,
+                        object_name=obj_name,
+                        message=f"externalId contains nested relationship path '{field}' which may cause v5 flattening errors"
+                    ))
 
-        # Validate that composite key components are in the query
-        if ";" in external_id:
+        # Validate that composite key components are in the query.
+        # Skip for Insert operations: externalId is used only for CSV composite key
+        # matching within the dataset, not for SOQL record matching, so the fields
+        # do not need to appear in the SELECT clause.
+        operation = obj_config.get("operation", "Upsert")
+        if ";" in external_id and operation.lower() != "insert":
             query_fields = set(obj_config.get("fields", []))
             for field in fields:
                 # Require that each externalId component is explicitly present in the query

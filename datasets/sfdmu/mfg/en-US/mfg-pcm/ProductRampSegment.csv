@@ -1,1 +1,1 @@
-DurationType,Id,Name,ProductId,ProductSellingModelId,SegmentType,TrialDuration
+DurationType,Id,Name,ProductId,ProductSellingModelId,SegmentType,TrialDuration,$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType

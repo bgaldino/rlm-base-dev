@@ -30,7 +30,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT AssessmentQuestionId, AssessmentQuestionSetId FROM AssessmentQuestionAssignment",
+          "query": "SELECT AssessmentQuestionId, AssessmentQuestionSetId, AssessmentQuestion.UniqueIndex, AssessmentQuestionSet.UniqueIndex FROM AssessmentQuestionAssignment",
           "operation": "Upsert",
           "externalId": "AssessmentQuestion.UniqueIndex;AssessmentQuestionSet.UniqueIndex",
           "excluded": false
@@ -48,7 +48,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcessId, OmniProcessVersionNumber, ParentElementId, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
+          "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcessId, OmniProcessVersionNumber, ParentElementId, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type, OmniProcess.UniqueName FROM OmniProcessElement",
           "operation": "Upsert",
           "externalId": "OmniProcess.UniqueName;Name",
           "excluded": false
@@ -60,7 +60,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT AssessmentQuestionVersionId, IsPrefill, OmniProcessElementId, OmniProcessId FROM OmniProcessAsmtQuestionVer",
+          "query": "SELECT AssessmentQuestionVersionId, IsPrefill, OmniProcessElementId, OmniProcessId, AssessmentQuestionVersion.Name, OmniProcessElement.Name FROM OmniProcessAsmtQuestionVer",
           "operation": "Upsert",
           "externalId": "AssessmentQuestionVersion.Name;OmniProcessElement.Name",
           "excluded": false

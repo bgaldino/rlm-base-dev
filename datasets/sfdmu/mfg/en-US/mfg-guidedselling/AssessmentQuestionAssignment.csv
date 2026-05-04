@@ -1,1 +1,1 @@
-AssessmentQuestionId,AssessmentQuestionSetId
+AssessmentQuestionId,AssessmentQuestionSetId,$$AssessmentQuestion.UniqueIndex$AssessmentQuestionSet.UniqueIndex

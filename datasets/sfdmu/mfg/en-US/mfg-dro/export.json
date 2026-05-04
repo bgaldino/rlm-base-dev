@@ -83,7 +83,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, Name, ShowOrder FROM FulfillmentWorkspaceItem",
+          "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, Id, Name, ShowOrder, FulfillmentWorkspace.Name, FulfillmentStepDefinitionGroup.Name FROM FulfillmentWorkspaceItem",
           "operation": "Upsert",
           "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name",
           "deleteOldData": true,
