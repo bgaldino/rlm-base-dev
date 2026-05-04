@@ -65,6 +65,7 @@ def run_single_scenario(
     skip_validate: bool,
     keep_orgs: bool,
     is_resume: bool,
+    stream_output: bool = True,
     resume_from_step: Optional[int] = None,
     existing_alias: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -154,7 +155,14 @@ def run_single_scenario(
 
     try:
         if not skip_validate and not is_resume:
-            validate_result = run_command(root, ["cci", "task", "run", "validate_setup"], log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
+            validate_result = run_command(
+                root,
+                ["cci", "task", "run", "validate_setup"],
+                log_path,
+                print_prefix=f"[{scenario_id}] ",
+                cwd=project_root,
+                emit_output=stream_output,
+            )
             record_event(
                 {
                     "phase": "preflight",
@@ -184,7 +192,14 @@ def run_single_scenario(
 
         if not is_resume:
             create_cmd = ["cci", "org", "scratch", org_shape, org_alias, "--days", str(days)]
-            create_result = run_command(root, create_cmd, log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
+            create_result = run_command(
+                root,
+                create_cmd,
+                log_path,
+                print_prefix=f"[{scenario_id}] ",
+                cwd=project_root,
+                emit_output=stream_output,
+            )
             record_event(
                 {
                     "phase": "org_create",
@@ -218,6 +233,7 @@ def run_single_scenario(
                 log_path,
                 print_prefix=f"[{scenario_id}] ",
                 cwd=project_root,
+                emit_output=stream_output,
             )
             record_event(
                 {
@@ -285,7 +301,14 @@ def run_single_scenario(
             step_completed = False
             latest_result: Dict[str, Any] = {}
             while attempt <= retry_budget:
-                latest_result = run_command(root, base_cmd, log_path, print_prefix=f"[{scenario_id}] ", cwd=project_root)
+                latest_result = run_command(
+                    root,
+                    base_cmd,
+                    log_path,
+                    print_prefix=f"[{scenario_id}] ",
+                    cwd=project_root,
+                    emit_output=stream_output,
+                )
                 failure_class = latest_result["failure_class"]
                 if latest_result["exit_code"] == 0:
                     step_completed = True
@@ -294,7 +317,8 @@ def run_single_scenario(
                     break
                 backoff = 30 if attempt == 0 else 90
                 total_retries += 1
-                print(f"[{scenario_id}] transient failure at step {step.step_number}, retrying in {backoff}s...")
+                if stream_output:
+                    print(f"[{scenario_id}] transient failure at step {step.step_number}, retrying in {backoff}s...")
                 time.sleep(backoff)
                 attempt += 1
 
@@ -360,6 +384,7 @@ def run_single_scenario(
                 log_path,
                 print_prefix=f"[{scenario_id}] ",
                 cwd=project_root,
+                emit_output=stream_output,
             )
             deleted_org = delete_result["exit_code"] == 0
             record_event(

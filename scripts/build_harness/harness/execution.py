@@ -130,6 +130,7 @@ def run_command(
     log_path: Path,
     print_prefix: str = "",
     cwd: Optional[Path] = None,
+    emit_output: bool = True,
 ) -> Dict[str, Any]:
     started_at = now_utc()
     with log_path.open("a", encoding="utf-8") as log_handle:
@@ -138,7 +139,8 @@ def run_command(
 
         def _handle_line(line: str) -> None:
             log_handle.write(f"{line}\n")
-            print(f"{print_prefix}{line}" if print_prefix else line)
+            if emit_output:
+                print(f"{print_prefix}{line}" if print_prefix else line)
 
         stream_result = run_command_stream(
             command,

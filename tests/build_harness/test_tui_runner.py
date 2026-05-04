@@ -173,6 +173,80 @@ def test_run_build_fails_when_org_materialization_fails(tmp_path, monkeypatch) -
     )
 
 
+def test_run_build_emits_cancelled_when_stopped_during_org_create(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        runner,
+        "load_cci",
+        lambda _: {
+            "project": {"custom": {}},
+            "flows": {"prepare_rlm_org": {"steps": {}}},
+            "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}},
+        },
+    )
+    monkeypatch.setattr(runner, "load_prepare_steps", lambda _: [])
+    monkeypatch.setattr(runner, "cleanup_scenario_project_root", lambda _root: None)
+
+    stop_event = Event()
+    stop_event.set()
+    monkeypatch.setattr(
+        runner,
+        "_run_command",
+        lambda *_args, **_kwargs: {
+            "duration_seconds": 0.02,
+            "exit_code": 130,
+            "failure_signature": "terminated",
+        },
+    )
+
+    events: List[RunEvent] = []
+    config = _build_config(overrides={})
+    code = runner.run_build(config=config, stop_event=stop_event, emit=_emit_collector(events))
+
+    assert code == 130
+    assert any(event.kind.value == "run_cancelled" for event in events)
+    assert not any(event.kind.value == "run_failed" for event in events)
+
+
+def test_run_build_emits_cancelled_when_stopped_during_materialization(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        runner,
+        "load_cci",
+        lambda _: {
+            "project": {"custom": {}},
+            "flows": {"prepare_rlm_org": {"steps": {}}},
+            "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}},
+        },
+    )
+    monkeypatch.setattr(runner, "load_prepare_steps", lambda _: [])
+    monkeypatch.setattr(runner, "cleanup_scenario_project_root", lambda _root: None)
+
+    call_state = {"count": 0}
+    stop_event = Event()
+
+    def _run_command(*_args, **_kwargs):
+        call_state["count"] += 1
+        if call_state["count"] == 1:
+            stop_event.set()
+            return {"duration_seconds": 0.02, "exit_code": 0, "failure_signature": ""}
+        return {"duration_seconds": 0.02, "exit_code": 130, "failure_signature": "terminated"}
+
+    monkeypatch.setattr(runner, "_run_command", _run_command)
+
+    events: List[RunEvent] = []
+    config = _build_config(overrides={})
+    code = runner.run_build(config=config, stop_event=stop_event, emit=_emit_collector(events))
+
+    assert code == 130
+    assert any(event.kind.value == "run_cancelled" for event in events)
+    assert not any(
+        event.kind.value == "run_failed"
+        and event.payload.get("message") == "Scratch org materialization failed."
+        for event in events
+    )
+
+
 def test_extract_flag_groups_and_comments_parses_group_headers_and_inline_comments(tmp_path, monkeypatch) -> None:
     cci_file = tmp_path / "cumulusci.yml"
     cci_file.write_text(

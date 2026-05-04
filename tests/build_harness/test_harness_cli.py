@@ -24,6 +24,18 @@ def _resume_args(run_id: str) -> argparse.Namespace:
     )
 
 
+def _run_args(run_id: str | None, fmt: str = "json") -> argparse.Namespace:
+    return argparse.Namespace(
+        run_id=run_id,
+        scenarios_file="unused.json",
+        scenario=None,
+        skip_validate=True,
+        keep_orgs=False,
+        prune_older_than=None,
+        format=fmt,
+    )
+
+
 def test_resolve_run_dir_rejects_path_traversal(tmp_path, monkeypatch) -> None:
     output_root = tmp_path / ".harness" / "runs"
     output_root.mkdir(parents=True)
@@ -31,6 +43,16 @@ def test_resolve_run_dir_rejects_path_traversal(tmp_path, monkeypatch) -> None:
 
     assert harness._resolve_run_dir("../escape") is None
     assert harness._resolve_run_dir("/tmp/escape") is None
+
+
+def test_cmd_run_rejects_existing_run_id_directory(tmp_path, monkeypatch) -> None:
+    output_root = tmp_path / ".harness" / "runs"
+    run_dir = output_root / "run-existing"
+    run_dir.mkdir(parents=True)
+    monkeypatch.setattr(harness, "DEFAULT_OUTPUT_ROOT", output_root)
+
+    exit_code = harness.cmd_run(_run_args("run-existing"))
+    assert exit_code == harness.EXIT_CONFIG_ERROR
 
 
 def test_cmd_resume_blocks_when_checkpoint_flags_drift_from_empty_dict(tmp_path, monkeypatch) -> None:

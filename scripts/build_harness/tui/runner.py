@@ -113,6 +113,14 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
             cwd=project_root,
         )
         if create_result["exit_code"] != 0:
+            if stop_event.is_set():
+                emit(
+                    RunEvent(
+                        kind=RunEventKind.RUN_CANCELLED,
+                        payload={"message": "Run cancelled by user during scratch org creation."},
+                    )
+                )
+                return 130
             emit(
                 RunEvent(
                     kind=RunEventKind.RUN_FAILED,
@@ -144,6 +152,14 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
             cwd=project_root,
         )
         if materialize_result["exit_code"] != 0:
+            if stop_event.is_set():
+                emit(
+                    RunEvent(
+                        kind=RunEventKind.RUN_CANCELLED,
+                        payload={"message": "Run cancelled by user during org materialization."},
+                    )
+                )
+                return 130
             emit(
                 RunEvent(
                     kind=RunEventKind.STEP_FAILED,
@@ -219,6 +235,17 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
                 cwd=project_root,
             )
             if result["exit_code"] != 0:
+                if stop_event.is_set():
+                    emit(
+                        RunEvent(
+                            kind=RunEventKind.RUN_CANCELLED,
+                            payload={
+                                "message": f"Run cancelled by user at step {step.step_number}.",
+                                "step_number": step.step_number,
+                            },
+                        )
+                    )
+                    return 130
                 emit(
                     RunEvent(
                         kind=RunEventKind.STEP_FAILED,

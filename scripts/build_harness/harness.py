@@ -78,7 +78,9 @@ def load_scenarios_from_file(path: Path) -> List[Dict[str, Any]]:
     return extract_scenarios(load_json(path))
 
 
-def _render_pruned_runs(removed: List[Path]) -> None:
+def _render_pruned_runs(removed: List[Path], *, quiet: bool = False) -> None:
+    if quiet:
+        return
     if not removed:
         print("[harness] prune requested; no run directories were removed.")
         return
@@ -87,12 +89,12 @@ def _render_pruned_runs(removed: List[Path]) -> None:
         print(f"  - {item.name}")
 
 
-def _maybe_prune_runs(raw_retention: Optional[str]) -> None:
+def _maybe_prune_runs(raw_retention: Optional[str], *, quiet: bool = False) -> None:
     if not raw_retention:
         return
     retention = parse_retention(raw_retention)
     removed = prune_old_runs(DEFAULT_OUTPUT_ROOT, retention)
-    _render_pruned_runs(removed)
+    _render_pruned_runs(removed, quiet=quiet)
 
 
 def _attach_analysis_artifacts(summary: Dict[str, Any], analysis: Dict[str, Any]) -> None:
@@ -105,11 +107,24 @@ def _attach_analysis_artifacts(summary: Dict[str, Any], analysis: Dict[str, Any]
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    _maybe_prune_runs(args.prune_older_than)
+    json_output = args.format == "json"
+    _maybe_prune_runs(args.prune_older_than, quiet=json_output)
     run_id = args.run_id or make_run_id()
+    if not args.run_id:
+        suffix = 2
+        while _resolve_run_dir(run_id, must_exist=True) is not None:
+            run_id = f"{make_run_id()}-{suffix}"
+            suffix += 1
     run_dir = _resolve_run_dir(run_id)
     if run_dir is None:
         print(f"Invalid run id: {run_id}", file=sys.stderr)
+        return EXIT_CONFIG_ERROR
+    if run_dir.exists():
+        print(
+            f"Run directory already exists for run id '{run_id}'. "
+            "Choose a new --run-id or omit it to auto-generate one.",
+            file=sys.stderr,
+        )
         return EXIT_CONFIG_ERROR
     ensure_dir(run_dir)
     ensure_dir(run_dir / "scenarios")
@@ -145,6 +160,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             skip_validate=args.skip_validate,
             keep_orgs=args.keep_orgs,
             is_resume=False,
+            stream_output=not json_output,
         )
         scenario_results.append(result)
         if result["status"] != "success":
@@ -172,6 +188,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_resume(args: argparse.Namespace) -> int:
+    json_output = args.format == "json"
     run_dir = _resolve_run_dir(args.run_id, must_exist=True)
     if run_dir is None:
         print(f"Run id not found: {args.run_id}", file=sys.stderr)
@@ -221,6 +238,7 @@ def cmd_resume(args: argparse.Namespace) -> int:
         is_resume=True,
         resume_from_step=resume_from,
         existing_alias=org_alias,
+        stream_output=not json_output,
     )
 
     summary_path = run_dir / "run_summary.json"
@@ -262,7 +280,8 @@ def cmd_resume(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    _maybe_prune_runs(args.prune_older_than)
+    json_output = args.format == "json"
+    _maybe_prune_runs(args.prune_older_than, quiet=json_output)
     run_dir = _resolve_run_dir(args.run_id, must_exist=True)
     if run_dir is None:
         print(f"run_summary.json not found for run_id {args.run_id}", file=sys.stderr)
@@ -287,7 +306,7 @@ def cmd_report(args: argparse.Namespace) -> int:
 def cmd_prune(args: argparse.Namespace) -> int:
     retention = parse_retention(args.prune_older_than)
     removed = prune_old_runs(DEFAULT_OUTPUT_ROOT, retention)
-    _render_pruned_runs(removed)
+    _render_pruned_runs(removed, quiet=args.format == "json")
     payload = {
         "output_root": str(DEFAULT_OUTPUT_ROOT),
         "retention": args.prune_older_than,

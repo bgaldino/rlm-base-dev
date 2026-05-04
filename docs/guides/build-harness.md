@@ -130,7 +130,7 @@ TUI behavior:
   - `persistent_logging`: `true`/`false` to enable local run artifacts
   - `delete_org_on_failure`: `true`/`false` to control auto cleanup on failed runs
 - Supports `Set Default Org` from Command Palette (`Ctrl+P`) to persist the currently highlighted/selected shape
-- Auto-generates alias defaults as `<shape>-tui-<4char>` and retries on alias collisions
+- Auto-generates low-collision alias defaults as `<shape>-tui-<4char>`
 - Separates scratch-org startup timing before top-level `prepare_rlm_org` steps:
   - runs `cci org scratch <shape> <alias> --days <n>` (register alias/config)
   - then runs `cci org info <alias>` (forces materialization/credential refresh)
@@ -165,10 +165,10 @@ Run the harness unit test suite from repo root:
 
 ```bash
 .harness/tui-venv/bin/python -m pytest tests/build_harness/
+```
 
 Python 3.11+ is required for harness/TUI tests and runtime (`StrEnum` is used by
 `scripts/build_harness/tui/state.py`).
-```
 
 ## Resume Behavior
 

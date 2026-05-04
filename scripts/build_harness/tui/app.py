@@ -34,11 +34,19 @@ TUI_RUNS_ROOT = REPO_ROOT / ".harness" / "tui-runs"
 CCI_UI_COMMAND_TIMEOUT_SECONDS = 60
 
 
+def _path_safe_alias_fragment(alias: str) -> str:
+    """Normalize aliases for filesystem-safe run id fragments."""
+    normalized = re.sub(r"[^A-Za-z0-9_-]+", "-", alias).strip("-")
+    return normalized or "org"
+
+
 def _validate_alias_and_days(alias: str, days_raw: str) -> Optional[str]:
     if not alias:
         return "Org alias is required."
     if len(alias) > 60:
         return "Org alias must be 60 chars or fewer."
+    if alias in {".", ".."} or "/" in alias or "\\" in alias or ".." in alias:
+        return "Org alias cannot include path separators or traversal segments."
     try:
         days = int(days_raw)
     except ValueError:
@@ -129,7 +137,7 @@ class PersistentRunLogger:
         self._effective_flags = dict(effective_flags)
         self._started_at = now_utc()
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        self.run_id = f"tui-{stamp}-{config.org_alias}"
+        self.run_id = f"tui-{stamp}-{_path_safe_alias_fragment(config.org_alias)}"
         self.run_dir = TUI_RUNS_ROOT / self.run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -942,8 +950,13 @@ class BuildManagerApp(App[None]):
         self.request_stop()
         if self._runner_thread is not None:
             self._runner_thread.join(timeout=5)
-        if delete_org and self._active_org_alias:
+        if delete_org and self._active_org_alias and self._org_created_in_run:
             self._delete_scratch_org(self._active_org_alias)
+        elif delete_org and self._active_org_alias:
+            self.notify(
+                f"Skipping delete for '{self._active_org_alias}': org was not created in this run.",
+                severity="warning",
+            )
         self.exit()
 
     def action_safe_exit(self) -> None:
