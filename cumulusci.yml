@@ -98,7 +98,6 @@ project:
     tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
     pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
     trial: false              # Public Trial org (EE, no qbrix or custom UX)
-    dev_ed: false             # Developer Edition org — set true for non-standard dev orgs to suppress Enterprise-only PS assignments
     refresh: false            # Data refresh mode — skips insert steps during re-runs
 
     # ── Core Revenue Cloud Features ────────────────────────────────────────────
@@ -219,7 +218,8 @@ project:
       - EinsteinGPTPromptTemplateManager
 
     rlm_ai_ps_enterprise_api_names: &rlm_ai_ps_enterprise_api_names
-      # AI permission sets — Enterprise edition only (not assignable on Developer edition)
+      # AI permission sets — Enterprise edition only
+      # Automatically skipped on Developer Edition orgs via org_config.org_type detection
       - SalesCloudEinsteinAll
 
     rlm_tso_psl_api_names: &rlm_tso_psl_api_names
@@ -2604,7 +2604,7 @@ flows:
           api_names: *rlm_ai_ps_api_names
       3:
         task: assign_permission_sets
-        when: project_config.project__custom__einstein and not (project_config.project__custom__dev_ed or org_config.name in ["dev", "dev-sb0", "dev-r1"])
+        when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"
         options:
           api_names: *rlm_ai_ps_enterprise_api_names
       4:
@@ -3188,7 +3188,7 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 28 of
+      applications, profiles) from feature-conditional templates. Runs at step 27 of
       prepare_rlm_org, after all feature provisioning is complete, ensuring all
       referenced objects, fields, and components exist before UX metadata is deployed.
       Step 2 reorders the App Launcher via browser automation.

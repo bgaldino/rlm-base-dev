@@ -186,8 +186,9 @@ indexes, and more.
 6. **UX templates** — edits in `templates/`, never `unpackaged/post_ux/`
 7. **Profile/object rules** — force-app profiles stay classAccesses-only
 8. **PRM Network email** — repo uses placeholder only; patch/revert in order
-9. **Edition flags** — `pde`, `trial`, `dev_ed` change PSL/PS assignments
-   and feature availability; verify `when:` guards match the target edition
+9. **Edition flags** — `pde`, `trial` change PSL/PS assignments and feature
+   availability; verify `when:` guards match the target edition. Developer Edition
+   detection is now automatic via `org_config.org_type`
 
 ---
 
