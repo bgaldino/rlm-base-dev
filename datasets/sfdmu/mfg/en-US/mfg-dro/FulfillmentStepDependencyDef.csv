@@ -1,0 +1,20 @@
+DependencyScope,DependsOnStepDefinition.Name,FulfillmentStepDefinition.Name,IsCompensateInReverse,Name,PropagateStateToDependentStep
+Plan,Validate Order Info,Convert Order to Asset,false,Wait on Provision Before Converting,#N/A
+Plan,Validate Order Info,Stage New Tenant for Provisioning,false,Require Validation Before Provisioning,#N/A
+Plan,Convert Order to Asset,Initiate Billing,false,Asset Conversion then Bill,#N/A
+Plan,Initiate Billing,Post Invoice,false,Receive Payment,#N/A
+Plan,Post Invoice,Receive Payment,false,Post to Pay,#N/A
+Plan,IoT Health Check,Review IoT Report,false,Health Check to Review Report,#N/A
+Plan,IoT Health Check,Create Work Order,false,Create Work Order After Health Check,#N/A
+Plan,Create Work Order,Work Order Completed,false,Complete Work Order,#N/A
+Plan,Work Order Completed,Create Service Contract,false,Create Svc Contract,#N/A
+Plan,Inventory Allocation,Consolidated Fulfillment,false,Fulfillment Consolidation,#N/A
+Plan,Consolidated Fulfillment,Shipment,false,Kit Shipment,#N/A
+Plan,Consolidated Fulfillment,Generate Invoice,false,Generate Invoice,#N/A
+Plan,Engineering Verification,Customer BOM sign-off,false,Engineering to BOM Validation,#N/A
+Plan,Customer BOM sign-off,Source specialized components,false,Source Components After Validation,#N/A
+Plan,Source specialized components,Generator Assembly,false,Assembly After Sourcing Components,#N/A
+Plan,Customer BOM sign-off,Finish logistics plan,false,Planning After BOM Validation,#N/A
+Plan,Finish logistics plan,Confirm Delivery,false,Delivery After Logistics Planning,#N/A
+Plan,Generator Assembly,Confirm Delivery,false,Deliver After Assembly,#N/A
+Plan,Confirm Delivery,Install and Commission,false,Installation After Delivery Confirmation,#N/A

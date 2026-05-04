@@ -1,0 +1,2 @@
+ApiName,Description,ExpressionSetDefinitionId,Id,InterfaceSourceType,Name,ResourceInitializationType,UsageType
+Fuel_Cell,,9QAWs000000l48MOAQ,9QLWs000006oL2hOAE,Constraint,Fuel Cell,Off,Constraint
