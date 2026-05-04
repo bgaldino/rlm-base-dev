@@ -231,31 +231,49 @@ if (!rollDemo.isEmpty()) {
 }
 
 for (List<String> stack : DEMO_BILLING_STACKS) {
-    String demoBillingPolicy = stack[0];
+    String demoBillingPolicy    = stack[0];
     String demoBillingTreatment = stack[1];
-    String demoLegalEntity = stack[2];
-    List<BillingTreatmentItem> btis = [
-        SELECT Id FROM BillingTreatmentItem WHERE BillingTreatment.Name = :demoBillingTreatment
-    ];
-    if (!btis.isEmpty()) {
-        Database.delete(btis, false);
+    String demoLegalEntity      = stack[2];
+
+    // Deactivate in reverse order before deleting — platform blocks deletion of Active records.
+    // Step 1: Draft the policy first (clears DefaultBillingTreatmentId constraint)
+    List<BillingPolicy> bps = [SELECT Id, Status, DefaultBillingTreatmentId FROM BillingPolicy WHERE Name = :demoBillingPolicy LIMIT 1];
+    if (!bps.isEmpty() && bps[0].Status == 'Active') {
+        bps[0].Status = 'Draft';
+        bps[0].DefaultBillingTreatmentId = null;
+        Database.update(bps, false);
     }
+
+    // Step 2: Draft the treatment
     List<BillingTreatment> bts = [
-        SELECT Id
-        FROM BillingTreatment
+        SELECT Id, Status FROM BillingTreatment
         WHERE Name = :demoBillingTreatment AND BillingPolicy.Name = :demoBillingPolicy
     ];
-    if (!bts.isEmpty()) {
-        Database.delete(bts, false);
+    for (BillingTreatment bt : bts) {
+        if (bt.Status == 'Active') bt.Status = 'Draft';
     }
-    List<BillingPolicy> bps = [SELECT Id FROM BillingPolicy WHERE Name = :demoBillingPolicy LIMIT 1];
-    if (!bps.isEmpty()) {
-        Database.delete(bps, false);
+    if (!bts.isEmpty()) Database.update(bts, false);
+
+    // Step 3: Draft the treatment items
+    List<Id> btIds = new List<Id>();
+    for (BillingTreatment bt : bts) btIds.add(bt.Id);
+    List<BillingTreatmentItem> btis = [
+        SELECT Id, Status FROM BillingTreatmentItem WHERE BillingTreatmentId IN :btIds
+    ];
+    for (BillingTreatmentItem bti : btis) {
+        if (bti.Status == 'Active') bti.Status = 'Draft';
     }
+    if (!btis.isEmpty()) Database.update(btis, false);
+
+    // Step 4: Delete in child-first order
+    if (!btis.isEmpty()) Database.delete(btis, false);
+    if (!bts.isEmpty())  Database.delete(bts,  false);
+    if (!bps.isEmpty())  Database.delete(bps,  false);
+
     List<LegalEntity> les = [SELECT Id FROM LegalEntity WHERE Name = :demoLegalEntity LIMIT 1];
-    if (!les.isEmpty()) {
-        Database.delete(les, false);
-    }
+    if (!les.isEmpty()) Database.delete(les, false);
+
+    System.debug('deleteCustomerDemoCatalogData: deleted billing stack for ' + demoBillingPolicy);
 }
 
 // customer-template-billing demo payment terms

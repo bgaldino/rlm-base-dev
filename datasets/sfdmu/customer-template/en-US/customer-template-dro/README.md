@@ -2,17 +2,15 @@
 
 Customer-specific DRO (Dynamic Revenue Orchestration) overlay for the customer demo catalog. Maps customer sellable SKUs to fulfillment routing and step groups using the QB DRO infrastructure already in the org.
 
-**Current customer:** Medinah Country Club (prefix `MCC-`)
-
 ---
 
 ## What This Plan Does
 
 This plan adds three things on top of the QB DRO infrastructure:
 
-1. **`ProductFulfillmentDecompRule`** (15 records) — routes each Medinah sellable SKU to a QB operational sub-product (`QB-DRO-BILL` for Finance, `QB-DRO-PROJ` for Services)
-2. **`ProductFulfillmentScenario`** (22 records) — maps each Medinah SKU to a fulfillment step group for each lifecycle action (Add, Amend, Renew, Cancel)
-3. **`Product2` (Update)** — sets `DecompositionScope` on the 13 Medinah products (`Bundle` for `MCC-PKG-ELITE`, `OrderLineItem` for all others)
+1. **`ProductFulfillmentDecompRule`** — routes each customer sellable SKU to a QB operational sub-product (`QB-DRO-BILL` for Finance, `QB-DRO-PROJ` for Services)
+2. **`ProductFulfillmentScenario`** — maps each customer SKU to a fulfillment step group for each lifecycle action (Add, Amend, Renew, Cancel)
+3. **`Product2` (Update)** — sets `DecompositionScope` on the customer products (`Bundle` for bundle parent SKUs, `OrderLineItem` for all others)
 
 This plan does **NOT** create new step groups, step definitions, workspaces, or jeopardy/fallout rules — those are QB DRO infrastructure and must already exist from `prepare_dro`.
 
@@ -68,60 +66,53 @@ cci flow run prepare_customer_demo_catalog --org <alias>
 
 ---
 
-## Decomposition Rules (PFDR)
+## CSV Data
 
-| Source SKU | Destination | Function |
-|---|---|---|
-| `MCC-MBR-IND` | `QB-DRO-BILL` | Finance routing |
-| `MCC-MBR-FAM` | `QB-DRO-BILL` | Finance routing |
-| `MCC-MBR-JR` | `QB-DRO-BILL` | Finance routing |
-| `MCC-MBR-SOC` | `QB-DRO-BILL` | Finance routing |
-| `MCC-AMN-RACQUET` | `QB-DRO-BILL` | Finance routing |
-| `MCC-AMN-GUNCLUB` | `QB-DRO-BILL` | Finance routing |
-| `MCC-FEE-INIT-IND` | `QB-DRO-BILL` | Finance routing (one-time fee) |
-| `MCC-FEE-INIT-FAM` | `QB-DRO-BILL` | Finance routing (one-time fee) |
-| `MCC-GOLF-PKG-GUEST` | `QB-DRO-BILL` | Finance routing |
-| `MCC-GOLF-ACADEMY` | `QB-DRO-BILL` | Finance routing |
-| `MCC-GOLF-ACADEMY` | `QB-DRO-PROJ` | Services — instructor assignment |
-| `MCC-EVT-CORP` | `QB-DRO-BILL` | Finance routing |
-| `MCC-EVT-CORP` | `QB-DRO-PROJ` | Services — event delivery |
-| `MCC-EVT-PRES` | `QB-DRO-BILL` | Finance routing |
-| `MCC-PKG-ELITE` | `QB-DRO-BILL` | Finance routing (bundle) |
+`ProductFulfillmentDecompRule.csv` and `ProductFulfillmentScenario.csv` are populated per customer. See `datasets/sfdmu/_archived/` for reference examples from previous customers. When building the PFS CSV, use the verified group names from the target org (see pitfall above) — not assumed names like "Order Processing".
 
 ---
 
-## Fulfillment Scenarios (PFS)
+## Critical — FulfillmentStepDefinitionGroup Names Are Org-Specific
 
-| SKU | Step Group | Actions |
-|---|---|---|
-| `MCC-MBR-IND` | Order Processing | Add |
-| `MCC-MBR-IND` | Finance | Add;Amend;Renew;No Change;Cancel |
-| `MCC-MBR-FAM` | Order Processing | Add |
-| `MCC-MBR-FAM` | Finance | Add;Amend;Renew;No Change;Cancel |
-| `MCC-MBR-JR` | Order Processing | Add |
-| `MCC-MBR-JR` | Finance | Add;Amend;Renew;No Change;Cancel |
-| `MCC-MBR-SOC` | Order Processing | Add |
-| `MCC-MBR-SOC` | Finance | Add;Amend;Renew;No Change;Cancel |
-| `MCC-AMN-RACQUET` | Order Processing | Add |
-| `MCC-AMN-RACQUET` | Finance | Add;Amend;Renew;No Change;Cancel |
-| `MCC-AMN-GUNCLUB` | Order Processing | Add |
-| `MCC-AMN-GUNCLUB` | Finance | Add;Amend;Renew;No Change;Cancel |
-| `MCC-FEE-INIT-IND` | Finance | Add |
-| `MCC-FEE-INIT-FAM` | Finance | Add |
-| `MCC-GOLF-PKG-GUEST` | Finance | Add |
-| `MCC-GOLF-ACADEMY` | Finance | Add |
-| `MCC-GOLF-ACADEMY` | Services | Add;Amend |
-| `MCC-EVT-CORP` | Finance | Add |
-| `MCC-EVT-CORP` | Services | Add;Amend |
-| `MCC-EVT-PRES` | Finance | Add |
-| `MCC-PKG-ELITE` | Order Processing | Add |
-| `MCC-PKG-ELITE` | Finance | Add;Amend;Renew;No Change;Cancel |
+`FulfillmentStepDefinitionGroup.Name` values in `ProductFulfillmentScenario.csv` **must match the groups that exist in the target org**. These groups are created by `prepare_dro` and can vary by org.
+
+**Always verify available groups before populating the CSV:**
+```bash
+sf data query -q "SELECT Id, Name FROM FulfillmentStepDefinitionGroup" --target-org <alias>
+```
+
+**Common mismatch:** The CSV may reference `Order Processing` but the org uses `Provisioning & Activation` instead. When SFDMU cannot resolve the group name, it silently sets `FulfillmentStepDefnGroupId = null` — no error, but the scenario is broken and the Fulfillment tab stays empty.
+
+If scenarios are loaded with null group IDs, fix them in Apex:
+```apex
+FulfillmentStepDefinitionGroup g = [SELECT Id FROM FulfillmentStepDefinitionGroup WHERE Name = 'Provisioning & Activation' LIMIT 1];
+List<ProductFulfillmentScenario> broken = [SELECT Id FROM ProductFulfillmentScenario WHERE Name LIKE '<PREFIX>%' AND FulfillmentStepDefnGroupId = null];
+for (ProductFulfillmentScenario s : broken) s.FulfillmentStepDefnGroupId = g.Id;
+if (!broken.isEmpty()) update broken;
+```
+
+Typical group mapping (verify per org):
+| Scenario purpose | Group name to use |
+|---|---|
+| Finance / billing routing | `Finance` |
+| Professional services delivery | `Services` |
+| Subscription activation / provisioning | `Provisioning & Activation` |
+| Platform-level provisioning | `Platform` |
+| Usage metering activation | `Usage Provisioning & Activation` |
 
 ---
 
-## 260 Bug — ExecuteOnRuleId
+## Manual vs Automatic DRO Triggering
 
-`ProductFulfillmentDecompRule` does not generate `ExecuteOnRuleId` on INSERT — only on UPDATE. The `update_customer_demo_fulfillment_decomp_rules` task runs `scripts/apex/updateProductFulfillmentDecompRules.apex` which re-saves all PFDR records to trigger ruleset generation. This is step 3 of `prepare_customer_demo_dro` and step 13 of `prepare_customer_demo_catalog` when `customer_demo_dro: true`.
+DRO decomposition does **not necessarily fire automatically** on order activation. Many orgs use manual triggering — the user must click **"Submit Orchestration Request"** (or equivalent button) in the order's Fulfillment tab after activation.
+
+If the Fulfillment tab shows "After you submit the orchestration request, you'll find the decomposed line items here", that is the expected state after activation — look for the Submit button on the tab. If no button is visible, check that the order's products all have matching PFDR records and that no PFS records have a null `FulfillmentStepDefnGroupId`.
+
+---
+
+## ExecuteOnRuleId and ScenarioRuleId
+
+These fields are null for all PFDR and PFS records in most orgs — that is normal and not an indicator of misconfiguration. The `update_customer_demo_fulfillment_decomp_rules` task (re-save all PFDRs) was added to address a Spring '26 INSERT bug, but in practice `ExecuteOnRuleId = null` does not block DRO from working in current orgs. The task is retained as a safety measure but the root cause of missing fulfillment is almost always a null `FulfillmentStepDefnGroupId` on PFS records (wrong group name) or the order needing a manual orchestration submit.
 
 ---
 
@@ -133,8 +124,9 @@ Both PFDR and PFS use `operation: Upsert` with `externalId: Name`. Re-running th
 
 ## Adapting for a New Customer
 
-1. Replace all `MCC-` SKU prefixes with the new customer prefix in all three CSVs
-2. Replace rule/scenario names (`MCC Individual Membership to Finance` etc.) with new customer product names, keeping the `<Prefix> <ProductName> to/- <Function>` naming convention
-3. Update `Product2.csv` — add/remove rows to match the new customer's sellable SKUs; set `Bundle` on bundle parent SKUs, `OrderLineItem` on all others
-4. Update `scripts/apex/deleteCustomerDemoDROData.apex` — change `LIKE 'MCC-%'` scope to the new customer prefix
-5. See `docs/features/customer-demo-dro.md` for the full business model playbook and implementation reference
+1. **Verify available step groups first** — query `SELECT Id, Name FROM FulfillmentStepDefinitionGroup` on the target org and note the exact names. Use those names in `ProductFulfillmentScenario.csv`, not assumed names like "Order Processing".
+2. Replace all customer-specific SKU prefixes in all three CSVs with the new customer prefix
+3. Replace rule/scenario names with new customer product names, keeping the `<Prefix> <ProductName> to/- <Function>` naming convention
+4. Update `Product2.csv` — add/remove rows to match the new customer's sellable SKUs; set `Bundle` on bundle parent SKUs, `OrderLineItem` on all others
+5. Update `scripts/apex/deleteCustomerDemoDROData.apex` — change the `LIKE` scope to the new customer prefix
+6. See `docs/features/customer-demo-dro.md` for the full business model playbook and implementation reference

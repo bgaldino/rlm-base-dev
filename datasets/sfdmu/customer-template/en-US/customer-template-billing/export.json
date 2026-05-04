@@ -40,7 +40,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT BillingTreatmentId, BillingTreatment.Name, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount FROM BillingTreatmentItem ORDER BY BillingTreatment.Name ASC, Name ASC",
+          "query": "SELECT BillingTreatmentId, BillingTreatment.Name, BillingType, Controller, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount FROM BillingTreatmentItem ORDER BY BillingTreatment.Name ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "Name;BillingTreatment.Name",
           "skipExistingRecords": true,
