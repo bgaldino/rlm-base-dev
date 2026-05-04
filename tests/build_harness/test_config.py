@@ -12,9 +12,8 @@ scenario runner, and the TUI:
 - ``load_scenarios`` — empty-scenarios-list error path.
 - ``load_default_flags`` and ``load_prepare_steps`` — parse cumulusci.yml
   fragments and surface validation errors with helpful messages.
-- ``evaluate_when`` — current behavior of the boolean ``when:`` evaluator.
-  These tests pin the *current* behavior (eval()-based) so the upcoming
-  Phase 2b refactor to an ast-based evaluator can be verified to preserve it.
+- ``evaluate_when`` — current behavior of the safe AST-based boolean ``when:``
+  evaluator used by the harness.
 """
 
 from __future__ import annotations
@@ -226,11 +225,10 @@ class TestLoadPrepareSteps:
 
 
 class TestEvaluateWhenBaseline:
-    """Pin down current evaluate_when behavior (eval()-based).
+    """Pin down current evaluate_when behavior for the AST-based evaluator.
 
-    These tests must continue to pass after Phase 2b replaces the eval()
-    backend with an ast-based safe evaluator. Each scenario reflects an
-    actual ``when:`` expression style used in cumulusci.yml today.
+    Each scenario reflects an actual ``when:`` expression style used in
+    cumulusci.yml today.
     """
 
     def test_no_expression_means_always_true(self) -> None:
@@ -323,8 +321,7 @@ class TestEvaluateWhenBaseline:
 
     def test_unparseable_expression_defaults_to_true(self) -> None:
         # Current behavior: an expression that fails to evaluate is treated
-        # as a no-op (step runs). Pin this so the safe-eval refactor preserves
-        # the same defensive default.
+        # as a no-op (step runs).
         assert evaluate_when("@@@ not valid python @@@", {}, "x") is True
 
 
@@ -339,10 +336,8 @@ class TestEvaluateWhenSafeEvaluator:
     """
 
     def test_rejects_function_call(self) -> None:
-        # Pre-refactor this would have run with __builtins__={} blocking name
-        # lookup, so it likely returned True via the broad except. Post-refactor
-        # the AST walker rejects ast.Call directly. Either way the default
-        # holds, but the reason is now structural.
+        # The AST walker rejects ast.Call directly. The defensive default
+        # preserves "run step" behavior on unsupported expressions.
         assert evaluate_when("__import__('os').system('ls')", {}, "x") is True
 
     def test_rejects_attribute_access(self) -> None:

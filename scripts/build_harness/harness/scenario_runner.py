@@ -300,6 +300,7 @@ def run_single_scenario(
             attempt = 0
             step_completed = False
             latest_result: Dict[str, Any] = {}
+            total_attempt_duration = 0.0
             while attempt <= retry_budget:
                 latest_result = run_command(
                     root,
@@ -309,6 +310,7 @@ def run_single_scenario(
                     cwd=project_root,
                     emit_output=stream_output,
                 )
+                total_attempt_duration += float(latest_result.get("duration_seconds") or 0.0)
                 failure_class = latest_result["failure_class"]
                 if latest_result["exit_code"] == 0:
                     step_completed = True
@@ -328,7 +330,7 @@ def run_single_scenario(
                 "target_type": step.target_type,
                 "target_name": step.target_name,
                 "status": "success" if step_completed else "failed",
-                "duration_seconds": latest_result.get("duration_seconds", 0),
+                "duration_seconds": total_attempt_duration,
                 "exit_code": latest_result.get("exit_code", 1),
                 "failure_signature": latest_result.get("failure_signature", ""),
                 "failure_class": latest_result.get("failure_class", "unknown"),
