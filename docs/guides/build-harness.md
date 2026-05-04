@@ -123,9 +123,12 @@ TUI behavior:
 - Shows inline per-flag descriptions from `project.custom` inline comments
 - Applies flag changes as runtime-only overrides (no file writes to `cumulusci.yml`)
 - Uses pill-style runtime toggles (`○ OFF` / `ON ●`) for boolean flag overrides
-- Supports optional local settings in `scripts/build_harness/tui/settings.json`:
+- Supports optional local settings with defaults in `scripts/build_harness/tui/settings.json`
+  and user overrides in `scripts/build_harness/tui/settings.local.json`:
   - `default_org_shape`: preselect shape in Step 1
   - `theme_mode`: `auto`, `light`, or `dark`
+  - `persistent_logging`: `true`/`false` to enable local run artifacts
+  - `delete_org_on_failure`: `true`/`false` to control auto cleanup on failed runs
 - Supports `Set Default Org` from Command Palette (`Ctrl+P`) to persist the currently highlighted/selected shape
 - Auto-generates alias defaults as `<shape>-tui-<4char>` and retries on alias collisions
 - Separates scratch-org startup timing before top-level `prepare_rlm_org` steps:
@@ -162,6 +165,9 @@ Run the harness unit test suite from repo root:
 
 ```bash
 .harness/tui-venv/bin/python -m pytest tests/build_harness/
+
+Python 3.11+ is required for harness/TUI tests and runtime (`StrEnum` is used by
+`scripts/build_harness/tui/state.py`).
 ```
 
 ## Resume Behavior

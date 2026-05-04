@@ -12,13 +12,7 @@ from scripts.build_harness.harness.io import load_json, load_jsonl, now_utc, wri
 # ``extra`` so future stamp output additions surface in build_provenance.json
 # without a regex update.
 _STAMP_PREFIX = "Stamped org:"
-_STAMP_KEY_TO_PROVENANCE_FIELD = {
-    "commit": "commit_hash_short",
-    "branch": "branch",
-    "timestamp": "build_timestamp",
-    "flow": "flow_name",
-    "org": "org_definition",
-}
+_KNOWN_STAMP_KEYS = {"commit", "branch", "timestamp", "flow", "org"}
 # Match each ``key=value`` pair where ``value`` extends until the next
 # ``, key=`` boundary or end of line. Order-independent, tolerates extra
 # whitespace, and lets values legitimately contain commas as long as they
@@ -74,7 +68,7 @@ def parse_stamp_line(line: str) -> Optional[Dict[str, Any]]:
     extra = {
         key: value
         for key, value in pairs.items()
-        if key not in _STAMP_KEY_TO_PROVENANCE_FIELD
+        if key not in _KNOWN_STAMP_KEYS
     }
     if extra:
         parsed["extra"] = extra

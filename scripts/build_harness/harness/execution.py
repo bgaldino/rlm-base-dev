@@ -131,7 +131,6 @@ def run_command(
     print_prefix: str = "",
     cwd: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    start = time.monotonic()
     started_at = now_utc()
     with log_path.open("a", encoding="utf-8") as log_handle:
         log_handle.write(f"\n[{started_at}] COMMAND: {' '.join(command)}\n")
@@ -147,7 +146,7 @@ def run_command(
             on_line=_handle_line,
         )
 
-    duration = round(time.monotonic() - start, 3)
+    duration = float(stream_result["duration_seconds"])
     signature_line = str(stream_result["failure_signature"])
     exit_code = int(stream_result["exit_code"])
 
@@ -163,10 +162,14 @@ def run_command(
 
 
 def org_exists(root: Path, alias: str) -> bool:
-    result = subprocess.run(
-        ["cci", "org", "info", alias],
-        cwd=str(root),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    try:
+        result = subprocess.run(
+            ["cci", "org", "info", alias],
+            cwd=str(root),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return False
     return result.returncode == 0

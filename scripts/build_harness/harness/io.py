@@ -62,6 +62,11 @@ def append_jsonl(path: Path, payload: Dict[str, Any]) -> None:
 _RETENTION_RE = re.compile(r"^\s*(\d+)\s*([smhdw])\s*$", re.IGNORECASE)
 
 
+def _is_safe_harness_output_root(output_root: Path) -> bool:
+    resolved = output_root.resolve()
+    return resolved.name in {"runs", "tui-runs"} and resolved.parent.name == ".harness"
+
+
 def parse_retention(value: str) -> dt.timedelta:
     """Parse retention text like ``7d``/``24h``/``30m`` into a timedelta."""
     match = _RETENTION_RE.match(value or "")
@@ -88,6 +93,11 @@ def prune_old_runs(output_root: Path, retention: dt.timedelta) -> List[Path]:
     """Delete run directories older than ``retention`` and return removed paths."""
     if retention <= dt.timedelta(0):
         raise ValueError("Retention must be greater than zero.")
+    if not _is_safe_harness_output_root(output_root):
+        raise ValueError(
+            f"Refusing to prune unexpected output root: {output_root}. "
+            "Expected a .harness/runs or .harness/tui-runs directory."
+        )
     if not output_root.exists():
         return []
 

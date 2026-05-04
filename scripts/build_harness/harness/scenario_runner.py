@@ -110,11 +110,47 @@ def run_single_scenario(
     last_failure_class = "none"
     last_failure_signature = ""
     total_retries = 0
+    failed_step_retries = 0
 
     def record_event(event: Dict[str, Any]) -> None:
         base = {"scenario_id": scenario_id, "org_alias": org_alias, "recorded_at": now_utc()}
         base.update(event)
         append_jsonl(step_results_path, base)
+
+    def build_failure_result(
+        *,
+        status: str,
+        failed_step: Optional[int],
+        failed_target: Optional[str],
+        failure_phase: str,
+        failure_signature: str,
+        failure_class: str,
+        retry_count: int,
+        can_resume: bool,
+        total_retry_count: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        if total_retry_count is None:
+            total_retry_count = retry_count
+        return {
+            "scenario_id": scenario_id,
+            "status": status,
+            "failed_step": failed_step,
+            "failed_target": failed_target,
+            "failure_phase": failure_phase,
+            "failure_signature": failure_signature,
+            "failure_class": failure_class,
+            "retry_count": retry_count,
+            "total_retry_count": total_retry_count,
+            "can_resume": can_resume,
+            "org_alias": org_alias,
+            "policy": summarize_policy(
+                status=status,
+                can_resume=can_resume,
+                failure_class=failure_class,
+                failed_step=failed_step,
+                retry_count=retry_count,
+            ),
+        }
 
     try:
         if not skip_validate and not is_resume:
@@ -135,23 +171,16 @@ def run_single_scenario(
             )
             if validate_result["exit_code"] != 0:
                 cleanup_workspace = False
-                return {
-                    "scenario_id": scenario_id,
-                    "status": "failed",
-                    "failed_step": 0,
-                    "failed_target": "validate_setup",
-                    "failure_phase": "preflight",
-                    "failure_signature": validate_result["failure_signature"],
-                    "failure_class": validate_result["failure_class"],
-                    "retry_count": 0,
-                    "can_resume": False,
-                    "org_alias": org_alias,
-                    "policy": summarize_policy(
-                        status="failed", can_resume=False,
-                        failure_class=validate_result["failure_class"],
-                        failed_step=0, retry_count=0,
-                    ),
-                }
+                return build_failure_result(
+                    status="failed",
+                    failed_step=0,
+                    failed_target="validate_setup",
+                    failure_phase="preflight",
+                    failure_signature=validate_result["failure_signature"],
+                    failure_class=validate_result["failure_class"],
+                    retry_count=0,
+                    can_resume=False,
+                )
 
         if not is_resume:
             create_cmd = ["cci", "org", "scratch", org_shape, org_alias, "--days", str(days)]
@@ -172,23 +201,16 @@ def run_single_scenario(
             )
             if create_result["exit_code"] != 0:
                 cleanup_workspace = False
-                return {
-                    "scenario_id": scenario_id,
-                    "status": "failed",
-                    "failed_step": 0,
-                    "failed_target": f"org_create:{org_shape}",
-                    "failure_phase": "org_create",
-                    "failure_signature": create_result["failure_signature"],
-                    "failure_class": create_result["failure_class"],
-                    "retry_count": 0,
-                    "can_resume": False,
-                    "org_alias": org_alias,
-                    "policy": summarize_policy(
-                        status="failed", can_resume=False,
-                        failure_class=create_result["failure_class"],
-                        failed_step=0, retry_count=0,
-                    ),
-                }
+                return build_failure_result(
+                    status="failed",
+                    failed_step=0,
+                    failed_target=f"org_create:{org_shape}",
+                    failure_phase="org_create",
+                    failure_signature=create_result["failure_signature"],
+                    failure_class=create_result["failure_class"],
+                    retry_count=0,
+                    can_resume=False,
+                )
             materialize_cmd = ["cci", "org", "info", org_alias]
             materialize_result = run_command(
                 root,
@@ -213,45 +235,29 @@ def run_single_scenario(
             )
             if materialize_result["exit_code"] != 0:
                 cleanup_workspace = False
-                return {
-                    "scenario_id": scenario_id,
-                    "status": "failed",
-                    "failed_step": 0,
-                    "failed_target": "org_materialize:org_info",
-                    "failure_phase": "org_materialize",
-                    "failure_signature": materialize_result["failure_signature"],
-                    "failure_class": "deterministic",
-                    "retry_count": 0,
-                    "can_resume": False,
-                    "org_alias": org_alias,
-                    "policy": summarize_policy(
-                        status="failed",
-                        can_resume=False,
-                        failure_class="deterministic",
-                        failed_step=0,
-                        retry_count=0,
-                    ),
-                }
+                return build_failure_result(
+                    status="failed",
+                    failed_step=0,
+                    failed_target="org_materialize:org_info",
+                    failure_phase="org_materialize",
+                    failure_signature=materialize_result["failure_signature"],
+                    failure_class="deterministic",
+                    retry_count=0,
+                    can_resume=False,
+                )
         else:
             if not org_exists(root, org_alias):
                 cleanup_workspace = False
-                return {
-                    "scenario_id": scenario_id,
-                    "status": "resume_blocked",
-                    "failed_step": resume_from_step,
-                    "failed_target": "org_missing",
-                    "failure_phase": "resume",
-                    "failure_signature": f"Org alias `{org_alias}` does not exist.",
-                    "failure_class": "deterministic",
-                    "retry_count": 0,
-                    "can_resume": False,
-                    "org_alias": org_alias,
-                    "policy": summarize_policy(
-                        status="resume_blocked", can_resume=False,
-                        failure_class="deterministic",
-                        failed_step=resume_from_step, retry_count=0,
-                    ),
-                }
+                return build_failure_result(
+                    status="resume_blocked",
+                    failed_step=resume_from_step,
+                    failed_target="org_missing",
+                    failure_phase="resume",
+                    failure_signature=f"Org alias `{org_alias}` does not exist.",
+                    failure_class="deterministic",
+                    retry_count=0,
+                    can_resume=False,
+                )
 
         for step in prepare_steps:
             if resume_from_step and step.step_number < resume_from_step:
@@ -329,6 +335,7 @@ def run_single_scenario(
             first_failed_target = f"{step.target_type}:{step.target_name}"
             last_failure_class = latest_result.get("failure_class", "unknown")
             last_failure_signature = latest_result.get("failure_signature", "")
+            failed_step_retries = attempt
             write_json(
                 checkpoint_path,
                 {
@@ -376,7 +383,7 @@ def run_single_scenario(
             can_resume=can_resume,
             failure_class=last_failure_class,
             failed_step=first_failed_step,
-            retry_count=total_retries,
+            retry_count=failed_step_retries,
         )
         write_build_provenance(
             run_dir=run_dir,
@@ -396,7 +403,8 @@ def run_single_scenario(
             "failure_phase": "prepare_step" if scenario_status == "failed" else "none",
             "failure_signature": last_failure_signature,
             "failure_class": last_failure_class if scenario_status == "failed" else "none",
-            "retry_count": total_retries,
+            "retry_count": failed_step_retries,
+            "total_retry_count": total_retries,
             "can_resume": can_resume,
             "org_alias": org_alias,
             "org_deleted": deleted_org,

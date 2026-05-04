@@ -165,3 +165,4 @@ docs/analysis/*-core-code-*.md
 
 # Build harness artifacts
 .harness/
+scripts/build_harness/tui/settings.local.json

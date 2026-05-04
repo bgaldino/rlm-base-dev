@@ -171,3 +171,56 @@ def test_run_build_fails_when_org_materialization_fails(tmp_path, monkeypatch) -
         event.kind.value == "step_failed" and int(event.payload.get("step_number", -1)) == 0
         for event in events
     )
+
+
+def test_extract_flag_groups_and_comments_parses_group_headers_and_inline_comments(tmp_path, monkeypatch) -> None:
+    cci_file = tmp_path / "cumulusci.yml"
+    cci_file.write_text(
+        "\n".join(
+            [
+                "project:",
+                "  custom:",
+                "    # Core Flags",
+                "    commerce: true  # Controls commerce steps",
+                "    billing: false",
+                "    # Experimental",
+                "    trial_feature: true # Experimental trial behavior",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runner, "CCI_FILE", cci_file)
+
+    groups, comments = runner._extract_flag_groups_and_comments(
+        {"commerce": True, "billing": False, "trial_feature": True}
+    )
+
+    assert groups == [
+        ("Core Flags", ["commerce", "billing"]),
+        ("Experimental", ["trial_feature"]),
+    ]
+    assert comments["commerce"] == "Controls commerce steps"
+    assert comments["trial_feature"] == "Experimental trial behavior"
+
+
+def test_extract_flag_groups_and_comments_includes_unseen_bool_flags(tmp_path, monkeypatch) -> None:
+    cci_file = tmp_path / "cumulusci.yml"
+    cci_file.write_text(
+        "\n".join(
+            [
+                "project:",
+                "  custom:",
+                "    # Core",
+                "    commerce: true",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runner, "CCI_FILE", cci_file)
+
+    groups, comments = runner._extract_flag_groups_and_comments(
+        {"commerce": True, "billing": False}
+    )
+
+    assert groups == [("Core", ["commerce"]), ("Other Flags", ["billing"])]
+    assert comments == {}
