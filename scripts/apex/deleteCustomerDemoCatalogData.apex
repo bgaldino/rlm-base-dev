@@ -17,8 +17,8 @@
 // Quote lines or order items referencing demo SKUs will block PricebookEntry/Product2 delete — remove those
 // transaction rows first, then re-run this script.
 
-final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT', 'CAT-APT-DEMO' };
-final List<String> DEMO_CLASSIFICATION_CODES = new List<String>{ 'SF-SW', 'OC-CLUB' };
+final List<String> DEMO_CATALOG_CODES = new List<String>{ 'SF-DEMO-CAT', 'OC-DEMO-CAT', 'CAT-APT-DEMO', 'OAI-CATALOG' };
+final List<String> DEMO_CLASSIFICATION_CODES = new List<String>{ 'SF-SW', 'OC-CLUB', 'OAI-PC-API' };
 final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
     new List<String>{
         'Snowflake Demo Billing Policy',
@@ -34,6 +34,11 @@ final List<List<String>> DEMO_BILLING_STACKS = new List<List<String>>{
         'APTIM Demo Billing Policy',
         'APTIM Demo Billing Treatment - US',
         'APTIM Demo Legal Entity - US'
+    },
+    new List<String>{
+        'OpenAI Standard Billing',
+        'OpenAI Billing Treatment',
+        'OpenAI Legal Entity'
     }
 };
 
@@ -47,6 +52,7 @@ List<Product2> demoProducts = [
         OR (StockKeepingUnit LIKE 'SF-BLNG-%')
         OR (StockKeepingUnit LIKE 'OC-%')
         OR (StockKeepingUnit LIKE 'APT-%')
+        OR (StockKeepingUnit LIKE 'OAI-%')
 ];
 Set<Id> demoProductIds = new Map<Id, Product2>(demoProducts).keySet();
 
@@ -252,17 +258,20 @@ for (List<String> stack : DEMO_BILLING_STACKS) {
     }
 }
 
-// customer-template-billing demo payment terms (e.g. APTIM Demo Net 30) — not tied to BillingPolicy
-List<PaymentTerm> demoTerms = [SELECT Id FROM PaymentTerm WHERE Name = 'APTIM Demo Net 30' LIMIT 1];
-if (!demoTerms.isEmpty()) {
-    List<PaymentTermItem> ptiApt = [
-        SELECT Id FROM PaymentTermItem WHERE PaymentTermId = :demoTerms[0].Id
-    ];
-    if (!ptiApt.isEmpty()) {
-        Database.delete(ptiApt, false);
+// customer-template-billing demo payment terms
+final List<String> DEMO_PAYMENT_TERM_NAMES = new List<String>{ 'APTIM Demo Net 30', 'OpenAI Net 30' };
+for (String termName : DEMO_PAYMENT_TERM_NAMES) {
+    List<PaymentTerm> demoTerms = [SELECT Id FROM PaymentTerm WHERE Name = :termName LIMIT 1];
+    if (!demoTerms.isEmpty()) {
+        List<PaymentTermItem> ptis = [
+            SELECT Id FROM PaymentTermItem WHERE PaymentTermId = :demoTerms[0].Id
+        ];
+        if (!ptis.isEmpty()) {
+            Database.delete(ptis, false);
+        }
+        Database.delete(demoTerms, false);
+        System.debug('Deleted PaymentTerm ' + termName + ' (if no FK block).');
     }
-    Database.delete(demoTerms, false);
-    System.debug('Deleted PaymentTerm APTIM Demo Net 30 (if no FK block).');
 }
 
 System.debug('deleteCustomerDemoCatalogData: finished.');

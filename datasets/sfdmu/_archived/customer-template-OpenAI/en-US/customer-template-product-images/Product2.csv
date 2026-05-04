@@ -1,0 +1,14 @@
+DisplayUrl,Name,StockKeepingUnit
+/resource/openai_product_logo,ChatGPT Plus,OAI-CHAT-PLUS
+/resource/openai_product_logo,ChatGPT Pro,OAI-CHAT-PRO
+/resource/openai_product_logo,ChatGPT Business,OAI-CHAT-BIZ
+/resource/openai_product_logo,API Developer Access,OAI-API-DEV
+/resource/openai_product_logo,API Enterprise Access,OAI-API-ENT
+/resource/openai_product_logo,Realtime API Add-on,OAI-API-REALTIME
+/resource/openai_product_logo,Image Generation Add-on,OAI-API-IMAGE
+/resource/openai_product_logo,OpenAI Enterprise Suite,OAI-ENT-PKG
+/resource/openai_product_logo,Reserved API Capacity,OAI-ENT-RESERVE
+/resource/openai_product_logo,Implementation & Integration Services,OAI-SVC-IMPL
+/resource/openai_product_logo,AI Literacy Training Program,OAI-SVC-TRAIN
+/resource/openai_product_logo,Custom Model Fine-Tuning,OAI-SVC-CUSTOM
+/resource/openai_product_logo,Dedicated Customer Success Manager,OAI-SVC-CSM

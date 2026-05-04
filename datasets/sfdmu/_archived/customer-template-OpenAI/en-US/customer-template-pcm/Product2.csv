@@ -1,0 +1,14 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,,Advanced reasoning with GPT-5.5 Thinking and expanded access — ideal for power users.,,AI,true,true,false,ChatGPT Plus,,EACH,,OAI-CHAT-PLUS,,EACH
+,false,,Maximum productivity with 5x–20x usage limits and Pro reasoning. For professionals and researchers.,,AI,true,true,false,ChatGPT Pro,,EACH,,OAI-CHAT-PRO,,EACH
+,false,,Secure collaborative workspace with unlimited core chat and 60+ app integrations for growing teams.,,AI,true,true,false,ChatGPT Business,,EACH,,OAI-CHAT-BIZ,,EACH
+OAI-PC-API,false,Allowed,API access for developers — GPT model tier selectable at configuration.,,AI,true,true,false,API Developer Access,,EACH,,OAI-API-DEV,,EACH
+OAI-PC-API,false,Allowed,Enterprise-grade API access with higher rate limits and priority processing. Model tier selectable.,,AI,true,true,false,API Enterprise Access,,EACH,,OAI-API-ENT,,EACH
+,false,,Real-time multimodal API add-on for voice and audio interactions — GPT-realtime-1.5.,,AI,true,true,false,Realtime API Add-on,,EACH,,OAI-API-REALTIME,,EACH
+,false,,Image generation API add-on — GPT-image-2 for state-of-the-art image creation at scale.,,AI,true,true,false,Image Generation Add-on,,EACH,,OAI-API-IMAGE,,EACH
+,false,Allowed,,,AI,true,true,false,OpenAI Enterprise Suite,,EACH,,OAI-ENT-PKG,Bundle,EACH
+,false,,Dedicated reserved API capacity for high-volume workloads with guaranteed throughput.,,AI,true,true,false,Reserved API Capacity,,EACH,,OAI-ENT-RESERVE,,EACH
+,false,,Expert implementation and integration services to deploy OpenAI APIs in your environment.,,AI,true,true,false,Implementation & Integration Services,,EACH,,OAI-SVC-IMPL,,EACH
+,false,,Structured AI literacy and adoption training program for enterprise teams.,,AI,true,true,false,AI Literacy Training Program,,EACH,,OAI-SVC-TRAIN,,EACH
+,false,,Custom model fine-tuning on proprietary data with OpenAI experts.,,AI,true,true,false,Custom Model Fine-Tuning,,EACH,,OAI-SVC-CUSTOM,,EACH
+,false,,Dedicated Customer Success Manager for ongoing strategic guidance and support.,,AI,true,true,false,Dedicated Customer Success Manager,,EACH,,OAI-SVC-CSM,,EACH

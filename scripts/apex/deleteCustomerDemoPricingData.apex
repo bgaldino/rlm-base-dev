@@ -1,4 +1,4 @@
-// Delete customer-demo attribute-based pricing records scoped to MCC-* rules.
+// Delete customer-demo attribute-based pricing records scoped to OAI-* rules.
 // Safe to run even when QB pricing data coexists in the same org — WHERE clause is name-scoped.
 //
 // AttributeAdjustmentCondition is a master-detail child of AttributeBasedAdjRule with
@@ -10,11 +10,11 @@
 // before the SFDMU Insert of the same objects in step 9.
 
 List<AttributeBasedAdjRule> rules = [
-    SELECT Id FROM AttributeBasedAdjRule WHERE Name LIKE 'MCC-%'
+    SELECT Id FROM AttributeBasedAdjRule WHERE Name LIKE 'OAI-%'
 ];
 
 if (rules.isEmpty()) {
-    System.debug('deleteCustomerDemoPricingData: no MCC-* AttributeBasedAdjRule rows — nothing to delete.');
+    System.debug('deleteCustomerDemoPricingData: no OAI-* AttributeBasedAdjRule rows — nothing to delete.');
     return;
 }
 

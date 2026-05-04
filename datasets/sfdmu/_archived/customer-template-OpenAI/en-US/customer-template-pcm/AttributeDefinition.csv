@@ -1,0 +1,2 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+OAI-MODEL-TIER,Picklist,Select the API model tier for this plan.,Professional,Determines which OpenAI models and rate limits are included in the API platform plan.,OAI_Model_Tier,true,false,API Model Tier,OAI API Model Tier,OAI API Model Tier,,,

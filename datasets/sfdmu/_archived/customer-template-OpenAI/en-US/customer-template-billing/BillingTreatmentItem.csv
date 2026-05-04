@@ -1,0 +1,2 @@
+$$Name$BillingTreatment.Name,BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneStartDate,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type,Handling0Amount
+OpenAI Billing Treatment Item;OpenAI Billing Treatment,OpenAI Billing Treatment,Advance,BillingScheduleGroup,USD,,,,,,CreateInvoice,,OpenAI Billing Treatment Item,,1,Manual,Draft,Remainder,

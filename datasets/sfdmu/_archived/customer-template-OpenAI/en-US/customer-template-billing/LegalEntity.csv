@@ -1,0 +1,2 @@
+CompanyName,CurrencyIsoCode,Description,LegalEntityCity,LegalEntityCountry,LegalEntityPostalCode,LegalEntityState,LegalEntityStreet,Name,Status
+OpenAI LLC,USD,OpenAI legal entity for revenue billing,San Francisco,US,94105,CA,575 Market Street,OpenAI Legal Entity,Active

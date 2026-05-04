@@ -1,0 +1,3 @@
+$$Code$ParentProduct.StockKeepingUnit,Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentProduct.StockKeepingUnit,Sequence
+PCG-OAI-ENT-REQD;OAI-ENT-PKG,PCG-OAI-ENT-REQD,,1,1,Core ChatGPT Access,OAI-ENT-PKG,1
+PCG-OAI-ENT-OPT;OAI-ENT-PKG,PCG-OAI-ENT-OPT,,2,0,Optional Add-ons,OAI-ENT-PKG,2

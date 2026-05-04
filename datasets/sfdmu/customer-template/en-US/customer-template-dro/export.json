@@ -1,0 +1,42 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "Set 1 — Readonly parents for FK resolution, then PFDR + PFS Upsert",
+      "objects": [
+        {
+          "query": "SELECT StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit"
+        },
+        {
+          "query": "SELECT Name FROM FulfillmentStepDefinitionGroup ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceClassIdentifier, SourceIdentifier, SourceProductClassificationId, SourceProductId FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT Action, FulfillmentProcessId, FulfillmentStepDefnGroupId, Id, Name, ProductClassificationId, ProductId, SourceClassIdentifier, SourceIdentifier, Type FROM ProductFulfillmentScenario ORDER BY Product.StockKeepingUnit ASC, FulfillmentStepDefnGroup.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        }
+      ]
+    },
+    {
+      "name": "Set 2 — Update Product2 DecompositionScope (customer SKUs only)",
+      "objects": [
+        {
+          "query": "SELECT CustomDecompositionScope, DecompositionScope, FulfillmentQtyCalcMethod, Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Update",
+          "externalId": "StockKeepingUnit"
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

@@ -1,0 +1,2 @@
+$$PaymentTerm.Name$Type,Description,PaymentTerm.Name,PaymentTimeframe,Period,PeriodUnit,Type
+OpenAI Net 30;Period-Based,30 Days,OpenAI Net 30,Standard,30,Days,Period-Based

@@ -24,14 +24,17 @@ cci flow run prepare_customer_demo_catalog --org <alias>
 | 5 | `insert_customer_demo_product_images_data` | Sets `Product2.DisplayUrl` |
 | 6 | `insert_customer_demo_billing_data` | Billing policy, treatment, product assignment |
 | 7 | `customer_demo_recreate_pricebook_via_api` | Standard PBE with explicit `ProductSellingModelId` |
-| 8 | `delete_customer_demo_pricing_data` | Apex-scoped delete of BULLS-* ABR/ABA/AAC (idempotency) |
-| 9 | `insert_customer_demo_pricing_data` | Attribute-based pricing: ABR Upsert + AAC/ABA Insert |
+| 8 | `delete_customer_demo_pricing_data` | Apex-scoped delete of customer-prefix ABR+ABA (ABR cascade-deletes AAC) |
+| 9 | `insert_customer_demo_pricing_data` | **Phase 1**: SFDMU — `AttributeBasedAdjRule` Upsert only |
+| 9b | `insert_customer_demo_pricing_adjustments` | **Phase 2**: Apex — `AttributeAdjustmentCondition` + `AttributeBasedAdjustment` Insert (idempotent) |
 | 10 | `customer_demo_verify_catalog` | Go/no-go: images, billing, PSM, PBE, category, ABA count |
 | 11–16 | Usage steps | Conditional (`customer_demo_usage: true`) — rates delete → rating delete → rating → rates → activate_rating_records → activate_rates |
 
-**Why pricing (steps 8–9) runs after pricebook (step 7):** `AttributeBasedAdjustment` has no FK to `PricebookEntry`, so it could load earlier. Placement after pricebook recreation keeps logical flow — list prices first, adjustments second. The platform resolves ABA at quote time through `PriceAdjustmentSchedule`, not a stored PBE FK.
+**Why pricing (steps 8–9b) runs after pricebook (step 7):** `AttributeBasedAdjustment` has no FK to `PricebookEntry`, so it could load earlier. Placement after pricebook recreation keeps logical flow — list prices first, adjustments second. The platform resolves ABA at quote time through `PriceAdjustmentSchedule`, not a stored PBE FK.
 
-**Why delete runs before insert (step 8):** AAC and ABA use `operation: Insert` (not Upsert). Without a pre-delete, every re-run of the flow creates duplicate AAC and ABA records. The delete is an Apex script (not `DeleteSFDMUData`) so it is scoped to `BULLS-*` rules and does not affect QB pricing data in the same org.
+**Why AAC/ABA use Apex (step 9b) instead of SFDMU:** SFDMU resolves FK columns in `Insert` operations using the parent object's SOURCE collection. For `Readonly` parents, SFDMU stores fetched IDs in the TARGET collection — not SOURCE — so FK resolution silently filters all child rows (SOURCE count: 0) even when the parent records exist in the org and the CSVs are populated. This applies regardless of whether AAC/ABA share an objectSet with ABR or run as a separate SFDMU task. Apex resolves all FKs explicitly via SOQL and is unaffected by this limitation. See `customer-template-pricing/README.md` → Lesson 7.
+
+**Why delete runs before insert (step 8):** AAC and ABA use Insert (not Upsert) because their externalIds are all-relationship-traversal (SFDMU Bug 3 would cause Upsert to always insert, creating duplicates). The Apex insert script is idempotent (skips if records already exist), but running the delete first keeps re-runs clean. The delete is an Apex script (not `DeleteSFDMUData`) so it is scoped to the customer prefix (e.g. `OAI-%`, `BULLS-%`) and does not affect QB pricing data in the same org.
 
 ## Product2 CSV shape (SFDMU) — critical
 
@@ -84,38 +87,30 @@ Template list price for usage lines is often **0**; **overage** is illustrated v
 
 ## Attribute-based pricing
 
-The `customer-template-pricing` plan loads **seat-section-driven Override prices** on the three season ticket SKUs via the RLM three-object chain:
+The `customer-template-pricing` plan loads **attribute-driven Percentage adjustments** on configurable products via the RLM three-object chain:
 
 ```
 AttributeBasedAdjRule → AttributeAdjustmentCondition → AttributeBasedAdjustment
 ```
 
-| Product | Upper Bowl | Lower Bowl (list) | Courtside |
-|---|---|---|---|
-| `BULLS-ST-FULL` | $3,200 | $5,000 | $12,000 |
-| `BULLS-ST-20` | $1,600 | $2,500 | $6,000 |
-| `BULLS-ST-10` | $800 | $1,200 | $2,800 |
+A price-impacting attribute (e.g. `OAI-MODEL-TIER` for API tier, `BULLS-SEAT-SECTION` for seat location) is defined with `IsPriceImpacting=true` on `ProductAttributeDefinition`. When a rep configures the attribute on the quote, the platform evaluates matching `AttributeBasedAdjRule` records and applies the corresponding adjustment.
 
-The `BULLS-SEAT-SECTION` attribute is marked `IsPriceImpacting=true` on each product's `ProductAttributeDefinition`. When a rep selects a seat section on the quote, the platform applies the matching adjustment.
+**Extending:** add rows to `AttributeBasedAdjRule.csv`, `AttributeAdjustmentCondition.csv`, and `AttributeBasedAdjustment.csv` for additional rules, then update `scripts/apex/insertCustomerDemoPricingAdjustments.apex` to match. Update `ExpectedPricingRules` in `customer-pricebook-entries.csv`. See `customer-template-pricing/README.md` for full details.
 
-**Extending:** to add pricing for additional attributes (e.g. suite tiers), add rows to all three pricing CSVs and update `ExpectedPricingRules` in `customer-pricebook-entries.csv`. See `customer-template-pricing/README.md` for full details.
-
-**Verification:** `customer_demo_verify_catalog` checks `ExpectedPricingRules` per SKU (season ticket SKUs expect 3 ABA records each).
+**Verification:** `customer_demo_verify_catalog` checks `ExpectedPricingRules` per SKU.
 
 ```bash
-# Verify pricing records manually
-sf data query -q "SELECT AttributeBasedAdjRule.Name, AdjustmentType, AdjustmentValue, Product.StockKeepingUnit FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'BULLS-%' ORDER BY AttributeBasedAdjRule.Name" --target-org <username>
+# Verify pricing records manually (adjust LIKE scope to customer prefix)
+sf data query -q "SELECT AttributeBasedAdjRule.Name, AdjustmentType, AdjustmentValue, Product.StockKeepingUnit FROM AttributeBasedAdjustment WHERE AttributeBasedAdjRule.Name LIKE 'OAI-%' ORDER BY AttributeBasedAdjRule.Name" --target-org <username>
 ```
 
 ### Attribute-based pricing — critical SFDMU v5 pitfalls
-
-These were discovered during the Chicago Bulls implementation and are documented to save future implementors significant debug time.
 
 **Pitfall 1 — Two-objectSet architecture is required when ABR is freshly inserted**
 
 SFDMU builds its parent FK lookup map during STAGE 2 (before the UPDATE/insert phase). If `AttributeBasedAdjRule` records were deleted before the run, the STAGE 2 query returns 0 ABR records → the FK map for ABR is empty → `AttributeBasedAdjustment` insert crashes with `COMMAND_UNEXPECTED_ERROR` (SFDMU internal null pointer) because it cannot resolve `AttributeBasedAdjRuleId`.
 
-The fix in this plan: **two `objectSets`** in `export.json`. Set 1 Upserts ABR only. Set 2 lists ABR as `Readonly` — SFDMU re-queries the org (after Set 1 inserts are done) to build the FK map. AAC and ABA inserts in Set 2 then resolve the FK correctly.
+The nominal fix is two `objectSets`: Set 1 Upserts ABR only; Set 2 lists ABR as `Readonly` so SFDMU re-queries the org after Set 1 completes. **However, see Pitfall 5 below — even the two-objectSet / two-task approach fails for AAC/ABA inserts in SFDMU.**
 
 **Pitfall 2 — SELECT queries must use direct ID fields, not relationship-traversal**
 
@@ -129,11 +124,9 @@ SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, ProductId, ... FROM Attri
 SELECT AttributeBasedAdjRule.Name, AttributeDefinition.Code, Product.StockKeepingUnit, ... FROM AttributeAdjustmentCondition
 ```
 
-SFDMU automatically adds the traversal column names alongside the ID fields for FK resolution when direct ID fields are in the query.
-
 **Pitfall 3 — AAC CSV column count: 5 empty fields require 6 commas**
 
-`AttributeAdjustmentCondition` has 11 CSV columns. Columns 4–8 (BooleanValue through IntegerValue) are all empty for string-value conditions. Missing one comma silently shifts `equals` into `IntegerValue`, making all 9 rows unresolvable (SFDMU reads 0 source records). Validate with Python before loading:
+`AttributeAdjustmentCondition` has 11 CSV columns. Columns 4–8 (BooleanValue through IntegerValue) are all empty for string-value conditions. Missing one comma silently shifts `equals` into `IntegerValue`, making all rows unresolvable (SFDMU reads 0 source records). Validate with Python before loading:
 
 ```python
 import csv
@@ -147,8 +140,29 @@ with open('AttributeAdjustmentCondition.csv') as f:
 
 `AttributeAdjustmentCondition` is a master-detail child of `AttributeBasedAdjRule`. `delete [SELECT Id FROM AttributeAdjustmentCondition WHERE ...]` fails with `DML operation Delete not allowed`. Deletion is cascade-only — deleting `AttributeBasedAdjRule` automatically cascades to AAC. Delete `AttributeBasedAdjustment` (which IS directly deletable) first, then ABR.
 
+**Pitfall 5 — SFDMU cannot load AAC/ABA inserts regardless of objectSet architecture or task sequencing**
+
+**Root cause:** For `Insert` operations, SFDMU resolves FK columns (e.g. `AttributeBasedAdjRule.Name` → `AttributeBasedAdjRuleId`) using the parent object's **SOURCE** ID collection. For `Readonly` parent objects, SFDMU fetches IDs from the TARGET org and stores them in the **TARGET** collection — not SOURCE. FK resolution for child objects uses SOURCE, so the mapping is always empty. All child rows are silently filtered (reported SOURCE count: 0) even when:
+- ABR records exist in the org
+- ABR is listed as `Readonly` in the same objectSet as AAC/ABA
+- ABR SFDMU upsert ran as a completely separate CCI task beforehand
+- The `Readonly` CSVs are populated with actual data rows
+
+**Symptom:** `{AttributeAdjustmentCondition} The total amount of the retrieved records from SOURCE by 1 queries: 0.` — despite the CSV having data rows and the `_source.csv` internal file showing those rows were read.
+
+**Fix (authoritative):** Use **Apex** for all AAC and ABA inserts. Apex resolves all FKs via SOQL explicitly and is unaffected by SFDMU's SOURCE/TARGET collection distinction. This is why step 9b uses `AnonymousApexTask` with `scripts/apex/insertCustomerDemoPricingAdjustments.apex` rather than SFDMU.
+
+**Pitfall 6 — ABA read-only fields cause Apex compile error**
+
+`AttributeBasedAdjustment` has several platform-computed read-only fields: `AttributeAdjConditionsHash`, `AttributeCount`, `PricingTerm`, `PricingTermUnit`, `ScheduleType`, `SellingModelType`. Including any of these in an Apex SObject constructor causes a compile error (`Field is not writeable`). Omit them — the platform populates them automatically on insert.
+
+**Pitfall 7 — `AttributeAdjustmentCondition.Operator` picklist uses `equals`, not `=`**
+
+The `Operator` field is a restricted picklist. The value is `equals` (the word), not `=` (the symbol). Using `=` causes `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST` at INSERT time from both Apex and SFDMU. Query the org to confirm: `SELECT Operator FROM AttributeAdjustmentCondition LIMIT 1`.
+
 ## Troubleshooting
 
+- **`prepare_customer_demo_branding` logo download blocked (403/timeout):** The `--logo-url` option downloads the image directly from the URL. Corporate or CDN URLs often block server-side requests (403 Forbidden). **Fix:** download the logo manually, then use `--logo-path /path/to/logo.png` instead of `--logo-url`. Any image format works — the script auto-resizes to 600×120 PNG for the brand asset and accepts a second `--bg-color` for letterboxing. If no logo is available, generate a placeholder with Pillow: `python3 -c "from PIL import Image, ImageDraw, ImageFont; img=Image.new('RGB',(600,120),(0,0,0)); d=ImageDraw.Draw(img); d.text((50,40),'CompanyName',fill='white'); img.save('/tmp/logo.png')"`.
 - **`cci task run activate_rating_records --org <alias>`** may fail with **No such option: --org** on some CCI versions. Use **`cci org default <alias>`** then **`cci task run activate_rating_records`** (same for **`activate_rates`**), or rely on **`cci flow run prepare_customer_demo_catalog --org <alias>`**, which passes the org correctly.
 - **`customer_demo_recreate_pricebook_via_api`**: quote lines can block **PricebookEntry** delete; the task **updates in place** when possible. If **`ProductSellingModelId`** is not editable for your user, ensure existing PBE already matches the CSV or adjust FLS.
 - **Rating load / empty `SF-UR-*`**: check **`reports/MissingParentRecordsReport.csv`** under the rating plan directory. If **UnitOfMeasure** or **UnitOfMeasureClass** lookups show placeholder IDs, align **`UsageResource.csv`** **`UnitOfMeasureClass.Name`** and **`DefaultUnitOfMeasure.Name`** with PCM (see **`customer-template-rating/README.md`**).

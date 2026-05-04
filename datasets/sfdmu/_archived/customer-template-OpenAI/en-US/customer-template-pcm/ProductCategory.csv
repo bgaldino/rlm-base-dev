@@ -1,0 +1,5 @@
+Code,Description,IsNavigational,Name,ParentCategory.Code,Catalog.Code,SortOrder
+OAI-CAT-CHATGPT,ChatGPT subscription plans for individuals and teams,true,ChatGPT Plans,,OAI-CATALOG,1
+OAI-CAT-API,API platform access plans for developers and enterprise,true,API Platform,,OAI-CATALOG,2
+OAI-CAT-ENTERPRISE,Enterprise solutions and reserved capacity,true,Enterprise Solutions,,OAI-CATALOG,3
+OAI-CAT-SERVICES,Professional implementation and training services,true,Professional Services,,OAI-CATALOG,4

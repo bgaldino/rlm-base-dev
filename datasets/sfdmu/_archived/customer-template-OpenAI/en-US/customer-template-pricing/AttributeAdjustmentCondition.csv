@@ -1,0 +1,4 @@
+$$AttributeBasedAdjRule.Name$AttributeDefinition.Code$Product.StockKeepingUnit,AttributeBasedAdjRule.Name,AttributeDefinition.Code,BooleanValue,DateTimeValue,DateValue,DoubleValue,IntegerValue,Operator,Product.StockKeepingUnit,StringValue
+OAI-API-DEV-FRONTIER;OAI-MODEL-TIER;OAI-API-DEV,OAI-API-DEV-FRONTIER,OAI-MODEL-TIER,,,,,equals,OAI-API-DEV,Frontier
+OAI-API-ENT-EFFICIENT;OAI-MODEL-TIER;OAI-API-ENT,OAI-API-ENT-EFFICIENT,OAI-MODEL-TIER,,,,,equals,OAI-API-ENT,Efficient
+OAI-API-ENT-FRONTIER;OAI-MODEL-TIER;OAI-API-ENT,OAI-API-ENT-FRONTIER,OAI-MODEL-TIER,,,,,equals,OAI-API-ENT,Frontier

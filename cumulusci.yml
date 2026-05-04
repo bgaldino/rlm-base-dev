@@ -118,6 +118,7 @@ project:
     locale: en_US             # Default locale
     customer_demo_usage: false # After PCM catalog load: optional SF-USG-* usage + SF-UR-* + CD-DEMO rate card (see prepare_customer_demo_usage)
     customer_demo_branding: true  # Deploy customer-branded Lightning Experience Theme (prepare_customer_demo_branding); activate at <org-url>/lightning/setup/ThemingAndBranding/home
+    customer_demo_dro: true   # After catalog steps 1-10: load customer DRO overlay (PFDR + PFS + Product2.DecompositionScope). Requires prepare_dro (dro: true, qb: true) to have run on the org first.
 
 #------------------------------#
 # PERMISSION SETS AND LICENSES #
@@ -510,7 +511,8 @@ project:
     customer_demo_billing_dataset: &customer_demo_billing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-billing"  # Customer demo template billing dataset
     customer_demo_rating_dataset: &customer_demo_rating_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rating"  # Customer demo usage rating (SF-USG-* + SF-UR-*)
     customer_demo_rates_dataset: &customer_demo_rates_dataset "datasets/sfdmu/customer-template/en-US/customer-template-rates"  # Customer demo rate cards (CD-DEMO Base + Tier + RABT)
-    customer_demo_pricing_dataset: &customer_demo_pricing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-pricing"  # Customer demo attribute-based pricing (MCC-* ABR/ABA/AAC)
+    customer_demo_pricing_dataset: &customer_demo_pricing_dataset "datasets/sfdmu/customer-template/en-US/customer-template-pricing"  # Customer demo attribute-based pricing (OAI-* ABR Upsert — phase 1; AAC/ABA inserted via Apex in phase 2)
+    customer_demo_dro_dataset: &customer_demo_dro_dataset "datasets/sfdmu/customer-template/en-US/customer-template-dro"            # Customer demo DRO overlay (PFDR + PFS + Product2.DecompositionScope)
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -1447,14 +1449,64 @@ tasks:
   insert_customer_demo_pricing_data:
     group: Revenue Lifecycle Management
     description: >
-      Load customer-demo attribute-based pricing: Upsert AttributeBasedAdjRule records,
-      then Insert AttributeAdjustmentCondition (attribute value equals condition) and
-      AttributeBasedAdjustment (Override price) records. Requires Product2 and
-      AttributeDefinition rows from insert_customer_demo_pcm_data, and Standard
-      PricebookEntry rows from customer_demo_recreate_pricebook_via_api.
+      Phase 1 of 2-phase pricing load: Upsert AttributeBasedAdjRule records only.
+      Must run before insert_customer_demo_pricing_adjustments (which inserts
+      AttributeAdjustmentCondition and AttributeBasedAdjustment in a separate
+      SFDMU run after ABRs are committed to the org).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *customer_demo_pricing_dataset
+
+  insert_customer_demo_pricing_adjustments:
+    group: Revenue Lifecycle Management
+    description: >
+      Phase 2 of 2-phase pricing load: Insert AttributeAdjustmentCondition (attribute
+      value equals condition) and AttributeBasedAdjustment (percentage override) records
+      for OAI-* rules via Apex. Runs after insert_customer_demo_pricing_data so ABRs
+      are committed. Uses Apex instead of SFDMU because SFDMU cannot reliably resolve
+      relationship-traversal FK columns (ABR.Name, AttrDef.Code, Product.SKU) in the
+      INSERT payload even with populated Readonly parent CSVs. Idempotent: skips if
+      records already exist.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/insertCustomerDemoPricingAdjustments.apex
+
+  delete_customer_demo_dro_data:
+    group: Data Maintenance
+    description: >
+      Delete customer-demo DRO records scoped to MCC-* prefix:
+      ProductFulfillmentScenario and ProductFulfillmentDecompRule. QB DRO data
+      in the same org is unaffected. Product2.DecompositionScope is intentionally
+      left set — the SFDMU Update in insert_customer_demo_dro_data overwrites it.
+      Run before insert_customer_demo_dro_data for idempotency.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteCustomerDemoDROData.apex
+
+  insert_customer_demo_dro_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Load customer-demo DRO overlay: Upsert ProductFulfillmentDecompRule (routes MCC-*
+      sellable SKUs to QB-DRO-BILL / QB-DRO-PROJ operational products), Upsert
+      ProductFulfillmentScenario (maps SKUs to fulfillment step groups per lifecycle action),
+      and Update Product2.DecompositionScope on all 13 Medinah SKUs. Requires prepare_dro
+      (QB DRO infrastructure: FulfillmentStepDefinitionGroup, QB-DRO-* routing products)
+      to have run. Uses dynamic_assigned_to_user for User/Group FK resolution.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *customer_demo_dro_dataset
+      dynamic_assigned_to_user: true
+
+  update_customer_demo_fulfillment_decomp_rules:
+    group: Revenue Lifecycle Management
+    description: >
+      Re-save all ProductFulfillmentDecompRule records after customer DRO load.
+      Workaround for Salesforce 260 bug: ExecuteOnRuleId (ruleset reference) is not
+      generated on INSERT, only on UPDATE. Re-saving triggers ruleset generation so
+      decomposition rules are correctly picked up by the DRO engine at runtime.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/updateProductFulfillmentDecompRules.apex
 
   customer_demo_verify_catalog:
     group: Revenue Lifecycle Management
@@ -2604,6 +2656,9 @@ flows:
       (ABR/ABA/AAC for Seat Section overrides), and verify go/no-go checks.
       When customer_demo_branding is true, deploys a customer-branded Lightning Experience
       Theme (activate after flow completes at <org-url>/lightning/setup/ThemingAndBranding/home).
+      When customer_demo_usage is true, loads usage rating + rate cards and activates (steps 11-16).
+      When customer_demo_dro is true, loads DRO overlay — PFDR, PFS, Product2.DecompositionScope
+      (steps 17-19). Requires prepare_dro (dro+qb) to have run before enabling customer_demo_dro.
     steps:
       1:
         task: customer_demo_purge_records
@@ -2624,6 +2679,8 @@ flows:
         task: delete_customer_demo_pricing_data
       9:
         task: insert_customer_demo_pricing_data
+      9b:
+        task: insert_customer_demo_pricing_adjustments
       10:
         task: customer_demo_verify_catalog
       11:
@@ -2644,6 +2701,31 @@ flows:
       16:
         task: activate_rates
         when: project_config.project__custom__customer_demo_usage
+      17:
+        task: delete_customer_demo_dro_data
+        when: project_config.project__custom__customer_demo_dro
+      18:
+        task: insert_customer_demo_dro_data
+        when: project_config.project__custom__customer_demo_dro
+      19:
+        task: update_customer_demo_fulfillment_decomp_rules
+        when: project_config.project__custom__customer_demo_dro
+
+  prepare_customer_demo_dro:
+    group: Revenue Lifecycle Management
+    description: >
+      Load customer-demo DRO overlay as a standalone flow (after prepare_customer_demo_catalog
+      steps 1-10 have completed). Scoped delete of MCC-* PFDR/PFS, then SFDMU Upsert of
+      ProductFulfillmentDecompRule + ProductFulfillmentScenario + Product2.DecompositionScope
+      update, then 260 bug workaround re-save. Requires prepare_dro (QB DRO infrastructure)
+      to have run on the org.
+    steps:
+      1:
+        task: delete_customer_demo_dro_data
+      2:
+        task: insert_customer_demo_dro_data
+      3:
+        task: update_customer_demo_fulfillment_decomp_rules
 
   prepare_customer_demo_usage:
     group: Revenue Lifecycle Management

@@ -1,0 +1,4 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+EFF,OAI-MT-EFF,Efficient,false,Efficient,OAI API Model Tier,1,Active,Efficient
+PRO,OAI-MT-PRO,Professional,true,Professional,OAI API Model Tier,2,Active,Professional
+FRN,OAI-MT-FRN,Frontier,false,Frontier,OAI API Model Tier,3,Active,Frontier

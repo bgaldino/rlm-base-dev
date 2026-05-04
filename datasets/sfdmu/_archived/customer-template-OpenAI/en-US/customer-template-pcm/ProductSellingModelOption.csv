@@ -1,0 +1,14 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,ProrationPolicy.Name
+OAI-CHAT-PLUS;Term Monthly;TermDefined,true,OAI-CHAT-PLUS,Term Monthly;TermDefined,Default Proration Policy
+OAI-CHAT-PRO;Term Monthly;TermDefined,true,OAI-CHAT-PRO,Term Monthly;TermDefined,Default Proration Policy
+OAI-CHAT-BIZ;Term Annual;TermDefined,true,OAI-CHAT-BIZ,Term Annual;TermDefined,Default Proration Policy
+OAI-API-DEV;Term Monthly;TermDefined,true,OAI-API-DEV,Term Monthly;TermDefined,Default Proration Policy
+OAI-API-ENT;Term Annual;TermDefined,true,OAI-API-ENT,Term Annual;TermDefined,Default Proration Policy
+OAI-API-REALTIME;Term Monthly;TermDefined,true,OAI-API-REALTIME,Term Monthly;TermDefined,Default Proration Policy
+OAI-API-IMAGE;Term Monthly;TermDefined,true,OAI-API-IMAGE,Term Monthly;TermDefined,Default Proration Policy
+OAI-ENT-PKG;Term Annual;TermDefined,true,OAI-ENT-PKG,Term Annual;TermDefined,Default Proration Policy
+OAI-ENT-RESERVE;Term Annual;TermDefined,true,OAI-ENT-RESERVE,Term Annual;TermDefined,Default Proration Policy
+OAI-SVC-IMPL;One-Time;OneTime,true,OAI-SVC-IMPL,One-Time;OneTime,
+OAI-SVC-TRAIN;One-Time;OneTime,true,OAI-SVC-TRAIN,One-Time;OneTime,
+OAI-SVC-CUSTOM;One-Time;OneTime,true,OAI-SVC-CUSTOM,One-Time;OneTime,
+OAI-SVC-CSM;Term Annual;TermDefined,true,OAI-SVC-CSM,Term Annual;TermDefined,Default Proration Policy

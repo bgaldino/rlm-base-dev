@@ -1,0 +1,2 @@
+BillingPolicy.Name,CurrencyIsoCode,Description,IsMilestoneBilling,ExcludeFromBilling,LegalEntity.Name,Name,Status,$$Name$BillingPolicy.Name$LegalEntity.Name
+OpenAI Standard Billing,USD,Advance billing treatment for OpenAI products,false,No,OpenAI Legal Entity,OpenAI Billing Treatment,Draft,OpenAI Billing Treatment;OpenAI Standard Billing;OpenAI Legal Entity

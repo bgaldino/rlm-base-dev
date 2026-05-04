@@ -1,0 +1,14 @@
+CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
+,OrderLineItem,,ChatGPT Plus,OAI-CHAT-PLUS
+,OrderLineItem,,ChatGPT Pro,OAI-CHAT-PRO
+,OrderLineItem,,ChatGPT Business,OAI-CHAT-BIZ
+,OrderLineItem,,API Developer Access,OAI-API-DEV
+,OrderLineItem,,API Enterprise Access,OAI-API-ENT
+,OrderLineItem,,Realtime API Add-on,OAI-API-REALTIME
+,OrderLineItem,,Image Generation Add-on,OAI-API-IMAGE
+,Bundle,,OpenAI Enterprise Suite,OAI-ENT-PKG
+,OrderLineItem,,Reserved API Capacity,OAI-ENT-RESERVE
+,OrderLineItem,,Implementation & Integration Services,OAI-SVC-IMPL
+,OrderLineItem,,AI Literacy Training Program,OAI-SVC-TRAIN
+,OrderLineItem,,Custom Model Fine-Tuning,OAI-SVC-CUSTOM
+,OrderLineItem,,Dedicated Customer Success Manager,OAI-SVC-CSM

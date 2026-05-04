@@ -1,0 +1,14 @@
+BillingPolicy.Name,StockKeepingUnit
+OpenAI Standard Billing,OAI-CHAT-PLUS
+OpenAI Standard Billing,OAI-CHAT-PRO
+OpenAI Standard Billing,OAI-CHAT-BIZ
+OpenAI Standard Billing,OAI-API-DEV
+OpenAI Standard Billing,OAI-API-ENT
+OpenAI Standard Billing,OAI-API-REALTIME
+OpenAI Standard Billing,OAI-API-IMAGE
+OpenAI Standard Billing,OAI-ENT-PKG
+OpenAI Standard Billing,OAI-ENT-RESERVE
+OpenAI Standard Billing,OAI-SVC-IMPL
+OpenAI Standard Billing,OAI-SVC-TRAIN
+OpenAI Standard Billing,OAI-SVC-CUSTOM
+OpenAI Standard Billing,OAI-SVC-CSM
