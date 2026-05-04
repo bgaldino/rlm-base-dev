@@ -21,16 +21,17 @@ from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Label, RichLog, Static
 
 from scripts.build_harness.harness.config import compose_flags
-from scripts.build_harness.harness.execution import org_exists
 from scripts.build_harness.harness.io import now_utc
 from scripts.build_harness.tui.runner import ROOT as REPO_ROOT
 from scripts.build_harness.tui.runner import load_tui_config, run_build
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, PrepareStepView, RunEvent, RunEventKind
 from scripts.build_harness.tui.widgets.progress_format import format_step_label
 
-SETTINGS_FILE = Path(__file__).with_name("settings.json")
+DEFAULT_SETTINGS_FILE = Path(__file__).with_name("settings.json")
+LOCAL_SETTINGS_FILE = Path(__file__).with_name("settings.local.json")
 COMPACT_LAYOUT_WIDTH = 120
 TUI_RUNS_ROOT = REPO_ROOT / ".harness" / "tui-runs"
+CCI_UI_COMMAND_TIMEOUT_SECONDS = 60
 
 
 def _validate_alias_and_days(alias: str, days_raw: str) -> Optional[str]:
@@ -53,42 +54,29 @@ def _generate_default_alias(shape_name: str) -> str:
     normalized_shape = re.sub(r"-{2,}", "-", normalized_shape) or "org"
     alias_prefix = f"{normalized_shape}-tui"
     alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-
-    for _ in range(12):
-        suffix = "".join(secrets.choice(alphabet) for _ in range(4))
-        alias = f"{alias_prefix}-{suffix}"[:60]
-        if not _alias_exists(alias):
-            return alias
-
-    # Fallback if many collisions are encountered.
-    timestamp = time.strftime("%H%M%S")
-    return f"{alias_prefix}-{timestamp}"[:60]
-
-
-def _alias_exists(alias: str) -> bool:
-    """Check if CCI already has this org alias registered."""
-    try:
-        return org_exists(REPO_ROOT, alias)
-    except Exception:
-        # If we cannot validate, avoid blocking alias generation.
-        return False
+    suffix = "".join(secrets.choice(alphabet) for _ in range(4))
+    return f"{alias_prefix}-{suffix}"[:60]
 
 
 def _load_tui_settings() -> Dict[str, object]:
-    """Load optional TUI settings from local settings.json."""
-    if not SETTINGS_FILE.exists():
-        return {}
-    try:
-        payload = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {}
-    return payload if isinstance(payload, dict) else {}
+    """Load settings.json defaults with optional local override precedence."""
+    combined: Dict[str, object] = {}
+    for path in (DEFAULT_SETTINGS_FILE, LOCAL_SETTINGS_FILE):
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if isinstance(payload, dict):
+            combined.update(payload)
+    return combined
 
 
 def _save_tui_settings(settings: Dict[str, object]) -> Optional[str]:
     """Persist local TUI settings and return an error message on failure."""
     try:
-        SETTINGS_FILE.write_text(f"{json.dumps(settings, indent=2)}\n", encoding="utf-8")
+        LOCAL_SETTINGS_FILE.write_text(f"{json.dumps(settings, indent=2)}\n", encoding="utf-8")
     except OSError as exc:
         return str(exc)
     return None
@@ -788,315 +776,7 @@ class BuildManagerApp(App[None]):
         ("ctrl+x", "safe_exit", "Quit"),
         ("escape", "safe_exit", "Quit"),
     ]
-    CSS = """
-    .theme-light Screen {
-        layout: vertical;
-        background: #e5eff8;
-        color: #001639;
-    }
-    .theme-light #wizard-panel, .theme-light #output-panel {
-        height: 1fr;
-        border: heavy #0176d3;
-        background: #f8fbff;
-        color: #001639;
-        padding: 1;
-    }
-    #shape-table {
-        height: 1fr;
-        min-height: 6;
-        margin: 1 0;
-    }
-    .theme-light #flag-scroll {
-        height: 1fr;
-        border: round #8fa8c2;
-        background: #f4f8fc;
-        color: #001639;
-        padding: 0 1;
-        margin: 1 0;
-    }
-    #step-table {
-        height: 1fr;
-        min-height: 4;
-        margin: 1 0;
-    }
-    .theme-light #log {
-        height: 1fr;
-        border: round #8fa8c2;
-        background: #eef4fb;
-        color: #001639;
-        margin-top: 1;
-    }
-    #run-banner {
-        display: none;
-        height: 3;
-        content-align: center middle;
-        text-style: bold;
-        margin: 1 0;
-    }
-    #run-banner.banner-visible {
-        display: block;
-    }
-    .theme-light #run-banner.banner-success {
-        background: #2e844a;
-        color: #ffffff;
-        border: round #2e844a;
-    }
-    .theme-light #run-banner.banner-failed {
-        background: #ba0517;
-        color: #ffffff;
-        border: round #ba0517;
-    }
-    .theme-light #run-banner.banner-cancelled {
-        background: #dd7a01;
-        color: #ffffff;
-        border: round #dd7a01;
-    }
-    #wizard-actions {
-        height: auto;
-        margin-top: 1;
-    }
-    #output-actions {
-        dock: bottom;
-        height: auto;
-        margin-top: 1;
-    }
-    #layout-indicator {
-        color: #015ba7;
-        text-style: bold;
-        display: none;
-    }
-    #layout-indicator.layout-indicator-visible {
-        display: block;
-        width: 16;
-    }
-    #wizard-actions.wizard-actions-compact, #output-actions.wizard-actions-compact {
-        layout: vertical;
-    }
-    #wizard-actions.wizard-actions-compact Button, #output-actions.wizard-actions-compact Button {
-        width: 1fr;
-        margin-bottom: 1;
-    }
-    #wizard-actions.wizard-actions-compact #actions-spacer, #output-actions.wizard-actions-compact #actions-spacer {
-        display: none;
-    }
-    #actions-spacer {
-        width: 1fr;
-    }
-    .theme-light Button {
-        background: #f4f8fc;
-        color: #001639;
-        border: round #0176d3;
-    }
-    .theme-light Button:hover {
-        background: #d8ecff;
-    }
-    .theme-light Button.-success {
-        background: #0176d3;
-        color: #ffffff;
-        border: round #0176d3;
-    }
-    .theme-light Button.-warning {
-        background: #dd7a01;
-        color: #ffffff;
-        border: round #dd7a01;
-    }
-    .theme-light Button.new-build-button {
-        background: #0176d3;
-        color: #ffffff;
-        border: round #0176d3;
-    }
-    .theme-light Button.-error {
-        background: #ba0517;
-        color: #ffffff;
-        border: round #ba0517;
-    }
-    .theme-light DataTable {
-        background: #f8fbff;
-        color: #001639;
-    }
-    .theme-light DataTable > .datatable--header {
-        background: #cfe9ff;
-        color: #001639;
-        text-style: bold;
-    }
-    .theme-light Input {
-        background: #ffffff;
-        color: #001639;
-        border: round #8fa8c2;
-    }
-    .theme-light Label {
-        color: #001639;
-    }
-    .flag-row {
-        height: auto;
-        margin-bottom: 1;
-        align: left middle;
-    }
-    .flag-toggle {
-        width: 10;
-        min-width: 10;
-        margin-right: 1;
-        border: round #8fa8c2;
-        text-style: bold;
-        content-align: center middle;
-    }
-    .flag-name {
-        width: 18;
-        min-width: 18;
-    }
-    .flag-inline-comment {
-        color: #16325c;
-    }
-    .theme-light .flag-inline-comment {
-        color: #16325c;
-    }
-    .theme-light .flag-toggle {
-        background: #ffffff;
-        color: #0176d3;
-        border: round #8fa8c2;
-    }
-    .theme-light .flag-toggle:hover {
-        background: #d8ecff;
-    }
-    .theme-light .flag-toggle:focus {
-        border: round #0176d3;
-    }
-    .theme-light .flag-toggle.flag-toggle-on {
-        background: #0176d3;
-        color: #ffffff;
-        border: round #0176d3;
-    }
-    .theme-light .flag-toggle.flag-toggle-off {
-        background: #ffffff;
-        color: #0176d3;
-    }
-    .theme-light .section-title {
-        text-style: bold;
-        margin: 0 0 1 0;
-        color: #001639;
-    }
-    .theme-dark Screen {
-        layout: vertical;
-        background: #0b1626;
-        color: #d8e6ff;
-    }
-    .theme-dark #wizard-panel, .theme-dark #output-panel {
-        height: 1fr;
-        border: heavy #1b96ff;
-        background: #10233d;
-        color: #eaf2ff;
-        padding: 1;
-    }
-    .theme-dark #flag-scroll {
-        height: 1fr;
-        border: round #3b5a80;
-        background: #142b47;
-        color: #d8e6ff;
-        padding: 0 1;
-        margin: 1 0;
-    }
-    .theme-dark #log {
-        height: 1fr;
-        border: round #3b5a80;
-        background: #0f2137;
-        color: #eaf2ff;
-        margin-top: 1;
-    }
-    .theme-dark #run-banner.banner-success {
-        background: #2e844a;
-        color: #ffffff;
-        border: round #2e844a;
-    }
-    .theme-dark #run-banner.banner-failed {
-        background: #ba0517;
-        color: #ffffff;
-        border: round #ba0517;
-    }
-    .theme-dark #run-banner.banner-cancelled {
-        background: #dd7a01;
-        color: #ffffff;
-        border: round #dd7a01;
-    }
-    .theme-dark #layout-indicator {
-        color: #7dc2ff;
-    }
-    .theme-dark Button {
-        background: #18324f;
-        color: #eaf2ff;
-        border: round #4ba6ff;
-    }
-    .theme-dark Button:hover {
-        background: #23476e;
-    }
-    .theme-dark Button.-success {
-        background: #1b96ff;
-        color: #001639;
-        border: round #1b96ff;
-    }
-    .theme-dark Button.-warning {
-        background: #f3b47a;
-        color: #291500;
-        border: round #f3b47a;
-    }
-    .theme-dark Button.new-build-button {
-        background: #1b96ff;
-        color: #001639;
-        border: round #1b96ff;
-    }
-    .theme-dark Button.-error {
-        background: #ff6f7f;
-        color: #2b0a0d;
-        border: round #ff6f7f;
-    }
-    .theme-dark DataTable {
-        background: #10233d;
-        color: #eaf2ff;
-    }
-    .theme-dark DataTable > .datatable--header {
-        background: #1f456c;
-        color: #f3f8ff;
-        text-style: bold;
-    }
-    .theme-dark Input {
-        background: #0f2137;
-        color: #eaf2ff;
-        border: round #4a6f98;
-    }
-    .theme-dark Label {
-        color: #d8e6ff;
-    }
-    .theme-dark .flag-comment {
-        color: #adc9ef;
-    }
-    .theme-dark .flag-inline-comment {
-        color: #adc9ef;
-    }
-    .theme-dark .flag-toggle {
-        background: #18324f;
-        color: #7dc2ff;
-        border: round #4a6f98;
-    }
-    .theme-dark .flag-toggle:hover {
-        background: #23476e;
-    }
-    .theme-dark .flag-toggle:focus {
-        border: round #1b96ff;
-    }
-    .theme-dark .flag-toggle.flag-toggle-on {
-        background: #1b96ff;
-        color: #001639;
-        border: round #1b96ff;
-    }
-    .theme-dark .flag-toggle.flag-toggle-off {
-        background: #18324f;
-        color: #7dc2ff;
-    }
-    .theme-dark .section-title {
-        text-style: bold;
-        margin: 0 0 1 0;
-        color: #f3f8ff;
-    }
-    """
+    CSS_PATH = "app.tcss"
 
     def __init__(self) -> None:
         super().__init__()
@@ -1125,6 +805,7 @@ class BuildManagerApp(App[None]):
         self._running_step_numbers: set[int] = set()
         self._output_screen: Optional[OutputScreen] = None
         self._run_logger: Optional[PersistentRunLogger] = None
+        self._run_logger_lock = threading.Lock()
         self._active_org_alias: str = ""
         self._org_created_in_run = False
         self._unexpected_runner_exit_reported = False
@@ -1182,7 +863,8 @@ class BuildManagerApp(App[None]):
         self._stop_event.clear()
         self._org_created_in_run = False
         self._unexpected_runner_exit_reported = False
-        self._run_logger = None
+        with self._run_logger_lock:
+            self._run_logger = None
 
         config = BuildConfig(
             org_shape=self.selected_shape,
@@ -1193,14 +875,16 @@ class BuildManagerApp(App[None]):
         effective_flags = compose_flags(self.default_flags, self.flag_overrides)
         if self.persistent_logging_enabled:
             try:
-                self._run_logger = PersistentRunLogger(
-                    config=config,
-                    settings_snapshot=self.settings,
-                    effective_flags=effective_flags,
-                )
+                with self._run_logger_lock:
+                    self._run_logger = PersistentRunLogger(
+                        config=config,
+                        settings_snapshot=self.settings,
+                        effective_flags=effective_flags,
+                    )
             except Exception as exc:
                 self.notify(f"Failed to initialize persistent run logging: {exc}", severity="warning")
-                self._run_logger = None
+                with self._run_logger_lock:
+                    self._run_logger = None
 
         output = OutputScreen(config=config)
         self._output_screen = output
@@ -1208,9 +892,12 @@ class BuildManagerApp(App[None]):
         self._active_org_alias = config.org_alias
 
         def _emit(event: RunEvent) -> None:
-            if self._run_logger is not None:
+            logger: Optional[PersistentRunLogger]
+            with self._run_logger_lock:
+                logger = self._run_logger
+            if logger is not None:
                 try:
-                    self._run_logger.record_event(event)
+                    logger.record_event(event)
                 except Exception as exc:
                     self._event_queue.put(
                         RunEvent(
@@ -1222,7 +909,9 @@ class BuildManagerApp(App[None]):
                             },
                         )
                     )
-                    self._run_logger = None
+                    with self._run_logger_lock:
+                        if self._run_logger is logger:
+                            self._run_logger = None
             self._event_queue.put(event)
 
         def _runner() -> None:
@@ -1315,7 +1004,8 @@ class BuildManagerApp(App[None]):
         self._output_screen = None
         self._active_org_alias = ""
         self._org_created_in_run = False
-        self._run_logger = None
+        with self._run_logger_lock:
+            self._run_logger = None
         self._run_started_monotonic = None
         self._run_finished_monotonic = None
         self._completed_steps = 0
@@ -1416,11 +1106,14 @@ class BuildManagerApp(App[None]):
         return True
 
     def _finalize_run_logger(self, *, status: str, terminal_payload: Dict[str, object]) -> None:
-        if self._run_logger is None:
+        with self._run_logger_lock:
+            logger = self._run_logger
+            self._run_logger = None
+        if logger is None:
             return
         elapsed = self.elapsed_seconds()
         try:
-            self._run_logger.finalize(
+            logger.finalize(
                 status=status,
                 total_steps=self._total_steps,
                 completed_steps=self._completed_steps,
@@ -1429,19 +1122,13 @@ class BuildManagerApp(App[None]):
             )
         except Exception as exc:
             self.notify(f"Failed to finalize persistent run log: {exc}", severity="warning")
-        finally:
-            self._run_logger = None
 
     def _delete_scratch_org(self, alias: str) -> None:
-        try:
-            result = subprocess.run(
-                ["cci", "org", "scratch_delete", alias, "--no-prompt"],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-            )
-        except Exception as exc:  # pragma: no cover
-            self.notify(f"Failed to run scratch_delete for {alias}: {exc}", severity="error")
+        result = self._run_cci_ui_command(
+            ["cci", "org", "scratch_delete", alias, "--no-prompt"],
+            action_label=f"scratch_delete for {alias}",
+        )
+        if result is None:
             return
 
         if result.returncode == 0:
@@ -1461,15 +1148,11 @@ class BuildManagerApp(App[None]):
         if not alias:
             self.notify("No org alias available to open.", severity="warning")
             return
-        try:
-            result = subprocess.run(
-                ["cci", "org", "browser", alias],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-            )
-        except Exception as exc:  # pragma: no cover
-            self.notify(f"Failed to run org browser for {alias}: {exc}", severity="error")
+        result = self._run_cci_ui_command(
+            ["cci", "org", "browser", alias],
+            action_label=f"org browser for {alias}",
+        )
+        if result is None:
             return
 
         if result.returncode == 0:
@@ -1483,4 +1166,28 @@ class BuildManagerApp(App[None]):
         if tail:
             message = f"{message}: {tail}"
         self.notify(message, severity="warning")
+
+    def _run_cci_ui_command(
+        self,
+        command: List[str],
+        *,
+        action_label: str,
+    ) -> Optional[subprocess.CompletedProcess[str]]:
+        try:
+            return subprocess.run(
+                command,
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=CCI_UI_COMMAND_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired:
+            self.notify(
+                f"{action_label} timed out after {CCI_UI_COMMAND_TIMEOUT_SECONDS}s.",
+                severity="warning",
+            )
+            return None
+        except Exception as exc:  # pragma: no cover
+            self.notify(f"Failed to run {action_label}: {exc}", severity="error")
+            return None
 

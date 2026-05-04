@@ -278,6 +278,12 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
                     },
                 )
             )
+        else:
+            try:
+                workspace_dir.rmdir()
+            except OSError:
+                # Keep parent workspace for troubleshooting if it's non-empty.
+                pass
 
 def _run_command(
     command: Iterable[str],

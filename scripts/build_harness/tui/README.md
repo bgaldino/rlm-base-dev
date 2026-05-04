@@ -12,6 +12,8 @@ Flag overrides are runtime-only and are never written back to `cumulusci.yml`.
 
 ## Create scoped virtual environment
 
+Python 3.11+ is required (`enum.StrEnum` is used by the TUI state models).
+
 ```bash
 python -m venv .harness/tui-venv
 .harness/tui-venv/bin/python -m pip install -r scripts/build_harness/tui/requirements.txt
@@ -31,7 +33,8 @@ Or use the root wrapper:
 
 ## Settings
 
-The TUI reads `scripts/build_harness/tui/settings.json` on startup.
+The TUI reads `scripts/build_harness/tui/settings.json` on startup for defaults,
+then overlays `scripts/build_harness/tui/settings.local.json` if present.
 
 Set `default_org_shape` to preselect a shape in step 1.
 Set `theme_mode` to control the palette:
@@ -71,6 +74,7 @@ the TUI falls back to the first shape in the list.
 - Step 3: toggle runtime flag pill switches (`○ OFF` / `ON ●`), then `Start Build`
 - Step 4: watch output, use `Stop Build` while running; after completion it becomes `New Build`
 - Command Palette (`Ctrl+P`): run `Set Default Org` to persist the highlighted/current org shape to `settings.json`
+- Command Palette writes user overrides to `settings.local.json` (keeps repo defaults clean)
 - `Ctrl+X`, `Esc`, or `Exit` to quit (`Exit` is available on every screen)
 
 ## Notes
@@ -82,7 +86,7 @@ the TUI falls back to the first shape in the list.
 - `prepare_rlm_org` execution uses top-level step parsing and `when` evaluation from the harness runner (`scripts/build_harness/harness.py` and `scripts/build_harness/harness/` modules).
 - Flag groups and inline descriptions are sourced dynamically from `project.custom` comments/order in `cumulusci.yml`.
 - Step 2 pre-fills a valid alias using `<shape>-tui-<4char>` and retries on alias collisions.
-- If a run fails after scratch org creation, the TUI deletes that org by default (only if it was created in the current run). Set `delete_org_on_failure` to `false` in `settings.json` to preserve the org for inspection.
+- If a run fails after scratch org creation, the TUI deletes that org by default (only if it was created in the current run). Set `delete_org_on_failure` to `false` in `settings.local.json` to preserve the org for inspection.
 - Output screen behavior:
   - `Total Elapsed` freezes on success/failure/cancel
   - active step duration updates live in the table

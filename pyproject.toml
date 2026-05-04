@@ -4,6 +4,10 @@
 # unit tests. The repo's primary build system is CumulusCI (cumulusci.yml),
 # not Python packaging, so there is no [project] table here on purpose.
 
+[tool.build_harness]
+# Harness/TUI uses enum.StrEnum (Python 3.11+).
+requires_python = ">=3.11"
+
 [tool.pytest.ini_options]
 # Scope test discovery to the build harness tests. Without this pytest would
 # scan the entire repo (including .harness/, scripts/cml/, etc.) and either

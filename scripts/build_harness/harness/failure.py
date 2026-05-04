@@ -49,7 +49,10 @@ DETERMINISTIC_PATTERNS: tuple[str, ...] = (
     "validation error",
     "does not exist",
     "unknown option",
-    "not found",
+    "command not found",
+    "file not found",
+    "metadata not found",
+    "no such file or directory",
 )
 
 # Lines we never want to surface as the failure signature. CCI prints these on

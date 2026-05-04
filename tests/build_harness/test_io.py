@@ -175,7 +175,7 @@ class TestParseRetention:
 
 class TestPruneOldRuns:
     def test_prunes_only_old_directories(self, tmp_path) -> None:
-        runs = tmp_path / "runs"
+        runs = tmp_path / ".harness" / "runs"
         ensure_dir(runs)
         old_dir = runs / "run-old"
         new_dir = runs / "run-new"
@@ -195,5 +195,11 @@ class TestPruneOldRuns:
         assert file_entry.exists()
 
     def test_missing_root_returns_empty(self, tmp_path) -> None:
-        removed = prune_old_runs(tmp_path / "missing-runs", dt.timedelta(days=7))
+        removed = prune_old_runs(tmp_path / ".harness" / "runs", dt.timedelta(days=7))
         assert removed == []
+
+    def test_rejects_unsafe_root(self, tmp_path) -> None:
+        unsafe_root = tmp_path / "runs"
+        ensure_dir(unsafe_root)
+        with pytest.raises(ValueError, match="Refusing to prune unexpected output root"):
+            prune_old_runs(unsafe_root, dt.timedelta(days=7))

@@ -60,6 +60,20 @@ EXIT_CONFIG_ERROR = 20
 EXIT_RESUME_BLOCKED = 30
 
 
+def _resolve_run_dir(run_id: str, *, must_exist: bool = False) -> Optional[Path]:
+    """Resolve a run-id path safely under DEFAULT_OUTPUT_ROOT."""
+    run_id_clean = run_id.strip()
+    if not run_id_clean:
+        return None
+    output_root = DEFAULT_OUTPUT_ROOT.resolve()
+    run_dir = (output_root / run_id_clean).resolve()
+    if not run_dir.is_relative_to(output_root):
+        return None
+    if must_exist and not run_dir.exists():
+        return None
+    return run_dir
+
+
 def load_scenarios_from_file(path: Path) -> List[Dict[str, Any]]:
     return extract_scenarios(load_json(path))
 
@@ -93,7 +107,10 @@ def _attach_analysis_artifacts(summary: Dict[str, Any], analysis: Dict[str, Any]
 def cmd_run(args: argparse.Namespace) -> int:
     _maybe_prune_runs(args.prune_older_than)
     run_id = args.run_id or make_run_id()
-    run_dir = DEFAULT_OUTPUT_ROOT / run_id
+    run_dir = _resolve_run_dir(run_id)
+    if run_dir is None:
+        print(f"Invalid run id: {run_id}", file=sys.stderr)
+        return EXIT_CONFIG_ERROR
     ensure_dir(run_dir)
     ensure_dir(run_dir / "scenarios")
 
@@ -155,8 +172,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_resume(args: argparse.Namespace) -> int:
-    run_dir = DEFAULT_OUTPUT_ROOT / args.run_id
-    if not run_dir.exists():
+    run_dir = _resolve_run_dir(args.run_id, must_exist=True)
+    if run_dir is None:
         print(f"Run id not found: {args.run_id}", file=sys.stderr)
         return EXIT_RESUME_BLOCKED
 
@@ -182,9 +199,9 @@ def cmd_resume(args: argparse.Namespace) -> int:
         return EXIT_RESUME_BLOCKED
 
     # Resume safety: block when scenario flags differ from checkpoint flags.
-    effective_from_checkpoint = checkpoint.get("effective_flags", {})
+    effective_from_checkpoint = checkpoint.get("effective_flags")
     effective_current = compose_flags(default_flags, scenario.get("flag_overrides", {}))
-    if effective_from_checkpoint and effective_current != effective_from_checkpoint:
+    if effective_from_checkpoint is not None and effective_current != effective_from_checkpoint:
         print(
             "Resume blocked: scenario flags changed since checkpoint. "
             "Run full scenario instead.",
@@ -246,7 +263,10 @@ def cmd_resume(args: argparse.Namespace) -> int:
 
 def cmd_report(args: argparse.Namespace) -> int:
     _maybe_prune_runs(args.prune_older_than)
-    run_dir = DEFAULT_OUTPUT_ROOT / args.run_id
+    run_dir = _resolve_run_dir(args.run_id, must_exist=True)
+    if run_dir is None:
+        print(f"run_summary.json not found for run_id {args.run_id}", file=sys.stderr)
+        return EXIT_CONFIG_ERROR
     summary_path = run_dir / "run_summary.json"
     if not summary_path.exists():
         print(f"run_summary.json not found for run_id {args.run_id}", file=sys.stderr)

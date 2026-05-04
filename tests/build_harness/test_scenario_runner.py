@@ -197,3 +197,83 @@ def test_run_single_scenario_returns_deterministic_failure_for_materialize_error
     assert result["failure_phase"] == "org_materialize"
     assert result["failure_class"] == "deterministic"
     assert result["failed_target"] == "org_materialize:org_info"
+
+
+def test_run_single_scenario_uses_failed_step_retry_count_for_policy(tmp_path, monkeypatch) -> None:
+    run_dir = tmp_path / "runs" / "run-3"
+    run_dir.mkdir(parents=True)
+    scenario_dir = run_dir / "scenarios" / "ent-default"
+    project_root = scenario_dir / "cci_project"
+
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _defaults, _overrides: {"demo": True})
+    monkeypatch.setattr(
+        scenario_runner,
+        "prepare_scenario_project_root",
+        lambda **_kwargs: project_root,
+    )
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _root: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_kwargs: None)
+    monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(scenario_runner, "org_exists", lambda *_args, **_kwargs: True)
+
+    steps = [
+        Step(step_number=1, target_type="task", target_name="first", when=None),
+        Step(step_number=2, target_type="task", target_name="second", when=None),
+    ]
+
+    calls = {"step1_attempt": 0}
+
+    def _run_command(_root, command, *_args, **_kwargs):
+        if command[:3] == ["cci", "org", "scratch"] or command[:3] == ["cci", "org", "info"]:
+            return {
+                "duration_seconds": 0.1,
+                "exit_code": 0,
+                "failure_signature": "",
+                "failure_class": "none",
+                "tail": [],
+            }
+        if command[:3] == ["cci", "task", "run"] and len(command) >= 4 and command[3] == "first":
+            calls["step1_attempt"] += 1
+            if calls["step1_attempt"] < 3:
+                return {
+                    "duration_seconds": 0.1,
+                    "exit_code": 1,
+                    "failure_signature": "temporary",
+                    "failure_class": "transient",
+                    "tail": [],
+                }
+            return {
+                "duration_seconds": 0.1,
+                "exit_code": 0,
+                "failure_signature": "",
+                "failure_class": "none",
+                "tail": [],
+            }
+        return {
+            "duration_seconds": 0.1,
+            "exit_code": 2,
+            "failure_signature": "fresh failure",
+            "failure_class": "unknown",
+            "tail": [],
+        }
+
+    monkeypatch.setattr(scenario_runner, "run_command", _run_command)
+    monkeypatch.setattr(scenario_runner.time, "sleep", lambda _seconds: None)
+
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=steps,
+        default_flags={"demo": True},
+        base_cci={},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=False,
+    )
+
+    assert result["status"] == "failed"
+    assert result["retry_count"] == 0
+    assert result["total_retry_count"] == 2
+    assert result["policy"]["recommended_action"] == "resume"
+    assert result["policy"]["confidence"] == "medium"

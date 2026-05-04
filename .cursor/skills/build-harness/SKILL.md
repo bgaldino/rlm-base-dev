@@ -290,7 +290,12 @@ for interactive TTY launches when `TERM` is missing or `dumb`, and always
 - `tests/build_harness/test_io.py` - JSON/JSONL/time/directory helpers
 - `tests/build_harness/test_failure.py` - failure signature classification
 - `tests/build_harness/test_config.py` - flags, aliases, safe `when:`, project materialization, cleanup guard
+- `tests/build_harness/test_execution.py` - subprocess streaming, cancellation, and org existence checks
 - `tests/build_harness/test_provenance.py` - stamp parsing and provenance extraction
+- `tests/build_harness/test_reporting.py` - report composition and analysis artifact generation
+- `tests/build_harness/test_scenario_runner.py` - policy recommendations and scenario orchestration behavior
+- `tests/build_harness/test_tui_runner.py` - TUI build runner wiring and flag-group parser behavior
+- `tests/build_harness/test_harness_cli.py` - run/resume/report CLI guardrails and path safety
 
 Use tests first for parser, evaluator, cleanup, and resume-safety changes. Mock subprocesses for TUI runner coverage instead of creating real orgs.
 

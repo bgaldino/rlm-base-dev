@@ -105,6 +105,8 @@ def _safe_eval_when(node: ast.AST) -> Any:
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, _ALLOWED_UNARY_OPS):
         return not _safe_eval_when(node.operand)
     if isinstance(node, ast.BoolOp) and isinstance(node.op, _ALLOWED_BOOL_OPS):
+        # We evaluate every operand before all()/any(); unlike Python's lazy
+        # and/or, this is safe because the supported when-grammar is side-effect free.
         values = [_safe_eval_when(v) for v in node.values]
         if isinstance(node.op, ast.And):
             return all(values)
