@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
+import os
 import re
 from threading import Event
 from typing import Callable, Dict, Iterable, List, Tuple
@@ -25,6 +26,21 @@ from scripts.build_harness.harness.execution import run_command_stream
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, RunEvent, RunEventKind
 
 EventSink = Callable[[RunEvent], None]
+
+
+def _create_workspace_dir(root: Path, alias_slug: str, run_stamp: str) -> Path:
+    """Create a unique workspace directory for a TUI run."""
+    workspace_root = root / ".harness" / "tui-runs"
+    workspace_root.mkdir(parents=True, exist_ok=True)
+    for _ in range(5):
+        unique_suffix = f"{os.getpid()}-{time.time_ns()}"
+        workspace_dir = workspace_root / f"tui-workspace-{run_stamp}-{alias_slug}-{unique_suffix}"
+        try:
+            workspace_dir.mkdir(parents=False, exist_ok=False)
+            return workspace_dir
+        except FileExistsError:
+            continue
+    raise RuntimeError("Unable to allocate a unique TUI workspace directory.")
 
 
 def load_tui_config() -> Tuple[
@@ -84,8 +100,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
 
     run_stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     alias_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", config.org_alias).strip("-") or "org"
-    workspace_dir = ROOT / ".harness" / "tui-runs" / f"tui-workspace-{run_stamp}-{alias_slug}"
-    workspace_dir.mkdir(parents=True, exist_ok=True)
+    workspace_dir = _create_workspace_dir(ROOT, alias_slug, run_stamp)
     project_root = prepare_scenario_project_root(
         root=ROOT,
         scenario_dir=workspace_dir,
@@ -353,10 +368,12 @@ def _run_command(
         on_line=_emit_line,
         on_detached=lambda: _emit_line("[harness] process exited but stdout remained open; continuing."),
     )
+    exit_code = int(result["exit_code"])
+    failure_signature = str(result["failure_signature"]) if exit_code != 0 else ""
     result = {
         "duration_seconds": float(result["duration_seconds"]),
-        "exit_code": int(result["exit_code"]),
-        "failure_signature": str(result["failure_signature"]),
+        "exit_code": exit_code,
+        "failure_signature": failure_signature,
     }
     emit(
         RunEvent(

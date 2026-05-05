@@ -83,7 +83,7 @@ The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **`prepare_decision_tables`** (Step 2) activates a specific set of decision tables — but only on scratch orgs. On sandboxes or persistent orgs, this step runs but skips activation, since those orgs are expected to already have their decision tables in place. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
-**`prepare_expression_sets`** (Step 3) deactivates existing expression sets on all org types. On scratch orgs it also validates that pricing schedule prerequisites are in place and deploys expression sets in draft state — on sandboxes or persistent orgs, only the deactivation runs. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 17) after all dependent data is in place.
+**`prepare_expression_sets`** (Step 3) deactivates existing expression sets, validates that pricing schedule prerequisites are in place, and deploys expression sets in draft state across org types. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 17) after all dependent data is in place.
 
 ---
 
@@ -175,7 +175,7 @@ The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **Revenue settings configuration** (Step 24) — Uses Robot Framework to navigate the Revenue Cloud Setup UI and configure settings including the pricing procedure, usage rating toggle, instant pricing toggle, and create orders flow. These are among the last settings configured because they reference components deployed and activated in earlier phases.
 
-**Pricing discovery reconfiguration** (Step 25, scratch orgs only, not TSO) — Fixes the pricing discovery procedure by reconfiguring an expression set. This addresses a platform behavior where scratch org provisioning creates a default pricing discovery configuration that conflicts with the one we deploy.
+**Pricing discovery reconfiguration** (Step 25) — Reconfigures pricing discovery by updating expression-set driven pricing setup and (when `qb` is enabled) product discovery settings. This ensures pricing discovery stays aligned with the metadata and data loaded earlier in the build.
 
 **Ramp Schedule Builder** (Step 26, `ramps` flag) — Deploys the Create Ramp Schedule (V4) metadata and assigns the `RLM_RampSchedule` permission set. Ramp schedules let reps model phased quantity/price changes over a contract term.
 

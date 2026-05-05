@@ -60,6 +60,19 @@ EXIT_CONFIG_ERROR = 20
 EXIT_RESUME_BLOCKED = 30
 
 
+def _prepare_steps_signature(steps: List[Any]) -> List[Dict[str, Any]]:
+    """Serialize top-level prepare steps for resume-safety drift checks."""
+    return [
+        {
+            "step_number": int(step.step_number),
+            "target_type": str(step.target_type),
+            "target_name": str(step.target_name),
+            "when": step.when,
+        }
+        for step in steps
+    ]
+
+
 def _resolve_run_dir(run_id: str, *, must_exist: bool = False) -> Optional[Path]:
     """Resolve a run-id path safely under DEFAULT_OUTPUT_ROOT."""
     run_id_clean = run_id.strip()
@@ -143,6 +156,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "scenarios_file": str(scenarios_file.relative_to(ROOT)) if scenarios_file.is_absolute() and scenarios_file.is_relative_to(ROOT) else str(scenarios_file),
         "selected_scenarios": [item["scenario_id"] for item in selected],
         "git_sha": subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), capture_output=True, text=True).stdout.strip(),
+        "prepare_steps_signature": _prepare_steps_signature(steps),
     }
     write_json(run_dir / "run_manifest.json", run_manifest)
 
@@ -214,6 +228,42 @@ def cmd_resume(args: argparse.Namespace) -> int:
     if not org_alias:
         print("Checkpoint missing org alias", file=sys.stderr)
         return EXIT_RESUME_BLOCKED
+
+    checkpoint_shape = checkpoint.get("org_shape")
+    scenario_shape = scenario.get("org_shape")
+    if checkpoint_shape and scenario_shape and checkpoint_shape != scenario_shape:
+        print(
+            "Resume blocked: scenario org shape changed since checkpoint. "
+            "Run full scenario instead.",
+            file=sys.stderr,
+        )
+        return EXIT_RESUME_BLOCKED
+
+    scenario_manifest_path = scenario_dir / "scenario_manifest.json"
+    if scenario_manifest_path.exists():
+        scenario_manifest = load_json(scenario_manifest_path)
+        manifest_shape = scenario_manifest.get("org_shape")
+        if manifest_shape and scenario_shape and manifest_shape != scenario_shape:
+            print(
+                "Resume blocked: scenario org shape changed since original run manifest. "
+                "Run full scenario instead.",
+                file=sys.stderr,
+            )
+            return EXIT_RESUME_BLOCKED
+
+    run_manifest_path = run_dir / "run_manifest.json"
+    if run_manifest_path.exists():
+        run_manifest = load_json(run_manifest_path)
+        recorded_signature = run_manifest.get("prepare_steps_signature")
+        if recorded_signature is not None:
+            current_signature = _prepare_steps_signature(steps)
+            if current_signature != recorded_signature:
+                print(
+                    "Resume blocked: prepare_rlm_org step signature changed since run start. "
+                    "Run full scenario instead.",
+                    file=sys.stderr,
+                )
+                return EXIT_RESUME_BLOCKED
 
     # Resume safety: block when scenario flags differ from checkpoint flags.
     effective_from_checkpoint = checkpoint.get("effective_flags")
@@ -296,6 +346,8 @@ def cmd_report(args: argparse.Namespace) -> int:
     _attach_analysis_artifacts(summary, analysis)
     write_json(summary_path, summary)
     report = render_report(run_dir, summary)
+    write_agent_summary(run_dir, summary)
+    (run_dir / "report.md").write_text(report, encoding="utf-8")
     if args.format == "json":
         print(json.dumps(summary, indent=2, sort_keys=True))
     else:
