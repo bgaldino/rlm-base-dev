@@ -298,3 +298,43 @@ def test_extract_flag_groups_and_comments_includes_unseen_bool_flags(tmp_path, m
 
     assert groups == [("Core", ["commerce"]), ("Other Flags", ["billing"])]
     assert comments == {}
+
+
+def test_run_command_clears_failure_signature_on_success(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        runner,
+        "run_command_stream",
+        lambda *_args, **_kwargs: {
+            "duration_seconds": 0.01,
+            "exit_code": 0,
+            "failure_signature": "stale failure",
+        },
+    )
+    events: List[RunEvent] = []
+    result = runner._run_command(
+        ["cci", "task", "run", "demo"],
+        stop_event=Event(),
+        emit=_emit_collector(events),
+        phase="prepare_step",
+        step_number=1,
+        step_label="task:demo",
+        cwd=tmp_path,
+    )
+
+    assert result["exit_code"] == 0
+    assert result["failure_signature"] == ""
+    finished_event = next(event for event in events if event.kind.value == "command_finished")
+    assert finished_event.payload["failure_signature"] == ""
+
+
+def test_create_workspace_dir_uses_unique_suffixes(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(runner.os, "getpid", lambda: 12345)
+    values = iter([111, 112])
+    monkeypatch.setattr(runner.time, "time_ns", lambda: next(values))
+
+    first = runner._create_workspace_dir(tmp_path, "ent-tui", "20260505T120000Z")
+    second = runner._create_workspace_dir(tmp_path, "ent-tui", "20260505T120000Z")
+
+    assert first != second
+    assert first.exists()
+    assert second.exists()

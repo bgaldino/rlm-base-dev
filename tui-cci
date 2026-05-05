@@ -36,11 +36,14 @@ if [[ -z "${SHELL:-}" || ! -x "${SHELL:-}" ]]; then
 fi
 
 # Textual requires an interactive TTY; avoid blank output in non-interactive contexts.
-if [[ ! -t 0 || ! -t 1 || ! -t 2 ]]; then
-  echo "This TUI requires an interactive terminal."
-  echo "Run it from a local terminal or VS Code integrated terminal."
-  echo "TTY state: stdin=$([[ -t 0 ]] && echo yes || echo no) stdout=$([[ -t 1 ]] && echo yes || echo no) stderr=$([[ -t 2 ]] && echo yes || echo no)"
-  exit 1
+# TUI_CCI_SKIP_TTY_CHECK=1 exists to support deterministic automated launcher tests.
+if [[ "${TUI_CCI_SKIP_TTY_CHECK:-0}" != "1" ]]; then
+  if [[ ! -t 0 || ! -t 1 || ! -t 2 ]]; then
+    echo "This TUI requires an interactive terminal."
+    echo "Run it from a local terminal or VS Code integrated terminal."
+    echo "TTY state: stdin=$([[ -t 0 ]] && echo yes || echo no) stdout=$([[ -t 1 ]] && echo yes || echo no) stderr=$([[ -t 2 ]] && echo yes || echo no)"
+    exit 1
+  fi
 fi
 
 # Ensure TERM is set for full-screen rendering.
@@ -78,12 +81,14 @@ if [[ "$DEBUG_LAUNCH" -eq 1 ]]; then
   echo "[tui-cci] term=${TERM:-<unset>}"
 fi
 
+set +e
 if ((${#PASSTHROUGH_ARGS[@]})); then
   "$VENV_PYTHON" -m scripts.build_harness.tui "${PASSTHROUGH_ARGS[@]}"
 else
   "$VENV_PYTHON" -m scripts.build_harness.tui
 fi
 EXIT_CODE=$?
+set -e
 if [[ $EXIT_CODE -ne 0 ]]; then
   echo "[tui-cci] TUI exited with code $EXIT_CODE"
   echo "[tui-cci] Re-run with --debug-launch for startup diagnostics."
