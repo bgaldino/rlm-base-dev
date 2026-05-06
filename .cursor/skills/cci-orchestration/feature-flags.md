@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**37 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
+**38 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
 
 ---
 
@@ -33,6 +33,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
+| `plg` | `False` | 1 flow step(s) |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
@@ -201,6 +202,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
 
+### `plg` (default: `False`)
+
+- `prepare_plg` step 1 → `deploy_post_plg`
+
 ### `prm` (default: `True`)
 
 - `prepare_prm` step 1 → `create_partner_central`
@@ -349,7 +354,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 27 → `prepare_ux`
+- `prepare_rlm_org` step 28 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 

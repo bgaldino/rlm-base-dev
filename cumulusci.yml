@@ -136,6 +136,7 @@ project:
     constraints_data: true    # Constraint Builder sample data
     breconfig: false          # Business Rules Engine configuration
     guidedselling: false      # Guided Selling
+    plg: false                # NovaSpark pricing page demo metadata (VF + flows + Apex)
     procedureplans: true      # Procedure Plans
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
@@ -1281,6 +1282,16 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_ramp_builder
+
+  deploy_post_plg:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy NovaSpark pricing page demo metadata from unpackaged/post_plg,
+      including Apex services/invocable actions, Visualforce page/controller,
+      autolaunched flows, custom notification type, and Contact.RLM_Password_Hash__c.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_plg
 
   enable_analytics_replication:
     description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
@@ -2502,13 +2513,15 @@ flows:
       26:
         flow: prepare_ramp_builder
       27:
+        flow: prepare_plg
+      28:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      28:
-        flow: prepare_scratch
       29:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       30:
+        flow: refresh_all_decision_tables
+      31:
         flow: stamp_git_commit
 
   prepare_core:
@@ -3183,6 +3196,14 @@ flows:
         when: project_config.project__custom__ramps
         options:
           api_names: *ps_ramp_builder
+
+  prepare_plg:
+    group: Revenue Lifecycle Management
+    description: Deploy NovaSpark pricing page demo metadata bundle.
+    steps:
+      1:
+        task: deploy_post_plg
+        when: project_config.project__custom__plg
 
   prepare_ux:
     group: UX Personalization

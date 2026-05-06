@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomNotificationType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customNotifTypeName>RLM_Quote_Request_Notification</customNotifTypeName>
+    <description>Notification sent to the assigned sales rep when a prospect requests a quote from the pricing page.</description>
+    <desktop>true</desktop>
+    <masterLabel>Quote Request Notification</masterLabel>
+    <mobile>true</mobile>
+    <slack>false</slack>
+</CustomNotificationType>

@@ -1,0 +1,9 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$ProductSellingModel.SellingModelType,IsDefault,Product2.StockKeepingUnit,ProductSellingModel.Name,ProductSellingModel.SellingModelType,ProrationPolicy.Name
+NS-ENTERPRISE;Evergreen - Monthly;Evergreen,false,NS-ENTERPRISE,Evergreen - Monthly,Evergreen,Default Proration Policy
+NS-ENTERPRISE;Evergreen - Yearly;Evergreen,false,NS-ENTERPRISE,Evergreen - Yearly,Evergreen,Default Proration Policy
+NS-PRO;Evergreen - Monthly;Evergreen,false,NS-PRO,Evergreen - Monthly,Evergreen,Default Proration Policy
+NS-PRO;Evergreen - Yearly;Evergreen,false,NS-PRO,Evergreen - Yearly,Evergreen,Default Proration Policy
+NS-PRO;Term Based - Monthly;TermDefined,false,NS-PRO,Term Based - Monthly,TermDefined,Default Proration Policy
+NS-PRO;Term Based - Yearly;TermDefined,true,NS-PRO,Term Based - Yearly,TermDefined,Default Proration Policy
+NS-STARTER;Evergreen - Monthly;Evergreen,false,NS-STARTER,Evergreen - Monthly,Evergreen,Default Proration Policy
+NS-STARTER;Evergreen - Yearly;Evergreen,false,NS-STARTER,Evergreen - Yearly,Evergreen,Default Proration Policy

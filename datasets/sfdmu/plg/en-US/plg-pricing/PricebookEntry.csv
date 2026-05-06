@@ -1,0 +1,4 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$Pricebook2.Name,Name,IsActive,IsDerived,UnitPrice,Product2.StockKeepingUnit,ProductSellingModel.Name,Pricebook2.Name,Pricebook2.IsStandard,ProductSellingModel.SellingModelType
+NS-ENTERPRISE;;Standard Price Book,NovaSpark Enterprise,true,false,199,NS-ENTERPRISE,,Standard Price Book,true,
+NS-PRO;;Standard Price Book,NovaSpark Pro,true,false,79,NS-PRO,,Standard Price Book,true,
+NS-STARTER;;Standard Price Book,NovaSpark Starter,true,false,39,NS-STARTER,,Standard Price Book,true,

@@ -1,0 +1,47 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE') ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, SellingModelType, Status FROM ProductSellingModel WHERE Id IN (SELECT ProductSellingModelId FROM ProductSellingModelOption WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE')) ORDER BY Name ASC, SellingModelType ASC",
+          "operation": "Readonly",
+          "externalId": "Name;SellingModelType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, IsActive, IsStandard FROM Pricebook2 WHERE IsStandard = true ORDER BY Name ASC",
+          "operation": "Readonly",
+          "externalId": "Name;IsStandard",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, Pricebook2.Name, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE') AND Pricebook2.IsStandard = true AND IsActive = true ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, ProductSellingModel.Name ASC",
+          "operation": "Insert",
+          "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;Pricebook2.Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AdjustmentMethod, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE Id IN (SELECT PriceAdjustmentScheduleId FROM PriceAdjustmentTier WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE')) ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": true
+        },
+        {
+          "query": "SELECT AdjustmentType, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound, PriceAdjustmentSchedule.Name, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM PriceAdjustmentTier WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE') ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC, TierValue ASC",
+          "operation": "Insert",
+          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;EffectiveFrom",
+          "excluded": true
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

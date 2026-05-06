@@ -1,0 +1,32 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objects": [
+    {
+      "query": "SELECT ArePartialPeriodsAllowed, Name, ProrationPolicyType, RemainderStrategy FROM ProrationPolicy WHERE Id IN (SELECT ProrationPolicyId FROM ProductSellingModelOption WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE')) ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name"
+    },
+    {
+      "query": "SELECT DoesAutoRenewAssetByDefault, Name, PricingTerm, PricingTermUnit, SellingModelType, Status FROM ProductSellingModel WHERE Id IN (SELECT ProductSellingModelId FROM ProductSellingModelOption WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE')) ORDER BY Name ASC, SellingModelType ASC",
+      "operation": "Upsert",
+      "externalId": "Name;SellingModelType"
+    },
+    {
+      "query": "SELECT CanRamp, ConfigureDuringSale, Description, DisplayUrl, Family, IsActive, IsAssetizable, IsSoldOnlyWithOtherProds, Name, ProductCode, SpecificationType, StockKeepingUnit, Type FROM Product2 WHERE StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE') ORDER BY StockKeepingUnit ASC",
+      "operation": "Upsert",
+      "externalId": "StockKeepingUnit"
+    },
+    {
+      "query": "SELECT IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM ProductSellingModelOption WHERE Product2.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE') ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, ProductSellingModel.SellingModelType ASC",
+      "operation": "Upsert",
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
+    },
+    {
+      "query": "SELECT DurationType, ProductId, ProductSellingModelId, SegmentType, TrialDuration, Product.StockKeepingUnit, ProductSellingModel.Name FROM ProductRampSegment WHERE Product.StockKeepingUnit IN ('NS-STARTER', 'NS-PRO', 'NS-ENTERPRISE') ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, SegmentType ASC",
+      "operation": "Insert",
+      "externalId": "Product.StockKeepingUnit;ProductSellingModel.Name;SegmentType"
+    }
+  ],
+  "orgs": []
+}

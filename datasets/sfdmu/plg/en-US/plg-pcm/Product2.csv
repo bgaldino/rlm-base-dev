@@ -1,0 +1,4 @@
+CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,SpecificationType,StockKeepingUnit,Type
+false,,"Full platform with dedicated support, custom SLAs, and advanced security.",,Subscription,true,true,false,NovaSpark Enterprise,NS-ENTERPRISE,Commercial,NS-ENTERPRISE,
+true,,For growing teams that need advanced AI content tools and collaboration.,,Subscription,true,true,false,NovaSpark Pro,NS-PRO,Commercial,NS-PRO,
+false,,For individuals getting started with AI-powered content creation.,,Subscription,true,true,false,NovaSpark Starter,NS-STARTER,Commercial,NS-STARTER,

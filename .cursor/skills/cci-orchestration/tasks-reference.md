@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**199 tasks** across **9 groups**.
+**200 tasks** across **9 groups**.
 
 ---
 
@@ -546,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*124 task(s)*
+*125 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1214,6 +1214,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_personas`
+
+---
+
+### `deploy_post_plg`
+
+**Description:** Deploy NovaSpark pricing page demo metadata from unpackaged/post_plg, including Apex services/invocable actions, Visualforce page/controller, autolaunched flows, custom notification type, and Contact.RLM_Password_Hash__c.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_plg`
 
 ---
 

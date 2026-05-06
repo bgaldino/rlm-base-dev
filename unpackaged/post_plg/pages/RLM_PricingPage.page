@@ -1,0 +1,1366 @@
+<apex:page controller="RLM_PricingPageController" showHeader="false" sidebar="false"
+           standardStylesheets="false" applyHtmlTag="false" applyBodyTag="false"
+           docType="html-5.0" cache="false">
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pricing &mdash; NovaSpark AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset and Base ────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#7C3AED;--primary-dark:#6D28D9;--primary-light:#A78BFA;
+  --accent:#F59E0B;--accent-hover:#D97706;
+  --bg:#0B0F1A;--bg-section:#111827;--bg-card:#FFFFFF;
+  --text:#F9FAFB;--text-muted:#9CA3AF;--text-dark:#1F2937;--text-secondary:#6B7280;
+  --border:#E5E7EB;--border-dark:#374151;
+  --success:#10B981;--danger:#EF4444;
+  --radius:12px;--radius-lg:16px;
+  --shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+  --shadow-lg:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
+  --shadow-xl:0 25px 50px -12px rgba(0,0,0,.25);
+}
+html{font-family:'Inter',system-ui,-apple-system,sans-serif;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--primary-light);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Navigation ────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:100;background:rgba(11,15,26,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-dark);padding:0 2rem}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{font-size:1.35rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:.5rem}
+.logo span{background:linear-gradient(135deg,var(--primary),#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{color:var(--text-muted);font-size:.9rem;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:#fff;text-decoration:none}
+.nav-cta .btn-sm{padding:.5rem 1.2rem;font-size:.85rem;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-ghost{background:transparent;border:1px solid var(--border-dark);color:#fff}
+.btn-ghost:hover{border-color:var(--primary-light);color:var(--primary-light)}
+.btn-accent-sm{background:var(--accent);border:none;color:#000;margin-left:.5rem}
+.btn-accent-sm:hover{background:var(--accent-hover)}
+
+/* ── User greeting in nav ─────────────────────────────── */
+.nav-user{display:flex;align-items:center;gap:.75rem}
+.nav-user-name{color:var(--primary-light);font-size:.85rem;font-weight:600}
+.nav-user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#EC4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700}
+
+/* ── Hero ──────────────────────────────────────────────── */
+.hero{text-align:center;padding:5rem 2rem 2rem;background:radial-gradient(ellipse at top,rgba(124,58,237,.15),transparent 70%)}
+.hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.02em;margin-bottom:1rem}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--primary-light),#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--text-muted);font-size:1.1rem;max-width:600px;margin:0 auto 2rem}
+
+/* ── Billing Toggle ────────────────────────────────────── */
+.toggle-wrap{display:inline-flex;align-items:center;gap:1rem;background:var(--bg-section);border:1px solid var(--border-dark);border-radius:40px;padding:.35rem .5rem;margin-bottom:3rem}
+.toggle-label{font-size:.9rem;font-weight:500;color:var(--text-muted);padding:.4rem .8rem;border-radius:30px;cursor:pointer;transition:all .25s}
+.toggle-label.active{background:var(--primary);color:#fff}
+.toggle-badge{font-size:.7rem;font-weight:700;background:linear-gradient(135deg,var(--accent),#F97316);color:#000;padding:.15rem .5rem;border-radius:20px;margin-left:.25rem}
+
+/* ── Pricing Grid ──────────────────────────────────────── */
+.pricing-section{max-width:1200px;margin:0 auto;padding:0 2rem 5rem}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;align-items:start}
+@media(max-width:900px){.pricing-grid{grid-template-columns:1fr;max-width:420px;margin:0 auto}}
+
+/* ── Card ──────────────────────────────────────────────── */
+.card{background:var(--bg-card);border-radius:var(--radius-lg);padding:2rem;position:relative;transition:transform .3s,box-shadow .3s;color:var(--text-dark)}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-xl)}
+.card.featured{border:2px solid var(--primary);box-shadow:0 0 40px rgba(124,58,237,.2)}
+.popular-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--primary),#EC4899);color:#fff;font-size:.7rem;font-weight:700;padding:.35rem 1rem;border-radius:20px;letter-spacing:.05em;white-space:nowrap}
+.card-icon{font-size:1.6rem;margin-bottom:.75rem;display:inline-block}
+.card h3{font-size:1.25rem;font-weight:700;margin-bottom:.5rem}
+.price{display:flex;align-items:baseline;gap:.25rem;margin-bottom:.25rem}
+.price .amount{font-size:2.75rem;font-weight:800;line-height:1}
+.price .currency{font-size:1.2rem;font-weight:600;color:var(--text-secondary)}
+.price .period{font-size:.85rem;color:var(--text-secondary);font-weight:500}
+.price-custom .amount{font-size:2rem}
+.card-desc{color:var(--text-secondary);font-size:.9rem;margin-bottom:1.5rem;min-height:2.8rem}
+.btn{padding:.75rem 1.5rem;font-size:.95rem;font-weight:600;border-radius:10px;cursor:pointer;border:none;transition:all .25s ease;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;font-family:inherit;line-height:1.4;letter-spacing:.01em}
+.card .btn{width:100%}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);box-shadow:0 4px 15px rgba(124,58,237,.4)}
+.btn-outline{background:transparent;border:2px solid var(--border);color:var(--text-dark)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-accent{background:var(--accent);color:#000}
+.btn-accent:hover{background:var(--accent-hover)}
+.card hr{border:none;border-top:1px solid var(--border);margin:1.5rem 0}
+.feature-heading{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin-bottom:.75rem}
+.feature-list{list-style:none;display:flex;flex-direction:column;gap:.6rem}
+.feature-list li{font-size:.88rem;color:var(--text-secondary);display:flex;align-items:flex-start;gap:.5rem}
+.feature-list li::before{content:'\2713';color:var(--success);font-weight:700;flex-shrink:0;margin-top:1px}
+.feature-list li.disabled::before{content:'\2014';color:var(--text-muted)}
+
+/* ── API Badge ─────────────────────────────────────────── */
+.api-badge{display:inline-block;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:.7rem;background:rgba(124,58,237,.1);color:var(--primary-light);border:1px solid rgba(124,58,237,.25);padding:.25rem .6rem;border-radius:6px;margin-bottom:1rem;letter-spacing:.02em}
+.api-badge-dark{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.3)}
+
+/* ── Feature Comparison ────────────────────────────────── */
+.comparison{max-width:1100px;margin:0 auto;padding:0 2rem 5rem}
+.comparison h2{text-align:center;font-size:1.8rem;font-weight:700;margin-bottom:2.5rem}
+.compare-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.compare-table th,.compare-table td{padding:.85rem 1rem;text-align:left;border-bottom:1px solid var(--border-dark)}
+.compare-table th{color:var(--text-muted);font-weight:600}
+.compare-table td{color:var(--text)}
+.compare-table td:first-child{font-weight:500}
+.compare-table thead th{font-size:.9rem;color:var(--primary-light);padding-bottom:1rem}
+.compare-table thead th:first-child{color:var(--text-muted)}
+.check{color:var(--success)}
+.dash{color:var(--text-muted)}
+
+/* ── Badge ────────────────────────────────────────────── */
+.powered-by{text-align:center;padding:2rem;color:var(--text-muted);font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.powered-by strong{color:var(--text)}
+
+/* ── FAQ ───────────────────────────────────────────────── */
+.faq{max-width:780px;margin:0 auto;padding:0 2rem 5rem}
+.faq h2{text-align:center;font-size:1.8rem;font-weight:700;margin-bottom:2.5rem}
+.faq-item{border-bottom:1px solid var(--border-dark)}
+.faq-q{width:100%;background:none;border:none;color:var(--text);font-size:1rem;font-weight:600;text-align:left;padding:1.25rem 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:inherit}
+.faq-q::after{content:'+';font-size:1.4rem;color:var(--primary-light);transition:transform .3s}
+.faq-item.open .faq-q::after{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease;color:var(--text-muted);font-size:.92rem;line-height:1.7}
+.faq-item.open .faq-a{max-height:300px;padding-bottom:1.25rem}
+
+/* ── Footer ────────────────────────────────────────────── */
+.footer{border-top:1px solid var(--border-dark);padding:3rem 2rem;text-align:center}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer p{color:var(--text-muted);font-size:.82rem}
+
+/* ── Modal ─────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:2rem}
+.modal-overlay.visible{display:flex}
+.modal{background:var(--bg-card);border-radius:var(--radius-lg);padding:2.5rem;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:var(--text-dark);position:relative;box-shadow:var(--shadow-xl)}
+.modal-wide{max-width:720px}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-secondary);line-height:1}
+.modal h2{font-size:1.4rem;font-weight:700;margin-bottom:.5rem}
+.modal-sub{color:var(--text-secondary);font-size:.9rem;margin-bottom:1.5rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+.form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem}
+.form-group label{font-size:.8rem;font-weight:600;color:var(--text-secondary)}
+.form-group input,.form-group textarea,.form-group select{padding:.65rem .75rem;border:1px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;transition:border-color .2s;outline:none}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--primary)}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-submit{margin-top:1rem}
+.form-submit .btn{width:100%;padding:.8rem}
+
+/* ── Auth Tabs ─────────────────────────────────────────── */
+.auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
+.auth-tab{flex:1;padding:.75rem;text-align:center;font-size:.9rem;font-weight:600;color:var(--text-secondary);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;font-family:inherit}
+.auth-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.auth-tab:hover:not(.active){color:var(--text-dark)}
+.auth-view{display:none}
+.auth-view.active{display:block}
+.auth-divider{display:flex;align-items:center;gap:1rem;margin:1.25rem 0;color:var(--text-muted);font-size:.8rem}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.form-error{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;padding:.6rem .75rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;display:none}
+.form-error.visible{display:block}
+.password-field{position:relative}
+.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:.85rem;padding:2px 4px}
+
+/* ── Stepper ───────────────────────────────────────────── */
+.stepper{display:flex;justify-content:space-between;margin-bottom:2rem;position:relative}
+.stepper::before{content:'';position:absolute;top:18px;left:10%;right:10%;height:2px;background:var(--border);z-index:0}
+.step{display:flex;flex-direction:column;align-items:center;gap:.4rem;position:relative;z-index:1;flex:1}
+.step-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;background:var(--border);color:var(--text-secondary);transition:all .3s}
+.step.active .step-num{background:var(--primary);color:#fff}
+.step.done .step-num{background:var(--success);color:#fff}
+.step-label{font-size:.7rem;font-weight:600;color:var(--text-muted);text-align:center;max-width:90px}
+.step.active .step-label{color:var(--primary)}
+.step-content{min-height:300px}
+
+/* ── Toast ─────────────────────────────────────────────── */
+.toast{position:fixed;top:80px;right:2rem;z-index:300;background:#065F46;color:#fff;padding:1rem 1.5rem;border-radius:10px;box-shadow:var(--shadow-lg);display:none;align-items:center;gap:.75rem;font-size:.9rem;max-width:400px}
+.toast.visible{display:flex}
+.toast.error{background:#991B1B}
+
+/* ── Utilities ─────────────────────────────────────────── */
+.text-center{text-align:center}
+.mt-1{margin-top:1rem}
+.mt-2{margin-top:2rem}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="logo"><span>NovaSpark</span>&nbsp;AI</div>
+    <ul class="nav-links">
+      <li><a href="#">Platform</a></li>
+      <li><a href="#">Solutions</a></li>
+      <li><a href="#">Resources</a></li>
+      <li><a href="#" style="color:#fff;font-weight:600">Pricing</a></li>
+    </ul>
+    <div class="nav-cta" id="navCtaGuest">
+      <button class="btn-sm btn-ghost" onclick="openAuthModal('login')">Log In</button>
+      <button class="btn-sm btn-accent-sm" onclick="openAuthModal('register','trial')">Start Free Trial</button>
+    </div>
+    <div class="nav-cta hidden" id="navCtaUser">
+      <div class="nav-user">
+        <button class="btn-sm btn-ghost" onclick="openDashboard()" style="font-weight:600;color:var(--primary)">My Dashboard</button>
+        <span class="nav-user-name" id="navUserName"></span>
+        <div class="nav-user-avatar" id="navUserAvatar"></div>
+        <button class="btn-sm btn-ghost" onclick="logoutUser()">Log Out</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <h1>Create Better Content, <em>Faster</em></h1>
+  <p>Plans and pricing designed to scale with you &mdash; from solo creators to enterprise teams.</p>
+
+  <div class="toggle-wrap">
+    <span class="toggle-label active" data-cycle="monthly" onclick="setBilling('monthly')">Monthly</span>
+    <span class="toggle-label" data-cycle="annual" onclick="setBilling('annual')">
+      Annual <span class="toggle-badge">Save 20%</span>
+    </span>
+  </div>
+
+  <div class="api-badge api-badge-dark">Flexible plans for every team</div>
+</section>
+
+<!-- ═══ PRICING CARDS ═══ -->
+<section class="pricing-section">
+  <div class="pricing-grid">
+
+    <!-- ── Starter ── -->
+    <div class="card" id="card-starter">
+      <div class="card-icon">&#x1F331;</div>
+      <h3>Starter</h3>
+      <div class="price">
+        <span class="currency">$</span>
+        <span class="amount" data-monthly="39" data-annual="29">29</span>
+        <span class="period">/ month per seat</span>
+      </div>
+      <p class="card-desc">For individuals getting started with AI-powered content creation.</p>
+      <button class="btn btn-outline" id="btnStarter" onclick="handlePlanAction('trial','Starter')">Start Free 14-Day Trial</button>
+      <hr/>
+      <div class="feature-heading">Plan includes:</div>
+      <ul class="feature-list">
+        <li>1 seat included</li>
+        <li>AI content generation</li>
+        <li>1 Brand Voice</li>
+        <li>3 Knowledge Assets</li>
+        <li>50+ templates</li>
+        <li>Email support</li>
+      </ul>
+    </div>
+
+    <!-- ── Pro (Featured) ── -->
+    <div class="card featured" id="card-pro">
+      <div class="popular-badge">MOST POPULAR</div>
+      <div class="card-icon">&#x26A1;</div>
+      <h3>Pro</h3>
+      <div class="price">
+        <span class="currency">$</span>
+        <span class="amount" data-monthly="79" data-annual="59">59</span>
+        <span class="period">/ month per seat</span>
+      </div>
+      <p class="card-desc">For growing teams that need advanced AI content tools and collaboration.</p>
+      <button class="btn btn-primary" id="btnPro" onclick="handlePlanAction('trial','Pro')">Start Free 14-Day Trial</button>
+      <hr/>
+      <div class="feature-heading">Everything in Starter, plus:</div>
+      <ul class="feature-list">
+        <li>Up to 10 seats</li>
+        <li>5 Brand Voices</li>
+        <li>25 Knowledge Assets</li>
+        <li>100+ templates</li>
+        <li>AI image generation</li>
+        <li>API access</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+
+    <!-- ── Enterprise ── -->
+    <div class="card" id="card-enterprise">
+      <div class="card-icon">&#x1F3E2;</div>
+      <h3>Enterprise</h3>
+      <div class="price price-custom">
+        <span class="amount">Custom</span>
+        <span class="period">&nbsp;pricing</span>
+      </div>
+      <p class="card-desc">Full platform with dedicated support, custom SLAs, and advanced security.</p>
+      <button class="btn btn-accent" onclick="handlePlanAction('quote','Enterprise')">Contact Sales</button>
+      <hr/>
+      <div class="feature-heading">Everything in Pro, plus:</div>
+      <ul class="feature-list">
+        <li>Unlimited seats</li>
+        <li>Unlimited Brand Voices</li>
+        <li>Unlimited Knowledge Assets</li>
+        <li>Custom workflows &amp; agents</li>
+        <li>Multi-currency &amp; tax</li>
+        <li>SSO &amp; SCIM</li>
+        <li>Dedicated CSM</li>
+        <li>24/7 SLA support</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ POWERED BY ═══ -->
+<div class="powered-by">
+  &#x1F512; Secured checkout &amp; billing
+</div>
+
+<!-- ═══ FEATURE COMPARISON ═══ -->
+<section class="comparison">
+  <h2>Compare Plans</h2>
+  <table class="compare-table">
+    <thead>
+      <tr><th>Feature</th><th>Starter</th><th>Pro</th><th>Enterprise</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>AI Content Generation</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td>Brand Voices</td><td>1</td><td>5</td><td>Unlimited</td></tr>
+      <tr><td>Knowledge Assets</td><td>3</td><td>25</td><td>Unlimited</td></tr>
+      <tr><td>Team Seats</td><td>1</td><td>Up to 10</td><td>Unlimited</td></tr>
+      <tr><td>Templates</td><td>50+</td><td>100+</td><td>Custom</td></tr>
+      <tr><td>AI Image Generation</td><td class="dash">&mdash;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td>API Access</td><td class="dash">&mdash;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td>Custom Workflows</td><td class="dash">&mdash;</td><td class="dash">&mdash;</td><td class="check">&#10003;</td></tr>
+      <tr><td>SSO &amp; SCIM</td><td class="dash">&mdash;</td><td class="dash">&mdash;</td><td class="check">&#10003;</td></tr>
+      <tr><td>Dedicated CSM</td><td class="dash">&mdash;</td><td class="dash">&mdash;</td><td class="check">&#10003;</td></tr>
+      <tr><td>SLA</td><td class="dash">&mdash;</td><td class="dash">&mdash;</td><td class="check">&#10003;</td></tr>
+      <tr><td>Support</td><td>Email</td><td>Priority</td><td>24/7 Dedicated</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ FAQ ═══ -->
+<section class="faq">
+  <h2>Frequently Asked Questions</h2>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How much does NovaSpark cost?</button>
+    <div class="faq-a">NovaSpark offers three plans: Starter at $29/mo (annual) or $39/mo (monthly), Pro at $59/mo (annual) or $79/mo (monthly), and Enterprise with custom pricing. All plans include a 14-day free trial.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Can I try NovaSpark for free?</button>
+    <div class="faq-a">Yes! Both our Starter and Pro plans offer a 14-day free trial with no credit card required. You can upgrade to a paid plan at any time during or after your trial.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How does the free trial to paid conversion work?</button>
+    <div class="faq-a">During your trial, you can upgrade anytime through the in-app upgrade flow. The system will calculate real-time pricing, process your payment, and generate an invoice &mdash; all in a seamless 5-step process.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What happens when I click Contact Sales?</button>
+    <div class="faq-a">A quote is automatically generated in our system and the assigned sales representative is immediately notified. They will reach out to you within 24 hours to discuss your requirements and provide a customized proposal.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What payment methods do you accept?</button>
+    <div class="faq-a">We accept all major credit cards (Visa, Mastercard, Amex) and debit cards. Enterprise customers can also pay via invoice with NET-30 terms. All payments are securely processed and encrypted.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Can I change plans later?</button>
+    <div class="faq-a">Absolutely. You can upgrade or downgrade your plan at any time. When upgrading, the prorated difference is calculated automatically. When downgrading, the change takes effect at the end of your current billing cycle.</div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <p style="margin-bottom:.5rem;font-size:1rem;font-weight:600;color:#fff">NovaSpark AI</p>
+    <p>&copy; 2026 NovaSpark AI, Inc. &middot; All rights reserved. &middot;
+      <a href="#">Privacy</a> &middot; <a href="#">Terms</a>
+    </p>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ═══ MODALS ═══ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<!-- ── Auth Modal (Login / Register) ── -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('authModal')">&times;</button>
+
+    <div style="text-align:center;margin-bottom:1.25rem">
+      <div style="font-size:2rem;margin-bottom:.25rem">&#x1F680;</div>
+      <h2 style="margin-bottom:.25rem">Welcome to NovaSpark AI</h2>
+      <p class="modal-sub" style="margin-bottom:0" id="authSubtitle">Log in or create an account to continue</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log In</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Create Account</button>
+    </div>
+
+    <div class="form-error" id="authError"></div>
+
+    <!-- Login View -->
+    <div class="auth-view active" id="viewLogin">
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" required="required" placeholder="jane@company.com"/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="password-field">
+            <input type="password" id="loginPassword" required="required" placeholder="Enter your password"/>
+            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">Show</button>
+          </div>
+        </div>
+        <div class="form-submit">
+          <button type="submit" class="btn btn-primary" id="loginSubmitBtn" style="padding:.85rem 2rem;font-size:1rem;width:100%">
+            <span id="loginBtnText">Log In</span>
+            <span id="loginBtnSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+      <div class="auth-divider">or</div>
+      <p style="text-align:center;font-size:.85rem;color:var(--text-secondary)">
+        Don't have an account?
+        <a href="#" onclick="switchAuthTab('register');return false" style="font-weight:600">Create one</a>
+      </p>
+    </div>
+
+    <!-- Register View -->
+    <div class="auth-view" id="viewRegister">
+      <form id="registerForm" onsubmit="return handleRegister(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="regFirstName" required="required" placeholder="Jane"/>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="regLastName" required="required" placeholder="Smith"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Work Email</label>
+          <input type="email" id="regEmail" required="required" placeholder="jane@company.com"/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="password-field">
+            <input type="password" id="regPassword" required="required" placeholder="Min 8 characters" minlength="8"/>
+            <button type="button" class="password-toggle" onclick="togglePassword('regPassword', this)">Show</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div class="password-field">
+            <input type="password" id="regPasswordConfirm" required="required" placeholder="Confirm password" minlength="8"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" id="regCompany" required="required" placeholder="Acme Corporation"/>
+        </div>
+        <div class="form-submit">
+          <button type="submit" class="btn btn-primary" id="regSubmitBtn" style="padding:.85rem 2rem;font-size:1rem;width:100%">
+            <span id="regBtnText">Create Account</span>
+            <span id="regBtnSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+      <div class="auth-divider">or</div>
+      <p style="text-align:center;font-size:.85rem;color:var(--text-secondary)">
+        Already have an account?
+        <a href="#" onclick="switchAuthTab('login');return false" style="font-weight:600">Log in</a>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Contact Sales / Request Quote ── -->
+<div class="modal-overlay" id="contactModal">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeModal('contactModal')">&times;</button>
+    <h2>Contact Sales</h2>
+    <p class="modal-sub">Tell us about your needs and we'll create a custom quote for your team.</p>
+    <!-- <div class="api-badge">Flow: RLM_Request_Quote &rarr; POST /connect/rev/sales-transaction/actions/place + NotifySalesRep</div> -->
+
+    <div style="background:#F3E8FF;border:1px solid #DDD6FE;border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.85rem;color:#5B21B6;display:flex;align-items:center;gap:.5rem">
+      <span>&#x1F464;</span>
+      Submitting as: <strong id="contactAuthName"></strong> (<span id="contactAuthEmail"></span>)
+    </div>
+
+    <form id="contactForm" onsubmit="return handleContactSubmit(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="contactPhone" placeholder="+1 (555) 123-4567"/>
+        </div>
+        <div class="form-group">
+          <label>Estimated Seats</label>
+          <input type="number" id="contactSeats" min="1" value="10" placeholder="10"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Tell us about your needs</label>
+        <textarea id="contactMessage" placeholder="We're looking for an enterprise AI content solution for our marketing team of 50+..."></textarea>
+      </div>
+      <div class="form-submit">
+        <button type="submit" class="btn btn-accent" id="contactSubmitBtn" style="padding:.85rem 2rem;font-size:1rem;width:100%;max-width:320px;margin:0 auto">
+          <span id="contactBtnText">Request Quote</span>
+          <span id="contactBtnSpinner" class="spinner hidden"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Upgrade Wizard (Trial to Paid, 5-step) ── -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeModal('upgradeModal')">&times;</button>
+
+    <div class="stepper">
+      <div class="step active" data-step="1"><div class="step-num">1</div><div class="step-label">Choose Plan</div></div>
+      <div class="step" data-step="2"><div class="step-num">2</div><div class="step-label">Configure &amp; Price</div></div>
+      <div class="step" data-step="3"><div class="step-num">3</div><div class="step-label">Review Order</div></div>
+      <div class="step" data-step="4"><div class="step-num">4</div><div class="step-label">Payment</div></div>
+      <div class="step" data-step="5"><div class="step-num">5</div><div class="step-label">Invoice</div></div>
+    </div>
+
+    <!-- Step 1: Choose Plan -->
+    <div class="step-content" id="upgradeStep1">
+      <!-- <div class="api-badge">GET /connect/cpq/products/search</div> -->
+      <h2 style="margin-bottom:1rem">Choose your plan</h2>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <div class="card" style="flex:1;min-width:200px;cursor:pointer;border:2px solid var(--border)" onclick="selectUpgradePlan(this,'Starter')" data-plan="Starter">
+          <h3>Starter</h3><div class="price"><span class="currency">$</span><span class="amount">29</span><span class="period">/mo</span></div>
+        </div>
+        <div class="card" style="flex:1;min-width:200px;cursor:pointer;border:2px solid var(--primary)" onclick="selectUpgradePlan(this,'Pro')" data-plan="Pro">
+          <h3>Pro</h3><div class="price"><span class="currency">$</span><span class="amount">59</span><span class="period">/mo</span></div>
+        </div>
+      </div>
+      <div class="text-center mt-2"><button class="btn btn-primary" style="max-width:380px;margin:0 auto;padding:.85rem 2rem;font-size:1rem" onclick="goToUpgradeStep(2)">Continue &rarr;</button></div>
+    </div>
+
+    <!-- Step 2: Configure and Price -->
+    <div class="step-content hidden" id="upgradeStep2">
+      <!-- <div class="api-badge">POST /connect/core-pricing/pricing</div> -->
+      <h2 style="margin-bottom:1rem">Configure your subscription</h2>
+      <div class="form-group"><label>Number of Seats</label>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <button class="btn btn-outline" style="width:40px;padding:.4rem" onclick="adjustSeats(-1)">&minus;</button>
+          <input type="number" id="upgradeSeats" value="5" min="1" style="width:80px;text-align:center"/>
+          <button class="btn btn-outline" style="width:40px;padding:.4rem" onclick="adjustSeats(1)">+</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Contract Term</label>
+        <select id="upgradeTerm" onchange="recalcPrice()" style="padding:.65rem .75rem;border:1px solid var(--border);border-radius:8px">
+          <option value="annual">Annual &mdash; Save 20%</option>
+          <option value="monthly">Monthly &mdash; Flexible</option>
+        </select>
+      </div>
+      <div style="background:#F9FAFB;border-radius:10px;padding:1.25rem;margin-top:1rem">
+        <div style="font-weight:700;margin-bottom:.5rem;color:var(--primary)">Live Price Calculation</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem"><span>Base price/seat/mo</span><span id="calcBase">$59.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem"><span>Seats</span><span id="calcSeats">&times; 5</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;color:var(--success)"><span>Annual discount</span><span id="calcDiscount">-$0</span></div>
+        <hr style="margin:.5rem 0"/>
+        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem"><span>Total</span><span id="calcTotal">$3,540/yr</span></div>
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;justify-content:center">
+        <button class="btn btn-outline" style="padding:.85rem 2rem;font-size:1rem;min-width:160px" onclick="goToUpgradeStep(1)">&larr; Back</button>
+        <button class="btn btn-primary" style="padding:.85rem 2rem;font-size:1rem;min-width:220px" onclick="goToUpgradeStep(3)">Review Order &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Review Order -->
+    <div class="step-content hidden" id="upgradeStep3">
+      <!-- <div class="api-badge">POST /connect/rev/sales-transaction/actions/place</div> -->
+      <h2 style="margin-bottom:1rem">Review your order</h2>
+      <div style="background:#F9FAFB;border-radius:10px;padding:1.25rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:.9rem">
+          <span style="color:var(--text-secondary)">Plan</span><span id="reviewPlan" style="font-weight:600">Pro</span>
+          <span style="color:var(--text-secondary)">Seats</span><span id="reviewSeats" style="font-weight:600">5</span>
+          <span style="color:var(--text-secondary)">Term</span><span id="reviewTerm" style="font-weight:600">Annual</span>
+          <span style="color:var(--text-secondary)">Status</span><span style="font-weight:600;color:var(--accent)">Draft &rarr; Placing Order</span>
+        </div>
+        <hr style="margin:.75rem 0"/>
+        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem">
+          <span>Total</span><span id="reviewTotal">$3,540/yr</span>
+        </div>
+      </div>
+      <div class="form-group mt-1">
+        <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer">
+          <input type="checkbox" id="agreeTerms" style="margin-top:3px"/>
+          <span style="font-size:.82rem;color:var(--text-secondary)">I agree to the Master Subscription Agreement and NovaSpark Terms of Service.</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:1rem;justify-content:center">
+        <button class="btn btn-outline" style="padding:.85rem 2rem;font-size:1rem;min-width:160px" onclick="goToUpgradeStep(2)">&larr; Back</button>
+        <button class="btn btn-primary" style="padding:.85rem 2rem;font-size:1rem;min-width:280px" id="placeOrderBtn" onclick="placeOrder()">Place Order &amp; Proceed to Payment &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Payment -->
+    <div class="step-content hidden" id="upgradeStep4">
+      <!-- <div class="api-badge">POST /commerce/payments/payment-methods</div> -->
+      <h2 style="margin-bottom:1rem">Secure Payment</h2>
+      <p class="modal-sub">Your card details are tokenized — raw card numbers are never stored.</p>
+      <div class="form-group"><label>Card Number</label><input type="text" id="payCardNumber" placeholder="4242 4242 4242 4242" maxlength="19"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Expiry Date</label><input type="text" id="payExpiry" placeholder="MM/YY" maxlength="5"/></div>
+        <div class="form-group"><label>CVC</label><input type="text" id="payCvc" placeholder="123" maxlength="4"/></div>
+      </div>
+      <div style="background:#F9FAFB;border-radius:10px;padding:1rem;margin-top:1rem;font-size:.9rem">
+        <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span id="payTotal">$3,540</span></div>
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;justify-content:center">
+        <button class="btn btn-outline" style="padding:.85rem 2rem;font-size:1rem;min-width:160px" onclick="goToUpgradeStep(3)">&larr; Back</button>
+        <button class="btn btn-primary" style="padding:.85rem 2rem;font-size:1rem;min-width:280px" id="payBtn" onclick="processPayment()">&#x1F512; Pay &amp; Activate &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Invoice / Confirmation -->
+    <div class="step-content hidden" id="upgradeStep5">
+      <!-- <div class="api-badge">Payment + Invoice + Subscription Activated</div> -->
+      <div class="text-center" style="padding:2rem 0">
+        <div style="font-size:3rem;margin-bottom:1rem">&#127881;</div>
+        <h2>Your subscription is active!</h2>
+        <p class="modal-sub">Payment processed and invoice generated.</p>
+        <div style="background:#F9FAFB;border-radius:10px;padding:1.5rem;text-align:left;margin-top:1.5rem;font-size:.9rem">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+            <span style="color:var(--text-secondary)">Order</span><span id="invNumber" style="font-weight:600"></span>
+            <span style="color:var(--text-secondary)">Plan</span><span id="invPlan" style="font-weight:600">Pro Annual</span>
+            <span style="color:var(--text-secondary)">Amount</span><span id="invAmount" style="font-weight:600">$3,540</span>
+            <span style="color:var(--text-secondary)">Payment</span><span id="invPayment" style="font-weight:600;color:var(--success)">-</span>
+            <span style="color:var(--text-secondary)">Invoice</span><span id="invInvoice" style="font-weight:600">-</span>
+            <span style="color:var(--text-secondary)">Status</span><span style="font-weight:600;color:var(--success)">PAID</span>
+          </div>
+        </div>
+        <button class="btn btn-primary mt-2" style="padding:.85rem 2.5rem;font-size:1.05rem;min-width:260px;margin:1.5rem auto 0;display:inline-flex;align-items:center;justify-content:center;gap:.5rem" onclick="closeModal('upgradeModal');openDashboard()">Go to Dashboard &rarr;</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── My Dashboard Modal ── -->
+<div class="modal-overlay" id="dashboardModal">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeModal('dashboardModal')">&times;</button>
+    <h2 style="margin-bottom:.25rem">My Dashboard</h2>
+    <p class="modal-sub" style="margin-bottom:1.5rem">Your subscriptions, orders, and quotes at a glance.</p>
+
+    <div id="dashLoading" class="text-center" style="padding:2rem"><span class="spinner"></span> Loading...</div>
+    <div id="dashContent" class="hidden">
+
+      <!-- Assets -->
+      <div style="margin-bottom:2rem">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></span>
+          My Assets / Subscriptions
+        </h3>
+        <div id="dashAssets"></div>
+        <div id="dashAssetsEmpty" class="hidden" style="color:var(--text-secondary);font-size:.9rem;padding:.5rem 0">No assets yet.</div>
+      </div>
+
+      <!-- Orders -->
+      <div style="margin-bottom:2rem">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block"></span>
+          Orders
+        </h3>
+        <div id="dashOrders"></div>
+        <div id="dashOrdersEmpty" class="hidden" style="color:var(--text-secondary);font-size:.9rem;padding:.5rem 0">No orders yet.</div>
+      </div>
+
+      <!-- Payments -->
+      <div style="margin-bottom:2rem">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">
+          <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block"></span>
+          Payments
+        </h3>
+        <div id="dashPayments"></div>
+        <div id="dashPaymentsEmpty" class="hidden" style="color:var(--text-secondary);font-size:.9rem;padding:.5rem 0">No payments yet.</div>
+      </div>
+
+      <!-- Quotes -->
+      <div>
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block"></span>
+          Quotes
+        </h3>
+        <div id="dashQuotes"></div>
+        <div id="dashQuotesEmpty" class="hidden" style="color:var(--text-secondary);font-size:.9rem;padding:.5rem 0">No quotes yet.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Success Toast ── -->
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ═══ JAVASCRIPT ═══ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<script>
+//<![CDATA[
+var currentBilling = 'annual';
+var selectedTrialPlan = 'Pro';
+var upgradePlan = 'Pro';
+var upgradeStep = 1;
+
+var currentUser = null;
+var pendingAction = null;
+var pendingPlan = null;
+var activatedTrials = {};
+var purchasedPlans = {};
+var changePlanAssetId = null;
+var currentOrderId = null;
+
+/* ── Auth State ──────────────────────────────────────── */
+function setCurrentUser(user) {
+    currentUser = user;
+    if (user) {
+        document.getElementById('navCtaGuest').classList.add('hidden');
+        document.getElementById('navCtaUser').classList.remove('hidden');
+        document.getElementById('navUserName').textContent = user.firstName + ' ' + user.lastName;
+        document.getElementById('navUserAvatar').textContent = (user.firstName || '?').charAt(0).toUpperCase();
+    } else {
+        document.getElementById('navCtaGuest').classList.remove('hidden');
+        document.getElementById('navCtaUser').classList.add('hidden');
+        document.getElementById('navUserName').textContent = '';
+    }
+}
+
+function logoutUser() {
+    setCurrentUser(null);
+    showToast('You have been logged out.', false);
+}
+
+/* ── Auth Modal ──────────────────────────────────────── */
+function openAuthModal(tab, action, plan) {
+    if (action) { pendingAction = action; pendingPlan = plan || null; }
+    switchAuthTab(tab || 'login');
+
+    var subtitle = 'Log in or create an account to continue';
+    if (pendingAction === 'trial')  subtitle = 'Log in or create an account to start your free trial';
+    if (pendingAction === 'quote')  subtitle = 'Log in or create an account to request a quote';
+    document.getElementById('authSubtitle').textContent = subtitle;
+
+    hideAuthError();
+    openModal('authModal');
+}
+
+function switchAuthTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('viewLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('viewRegister').classList.toggle('active', tab === 'register');
+    hideAuthError();
+}
+
+function showAuthError(msg) {
+    var el = document.getElementById('authError');
+    el.textContent = msg;
+    el.classList.add('visible');
+}
+function hideAuthError() {
+    document.getElementById('authError').classList.remove('visible');
+}
+
+function togglePassword(inputId, btn) {
+    var inp = document.getElementById(inputId);
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+    else { inp.type = 'password'; btn.textContent = 'Show'; }
+}
+
+/* ── Handle Plan Button Clicks ───────────────────────── */
+function handlePlanAction(action, plan) {
+    if (action === 'change') {
+        changePlanAssetId = purchasedPlans[plan] || null;
+        upgradePlan = plan;
+        openUpgradeModal();
+        return;
+    }
+    if (action === 'trial' && activatedTrials[plan]) {
+        upgradePlan = plan;
+        openUpgradeModal();
+        return;
+    }
+    if (currentUser) {
+        executePlanAction(action, plan);
+    } else {
+        openAuthModal('register', action, plan);
+    }
+}
+
+function executePlanAction(action, plan) {
+    if (action === 'change') {
+        changePlanAssetId = purchasedPlans[plan] || null;
+        upgradePlan = plan;
+        openUpgradeModal();
+        return;
+    }
+    if (action === 'trial') {
+        if (activatedTrials[plan]) { upgradePlan = plan; openUpgradeModal(); return; }
+        startTrialForUser(plan);
+    } else if (action === 'quote') {
+        openContactModal(plan);
+    }
+}
+
+function switchButtonToPaid(plan) {
+    var btn = document.getElementById('btn' + plan);
+    if (!btn) return;
+    btn.textContent = 'Upgrade to Paid';
+    btn.className = 'btn btn-accent';
+}
+
+function switchButtonToChangePlan(plan) {
+    var btn = document.getElementById('btn' + plan);
+    if (!btn) return;
+    btn.textContent = 'Change Plan';
+    btn.className = 'btn btn-accent';
+    btn.setAttribute('onclick', "handlePlanAction('change','" + plan + "')");
+}
+
+/* ── Login Handler ───────────────────────────────────── */
+function handleLogin(e) {
+    e.preventDefault();
+    hideAuthError();
+    var btn = document.getElementById('loginSubmitBtn');
+    setLoading(btn, 'loginBtnText', 'loginBtnSpinner', true);
+
+    var email = document.getElementById('loginEmail').value;
+    var password = document.getElementById('loginPassword').value;
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.loginUser}',
+        email, password,
+        function(result, event) {
+            setLoading(btn, 'loginBtnText', 'loginBtnSpinner', false);
+            if (event.status && result.success) {
+                setCurrentUser(result);
+                closeModal('authModal');
+                showToast(result.message, false);
+                document.getElementById('loginForm').reset();
+                if (pendingAction) {
+                    var a = pendingAction, p = pendingPlan;
+                    pendingAction = null; pendingPlan = null;
+                    setTimeout(function(){ executePlanAction(a, p); }, 400);
+                }
+            } else {
+                showAuthError(result ? result.message : event.message);
+            }
+        },
+        { escape: false }
+    );
+    return false;
+}
+
+/* ── Register Handler ────────────────────────────────── */
+function handleRegister(e) {
+    e.preventDefault();
+    hideAuthError();
+
+    var pw = document.getElementById('regPassword').value;
+    var pwConfirm = document.getElementById('regPasswordConfirm').value;
+    if (pw !== pwConfirm) {
+        showAuthError('Passwords do not match.');
+        return false;
+    }
+    if (pw.length < 8) {
+        showAuthError('Password must be at least 8 characters.');
+        return false;
+    }
+
+    var btn = document.getElementById('regSubmitBtn');
+    setLoading(btn, 'regBtnText', 'regBtnSpinner', true);
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.registerUser}',
+        document.getElementById('regFirstName').value,
+        document.getElementById('regLastName').value,
+        document.getElementById('regEmail').value,
+        pw,
+        document.getElementById('regCompany').value,
+        function(result, event) {
+            setLoading(btn, 'regBtnText', 'regBtnSpinner', false);
+            if (event.status && result.success) {
+                setCurrentUser(result);
+                closeModal('authModal');
+                showToast('Account created! Welcome to NovaSpark, ' + result.firstName + '.', false);
+                document.getElementById('registerForm').reset();
+                if (pendingAction) {
+                    var a = pendingAction, p = pendingPlan;
+                    pendingAction = null; pendingPlan = null;
+                    setTimeout(function(){ executePlanAction(a, p); }, 400);
+                }
+            } else {
+                showAuthError(result ? result.message : event.message);
+            }
+        },
+        { escape: false }
+    );
+    return false;
+}
+
+/* ── Start Trial (after auth) ────────────────────────── */
+function startTrialForUser(plan) {
+    if (!currentUser) return;
+    showToast('Starting your ' + plan + ' trial...', false);
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.startFreeTrial}',
+        currentUser.firstName,
+        currentUser.lastName,
+        currentUser.email,
+        currentUser.company,
+        plan,
+        function(result, event) {
+            if (event.status && result.success) {
+                activatedTrials[plan] = true;
+                switchButtonToPaid(plan);
+                showToast(result.message, false);
+            } else {
+                showToast(result ? result.message : event.message, true);
+            }
+        },
+        { escape: false }
+    );
+}
+
+/* ── Contact Sales Modal (after auth) ────────────────── */
+function openContactModal(plan) {
+    if (!currentUser) { openAuthModal('register', 'quote', plan); return; }
+    document.getElementById('contactAuthName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+    document.getElementById('contactAuthEmail').textContent = currentUser.email;
+    openModal('contactModal');
+}
+
+function handleContactSubmit(e) {
+    e.preventDefault();
+    if (!currentUser) return;
+    var btn = document.getElementById('contactSubmitBtn');
+    setLoading(btn, 'contactBtnText', 'contactBtnSpinner', true);
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.requestQuote}',
+        currentUser.firstName,
+        currentUser.lastName,
+        currentUser.email,
+        currentUser.company,
+        document.getElementById('contactPhone').value,
+        'Enterprise',
+        parseInt(document.getElementById('contactSeats').value) || 10,
+        document.getElementById('contactMessage').value,
+        function(result, event) {
+            setLoading(btn, 'contactBtnText', 'contactBtnSpinner', false);
+            if (event.status && result.success) {
+                closeModal('contactModal');
+                showToast(result.message, false);
+                document.getElementById('contactForm').reset();
+            } else {
+                showToast(result ? result.message : event.message, true);
+            }
+        },
+        { escape: false }
+    );
+    return false;
+}
+
+/* ── Billing Toggle ─────────────────────────────────── */
+function setBilling(cycle) {
+    currentBilling = cycle;
+    document.querySelectorAll('.toggle-label').forEach(function(el) {
+        el.classList.toggle('active', el.getAttribute('data-cycle') === cycle);
+    });
+    document.querySelectorAll('.pricing-section .amount[data-monthly]').forEach(function(el) {
+        el.textContent = el.getAttribute('data-' + cycle);
+    });
+}
+
+/* ── Modals ──────────────────────────────────────────── */
+function openModal(id)  { document.getElementById(id).classList.add('visible'); }
+function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+
+function openUpgradeModal()  { goToUpgradeStep(1); openModal('upgradeModal'); }
+
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeModal(overlay.id);
+    });
+});
+
+/* ── Upgrade Wizard ─────────────────────────────────── */
+function goToUpgradeStep(step) {
+    upgradeStep = step;
+    for (var i = 1; i <= 5; i++) {
+        document.getElementById('upgradeStep' + i).classList.toggle('hidden', i !== step);
+    }
+    document.querySelectorAll('.stepper .step').forEach(function(el) {
+        var s = parseInt(el.getAttribute('data-step'));
+        el.classList.toggle('active', s === step);
+        el.classList.toggle('done', s < step);
+    });
+    if (step === 2) recalcPrice();
+    if (step === 3) updateReview();
+}
+
+function selectUpgradePlan(el, plan) {
+    upgradePlan = plan;
+    document.querySelectorAll('#upgradeStep1 .card').forEach(function(c) {
+        c.style.borderColor = c.getAttribute('data-plan') === plan ? 'var(--primary)' : 'var(--border)';
+    });
+}
+
+function adjustSeats(delta) {
+    var inp = document.getElementById('upgradeSeats');
+    var v = Math.max(1, parseInt(inp.value || 1) + delta);
+    inp.value = v;
+    recalcPrice();
+}
+
+function getPlanBasePrice(plan, term) {
+    var prices = {
+        'Starter':    { monthly: 39,  annual: 29  },
+        'Pro':        { monthly: 79,  annual: 59  },
+        'Enterprise': { monthly: 199, annual: 159 }
+    };
+    var p = prices[plan] || prices['Pro'];
+    return term === 'annual' ? p.annual : p.monthly;
+}
+
+function recalcPrice() {
+    var seats = parseInt(document.getElementById('upgradeSeats').value) || 1;
+    var term  = document.getElementById('upgradeTerm').value;
+    var base  = getPlanBasePrice(upgradePlan, term);
+    var total = base * seats * (term === 'annual' ? 12 : 1);
+
+    document.getElementById('calcBase').textContent  = '$' + base.toFixed(2);
+    document.getElementById('calcSeats').textContent  = '\u00d7 ' + seats;
+    document.getElementById('calcDiscount').textContent = term === 'annual' ? '20% (included)' : '$0';
+    document.getElementById('calcTotal').textContent = '$' + total.toLocaleString() + (term === 'annual' ? '/yr' : '/mo');
+}
+
+function updateReview() {
+    var seats = parseInt(document.getElementById('upgradeSeats').value) || 1;
+    var term  = document.getElementById('upgradeTerm').value;
+    var base  = getPlanBasePrice(upgradePlan, term);
+    var total = base * seats * (term === 'annual' ? 12 : 1);
+
+    document.getElementById('reviewPlan').textContent  = upgradePlan;
+    document.getElementById('reviewSeats').textContent  = seats;
+    document.getElementById('reviewTerm').textContent   = term === 'annual' ? 'Annual (12 months)' : 'Monthly';
+    document.getElementById('reviewTotal').textContent  = '$' + total.toLocaleString() + (term === 'annual' ? '/yr' : '/mo');
+    document.getElementById('payTotal').textContent     = '$' + total.toLocaleString();
+}
+
+function placeOrder() {
+    if (!document.getElementById('agreeTerms').checked) {
+        showToast('Please agree to the terms to continue.', true);
+        return;
+    }
+    var btn = document.getElementById('placeOrderBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating Order...';
+
+    var seats = parseInt(document.getElementById('upgradeSeats').value) || 1;
+    var term  = document.getElementById('upgradeTerm').value;
+    var acctId = currentUser ? currentUser.accountId : '';
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.createOrder}',
+        acctId, upgradePlan, seats, term,
+        function(result, event) {
+            btn.disabled = false;
+            btn.innerHTML = 'Place Order &amp; Proceed to Payment &rarr;';
+            if (event.status && result.success) {
+                currentOrderId = result.orderId;
+                var base = getPlanBasePrice(upgradePlan, term);
+                var total = base * seats * (term === 'annual' ? 12 : 1);
+                document.getElementById('payTotal').textContent = '$' + total.toLocaleString();
+                showToast('Order ' + (result.orderNumber || '') + ' created! Proceed to payment.', false);
+                goToUpgradeStep(4);
+            } else {
+                showToast(result ? result.message : event.message, true);
+            }
+        },
+        { escape: false }
+    );
+}
+
+function processPayment() {
+    var btn = document.getElementById('payBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Processing Payment...';
+
+    var seats = parseInt(document.getElementById('upgradeSeats').value) || 1;
+    var term  = document.getElementById('upgradeTerm').value;
+
+    if (!currentOrderId) {
+        showToast('No order found. Please go back and place the order first.', true);
+        btn.disabled = false;
+        btn.innerHTML = '&#x1F512; Pay &amp; Activate &rarr;';
+        return;
+    }
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.activateOrderAndCreateAsset}',
+        currentOrderId,
+        function(result, event) {
+            btn.disabled = false;
+            btn.innerHTML = '&#x1F512; Pay &amp; Activate &rarr;';
+            if (event.status && result.success) {
+                var base = getPlanBasePrice(upgradePlan, term);
+                var total = base * seats * (term === 'annual' ? 12 : 1);
+                document.getElementById('invPlan').textContent   = upgradePlan + ' ' + (term === 'annual' ? 'Annual' : 'Monthly');
+                document.getElementById('invAmount').textContent = '$' + total.toLocaleString();
+                document.getElementById('invNumber').textContent = result.orderNumber || '-';
+
+                var payEl = document.getElementById('invPayment');
+                if (result.paymentCreated) {
+                    payEl.textContent = '#' + (result.paymentNumber || 'Processed');
+                    payEl.style.color = 'var(--success)';
+                } else {
+                    payEl.textContent = 'Pending';
+                    payEl.style.color = 'var(--accent)';
+                }
+
+                var invEl = document.getElementById('invInvoice');
+                if (result.invoiceCreated) {
+                    invEl.textContent = 'Generated';
+                    invEl.style.color = 'var(--success)';
+                } else {
+                    invEl.textContent = result.invoiceMessage || 'Auto-generated on billing run';
+                    invEl.style.color = 'var(--text-secondary)';
+                }
+
+                showToast(result.message, false);
+
+                purchasedPlans[upgradePlan] = true;
+                switchButtonToChangePlan(upgradePlan);
+
+                if (changePlanAssetId) {
+                    cancelOldSubscription(changePlanAssetId);
+                    changePlanAssetId = null;
+                }
+
+                goToUpgradeStep(5);
+            } else {
+                showToast(result ? result.message : event.message, true);
+            }
+        },
+        { escape: false }
+    );
+}
+
+function cancelOldSubscription(assetId) {
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.cancelSubscription}',
+        assetId,
+        function(result, event) {
+            if (event.status && result.success) {
+                showToast('Previous subscription cancelled.', false);
+            }
+        },
+        { escape: false }
+    );
+}
+
+function openChangePlanFromDash(assetId, currentPlan) {
+    closeModal('dashboardModal');
+    changePlanAssetId = assetId;
+    upgradePlan = 'Pro';
+    openUpgradeModal();
+}
+
+/* ── My Dashboard ──────────────────────────────────── */
+function openDashboard() {
+    if (!currentUser || !currentUser.accountId) {
+        showToast('Please log in to view your dashboard.', true);
+        return;
+    }
+    openModal('dashboardModal');
+    document.getElementById('dashLoading').classList.remove('hidden');
+    document.getElementById('dashContent').classList.add('hidden');
+
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.RLM_PricingPageController.getMyDashboard}',
+        currentUser.accountId,
+        function(res, event) {
+            document.getElementById('dashLoading').classList.add('hidden');
+            document.getElementById('dashContent').classList.remove('hidden');
+            if (event.status && res.success) {
+                renderDashAssets(res.assets || []);
+                renderDashOrders(res.orders || []);
+                renderDashPayments(res.payments || []);
+                renderDashQuotes(res.quotes || []);
+            } else {
+                showToast(res ? res.message : event.message, true);
+            }
+        },
+        { escape: false }
+    );
+}
+
+function dashStatusBadge(status) {
+    var colors = {
+        'Installed': '#059669', 'Active': '#059669', 'Activated': '#059669',
+        'Draft': '#6366f1', 'Obsolete': '#94a3b8', 'Cancelled': '#ef4444'
+    };
+    var c = colors[status] || '#6366f1';
+    return '<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:600;'
+        + 'background:' + c + '18;color:' + c + '">' + (status || 'N/A') + '</span>';
+}
+
+function dashMoney(val) {
+    if (val == null) return '-';
+    return '$' + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function dashDate(val) {
+    if (!val) return '-';
+    return new Date(val).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+}
+
+function renderDashAssets(items) {
+    var el = document.getElementById('dashAssets');
+    var empty = document.getElementById('dashAssetsEmpty');
+    if (!items.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    var html = '<div style="display:grid;gap:.75rem">';
+    for (var i = 0; i < items.length; i++) {
+        var a = items[i];
+        var cycleLabel = a.billingCycle ? a.billingCycle : '';
+        var priceLabel = '';
+        if (a.unitPrice) {
+            priceLabel = dashMoney(a.unitPrice) + '/seat' + (cycleLabel ? ' &middot; ' + cycleLabel : '');
+        } else if (cycleLabel) {
+            priceLabel = cycleLabel;
+        }
+        var isActive = a.status && a.status !== 'Obsolete' && a.status !== 'Cancelled';
+        html += '<div style="background:#F9FAFB;border-radius:10px;padding:1rem;display:grid;grid-template-columns:1fr auto;align-items:center;gap:.5rem">'
+            + '<div>'
+            + '<div style="font-weight:700;font-size:.95rem">' + (a.product || a.name) + '</div>'
+            + '<div style="font-size:.82rem;color:var(--text-secondary)">'
+            + (priceLabel ? priceLabel + ' &middot; ' : '')
+            + 'Qty: ' + (a.quantity || 1)
+            + (a.managed ? ' &middot; <span style="color:var(--primary);font-weight:600">Managed</span>' : '')
+            + '</div></div>'
+            + '<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">'
+            + dashStatusBadge(a.status)
+            + (isActive && a.managed
+                ? '<button class="btn btn-accent" style="padding:.35rem 1rem;font-size:.78rem;min-width:auto" '
+                  + 'onclick="openChangePlanFromDash(\'' + a.id + '\',\'' + (a.product || a.name) + '\')">'
+                  + 'Change Plan</button>'
+                : '')
+            + '</div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function renderDashOrders(items) {
+    var el = document.getElementById('dashOrders');
+    var empty = document.getElementById('dashOrdersEmpty');
+    if (!items.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    var html = '<div style="display:grid;gap:.75rem">';
+    for (var i = 0; i < items.length; i++) {
+        var o = items[i];
+        var lines = o.lineItems || [];
+        var lineHtml = '';
+        for (var j = 0; j < lines.length; j++) {
+            lineHtml += '<div style="font-size:.82rem;color:var(--text-secondary)">'
+                + lines[j].product + ' &times; ' + lines[j].quantity
+                + ' @ ' + dashMoney(lines[j].price) + '</div>';
+        }
+        html += '<div style="background:#F9FAFB;border-radius:10px;padding:1rem">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">'
+            + '<span style="font-weight:700">Order #' + o.number + '</span>'
+            + dashStatusBadge(o.status) + '</div>'
+            + lineHtml
+            + '<div style="display:flex;justify-content:space-between;margin-top:.35rem;font-size:.85rem">'
+            + '<span style="color:var(--text-secondary)">' + dashDate(o.date) + '</span>'
+            + '<span style="font-weight:700">' + dashMoney(o.total) + '</span></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function renderDashPayments(items) {
+    var el = document.getElementById('dashPayments');
+    var empty = document.getElementById('dashPaymentsEmpty');
+    if (!items.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    var html = '<div style="display:grid;gap:.75rem">';
+    for (var i = 0; i < items.length; i++) {
+        var p = items[i];
+        html += '<div style="background:#F9FAFB;border-radius:10px;padding:1rem">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">'
+            + '<span style="font-weight:700">Payment #' + p.number + '</span>'
+            + dashStatusBadge(p.status) + '</div>'
+            + '<div style="font-size:.82rem;color:var(--text-secondary)">'
+            + (p.ref ? 'Ref: ' + p.ref : '') + '</div>'
+            + '<div style="display:flex;justify-content:space-between;margin-top:.35rem;font-size:.85rem">'
+            + '<span style="color:var(--text-secondary)">' + dashDate(p.date) + '</span>'
+            + '<span style="font-weight:700;color:var(--success)">' + dashMoney(p.amount) + '</span></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function renderDashQuotes(items) {
+    var el = document.getElementById('dashQuotes');
+    var empty = document.getElementById('dashQuotesEmpty');
+    if (!items.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    var html = '<div style="display:grid;gap:.75rem">';
+    for (var i = 0; i < items.length; i++) {
+        var q = items[i];
+        var lines = q.lineItems || [];
+        var lineHtml = '';
+        for (var j = 0; j < lines.length; j++) {
+            lineHtml += '<div style="font-size:.82rem;color:var(--text-secondary)">'
+                + lines[j].product + ' &times; ' + lines[j].quantity
+                + ' @ ' + dashMoney(lines[j].price) + '</div>';
+        }
+        html += '<div style="background:#F9FAFB;border-radius:10px;padding:1rem">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem">'
+            + '<span style="font-weight:700">Quote #' + q.number + '</span>'
+            + dashStatusBadge(q.status) + '</div>'
+            + '<div style="font-size:.85rem;margin-bottom:.25rem">' + q.name + '</div>'
+            + lineHtml
+            + '<div style="display:flex;justify-content:space-between;margin-top:.35rem;font-size:.85rem">'
+            + '<span style="color:var(--text-secondary)">Expires: ' + dashDate(q.expires) + '</span>'
+            + '<span style="font-weight:700">' + dashMoney(q.total) + '</span></div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+/* ── FAQ Toggle ─────────────────────────────────────── */
+function toggleFaq(btn) {
+    btn.parentElement.classList.toggle('open');
+}
+
+/* ── Helpers ─────────────────────────────────────────── */
+function setLoading(btn, textId, spinnerId, loading) {
+    btn.disabled = loading;
+    document.getElementById(textId).classList.toggle('hidden', loading);
+    document.getElementById(spinnerId).classList.toggle('hidden', !loading);
+}
+
+function showToast(msg, isError) {
+    var t = document.getElementById('toast');
+    t.className = 'toast visible' + (isError ? ' error' : '');
+    document.getElementById('toastMsg').textContent = msg;
+    setTimeout(function(){ t.classList.remove('visible'); }, 5000);
+}
+//]]>
+</script>
+
+</body>
+</html>
+</apex:page>

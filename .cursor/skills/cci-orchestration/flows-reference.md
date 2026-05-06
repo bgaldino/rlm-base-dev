@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 flows** across **5 groups**.
+**42 flows** across **5 groups**.
 
 ---
 
@@ -336,6 +336,16 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 ---
 
+### `prepare_plg`
+
+Deploy NovaSpark pricing page demo metadata bundle.
+
+**Steps:**
+
+1. **task** `deploy_post_plg`  `when: project_config.project__custom__plg`
+
+---
+
 ### `prepare_price_adjustment_schedules`
 
 **Steps:**
@@ -489,10 +499,11 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 24. **flow** `prepare_revenue_settings`
 25. **flow** `prepare_pricing_discovery`
 26. **flow** `prepare_ramp_builder`
-27. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-28. **flow** `prepare_scratch`
-29. **flow** `refresh_all_decision_tables`
-30. **flow** `stamp_git_commit`
+27. **flow** `prepare_plg`
+28. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+29. **flow** `prepare_scratch`
+30. **flow** `refresh_all_decision_tables`
+31. **flow** `stamp_git_commit`
 
 ---
 
