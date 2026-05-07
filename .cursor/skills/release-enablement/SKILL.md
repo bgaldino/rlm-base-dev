@@ -230,6 +230,7 @@ The `262-upgrade-plan.md` document already establishes a two-workstation pattern
 | File | Contains |
 |---|---|
 | [`authoring-patterns.md`](authoring-patterns.md) | Conventions for handling edge cases (upgrade guidance, known issues, sub-features, cross-area features, carry-forward markers, recordings placeholders, QB walkthrough handling, frontmatter, scenario threading, version-aware section metadata, license-scope split). Read this before authoring any exercise file. |
+| [`resume-enablement-work.md`](resume-enablement-work.md) | Cross-workstation handoff. Read when starting a fresh conversation in this repo without prior thread context. Provides the 4-step re-orientation, common follow-up task pointers, tool grants checklist, and a standard restart prompt template. |
 
 ## Required Authoring Inputs (read these before authoring)
 

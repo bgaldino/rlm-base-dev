@@ -239,6 +239,7 @@ Read the sub-file only when you need that specific detail:
 | `docs/enablement/_template/exercise-template.md` | Release Enablement | Canonical template for `{version}-{area}-hands-on.md` exercise files |
 | `docs/enablement/coverage-matrix.md` | Release Enablement | Cross-release inventory of which exercise artifacts exist where |
 | `release-enablement/authoring-patterns.md` | Release Enablement | Edge-case patterns: upgrade guidance, known issues, sub-features, cross-area features, recordings placeholders, QB walkthrough handling |
+| `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 
 ### File-Specific Rules (Cursor Only)
 
