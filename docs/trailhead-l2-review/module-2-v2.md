@@ -1,8 +1,9 @@
 # Module 2: Billing Technical Architecture and Data Model Deep Dive
 
-**Status:** v2 draft for SME review
+**Status:** v2 draft for SME review (Trailhead AI Review Checklist applied)
 **Reviewers:** Michael Aaron (SME), Trailhead editorial team
 **Source verifications:** Spring '26 Help compendium (`docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`, pp. 1069–1247) and FY27 outline (Mike's Revised LOs column)
+**Style notes for editorial:** This draft bolds product object names (Billing Policy, Tax Engine, etc.) for technical clarity. That deviates from the AI Review Checklist's "no bold to highlight words or phrases" guidance, but matches the convention established in Module 1 v2 across the L2 mix. If editorial decides to strip the bolding, the same change should be applied to Modules 1, 3, 4, and 5 for consistency.
 
 ---
 
@@ -49,9 +50,9 @@ After completing this unit, you'll be able to:
 - Map how the Revenue Standard Tax Engine drives taxation.
 - Describe the strategy for customizing and editing Milestone Plans.
 
-In Module 1, you saw how Billing completes the Lead-to-Cash journey and met the headline objects in the data model — Order, Billing Schedule Group, Billing Schedule, Invoice. Module 2 takes you one layer deeper into the configuration objects that *govern* how those billing records actually behave: the Billing Policy that decides when and how to invoice, the Tax Policy that decides how each line gets taxed, and the Milestone Plan that decides when a service-based charge is allowed to fire.
+In Module 1, you saw how Billing completes the Lead-to-Cash journey. You also met the headline objects in the data model: Order, Billing Schedule Group, Billing Schedule, and Invoice. Module 2 goes one layer deeper into the configuration objects that govern how those billing records behave. The **Billing Policy** decides when to invoice. The **Tax Policy** decides how each line is taxed. The **Milestone Plan** decides when a service-based charge can fire.
 
-These three configuration surfaces aren't optional plumbing. They're the difference between a Billing Schedule that produces a clean, audit-ready Invoice and one that produces a manual cleanup ticket every time it runs.
+Together these three surfaces decide whether a Billing Schedule produces a clean, audit-ready Invoice or a manual cleanup ticket every time it runs.
 
 | Note | Content |
 |:-:|:-:|
@@ -65,9 +66,11 @@ The Billing Policy is the top-level object in a three-tier hierarchy that govern
 - **Billing Treatment** — a child of the Billing Policy, scoped to a Legal Entity. The Billing Treatment is what makes the same Billing Policy behave differently for, say, your US entity versus your Canada entity, even though both inherit the same parent rules. A Billing Treatment also drives whether milestone billing is enabled for the products that use it.
 - **Billing Treatment Item** — a child of the Billing Treatment, scoped to an individual charge. The Billing Treatment Item defines *how the order item's total amount is distributed into billing schedules across the order item's lifecycle*. Each treatment must have exactly one active Billing Treatment Item that covers 100% of the order item's value.
 
-Why three tiers instead of one? Because real businesses don't have one billing rule. They have a default, a regional variant, and a per-charge exception — and each tier of the hierarchy lets you express one of those without cloning the others.
+Why three tiers instead of one? Because real businesses run on a default, a regional variant, and a per-charge exception. Each tier of the hierarchy lets you express one of those without cloning the others.
 
-The Billing Treatment Item exposes fields like Status, Processing Order, Billing Type (Advance / Arrears / None), Controller (a Billing Schedule Group toggle), Zero Amount Behavior, Type, Percentage, Flat Amount, and Sequencing. When milestone billing is enabled on the parent Treatment, the Item also exposes milestone-specific fields (Milestone Type, Commencement Trigger, Offset, Offset Unit). Notably, the Billing Treatment Item does **not** control tax rates and does **not** control GL coding — those live on the Tax Policy and the GL Assignment Rules respectively, and conflating them with the Billing Treatment Item is one of the most common configuration mistakes in the field.
+The Billing Treatment Item exposes fields like Status, Processing Order, Billing Type (Advance / Arrears / None), Controller, Zero Amount Behavior, Type, Percentage, Flat Amount, and Sequencing. When milestone billing is enabled on the parent Treatment, the Item also exposes milestone-specific fields like Milestone Type, Commencement Trigger, Offset, and Offset Unit.
+
+The Billing Treatment Item does **not** control tax rates. It does **not** control GL coding. Tax lives on the Tax Policy. GL lives on the GL Assignment Rules. Conflating either with the Billing Treatment Item is one of the most common configuration mistakes in the field.
 
 | Note | Content |
 |:-:|:-:|
@@ -83,7 +86,7 @@ A Billing Treatment can be attached to an Order Product in three modes — **Def
 
 ## Configure the Tax Policy and Its Related Objects
 
-Tax doesn't live on the Billing Policy. It lives on a parallel object called the **Tax Policy** and its related objects. This separation matters: a single Billing Policy might apply to dozens of products that are taxed differently depending on jurisdiction, product type, and customer status. Coupling tax to the billing rules would make every regional change a nightmare. Decoupling them means you change tax logic in one place, and every Billing Policy that uses it inherits the change.
+Tax doesn't live on the Billing Policy. It lives on a parallel object called the **Tax Policy** and its related objects. This separation matters. A single Billing Policy applies to many products that are taxed differently by jurisdiction, product type, and customer status. Coupling tax to the billing rules makes every regional change painful. Decoupling them means you change tax logic in one place, and every Billing Policy that uses it inherits the change.
 
 The Tax Policy chain has three tiers, parallel to the Billing Policy chain:
 
@@ -98,7 +101,9 @@ Two additional objects round out the model:
 
 Note that "Tax Code" is a *field* on Tax Rate, Tax Treatment, and Tax Treatment Item — not a top-level object. And the `TaxEngineAdapter` is an Apex interface, not a record.
 
-When an Invoice Line is staged, the system pulls the Tax Treatment from the Order Product's billing context, walks down to the Tax Engine identified on the Treatment, and produces an Invoice Tax Line as the auditable result. Tax addresses come from the Billing Schedule Group rather than directly from the Invoice — worth knowing if you're troubleshooting why a particular line ended up in the wrong jurisdiction.
+When an Invoice Line is staged, the system pulls the Tax Treatment from the Order Product's billing context. It walks down to the Tax Engine identified on the Treatment. The output is an Invoice Tax Line that records the auditable result.
+
+Tax addresses come from the Billing Schedule Group rather than directly from the Invoice. That's worth knowing if you're troubleshooting why a particular line ended up in the wrong jurisdiction.
 
 | Note | Content |
 |:-:|:-:|
@@ -117,7 +122,7 @@ The flow looks like this:
 5. The decision table reads from the **Tax Rate** records the admin has configured (jurisdiction, currency, percentage or flat amount, application basis, validity dates, legal entity).
 6. The matched rate is applied and recorded as an Invoice Tax Line.
 
-There is one operational detail that surprises customers: **the Revenue Standard Tax Entries decision table must be refreshed every time a Tax Rate is added or modified.** The decision table is not auto-synced to the underlying records; if you add a new Tax Rate and forget to refresh, the engine won't see it. This is a configuration gotcha worth flagging during implementation.
+One operational detail surprises customers: **the Revenue Standard Tax Entries decision table must be refreshed every time a Tax Rate is added or modified.** The decision table is not auto-synced to the underlying records. If you add a new Tax Rate and forget to refresh, the engine won't see it. Flag this gotcha during implementation.
 
 The Tax Rates themselves are admin-created — there is no Salesforce-managed catalog of preconfigured rates. What ships out of the box is the engine and the decision table; the rates that flow through them are yours to configure and maintain.
 
@@ -129,26 +134,26 @@ A Milestone Plan defines when a charge is allowed to bill based on the completio
 
 Billing Milestone Plans can be created two ways:
 
-- **Method 1 — Auto-generated from a milestone-enabled Billing Treatment.** When you configure a Billing Treatment with the "Enable milestone billing" option and set up Billing Treatment Item templates with the milestone-specific fields, the system automatically generates the Billing Milestone Plan and its items the moment an applicable Order Product activates. The plan is linked to the resulting Billing Schedule.
-- **Method 2 — Manually created at the Order Product level.** For deals that need a one-off plan diverging from the default, you create a Billing Milestone Plan and Billing Milestone Plan Items directly and bind them to the specific Order Product. This overrides the Treatment's default.
+- **Method 1 — Auto-generated from a milestone-enabled Billing Treatment.** Enable the "Enable milestone billing" option on the Billing Treatment. Set up Billing Treatment Item templates with the milestone-specific fields. When an applicable Order Product activates, the system generates the Billing Milestone Plan and its items automatically. The plan is linked to the resulting Billing Schedule.
+- **Method 2 — Manually created at the Order Product level.** For deals that need a one-off plan, you create a Billing Milestone Plan and its items directly and bind them to the specific Order Product. This overrides the Treatment's default.
 
-The customization strategy hinges on whether the milestone structure repeats across deals or is unique to a specific contract. For repeatable structures (a standard "25% on signing / 50% at design / 25% at go-live" pattern), configure once at the Billing Treatment level and let every applicable Order Product inherit it. For one-off enterprise deals with negotiated milestone schedules, override at the Order Product. Treating every deal as a one-off is a common anti-pattern that makes the catalog impossible to maintain.
+The customization strategy hinges on whether the milestone structure repeats across deals or is unique to one contract. For a repeatable pattern—say, "25% on signing / 50% at design / 25% at go-live"—configure it once at the Billing Treatment level. Every applicable Order Product inherits it. For one-off enterprise deals with negotiated milestone schedules, override at the Order Product. Treating every deal as a one-off is a common anti-pattern that makes the catalog impossible to maintain.
 
-Active Milestone Plans are intentionally restrictive: once a plan is active, only the **Milestone accomplished** checkbox can be updated. To edit any other field, you have to set the plan's status back to Draft.
+Active Milestone Plans are intentionally restrictive. Once a plan is active, only the **Milestone accomplished** checkbox can be updated. To edit any other field, set the plan's status back to Draft.
 
-Cancellation behavior is also worth understanding: when an Order is canceled, invoiced milestones stay (the customer was already billed), future date-based items are set to Canceled, and uninvoiced event-based items are set to Canceled. The system issues a credit memo for the difference automatically.
+Cancellation behavior matters too. When an Order is canceled, invoiced milestones stay—the customer was already billed. Future date-based items move to Canceled. Uninvoiced event-based items also move to Canceled. The system issues a credit memo for the difference automatically.
 
 > **Forward reference:** Once a Milestone Plan exists, *executing* it — actually firing the milestone-driven invoice when the milestone completes — is covered in Module 4: Invoicing and Invoice Explanation Agents. This module is about defining and customizing the plan; Module 4 is about applying it.
 
 ## Activate the Order to Billing Schedule Flow
 
-The Order to Billing Schedule flow is the standard automation that turns an activated Order's products into Billing Schedule Groups and Billing Schedules. Like all standard flow templates, it ships read-only. To use it, you save a version of the out-of-the-box flow and activate the clone. The cloned copy runs autonomously from then on — there's nothing to re-trigger or maintain at runtime.
+The Order to Billing Schedule flow is the standard automation that turns an activated Order's products into Billing Schedule Groups and Billing Schedules. Like all standard flow templates, it ships read-only. To use it, you save a version of the out-of-the-box flow and activate the clone. The cloned copy runs autonomously from then on—there's nothing to re-trigger or maintain at runtime.
 
-The reason for the clone step isn't a quality gate or a manual approval requirement. It's that the standard template is owned and updated by Salesforce, and customers routinely need to add their own steps — extra fields, custom criteria, integration callouts — without overwriting the template Salesforce maintains. The clone is the customization surface. Once cloned, your copy is *yours*; the original keeps receiving platform updates without disturbing it.
+The clone step exists for one reason: the standard template is owned and updated by Salesforce. Customers routinely need to add their own steps—extra fields, custom criteria, integration callouts—without overwriting the template Salesforce maintains. The clone is the customization surface. Once cloned, your copy is yours. The original keeps receiving platform updates without disturbing it.
 
-A best practice from the Help docs: include "Custom" in the cloned flow's name so it's obvious which version is in use. And when an Order is activated, two flows fire in parallel — Order to Billing Schedule and Order to Asset — so make sure only one cloned version of each is active to avoid duplicate billing schedules.
+The Help docs recommend a naming convention: include "Custom" in the cloned flow's name so it's obvious which version is in use. When an Order is activated, two flows fire in parallel—Order to Billing Schedule and Order to Asset. Make sure only one cloned version of each is active to avoid duplicate billing schedules.
 
-Order activation has its own prerequisites once Billing is enabled: the Order needs a Bill to Contact, a Billing Address, and a Shipping Address before it can activate cleanly.
+Order activation has its own prerequisites once Billing is enabled. The Order needs a Bill to Contact, a Billing Address, and a Shipping Address before it activates cleanly.
 
 | Note | Content |
 |:-:|:-:|
@@ -197,13 +202,13 @@ Customers reach for Standalone Billing Schedules in three common scenarios:
 - **External-system origination**, when an upstream system other than Salesforce CPQ originates the contract and only the billing side belongs in Salesforce.
 - **One-off bills**, when a customer needs to be invoiced for something that genuinely doesn't have an underlying Order (a contract amendment fee, a one-time service charge).
 
-Worth noting: the same API also handles the *order-derived* path when invoked with **BillingContext** instead of StandaloneBillingContext. This means there isn't a hard line between "Standalone API" and "Order-derived API" — there's one API with two context definitions, and the choice of context tells the engine whether an Order is in the picture or not.
+Worth noting: the same API handles the order-derived path when invoked with **BillingContext** instead of StandaloneBillingContext. There isn't a hard line between "Standalone API" and "Order-derived API." It's one API with two context definitions. The context you choose tells the engine whether an Order is involved.
 
 Amending a Standalone Billing Schedule follows the same lifecycle pattern as amending an Order-derived one — you submit an amended transaction through the API, the system reflects the change in the next Billing Period Item it produces, and the audit trail records what changed and when.
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** Standalone Billing Schedules are an underrated proof point in migration deals. Customers leaving Zuora, NetSuite Billing, or a legacy CPQ are often skeptical that Revenue Cloud Billing can ingest their existing book of business without forcing them to re-create every contract as a Salesforce Order. The Standalone API is the answer. It gets the open contracts billing on day one. |
+| icon=true | **Seller Sidebar** Standalone Billing Schedules are an underrated proof point in migration deals. Customers migrating from Zuora, NetSuite Billing, or a legacy CPQ often worry they'll need to re-create every contract as a Salesforce Order. The Standalone API is the answer. It gets the open contracts billing on day one. |
 
 ## How Revenue Cloud Billing Works with External Billers
 
@@ -223,7 +228,7 @@ The integration story is, in plain terms: the external biller can own the custom
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** When a customer says "we already have Stripe / Zuora / our own biller," don't position Revenue Cloud Billing as a *replacement*. Position it as the system of record that *talks to* their existing biller. Most enterprises have a multi-year migration path away from a legacy biller; making Revenue Cloud Billing the destination doesn't require day-one cutover. |
+| icon=true | **Seller Sidebar** When a customer says "we already have Stripe / Zuora / our own biller," position Revenue Cloud Billing as the system of record that talks to their existing biller. Most enterprises have a multi-year migration path away from a legacy biller. Making Revenue Cloud Billing the destination doesn't require day-one cutover. |
 
 ## Configure the Invoice Scheduler
 
@@ -243,7 +248,7 @@ A note on a feature that's already shipped, contrary to common assumption: **the
 
 The diagnostic pattern when an Invoice Scheduler produces an unexpected result almost always traces back to one of these settings — most commonly a filter that excluded records you expected to bill, a date offset that picked up the wrong window, or a frequency mismatch with the customer's Billing Profile.
 
-Two platform limits to keep in mind when you scope a customer's volume: **a maximum of 30 active Billing Batch Schedulers** per org, and **a maximum of 2,000 invoice lines per invoice**. Customers with very high invoice-line density may need to design their grouping rules to stay under the per-invoice line cap.
+Two platform limits to keep in mind when you scope a customer's volume: **a maximum of 30 active Billing Batch Schedulers** per org, and **a maximum of 2,000 invoice lines per invoice**. Customers with very high invoice-line density design their grouping rules to stay under the per-invoice line cap.
 
 Note that **email delivery is not** an Invoice Scheduler setting. Invoice email delivery is a separate feature — Send Invoices Through Email — that takes over once the scheduler has produced and posted the invoices. That separation is intentional: it lets you generate invoices on one cadence and deliver them on another.
 

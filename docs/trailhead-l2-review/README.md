@@ -14,6 +14,8 @@ Review artifacts for the FY27 Trailhead L2 mix on Agentforce Revenue Management 
 
 **Source verification:** All factual claims in the v2 draft are verified against the Spring '26 Help compendium (`docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`, 1,460 pages, focused on pp. 1069–1247 for Billing topics) and Mike Aaron's revised LOs in the FY27 outline spreadsheet.
 
+**Style verification:** The v2 has been passed through the Trailhead AI Review Checklist (sentence length, comparison patterns, modals, generic phrases, audience voice). One deliberate deviation: the v2 bolds product object names for technical clarity, matching Module 1 v2's convention across the L2 mix. If editorial decides to strip the bolding, the same change applies to all five modules for consistency.
+
 ## Open scoping items for the L2 mix
 
 These topics were in the v1 Module 2 draft, are not covered by Modules 1–5 in the current L2 mix, and need a scoping decision before they get a home:
