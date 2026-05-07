@@ -10,6 +10,12 @@ Review artifacts for the FY27 Trailhead L2 mix on Agentforce Revenue Management 
 | [`module-2-inline-diff.md`](./module-2-inline-diff.md) | Section-by-section diff from the v1 draft to the v2 |
 | [`module-2-v2.md`](./module-2-v2.md) | Full rewritten Module 2 ready for Mike's review |
 
+## Modules 3, 4, 5 — Proposed LO Revisions (May 2026)
+
+| Document | Purpose |
+|:--|:--|
+| [`modules-3-4-5-proposed-los.md`](./modules-3-4-5-proposed-los.md) | Proposed LO revisions for the remaining three modules in the same pattern Mike applied to Modules 1 and 2. Pattern-anchored, source-verified where possible, with open questions flagged for Mike's review. v2 drafts follow once Mike confirms or edits the LOs. |
+
 **Recommended review order:** editorial direction → inline diff → v2 draft. The editorial direction explains the framing decisions; the inline diff shows how those decisions translate to specific passage-level changes; the v2 draft is the final product.
 
 **Source verification:** All factual claims in the v2 draft are verified against the Spring '26 Help compendium (`docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`, 1,460 pages, focused on pp. 1069–1247 for Billing topics) and Mike Aaron's revised LOs in the FY27 outline spreadsheet.
