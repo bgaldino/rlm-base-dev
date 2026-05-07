@@ -210,6 +210,7 @@ that topic.
 | Capture/apply UX drift from org | `docs/features/dynamic-ux-assembly.md` |
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
+| Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
 
 Each skill has a **Quick Rules** section at the top for fast reference,
 and a **DO NOT** section listing critical safety constraints for that area.
@@ -234,6 +235,10 @@ Read the sub-file only when you need that specific detail:
 | `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model | Cross-domain FK mapping |
 | `sfdmu-data-plans/plan-dependency-graph.md` | SFDMU Data Plans | Load/deletion order across plans |
 | `sfdmu-data-plans/object-plan-mapping.md` | SFDMU Data Plans | Which objects belong to which plan |
+| `docs/salesforce/{version}/feature-index.md` | Release Enablement | Per-area feature inventory for a Salesforce release (260, 262, …) — authoring input for `docs/enablement/{version}/` exercises |
+| `docs/enablement/_template/exercise-template.md` | Release Enablement | Canonical template for `{version}-{area}-hands-on.md` exercise files |
+| `docs/enablement/coverage-matrix.md` | Release Enablement | Cross-release inventory of which exercise artifacts exist where |
+| `release-enablement/authoring-patterns.md` | Release Enablement | Edge-case patterns: upgrade guidance, known issues, sub-features, cross-area features, recordings placeholders, QB walkthrough handling |
 
 ### File-Specific Rules (Cursor Only)
 
