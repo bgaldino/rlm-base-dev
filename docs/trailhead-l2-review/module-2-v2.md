@@ -52,58 +52,77 @@ After completing this unit, you'll be able to:
 
 In Module 1, you saw how Billing completes the Lead-to-Cash journey. You also met the headline objects in the data model: Order, Billing Schedule Group, Billing Schedule, and Invoice. Module 2 goes one layer deeper into the configuration objects that govern how those billing records behave. The **Billing Policy** decides when to invoice. The **Tax Policy** decides how each line is taxed. The **Milestone Plan** decides when a service-based charge can fire.
 
-Together these three surfaces decide whether a Billing Schedule produces a clean, audit-ready Invoice or a manual cleanup ticket every time it runs.
-
 | Note | Content |
 |:-:|:-:|
-| icon=true | **What's in a Name?** Throughout this module you'll see two configuration nodes that sound similar. **Billing Settings** (Setup → Quick Find → Billing → Billing Settings) is where the Billing Policy hierarchy and related billing-level configuration live. **Revenue Settings** is a separate area for revenue recognition. Don't confuse them. |
+| icon=true | **What's in a Name?** Don't confuse **Billing Settings** (billing configuration) with **Revenue Settings** (Revenue Cloud Advanced configuration — not billing). |
 
 ## Configure the Billing Policy
 
-The Billing Policy is the top-level object in a three-tier hierarchy that governs how a product's charges turn into invoices. The hierarchy is:
+The Billing Policy is the top-level object in a three-tier hierarchy that decides how a product's charges turn into invoices. The hierarchy is:
 
-- **Billing Policy** — the parent object. It sets the high-level rules for a category of products: when to invoice (advance vs. arrears), the billing frequency default, and the proration treatment.
-- **Billing Treatment** — a child of the Billing Policy, scoped to a Legal Entity. The Billing Treatment is what makes the same Billing Policy behave differently for, say, your US entity versus your Canada entity, even though both inherit the same parent rules. A Billing Treatment also drives whether milestone billing is enabled for the products that use it.
-- **Billing Treatment Item** — a child of the Billing Treatment, scoped to an individual charge. The Billing Treatment Item defines *how the order item's total amount is distributed into billing schedules across the order item's lifecycle*. Each treatment must have exactly one active Billing Treatment Item that covers 100% of the order item's value.
+- **Billing Policy** — the parent object. Its job is to decide *which* Billing Treatment applies to a given charge. It carries a Status, a Billing Treatment Selection strategy (None, Manual, Default, or Legal Entity), and a Default Billing Treatment to fall back to. The Policy doesn't carry billing rules. It carries the *selection logic* that picks the right Treatment.
+- **Billing Treatment** — a child of the Billing Policy. The Treatment is a variant of the Policy that carries feature toggles (Enable milestone billing, Change Billing Frequency, Exclude from Billing) and optionally a Legal Entity and Currency. Whether the Legal Entity is populated depends on the parent Policy's Billing Treatment Selection mode. If the Policy uses Legal Entity selection, each Treatment under it is scoped to a specific Legal Entity — that's how the same Policy applies different rules to your US entity versus your Canada entity. If the Policy uses Default or Manual selection, the Treatment can exist without any Legal Entity scope at all.
+- **Billing Treatment Item** — a child of the Billing Treatment. This is where the actual billing mechanics live. The Billing Type (Advance, Arrears, or None) is here. So is the lifecycle distribution: Type (Remainder vs. Percentage), Percentage or Flat Amount, Processing Order, Sequencing, and zero-amount handling. When milestone billing is enabled on the parent Treatment, the Item also carries milestone-specific fields — Milestone Type (Event or Date), Milestone Start Date, Offset, and Offset Unit.
 
-Why three tiers instead of one? Because real businesses run on a default, a regional variant, and a per-charge exception. Each tier of the hierarchy lets you express one of those without cloning the others.
+A Treatment can have one BTI or many. The count depends on the billing pattern. For a simple Advance or Arrears Treatment, you typically have a single BTI with Type=Remainder that captures 100% of the order item's value. For more complex patterns — milestone billing, partial billing, multi-stage distributions — you have multiple BTIs per Treatment, each with Type=Percentage or Flat Amount, that collectively distribute the value. ProcessingOrder controls which BTI fires first when multiple are involved.
 
-The Billing Treatment Item exposes fields like Status, Processing Order, Billing Type (Advance / Arrears / None), Controller, Zero Amount Behavior, Type, Percentage, Flat Amount, and Sequencing. When milestone billing is enabled on the parent Treatment, the Item also exposes milestone-specific fields like Milestone Type, Commencement Trigger, Offset, and Offset Unit.
+A useful one-liner: **Policy is the selection strategy. Treatment is the variant with feature toggles. Treatment Item is the billing math.**
 
 The Billing Treatment Item does **not** control tax rates. It does **not** control GL coding. Tax lives on the Tax Policy. GL lives on the GL Assignment Rules. Conflating either with the Billing Treatment Item is one of the most common configuration mistakes in the field.
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** Customers will frequently confuse Billing Policy / Billing Treatment / Billing Treatment Item because the names are nearly identical. Pin them down with a one-liner: *Policy is the rule. Treatment is the regional override. Item is the lifecycle distribution.* If they ask about tax or GL coding, redirect — those live in the Tax Policy and the GL Assignment Rules, not on the Billing Treatment Item. |
-
-### The Activation Sequence
-
-The Billing Policy hierarchy enforces a strict activation order: draft policies → draft treatments → draft items → activate items → activate treatments → activate policies. The same pattern applies to the Tax Policy hierarchy you'll see in the next section. You can't activate a parent until its children are active, and you can't deactivate a child while its parent is referencing it. This rule isn't arbitrary — it prevents you from leaving a policy active that points at incomplete treatment logic.
+| icon=true | **Seller Sidebar** Customers frequently confuse Billing Policy / Billing Treatment / Billing Treatment Item because the names are nearly identical. When that happens, anchor them to where rules actually live: Policy decides *which* Treatment applies, Treatment carries the scope and toggles, Treatment Item carries the billing math. If they ask about tax or GL coding, redirect — those live on the Tax Policy and the GL Assignment Rules respectively. |
 
 ### Treatment Selection Modes
 
 A Billing Treatment can be attached to an Order Product in three modes — **Default**, **Manual**, or **Legal Entity**. Default uses the policy's default Treatment for every applicable Order Product. Legal Entity uses the Treatment whose Legal Entity matches the Order Product. Manual lets the user pick a specific Treatment per Order Product, which is useful for one-off enterprise deals where the regional default doesn't apply.
 
+One important caveat: a user can override the policy's default Billing Treatment Selection on the Order Product while the Order is in Draft. Once the Order is activated and the Billing Schedule Group and Billing Schedules are created, the Treatment can no longer be changed.
+
+### Set Up Milestone Billing at the BTI Level
+
+Milestone billing is configured directly on the Billing Treatment and its BTIs. The setup is two parts.
+
+**On the parent Billing Treatment**, set Enable milestone billing to true. This unlocks the milestone-specific fields on the child BTIs.
+
+**On the BTIs**, create one BTI per milestone. For each:
+
+- Set Type to Percentage (or Flat Amount).
+- Set Percentage to the share of the order item's value this milestone bills.
+- Set ProcessingOrder to control firing sequence.
+- Set MilestoneType to Event or Date. An Event milestone fires when someone marks it complete. A Date milestone fires automatically on a calculated date.
+- For Date milestones: set MilestoneStartDate to the anchor (commonly OrderProductActivation), then set MilestoneStartDateOffset and MilestoneStartDateOffsetUnit (for example, 1 Month, or 4 Months).
+
+A common pattern is mixing types — early milestones are Date-driven (fire automatically based on calendar offsets from activation), while a final milestone is Event-driven (fires when someone marks project handoff complete). Each Treatment must include exactly one Type=Remainder BTI that absorbs whatever isn't claimed by the Percentage and Flat Amount BTIs. The Percentage and Flat Amount BTIs distribute the value; the Remainder BTI catches the rest.
+
+What you configure here is the **template**. When an Order Product activates against this Treatment, the system uses these BTIs to generate a runtime Billing Milestone Plan with Billing Milestone Plan Items — that's the per-deal record customers see. If a specific deal needs milestones that diverge from the template, you can pre-create the Billing Milestone Plan and Plan Items manually and link them to the Order Product. The Customize and Edit Milestone Plans section covers the runtime side in detail.
+
 ## Configure the Tax Policy and Its Related Objects
 
-Tax doesn't live on the Billing Policy. It lives on a parallel object called the **Tax Policy** and its related objects. This separation matters. A single Billing Policy applies to many products that are taxed differently by jurisdiction, product type, and customer status. Coupling tax to the billing rules makes every regional change painful. Decoupling them means you change tax logic in one place, and every Billing Policy that uses it inherits the change.
+Tax doesn't live on the Billing Policy. It lives on its own object called the **Tax Policy**, with its own related objects. The Tax Policy and the Billing Policy operate independently — an Order Product is assigned a Billing Policy and a Tax Policy separately, and changes to one don't ripple to the other.
 
-The Tax Policy chain has three tiers, parallel to the Billing Policy chain:
+The Tax Policy chain has three tiers:
 
 - **Tax Policy** — the parent object. It groups Tax Treatments for a category of products or transactions.
 - **Tax Treatment** — a child of the Tax Policy. The Tax Treatment references a Tax Engine (the engine that performs the calculation) and is what gets attached to an Order Product for taxation.
-- **Tax Treatment Item** — a child of the Tax Treatment, scoped to the line level.
+- **Tax Treatment Item** — a child of the Tax Treatment, scoped to the line level. Tax Treatment Items are conditional — they're used only when the parent Tax Treatment has Use Tax Treatment Items enabled.
 
-Two additional objects round out the model:
+The Tax Policy mirrors the Billing Policy's selection mechanics. It carries a TreatmentSelection mode (None, Manual, Default, or Legal Entity) and a Default Tax Treatment to fall back to. When the policy uses Legal Entity selection, each Tax Treatment under it is scoped to a specific Legal Entity — the same conditional pattern you saw on Billing Treatments.
 
-- **Tax Engine** — the engine of record for tax calculation. Salesforce ships an out-of-the-box engine called the **Revenue Standard Tax Engine**; the alternative is the **Revenue Cloud Tax Extension** type, which is how partner adapters (Vertex, Avalara) and custom Apex implementations of the `TaxEngineAdapter` interface plug in.
-- **Tax Engine Provider** — the configurable record that identifies which Tax Engine implementation a Tax Treatment is bound to.
+Three additional objects round out the model:
 
-Note that "Tax Code" is a *field* on Tax Rate, Tax Treatment, and Tax Treatment Item — not a top-level object. And the `TaxEngineAdapter` is an Apex interface, not a record.
+- **Tax Engine** — the engine of record for tax calculation. Salesforce ships an out-of-the-box engine called the **Revenue Standard Tax Engine**. The alternative is the **Revenue Cloud Tax Extension** type, which is how partner adapters (Vertex, Avalara) and custom Apex implementations of the `TaxEngineAdapter` interface plug in.
+- **Tax Engine Provider** — the configurable record that points at the Apex adapter class (the implementation of `TaxEngineAdapter`). Each Tax Engine references one Provider; each Tax Treatment references one Tax Engine.
+- **Tax Rate** — the actual rate record the engine matches against. Carries jurisdiction (country and state), currency, percentage or flat amount, application basis, priority, validity dates, and legal entity. The Revenue Standard Tax Engine consults Tax Rate records through the Revenue Standard Tax Entries decision table; partner adapters consume them through whatever logic the adapter implements. The **Tax Code** field on Tax Rate is what links it to Tax Treatments at calculation time.
+
+Note: the `TaxEngineAdapter` is an Apex interface, referenced indirectly through the Tax Engine Provider's Apex adapter — not a record.
 
 When an Invoice Line is staged, the system pulls the Tax Treatment from the Order Product's billing context. It walks down to the Tax Engine identified on the Treatment. The output is an Invoice Tax Line that records the auditable result.
 
-Tax addresses come from the Billing Schedule Group rather than directly from the Invoice. That's worth knowing if you're troubleshooting why a particular line ended up in the wrong jurisdiction.
+The Revenue Standard Tax Engine calculates taxes at the line level. Header-level tax capture is available through third-party engines via the `ShouldCaptureTaxesAtHeader` field on the Tax Engine record — a frequent customer question worth knowing.
+
+By default, the address used for tax calculation comes from the Billing Schedule Group. This can be overridden at the Tax Engine level via the **TaxEngineAddress** field — useful for scenarios where the engine needs to use a different address than the BSG carries.
 
 | Note | Content |
 |:-:|:-:|
@@ -130,20 +149,24 @@ For customers whose tax needs exceed the Standard Tax Engine, the **Revenue Clou
 
 ## Customize and Edit Milestone Plans
 
-A Milestone Plan defines when a charge is allowed to bill based on the completion of named events rather than a calendar date — go-live, design sign-off, contract signing, hardware shipment. The plan itself is a container; the **Billing Milestone Plan Items** define the individual stages and the financial split (a percentage of the total, a flat amount, or a unit count).
+In the previous section you saw how milestone billing is configured at *design time* on the Billing Treatment Item. This section covers what happens at *runtime*: the **Billing Milestone Plan** and **Billing Milestone Plan Items** that the system creates when an Order Product activates.
+
+The runtime relationship works like this. When an Order Product activates against a milestone-enabled Billing Treatment, the system creates a Billing Milestone Plan as a per-deal record bound to the resulting Billing Schedule. For each milestone BTI on the Treatment template, the system creates a corresponding Billing Milestone Plan Item. The Plan Items carry runtime-only fields the BTI templates don't — `IsMilestoneAccomplished` (the toggle that fires Event milestones), `MilestoneAmount` (the calculated dollar amount), and service period dates.
+
+Worth flagging: the field names shift between the BTI template and the runtime Plan Item. The BTI carries `MilestoneStartDate`, `MilestoneStartDateOffset`, and `MilestoneStartDateOffsetUnit`. The Billing Milestone Plan Item rebadges these as `CommencementDate`, `CommencementDateOffset`, and `CommencementDateOffsetUnit`. Same concept, different field names — useful to know when you're tracing a milestone from configuration to runtime.
 
 Billing Milestone Plans can be created two ways:
 
-- **Method 1 — Auto-generated from a milestone-enabled Billing Treatment.** Enable the "Enable milestone billing" option on the Billing Treatment. Set up Billing Treatment Item templates with the milestone-specific fields. When an applicable Order Product activates, the system generates the Billing Milestone Plan and its items automatically. The plan is linked to the resulting Billing Schedule.
-- **Method 2 — Manually created at the Order Product level.** For deals that need a one-off plan, you create a Billing Milestone Plan and its items directly and bind them to the specific Order Product. This overrides the Treatment's default.
+- **Method 1 — Auto-generated from a milestone-enabled Billing Treatment.** This is the standard path covered above. The BTI templates drive the runtime Plan and its Items at Order activation.
+- **Method 2 — Manually created for a specific Order Product.** For deals that need a one-off plan diverging from the Treatment template, you create a Billing Milestone Plan and its Items directly and bind them to the Order Product. This overrides the Treatment's default.
 
-The customization strategy hinges on whether the milestone structure repeats across deals or is unique to one contract. For a repeatable pattern—say, "25% on signing / 50% at design / 25% at go-live"—configure it once at the Billing Treatment level. Every applicable Order Product inherits it. For one-off enterprise deals with negotiated milestone schedules, override at the Order Product. Treating every deal as a one-off is a common anti-pattern that makes the catalog impossible to maintain.
+The customization strategy hinges on whether the milestone structure repeats across deals or is unique to one contract. For a repeatable pattern — say, "25% on signing / 50% at design / 25% at go-live" — configure it once at the Billing Treatment level. Every applicable Order Product inherits it through the auto-generation path. For one-off enterprise deals with negotiated milestone schedules, override at the Order Product. Treating every deal as a one-off is a common anti-pattern that makes the catalog impossible to maintain.
 
-Active Milestone Plans are intentionally restrictive. Once a plan is active, only the **Milestone accomplished** checkbox can be updated. To edit any other field, set the plan's status back to Draft.
+Active Billing Milestone Plans are intentionally restrictive. Once a Plan is active, only the **Milestone accomplished** checkbox on its Plan Items can be updated. To edit any other field, set the Plan's status back to Draft.
 
-Cancellation behavior matters too. When an Order is canceled, invoiced milestones stay—the customer was already billed. Future date-based items move to Canceled. Uninvoiced event-based items also move to Canceled. The system issues a credit memo for the difference automatically.
+Cancellation behavior matters too. When an Order is canceled, invoiced milestones stay — the customer was already billed. Future date-based items move to Canceled. Uninvoiced event-based items also move to Canceled. The system issues a credit memo for the difference automatically.
 
-> **Forward reference:** Once a Milestone Plan exists, *executing* it — actually firing the milestone-driven invoice when the milestone completes — is covered in Module 4: Invoicing and Invoice Explanation Agents. This module is about defining and customizing the plan; Module 4 is about applying it.
+> **Forward reference:** Once a Billing Milestone Plan exists, *executing* it — actually firing the milestone-driven invoice when a milestone completes — is covered in Module 4: Invoicing and Invoice Explanation Agents. This module is about defining and customizing the plan; Module 4 is about applying it.
 
 ## Activate the Order to Billing Schedule Flow
 
@@ -157,11 +180,11 @@ Order activation has its own prerequisites once Billing is enabled. The Order ne
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** This is a high-frequency objection in technical evals: "Why does this require manual setup?" The honest answer is that it doesn't require manual *operation* — the cloned flow runs by itself — it just requires a one-time clone-and-customize step so you can extend the flow without losing access to platform updates. Customers usually accept this once they understand the upgrade story behind it. |
+| icon=true | **Seller Sidebar** This is a high-frequency objection in technical evals: "Why does this require manual setup?" It doesn't require manual *operation* — the cloned flow runs by itself. It requires a one-time clone-and-customize step so you can extend the flow without losing access to platform updates. Customers usually accept this once they understand the upgrade story behind it. |
 
 ## Key Takeaways
 
-The Billing Policy hierarchy (Policy → Treatment → Treatment Item) governs *how* charges turn into invoices, with each tier expressing a different level of override. The Tax Policy is a parallel hierarchy (Policy → Treatment → Treatment Item), plus a Tax Engine and a Tax Engine Provider that identify the calculation path. The Revenue Standard Tax Engine plus its Revenue Standard Tax Entries decision table is the default tax pipeline; the decision table must be refreshed every time a Tax Rate changes. Billing Milestone Plans and Billing Milestone Plan Items can be auto-generated from a milestone-enabled Treatment or manually created at the Order Product level. The Order to Billing Schedule flow is cloned to allow customization, then runs autonomously.
+The Billing Policy hierarchy decides which Treatment applies; the Treatment carries scope and toggles; the Treatment Item carries the billing math. The Tax Policy hierarchy works the same way — Policy, Treatment, optional Treatment Item — with a Tax Engine that references a Tax Engine Provider, which points at the Apex adapter. The Revenue Standard Tax Engine plus its Revenue Standard Tax Entries decision table is the default tax pipeline. The decision table must be refreshed every time a Tax Rate changes. Milestone billing is configured at design time on the Billing Treatment Item; the runtime Billing Milestone Plan and its Plan Items are auto-generated when an Order Product activates. The Order to Billing Schedule flow is cloned to allow customization, then runs autonomously.
 
 ## Resources
 
@@ -173,7 +196,7 @@ The Billing Policy hierarchy (Policy → Treatment → Treatment Item) governs *
 
 | Learning Objective | Question | Answers (correct answer underlined) |
 |:--|:--|:--|
-| **Describe the key objects and their purposes in the Billing Policy.** | Which object in the Billing Policy hierarchy is scoped to a specific Legal Entity to support regional variations? | Billing Policy / **Billing Treatment** / Billing Treatment Item / Tax Policy |
+| **Describe the key objects and their purposes in the Billing Policy.** | Which object in the Billing Policy hierarchy can be scoped to a specific Legal Entity to support regional variations? | Billing Policy / **Billing Treatment** / Billing Treatment Item / Tax Policy |
 | **Explain the function of the Tax Policy and its related objects.** | Where does the Tax Rate that gets applied to a billed line ultimately come from? | The Billing Treatment Item / **A Tax Treatment that references a Tax Engine, which consults Tax Rates configured by the admin** / The GL Assignment Rules / The Order Product directly |
 
 ---
@@ -208,7 +231,7 @@ Amending a Standalone Billing Schedule follows the same lifecycle pattern as ame
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** Standalone Billing Schedules are an underrated proof point in migration deals. Customers migrating from Zuora, NetSuite Billing, or a legacy CPQ often worry they'll need to re-create every contract as a Salesforce Order. The Standalone API is the answer. It gets the open contracts billing on day one. |
+| icon=true | **Seller Sidebar** Standalone Billing Schedules are a powerful proof point in migration deals. Customers migrating from Zuora, NetSuite Billing, or a legacy CPQ often worry they'll need to re-create every contract as a Salesforce Order. The Standalone API is the answer. It gets the open contracts billing on day one. |
 
 ## How Revenue Cloud Billing Works with External Billers
 
@@ -234,7 +257,7 @@ The integration story is, in plain terms: the external biller can own the custom
 
 The **Invoice Scheduler** (sometimes called the Invoice Batch Run or the Billing Batch Scheduler) is the configurable batch process that turns ready-to-bill Billing Schedules and Billing Period Items into actual Invoices and Invoice Lines on a defined cadence. In Module 1 v2 you saw it at a conceptual level alongside Billing Preview and Bill Now; here you configure it.
 
-You set up an Invoice Scheduler in Setup → Quick Find → Billing Batch Schedulers → New Invoice Scheduler. The scheduler's configuration controls four broad areas — and each setting has a direct, predictable effect on what the run produces:
+You set up an Invoice Scheduler from the App Launcher: find and select Billing Batch Schedulers, then click New Invoice Scheduler. The scheduler's configuration controls four broad areas — and each setting has a direct, predictable effect on what the run produces:
 
 | Setting category | Specific settings | Effect on outcomes |
 |:--|:--|:--|
@@ -260,7 +283,7 @@ Adjacent to the Invoice Scheduler, the **Suspend Billing API** and **Resume Bill
 
 ## Key Takeaways
 
-Standalone Billing Schedules are Billing Schedule records produced via the Create Standalone Billing Schedules API and the StandaloneBillingContext context definition — the right tool for migrations, external-system originations, and one-off bills. Revenue Cloud Billing integrates with external systems through several APIs (Standalone Billing Schedules, Invoice Ingestion, Import External Tax Lines, Suspend/Resume Billing) plus the TaxEngineAdapter Apex interface, letting customers keep an external biller while making Revenue Cloud Billing the system of record. The Invoice Scheduler is configured by run cadence, date logic, and filter criteria; "Exclude holidays and weekends" is a Monthly-only feature already in 260. Email delivery is a separate feature that runs after the scheduler completes.
+Standalone Billing Schedules are Billing Schedule records produced via the Create Standalone Billing Schedules API and the StandaloneBillingContext context definition. They're the right tool for migrations, external-system originations, and one-off bills. Revenue Cloud Billing integrates with external systems through several APIs — Standalone Billing Schedules, Invoice Ingestion, Import External Tax Lines, Suspend/Resume Billing — plus the TaxEngineAdapter Apex interface. Customers can keep an external biller while making Revenue Cloud Billing the system of record. The Invoice Scheduler is configured by run cadence, date logic, and filter criteria. The Exclude holidays and weekends setting is a Monthly-only feature, already in 260. Email delivery is a separate feature that runs after the scheduler completes.
 
 ## Resources
 

@@ -1,26 +1,30 @@
-# Modules 3, 4, 5 — Proposed LO Revisions for Mike's Review
+# Modules 3, 4, 5 — Proposed LO Revisions v2
 
-**Purpose:** Apply the Module 1/2 LO revision pattern (concrete object/feature anchors, drop value-prop puffery, drop tangential topics, concrete verbs) to Modules 3, 4, and 5 *before* attempting full v2 rewrites. Mike confirms or edits the proposed LOs; v2 drafts follow.
+**Status:** Updated 2026-05-08 to incorporate Mike Aaron's 30 comments on the v1 proposal.
 
-**Pattern observed in Mike's revisions to Modules 1 and 2:**
-- Each LO anchors to a specific product object or feature (not a value prop or capability cluster).
-- Concrete verbs: Describe, Explain, Map, Configure, Understand. Weak verbs (Identify, Recognize, Utilize, Articulate) appear less often.
-- Multiple v1 LOs often consolidate into a single sharper one.
-- Topics that aren't core to the module's domain get cut, even if they're real.
-- Audience: AE / SE / Specialist who needs to defend the technical story to a buyer or implementer — not a general practitioner.
+**Companion documents:**
+- [`module-2-v2.md`](./module-2-v2.md) — the reference v2 for voice and structure
+- v1 of this proposal (replaced) — see git history if needed
 
-**Verification status:**
-- Items marked `[VERIFIED]` reference the Spring '26 Help compendium (`docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`).
-- Items marked `[NEEDS VERIFICATION]` are taken from the v1 draft and should be confirmed before v2 authoring.
-- Items marked `[OPEN QUESTION]` are framing/scoping calls I want Mike's input on before committing.
+**Terminology corrections applied after verification against project metadata** (`/Users/brian/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev/.sfdx/tools/sobjects/standardObjects/`):
+
+| Mike's term | Project-metadata-grounded term | Notes |
+|:--|:--|:--|
+| Transactional Usage Assignment | **TransactionUsageEntitlement** | Object name in standard schema |
+| Payment Gateway Adaptor | **Payment Gateway Adapter** | Apex interface; `PaymentGatewayProvider` is the bridge SObject |
+| Billing Agent | **Collections Agent** in 260; "Billing Agent" naming appears in 262 | Forward-looking rename |
+| Credit prorate | **"Convert Negative Invoice Lines to Credit Memo Lines"** | The real feature name |
+| Binding on Usage Entitlement Bucket | Binding configured on `TransactionUsageEntitlement.GrantBindingTargetId` and `UsageEntitlementAccount.GrantBindingTargetId` | Impacts the Bucket indirectly through `ParentId` |
 
 ---
 
 # Module 3 — Usage, Rating, and Consumption Agents
 
-**Current shape:** 4 units. The v1 draft is the most extensive in the L2 mix and reaches further into product detail than the LOs strictly require. **Proposed shape:** 3 units. Consolidates v1 Units 2 and 3 into a single configuration unit, since Mediation and Rating are two halves of one operational story (clean the data → price the data) and the v1 split forces awkward "from clean data to correct charges" connective tissue.
+**Mike's headline direction:** Split v1 Unit 1 into two distinct units — Usage Data Model and Usage Rating Pipeline. Drop "mediation" as something Revenue Cloud Billing does; clarify that mediation is customer-side. Refocus from Rate Card to **Asset Rate Card Entry** and **Asset Rate Adjustment** (the objects RCB actually consumes). Note that Digital Wallets and their entries create automatically — they're not configured. Move m3ter to the agents/extensions unit. Narrow the Usage Agent's scope to overage reporting.
 
-## Current LOs (verbatim from v1)
+**Shape:** v1 had 4 units. v2 has 3 units — Mike's Unit 1 split adds one unit, but the v1 Unit 2 + Unit 3 consolidate into proposed Unit 3.
+
+## Current LOs (verbatim from v1 draft)
 
 **Unit 1: Define Consumption Foundations and Data Models**
 - Differentiate between Pure Consumption and Hybrid revenue models.
@@ -29,225 +33,186 @@
 - Map the flow of usage data from ingestion in the Transaction Journal to final invoicing.
 - Recognize when native Agentforce Revenue Management capabilities apply and when high-scale usage scenarios may require additional support.
 
-**Unit 2: Navigate Ingestion and Mediation at Scale**
-- Identify the key fields required to feed usage records into Salesforce.
-- Explain the multi-step mediation process.
-- Compare mediation options based on scale, including standard APIs, MuleSoft, and high-scale partners.
-- Recognize competitive scenarios where ERPs may challenge Agentforce Revenue Management's usage management capabilities.
+**Unit 2: Navigate Ingestion and Mediation at Scale** — 4 LOs (mediation pipeline, scale tiers, ERP competitive scenarios).
 
-**Unit 3: Configure Complex Rating and Digital Wallets**
-- Define the role of the Digital Wallet in managing credit inflows (Grants) and consumption outflows (Debits).
-- Configure drawdown policies like "Expiring First" to automate how customer balances are consumed.
-- Apply Rating Procedures and Rate Cards to calculate overages and pricing tiers.
-- Describe how to integrate third-party rating apps or custom applications into the Agentforce Revenue Management rating engine.
-- Recognize real-world deal scenarios where wallet configuration and rate locking are critical to closing.
+**Unit 3: Configure Complex Rating and Digital Wallets** — 5 LOs (Digital Wallet, Drawdown Policies, Rating Procedures, Rate Cards, third-party rating).
 
-**Unit 4: Explore Agentforce and The Usage Experience**
-- Utilize the Usage Agent to identify customers in overage status and proactively surface upsell opportunities.
-- Navigate the Usage App to provide customers and internal teams with a "single pane of glass" view of consumption details.
-- Recognize which Agentforce agents are available within Agentforce Revenue Management and how they connect to the broader revenue lifecycle.
+**Unit 4: Explore Agentforce and The Usage Experience** — 3 LOs (Usage Agent, Usage App, full Agent family).
 
-## Proposed LO revisions
+## Proposed LO revisions (v2, incorporating Mike)
 
-**Unit 1: Map the Consumption Data Model and Usage Pipeline**
-- 1.1 Describe the key objects in the consumption data model (Transaction Journal, Usage Summary, Ratable Summary, Liable Summary).
-- 1.2 Explain how Liable Summaries bridge the rating engine to the billing engine and become Invoice Lines.
-- 1.3 Map the flow of usage data from ingestion through aggregation, rating, and invoicing.
-- 1.4 Differentiate the native Revenue Cloud Billing usage path from extension paths (m3ter and custom rating apps).
+**Unit 1: Map the Usage Data Model**
+- 1.1 Describe the key objects in the usage data model: `TransactionUsageEntitlement`, `AssetRateCardEntry`, `AssetRateAdjustment`, `UsageEntitlementAccount`, `UsageEntitlementBucket`, `UsageEntitlementEntry`.
+- 1.2 Explain how these objects are populated at Order Product activation for usage products.
+- 1.3 Describe the binding mechanism (`GrantBindingTargetId` on `TransactionUsageEntitlement` and `UsageEntitlementAccount`; the `UsagePrdGrantBindingPolicy` policy object) and how binding impacts what a Usage Entitlement Bucket can draw from.
 
-**Unit 2: Configure Mediation, Rating, and Digital Wallets**
-- 2.1 Identify the required fields on a usage record (External ID, Timestamp, Quantity, Unit of Measure, Matching Attribute).
-- 2.2 Configure Rate Cards and Rating Procedures to drive consumption pricing.
-- 2.3 Configure Digital Wallet inflows (Grants) and outflows (Debits), and apply Drawdown Policies (Expiring First, Granted First, Granted Last).
-- 2.4 Describe how to extend rating with third-party engines through the Rating Adapter or m3ter.
+**Unit 2: Navigate the Usage Rating Pipeline**
+- 2.1 Identify the required fields on a usage record entering the Transaction Journal (External ID, Timestamp, Quantity, Unit of Measure, Matching Attribute).
+- 2.2 Map the flow of usage data through the pipeline: Transaction Journal → Usage Summary → Ratable Summary → Liable Summary.
+- 2.3 Describe how the Rating Procedure (Default Rating Procedure or Negotiable Rating Procedure, implemented as `ExpressionSetDefinition` metadata) consumes Asset Rate Card Entries and Asset Rate Adjustments to produce Ratable Summaries.
+- 2.4 Recognize that mediation (cleaning and normalizing raw usage data before it reaches the Transaction Journal) is customer-side responsibility, not part of Revenue Cloud Billing.
 
-**Unit 3: Apply the Usage Agent and Usage App**
-- 3.1 Describe the Usage Agent's role in surfacing overage and upsell signals from Digital Wallet and Usage Summary data.
-- 3.2 Navigate the Usage App to view consumption, balances, and policy assignments in a single pane.
-- 3.3 Identify which agents in the Agentforce Revenue Management family are licensed with Revenue Cloud Advanced versus require an add-on.
+**Unit 3: Apply the Usage Agent, Drawdown Policies, and Extensions**
+- 3.1 Describe the Usage Agent's role in reporting on overage status.
+- 3.2 Describe the three Drawdown Policies (Expiring First, Granted First, Granted Last) and how the system applies them automatically to Usage Entitlement Buckets — they are not user-configured.
+- 3.3 Describe how to extend rating with third-party engines, including the m3ter ISV partner integration for high-volume scenarios.
 
 ## Rationale
 
-**Drop Pure-vs-Hybrid as an LO.** It's ambient context, not a learning outcome. The v1 draft uses it as a long opener; proposed Unit 1 keeps the Hybrid model story in the prose without making it an LO.
+**Why split Unit 1.** Mike's direction: the data model (what objects exist and how they connect at order activation) and the pipeline (how usage data flows through the system) are two distinct stories that the v1 conflated. Splitting them gives each its own focus.
 
-**Consolidate v1 Units 2 and 3 into proposed Unit 2.** Mediation, Rating, and Digital Wallet are the configuration surface for consumption billing. The v1 split forces a connective sentence ("from clean data to correct charges") that wouldn't be needed if the configuration story is one unit.
+**Why drop "Pure Consumption vs. Hybrid" as an LO.** It's ambient market context, not a learning outcome for a seller-level technical module. The Hybrid/Pure framing can appear in the prose without becoming an LO.
 
-**Drop "Recognize competitive scenarios where ERPs may challenge..."** Pure value-prop, not a learning outcome. Sellers learn the competitive story from value cards, not from Trailhead.
+**Why drop the mediation pipeline as a Module 3 topic.** Mike's exact words: "The system does not support Mediation, remove this." Mediation is what the customer's data engineering team does before usage records reach the Transaction Journal. Module 3 can mention mediation as concept-level context but should make clear it's not part of Revenue Cloud Billing. LO 2.4 surfaces this directly.
 
-**Drop "Recognize real-world deal scenarios where wallet configuration and rate locking are critical to closing."** Vague verb ("recognize"), no anchor object. The wallet-locking scenario *is* useful — it should appear as a Seller Sidebar in the Unit 2 prose, not as an LO.
+**Why Asset Rate Card Entry and Asset Rate Adjustment lead the rating story.** Mike: "The config of rate cards isnt an RCB task. What RCB cares about is the Transaction Usage Entitlement, Asset Rate Card Entry, and the Asset Rate Adjustment." Rate Cards are list prices (catalog-side, Module 2 territory). Asset Rate Card Entries are the customer-specific negotiated rates, and Asset Rate Adjustments handle tiered/banded adjustments on top — both verified as real objects in the project metadata, both first-class concerns of RCB.
 
-**Tighten Unit 4 to Unit 3 (one unit instead of two attempts at agent coverage).** The v1's Unit 4 is short and somewhat redundant with the Module 1 v2 agent coverage. Three LOs cover what's specific to the Usage experience.
+**Why "Digital Wallets create automatically" rather than "Configure Digital Wallets."** Mike: "You dont configure these, they create automatically." Drawdown Policies are similar — the system applies them, the user doesn't configure their behavior per Bucket. Reframing the LO as "describe and recognize" rather than "configure" is the right verb match.
 
-**Verb upgrades.** "Identify" and "Recognize" appear 5 times in the v1 — Mike's revisions used those weak verbs only when a real concrete verb ("Describe," "Configure," "Explain") wouldn't fit.
+**Why narrow the Usage Agent LO.** Mike: "The usage agent. its job is to report on overage." V1 had the Usage Agent doing much more (overage detection, upsell signals, natural-language queries). Mike's narrower scope is the accurate scope.
 
-## Open questions for Mike
+## Notes for v2 authoring
 
-1. **`[OPEN QUESTION]` Unit count: 3 or 4?** I'm proposing 3. If you think the Mediation deep-dive (the 6-step pipeline: Collection → Normalization → Quality → Aggregation → Correlation → Usage Binding) deserves its own unit, that pushes us back to 4. Currently I have it as a sub-section under Unit 2 LO 2.1. **Your call.**
+The Rating Procedure is implemented as `ExpressionSetDefinition` metadata, not an SObject — files at `force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml` and `Negotiable_Rating_Procedure.expressionSetDefinition-meta.xml`. Worth flagging in the v2 prose since admins will look for it in the standard object browser and not find it.
 
-2. **`[NEEDS VERIFICATION]` Is the 6-step mediation framework Salesforce-standard or an authoring construct?** The v1 draft names six steps (Collection, Normalization, Quality, Aggregation, Correlation, Usage Binding). I haven't been able to confirm this is standard RCB doctrine vs. a generic mediation pedagogy framing. If standard, it's an LO worth including. If generic, it should be loose framing in the prose.
-
-3. **`[NEEDS VERIFICATION]` Usage Agent vs. Agentforce Revenue Management agents naming.** The v1 calls it "Usage Agent" and lists six agents in a table (Usage, Quoting, Contract Search, Invoice Explanation, Product Description, Dispute Resolution). Are those names current? Is the Quoting Agent in Module 3's scope at all (it's quote-side, not usage-side)? I'd suggest the Module 3 agent coverage stays focused on Usage Agent + Usage App and leaves the broader agent family to Module 1's Unit 1 / Module 5.
-
-4. **`[OPEN QUESTION]` Where does m3ter live?** Module 1 v2 mentioned it; Module 2 v2 referenced it as parked-to-Module-3; Module 3 v1 covers it heavily. I'd put the *positioning* mention in Module 1 (when to bring m3ter to a deal) and the *integration mechanics* in Module 3 LO 2.4. Cross-check with you before drafting.
-
-5. **`[OPEN QUESTION]` Pricing detail.** The v1 covers Rate Card structure (Flat / Tiered / Ranges) and Drawdown Policies in detail. Should LO 2.2 also call out Rating Procedure as a separate object, or is "Rate Card and Rating Procedure" a paired concept students learn together? Currently grouped.
-
-6. **`[NEEDS VERIFICATION]` Pure Consumption vs. Hybrid model framing.** The v1 attributes "64% of Forbes' next billion-dollar startups" to a market-shift narrative. If we keep the Hybrid framing in Unit 1 prose, the stat needs sourcing or replacement.
+Binding lives on `TransactionUsageEntitlement.GrantBindingTargetId` (the customer's per-product entitlement) and `UsageEntitlementAccount.GrantBindingTargetId` (the per-account binding). The Bucket inherits binding through `ParentId`. The `UsagePrdGrantBindingPolicy` object holds the policy itself. Mike's framing was close but the v2 prose should locate the binding accurately.
 
 ---
 
 # Module 4 — Invoicing and Invoice Explanation Agents
 
-**Current shape:** 1 unit. **Proposed shape:** 2 units. The v1 is under-scoped — invoicing is a much heavier topic than one unit allows, especially with split billing, milestone application, credit memos, DocGen, the Invoice Line Explanation Agent, and the Self-Service Portal as a customer-facing surface for invoices. Module 1 v2 covers *invoice production mechanics* (Billing Preview, Bill Now, Batch Scheduler, DPE pipeline, downstream objects); Module 2 v2 covers *Milestone Plan customization* and *Invoice Scheduler configuration*; this leaves Module 4 to cover *invoice patterns* (split, milestone application, credit memos) and *invoice delivery and explanation* (DocGen, email, Self-Service Portal, Explanation Agent).
+**Mike's headline direction:** Drop the Milestone Application LO entirely — Module 2 v2 already covers milestone configuration and runtime, and Mike says we don't need to cover it again here. Replace v1's "Order to Billing Schedule pipeline" reference with the **Bill Run** (the v1 used the wrong term). Add **Debit Memos**, **Bill Cycle Day** (`BillDayOfMonth`), and **Next Billing Date** (`NextBillingDate`) as drivers of Invoice execution. Move **Credit Memos** to Unit 2 since they're post-invoice-production; correct the Credit Memo description (real mechanism: the "Convert Negative Invoice Lines to Credit Memo Lines" feature auto-creates Credit Memos when invoice lines go negative). Use **Billing Arrangements** as the term for Split Billing — it's the actual object name (`BillingArrangement` + `BillingArrangementLine`). Drop the Conga-to-DocGen migration callout entirely. Move Billing Disputes to Module 5.
 
-## Current LOs (verbatim from v1)
+**Confirmed flow for invoice production:** Invoice Scheduler creates the invoice data → DocGen renders the PDF → Send Invoices Through Email delivers it to the customer.
 
-**Unit 1: Manage Complex Invoicing with Agentforce**
-- Configure split and milestone billing to handle complex, multi-phase revenue models.
-- Automate invoice delivery across multiple channels using Invoice Schedulers.
-- Explain how the Invoice Line Explanation Agent reduces billing-related service cases.
-- Generate on-demand Invoice PDFs using Salesforce DocGen for customer self-service.
+**Shape:** v2 stays at 2 units; structure shifts.
 
-## Proposed LO revisions
+## Current LOs (verbatim from v1 draft)
 
-**Unit 1: Configure Split Billing, Milestone Application, and Credit Memos**
-- 1.1 Configure Split Billing to allocate invoice amounts across multiple billing accounts. *(maps to "Manage Billing Arrangements" in the Help compendium — see Open Question 1)*
-- 1.2 Apply Milestone Plans to fire invoices on milestone completion (the *application* counterpart to Module 2 LO 1.4 *customization*).
-- 1.3 Generate Credit Memos when invoiced amounts decrease, and apply them to outstanding invoices.
-- 1.4 Describe how the Order to Billing Schedule pipeline produces Billing Period Items and Invoice Lines for each invoice.
+**Unit 1: Manage Complex Invoicing with Agentforce** — 4 LOs (split/milestone billing, Invoice Schedulers, Invoice Line Explanation Agent, Invoice PDFs).
 
-**Unit 2: Deliver Invoices and Explain Charges with Agentforce**
-- 2.1 Configure invoice delivery through the Send Invoices Through Email feature.
-- 2.2 Generate on-demand Invoice PDFs through Salesforce DocGen.
-- 2.3 Describe the Self-Service Portal as a customer-facing surface for viewing invoices and managing accounts.
-- 2.4 Explain how the Invoice Line Explanation Agent provides plain-language breakdowns of complex charges.
+## Proposed LO revisions (v2, incorporating Mike)
+
+**Unit 1: Configure Billing Arrangements and Drive the Bill Run**
+- 1.1 Configure Billing Arrangements (`BillingArrangement` and `BillingArrangementLine`) to allocate invoice amounts across multiple billing accounts.
+- 1.2 Describe the role of Bill Cycle Day (`BillDayOfMonth`) and Next Billing Date (`NextBillingDate`) in Invoice execution.
+- 1.3 Map how the Bill Run picks up ready-to-bill Billing Schedules and produces Invoices and Invoice Lines.
+- 1.4 Describe how Debit Memo Lines convert to Invoice Lines based on Next Billing Date.
+
+**Unit 2: Manage Invoice Delivery, Credit Memos, and the Invoice Line Explanation Agent**
+- 2.1 Configure the invoice delivery flow: the Invoice Scheduler creates the invoice data, DocGen renders the PDF, and Send Invoices Through Email delivers it to the customer.
+- 2.2 Describe how Credit Memo Lines are auto-created from negative Invoice Lines (via the "Convert Negative Invoice Lines to Credit Memo Lines" feature in Billing Settings) and how Credit Memos are applied to outstanding invoices.
+- 2.3 Describe the Self-Service Portal as a customer-facing surface for viewing invoices.
+- 2.4 Explain how the Invoice Line Explanation Agent provides plain-language breakdowns of complex charges. (Available with both Revenue Cloud Advanced and Revenue Cloud Billing — Mike confirmed.)
 
 ## Rationale
 
-**Two units instead of one.** A 4-LO single-unit module reads thin compared to Modules 1, 2, 3, 5. Two units (configuration patterns + delivery and explanation) gives invoicing the weight it deserves and matches the structure of the other modules.
+**Drop Milestone Application.** Mike: "i dont think we need to cover milestones again, remove." Module 2 v2 covers both milestone configuration (on the BTI) and milestone runtime (`BillingMilestonePlan` and `BillingMilestonePlanItem`). Duplicating that coverage in Module 4 doesn't earn its space.
 
-**Split Billing maps to Help compendium "Manage Billing Arrangements."** The Help docs frame this as "billing arrangements [that] facilitate precise invoicing for business scenarios such as parent account billed for subsidiary accounts, cross-departmental charge allocations, or services or assets shared among multiple parties." If "Split Billing" is the seller-facing term and "Billing Arrangements" is the Help-doc term, the LO should use the seller-facing term and reference Billing Arrangements in the prose. **See Open Question 1.**
+**Correct the Bill Run terminology.** Mike: "This is the bill run and not the Order to BS pipeline. Where did that come from?" The v1 mistakenly referenced "the Order to Billing Schedule pipeline" as the mechanism for invoice production. The actual mechanism is the Bill Run (`BillingBatchScheduler` / `InvoiceScheduler`). Order to Billing Schedule is the flow that turns activated Orders into Billing Schedules; it doesn't produce Invoices.
 
-**Milestone Plans split between Modules 2 and 4.** Module 2 LO 1.4 covers *customizing and editing* Milestone Plans (the design-time activity). Module 4 LO 1.2 covers *applying* them (the runtime activity — what happens when a milestone completes). This boundary mirrors the Bill Run / Invoice Scheduler split you've already approved.
+**Add Debit Memos.** Mike: "We should add debit memos here." Debit Memos exist as a first-class object (`DebitMemo`) and carry `NextBillingDate`, which "determines when Debit Memo Lines are converted to invoice lines." This is a real product behavior worth surfacing in the Bill Run unit.
 
-**Credit Memos added as new LO 1.3.** Visible in the Help compendium TOC ("Manage Credit Memos in Revenue Cloud") and absent from every other module. Belongs in Module 4 because credit memos are Invoice-adjacent.
+**Add Bill Cycle Day and Next Billing Date.** Mike: "And also how the Bill Cycle Day and the Next Bill Date play a roll in Invoice execution." Both are real fields. `BillDayOfMonth` is on `BillingSchedule`, `BillingScheduleGroup`, and `UsageEntitlementAccount`. `NextBillingDate` is on `BillingSchedule` and `DebitMemo`. They're the dates that drive when the Bill Run picks up a schedule.
 
-**LO 1.4 (Order to Billing Schedule pipeline → Billing Period Items → Invoice Lines).** Module 1 v2 introduces these objects; Module 4's LO 1.4 reinforces them in the context of invoice generation. Worth keeping because it cements the data-model literacy from Module 1.
+**Use "Billing Arrangements" rather than "Split Billing."** Mike confirmed Billing Arrangements is the term in the Help compendium. The objects are `BillingArrangement` and `BillingArrangementLine`. "Split Billing" is the seller-facing concept; "Billing Arrangements" is what the system calls it. Both can appear in the prose.
 
-**Drop "Configure Invoice Schedulers" as a Module 4 LO.** Module 2 v2 LO 2.3 already covers Invoice Scheduler configuration. Module 4's role is *what comes out* of the scheduler, not how to configure it.
+**Correct the Credit Memo mechanism.** Mike: "Credits are created when invoice lines are negative, called a credit prorate. This needs to be updated." The verified feature name is **"Convert Negative Invoice Lines to Credit Memo Lines"** (enabled in Billing Settings). LO 2.2 leads with this mechanism rather than the v1's vaguer "when invoiced amounts decrease" framing.
 
-**Self-Service Portal coverage split between Modules 4 and 5.** Module 4 covers it as a customer-facing surface for *viewing invoices*; Module 5 covers it as a customer-facing surface for *making payments*. This is a real boundary — the Help compendium documents the portal across both functional areas — and it lets each module tell its own self-service story without duplicating.
+**Move Credit Memos to Unit 2.** Mike: "This needs to move to Unit 2 as its really post invoice production." Configuration of Billing Arrangements and the Bill Run mechanics belong in Unit 1; what happens *after* an invoice is produced (delivery, credit memo creation, the Explanation Agent) belongs in Unit 2.
 
-## Open questions for Mike
+**Drop the Conga callout.** Mike: "Remove this. Focus on DocGen as the way that billing creates invoices." The v1 included the dated Conga End-of-Renewal note as a Seller Sidebar. Cut it.
 
-1. **`[OPEN QUESTION]` "Split Billing" vs. "Billing Arrangements."** The Help compendium uses "Billing Arrangements" and describes the use cases the v1 calls "Split Billing." Are these the same thing? Should the LO use the seller-facing "Split Billing" term, the Help-doc "Billing Arrangements" term, or both? My instinct is to use both — Trailhead title for sellers, Help-doc term for tracing back to documentation.
+**Move Billing Disputes to Module 5.** Mike: "In module 5." Disputes route through the Collections workflow; they belong adjacent to Dunning and the Collections Agent.
 
-2. **`[NEEDS VERIFICATION]` Conga to DocGen migration.** The v1 includes a real, dated fact: Conga Invoice Generation reached End-of-Renewal as of March 17, 2026, and customers can renew for up to 1 year or migrate to the $0 Salesforce DocGen path. Is this still accurate as of authoring date? Should it appear as a Seller Sidebar in LO 2.2?
+**Invoice Line Explanation Agent licensing.** Mike: "Its available in both." The v1 flagged a licensing question; resolved — the agent is available with both Revenue Cloud Advanced and Revenue Cloud Billing.
 
-3. **`[OPEN QUESTION]` Invoice Line Explanation Agent licensing.** The v1 says the Agent is "part of Agentforce for Billing Employee Assistance" and requires "both Revenue Cloud Billing licensing and the Agentforce Employee Agent Add-On." Is that still the licensing reality, and should the LO surface that explicitly?
+## Notes for v2 authoring
 
-4. **`[OPEN QUESTION]` "Manage Billing Disputes" placement.** The Help compendium includes a "Manage Billing Disputes" topic at the same level as "Manage Credit Memos." Should disputes appear in Module 4 (as an invoice-adjacent activity) or stay in Module 5 (as a Collections-adjacent activity)? My current proposal has them in Module 5; happy to move if you prefer.
+The invoice production chain is: **Invoice Scheduler → DocGen → Email**. Each link is a distinct feature with its own configuration. The Invoice Scheduler is `BillingBatchScheduler` / `InvoiceScheduler`; DocGen is OmniStudio DocGen; Send Invoices Through Email is a separate Billing feature. Worth naming all three explicitly so learners understand they're separate.
 
-5. **`[NEEDS VERIFICATION]` Send Invoices Through Email feature.** Verified in the Help compendium — this is a separate feature from the Invoice Scheduler. Confirm the seller-facing name; the Help docs use that exact phrase.
+`DebitMemo.NextBillingDate` "determines when Debit Memo Lines are converted to invoice lines" — this is the connector between Debit Memos and the Bill Run.
+
+Self-Service Portal coverage splits between Module 4 (invoice viewing) and Module 5 (payment surface). Each module owns its half.
 
 ---
 
 # Module 5 — Payments and Collections
 
-**Current shape:** 1 unit. **Proposed shape:** 2 units. Same problem as Module 4 — the v1 is under-scoped for the topic. Splitting Payment configuration from Collections + Self-Service gives the module breathing room and parallels the Module 4 structure.
+**Mike's headline direction:** Stripe and other third-party processors integrate via the **Payment Gateway Adapter** pattern (not generic "tokenization APIs"). Salesforce Payments and Adyen confirmed as natively supported gateways. The Collections and Dispute Agent name should be **Collections Agent** in 260 (with "Billing Agent" coming in 262), with capabilities **Dunning Strategy Recommendations** and **Account Billing Summaries** (both plural). Competitor examples should be **Oracle and Zuora** rather than Tacton and NetSuite. Add **Manage Billing Disputes** as an LO (moved from Module 4 per comment 23).
 
-## Current LOs (verbatim from v1)
+**Shape:** v2 stays at 2 units. Adding Disputes pushes Unit 2 to 5 LOs.
 
-**Unit 1: Automate Payments and Collections**
-- Identify connections between supported payment gateways and configure retry rules.
-- Configure automated dunning processes to accelerate cash collection.
-- Manage settlements using the Collections and Dispute Agent.
-- Explain how the Self-Service Portal enables customers to manage their own accounts.
-- Position the Payments and Collections capability to CFOs and Finance leaders.
+## Current LOs (verbatim from v1 draft)
 
-## Proposed LO revisions
+**Unit 1: Automate Payments and Collections** — 5 LOs (gateways, dunning, Collections and Dispute Agent, Self-Service Portal, CFO positioning).
+
+## Proposed LO revisions (v2, incorporating Mike)
 
 **Unit 1: Configure Payment Gateways, Methods, and Smart Retries**
-- 1.1 Configure connections to supported payment gateways (Salesforce Payments, Adyen).
-- 1.2 Describe how Stripe and other third-party processors integrate through tokenization APIs.
+- 1.1 Configure connections to natively supported payment gateways: Salesforce Payments and Adyen.
+- 1.2 Describe how third-party processors like Stripe integrate through the Payment Gateway Adapter pattern (`PaymentGatewayProvider` with an Apex adapter class implementing the Payment Gateway Adapter interface).
 - 1.3 Configure Smart Retry rules to differentiate soft declines from hard declines.
 - 1.4 Set up Payment Runs to sweep posted invoices automatically against connected gateways.
 
 **Unit 2: Automate Collections, Disputes, and Customer Self-Service for Payments**
 - 2.1 Configure automated Dunning workflows to escalate aging invoices through email, SMS, and portal nudges.
-- 2.2 Describe the Collections and Dispute Agent's role in resolving billing disputes autonomously.
-- 2.3 Set up the Self-Service Portal's payment surface (Pay Now link, payment method updates, one-time payments).
-- 2.4 Articulate the Payments and Collections capability's impact on Days Sales Outstanding (DSO) for a Finance audience.
+- 2.2 Describe the Collections Agent's role in producing **Account Billing Summaries** and **Dunning Strategy Recommendations**. (Note: the 262 release renames this to "Billing Agent.")
+- 2.3 Manage Billing Disputes — capture, validate, and resolve common billing requests from the Self-Service Portal or directly through the Collections workflow.
+- 2.4 Set up the Self-Service Portal's payment surface: Pay Now link, payment method updates, one-time payments.
+- 2.5 Articulate the Payments and Collections capability's impact on Days Sales Outstanding (DSO) for a Finance audience.
 
 ## Rationale
 
-**Two units instead of one.** Same logic as Module 4 — a 5-LO single-unit module reads thin and forces unrelated topics together. Splitting Payment gateway/method configuration from Collections/Dispute/Self-Service mirrors Module 4's structure.
+**Payment Gateway Adapter, not "tokenization APIs."** Mike's correction: the integration pattern is the Payment Gateway Adapter, identical in shape to the Tax Engine Adapter from Module 2. `PaymentGatewayProvider` is the SObject that holds the `ApexAdapterId` linking to the Apex implementation. Stripe-style integrations are explicit in the Help compendium as named examples ("Stripe3P" in retry-rule sample data). LO 1.2 reflects the real architectural pattern.
 
-**LO 1.2 explicitly covers Stripe.** The v1 has Stripe as a footnote ("To use third-party processors like Stripe, customers must import payment tokens via API"). Stripe is one of the most-asked-about gateways in real deals, so it warrants its own LO. Salesforce Payments / Adyen as native + Stripe via token import is the full picture sellers need.
+**Collections Agent (not Collections and Dispute Agent or Billing Agent).** Mike said rename to "Billing Agent" — verified in the project: "Billing Agent(s)" appears in the 262 feature index, but the **260 GA naming is "Collections Agent"** with capabilities "Account Billing Summaries" and "Dunning Strategy Recommendations" (plural). Since this L2 mix is shipping against 260 GA per the FY27 outline, the LO uses "Collections Agent" with a forward-reference to the 262 rename. If the L2 mix slips to 262, the rename is mechanical.
 
-**LO 2.4 reframes the v1's "Position to CFOs" LO.** The v1 verb "Position" is value-prop language; Mike's pattern would replace it. "Articulate ... impact on DSO for a Finance audience" keeps the seller-facing skill but anchors it to a specific metric (DSO) and a specific audience (Finance). It's the closest a Module 5 LO comes to a positioning skill, and it earns its place because DSO is a real, measurable outcome.
+**Add Manage Billing Disputes (moved from Module 4).** Per Mike's comment 23. Disputes use a service-process template-based intake/resolution workflow and are tightly coupled with Collections. Adding it as LO 2.3 keeps the dispute story adjacent to the Collections Agent.
 
-**Disputes stay in Module 5.** The Collections and Dispute Agent operates across billing disputes and collections; keeping them together preserves the agent's full scope.
+**Reword the v1's "Position to CFOs" LO.** The v1 verb "Position" is value-prop language Mike's pattern would replace. LO 2.5 retains the Finance audience but anchors to DSO as the specific metric — keeping a positioning skill without softening it into puffery.
 
-**Self-Service Portal split between Modules 4 and 5.** Module 4 covers *invoice viewing*; Module 5 covers *payment*. Each module owns the portion of the portal that's relevant to its functional area.
+## Notes for v2 authoring
 
-**Drop "Manage settlements" as a verb.** "Manage" is vague; the v1 LO becomes "Describe the Collections and Dispute Agent's role in resolving billing disputes autonomously."
+Competitor examples in any Seller Sidebar should be **Oracle and Zuora**, not Tacton/NetSuite. Mike: "Tacton is a poor choice."
 
-## Open questions for Mike
+Pay Now link is a real product capability — a shareable direct-payment URL that customers can use without logging into the portal. Worth one sub-bullet in LO 2.4's body.
 
-1. **`[NEEDS VERIFICATION]` Salesforce Payments and Adyen as the native gateways.** The v1 says these are the only natively supported gateways. Confirm this is current and complete.
-
-2. **`[NEEDS VERIFICATION]` Collections and Dispute Agent name and scope.** The v1 calls it "Collections and Dispute Agent" and attributes three capabilities: Analyze Disputes, Propose Settlements, Update the Ledger. Confirm the agent's name (it might just be "Collections Agent" or "Dispute Resolution Agent") and capability list.
-
-3. **`[OPEN QUESTION]` Pay Now link prominence.** The v1 features the Pay Now link as a key capability. Worth a sub-bullet in LO 2.3 (currently covered) or its own LO?
-
-4. **`[OPEN QUESTION]` "Cues from Customers" section.** The v1 closes Unit 1 with a "Cues from Customers" sales-coaching block. That's useful seller content but doesn't map to an LO. Recommend keeping it in the prose as a Seller Sidebar in Unit 2, but not making it an LO. Confirm.
-
-5. **`[OPEN QUESTION]` Tacton/NetSuite competitive callout.** The v1 includes a Seller Sidebar comparing Revenue Cloud Billing to Tacton and NetSuite. Same recommendation — keep in prose as a sidebar, don't make it an LO. Mike's pattern across Modules 1 and 2 keeps competitive framing in sidebars rather than LOs.
-
-6. **`[NEEDS VERIFICATION]` Days Sales Outstanding (DSO) reduction range.** Module 1 v2 cited "20–30%" DSO reduction. If we cite a number in Module 5 LO 2.4 prose, the source needs to be verified or the range omitted.
+The Self-Service Portal's payment surface is distinct from its invoice surface (Module 4 LO 2.3). Module 5 covers payment activities only — the same portal, scoped to the payment workflow.
 
 ---
 
-# Cross-Module Observations
+# Cross-Module Notes
 
-## Topics still without a home in Modules 1–5 (from Module 2 v2 parking lot)
+## Topics Mike directed to remove from the parking lot
 
-These came up during Module 2 v2 and remain unscoped after the proposed Module 3/4/5 LOs:
+Mike's comment 29 directed removal of the entire "orphaned topics" list from the v1 proposal. The following were in v1 with no current home; per Mike, they should be dropped from L2 scope entirely:
 
-- **The "Big Four Flows" replacement story.** Mike's hint about the "context service and the flow that runs" suggests a more accurate billing-setup story exists. Currently nowhere in Modules 1–5.
-- **DRO Settings and Pricing Setup.** Mike confirmed neither is billing. Likely belongs in a separate Order Lifecycle / Pricing module.
-- **Multi-currency and Localization** as a standalone topic.
-- **ERP Integration / System of Execution / PLG-vs-Enterprise Bifurcation Pattern.**
-- **Standalone Billing APIs as a "headless commerce" topic** (separate from the ingestion use case in Module 2).
+- The "Big Four Flows" replacement story.
+- DRO Settings.
+- Pricing Setup.
+- Multi-currency and Localization as a standalone topic.
+- ERP Integration / System of Execution / PLG-vs-Enterprise Bifurcation Pattern.
 
-These need a scoping decision: add to existing modules, scope a Module 6, or cut from the L2 mix entirely.
+## Standalone Billing APIs
 
-## Cross-module agent coverage
-
-Each module currently has its own agent story (Module 1: full agent family overview; Module 3: Usage Agent; Module 4: Invoice Line Explanation Agent; Module 5: Collections and Dispute Agent). Worth confirming that the agent licensing matrix is cited consistently across all five modules — particularly which agents come with Revenue Cloud Advanced versus require an Agentforce Add-On.
+Mike's comment 30 directs that "Standalone Billing APIs as a 'headless commerce' topic" belongs in Module 2 — already covered in Module 2 v2 LO 2.1. No further orphaning needed.
 
 ## Voice and style for v2 drafts
 
-Once LOs are confirmed, the v2 drafts will apply the same patterns established in Module 1 v2 and Module 2 v2:
-- Imperative-verb unit titles with concrete nouns.
-- Concrete object names lead the explanations; metaphors used once for the cold-open and dropped.
-- "Salesforce / Agentforce actively works on your behalf" phrasing avoided.
-- Seller Sidebars sparse, with named pivots.
-- Trailhead AI Review Checklist applied (sentence length, comparison patterns, modals, generic phrases).
-- Object-name bolding maintained for cross-module consistency (deliberate deviation from the AI Review Checklist; flagged for editorial).
+When v2 drafts are authored against the confirmed LOs, the same patterns established in Module 1 v2 and Module 2 v2 apply: imperative-verb unit titles, concrete object names leading the explanations, metaphors used once at the cold-open and dropped, "Salesforce / Agentforce actively works on your behalf" phrasing avoided, Seller Sidebars sparse with named pivots, AI Review Checklist applied (sentence length, comparison patterns, modals, generic phrases). Object-name bolding maintained for cross-module consistency.
+
+Module 4's Resources section is still placeholder text from the Trailhead template. The actual resources need to be authored.
 
 ---
 
 ## Recommended next steps
 
-1. **Mike reviews this document** and confirms / edits the proposed LOs.
-2. **Scope the orphaned topics** above (Big Four / DRO / Multi-currency / ERP / Bifurcation) — add to existing modules, scope a Module 6, or drop from the L2.
-3. **Verification pass** of `[NEEDS VERIFICATION]` items against the Spring '26 Help compendium.
-4. **v2 drafts for Modules 3, 4, 5** authored against the confirmed LOs, using Module 1 v2 / Module 2 v2 voice patterns.
-5. **Trailhead AI Review Checklist pass** on each v2 draft.
-6. **Module 1 v2 checklist pass** — Module 1 v2 has been reviewed for content but not run through the AI Review Checklist; recommend doing this for consistency before the L2 mix ships.
+1. Mike reviews this v2 proposal and confirms or edits the LOs.
+2. v2 drafts for Modules 3, 4, 5 authored against the confirmed LOs, using Module 1 v2 / Module 2 v2 voice patterns.
+3. AI Review Checklist pass on each v2 draft.
+4. Module 1 v2 checklist pass (Module 1 v2 has been content-reviewed but not formally checklist-reviewed).
 
 ---
 
-*Prepared by Brian Galdino with AI assistance, May 7, 2026. LOs anchored to Module 1 v2 and Module 2 v2 voice patterns; specific objects and features verified against `docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf` where marked.*
+*Prepared by Brian Galdino with AI assistance, 2026-05-08. LOs anchored to Module 1 v2 and Module 2 v2 patterns; new terminology verified against `.sfdx/tools/sobjects/standardObjects/` and the Spring '26 Help compendium at `docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`.*
