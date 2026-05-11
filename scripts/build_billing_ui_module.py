@@ -4,21 +4,15 @@ Build script for unpackaged/post_billing_ui/ module.
 Copies and renames LWC components, Apex classes, static resources, and flexipages
 from extracted/maaron-billinglwc/, applying RLM namespace prefixes throughout.
 """
+import os
 import re
 import shutil
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path("/Users/brian/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev")
 SRC = ROOT / "extracted" / "maaron-billinglwc"
 DEST_MODULE = ROOT / "unpackaged" / "post_billing_ui"
 DEST_FLEXIPAGES = ROOT / "templates" / "flexipages" / "standalone" / "billing_ui"
-
-# Normalize known source token mismatches so regenerated metadata remains deployable.
-# Reference: Salesforce Revenue Cloud "Generate Account Statement" resource
-# https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_generate_account_statement.htm
-TOKEN_FIXUPS = {
-    "generateStatementOfAccount": "generateAccountStatement",
-}
 
 # ── Rename maps ──────────────────────────────────────────────────────────────
 
@@ -70,13 +64,11 @@ FLEXIPAGE_MAP = {
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def apply_all_renames(text: str) -> str:
-    """Apply LWC/Apex renames and token normalization to text content."""
+    """Apply all LWC and Apex rename substitutions to text content."""
     # Sort by length desc so longer keys don't get partially replaced first
     for old, new in sorted(LWC_MAP.items(), key=lambda x: -len(x[0])):
         text = text.replace(old, new)
     for old, new in sorted(APEX_MAP.items(), key=lambda x: -len(x[0])):
-        text = text.replace(old, new)
-    for old, new in TOKEN_FIXUPS.items():
         text = text.replace(old, new)
     return text
 
