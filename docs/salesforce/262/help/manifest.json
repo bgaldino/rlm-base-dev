@@ -1,0 +1,1292 @@
+{
+  "release": "262",
+  "release_name": "Summer '26",
+  "area": "billing",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5",
+  "snapshot_started": "2026-05-11",
+  "capture_method": "release-enablement skill — Chrome MCP shadow-DOM walker",
+  "notes": [
+    "Article IDs were discovered by walking the sidebar/body of captured pages.",
+    "Status 'captured' = .md file present in articles/. Status 'pending' = ID known, body not yet fetched.",
+    "Status 'discovered_no_id' = title seen in a captured article's child list but its ID hasn't been resolved yet.",
+    "When Module 2 v2 sync happens, fix the stale references: it cites ind.billing_payment_terms.htm for 'Define Billing Policies and Billability Rules' (wrong — that's 'Create Payment Terms') and ind.billing_milestone.htm for 'Configure Milestone Billing' (wrong — actual ID is ind.billing_milestone_plans.htm)."
+  ],
+  "articles": [
+    {
+      "article_id": "ind.billing.htm",
+      "title": "Manage Billing in Agentforce Revenue Management",
+      "parent_article": "ind.revenue_lifecycle_management.htm",
+      "status": "captured",
+      "file": "articles/ind.billing.htm.md",
+      "body_length": 9110,
+      "role": "area_root"
+    },
+    {
+      "article_id": "ind.billing_account_document_template.htm",
+      "title": "Assign an Invoice Document Template to a Billing Profile",
+      "status": "captured",
+      "body_length": 965,
+      "file": "articles/ind.billing_account_document_template.htm.md"
+    },
+    {
+      "article_id": "ind.billing_account_overview.htm",
+      "title": "Billing Account Overview",
+      "status": "captured",
+      "body_length": 2634,
+      "file": "articles/ind.billing_account_overview.htm.md"
+    },
+    {
+      "article_id": "ind.billing_account_specific_invoice_template_configure.htm",
+      "title": "Generate Invoice PDF Documents Specific to Billing Profiles",
+      "status": "captured",
+      "body_length": 1925,
+      "file": "articles/ind.billing_account_specific_invoice_template_configure.htm.md"
+    },
+    {
+      "article_id": "ind.billing_account_statement.htm",
+      "title": "Statement of Account",
+      "status": "captured",
+      "body_length": 1318,
+      "file": "articles/ind.billing_account_statement.htm.md"
+    },
+    {
+      "article_id": "ind.billing_account_statement_api.htm",
+      "title": "Generate Account Statements by Using APIs",
+      "status": "captured",
+      "body_length": 997,
+      "file": "articles/ind.billing_account_statement_api.htm.md"
+    },
+    {
+      "article_id": "ind.billing_account_statement_generate.htm",
+      "title": "Generate an Account Statement",
+      "status": "captured",
+      "body_length": 1605,
+      "file": "articles/ind.billing_account_statement_generate.htm.md"
+    },
+    {
+      "article_id": "ind.billing_account_statement_pdf_details.htm",
+      "title": "Generated Statement Details",
+      "status": "captured",
+      "body_length": 1747,
+      "file": "articles/ind.billing_account_statement_pdf_details.htm.md"
+    },
+    {
+      "article_id": "ind.billing_accounting_periods.htm",
+      "title": "Manage Accounting Periods in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 1338,
+      "file": "articles/ind.billing_accounting_periods.htm.md"
+    },
+    {
+      "article_id": "ind.billing_accounting_periods_close.htm",
+      "title": "Close an Accounting Period",
+      "status": "captured",
+      "body_length": 1433,
+      "file": "articles/ind.billing_accounting_periods_close.htm.md"
+    },
+    {
+      "article_id": "ind.billing_accounting_periods_create.htm",
+      "title": "Create Accounting Periods",
+      "status": "captured",
+      "body_length": 1493,
+      "file": "articles/ind.billing_accounting_periods_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_accounting_periods_explain.htm",
+      "title": "What are Accounting Periods?",
+      "status": "captured",
+      "body_length": 2931,
+      "file": "articles/ind.billing_accounting_periods_explain.htm.md"
+    },
+    {
+      "article_id": "ind.billing_agentforce_billing_agent.htm",
+      "title": "Agentforce for Billing Employee Assistance",
+      "status": "captured",
+      "body_length": 3698,
+      "file": "articles/ind.billing_agentforce_billing_agent.htm.md"
+    },
+    {
+      "article_id": "ind.billing_agentforce_billing_agent_setup.htm",
+      "title": "Set Up Billing Employee Assistance",
+      "status": "captured",
+      "body_length": 921,
+      "file": "articles/ind.billing_agentforce_billing_agent_setup.htm.md"
+    },
+    {
+      "article_id": "ind.billing_agentforce_billingagent_usecase.htm",
+      "title": "Billing Employee Assistance Use Case",
+      "status": "captured",
+      "body_length": 2500,
+      "file": "articles/ind.billing_agentforce_billingagent_usecase.htm.md"
+    },
+    {
+      "article_id": "ind.billing_agentforce_for_billing_service_assistance_agent.htm",
+      "title": "Agentforce for Billing Service Assistance Agent",
+      "status": "captured",
+      "body_length": 1949,
+      "file": "articles/ind.billing_agentforce_for_billing_service_assistance_agent.htm.md"
+    },
+    {
+      "article_id": "ind.billing_automate_invoice_generation.htm",
+      "title": "Automated Invoice Generation with Invoice Batch Runs",
+      "status": "captured",
+      "body_length": 1110,
+      "file": "articles/ind.billing_automate_invoice_generation.htm.md"
+    },
+    {
+      "article_id": "ind.billing_automate_invoice_run_schedules.htm",
+      "title": "Generate Invoices Automatically Based on Billing Schedules",
+      "status": "captured",
+      "body_length": 5342,
+      "file": "articles/ind.billing_automate_invoice_run_schedules.htm.md"
+    },
+    {
+      "article_id": "ind.billing_billing_arrangement_create.htm",
+      "title": "Create Billing Arrangements and Billing Arrangement Lines",
+      "parent_article": "ind.billing_billing_arrangements.htm",
+      "status": "captured",
+      "role": "leaf",
+      "module_2_v2_relevance": "medium",
+      "body_length": 1651,
+      "file": "articles/ind.billing_billing_arrangement_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_billing_arrangements.htm",
+      "title": "Manage Billing Arrangements",
+      "parent_article": "ind.billing.htm",
+      "status": "captured",
+      "file": "articles/ind.billing_billing_arrangements.htm.md",
+      "body_length": 7749,
+      "role": "parent",
+      "module_2_v2_relevance": "high"
+    },
+    {
+      "article_id": "ind.billing_billing_arrangements_examples.htm",
+      "title": "Examples: Flexible Invoicing for Complex Business Models",
+      "parent_article": "ind.billing_billing_arrangements.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 3965,
+      "file": "articles/ind.billing_billing_arrangements_examples.htm.md"
+    },
+    {
+      "article_id": "ind.billing_billing_profiles_create.htm",
+      "title": "Create Billing Profiles",
+      "status": "captured",
+      "body_length": 4336,
+      "file": "articles/ind.billing_billing_profiles_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_collection_plan_payment_promise_collect.htm",
+      "title": "Collect Payment Promises for a Collection Plan Item",
+      "status": "captured",
+      "body_length": 3240,
+      "file": "articles/ind.billing_collection_plan_payment_promise_collect.htm.md"
+    },
+    {
+      "article_id": "ind.billing_collection_plans_and_plan_items_create.htm",
+      "title": "Create Collection Plans and Collection Plan Items",
+      "status": "captured",
+      "body_length": 1156,
+      "file": "articles/ind.billing_collection_plans_and_plan_items_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_collections.htm",
+      "title": "Manage Collections for Accounts in Billing",
+      "status": "captured",
+      "body_length": 2820,
+      "file": "articles/ind.billing_collections.htm.md"
+    },
+    {
+      "article_id": "ind.billing_collections_dunning_process_setup.htm",
+      "title": "Set Up and Send Dunning Emails",
+      "status": "captured",
+      "body_length": 4032,
+      "file": "articles/ind.billing_collections_dunning_process_setup.htm.md"
+    },
+    {
+      "article_id": "ind.billing_configure_context_definitions.htm",
+      "title": "Configure Context Definitions for Billing",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "parent",
+      "body_length": 1662,
+      "file": "articles/ind.billing_configure_context_definitions.htm.md"
+    },
+    {
+      "article_id": "ind.billing_configure_salesforce_payments.htm",
+      "title": "Configure Salesforce Payments",
+      "status": "captured",
+      "body_length": 2089,
+      "file": "articles/ind.billing_configure_salesforce_payments.htm.md"
+    },
+    {
+      "article_id": "ind.billing_considerations.htm",
+      "title": "Considerations When Setting Up and Using Billing",
+      "parent_article": "ind.billing.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 3446,
+      "file": "articles/ind.billing_considerations.htm.md"
+    },
+    {
+      "article_id": "ind.billing_create_and_apply_credit_memos.htm",
+      "title": "Create and Apply Credit Memos to Invoice Lines",
+      "status": "captured",
+      "body_length": 1387,
+      "file": "articles/ind.billing_create_and_apply_credit_memos.htm.md"
+    },
+    {
+      "article_id": "ind.billing_create_legal_entities.htm",
+      "title": "Create Legal Entities in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 1250,
+      "file": "articles/ind.billing_create_legal_entities.htm.md"
+    },
+    {
+      "article_id": "ind.billing_credit_application_results.htm",
+      "title": "Results of Credit Memo Application",
+      "status": "captured",
+      "body_length": 1374,
+      "file": "articles/ind.billing_credit_application_results.htm.md"
+    },
+    {
+      "article_id": "ind.billing_credit_memos.htm",
+      "title": "Manage Credit Memos in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 2594,
+      "file": "articles/ind.billing_credit_memos.htm.md"
+    },
+    {
+      "article_id": "ind.billing_credit_memos_apis_and_actions.htm",
+      "title": "Manage Credit Memos by Using APIs or Flow Actions",
+      "status": "captured",
+      "body_length": 2336,
+      "file": "articles/ind.billing_credit_memos_apis_and_actions.htm.md"
+    },
+    {
+      "article_id": "ind.billing_credit_memos_explain.htm",
+      "title": "About Credit Memos",
+      "status": "captured",
+      "body_length": 2949,
+      "file": "articles/ind.billing_credit_memos_explain.htm.md"
+    },
+    {
+      "article_id": "ind.billing_credit_memos_standalone_user_interface_create.htm",
+      "title": "Create and Apply Standalone Credit Memos",
+      "status": "captured",
+      "body_length": 2947,
+      "file": "articles/ind.billing_credit_memos_standalone_user_interface_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_credit_memos_void_recover.htm",
+      "title": "Void or Recover Credit Memos",
+      "status": "captured",
+      "body_length": 1933,
+      "file": "articles/ind.billing_credit_memos_void_recover.htm.md"
+    },
+    {
+      "article_id": "ind.billing_custom_field_support.htm",
+      "title": "Capture Preferred Transaction Details by Using Custom Fields",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 3949,
+      "file": "articles/ind.billing_custom_field_support.htm.md"
+    },
+    {
+      "article_id": "ind.billing_custom_metadata_types_configure.htm",
+      "title": "Configure Your Custom Metadata Types",
+      "status": "captured",
+      "body_length": 2916,
+      "file": "articles/ind.billing_custom_metadata_types_configure.htm.md"
+    },
+    {
+      "article_id": "ind.billing_data_model_credit_memo.htm",
+      "title": "Credit Memo Data Model in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 293,
+      "file": "articles/ind.billing_data_model_credit_memo.htm.md"
+    },
+    {
+      "article_id": "ind.billing_data_model_debit_memo.htm",
+      "title": "Debit Memo Data Model in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 284,
+      "file": "articles/ind.billing_data_model_debit_memo.htm.md"
+    },
+    {
+      "article_id": "ind.billing_data_model_financial_accounting.htm",
+      "title": "Financial Accounting Data Model in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 462,
+      "file": "articles/ind.billing_data_model_financial_accounting.htm.md"
+    },
+    {
+      "article_id": "ind.billing_data_model_invoice.htm",
+      "title": "Invoice Data Model in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 566,
+      "file": "articles/ind.billing_data_model_invoice.htm.md"
+    },
+    {
+      "article_id": "ind.billing_data_model_payments.htm",
+      "title": "Payments Data Model in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 361,
+      "file": "articles/ind.billing_data_model_payments.htm.md"
+    },
+    {
+      "article_id": "ind.billing_debit_memo.htm",
+      "title": "Manage Debit Memos in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 1045,
+      "file": "articles/ind.billing_debit_memo.htm.md"
+    },
+    {
+      "article_id": "ind.billing_debit_memo_explain.htm",
+      "title": "About Debit Memos",
+      "status": "captured",
+      "body_length": 2349,
+      "file": "articles/ind.billing_debit_memo_explain.htm.md"
+    },
+    {
+      "article_id": "ind.billing_dispute_management_assisted_case_creation.htm",
+      "title": "Raise Service Requests on Behalf of the Customer",
+      "status": "captured",
+      "body_length": 1552,
+      "file": "articles/ind.billing_dispute_management_assisted_case_creation.htm.md"
+    },
+    {
+      "article_id": "ind.billing_dispute_management_enable.htm",
+      "title": "Set Up Billing Dispute Management",
+      "status": "captured",
+      "body_length": 7137,
+      "file": "articles/ind.billing_dispute_management_enable.htm.md"
+    },
+    {
+      "article_id": "ind.billing_dispute_management_resolve_service_requests.htm",
+      "title": "Resolve Billing Service Requests",
+      "status": "captured",
+      "body_length": 3144,
+      "file": "articles/ind.billing_dispute_management_resolve_service_requests.htm.md"
+    },
+    {
+      "article_id": "ind.billing_document_generation_default_invoice_template.htm",
+      "title": "Default Document Template to Generate Invoice PDF Documents",
+      "status": "captured",
+      "body_length": 1228,
+      "file": "articles/ind.billing_document_generation_default_invoice_template.htm.md"
+    },
+    {
+      "article_id": "ind.billing_document_generation_logo.htm",
+      "title": "Generate Invoice PDFs with Your Company Logo",
+      "status": "captured",
+      "body_length": 1212,
+      "file": "articles/ind.billing_document_generation_logo.htm.md"
+    },
+    {
+      "article_id": "ind.billing_dunning_orchestration_enable.htm",
+      "title": "Set Up Orchestrated Dunning for Collections",
+      "status": "captured",
+      "body_length": 2428,
+      "file": "articles/ind.billing_dunning_orchestration_enable.htm.md"
+    },
+    {
+      "article_id": "ind.billing_extend_tax_interface.htm",
+      "title": "Extend Your Tax Interface",
+      "status": "captured",
+      "body_length": 1035,
+      "file": "articles/ind.billing_extend_tax_interface.htm.md"
+    },
+    {
+      "article_id": "ind.billing_fgn_exch_unrealized_gains_losses_use_case.htm",
+      "title": "Example: Automatically Capture Unrealized Foreign Exchange Unrealized Gains or Losses",
+      "status": "captured",
+      "body_length": 3671,
+      "file": "articles/ind.billing_fgn_exch_unrealized_gains_losses_use_case.htm.md"
+    },
+    {
+      "article_id": "ind.billing_field_combination_requirements.htm",
+      "title": "Field Combination Requirements",
+      "status": "captured",
+      "body_length": 5222,
+      "file": "articles/ind.billing_field_combination_requirements.htm.md"
+    },
+    {
+      "article_id": "ind.billing_financial_accounting.htm",
+      "title": "Manage Financial Accounting in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 2494,
+      "file": "articles/ind.billing_financial_accounting.htm.md"
+    },
+    {
+      "article_id": "ind.billing_gapless_sequential_numbering.htm",
+      "title": "Gapless Sequential Numbering",
+      "status": "captured",
+      "body_length": 3743,
+      "file": "articles/ind.billing_gapless_sequential_numbering.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger.htm",
+      "title": "Manage Chart of Accounts and Transaction Journals in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 2882,
+      "file": "articles/ind.billing_general_ledger.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_account_assignment_rules_and_criteria.htm",
+      "title": "General Ledger Account Assignment Rules and Related Records",
+      "status": "captured",
+      "body_length": 1302,
+      "file": "articles/ind.billing_general_ledger_account_assignment_rules_and_criteria.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_account_assignment_rules_criteria.htm",
+      "title": "Define Criteria for Transaction Types",
+      "status": "captured",
+      "body_length": 2483,
+      "file": "articles/ind.billing_general_ledger_account_assignment_rules_criteria.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_accounting_period_summary_create.htm",
+      "title": "Create General Ledger Accounting Period Summary Manually",
+      "status": "captured",
+      "body_length": 2509,
+      "file": "articles/ind.billing_general_ledger_accounting_period_summary_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_accounts_create.htm",
+      "title": "Create General Ledger Accounts",
+      "status": "captured",
+      "body_length": 1943,
+      "file": "articles/ind.billing_general_ledger_accounts_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_accounts_explain.htm",
+      "title": "What are Chart of Accounts and Dual Journal Entries?",
+      "status": "captured",
+      "body_length": 2270,
+      "file": "articles/ind.billing_general_ledger_accounts_explain.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_results.htm",
+      "title": "Automatic Creation of Dual Transaction Journals",
+      "status": "captured",
+      "body_length": 1856,
+      "file": "articles/ind.billing_general_ledger_results.htm.md"
+    },
+    {
+      "article_id": "ind.billing_general_ledger_usecase.htm",
+      "title": "Example: Chart of Accounts and Dual Journal Entries",
+      "status": "captured",
+      "body_length": 3799,
+      "file": "articles/ind.billing_general_ledger_usecase.htm.md"
+    },
+    {
+      "article_id": "ind.billing_generate_pay_now_payment_links_for_business_accounts.htm",
+      "title": "Generate Pay Now Links for Business Accounts",
+      "status": "captured",
+      "body_length": 2615,
+      "file": "articles/ind.billing_generate_pay_now_payment_links_for_business_accounts.htm.md"
+    },
+    {
+      "article_id": "ind.billing_generate_single_payment_schedule.htm",
+      "title": "Generate a Single Payment Schedule for Multiple Invoices of an Account",
+      "status": "captured",
+      "body_length": 1365,
+      "file": "articles/ind.billing_generate_single_payment_schedule.htm.md"
+    },
+    {
+      "article_id": "ind.billing_guided_setup.htm",
+      "title": "Guided Setup for Billing",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 3773,
+      "file": "articles/ind.billing_guided_setup.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invc_document_delivery_for_invc_btch_runs.htm",
+      "title": "Send Invoice Emails in Bulk from Invoice Batch Runs",
+      "status": "captured",
+      "body_length": 1665,
+      "file": "articles/ind.billing_invc_document_delivery_for_invc_btch_runs.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_batch_run.htm",
+      "title": "Invoice Batch Run Process",
+      "status": "captured",
+      "body_length": 4719,
+      "file": "articles/ind.billing_invoice_batch_run.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_batch_run_example.htm",
+      "title": "Examples: Invoice Batch Run Frequencies",
+      "status": "captured",
+      "body_length": 2520,
+      "file": "articles/ind.billing_invoice_batch_run_example.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_batch_runs_troubleshooting.htm",
+      "title": "Troubleshoot Invoice Batch Run Errors",
+      "status": "captured",
+      "body_length": 1946,
+      "file": "articles/ind.billing_invoice_batch_runs_troubleshooting.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_creation.htm",
+      "title": "Create Standalone Invoices or Import External Invoices",
+      "status": "captured",
+      "body_length": 1471,
+      "file": "articles/ind.billing_invoice_creation.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_document_email.htm",
+      "title": "Send Invoice Emails from Invoice Records",
+      "status": "captured",
+      "body_length": 1909,
+      "file": "articles/ind.billing_invoice_document_email.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_document_generation_batch.htm",
+      "title": "Generate a Batch of Invoice PDF Documents",
+      "status": "captured",
+      "body_length": 1569,
+      "file": "articles/ind.billing_invoice_document_generation_batch.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_document_generation_batch_and_single.htm",
+      "title": "Generate Invoice PDF Documents",
+      "status": "captured",
+      "body_length": 1846,
+      "file": "articles/ind.billing_invoice_document_generation_batch_and_single.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_document_generation_generated_document.htm",
+      "title": "Generated Invoice PDF Document Details",
+      "status": "captured",
+      "body_length": 2695,
+      "file": "articles/ind.billing_invoice_document_generation_generated_document.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_generation.htm",
+      "title": "Generate Invoices in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 2655,
+      "file": "articles/ind.billing_invoice_generation.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_generation_for_accounts_orders.htm",
+      "title": "Generate Invoices for Accounts or Orders",
+      "status": "captured",
+      "body_length": 2550,
+      "file": "articles/ind.billing_invoice_generation_for_accounts_orders.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_pdf_document_delivery_through_email.htm",
+      "title": "Send Invoices Through Email",
+      "status": "captured",
+      "body_length": 1651,
+      "file": "articles/ind.billing_invoice_pdf_document_delivery_through_email.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_preview_default_template.htm",
+      "title": "Default Document Template to Generate Invoice Preview PDF Documents",
+      "status": "captured",
+      "body_length": 1205,
+      "file": "articles/ind.billing_invoice_preview_default_template.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_preview_procedure_plan_create.htm",
+      "title": "Generate Invoice Previews with the Invoice Preview API",
+      "status": "captured",
+      "body_length": 2602,
+      "file": "articles/ind.billing_invoice_preview_procedure_plan_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_previews.htm",
+      "title": "Preview Invoices",
+      "status": "captured",
+      "body_length": 1132,
+      "file": "articles/ind.billing_invoice_previews.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoice_scheduler_amended_bundle_schedule_groups.htm",
+      "title": "Generated Invoice Details",
+      "status": "captured",
+      "body_length": 3835,
+      "file": "articles/ind.billing_invoice_scheduler_amended_bundle_schedule_groups.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoices_apis_and_actions.htm",
+      "title": "Manage Invoices by Using APIs or Flow Actions",
+      "status": "captured",
+      "body_length": 2058,
+      "file": "articles/ind.billing_invoices_apis_and_actions.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoices_email_prerequisites.htm",
+      "title": "Define Invoice Email Delivery Configuration and Preferences",
+      "status": "captured",
+      "body_length": 2469,
+      "file": "articles/ind.billing_invoices_email_prerequisites.htm.md"
+    },
+    {
+      "article_id": "ind.billing_invoices_void.htm",
+      "title": "Void Invoices",
+      "status": "captured",
+      "body_length": 1264,
+      "file": "articles/ind.billing_invoices_void.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entities_manage.htm",
+      "title": "Legal Entities",
+      "status": "captured",
+      "body_length": 1139,
+      "file": "articles/ind.billing_legal_entities_manage.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entity_accounting_period_closure_importance.htm",
+      "title": "Importance of Legal Entity Accounting Period Closure",
+      "status": "captured",
+      "body_length": 2605,
+      "file": "articles/ind.billing_legal_entity_accounting_period_closure_importance.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entity_accounting_period_reopen.htm",
+      "title": "Reopen a Legal Entity Accounting Period",
+      "status": "captured",
+      "body_length": 2000,
+      "file": "articles/ind.billing_legal_entity_accounting_period_reopen.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entity_accounting_periods_close.htm",
+      "title": "Close Legal Entity Accounting Periods",
+      "status": "captured",
+      "body_length": 2557,
+      "file": "articles/ind.billing_legal_entity_accounting_periods_close.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entity_accounting_periods_close_and_reopen.htm",
+      "title": "Legal Entity Accounting Periods Closure and Reopening",
+      "status": "captured",
+      "body_length": 1734,
+      "file": "articles/ind.billing_legal_entity_accounting_periods_close_and_reopen.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entity_accounting_periods_close_result.htm",
+      "title": "Legal Entity Accounting Period Closure Procedure",
+      "status": "captured",
+      "body_length": 10885,
+      "file": "articles/ind.billing_legal_entity_accounting_periods_close_result.htm.md"
+    },
+    {
+      "article_id": "ind.billing_legal_entity_default.htm",
+      "title": "Legal Entity Automatic Population, Usage, and Considerations",
+      "status": "captured",
+      "body_length": 5842,
+      "file": "articles/ind.billing_legal_entity_default.htm.md"
+    },
+    {
+      "article_id": "ind.billing_limits.htm",
+      "title": "Limits in Billing",
+      "status": "captured",
+      "body_length": 1803,
+      "file": "articles/ind.billing_limits.htm.md"
+    },
+    {
+      "article_id": "ind.billing_manage_disputes.htm",
+      "title": "Manage Billing Disputes",
+      "status": "captured",
+      "body_length": 7333,
+      "file": "articles/ind.billing_manage_disputes.htm.md"
+    },
+    {
+      "article_id": "ind.billing_migrate_saved_payment_methods.htm",
+      "title": "Migrate Tokenized Saved Payment Methods",
+      "status": "captured",
+      "body_length": 3274,
+      "file": "articles/ind.billing_migrate_saved_payment_methods.htm.md"
+    },
+    {
+      "article_id": "ind.billing_milestone_amended_renewed_canceled_assets.htm",
+      "title": "Milestone Billing for Amended, Renewed, and Canceled Assets",
+      "status": "captured",
+      "body_length": 2842,
+      "file": "articles/ind.billing_milestone_amended_renewed_canceled_assets.htm.md"
+    },
+    {
+      "article_id": "ind.billing_milestone_create.htm",
+      "title": "Method 2: Create Billing Milestone Plans and Plan Items",
+      "status": "captured",
+      "body_length": 3868,
+      "file": "articles/ind.billing_milestone_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_milestone_methods.htm",
+      "title": "Define Billing Milestones",
+      "parent_article": "ind.billing_milestone_plans.htm",
+      "status": "captured",
+      "file": "articles/ind.billing_milestone_methods.htm.md",
+      "body_length": 1421,
+      "role": "parent",
+      "module_2_v2_relevance": "high"
+    },
+    {
+      "article_id": "ind.billing_milestone_plans.htm",
+      "title": "Configure Milestone Billing",
+      "parent_article": "ind.billing.htm",
+      "status": "captured",
+      "file": "articles/ind.billing_milestone_plans.htm.md",
+      "body_length": 1375,
+      "role": "parent",
+      "module_2_v2_relevance": "high",
+      "module_2_v2_correction": "M2 v2 Resources cites ind.billing_milestone.htm — that article ID returns 404 in 262. Correct ID is ind.billing_milestone_plans.htm."
+    },
+    {
+      "article_id": "ind.billing_milestone_treatment_and_item_create.htm",
+      "title": "Method 1: Configure Billing Milestones Using Billing Treatments",
+      "parent_article": "ind.billing_milestone_methods.htm",
+      "status": "captured",
+      "role": "leaf",
+      "module_2_v2_relevance": "high",
+      "body_length": 3123,
+      "file": "articles/ind.billing_milestone_treatment_and_item_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_milestone_usecase.htm",
+      "title": "Milestone Billing Example",
+      "status": "captured",
+      "body_length": 4518,
+      "file": "articles/ind.billing_milestone_usecase.htm.md"
+    },
+    {
+      "article_id": "ind.billing_operations_console.htm",
+      "title": "Billing Operations Console",
+      "status": "captured",
+      "body_length": 2448,
+      "file": "articles/ind.billing_operations_console.htm.md"
+    },
+    {
+      "article_id": "ind.billing_page_layout.htm",
+      "title": "Add New Billing Fields to Page Layouts",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 1082,
+      "file": "articles/ind.billing_page_layout.htm.md"
+    },
+    {
+      "article_id": "ind.billing_payment_batch_run_overview.htm",
+      "title": "Payment Batch Run Overview",
+      "status": "captured",
+      "body_length": 5108,
+      "file": "articles/ind.billing_payment_batch_run_overview.htm.md"
+    },
+    {
+      "article_id": "ind.billing_payment_runs_schedule.htm",
+      "title": "Schedule Payment Batch Runs to Process Payments",
+      "status": "captured",
+      "body_length": 2937,
+      "file": "articles/ind.billing_payment_runs_schedule.htm.md"
+    },
+    {
+      "article_id": "ind.billing_payment_schedules_and_payment_schedule_items_auto_manual.htm",
+      "title": "Payment Schedules and Payment Schedule Items",
+      "status": "captured",
+      "body_length": 1497,
+      "file": "articles/ind.billing_payment_schedules_and_payment_schedule_items_auto_manual.htm.md"
+    },
+    {
+      "article_id": "ind.billing_payment_terms.htm",
+      "title": "Create Payment Terms",
+      "parent_article": "ind.billing_policies_and_treatments.htm",
+      "status": "captured",
+      "file": "articles/ind.billing_payment_terms.htm.md",
+      "body_length": 4361,
+      "role": "leaf",
+      "module_2_v2_relevance": "medium",
+      "module_2_v2_correction": "M2 v2 Resources mistakenly cites this article ID for 'Define Billing Policies and Billability Rules'. Wrong — this article is 'Create Payment Terms'. Correct ID for that topic is ind.billing_policies_and_treatments.htm."
+    },
+    {
+      "article_id": "ind.billing_payments.htm",
+      "title": "Process Payments and Issue Refunds in Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 5171,
+      "file": "articles/ind.billing_payments.htm.md"
+    },
+    {
+      "article_id": "ind.billing_payments_apis.htm",
+      "title": "Process Payments and Issue Refunds by Using APIs",
+      "status": "captured",
+      "body_length": 2177,
+      "file": "articles/ind.billing_payments_apis.htm.md"
+    },
+    {
+      "article_id": "ind.billing_payments_consolidate_invoices.htm",
+      "title": "Group Multiple Invoices into a Single Payment Request",
+      "status": "captured",
+      "body_length": 5577,
+      "file": "articles/ind.billing_payments_consolidate_invoices.htm.md"
+    },
+    {
+      "article_id": "ind.billing_permission_sets.htm",
+      "title": "Assign Permissions to Access Billing Features",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 5181,
+      "file": "articles/ind.billing_permission_sets.htm.md"
+    },
+    {
+      "article_id": "ind.billing_policies_and_treatments.htm",
+      "title": "Define Billing Policies and Billability Rules",
+      "parent_article": "ind.billing.htm",
+      "status": "captured",
+      "file": "articles/ind.billing_policies_and_treatments.htm.md",
+      "body_length": 963,
+      "role": "parent",
+      "module_2_v2_relevance": "high"
+    },
+    {
+      "article_id": "ind.billing_refund_orchestration.htm",
+      "title": "Issue Refunds and Settle Balances",
+      "status": "captured",
+      "body_length": 2520,
+      "file": "articles/ind.billing_refund_orchestration.htm.md"
+    },
+    {
+      "article_id": "ind.billing_retry_failed_payments.htm",
+      "title": "Retry Failed Payments",
+      "status": "captured",
+      "body_length": 7361,
+      "file": "articles/ind.billing_retry_failed_payments.htm.md"
+    },
+    {
+      "article_id": "ind.billing_saved_payment_methods.htm",
+      "title": "Configure Saved Payment Methods for Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 3022,
+      "file": "articles/ind.billing_saved_payment_methods.htm.md"
+    },
+    {
+      "article_id": "ind.billing_schedule_invoice_grouping.htm",
+      "title": "Define Invoice Grouping on a Billing Schedule",
+      "status": "captured",
+      "body_length": 2968,
+      "file": "articles/ind.billing_schedule_invoice_grouping.htm.md"
+    },
+    {
+      "article_id": "ind.billing_schedules_and_schedule_groups.htm",
+      "title": "Manage Billing Schedules and Billing Schedule Groups",
+      "status": "captured",
+      "body_length": 1143,
+      "file": "articles/ind.billing_schedules_and_schedule_groups.htm.md"
+    },
+    {
+      "article_id": "ind.billing_schedules_create.htm",
+      "title": "Generate Billing Schedules",
+      "status": "captured",
+      "body_length": 947,
+      "file": "articles/ind.billing_schedules_create.htm.md"
+    },
+    {
+      "article_id": "ind.billing_schedules_standalone_api.htm",
+      "title": "Generate Billing Schedules from External Transactions or Salesforce Objects",
+      "status": "captured",
+      "body_length": 1943,
+      "file": "articles/ind.billing_schedules_standalone_api.htm.md"
+    },
+    {
+      "article_id": "ind.billing_self_service_portal.htm",
+      "title": "Self-Service Billing Portal",
+      "status": "captured",
+      "body_length": 1671,
+      "file": "articles/ind.billing_self_service_portal.htm.md"
+    },
+    {
+      "article_id": "ind.billing_self_service_portal_pay_invoices.htm",
+      "title": "Pay Invoices with the Self-Service Billing Portal",
+      "status": "captured",
+      "body_length": 2768,
+      "file": "articles/ind.billing_self_service_portal_pay_invoices.htm.md"
+    },
+    {
+      "article_id": "ind.billing_self_service_portal_raise_service_requests.htm",
+      "title": "Raise Billing Inquiries and Invoice-Related Disputes",
+      "status": "captured",
+      "body_length": 2163,
+      "file": "articles/ind.billing_self_service_portal_raise_service_requests.htm.md"
+    },
+    {
+      "article_id": "ind.billing_send_l2_l3_data.htm",
+      "title": "Send Level 2 and Level 3 Payment Data via Your Payment Gateways",
+      "status": "captured",
+      "body_length": 2346,
+      "file": "articles/ind.billing_send_l2_l3_data.htm.md"
+    },
+    {
+      "article_id": "ind.billing_sequence_policies_manage.htm",
+      "title": "Configure Sequence Policies",
+      "status": "captured",
+      "body_length": 3358,
+      "file": "articles/ind.billing_sequence_policies_manage.htm.md"
+    },
+    {
+      "article_id": "ind.billing_sequential_number_assignment_and_sequence_gap_reconciliation.htm",
+      "title": "Sequential Invoice and Credit Memo Number Assignment",
+      "status": "captured",
+      "body_length": 5414,
+      "file": "articles/ind.billing_sequential_number_assignment_and_sequence_gap_reconciliation.htm.md"
+    },
+    {
+      "article_id": "ind.billing_sequential_numbering_apis.htm",
+      "title": "Manage Sequential Numbering by Using APIs",
+      "status": "captured",
+      "body_length": 1131,
+      "file": "articles/ind.billing_sequential_numbering_apis.htm.md"
+    },
+    {
+      "article_id": "ind.billing_sequential_numbering_for_invoices_configure.htm",
+      "title": "Configure Sequential Numbering for Invoices and Credit Memos",
+      "status": "captured",
+      "body_length": 1684,
+      "file": "articles/ind.billing_sequential_numbering_for_invoices_configure.htm.md"
+    },
+    {
+      "article_id": "ind.billing_set_up_billing_service_assistance_agent_for_experience_cloud.htm",
+      "title": "Set Up Billing Service Assistance Agent for Experience Cloud",
+      "status": "captured",
+      "body_length": 3037,
+      "file": "articles/ind.billing_set_up_billing_service_assistance_agent_for_experience_cloud.htm.md"
+    },
+    {
+      "article_id": "ind.billing_set_up_context_definition.htm",
+      "title": "Select Context Definition and Mapping for Create Billing Schedules for Orders API",
+      "parent_article": "ind.billing_configure_context_definitions.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 1328,
+      "file": "articles/ind.billing_set_up_context_definition.htm.md"
+    },
+    {
+      "article_id": "ind.billing_settlements_central.htm",
+      "title": "Billing Settlements Central",
+      "status": "captured",
+      "body_length": 2542,
+      "file": "articles/ind.billing_settlements_central.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup.htm",
+      "title": "Set Up Billing",
+      "parent_article": "ind.billing.htm",
+      "status": "captured",
+      "role": "parent",
+      "body_length": 1818,
+      "file": "articles/ind.billing_setup.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_additional_features.htm",
+      "title": "Set Up Additional Billing Features",
+      "parent_article": "ind.billing.htm",
+      "status": "captured",
+      "role": "parent",
+      "body_length": 2859,
+      "file": "articles/ind.billing_setup_additional_features.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_apply_credits_to_posted_invoices.htm",
+      "title": "Automatic Application of Credits to Settle Invoice Balances",
+      "status": "captured",
+      "body_length": 1089,
+      "file": "articles/ind.billing_setup_apply_credits_to_posted_invoices.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_billing_arrangements.htm",
+      "title": "Configure Billing Arrangements for Billing Schedule Groups",
+      "parent_article": "ind.billing_billing_arrangements.htm",
+      "status": "captured",
+      "role": "leaf",
+      "module_2_v2_relevance": "medium",
+      "body_length": 1617,
+      "file": "articles/ind.billing_setup_billing_arrangements.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_credit_memo_features_enable.htm",
+      "title": "Set Up Credit Memo Features",
+      "status": "captured",
+      "body_length": 1992,
+      "file": "articles/ind.billing_setup_credit_memo_features_enable.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_default_records.htm",
+      "title": "Select Default Billing Treatment, Tax Treatment, and Legal Entity",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 1431,
+      "file": "articles/ind.billing_setup_default_records.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_document_generation.htm",
+      "title": "Turn On Invoice PDF Document Generation",
+      "parent_article": "ind.billing_setup_additional_features.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 1865,
+      "file": "articles/ind.billing_setup_document_generation.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_email_delivery.htm",
+      "title": "Turn On Email Delivery of Invoices",
+      "status": "captured",
+      "body_length": 1584,
+      "file": "articles/ind.billing_setup_email_delivery.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_enable.htm",
+      "title": "Turn On Billing in Agentforce Revenue Management",
+      "parent_article": "ind.billing_setup.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 1395,
+      "file": "articles/ind.billing_setup_enable.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_financial_accounting_features.htm",
+      "title": "Set Up Financial Accounting Features",
+      "parent_article": "ind.billing_setup_additional_features.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 4355,
+      "file": "articles/ind.billing_setup_financial_accounting_features.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_header_tax_enable.htm",
+      "title": "Capture Taxes at Header Level",
+      "status": "captured",
+      "body_length": 774,
+      "file": "articles/ind.billing_setup_header_tax_enable.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_negative_invoice_lines_conversion_to_credit_memo_lines.htm",
+      "title": "Automatic Conversion of Negative Invoice Lines into Credit Memo Lines",
+      "status": "captured",
+      "body_length": 2763,
+      "file": "articles/ind.billing_setup_negative_invoice_lines_conversion_to_credit_memo_lines.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_payment_retry_rules.htm",
+      "title": "Set Up Payment Retry Rules",
+      "status": "captured",
+      "body_length": 5767,
+      "file": "articles/ind.billing_setup_payment_retry_rules.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_payment_retry_rules_examples.htm",
+      "title": "Examples: Configure Payment Retry Rule Sets and Retry Rules",
+      "status": "captured",
+      "body_length": 4773,
+      "file": "articles/ind.billing_setup_payment_retry_rules_examples.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_payment_schedules_and_payment_schedule_items_enable.htm",
+      "title": "Automatic Creation of Payment Schedules and Payment Schedule Items",
+      "status": "captured",
+      "body_length": 3150,
+      "file": "articles/ind.billing_setup_payment_schedules_and_payment_schedule_items_enable.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_payments_configure.htm",
+      "title": "Set Up Payment Features in Billing",
+      "status": "captured",
+      "body_length": 2655,
+      "file": "articles/ind.billing_setup_payments_configure.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_payments_merchant_accounts.htm",
+      "title": "Set Up Native Payment Gateways by Using Salesforce Payments",
+      "status": "captured",
+      "body_length": 1555,
+      "file": "articles/ind.billing_setup_payments_merchant_accounts.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_salesforce_payments_features.htm",
+      "title": "Set Up Payment Features for Agentforce Revenue Management",
+      "status": "captured",
+      "body_length": 2638,
+      "file": "articles/ind.billing_setup_salesforce_payments_features.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_sequential_numbering_features.htm",
+      "title": "Turn On Sequential Numbering Features",
+      "status": "captured",
+      "body_length": 1256,
+      "file": "articles/ind.billing_setup_sequential_numbering_features.htm.md"
+    },
+    {
+      "article_id": "ind.billing_setup_third_party_payments.htm",
+      "title": "Set Up Third-Party Payment Gateways",
+      "status": "captured",
+      "body_length": 7469,
+      "file": "articles/ind.billing_setup_third_party_payments.htm.md"
+    },
+    {
+      "article_id": "ind.billing_standard_context_definitions.htm",
+      "title": "Standard Context Definitions for Billing",
+      "parent_article": "ind.billing_configure_context_definitions.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 3073,
+      "file": "articles/ind.billing_standard_context_definitions.htm.md"
+    },
+    {
+      "article_id": "ind.billing_standard_tax_rate.htm",
+      "title": "Revenue Standard Tax Engine",
+      "status": "captured",
+      "body_length": 2173,
+      "file": "articles/ind.billing_standard_tax_rate.htm.md"
+    },
+    {
+      "article_id": "ind.billing_standard_tax_rate_application.htm",
+      "title": "Understand How Agentforce Revenue Management Determines and Applies Tax Rates",
+      "status": "captured",
+      "body_length": 4006,
+      "file": "articles/ind.billing_standard_tax_rate_application.htm.md"
+    },
+    {
+      "article_id": "ind.billing_standard_tax_rate_example.htm",
+      "title": "Revenue Standard Tax Engine Example",
+      "status": "captured",
+      "body_length": 1299,
+      "file": "articles/ind.billing_standard_tax_rate_example.htm.md"
+    },
+    {
+      "article_id": "ind.billing_supported_payment_methods_for_the_self_service_billing_portal.htm",
+      "title": "Supported Payment Methods for the Self-Service Billing Portal",
+      "parent_article": "ind.billing_setup_additional_features.htm",
+      "status": "captured",
+      "role": "leaf",
+      "body_length": 1082,
+      "file": "articles/ind.billing_supported_payment_methods_for_the_self_service_billing_portal.htm.md"
+    },
+    {
+      "article_id": "ind.billing_suspend_and_resume.htm",
+      "title": "Suspend and Resume Billing",
+      "status": "captured",
+      "body_length": 2549,
+      "file": "articles/ind.billing_suspend_and_resume.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_calculation_results.htm",
+      "title": "Tax Calculation Process",
+      "status": "captured",
+      "body_length": 2567,
+      "file": "articles/ind.billing_tax_calculation_results.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_configuration.htm",
+      "title": "Define Tax Calculation for Invoices",
+      "status": "captured",
+      "body_length": 789,
+      "file": "articles/ind.billing_tax_configuration.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_configuration_engine.htm",
+      "title": "Configure Tax Calculation for Invoices",
+      "status": "captured",
+      "body_length": 2704,
+      "file": "articles/ind.billing_tax_configuration_engine.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_configuration_prerequisites.htm",
+      "title": "Tax Setup Prerequisites",
+      "status": "captured",
+      "body_length": 1645,
+      "file": "articles/ind.billing_tax_configuration_prerequisites.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_identification_configure.htm",
+      "title": "Configure Additional Tax Identification Details",
+      "status": "captured",
+      "body_length": 1804,
+      "file": "articles/ind.billing_tax_identification_configure.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_lines_import.htm",
+      "title": "Import External Tax Lines into Billing",
+      "status": "captured",
+      "body_length": 1945,
+      "file": "articles/ind.billing_tax_lines_import.htm.md"
+    },
+    {
+      "article_id": "ind.billing_tax_rate_configure.htm",
+      "title": "Configure Tax Rates",
+      "status": "captured",
+      "body_length": 3473,
+      "file": "articles/ind.billing_tax_rate_configure.htm.md"
+    },
+    {
+      "article_id": "ind.billing_transaction_amounts_corporate_currency.htm",
+      "title": "Capture Transaction Amounts in Multiple Currencies",
+      "status": "captured",
+      "body_length": 4771,
+      "file": "articles/ind.billing_transaction_amounts_corporate_currency.htm.md"
+    },
+    {
+      "article_id": "ind.billing_treatment_resolution.htm",
+      "title": "Understand Billing Treatment Resolution",
+      "parent_article": "ind.billing_policies_and_treatments.htm",
+      "status": "captured",
+      "file": "articles/ind.billing_treatment_resolution.htm.md",
+      "body_length": 2283,
+      "role": "leaf",
+      "module_2_v2_relevance": "high"
+    },
+    {
+      "article_id": "ind.billing_understand_period_boundaries_and_billing_day_of_month.htm",
+      "title": "Period Boundaries and Billing Day of Month",
+      "status": "captured",
+      "body_length": 7224,
+      "file": "articles/ind.billing_understand_period_boundaries_and_billing_day_of_month.htm.md"
+    },
+    {
+      "article_id": "ind.billing_understand_period_boundries.htm",
+      "title": "Period Boundary and Proration in Billing Cycles",
+      "status": "captured",
+      "body_length": 1313,
+      "file": "articles/ind.billing_understand_period_boundries.htm.md"
+    },
+    {
+      "article_id": "ind.billing_understand_tax_interface_extension.htm",
+      "title": "Tax Interface Extension",
+      "status": "captured",
+      "body_length": 2316,
+      "file": "articles/ind.billing_understand_tax_interface_extension.htm.md"
+    },
+    {
+      "article_id": "ind.billing_view_billing_sched_group.htm",
+      "title": "Generated Billing Schedule Details",
+      "status": "captured",
+      "body_length": 8879,
+      "file": "articles/ind.billing_view_billing_sched_group.htm.md"
+    }
+  ],
+  "stats": {
+    "discovered": 171,
+    "captured": 171,
+    "pending": 0,
+    "errored": 0,
+    "total_captured_body_chars": 458448
+  },
+  "todo": [
+    "Walk remaining child articles from each captured parent to discover sub-article IDs (Turn On Email Delivery, Method 2 milestone creation, etc.).",
+    "Capture the high-relevance pending articles next (Method 1 milestone setup, Billing Arrangement creation, Invoice Generation/Bill Run).",
+    "Discover and capture: Generate Invoices (ind.billing_invoice_run.htm?), Create Billing Profiles, Manage Debit Memos, Manage Credit Memos.",
+    "Formalize this snapshot workflow as a CCI task once the manual pass settles the patterns."
+  ],
+  "last_updated": "2026-05-11T21:48:45Z",
+  "root_article_id": "ind.billing.htm",
+  "article_id_prefix": "ind.billing"
+}
