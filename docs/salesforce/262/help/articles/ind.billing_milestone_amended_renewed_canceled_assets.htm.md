@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Milestone Billing for Amended, Renewed, and Canceled Assets
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Milestone Billing for Amended, Renewed, and Canceled Assets
-
 Handle milestone plans during amendments, renewals, and cancellations to ensure accurate billing. By default, milestone-based billing doesn’t create new milestone plans or plan items for amend or renew orders. When the Support Milestone Plans for Amended Billing Schedules setting is enabled, Billing creates or links a milestone plan to the amendment schedule and recalculates milestone dates and amounts from the amendment start date.
 
 REQUIRED EDITIONS

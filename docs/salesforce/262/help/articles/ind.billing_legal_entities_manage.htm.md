@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Legal Entities
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Legal Entities
-
 A legal entity defines how your organization is structured. In Agentforce Revenue Management, you can create multiple legal entities, which define the billing and tax information for an order product. If you have customers and business segments in different tax locations, use multiple legal entities to govern the use of tax treatments, billing treatments, finance periods, and finance books.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Tax Calculation Process
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Tax Calculation Process
-
 Understand the tax calculation process for invoices.
 
 REQUIRED EDITIONS

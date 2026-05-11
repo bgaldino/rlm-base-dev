@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Set Up Financial Accounting Features
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Financial Accounting Features
-
 Make sure that every billing transaction is compliant with double-entry accounting principles by automatically generating dual transaction journals, each containing both a credit and a debit entry to maintain balanced records. Select a default Data Processing Engine definition that's run to close legal entity accounting periods when your Billing operations user initiates their closure. Set up Billing to show transaction amounts in both the transactional currency and your corporate currency.
 
 REQUIRED EDITIONS

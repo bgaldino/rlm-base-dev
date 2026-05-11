@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Billing Service Assistance Agent for Experience Cloud
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Billing Service Assistance Agent for Experience Cloud
-
 Configure service access, security, and data sharing so that external users can securely interact with Billing Service Assistance Agent through Embedded Messaging in an Experience Cloud site.
 
 REQUIRED EDITIONS

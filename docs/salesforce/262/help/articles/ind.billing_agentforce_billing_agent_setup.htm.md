@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Billing Employee Assistance
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Billing Employee Assistance
-
 To use additional Billing features, turn on the required features and assign permissions.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate an Account Statement
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate an Account Statement
-
 Use the Generate Account Statement quick action on an account to produce a PDF statement without leaving the page.
 
 REQUIRED EDITIONS

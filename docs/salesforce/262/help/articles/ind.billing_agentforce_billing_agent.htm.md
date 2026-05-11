@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Agentforce for Billing Employee Assistance
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Agentforce for Billing Employee Assistance
-
 When internal finance or billing teams need clarity on billing data for customer accounts, Billing Employee Assistance gives them a conversational way to understand charges and retrieve billing information. Employees can ask questions about invoice charge explanations, payment plans, outstanding account balances, or upcoming payment due dates. They get clear explanations powered by generative AI, without navigating multiple billing records or systems.
 
 REQUIRED EDITIONS

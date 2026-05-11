@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # What are Chart of Accounts and Dual Journal Entries?
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-What are Chart of Accounts and Dual Journal Entries?
-
 Financial accounting provides a structured framework for recording, summarizing, and reporting an organization's financial transactions. The chart of accounts and the principle of dual journal entries are two fundamental concepts of this framework.
 
 What are the Chart of Accounts (COA)?

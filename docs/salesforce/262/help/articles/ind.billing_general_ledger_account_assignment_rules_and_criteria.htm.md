@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # General Ledger Account Assignment Rules and Related Records
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-General Ledger Account Assignment Rules and Related Records
-
 Define rules to assign accurate general ledger accounts to transaction journals and establish criteria for which these rules must apply to. Define multiple journal entry rules for a billing transaction with a specified criteria from a single user interface.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Payment Features in Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Payment Features in Billing
-
 Set up Billing to automatically create payment schedules and payment schedule items for posted invoices, share payment accounts, retry failed payments, pass payment metadata, issue refunds, apply credits and payments to settle the balances of invoices or invoice lines, and automate dunning orchestration.
 
 REQUIRED EDITIONS

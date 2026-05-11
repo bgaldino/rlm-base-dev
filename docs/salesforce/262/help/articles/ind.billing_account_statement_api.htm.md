@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Account Statements by Using APIs
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Account Statements by Using APIs
-
 Use the Generate Account Statement REST API to integrate Statement of Account PDF generation with external systems, custom apps, and automated jobs.
 
 REQUIRED EDITIONS

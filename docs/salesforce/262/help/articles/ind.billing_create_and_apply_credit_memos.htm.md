@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create and Apply Credit Memos to Invoice Lines
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create and Apply Credit Memos to Invoice Lines
-
 Generate credit memos for an account and apply them to invoice and invoice lines that belong to the same account.
 
 REQUIRED EDITIONS

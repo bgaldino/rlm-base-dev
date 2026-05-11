@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Automatic Conversion of Negative Invoice Lines into Credit Memo Lines
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Automatic Conversion of Negative Invoice Lines into Credit Memo Lines
-
 In certain billing scenarios, an invoice line can be generated with a negative charge amount. This typically occurs when you amend an order to decrease the quantity of a product and generate an invoice for the amended product, or generate an invoice for an order product that has a negative price. Automate conversion of large volumes of such negative invoice lines to credit memo lines, and the application of these credit memo lines to invoices.
 
 REQUIRED EDITIONS

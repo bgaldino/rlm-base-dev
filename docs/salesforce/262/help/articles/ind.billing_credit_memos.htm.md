@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Credit Memos in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Credit Memos in Agentforce Revenue Management
-
 Create and apply credit memos to decrease the balance of invoices when the quantity or price of orders are amended.
 
 REQUIRED EDITIONS

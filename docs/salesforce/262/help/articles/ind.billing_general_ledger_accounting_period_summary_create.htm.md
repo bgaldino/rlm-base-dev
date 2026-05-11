@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create General Ledger Accounting Period Summary Manually
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create General Ledger Accounting Period Summary Manually
-
 General Ledger Accounting Period Summary records are automatically created when the Create General Ledger Accounting Period Summary Records for Multiple Currencies or the Create General Ledger Accounting Period Summary Records data processing engine runs during legal entity accounting period closure. You can create them manually as well. General ledger accounting period summaries are created to capture the opening balance and closing balance for general ledger accounts of a legal entity accounting period.
 
 REQUIRED EDITIONS

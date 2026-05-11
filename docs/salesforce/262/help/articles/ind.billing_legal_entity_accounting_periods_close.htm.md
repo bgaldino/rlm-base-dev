@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Close Legal Entity Accounting Periods
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Close Legal Entity Accounting Periods
-
 Maintain financial data integrity and accurate reporting by finalizing all transactions and closing the legal entity accounting periods at the end of their related accounting periods.
 
 REQUIRED EDITIONS

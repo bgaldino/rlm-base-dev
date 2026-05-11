@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Process Payments and Issue Refunds by Using APIs
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Process Payments and Issue Refunds by Using APIs
-
 Use a suite of APIs to process payments and issue refunds. Authorize and capture payments by using native payment gateways, reverse payment authorizations, tokenize payment methods, and save card details for processing recurring payments. Create and update payment schedulers, and allocate or unallocate payments. You can also process ad hoc payments, and refund your customers if they change or cancel products or services that they paid for.
 
 REQUIRED EDITIONS

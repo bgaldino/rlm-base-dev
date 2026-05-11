@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Billing Settlements Central
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Billing Settlements Central
-
 Access invoices, payments, credit memos, and debit memos with ease from a single console. Perform settlements and adjustments, track balances, and act from a single console. Reduce navigation, gain visibility into outstanding balances, and support efficient billing through in-context actions and customizable views.
 
 REQUIRED EDITIONS

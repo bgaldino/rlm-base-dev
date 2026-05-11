@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Billing Disputes
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Billing Disputes
-
 Fragmented billing dispute processes often lead to payment delays and poor customer experience. By using the dispute management feature, you can streamline the intake and resolution process for common billing requests and disputes. Install pre-built service process templates by using Unified Catalog. Your billing specialists and customer service representatives can initiate cases directly from the Account record page, and quickly capture, validate, and resolve common inquiries, all from a single catalog. Billing portal users can raise service requests through the self-service Billing portal.
 
 REQUIRED EDITIONS

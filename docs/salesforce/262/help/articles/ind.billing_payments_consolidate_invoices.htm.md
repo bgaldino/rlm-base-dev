@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Group Multiple Invoices into a Single Payment Request
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Group Multiple Invoices into a Single Payment Request
-
 Reduce payment gateway calls and gateway transaction fees by combining multiple invoices of an account into a single payment request. When you post invoices for an account, Billing automatically consolidates qualifying invoices into one payment schedule and one payment schedule item.
 
 REQUIRED EDITIONS

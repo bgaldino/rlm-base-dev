@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Send Invoice Emails from Invoice Records
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Send Invoice Emails from Invoice Records
-
 After invoice PDF documents are generated, send them to your customers through an email.
 
 REQUIRED EDITIONS

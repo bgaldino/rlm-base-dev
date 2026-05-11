@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create and Apply Standalone Credit Memos
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create and Apply Standalone Credit Memos
-
 Create individual credit memos to efficiently provide credits to your customers. Apply these credits to the relevant customer invoice.
 
 REQUIRED EDITIONS

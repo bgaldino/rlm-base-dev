@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Capture Taxes at Header Level
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Capture Taxes at Header Level
-
 Use a single consolidated tax amount at the invoice header level for invoices and credit memos.
 
 REQUIRED EDITIONS

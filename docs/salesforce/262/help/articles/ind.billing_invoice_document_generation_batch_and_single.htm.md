@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoice PDF Documents
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoice PDF Documents
-
 After invoices are generated, generate PDF documents for a batch of invoices or a single invoice.
 
 REQUIRED EDITIONS

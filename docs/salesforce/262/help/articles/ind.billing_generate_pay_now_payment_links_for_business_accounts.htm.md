@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Pay Now Links for Business Accounts
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Pay Now Links for Business Accounts
-
 Generate a Pay Now link for an invoice and email it to a customer by cloning the Generate Payment Link flow. In the cloned flow, configure the business account ID and payment settings to associate payments with the correct business account in Billing. Customers pay as a guest using a new payment method. The resulting payment is automatically associated with the correct business account. Customers can save the payment method for future use.
 
 REQUIRED EDITIONS

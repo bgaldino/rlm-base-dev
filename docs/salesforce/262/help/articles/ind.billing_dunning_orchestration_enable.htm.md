@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Orchestrated Dunning for Collections
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Orchestrated Dunning for Collections
-
 Configure and integrate out-of-the-box Dynamic Revenue Orchestrator templates into Billing to automate the entire dunning lifecycle.
 
 REQUIRED EDITIONS

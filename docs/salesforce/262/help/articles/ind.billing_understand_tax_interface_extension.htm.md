@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Tax Interface Extension
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Tax Interface Extension
-
 Handle tax calculation needs that go beyond standard integrations, capture the right data for audits, and adapt to new requirements through configuration instead of custom code.
 
 REQUIRED EDITIONS

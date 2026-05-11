@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Method 2: Create Billing Milestone Plans and Plan Items
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Method 2: Create Billing Milestone Plans and Plan Items
-
 Create billing milestone plans, and then create billing milestone plan items to specify how billings are scheduled based on the completion of specific project milestones throughout the lifecycle of the order product.
 
 REQUIRED EDITIONS

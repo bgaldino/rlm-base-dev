@@ -211,6 +211,7 @@ that topic.
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
+| Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
 
 Each skill has a **Quick Rules** section at the top for fast reference,
 and a **DO NOT** section listing critical safety constraints for that area.

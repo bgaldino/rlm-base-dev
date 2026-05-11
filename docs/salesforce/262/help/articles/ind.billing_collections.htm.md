@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Collections for Accounts in Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Collections for Accounts in Billing
-
 Use Collections to proactively address overdue invoices, reduce bad debt, and maintain a healthy cash flow. Your collections reps can easily track payments for unpaid invoices, and collect payment promises from customers, which helps streamline payments and reduce the risk of overdue invoices. Collections reps can also send personalized, automated dunning emails for effective debt recovery.
 
 REQUIRED EDITIONS

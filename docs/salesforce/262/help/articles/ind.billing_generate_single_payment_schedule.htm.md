@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate a Single Payment Schedule for Multiple Invoices of an Account
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate a Single Payment Schedule for Multiple Invoices of an Account
-
 To consolidate payment schedules for an account’s invoices, configure the payment schedule treatment, set the grouping source as Account, and add a due date window.
 
 Confirm that payment schedule treatments are configured in your Salesforce org. Verify that the invoices you want to consolidate use the same currency and saved payment method.

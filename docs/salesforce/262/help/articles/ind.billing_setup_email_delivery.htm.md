@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Turn On Email Delivery of Invoices
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Turn On Email Delivery of Invoices
-
 Send emails with invoice information along with invoice PDF documents to your customers.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Financial Accounting in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Financial Accounting in Agentforce Revenue Management
-
 Streamline the financial accounting process for your organization with accounting periods for legal entities, chart of accounts, journal entries for your billing transactions, and by capturing transaction amounts in corporate currency.
 
 Financial Accounting Data Model in Agentforce Revenue Management

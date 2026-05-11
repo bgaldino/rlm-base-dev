@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Examples: Configure Payment Retry Rule Sets and Retry Rules
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Examples: Configure Payment Retry Rule Sets and Retry Rules
-
 Let’s explore a few examples for creating and configuring payment retry rule sets and rules.
 
 Create Org Default Payment Retry Rule Sets

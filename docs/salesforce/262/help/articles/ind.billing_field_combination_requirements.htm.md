@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Field Combination Requirements
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Field Combination Requirements
-
 The combination of billing frequency, period boundary, period boundary day, and period boundary start month determines billing behavior.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Suspend and Resume Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Suspend and Resume Billing
-
 When temporary challenges such as billing errors, disputes, or payment disruptions occur, you can suspend billing for customer accounts or billing schedule groups for a specific period. You can resume billing after the suspension period, without restarting the entire billing cycle.
 
 REQUIRED EDITIONS

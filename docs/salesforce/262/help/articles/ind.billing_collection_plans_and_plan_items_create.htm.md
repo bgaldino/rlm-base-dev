@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create Collection Plans and Collection Plan Items
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create Collection Plans and Collection Plan Items
-
 Create collection plans for accounts to help your collections reps track and resolve unpaid invoices. Create collection plan items for unpaid invoices that are related to the collection plan's account, enabling your collections rep to focus on the payment collection for individual invoices.
 
 REQUIRED EDITIONS

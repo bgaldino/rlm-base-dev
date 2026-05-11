@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Add New Billing Fields to Page Layouts
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Add New Billing Fields to Page Layouts
-
 Provide users more context by adding new fields to the default page layouts each release.
 
 REQUIRED EDITIONS

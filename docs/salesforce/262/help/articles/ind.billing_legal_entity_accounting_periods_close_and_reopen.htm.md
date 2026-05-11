@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Legal Entity Accounting Periods Closure and Reopening
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Legal Entity Accounting Periods Closure and Reopening
-
 Close legal entity accounting periods and accounting periods after their duration ends to maintain data integrity. Reopen legal entity accounting periods to reconcile receivable transactions.
 
 REQUIRED EDITIONS

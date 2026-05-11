@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Billing Dispute Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Billing Dispute Management
-
 Track and resolve billing inquiries, service requests, and invoice-related disputes by using Billing Dispute Management.
 
 REQUIRED EDITIONS

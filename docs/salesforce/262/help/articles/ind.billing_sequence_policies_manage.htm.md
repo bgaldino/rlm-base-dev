@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Sequence Policies
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Sequence Policies
-
 Define the sequential number structure and the filters for choosing which invoice or credit memo records to number.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Billing Schedules
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Billing Schedules
-
 Generate billing schedules directly from transactions in external systems, or from any Salesforce object by using Create Standalone Billing Schedules API. To generate billing schedules from orders, use the Order to Billing Schedule flow, Create Billing Schedules for Orders API, or Create Standalone Billing Schedules API.
 
 Generate Billing Schedules from External Transactions or Salesforce Objects

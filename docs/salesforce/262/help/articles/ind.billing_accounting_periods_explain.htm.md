@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # What are Accounting Periods?
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-What are Accounting Periods?
-
 An accounting period is a specific time frame for which a company prepares its financial statements. For example, a month, quarter, or an year. It's a fundamental concept in accounting, as it dictates how and when revenue and expenses are recognized. Define start and end dates on the accounting periods to prevent overlaps or gaps and maintain a clean financial record for auditing purposes.
 
 REQUIRED EDITIONS

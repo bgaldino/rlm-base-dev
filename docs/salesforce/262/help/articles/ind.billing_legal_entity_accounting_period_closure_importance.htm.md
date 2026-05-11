@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Importance of Legal Entity Accounting Period Closure
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Importance of Legal Entity Accounting Period Closure
-
 Closing an accounting period, both at the legal entity level and the enterprise accounting period level, is a formal act that signifies all transactions within that period are posted from sub-ledger to your enterprise general ledger.
 
 REQUIRED EDITIONS

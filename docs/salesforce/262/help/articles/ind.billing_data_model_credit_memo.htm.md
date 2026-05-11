@@ -10,11 +10,4 @@ fetched_at: 2026-05-11
 
 # Credit Memo Data Model in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Credit Memo Data Model in Agentforce Revenue Management
-
 The Credit Memo data model depicts the objects and their relationships to adjust invoices through credit amounts for returns, overcharges, or other billing discrepancies.

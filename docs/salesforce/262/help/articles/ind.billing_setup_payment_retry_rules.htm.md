@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Payment Retry Rules
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Payment Retry Rules
-
 Define payment retry rule sets and payment retry rules and configure Billing to automatically retry failed payments for specific error categories at various time intervals.
 
 REQUIRED EDITIONS

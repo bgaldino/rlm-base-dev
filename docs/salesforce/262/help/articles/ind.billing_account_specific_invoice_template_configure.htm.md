@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoice PDF Documents Specific to Billing Profiles
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoice PDF Documents Specific to Billing Profiles
-
 Generate a PDF document for an invoice directly from the invoice record. Provide billing profile specific individual invoice documents without waiting for invoice batch runs.
 
 REQUIRED EDITIONS

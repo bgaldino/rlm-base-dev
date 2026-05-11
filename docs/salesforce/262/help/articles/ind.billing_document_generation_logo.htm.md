@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoice PDFs with Your Company Logo
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoice PDFs with Your Company Logo
-
 Automatically add your company logo to the invoice PDF documents by installing Omnistudio packages and uploading the logo to your Salesforce org.
 
 REQUIRED EDITIONS

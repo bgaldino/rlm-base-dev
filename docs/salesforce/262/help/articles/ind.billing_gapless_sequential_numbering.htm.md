@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Gapless Sequential Numbering
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Gapless Sequential Numbering
-
 For businesses that handle large volumes of transactions, assigning unique, gapless sequential numbers to invoice and credit memo records is essential for legal compliance, auditing, and reconciliation. Manual numbering introduces operational complexity and increases the risk of errors or fraudulent activity. Billing addresses this challenge by automating the assignment of unique identifiers according to the defined sequence policies.
 
 REQUIRED EDITIONS

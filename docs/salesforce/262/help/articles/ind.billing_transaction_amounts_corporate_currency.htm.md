@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Capture Transaction Amounts in Multiple Currencies
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Capture Transaction Amounts in Multiple Currencies
-
 Manage multi-currency billing transactions by viewing amounts in transactional currency, functional currency, and corporate currency.
 
 REQUIRED EDITIONS

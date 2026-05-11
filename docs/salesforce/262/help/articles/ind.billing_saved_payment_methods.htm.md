@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Saved Payment Methods for Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Saved Payment Methods for Agentforce Revenue Management
-
 Collect one-time or scheduled recurring payments by securely saving the payment methods of your customers, rather than manually entering payment method details each time a payment is processed. Save various payment methods from native or third-party payment gateways, and set a default saved payment method for each account.
 
 REQUIRED EDITIONS

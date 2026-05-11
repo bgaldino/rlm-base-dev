@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Raise Service Requests on Behalf of the Customer
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Raise Service Requests on Behalf of the Customer
-
 Initiate billing disputes or inquiries on behalf of your customer directly from the Billing app.
 
 REQUIRED EDITIONS

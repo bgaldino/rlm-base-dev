@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Extend Your Tax Interface
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Extend Your Tax Interface
-
 Enhance the existing tax interface by mapping additional fields for tax callouts. Use custom metadata types to send additional data in tax requests and persist more detailed information from tax responses.
 
 REQUIRED EDITIONS

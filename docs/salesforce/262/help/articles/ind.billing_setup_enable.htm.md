@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Turn On Billing in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Turn On Billing in Agentforce Revenue Management
-
 Enable Billing to start using Billing features.
 
 REQUIRED EDITIONS

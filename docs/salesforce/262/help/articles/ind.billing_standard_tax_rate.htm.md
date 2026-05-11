@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Revenue Standard Tax Engine
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Revenue Standard Tax Engine
-
 Organizations often face challenges when managing taxes. Common issues include dependency on external tax vendors for simple scenarios, extra licensing and per-transaction costs, performance overhead from external API calls, and regulatory or data residency constraints. These challenges make tax management more complex and costly than necessary. The revenue standard tax engine addresses these issues by enabling internal tax calculation and storage for predictable tax structures. By handling simple tax scenarios internally, organizations can streamline their Agentforce Revenue Management processes.
 
 REQUIRED EDITIONS

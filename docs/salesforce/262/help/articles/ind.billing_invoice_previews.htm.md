@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Preview Invoices
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Preview Invoices
-
 Preview invoices for the next two billing periods of orders, quotes, accounts, or billing schedule groups to verify order products, discounts, amendments, cancellations, and tax calculations.
 
 REQUIRED EDITIONS

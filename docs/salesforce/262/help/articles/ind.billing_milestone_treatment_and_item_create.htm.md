@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Method 1: Configure Billing Milestones Using Billing Treatments
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Method 1: Configure Billing Milestones Using Billing Treatments
-
 Create billing milestone plans and billing milestone plan items from billing treatment and billing treatment items and apply them to one or more products. This method is ideal when multiple products follow the same milestone billing pattern. You can edit the billing milestone plans for individual order products without affecting the billing treatment.
 
 REQUIRED EDITIONS

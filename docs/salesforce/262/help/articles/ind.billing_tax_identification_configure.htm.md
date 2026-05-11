@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Additional Tax Identification Details
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Additional Tax Identification Details
-
 Send additional tax identification details to your external tax engine. Meet regional tax compliance requirements by storing tax identification and exemption information on the Billing Profile and passing it to.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Billing Account Overview
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Billing Account Overview
-
 View and manage customer billing information from a single page. Track billing transactions, generate and preview invoices, suspend and resume billing, create credit memos, and resolve billing inquiries. Get a complete view of the customer's billing status by accessing key billing actions, account details, and related account records.
 
 REQUIRED EDITIONS

@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Select Default Billing Treatment, Tax Treatment, and Legal Entity
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Select Default Billing Treatment, Tax Treatment, and Legal Entity
-
 If there's no billing policy specified for order products, the default billing treatment defines how those order products are billed. The default tax treatment is used with all order products unless overriden on specific order products or tax policies. The default legal entity is used with quotes and orders to calculate taxes unless overriden for specific quotes and orders.
 
 REQUIRED EDITIONS

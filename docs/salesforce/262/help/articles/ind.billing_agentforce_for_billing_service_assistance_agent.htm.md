@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Agentforce for Billing Service Assistance Agent
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Agentforce for Billing Service Assistance Agent
-
 Use Billing Service Assistance Agent to give customers fast, conversational explanations for invoice charges directly in your Experience Cloud billing portal.
 
 If customers are confused by charges on their invoices, Billing Service Assistance Agent helps them get clear explanations without opening a support case. Customers stay on the invoice page, ask questions about specific invoice lines, and receive generative AI–powered explanations in real time.

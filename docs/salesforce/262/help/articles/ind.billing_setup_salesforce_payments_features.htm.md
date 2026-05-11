@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Payment Features for Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Payment Features for Agentforce Revenue Management
-
 Set up Payments to streamline the management of the entire payment lifecycle. By establishing a secure connection with native and third-party payment providers, you can directly process payments for customer transactions within your Salesforce environment.
 
 REQUIRED EDITIONS

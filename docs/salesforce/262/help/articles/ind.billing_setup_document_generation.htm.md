@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Turn On Invoice PDF Document Generation
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Turn On Invoice PDF Document Generation
-
 Enable generation of PDF documents for invoices and invoice previews.
 
 REQUIRED EDITIONS

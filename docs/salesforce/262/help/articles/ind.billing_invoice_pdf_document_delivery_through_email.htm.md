@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Send Invoices Through Email
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Send Invoices Through Email
-
 Ensure regional compliance by sending invoices through emails to your customers after the invoices are posted and before the payment due date. Customize your preferences at various levels in your Salesforce org to choose the way emails are delivered to your customers.
 
 REQUIRED EDITIONS

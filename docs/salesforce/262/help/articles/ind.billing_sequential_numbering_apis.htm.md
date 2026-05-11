@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Sequential Numbering by Using APIs
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Sequential Numbering by Using APIs
-
 Use APIs to create and update sequence policies, assign sequence pattern values to records, and restore missing sequence values.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generated Invoice PDF Document Details
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generated Invoice PDF Document Details
-
 When you click Generate Invoice Documents or Generate Invoice Document, the action is triggered to create a Document Generation Batch Process or Document Generation Process record with a status of In Progress. Once the status changes to Success, it means the invoice PDF document has been generated.
 
 REQUIRED EDITIONS

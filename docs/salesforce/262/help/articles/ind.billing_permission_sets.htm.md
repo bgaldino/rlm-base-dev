@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Assign Permissions to Access Billing Features
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Assign Permissions to Access Billing Features
-
 Assign your users the required permission sets based on their persona, and for the APIs for which they need access.
 
 REQUIRED EDITIONS

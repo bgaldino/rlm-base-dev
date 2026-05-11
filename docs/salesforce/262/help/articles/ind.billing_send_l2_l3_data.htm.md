@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Send Level 2 and Level 3 Payment Data via Your Payment Gateways
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Send Level 2 and Level 3 Payment Data via Your Payment Gateways
-
 Include Level 2 and Level 3 payment metadata in the payment requests you make via payment gateways. Level 2 data includes transaction-level details such as tax amount and invoice reference number, while level 3 data includes detailed information such as product code, quantity, and unit price. Billing sends this data directly to third-party payment gateways through Apex adapter classes.
 
 REQUIRED EDITIONS

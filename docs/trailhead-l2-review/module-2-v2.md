@@ -1,8 +1,8 @@
 # Module 2: Billing Technical Architecture and Data Model Deep Dive
 
-**Status:** v2 draft for SME review (Trailhead AI Review Checklist applied)
+**Status:** v2 draft for SME review (Trailhead AI Review Checklist applied; 262 snapshot validation pass completed 2026-05-11)
 **Reviewers:** Michael Aaron (SME), Trailhead editorial team
-**Source verifications:** Spring '26 Help compendium (`docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`, pp. 1069–1247) and FY27 outline (Mike's Revised LOs column)
+**Source verifications:** 262 Billing Help snapshot (`docs/salesforce/262/help/articles/`, Summer '26, 171 articles), project metadata (qb-billing, qb-tax, ERD), and FY27 outline (Mike's Revised LOs column). See `module-2-v2-262-validation-report.md` for the per-claim citation log.
 **Style notes for editorial:** This draft bolds product object names (Billing Policy, Tax Engine, etc.) for technical clarity. That deviates from the AI Review Checklist's "no bold to highlight words or phrases" guidance, but matches the convention established in Module 1 v2 across the L2 mix. If editorial decides to strip the bolding, the same change should be applied to Modules 1, 3, 4, and 5 for consistency.
 
 ---
@@ -88,13 +88,13 @@ Milestone billing is configured directly on the Billing Treatment and its BTIs. 
 
 **On the BTIs**, create one BTI per milestone. For each:
 
-- Set Type to Percentage (or Flat Amount).
-- Set Percentage to the share of the order item's value this milestone bills.
-- Set ProcessingOrder to control firing sequence.
-- Set MilestoneType to Event or Date. An Event milestone fires when someone marks it complete. A Date milestone fires automatically on a calculated date.
-- For Date milestones: set MilestoneStartDate to the anchor (commonly OrderProductActivation), then set MilestoneStartDateOffset and MilestoneStartDateOffsetUnit (for example, 1 Month, or 4 Months).
+- Set **Type** to Percentage (or Flat Amount).
+- Set **Percentage** to the share of the order item's value this milestone bills.
+- Set **Processing Order** to control firing sequence.
+- Set **Milestone Type** to Event or Date. An Event milestone fires when someone marks it complete. A Date milestone fires automatically on a calculated date.
+- For Date milestones: select **Billing Schedule Start Date** as the **Milestone Commencement Trigger** (the anchor). Then set the **Milestone Commencement Offset** and **Milestone Commencement Offset Unit** (for example, 1 Month, or 4 Months).
 
-A common pattern is mixing types — early milestones are Date-driven (fire automatically based on calendar offsets from activation), while a final milestone is Event-driven (fires when someone marks project handoff complete). Each Treatment must include exactly one Type=Remainder BTI that absorbs whatever isn't claimed by the Percentage and Flat Amount BTIs. The Percentage and Flat Amount BTIs distribute the value; the Remainder BTI catches the rest.
+A common pattern is mixing types — early milestones are Date-driven (fire automatically based on calendar offsets from activation), while a final milestone is Event-driven (fires when someone marks project handoff complete). The Percentage and Flat Amount BTIs distribute the value; when they don't sum to 100%, the system auto-generates a Remainder Plan Item at runtime to absorb the gap.
 
 What you configure here is the **template**. When an Order Product activates against this Treatment, the system uses these BTIs to generate a runtime Billing Milestone Plan with Billing Milestone Plan Items — that's the per-deal record customers see. If a specific deal needs milestones that diverge from the template, you can pre-create the Billing Milestone Plan and Plan Items manually and link them to the Order Product. The Customize and Edit Milestone Plans section covers the runtime side in detail.
 
@@ -114,15 +114,15 @@ Three additional objects round out the model:
 
 - **Tax Engine** — the engine of record for tax calculation. Salesforce ships an out-of-the-box engine called the **Revenue Standard Tax Engine**. The alternative is the **Revenue Cloud Tax Extension** type, which is how partner adapters (Vertex, Avalara) and custom Apex implementations of the `TaxEngineAdapter` interface plug in.
 - **Tax Engine Provider** — the configurable record that points at the Apex adapter class (the implementation of `TaxEngineAdapter`). Each Tax Engine references one Provider; each Tax Treatment references one Tax Engine.
-- **Tax Rate** — the actual rate record the engine matches against. Carries jurisdiction (country and state), currency, percentage or flat amount, application basis, priority, validity dates, and legal entity. The Revenue Standard Tax Engine consults Tax Rate records through the Revenue Standard Tax Entries decision table; partner adapters consume them through whatever logic the adapter implements. The **Tax Code** field on Tax Rate is what links it to Tax Treatments at calculation time.
+- **Tax Rate** — the actual rate record the engine matches against. Carries jurisdiction (country and state), currency, percentage or flat amount, application basis, priority, validity dates, and legal entity. The Revenue Standard Tax Engine consults Tax Rate records through the Revenue Standard Tax Entries decision table; partner adapters consume them through whatever logic the adapter implements. The **Tax Code** is a shared string identifier that ties a Tax Rate to its consuming Tax Treatment or Tax Treatment Item — configure it on the Tax Rate and reference the same value from the Treatment side so the engine picks the correct rate at calculation time.
 
 Note: the `TaxEngineAdapter` is an Apex interface, referenced indirectly through the Tax Engine Provider's Apex adapter — not a record.
 
 When an Invoice Line is staged, the system pulls the Tax Treatment from the Order Product's billing context. It walks down to the Tax Engine identified on the Treatment. The output is an Invoice Tax Line that records the auditable result.
 
-The Revenue Standard Tax Engine calculates taxes at the line level. Header-level tax capture is available through third-party engines via the `ShouldCaptureTaxesAtHeader` field on the Tax Engine record — a frequent customer question worth knowing.
+The Revenue Standard Tax Engine calculates taxes at the line level. Header-level tax capture is configurable on the Tax Engine record (UI label: **Capture Taxes at Header**; SObject field: `ShouldCaptureTaxesAtHeader`). Use it when your engine returns a single consolidated tax amount at the invoice header rather than per line — a common pattern with third-party engines like Vertex or Avalara, and a frequent customer question worth knowing.
 
-By default, the address used for tax calculation comes from the Billing Schedule Group. This can be overridden at the Tax Engine level via the **TaxEngineAddress** field — useful for scenarios where the engine needs to use a different address than the BSG carries.
+By default, the address used for tax calculation comes from the Billing Schedule Group. This can be overridden at the Tax Engine level via the address fields on the Tax Engine record (the compound `TaxEngineAddress` field aggregates the underlying street, city, state, and postal fields). An additional invoice-line-level override is also available — useful when individual lines need a different tax address than the BSG default.
 
 | Note | Content |
 |:-:|:-:|
@@ -153,7 +153,7 @@ In the previous section you saw how milestone billing is configured at *design t
 
 The runtime relationship works like this. When an Order Product activates against a milestone-enabled Billing Treatment, the system creates a Billing Milestone Plan as a per-deal record bound to the resulting Billing Schedule. For each milestone BTI on the Treatment template, the system creates a corresponding Billing Milestone Plan Item. The Plan Items carry runtime-only fields the BTI templates don't — `IsMilestoneAccomplished` (the toggle that fires Event milestones), `MilestoneAmount` (the calculated dollar amount), and service period dates.
 
-Worth flagging: the field names shift between the BTI template and the runtime Plan Item. The BTI carries `MilestoneStartDate`, `MilestoneStartDateOffset`, and `MilestoneStartDateOffsetUnit`. The Billing Milestone Plan Item rebadges these as `CommencementDate`, `CommencementDateOffset`, and `CommencementDateOffsetUnit`. Same concept, different field names — useful to know when you're tracing a milestone from configuration to runtime.
+Worth flagging for developers tracing a milestone from configuration to runtime: the UI labels on both objects use "Commencement Trigger / Offset / Offset Unit," but the underlying **API field names** shift between the template and Plan Item. On `BillingTreatmentItem` the API fields are `MilestoneStartDate`, `MilestoneStartDateOffset`, and `MilestoneStartDateOffsetUnit`. The `BillingMilestonePlanItem` rebadges them as `CommencementDate`, `CommencementDateOffset`, and `CommencementDateOffsetUnit`. Same concept, different API names.
 
 Billing Milestone Plans can be created two ways:
 
@@ -165,6 +165,8 @@ The customization strategy hinges on whether the milestone structure repeats acr
 Active Billing Milestone Plans are intentionally restrictive. Once a Plan is active, only the **Milestone accomplished** checkbox on its Plan Items can be updated. To edit any other field, set the Plan's status back to Draft.
 
 Cancellation behavior matters too. When an Order is canceled, invoiced milestones stay — the customer was already billed. Future date-based items move to Canceled. Uninvoiced event-based items also move to Canceled. The system issues a credit memo for the difference automatically.
+
+Amendments deserve their own callout. By default, milestone billing doesn't create new milestone plans or plan items for amend or renew orders. The **Support Milestone Plans for Amended Billing Schedules** setting changes that: with it enabled, Billing creates or links a milestone plan to the amendment schedule and recalculates milestone dates and amounts from the amendment start date.
 
 > **Forward reference:** Once a Billing Milestone Plan exists, *executing* it — actually firing the milestone-driven invoice when a milestone completes — is covered in Module 4: Invoicing and Invoice Explanation Agents. This module is about defining and customizing the plan; Module 4 is about applying it.
 
@@ -188,9 +190,9 @@ The Billing Policy hierarchy decides which Treatment applies; the Treatment carr
 
 ## Resources
 
-- [*Salesforce Help:* Manage Billing in Revenue Cloud](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5)
-- [*Salesforce Help:* Define Billing Policies and Billability Rules](https://help.salesforce.com/s/articleView?id=ind.billing_payment_terms.htm&type=5)
-- [*Salesforce Help:* Configure Milestone Billing](https://help.salesforce.com/s/articleView?id=ind.billing_milestone.htm&type=5)
+- [*Salesforce Help:* Manage Billing in Agentforce Revenue Management](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5)
+- [*Salesforce Help:* Define Billing Policies and Billability Rules](https://help.salesforce.com/s/articleView?id=ind.billing_policies_and_treatments.htm&type=5)
+- [*Salesforce Help:* Configure Milestone Billing](https://help.salesforce.com/s/articleView?id=ind.billing_milestone_plans.htm&type=5)
 
 ## Quiz
 
@@ -218,6 +220,10 @@ Most Billing Schedules in Revenue Cloud Billing trace back to an Order — the O
 A Standalone Billing Schedule is a Billing Schedule record produced via the **Create Standalone Billing Schedules API** and the **StandaloneBillingContext** context definition. Functionally the resulting record is the same shape as any Order-derived Billing Schedule — it's still a Billing Schedule with a parent Billing Schedule Group, it produces Billing Period Items, and it respects the same Billing Policy and Tax Policy lookups. The "standalone" qualifier describes the *origination path*, not a separate object type.
 
 The Create Standalone Billing Schedules API supports the full transaction lifecycle: original, amended, canceled, renewed, ramped, bundled, and usage-based transactions. It can ingest data directly from external systems or from any Salesforce object, which is what makes it the right tool for ingesting records that didn't originate as Salesforce Orders.
+
+One important constraint to keep in mind: when a Billing Schedule Group is already linked to an asset, downstream amendments, renewals, and cancellations must run through the Order to Billing Schedule flow or the Create Billing Schedules for Orders API — not the Standalone API. The Standalone API path is for billing schedules that don't have an asset on the other side of the relationship.
+
+A 262 enhancement worth knowing for technical eval conversations: the Standalone API now supports **minimal, intent-based requests** for amendments, renewals, cancellations, and price/quantity/end-date changes. Billing auto-computes unit price and total price from historical transaction context or Billing Schedule Group IDs, so the caller doesn't need to re-state everything to make a single change.
 
 Customers reach for Standalone Billing Schedules in three common scenarios:
 
@@ -263,11 +269,11 @@ You set up an Invoice Scheduler from the App Launcher: find and select Billing B
 |:--|:--|:--|
 | **When the scheduler runs** | Active toggle, Start Date, Start Time, Time Zone, End Date | Sets when the batch is allowed to run and over what window |
 | **Output state** | Post invoices toggle | Controls whether output Invoices land in Posted or Draft status |
-| **Cadence** | Frequency (Once / Daily / Weekly / Monthly), Exclude holidays and weekends (Monthly only) | Sets how often the scheduler fires; the holiday/weekend exclusion is restricted to Monthly frequency |
+| **Cadence** | Frequency (Once / Daily / Weekly / Monthly), Exclude holidays and weekends (Daily / Weekly / Monthly) | Sets how often the scheduler fires; the holiday/weekend exclusion is available on all recurring frequencies |
 | **Date logic** | Target Date and Target Date Offset; Invoice Date and Invoice Date Offset; "Calculate invoice date from run date" | Determines which billing schedules are picked up and what date the resulting Invoice carries |
 | **Filter criteria** | Billing batch, Billing charge type (multi-select), Legal entity, Customer account, Currency (multi-select) | Scopes which records become Invoices in this run; the rest defer to the next run |
 
-A note on a feature that's already shipped, contrary to common assumption: **the "Exclude holidays and weekends" option is available in 260, not a 262 enhancement.** It applies only to Monthly-frequency schedulers. If you've heard a teammate describe it as upcoming, the feature has already arrived.
+A note on a 262 enhancement: the **Exclude holidays and weekends** option is now available for all recurring frequencies — **Daily, Weekly, and Monthly**. Before 262 this option was restricted to Monthly scheduling. When enabled, the scheduler's next run moves to the following business day if it falls on a company holiday or a weekend. The Once frequency doesn't carry this option because there's no recurring run to defer.
 
 The diagnostic pattern when an Invoice Scheduler produces an unexpected result almost always traces back to one of these settings — most commonly a filter that excluded records you expected to bill, a date offset that picked up the wrong window, or a frequency mismatch with the customer's Billing Profile.
 
@@ -283,12 +289,12 @@ Adjacent to the Invoice Scheduler, the **Suspend Billing API** and **Resume Bill
 
 ## Key Takeaways
 
-Standalone Billing Schedules are Billing Schedule records produced via the Create Standalone Billing Schedules API and the StandaloneBillingContext context definition. They're the right tool for migrations, external-system originations, and one-off bills. Revenue Cloud Billing integrates with external systems through several APIs — Standalone Billing Schedules, Invoice Ingestion, Import External Tax Lines, Suspend/Resume Billing — plus the TaxEngineAdapter Apex interface. Customers can keep an external biller while making Revenue Cloud Billing the system of record. The Invoice Scheduler is configured by run cadence, date logic, and filter criteria. The Exclude holidays and weekends setting is a Monthly-only feature, already in 260. Email delivery is a separate feature that runs after the scheduler completes.
+Standalone Billing Schedules are Billing Schedule records produced via the Create Standalone Billing Schedules API and the StandaloneBillingContext context definition. They're the right tool for migrations, external-system originations, and one-off bills. Revenue Cloud Billing integrates with external systems through several APIs — Standalone Billing Schedules, Invoice Ingestion, Import External Tax Lines, Suspend/Resume Billing — plus the TaxEngineAdapter Apex interface. Customers can keep an external biller while making Revenue Cloud Billing the system of record. The Invoice Scheduler is configured by run cadence, date logic, and filter criteria. In 262, the Exclude holidays and weekends setting is available for Daily, Weekly, and Monthly recurring frequencies (an expansion from the Monthly-only behavior in 260). Email delivery is a separate feature that runs after the scheduler completes.
 
 ## Resources
 
-- [*Salesforce Help:* Generate Invoices in Revenue Cloud](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_run.htm&type=5)
-- [*Salesforce Help:* Migrate External Billing Data](https://help.salesforce.com/s/articleView?id=ind.billing_migrate_external.htm&type=5)
+- [*Salesforce Help:* Generate Invoices in Agentforce Revenue Management](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_generation.htm&type=5)
+- [*Salesforce Help:* Generate Billing Schedules from External Transactions or Salesforce Objects](https://help.salesforce.com/s/articleView?id=ind.billing_schedules_standalone_api.htm&type=5)
 - [*Salesforce Developer Guide:* Billing Business APIs](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/rcm_billing.htm)
 
 ## Quiz
@@ -338,4 +344,4 @@ The same v1 voice patterns that Module 1 v2 corrected ("Salesforce / Agentforce 
 
 ---
 
-*Prepared by Brian Galdino with AI assistance, May 7, 2026. Source-verified against `docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf` (Spring '26 Help compendium, 1,460 pages).*
+*Prepared by Brian Galdino with AI assistance, May 7, 2026; re-grounded against the 262 Summer '26 Billing Help snapshot on May 11, 2026. Per-claim citation log: `docs/trailhead-l2-review/module-2-v2-262-validation-report.md`.*

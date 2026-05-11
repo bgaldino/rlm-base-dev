@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Raise Billing Inquiries and Invoice-Related Disputes
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Raise Billing Inquiries and Invoice-Related Disputes
-
 The self-service Billing portal serves as the customer-facing gateway that transforms manual, phone-based dispute processes into a streamlined, transparent self-service experience. The Help Center tab provides a catalog of available billing service processes. The Cases tab shows all cases and their statuses for the customer account.
 
 REQUIRED EDITIONS

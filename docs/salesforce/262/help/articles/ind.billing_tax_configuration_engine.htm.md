@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Tax Calculation for Invoices
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Tax Calculation for Invoices
-
 If you plan to use a partner app, your own engine, or calculate standard tax, create a tax engine provider and a tax engine. Then, create tax policies and treatments for each product.
 
 REQUIRED EDITIONS

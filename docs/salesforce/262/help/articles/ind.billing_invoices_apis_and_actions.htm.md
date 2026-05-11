@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Invoices by Using APIs or Flow Actions
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Invoices by Using APIs or Flow Actions
-
 Use APIs or Flow actions to generate and update invoices, recover the latest generated invoices for billing schedules, void posted invoices, and send emails with posted invoices.
 
 REQUIRED EDITIONS

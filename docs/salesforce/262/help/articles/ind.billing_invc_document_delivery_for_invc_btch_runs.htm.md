@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Send Invoice Emails in Bulk from Invoice Batch Runs
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Send Invoice Emails in Bulk from Invoice Batch Runs
-
 After an invoice batch run completes and the invoice PDF documents are generated for the posted invoices of the invoice batch run, send invoice emails in bulk to your customers who opted for invoice delivery through email. Attach invoice PDF documents to the emails based on the selected preferences.
 
 REQUIRED EDITIONS

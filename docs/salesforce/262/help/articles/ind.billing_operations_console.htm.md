@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Billing Operations Console
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Billing Operations Console
-
 Monitor invoices, credit memos, and invoice schedules with ease. Manage billing transactions effectively with timely insights into revenue transaction log errors and failed invoices.
 
 REQUIRED EDITIONS

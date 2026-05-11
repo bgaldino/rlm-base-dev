@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Select Context Definition and Mapping for Create Billing Schedules for Orders API
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Select Context Definition and Mapping for Create Billing Schedules for Orders API
-
 The Create Billing Schedules for Orders API uses Context Service to hydrate the data of orders to create billing schedules. Before using this API, select a context definition and its mapping that you want the API to use.
 
 REQUIRED EDITIONS

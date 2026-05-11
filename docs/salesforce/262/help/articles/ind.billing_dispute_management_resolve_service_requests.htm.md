@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Resolve Billing Service Requests
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Resolve Billing Service Requests
-
 When customers or service reps raise billing service requests or inquiries , Billing creates corresponding cases that are resolved by using the automated resolution actions. For specific service requests such as suspending billing, extending invoice due date, updating billing contact details, or correcting invoice charges, Billing automatically initiates the appropriate resolution associated with the service request. However, for any other billing inquiries that don’t have automated resolution, resolve the cases manually based on the business need and requirements.
 
 REQUIRED EDITIONS

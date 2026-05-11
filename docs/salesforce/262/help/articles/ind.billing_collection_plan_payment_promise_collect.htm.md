@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Collect Payment Promises for a Collection Plan Item
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Collect Payment Promises for a Collection Plan Item
-
 Record your customer's payment promises, and create payment schedules and payment schedule items for collection plan items. Collections reps can secure payments for the outstanding balance of the invoice related to the collection plan item.
 
 REQUIRED EDITIONS

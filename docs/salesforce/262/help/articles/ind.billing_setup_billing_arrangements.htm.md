@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Configure Billing Arrangements for Billing Schedule Groups
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Billing Arrangements for Billing Schedule Groups
-
 Route invoices with the appropriate allocated charges to the correct billing accounts by configuring billing arrangements on billing schedule groups.
 
 REQUIRED EDITIONS

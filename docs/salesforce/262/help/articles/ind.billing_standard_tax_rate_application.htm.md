@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Understand How Agentforce Revenue Management Determines and Applies Tax Rates
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Understand How Agentforce Revenue Management Determines and Applies Tax Rates
-
 When you use the Revenue Standard Tax Engine, Agentforce Revenue Management calculates taxes for transactions by matching the transaction record field values to the configured tax rates. These values include the shipping address, product code, legal entity, and currency ISO code. Revenue Cloud uses the built-in Revenue Standard Tax Entries decision table to perform this matching.
 
 REQUIRED EDITIONS

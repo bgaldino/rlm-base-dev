@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Legal Entity Automatic Population, Usage, and Considerations
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Legal Entity Automatic Population, Usage, and Considerations
-
 Legal entity is a required value for financial accounting. It's either specified or automatically populated when billing transaction records are created. Explore the usage of legal entity and considerations of editing legal entity on the billing transactions.
 
 REQUIRED EDITIONS

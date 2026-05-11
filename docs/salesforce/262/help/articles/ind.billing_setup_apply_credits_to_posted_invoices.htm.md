@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Automatic Application of Credits to Settle Invoice Balances
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Automatic Application of Credits to Settle Invoice Balances
-
 Eliminate the need to manually apply credit memos by automatically applying available credit memo balances to settle the balances of posted invoices.
 
 REQUIRED EDITIONS

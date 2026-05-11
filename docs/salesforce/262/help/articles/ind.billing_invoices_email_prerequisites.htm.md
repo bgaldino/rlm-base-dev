@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Define Invoice Email Delivery Configuration and Preferences
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Define Invoice Email Delivery Configuration and Preferences
-
 Before you send invoices to your customers through email, your Billing admin and Billing Operations user must complete certain tasks.
 
 REQUIRED EDITIONS

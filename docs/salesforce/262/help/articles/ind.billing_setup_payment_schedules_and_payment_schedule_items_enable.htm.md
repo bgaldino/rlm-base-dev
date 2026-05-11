@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Automatic Creation of Payment Schedules and Payment Schedule Items
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Automatic Creation of Payment Schedules and Payment Schedule Items
-
 Automate the creation of payment schedules and payment schedule items so that they are ready to be processed.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Accounting Periods in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Accounting Periods in Agentforce Revenue Management
-
 Accounting periods help your company organize and monitor financial performance by defining specific time frames for business reports. Ensure accurate financial reporting and streamlined record-keeping by associating billing transactions to legal entity accounting periods.
 
 REQUIRED EDITIONS

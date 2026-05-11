@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoices for Accounts or Orders
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoices for Accounts or Orders
-
 Generate all the pending invoices of your customers in one go and on-demand. You can also generate consolidated invoices on-demand based on the invoice group type of the related billing schedules.
 
 REQUIRED EDITIONS

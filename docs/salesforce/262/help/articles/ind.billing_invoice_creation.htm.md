@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create Standalone Invoices or Import External Invoices
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create Standalone Invoices or Import External Invoices
-
 Use the Invoice Ingestion API to create standalone invoices by providing the required details to import invoices from an external system. You can also use the API to generate invoices from debit memos.
 
 REQUIRED EDITIONS

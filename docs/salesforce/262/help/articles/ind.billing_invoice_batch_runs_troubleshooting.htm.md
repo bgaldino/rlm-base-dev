@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Troubleshoot Invoice Batch Run Errors
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Troubleshoot Invoice Batch Run Errors
-
 Get tips for resolving Invoice Batch Run errors.
 
 REQUIRED EDITIONS

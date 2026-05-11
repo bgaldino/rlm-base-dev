@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Sequential Invoice and Credit Memo Number Assignment
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Sequential Invoice and Credit Memo Number Assignment
-
 When you post an invoice or a credit memo record, the system evaluates all active sequence policies. If the target object matches the selection conditions of a unique sequence policy, the system assigns the next available sequential number based on that sequence policy to the target object record.
 
 REQUIRED EDITIONS

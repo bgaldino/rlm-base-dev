@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Schedule Payment Batch Runs to Process Payments
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Schedule Payment Batch Runs to Process Payments
-
 Set up a payment scheduler with specific filters to automatically process payments for your transactions. Payment batch runs process existing payment schedules and payment schedule items to collect the corresponding payments, and then apply them to invoices based on the payment application level.
 
 REQUIRED EDITIONS

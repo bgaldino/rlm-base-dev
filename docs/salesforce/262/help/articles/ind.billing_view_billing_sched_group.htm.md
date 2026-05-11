@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generated Billing Schedule Details
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generated Billing Schedule Details
-
 View all the key billing schedule and invoice details in the Billing Schedule Group records.
 
 REQUIRED EDITIONS

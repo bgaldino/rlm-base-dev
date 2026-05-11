@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Tax Setup Prerequisites
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Tax Setup Prerequisites
-
 If you want to calculate standard taxes, calculate taxes by using your own tax engine, or by integrating the Billing TaxEngineAdapter Apex interface with a partner app, complete these prerequisites.
 
 REQUIRED EDITIONS

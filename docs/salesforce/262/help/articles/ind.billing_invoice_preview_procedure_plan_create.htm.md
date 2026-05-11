@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoice Previews with the Invoice Preview API
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoice Previews with the Invoice Preview API
-
 To generate preview invoices by using the Invoice Preview API, create and activate a custom procedure plan definition for the object that you want to preview invoices for. The Invoice Preview API uses the procedure plan to generate invoice previews.
 
 REQUIRED EDITIONS

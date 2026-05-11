@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Process Payments and Issue Refunds in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Process Payments and Issue Refunds in Agentforce Revenue Management
-
 Complete your cash journey by making payments for posted invoices and issuing refunds when needed. Settle open invoice balances in a timely manner and accurately report cash flow by collecting and applying payments. Refund your customers if they change or cancel products or services that they paid for.
 
 REQUIRED EDITIONS

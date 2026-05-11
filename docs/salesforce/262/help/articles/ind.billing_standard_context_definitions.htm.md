@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Standard Context Definitions for Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Standard Context Definitions for Billing
-
 After you turn on Context Service, you can access the standard context definitions that are available with Billing.
 
 REQUIRED EDITIONS

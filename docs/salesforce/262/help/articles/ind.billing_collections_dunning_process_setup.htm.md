@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up and Send Dunning Emails
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up and Send Dunning Emails
-
 Configure automated dunning campaign emails to improve overdue invoice collections. Your collections reps can schedule timely overdue payment email reminders on a recurring basis, helping improve payment recovery rate and reduce collections efforts.
 
 REQUIRED EDITIONS

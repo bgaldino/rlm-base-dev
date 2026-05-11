@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoices in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoices in Agentforce Revenue Management
-
 Schedule invoice runs to generate invoices from billing schedules or generate invoices directly from accounts or orders. Create standalone invoices or import invoices from an external system.
 
 REQUIRED EDITIONS

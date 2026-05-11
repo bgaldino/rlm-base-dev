@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Automatic Creation of Dual Transaction Journals
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Automatic Creation of Dual Transaction Journals
-
 Automatically generate dual transaction journals, that represent a credit entry and a debit entry, based on the configuration for the transaction type in the General Ledger Account Assignment Rule record. Integrate these transaction journals with any accounting system of your choice to prepare your financial statements such as balance sheets, and profit and loss statements.
 
 REQUIRED EDITIONS

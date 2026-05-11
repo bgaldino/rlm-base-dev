@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Considerations When Setting Up and Using Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Considerations When Setting Up and Using Billing
-
 Before you set up and use Billing, keep these considerations in mind.
 
 Coexistence with Subscription Management

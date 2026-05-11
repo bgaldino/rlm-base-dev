@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Invoice Batch Run Process
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Invoice Batch Run Process
-
 Invoice batch runs stream invoices by processing billing schedules in parallel. Track each stage of the invoice batch run to monitor progress and status.
 
 REQUIRED EDITIONS

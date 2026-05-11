@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Credit Memo Features
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Credit Memo Features
-
 Set up Billing to automatically create credit memos from negative invoice lines and apply them to settle outstanding invoice balances, and to configure whether credits apply to invoices or invoice lines.
 
 REQUIRED EDITIONS

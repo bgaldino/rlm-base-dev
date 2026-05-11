@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Billing Employee Assistance Use Case
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Billing Employee Assistance Use Case
-
 At Acme, the billing team spent hours digging through orders, amendments, and cancellations whenever a customer questioned an invoice. Each case meant switching between systems, piecing together the story of a charge, and explaining it to the customer. This process often delayed resolutions and sometimes left customers frustrated.
 
 REQUIRED EDITIONS

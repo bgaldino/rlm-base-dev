@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Credit Memos by Using APIs or Flow Actions
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Credit Memos by Using APIs or Flow Actions
-
 Use APIs or Flow actions to create credit memos, apply credit memos to invoices, unapply already applied credits from invoices, and convert negative invoice lines into posted credit memos.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Issue Refunds and Settle Balances
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Issue Refunds and Settle Balances
-
 During subscription changes such as a quantity reduction or cancellation, Billing generates a negative invoice which then gets converted to a credit memo. This action triggers the refund orchestration process, where Billing automatically initiates the refund to the original payment method.
 
 REQUIRED EDITIONS

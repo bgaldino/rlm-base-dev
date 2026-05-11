@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Define Tax Calculation for Invoices
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Define Tax Calculation for Invoices
-
 Configure tax calculation on the billing amounts of your taxable products or services, or import tax amounts calculated by an external system.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Salesforce Payments
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Salesforce Payments
-
 To use Salesforce Payments for financial transactions, set up an Experience Cloud site and enable Payments for your org. Then, use a guided setup to create a merchant account and payment methods.
 
 REQUIRED EDITIONS

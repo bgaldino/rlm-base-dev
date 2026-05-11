@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Pay Invoices with the Self-Service Billing Portal
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Pay Invoices with the Self-Service Billing Portal
-
 When your customers log in to the self-service billing portal, they can view invoices, download invoice PDF documents, and pay outstanding balances for the invoices. The Home tab shows the list of invoices that aren't settled, partially settled, and settled.
 
 REQUIRED EDITIONS

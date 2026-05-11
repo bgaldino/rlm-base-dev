@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generate Invoices Automatically Based on Billing Schedules
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generate Invoices Automatically Based on Billing Schedules
-
 Set up invoice schedulers to schedule invoice generation or generate on-demand invoices. Modify the parameters and filter criteria of the invoice scheduler to tailor the invoice run schedules to your needs.
 
 REQUIRED EDITIONS

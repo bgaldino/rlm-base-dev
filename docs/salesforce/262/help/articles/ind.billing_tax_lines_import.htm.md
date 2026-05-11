@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Import External Tax Lines into Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Import External Tax Lines into Billing
-
 Bring in the tax amounts calculated by an external system for draft invoices.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Legal Entity Accounting Period Closure Procedure
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Legal Entity Accounting Period Closure Procedure
-
 When you close legal entity accounting period, the system runs three Data Processing Engine (DPE) definitions in a sequence.
 
 This feature is available for the Invoice and Credit Memo records, and their related records with the Agentforce Revenue Management Advanced license or the Agentforce Revenue Management Billing license.

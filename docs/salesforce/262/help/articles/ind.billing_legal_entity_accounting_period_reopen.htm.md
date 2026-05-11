@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Reopen a Legal Entity Accounting Period
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Reopen a Legal Entity Accounting Period
-
 Reopen legal entity accounting periods to reconcile any previous journal entries. This exercise helps maintain accurate and compliant financial records during accounting period closure.
 
 REQUIRED EDITIONS

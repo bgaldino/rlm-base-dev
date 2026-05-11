@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Configure Context Definitions for Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Context Definitions for Billing
-
 Context definitions in Billing act as a central data-mapping layer that helps information flow seamlessly from orders or external transactions into billing schedules. They transform data from Salesforce objects into a standardized format that enable the Billing APIs to read the details required to create accurate billing records. By configuring these context definitions, businesses can automate the transfer of custom field data.
 
 Standard Context Definitions for Billing

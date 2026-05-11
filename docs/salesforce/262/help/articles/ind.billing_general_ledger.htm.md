@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Chart of Accounts and Transaction Journals in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Chart of Accounts and Transaction Journals in Agentforce Revenue Management
-
 Set up a chart of accounts for your legal entities by creating general ledger accounts. Assign appropriate general ledger accounts to transaction journals by setting up general ledger account assignment rules. Automatically generate dual transaction journals based on the configuration for the billing transaction type and criteria in the general ledger account assignment rule.
 
 REQUIRED EDITIONS

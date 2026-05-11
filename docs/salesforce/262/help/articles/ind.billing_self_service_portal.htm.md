@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Self-Service Billing Portal
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Self-Service Billing Portal
-
 The self-service billing portal is a customer-facing Experience Cloud site that enables end users and community users to raise and track their billing inquiries and disputes. Your customers can view and download invoice PDF documents and quickly pay the outstanding balances of invoices by using supported payment methods. The self-service portal minimizes manual intervention and improves cash flow and customer satisfaction.
 
 REQUIRED EDITIONS

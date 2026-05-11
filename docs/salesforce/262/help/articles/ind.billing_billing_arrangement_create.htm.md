@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Create Billing Arrangements and Billing Arrangement Lines
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create Billing Arrangements and Billing Arrangement Lines
-
 Billing arrangements define how a transaction’s billable amount is invoiced to the relevant billing accounts.
 
 REQUIRED EDITIONS

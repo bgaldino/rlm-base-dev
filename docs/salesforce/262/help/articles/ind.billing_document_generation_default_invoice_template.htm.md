@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Default Document Template to Generate Invoice PDF Documents
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Default Document Template to Generate Invoice PDF Documents
-
 After your Billing admin turns on Document Generation for Billing, immediately generate bulk PDF documents for invoices by using the default document template that's preselected.
 
 REQUIRED EDITIONS

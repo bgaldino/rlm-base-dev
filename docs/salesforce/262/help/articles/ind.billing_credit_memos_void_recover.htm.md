@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Void or Recover Credit Memos
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Void or Recover Credit Memos
-
 Fix credit memos that are Pending or Error status by recovering them. You can also void an unapplied posted credit memo and reverse the credit by creating a corresponding debit memo.
 
 REQUIRED EDITIONS

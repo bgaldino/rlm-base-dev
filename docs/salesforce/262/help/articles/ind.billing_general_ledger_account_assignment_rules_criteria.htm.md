@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Define Criteria for Transaction Types
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Define Criteria for Transaction Types
-
 Edit, delete, or define the filter criteria for the transaction type on the general ledger account assignment rule you created.
 
 REQUIRED EDITIONS

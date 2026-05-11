@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Sequential Numbering for Invoices and Credit Memos
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Sequential Numbering for Invoices and Credit Memos
-
 Use a sequence policy to configure automated sequential numbering for your invoices and credit memos. Generate unique, gapless numbers to create fully traceable records for financial audits.
 
 REQUIRED EDITIONS

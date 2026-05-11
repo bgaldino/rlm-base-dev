@@ -2437,6 +2437,71 @@ tasks:
     options:
       flow_name: manual
 
+  # ----------------------------------------------------------------------
+  # Documentation / AI grounding
+  # ----------------------------------------------------------------------
+  # snapshot_salesforce_help walks a Salesforce Help portal area and emits
+  # one markdown file per article, plus a manifest.json and index.md.
+  # See tasks/rlm_snapshot_help.py for full docstring.
+  #
+  # Playwright must be installed into the same Python environment that runs
+  # CCI. With pipx-installed CCI (recommended per the project README):
+  #
+  #   pipx inject cumulusci playwright
+  #   $(pipx environment --value PIPX_LOCAL_VENVS)/cumulusci/bin/python -m playwright install chromium
+  #
+  # (pipx doesn't expose Playwright's CLI by default; running via the venv's
+  # Python is the cleanest path. Alternatively, re-inject with --include-apps
+  # to put `playwright` on your PATH:
+  #   pipx inject cumulusci playwright --include-apps --force
+  #   playwright install chromium)
+  #
+  # With pip-installed CCI in the project .venv:
+  #
+  #   source .venv/bin/activate
+  #   python -m pip install playwright
+  #   playwright install chromium
+
+  snapshot_salesforce_help:
+    group: Documentation
+    description: >
+      Generic snapshot task. Walks a Salesforce Help portal area from a root
+      article ID, captures every article whose ID starts with the given prefix,
+      and writes markdown files with YAML frontmatter to
+      docs/salesforce/{release_version}/help/articles/. Also produces
+      manifest.json and index.md.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    # All options must be provided at invocation time. See the area-specific
+    # variants below for ready-to-run examples.
+
+  snapshot_billing_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Billing area of Salesforce Help.
+      ~170 articles. Default headless run takes ~10-15 minutes.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+
+  snapshot_billing_help_260:
+    group: Documentation
+    description: >
+      Snapshot the 260 (Spring '26) Billing area of Salesforce Help.
+      For diff-against-262 verification work.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "260"
+      release_name: "Spring '26"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#

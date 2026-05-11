@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create Accounting Periods
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create Accounting Periods
-
 Create accounting periods to organize and store financial information for specific time frames. For example, if your company tracks performance quarterly, define quarterly accounting periods.
 
 REQUIRED EDITIONS

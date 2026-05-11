@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Tax Rates
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Tax Rates
-
 Use the Revenue Standard Tax Engine to calculate taxes natively in Agentforce Revenue Management. Define tax rates and use the built-in decision table to determine applicable taxes for products.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Void Invoices
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Void Invoices
-
 Simplify invoice corrections by voiding posted invoices directly from the Invoice record.
 
 REQUIRED EDITIONS

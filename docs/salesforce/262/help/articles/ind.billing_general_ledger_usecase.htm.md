@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Example: Chart of Accounts and Dual Journal Entries
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Example: Chart of Accounts and Dual Journal Entries
-
 Explore an example to understand how chart of accounts are set up and how dual transaction journals are created based on the configured general ledger accounts and account assignment rules.
 
 Chart of Accounts

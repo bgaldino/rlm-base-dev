@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Examples: Invoice Batch Run Frequencies
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Examples: Invoice Batch Run Frequencies
-
 Explore examples to understand how to schedule invoice batch runs based on your requirements.
 
 Weekly Invoice Schedule

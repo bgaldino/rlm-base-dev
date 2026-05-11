@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Payment Batch Run Overview
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Payment Batch Run Overview
-
 At the start time of the payment scheduler, payment batch runs start processing payment schedule items based on the defined criteria.
 
 REQUIRED EDITIONS

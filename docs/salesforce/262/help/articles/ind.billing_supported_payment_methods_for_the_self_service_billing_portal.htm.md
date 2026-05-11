@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Supported Payment Methods for the Self-Service Billing Portal
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Supported Payment Methods for the Self-Service Billing Portal
-
 Give your customers more flexibility to pay invoices by adding digital wallets, bank debits, and buy now, pay later options to the self-service Billing Portal.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Results of Credit Memo Application
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Results of Credit Memo Application
-
 After posted invoices are generated, credits are applied based on the credit application level.
 
 REQUIRED EDITIONS

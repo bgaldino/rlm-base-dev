@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Milestone Billing Example
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Milestone Billing Example
-
 Explore an example that shows how milestone billing ties invoices to project progress. Structured invoicing at key delivery points improves revenue accuracy, builds customer trust, and supports financial planning.
 
 REQUIRED EDITIONS

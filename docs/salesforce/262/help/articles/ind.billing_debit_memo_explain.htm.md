@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # About Debit Memos
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-About Debit Memos
-
 A debit memo is issued by a seller to a buyer when the seller wants to levy additional charges to what was already billed or charged. For example, late payment fees, cancellation fees, and so on.
 
 REQUIRED EDITIONS

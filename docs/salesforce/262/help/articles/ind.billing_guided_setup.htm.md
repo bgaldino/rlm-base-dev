@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Guided Setup for Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Guided Setup for Billing
-
 Admins can use the Billing Guided Setup for a ‌step-by-step guidance to complete key tasks that are required to set up Billing.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # About Credit Memos
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-About Credit Memos
-
 A credit memo is a document issued by a seller to a buyer to acknowledge a reduction in the amount owed by the customer.
 
 REQUIRED EDITIONS

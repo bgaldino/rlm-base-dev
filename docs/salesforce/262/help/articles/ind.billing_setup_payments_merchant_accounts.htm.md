@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Native Payment Gateways by Using Salesforce Payments
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Native Payment Gateways by Using Salesforce Payments
-
 Accept electronic payments from your customers on Stripe and Adyen payment gateways by using the Salesforce Payments native payment service. Create new Stripe merchant accounts or connect your existing Adyen merchant accounts by using Salesforce Payments.
 
 REQUIRED EDITIONS

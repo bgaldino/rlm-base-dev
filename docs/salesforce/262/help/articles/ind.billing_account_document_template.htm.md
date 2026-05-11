@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Assign an Invoice Document Template to a Billing Profile
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Assign an Invoice Document Template to a Billing Profile
-
 Configure a custom invoice document template to use for account-specific invoice document generation.
 
 REQUIRED EDITIONS

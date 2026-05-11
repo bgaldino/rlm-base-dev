@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Define Invoice Grouping on a Billing Schedule
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Define Invoice Grouping on a Billing Schedule
-
 Generate grouped or split invoices by configuring default, custom, or billing schedule group types on billing schedules.
 
 REQUIRED EDITIONS

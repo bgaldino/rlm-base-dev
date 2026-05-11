@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Set Up Additional Billing Features
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Additional Billing Features
-
 Beyond the core functionality, you can set up and configure various additional Billing features to extend its capabilities. This allows you to tailor Billing to your specific business requirements.
 
 Set Up Financial Accounting Features

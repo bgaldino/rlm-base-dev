@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Example: Automatically Capture Unrealized Foreign Exchange Unrealized Gains or Losses
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Example: Automatically Capture Unrealized Foreign Exchange Unrealized Gains or Losses
-
 Explore an example to understand how to a set up general ledger accounts on the Salesforce org's default general ledger accounts and create dual transaction journals and reversal transaction journals to capture unrealized gains or losses amount of the invoices during legal entity accounting period closure.
 
 Smartbytes Scenario: Initial Setup and Configuration

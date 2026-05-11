@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Automated Invoice Generation with Invoice Batch Runs
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Automated Invoice Generation with Invoice Batch Runs
-
 Schedule invoice batch runs to automate invoice generation. These runs use Data Processing Engine to generate invoices.
 
 REQUIRED EDITIONS

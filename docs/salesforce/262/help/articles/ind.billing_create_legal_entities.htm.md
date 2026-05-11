@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create Legal Entities in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create Legal Entities in Agentforce Revenue Management
-
 Create legal entities to manage the billing and tax information for order products.
 
 REQUIRED EDITIONS

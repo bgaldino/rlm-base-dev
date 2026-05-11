@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Retry Failed Payments
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Retry Failed Payments
-
 Billing supports automated retries of failed payments, helping you capture more revenue and reduce manual collections work. When you enable the automatic retry of failed payments in your org, you can define and apply a payment retry strategy for all failed payments. You can define payment retry rules based on error categories such as insufficient funds or payment processing issues. For greater control and flexibility, you can define retry rules based on specific payment gateways and gateway-specific error codes. For each error category, you can configure the retry intervals that determine how frequently Billing can attempt to reprocess the failed payment. Additionally, you can set the maximum number of retry attempts, after which Billing either tries an alternate payment method or marks the payment request as failed.
 
 REQUIRED EDITIONS

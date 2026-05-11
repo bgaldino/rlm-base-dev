@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Generated Statement Details
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Generated Statement Details
-
 The generated account statement PDF groups billing data into an account summary, transaction history, and balance due. The statement period filters transaction history, while summary and balance due reflect balances as of generation time.
 
 REQUIRED EDITIONS

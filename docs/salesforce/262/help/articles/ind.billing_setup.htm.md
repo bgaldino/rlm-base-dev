@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Set Up Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Billing
-
 Enable Billing, assign the required permission sets, and set up features.
 
 REQUIRED EDITIONS

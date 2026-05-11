@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Configure Your Custom Metadata Types
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Configure Your Custom Metadata Types
-
 Create a custom metadata type to house your field mappings. These field mappings are required for all the additional fields you want to include in your tax callouts. Associate your custom metadata type with your tax engine provider so it's aware of the fields used in the request and response.
 
 REQUIRED EDITIONS

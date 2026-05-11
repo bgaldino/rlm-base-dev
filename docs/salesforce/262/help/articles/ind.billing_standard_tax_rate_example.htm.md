@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Revenue Standard Tax Engine Example
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Revenue Standard Tax Engine Example
-
 Explore an example that shows how the Standard Tax Engine applies multiple tax rates to an invoice based on location, currency, and product criteria.
 
 REQUIRED EDITIONS

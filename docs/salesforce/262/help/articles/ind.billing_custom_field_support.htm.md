@@ -11,13 +11,6 @@ fetched_at: 2026-05-11
 
 # Capture Preferred Transaction Details by Using Custom Fields
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Capture Preferred Transaction Details by Using Custom Fields
-
 To meet specific business requirements, populate custom field data from orders or external transactions to corresponding billing schedule, billing schedule group, and billing schedule group relationship records. Use Context Service to define how data must be transferred by configuring a custom intracontext mapping. Then, use the Create Billing Schedules for Orders API or the Create Standalone Billing Schedules API to generate billing schedules and billing schedule groups. You can also use custom fields to override the standard fields in billing nodes by using the custom intracontext mapping.
 
 REQUIRED EDITIONS

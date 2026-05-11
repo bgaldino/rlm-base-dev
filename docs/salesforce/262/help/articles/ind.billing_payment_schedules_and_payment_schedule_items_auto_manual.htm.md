@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Payment Schedules and Payment Schedule Items
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Payment Schedules and Payment Schedule Items
-
 Payment schedules contain information about a set of payments that a customer wants to pay at different times for a certain record. A payment schedule contains one or more payment schedule items, where each item represents one payment to be processed.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create General Ledger Accounts
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create General Ledger Accounts
-
 Set up a chart of accounts for your organization's legal entities by creating general ledger accounts. Use these accounts to categorize your billing transactions by accounting type and report them in your company’s financial statements.
 
 REQUIRED EDITIONS

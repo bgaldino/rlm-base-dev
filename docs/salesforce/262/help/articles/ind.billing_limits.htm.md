@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Limits in Billing
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Limits in Billing
-
 Review the default limits for Billing features.
 
 Billing Business API Limits

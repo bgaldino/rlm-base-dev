@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Set Up Third-Party Payment Gateways
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Set Up Third-Party Payment Gateways
-
 Bring your own third-party payment gateways to process payments and issue refunds. Set up and add external payment gateways, and then connect them to Billing.
 
 REQUIRED EDITIONS

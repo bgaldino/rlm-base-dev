@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Statement of Account
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Statement of Account
-
 Account statements consolidate billing activity for accounts over a time period so customers see transactions and outstanding balances in one statement.
 
 REQUIRED EDITIONS

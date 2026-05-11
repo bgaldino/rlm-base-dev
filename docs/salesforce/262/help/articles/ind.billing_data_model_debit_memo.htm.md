@@ -10,11 +10,4 @@ fetched_at: 2026-05-11
 
 # Debit Memo Data Model in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Debit Memo Data Model in Agentforce Revenue Management
-
 The Debit Memo data model depicts the objects and their relationships to process debit memos when you undercharge your customer or want to add additional charges.

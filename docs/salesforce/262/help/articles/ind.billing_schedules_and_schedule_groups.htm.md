@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Billing Schedules and Billing Schedule Groups
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Billing Schedules and Billing Schedule Groups
-
 Billing schedules define when and how an order product is invoiced. Billing schedule groups contain one or more billing schedules. Both of these are created and updated as a result of creating, amending, and canceling orders.
 
 REQUIRED EDITIONS

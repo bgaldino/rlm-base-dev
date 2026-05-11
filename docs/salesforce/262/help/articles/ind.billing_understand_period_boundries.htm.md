@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Period Boundary and Proration in Billing Cycles
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Period Boundary and Proration in Billing Cycles
-
 You can adjust when billing periods start and how charges are calculated by using flexible date settings that align with your business model and customer preferences.
 
 REQUIRED EDITIONS

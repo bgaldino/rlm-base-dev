@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Manage Debit Memos in Agentforce Revenue Management
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Manage Debit Memos in Agentforce Revenue Management
-
 Create debit memos when you undercharge your customer or want to add additional charges. When debit memo lines are converted to invoice lines, the balance of the related invoices increases.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Close an Accounting Period
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Close an Accounting Period
-
 Close an accounting period after its duration ends and after all journal entries are validated for financial reporting of that period.
 
 REQUIRED EDITIONS

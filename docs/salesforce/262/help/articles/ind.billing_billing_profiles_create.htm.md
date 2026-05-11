@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Create Billing Profiles
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Create Billing Profiles
-
 Cater to your customers' billing preferences and business needs by creating billing profiles for their accounts. Define multiple billing profiles for an account to manage diverse billing needs, each with its own billing details, payment terms, and contacts. Set a default billing profile for accounts to easily access your customers' preferred billing day of the month, billing address, billing contact, and other details. With billing profiles, sales representatives no longer need to enter this information for each transaction, saving time and effort.
 
 REQUIRED EDITIONS

@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Period Boundaries and Billing Day of Month
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Period Boundaries and Billing Day of Month
-
 You can use the Period Boundary, Period Boundary Day, and Period Boundary Start Month fields on transactions, such as order product, to define when billing begins, how billing periods are segmented, and how proration is applied. The period boundary on the order product ‌defines how the billing period is calculated. The Billing Day of the Month field on the Billing Schedule record specifies the day you expect to bill the customer. Together, these fields define how billing periods align with the transaction timeline and how Billing in Agentforce Revenue Management calculates and groups charges on invoice lines.
 
 REQUIRED EDITIONS

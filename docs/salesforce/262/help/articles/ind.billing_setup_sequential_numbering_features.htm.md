@@ -10,13 +10,6 @@ fetched_at: 2026-05-11
 
 # Turn On Sequential Numbering Features
 
-You are here:
-
-SALESFORCE HELP
-DOCS
-AGENTFORCE REVENUE MANAGEMENT
-Turn On Sequential Numbering Features
-
 Apply unique, gapless sequence numbers to transaction records to ensure financial compliance and a clear audit trail. You can also mandate assigning an invoice number to every posted invoice.
 
 REQUIRED EDITIONS
