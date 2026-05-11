@@ -135,3 +135,7 @@ docs/salesforce/262/salesforce-release-notes-summer-26-2026-05-07.pdf
 # Large vendor reference PDFs — kept on disk locally, snapshots in docs/salesforce/{version}/help/ replace them for AI grounding
 docs/salesforce/*/revenue-cloud-*.pdf
 docs/salesforce/*/salesforce-release-notes-*.pdf
+
+# LibreOffice / soffice artifacts (lock files, scratch tmp files left behind when headless conversions crash)
+.~lock.*#
+*.tmp

@@ -1,8 +1,9 @@
 # Module 2: Billing Technical Architecture and Data Model Deep Dive
 
-**Status:** v2 draft for SME review (Trailhead AI Review Checklist applied; 262 snapshot validation pass completed 2026-05-11)
+**Status:** v2 draft for SME review (Trailhead AI Review Checklist applied; latest Salesforce Help validation pass completed 2026-05-11)
 **Reviewers:** Michael Aaron (SME), Trailhead editorial team
-**Source verifications:** 262 Billing Help snapshot (`docs/salesforce/262/help/articles/`, Summer '26, 171 articles), project metadata (qb-billing, qb-tax, ERD), and FY27 outline (Mike's Revised LOs column). See `module-2-v2-262-validation-report.md` for the per-claim citation log.
+**Source verifications:** Salesforce Help portal (Billing area), project metadata (qb-billing, qb-tax, ERD), and the ARM Billing L2 Outline (Mike's Revised LOs column). See `module-2-v2-262-validation-report.md` for the per-claim citation log.
+**Style note:** This module describes the latest, generally-available capabilities. It deliberately avoids release-version notations (260, 262, Spring '26, Summer '26) so the content stays evergreen.
 **Style notes for editorial:** This draft bolds product object names (Billing Policy, Tax Engine, etc.) for technical clarity. That deviates from the AI Review Checklist's "no bold to highlight words or phrases" guidance, but matches the convention established in Module 1 v2 across the L2 mix. If editorial decides to strip the bolding, the same change should be applied to Modules 1, 3, 4, and 5 for consistency.
 
 ---
@@ -223,7 +224,7 @@ The Create Standalone Billing Schedules API supports the full transaction lifecy
 
 One important constraint to keep in mind: when a Billing Schedule Group is already linked to an asset, downstream amendments, renewals, and cancellations must run through the Order to Billing Schedule flow or the Create Billing Schedules for Orders API — not the Standalone API. The Standalone API path is for billing schedules that don't have an asset on the other side of the relationship.
 
-A 262 enhancement worth knowing for technical eval conversations: the Standalone API now supports **minimal, intent-based requests** for amendments, renewals, cancellations, and price/quantity/end-date changes. Billing auto-computes unit price and total price from historical transaction context or Billing Schedule Group IDs, so the caller doesn't need to re-state everything to make a single change.
+Worth knowing for technical eval conversations: the Standalone API supports **minimal, intent-based requests** for amendments, renewals, cancellations, and price/quantity/end-date changes. Billing auto-computes unit price and total price from historical transaction context or Billing Schedule Group IDs, so the caller doesn't need to re-state everything to make a single change.
 
 Customers reach for Standalone Billing Schedules in three common scenarios:
 
@@ -273,7 +274,7 @@ You set up an Invoice Scheduler from the App Launcher: find and select Billing B
 | **Date logic** | Target Date and Target Date Offset; Invoice Date and Invoice Date Offset; "Calculate invoice date from run date" | Determines which billing schedules are picked up and what date the resulting Invoice carries |
 | **Filter criteria** | Billing batch, Billing charge type (multi-select), Legal entity, Customer account, Currency (multi-select) | Scopes which records become Invoices in this run; the rest defer to the next run |
 
-A note on a 262 enhancement: the **Exclude holidays and weekends** option is now available for all recurring frequencies — **Daily, Weekly, and Monthly**. Before 262 this option was restricted to Monthly scheduling. When enabled, the scheduler's next run moves to the following business day if it falls on a company holiday or a weekend. The Once frequency doesn't carry this option because there's no recurring run to defer.
+The **Exclude holidays and weekends** option is available for all recurring frequencies — **Daily, Weekly, and Monthly**. When enabled, the scheduler's next run moves to the following business day if it falls on a company holiday or a weekend. The Once frequency doesn't carry this option because there's no recurring run to defer.
 
 The diagnostic pattern when an Invoice Scheduler produces an unexpected result almost always traces back to one of these settings — most commonly a filter that excluded records you expected to bill, a date offset that picked up the wrong window, or a frequency mismatch with the customer's Billing Profile.
 
@@ -289,7 +290,7 @@ Adjacent to the Invoice Scheduler, the **Suspend Billing API** and **Resume Bill
 
 ## Key Takeaways
 
-Standalone Billing Schedules are Billing Schedule records produced via the Create Standalone Billing Schedules API and the StandaloneBillingContext context definition. They're the right tool for migrations, external-system originations, and one-off bills. Revenue Cloud Billing integrates with external systems through several APIs — Standalone Billing Schedules, Invoice Ingestion, Import External Tax Lines, Suspend/Resume Billing — plus the TaxEngineAdapter Apex interface. Customers can keep an external biller while making Revenue Cloud Billing the system of record. The Invoice Scheduler is configured by run cadence, date logic, and filter criteria. In 262, the Exclude holidays and weekends setting is available for Daily, Weekly, and Monthly recurring frequencies (an expansion from the Monthly-only behavior in 260). Email delivery is a separate feature that runs after the scheduler completes.
+Standalone Billing Schedules are Billing Schedule records produced via the Create Standalone Billing Schedules API and the StandaloneBillingContext context definition. They're the right tool for migrations, external-system originations, and one-off bills. Revenue Cloud Billing integrates with external systems through several APIs — Standalone Billing Schedules, Invoice Ingestion, Import External Tax Lines, Suspend/Resume Billing — plus the TaxEngineAdapter Apex interface. Customers can keep an external biller while making Revenue Cloud Billing the system of record. The Invoice Scheduler is configured by run cadence, date logic, and filter criteria. The Exclude holidays and weekends setting is available for Daily, Weekly, and Monthly recurring frequencies. Email delivery is a separate feature that runs after the scheduler completes.
 
 ## Resources
 
@@ -308,13 +309,11 @@ Standalone Billing Schedules are Billing Schedule records produced via the Creat
 
 # Appendix: Open Questions and Parking Lot
 
-Most factual questions from the v1 review have been resolved against the Spring '26 Help compendium (`docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf`). The two items that remain are positioning questions for Mike + the L2 mix authoring team, not factual questions for the Help docs.
+Most factual questions from the v1 review have been resolved against the Salesforce Help portal (Billing area). The remaining items are positioning questions for Mike + the L2 mix authoring team, not factual questions for the Help docs.
 
 ## Remaining positioning questions
 
 The Help docs use "external systems" and "external transactions" rather than "external biller." This v2 keeps Mike's "external billers" framing in the unit title and LO 2.2 because that's the seller-facing term, but uses both terms in the body so a learner who reads the Help docs later isn't confused. Mike, please confirm that's the right call.
-
-The "Exclude holidays and weekends" setting is documented as already-in-260, not a 262 enhancement. The v1 draft and the FY27 outline implied it was forthcoming. If there's a *separate* 262 enhancement to scheduler date logic, please point me at it so it can be added to LO 2.3.
 
 ## Topics from the v1 draft that have no current home in Modules 1–5
 
@@ -344,4 +343,4 @@ The same v1 voice patterns that Module 1 v2 corrected ("Salesforce / Agentforce 
 
 ---
 
-*Prepared by Brian Galdino with AI assistance, May 7, 2026; re-grounded against the 262 Summer '26 Billing Help snapshot on May 11, 2026. Per-claim citation log: `docs/trailhead-l2-review/module-2-v2-262-validation-report.md`.*
+*Prepared by Brian Galdino with AI assistance; re-grounded against the latest Salesforce Help portal (Billing area) on 2026-05-11. Per-claim citation log: `docs/trailhead-l2-review/module-2-v2-262-validation-report.md`. The Trailhead-facing draft deliberately avoids release-version notations to stay evergreen.*
