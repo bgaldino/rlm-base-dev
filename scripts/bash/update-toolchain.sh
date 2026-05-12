@@ -48,13 +48,17 @@ export PYENV_VERSION="$PY_TARGET"
 
 # ── 3. Node (nvm) ───────────────────────────────────────────────────────────
 export NVM_DIR="$HOME/.nvm"
+NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
+[ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ] || die "nvm.sh not found via 'brew --prefix nvm' — is nvm installed?"
 # shellcheck disable=SC1091
-. "/opt/homebrew/opt/nvm/nvm.sh"
+. "$NVM_PREFIX/nvm.sh"
 
 OLD_NODE="$(nvm current 2>/dev/null || echo none)"
-log "Node: installing latest in $NODE_LINE (current: $OLD_NODE)"
+log "Node: installing $NODE_LINE (current: $OLD_NODE)"
+# Drive install from NODE_LINE so changes at the top of this script take effect.
+# `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
 # --reinstall-packages-from=current carries `sf` and other globals forward.
-nvm install --lts --reinstall-packages-from=current --latest-npm
+nvm install "$NODE_LINE" --reinstall-packages-from=current --latest-npm
 nvm alias default "$NODE_LINE" >/dev/null
 NEW_NODE="$(nvm current)"
 log "Node: now on $NEW_NODE"
@@ -71,17 +75,26 @@ fi
 # ── 5. CCI (pipx) ───────────────────────────────────────────────────────────
 command -v pipx >/dev/null || die "pipx not found"
 
-if [ "$PY_UPGRADED" -eq 1 ] || ! pipx list --short 2>/dev/null | grep -q '^cumulusci'; then
+cci_reinstall() {
   log "CCI: reinstalling under Python $PY_TARGET"
   pipx install --force cumulusci --python "$(pyenv prefix "$PY_TARGET")/bin/python"
+}
+
+if [ "$PY_UPGRADED" -eq 1 ] || ! pipx list --short 2>/dev/null | grep -q '^cumulusci'; then
+  cci_reinstall
 else
   log "CCI: upgrade in place"
-  pipx upgrade cumulusci || warn "pipx upgrade failed — falling back to reinstall"
+  if ! pipx upgrade cumulusci; then
+    warn "pipx upgrade failed — reinstalling"
+    cci_reinstall
+  fi
 fi
 
-# CCI 4.x needs setuptools<71 (pyfilesystem2 / pkg_resources removed in 71+).
-log "CCI: pinning setuptools<71"
-pipx inject --force cumulusci "setuptools<71"
+# Modern CCI 4.8+ with snowfakery 4.x requires setuptools>=75.4 (the historical
+# `<71` pin documented in earlier guides is incompatible — see README line ~219).
+# Force the modern minimum to repair any stale legacy injection.
+log "CCI: ensuring setuptools>=75.4"
+pipx inject --force cumulusci "setuptools>=75.4"
 
 # ── 6. sf plugins ───────────────────────────────────────────────────────────
 log "sf plugins: update"

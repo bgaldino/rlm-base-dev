@@ -32,7 +32,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **Python** | `pyenv install 3.13.x` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `python -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
-| **CumulusCI** | `pipx install cumulusci` | Orchestration engine | latest, `setuptools<71` |
+| **CumulusCI** | `pipx install cumulusci` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
 | **SFDMU plugin** | `sf plugins install @forcedotcom/sfdmu` | Bulk data import/export | v5.x |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
@@ -73,10 +73,13 @@ Must be **fast** (~70ms target). No interactive features.
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
-# NVM — function definitions + default node bin on PATH (no slow `nvm use`)
+# NVM — function definitions + default node bin on PATH (no slow `nvm use`).
+# `brew --prefix nvm` resolves to /opt/homebrew/opt/nvm (Apple Silicon)
+# or /usr/local/opt/nvm (Intel) — works on both architectures.
 export NVM_DIR="$HOME/.nvm"
-if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-  . "/opt/homebrew/opt/nvm/nvm.sh" --no-use
+_NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
+if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
+  . "$_NVM_PREFIX/nvm.sh" --no-use
   if [ -s "$NVM_DIR/alias/default" ]; then
     _NVM_DEF="$(cat "$NVM_DIR/alias/default")"
     while [ -s "$NVM_DIR/alias/$_NVM_DEF" ]; do
@@ -88,6 +91,7 @@ if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
     unset _NVM_DEF _NVM_VER
   fi
 fi
+unset _NVM_PREFIX
 
 # pyenv binary on PATH — but NO global init. Per-project init via direnv.
 export PYENV_ROOT="$HOME/.pyenv"
@@ -111,8 +115,10 @@ export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
 
 # nvm completions (interactive nicety)
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \
-  . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+_NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
+[ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/etc/bash_completion.d/nvm" ] && \
+  . "$_NVM_PREFIX/etc/bash_completion.d/nvm"
+unset _NVM_PREFIX
 
 # Project / org env vars (Anthropic, Vertex, etc.) go here
 ```
@@ -149,12 +155,15 @@ if command -v pyenv >/dev/null 2>&1; then
   PATH_add "$(pyenv root)/shims"
 fi
 
-# Node via nvm — track active LTS line
+# Node via nvm — track active LTS line. brew --prefix nvm resolves to
+# /opt/homebrew/opt/nvm (Apple Silicon) or /usr/local/opt/nvm (Intel).
 export NVM_DIR="$HOME/.nvm"
-if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-  . "/opt/homebrew/opt/nvm/nvm.sh" --no-use
+_NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
+if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
+  . "$_NVM_PREFIX/nvm.sh" --no-use
   nvm use --silent lts/\* >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
 fi
+unset _NVM_PREFIX
 ```
 
 ### First-time activation
@@ -201,7 +210,10 @@ The script handles:
 5. `pipx install --force cumulusci` (if Python patch bumped) **or**
    `pipx upgrade cumulusci` — required because patch upgrades break the
    venv's python symlink
-6. `pipx inject --force cumulusci "setuptools<71"` — CCI 4.x dependency pin
+6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
+   requires modern setuptools (the historical `<71` pin documented in
+   earlier guides is **incompatible** with current CCI; see README's
+   *Note on setuptools*)
 7. `sf plugins update`
 8. `cci task run validate_setup` — verifies all 12 checks still pass
 
@@ -267,7 +279,7 @@ patch the venv dies. The update script handles this; manually:
 
 ```bash
 pipx install --force cumulusci --python "$(pyenv prefix 3.13)/bin/python"
-pipx inject --force cumulusci "setuptools<71"
+pipx inject --force cumulusci "setuptools>=75.4"
 ```
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
